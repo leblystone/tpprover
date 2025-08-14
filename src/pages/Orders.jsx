@@ -229,65 +229,58 @@ export default function Orders() {
           )}
         </>
       )}>
-        <div className="space-y-3">
-          <TextInput label="Peptide" value={form.peptide} onChange={v => setForm({ ...form, peptide: v })} placeholder="Peptide" theme={theme} />
-          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
-          <TextInput label="mg" value={form.mg} onChange={v => setForm({ ...form, mg: v })} placeholder="10" theme={theme} />
-          <TextInput label="Cost ($)" value={form.cost} onChange={v => setForm({ ...form, cost: v })} placeholder="$" theme={theme} />
-          <div className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-6 sm:col-span-4">
-              <TextInput label="Quantity" value={form.quantity || ''} onChange={v => setForm({ ...form, quantity: v })} placeholder="1" theme={theme} />
-            </div>
-            <div className="col-span-6 sm:col-span-4">
-              <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Unit</div>
-              <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-                {['vial','kit'].map(k => (
-                  <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                    style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
-                    {k.charAt(0).toUpperCase() + k.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Status</div>
-            <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-              {[
-                { label: 'Order Placed', value: 'Order Placed' },
-                { label: 'In Transit', value: 'Shipped' },
-                { label: 'Delivered', value: 'Delivered' },
-              ].map(opt => (
-                <button key={opt.value} type="button" onClick={() => setForm({ ...form, status: opt.value })} className={`px-3 py-1.5 rounded-full text-xs font-semibold ${form.status === opt.value ? 'text-white' : ''}`} style={form.status === opt.value ? { backgroundColor: theme.primary } : { backgroundColor: '#F3F4F6', color: '#374151' }}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <TextInput label="Date Ordered" value={form.date || ''} onChange={v => setForm({ ...form, date: v })} placeholder="YYYY-MM-DD" theme={theme} />
-          <TextInput label="Delivery Date" value={form.deliveryDate || ''} onChange={v => setForm({ ...form, deliveryDate: v })} placeholder="YYYY-MM-DD" theme={theme} />
-          <TextInput label="Notes" value={form.notes} onChange={v => setForm({ ...form, notes: v })} placeholder="Notes" theme={theme} />
-          <div>
-            <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Category</div>
-            <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-              {['domestic','international','group'].map(k => (
-                <button key={k} type="button" onClick={() => setForm(prev => ({ ...form, category: k }))}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-full ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                  style={form.category === k ? { backgroundColor: theme.primary } : {}}>
-                  {k.charAt(0).toUpperCase() + k.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-          {activeTab === 'group' && (
-            <>
-              <TextInput label="Group Title" value={groupTitle} onChange={setGroupTitle} placeholder="e.g., BPC-157 Round #4" theme={theme} />
-              <TextInput label="Participants (comma separated)" value={groupParticipants} onChange={setGroupParticipants} placeholder="alice, bob, charlie" theme={theme} />
-              <TextInput label="Notes" value={groupNotes} onChange={setGroupNotes} placeholder="split shipping, escrow, etc" theme={theme} />
-            </>
-          )}
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+			<VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
+			<TextInput label="Peptide" value={form.peptide} onChange={v => setForm({ ...form, peptide: v })} placeholder="Peptide" theme={theme} />
+			<TextInput label="mg" value={form.mg} onChange={v => setForm({ ...form, mg: v })} placeholder="10" theme={theme} />
+			<TextInput label="Cost ($)" value={form.cost} onChange={v => setForm({ ...form, cost: v })} placeholder="$" theme={theme} />
+			<div className="col-span-1 sm:col-span-2 grid grid-cols-12 gap-2 items-end">
+				<div className="col-span-6 sm:col-span-4">
+					<TextInput label="Quantity" value={form.quantity || ''} onChange={v => setForm({ ...form, quantity: v })} placeholder="1" theme={theme} />
+				</div>
+				<div className="col-span-6 sm:col-span-4">
+					<div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Unit</div>
+					<div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+						{['vial','kit'].map(k => (
+							<button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
+								className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+								style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
+								{k.charAt(0).toUpperCase() + k.slice(1)}
+							</button>
+						))}
+					</div>
+				</div>
+			<div className="col-span-1 sm:col-span-2">
+				<div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Status</div>
+				<div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+					{[
+						{ label: 'Order Placed', value: 'Order Placed' },
+						{ label: 'In Transit', value: 'Shipped' },
+						{ label: 'Delivered', value: 'Delivered' },
+					].map(opt => (
+						<button key={opt.value} type="button" onClick={() => setForm({ ...form, status: opt.value })} className={`px-3 py-1.5 rounded-full text-xs font-semibold ${form.status === opt.value ? 'text-white' : ''}`} style={form.status === opt.value ? { backgroundColor: theme.primary } : { backgroundColor: '#F3F4F6', color: '#374151' }}>
+							{opt.label}
+						</button>
+					))}
+				</div>
+			</div>
+			<TextInput label="Date Ordered" value={form.date || ''} onChange={v => setForm({ ...form, date: v })} placeholder="YYYY-MM-DD" theme={theme} />
+			<TextInput label="Delivery Date" value={form.deliveryDate || ''} onChange={v => setForm({ ...form, deliveryDate: v })} placeholder="YYYY-MM-DD" theme={theme} />
+			<TextInput label="Notes" value={form.notes} onChange={v => setForm({ ...form, notes: v })} placeholder="Notes" theme={theme} />
+			<div className="col-span-1 sm:col-span-2">
+				<div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Category</div>
+				<div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+					{['domestic','international','group'].map(k => (
+						<button key={k} type="button" onClick={() => setForm(prev => ({ ...form, category: k }))}
+							className={`px-3 py-1.5 text-xs font-semibold rounded-full ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+							style={form.category === k ? { backgroundColor: theme.primary } : {}}>
+							{k.charAt(0).toUpperCase() + k.slice(1)}
+						</button>
+					))}
+				</div>
+			</div>
+		</div>
+
       </Modal>
 
       <OrderDetailsModal
