@@ -234,22 +234,26 @@ export default function Orders() {
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
           <TextInput label="mg" value={form.mg} onChange={v => setForm({ ...form, mg: v })} placeholder="10" theme={theme} />
           <TextInput label="Cost ($)" value={form.cost} onChange={v => setForm({ ...form, cost: v })} placeholder="$" theme={theme} />
-          <TextInput label="Quantity" value={form.quantity || ''} onChange={v => setForm({ ...form, quantity: v })} placeholder="1" theme={theme} />
-          <div>
-            <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Unit</div>
-            <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-              {['vial','kit'].map(k => (
-                <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                  style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
-                  {k.charAt(0).toUpperCase() + k.slice(1)}
-                </button>
-              ))}
+          <div className="grid grid-cols-12 gap-2 items-end">
+            <div className="col-span-6 sm:col-span-4">
+              <TextInput label="Quantity" value={form.quantity || ''} onChange={v => setForm({ ...form, quantity: v })} placeholder="1" theme={theme} />
+            </div>
+            <div className="col-span-6 sm:col-span-4">
+              <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Unit</div>
+              <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+                {['vial','kit'].map(k => (
+                  <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                    style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
+                    {k.charAt(0).toUpperCase() + k.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div>
             <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Status</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
               {[
                 { label: 'Order Placed', value: 'Order Placed' },
                 { label: 'In Transit', value: 'Shipped' },
