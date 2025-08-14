@@ -1,15 +1,18 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { CheckSquare, Square, Droplet, Pill, Upload, Users, Zap, ShoppingCart, CheckCircle, Clock, Truck } from 'lucide-react'
+import { Users, Plus, ShoppingCart, Droplet } from 'lucide-react'
 import { themes, defaultThemeName } from '../theme/themes'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
-
-const ViewContainer = ({ theme, children }) => (
-  <div className="space-y-8 min-h-screen" style={{ backgroundColor: theme.background }}>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      {children}
-    </div>
-  </div>
-)
+import ViewContainer from '../components/ui/ViewContainer'
+import TasksList from '../components/dashboard/TasksList'
+import UpcomingOrderCard from '../components/dashboard/UpcomingOrderCard'
+import ReconCalculatorModal from '../components/recon/ReconCalculatorModal'
+import UpcomingBuys from '../components/dashboard/UpcomingBuys'
+import AddBuyModal from '../components/buys/AddBuyModal'
+import { ToastContainer, Toast } from '../components/ui/Toast'
+import OCRImportModal from '../components/import/OCRImportModal'
+import PendingVendorsView from '../components/dashboard/PendingVendorsView'
+import OrderDetailsModal from '../components/orders/OrderDetailsModal'
+import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
+import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 
 export default function Dashboard() {
   const [themeName] = useState(defaultThemeName)
@@ -34,7 +37,27 @@ export default function Dashboard() {
     shipDate: new Date().toISOString(),
   }), [])
 
+  const pendingVendors = useMemo(() => ([
+    { id: 1001, name: 'Vendor X', notes: 'Auto-created from reconstitution' },
+    { id: 1002, name: 'Vendor Y', notes: 'Auto-created from orders' },
+  ]), [])
+
   const [todaysTasks, setTodaysTasks] = useState([])
+  const [showRecon, setShowRecon] = useState(false)
+  const [upcomingBuys, setUpcomingBuys] = useState([])
+  const [showAddBuy, setShowAddBuy] = useState(false)
+  const [toasts, setToasts] = useState([])
+  const [showImport, setShowImport] = useState(false)
+  const [editingVendor, setEditingVendor] = useState(null)
+  const [showNewOrder, setShowNewOrder] = useState(false)
+  const [showNewProtocol, setShowNewProtocol] = useState(false)
+  const [vendorNames, setVendorNames] = useState(() => { try { return JSON.parse(localStorage.getItem('tpprover_vendors')||'[]') } catch { return [] } })
+
+  const addToast = (message, type = 'success') => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
+  }
 
   useEffect(() => {
     const today = new Date()
@@ -82,101 +105,179 @@ export default function Dashboard() {
     setTodaysTasks(combined)
   }, [peptideLog, vitamins])
 
+  useEffect(() => {
+    const handler = () => setShowImport(true)
+    window.addEventListener('tpp:openImport', handler)
+    return () => window.removeEventListener('tpp:openImport', handler)
+  }, [])
+
   const toggleTask = (id) => setTodaysTasks(ts => ts.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
 
   return (
     <div className="space-y-8">
-      <ViewContainer theme={theme}>
-        <div className="p-8 rounded-xl content-card" style={{ backgroundColor: theme.white }}>
-          <h3 className="h3 mb-6 border-b pb-3" style={{ color: theme.primaryDark, borderColor: theme.border }}>Today's Research</h3>
-          {todaysTasks.length > 0 ? (
-            <ul className="space-y-4">
-              {todaysTasks.map(task => (
-                <li key={task.id} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: task.completed ? theme.accent : theme.background }}>
-                  <div className="flex items-center">
-                    <button onClick={() => toggleTask(task.id)} className="mr-4">
-                      {task.completed ? <CheckSquare className="h-6 w-6" style={{ color: theme.primary }} /> : <Square className="h-6 w-6" style={{ color: theme.textLight }} />}
-                    </button>
-                    <div className={task.completed ? 'line-through transition-all' : 'transition-all'}>
-                      <span className="font-semibold">{task.name}</span>
-                      <span className="text-sm ml-2" style={{ color: theme.textLight }}>{task.dose}{task.unit}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-sm" style={{ color: theme.textLight }}>
-                    {task.type === 'vitamin' ? <Pill className="h-4 w-4 mr-2" /> : <Droplet className="h-4 w-4 mr-2" />}
-                    <span>{task.time}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p style={{ color: theme.textLight }}>No research scheduled for today.</p>
-          )}
+      <ViewContainer theme={theme} transparent noMinHeight>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-0 items-stretch">
+          <div className="p-8 rounded-xl content-card h-full flex flex-col" style={{ backgroundColor: theme.white }}>
+            <h3 className="h3 mb-4 border-b pb-2" style={{ color: theme.primaryDark, borderColor: theme.border }}>Today's Research</h3>
+            <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
+          </div>
+          <UpcomingOrderCard order={incomingOrder} theme={theme} />
         </div>
-
-        <UpcomingOrderCard order={incomingOrder} theme={theme} />
       </ViewContainer>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        <QuickCard icon={<ShoppingCart className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="New Order" theme={theme} />
-        <QuickCard icon={<Droplet className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="New Reconstitution" theme={theme} />
-        <QuickCard icon={<Users className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="New Vendor" theme={theme} />
-        <QuickCard icon={<Zap className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="New Protocol" theme={theme} />
+      <div className="mt-6">
+        <PendingVendorsView
+          vendors={pendingVendors}
+          theme={theme}
+          onViewAll={() => { window.history.pushState({}, '', '/vendors'); window.dispatchEvent(new PopStateEvent('popstate')) }}
+          onComplete={(v) => setEditingVendor({ id: Date.now(), name: v.name, notes: v.notes })}
+        />
       </div>
+
+      {/* Subtle Badges summary card */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="p-4 rounded-xl border content-card" style={{ backgroundColor: theme.white, borderColor: theme.border }}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="font-semibold" style={{ color: theme.primaryDark }}>Badges</div>
+            <button className="text-xs underline" onClick={() => { window.history.pushState({}, '', '/research'); window.dispatchEvent(new PopStateEvent('popstate')) }}>View all</button>
+          </div>
+          <BadgesInline theme={theme} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <QuickCard onClick={() => { addToast('Opening New Order', 'success'); setShowNewOrder(true) }} icon={<ShoppingCart className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="New Order" theme={theme} />
+        <QuickCard onClick={() => { addToast('Opening Recon Calculator', 'success'); setShowRecon(true) }} icon={<Droplet className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="Recon Calculator" theme={theme} />
+        <QuickCard onClick={() => { addToast('Opening New Vendor', 'success'); setEditingVendor({ id: Date.now(), name: '', notes: '' }) }} icon={<Users className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="New Vendor" theme={theme} />
+        <QuickCard onClick={() => { addToast('Opening New Protocol', 'success'); setShowNewProtocol(true) }} icon={<Plus className="h-8 w-8 mb-3" style={{ color: theme.primary }} />} label="New Protocol" theme={theme} />
+      </div>
+
+      <UpcomingBuys items={upcomingBuys} theme={theme} onAdd={() => setShowAddBuy(true)} />
+
+      
+
+      <AddBuyModal
+        open={showAddBuy}
+        onClose={() => setShowAddBuy(false)}
+        theme={theme}
+        onSave={(buy) => {
+          setUpcomingBuys(prev => ([{ id: Date.now(), ...buy }, ...prev]))
+          addToast('Upcoming buy scheduled', 'success')
+          setShowAddBuy(false)
+        }}
+      />
+
+      <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
+      <OCRImportModal open={showImport} onClose={() => setShowImport(false)} theme={theme} onImport={() => addToast('Import saved', 'success')} />
+
+      <VendorDetailsModal
+        open={!!editingVendor}
+        onClose={() => setEditingVendor(null)}
+        theme={theme}
+        vendor={editingVendor}
+        onSave={(v) => {
+          // Save vendor name for suggestions
+          try {
+            const set = new Set([...(JSON.parse(localStorage.getItem('tpprover_vendors')||'[]')||[]), v.name].filter(Boolean))
+            const arr = Array.from(set)
+            localStorage.setItem('tpprover_vendors', JSON.stringify(arr))
+            setVendorNames(arr)
+          } catch {}
+          setEditingVendor(null)
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Vendor saved', type: 'success' } }))
+        }}
+      />
+
+      <OrderDetailsModal
+        open={!!showNewOrder}
+        onClose={() => setShowNewOrder(false)}
+        order={{}}
+        theme={theme}
+        vendorList={vendorNames}
+        onSave={(o) => {
+          try {
+            const raw = localStorage.getItem('tpprover_orders')
+            const all = raw ? JSON.parse(raw) : []
+            const id = o.id || Date.now()
+            all.unshift({ ...o, id })
+            localStorage.setItem('tpprover_orders', JSON.stringify(all))
+            // add vendor name
+            if (o.vendor) {
+              const set = new Set([...(JSON.parse(localStorage.getItem('tpprover_vendors')||'[]')||[]), o.vendor])
+              const arr = Array.from(set)
+              localStorage.setItem('tpprover_vendors', JSON.stringify(arr))
+              setVendorNames(arr)
+            }
+          } catch {}
+          setShowNewOrder(false)
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Order added', type: 'success' } }))
+        }}
+        onDelete={() => setShowNewOrder(false)}
+      />
+
+      <ProtocolEditorModal
+        open={!!showNewProtocol}
+        onClose={() => setShowNewProtocol(false)}
+        theme={theme}
+        onSave={(data) => {
+          try {
+            const raw = localStorage.getItem('tpprover_protocols')
+            const arr = raw ? JSON.parse(raw) : []
+            arr.unshift({ id: Date.now(), ...data })
+            localStorage.setItem('tpprover_protocols', JSON.stringify(arr))
+            // bump calendar
+            const now = String(Date.now())
+            localStorage.setItem('tpprover_calendar_bump', now)
+            window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: now }))
+          } catch {}
+          setShowNewProtocol(false)
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol created', type: 'success' } }))
+        }}
+      />
+
+      <ReconCalculatorModal open={showRecon} onClose={() => setShowRecon(false)} theme={theme} onTransfer={(data) => { setShowRecon(false); /* could route to /recon with prefilled state */ }} />
     </div>
   )
 }
 
-function QuickCard({ icon, label, theme }) {
+function QuickCard({ icon, label, theme, onClick }) {
   return (
-    <button className="flex flex-col items-center justify-center p-6 rounded-xl transition-all duration-200 hover:shadow-lg" style={{ backgroundColor: theme.white }}>
+    <button onClick={onClick} className="flex flex-col items-center justify-center p-6 rounded-xl transition-all duration-200 hover:shadow-lg" style={{ backgroundColor: theme.white }}>
       {icon}
       <span className="font-semibold" style={{ color: theme.primaryDark }}>{label}</span>
     </button>
   )
 }
 
-function UpcomingOrderCard({ order, theme }) {
-  if (!order) return (
-    <div className="p-8 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
-      <h3 className="h3 mb-6 border-b pb-3" style={{ color: theme.primaryDark, borderColor: theme.border }}>Incoming Peptides</h3>
-      <p>No active orders.</p>
-    </div>
-  )
-
-  const steps = [
-    { status: 'received', icon: <Clock size={24} color={theme.primary} />, label: 'Order Placed' },
-    { status: 'shipped', icon: <Truck size={24} color={theme.primary} />, label: 'Shipped' },
-    { status: 'delivered', icon: <CheckCircle size={24} color={theme.primary} />, label: 'Delivered' },
-  ]
-  let current = 0
-  if (order.deliveryDate) current = 2
-  else if (order.shipDate) current = 1
-
+function BadgesInline({ theme }) {
+  const [earned, setEarned] = React.useState([])
+  React.useEffect(() => {
+    try {
+      const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
+      const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]')
+      const stockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]')
+      const supplements = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]')
+      const delivered = orders.filter(o => o.status === 'Delivered').length
+      const activeProtocols = protocols.filter(p => p.active !== false).length
+      const lowStock = stockpile.filter(s => Number(s.quantity) <= 1).length
+      const supplementCount = supplements.length
+      const totalSpend = orders.reduce((acc, o) => acc + (Number(String(o.cost).replace(/[^0-9.]/g,'')) || 0), 0)
+      const out = []
+      if (delivered >= 1) out.push('First Delivery')
+      if (activeProtocols >= 3) out.push('Protocol Planner')
+      if (lowStock === 0 && stockpile.length > 0) out.push('Well Stocked')
+      if (supplementCount >= 5) out.push('Supplement Scholar')
+      if (totalSpend >= 5000) out.push('The Homeostat')
+      if (totalSpend >= 10000) out.push('The Investor')
+      setEarned(out)
+    } catch {}
+  }, [])
+  if (earned.length === 0) return <div className="text-xs" style={{ color: theme.textLight }}>No badges yet.</div>
   return (
-    <div className="p-8 rounded-xl content-card w-full flex flex-col items-center" style={{ backgroundColor: theme.white }}>
-      <h3 className="h3 mb-6 border-b pb-3 text-center" style={{ color: theme.primaryDark, borderColor: theme.border }}>Incoming Peptides</h3>
-      <div className="w-full flex flex-col items-center mb-6">
-        <div className="text-xl font-bold mb-0" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
-        <div className="text-base mb-2" style={{ color: theme.textLight }}>
-          <span style={{ fontWeight: 500, color: theme.text }}>From:</span> {order.vendor}
-        </div>
-      </div>
-      <div className="flex items-center justify-center gap-6 mb-6">
-        {steps.map((s, idx) => (
-          <div key={s.status} className="flex flex-col items-center">
-            <div className={`rounded-full p-3 ${idx <= current ? 'bg-green-100' : 'bg-gray-100'}`}>{s.icon}</div>
-            <span className={`text-xs mt-2 ${idx <= current ? 'text-green-700 font-semibold' : 'text-gray-400'}`}>{s.label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mb-6">
-        {current === 1 && <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">In Transit</span>}
-        {current === 2 && <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Delivered</span>}
-      </div>
-      <button className="mt-6 px-6 py-3 rounded-lg font-semibold transition-all duration-200 w-full" style={{ backgroundColor: theme.primary, color: theme.white }}>
-        View Orders
-      </button>
+    <div className="flex flex-wrap gap-2">
+      {earned.slice(0,6).map(n => (
+        <span key={n} className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }}>{n}</span>
+      ))}
     </div>
   )
 }

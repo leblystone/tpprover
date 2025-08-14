@@ -1,0 +1,13 @@
+{
+  "name": "TPPRover",
+  "short_name": "TPPRover",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E8EAE3",
+  "theme_color": "#8A9A8F",
+  "icons": [
+    { "src": "/tpp-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
+
+
