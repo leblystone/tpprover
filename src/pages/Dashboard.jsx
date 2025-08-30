@@ -635,7 +635,10 @@ export default function Dashboard() {
             <div className="rounded border p-4 content-card flex flex-col" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2"><Target className="h-5 w-5" /><span className="font-semibold">Goals</span></div>
-                    <button onClick={() => { setEditingGoal(null); setShowGoal(true) }} className="p-1 rounded hover:opacity-80"><PlusCircle className="h-5 w-5"/></button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => navigate('/goals')} className="px-3 py-1.5 rounded-md text-xs font-semibold" style={{ backgroundColor: theme.accent, color: theme.primaryDark }}>View All</button>
+                      <button onClick={() => { setEditingGoal(null); setShowGoal(true) }} className="p-1 rounded hover:opacity-80" title="New Goal"><PlusCircle className="h-5 w-5"/></button>
+                    </div>
                 </div>
                 <hr className="mb-3" style={{ borderColor: theme.border }} />
                 {goals.length === 0 ? (

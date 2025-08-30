@@ -234,7 +234,15 @@
                 Import Backup
                 <input type="file" accept=".csv,.json" className="hidden" onChange={e => e.target.files && e.target.files[0] && importBackup(e.target.files[0])} />
               </label>
-              {pwaPrompted && <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={handleInstall}>Install App</button>}
+              <button
+                className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                onClick={handleInstall}
+                disabled={!pwaPrompted}
+                title={pwaPrompted ? 'Install The Pep Planner' : 'Install not available: use your browser menu to Add to Home Screen'}
+              >
+                Install App
+              </button>
             </div>
             <div>
                 <button 
