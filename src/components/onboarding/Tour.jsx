@@ -80,25 +80,37 @@ const renderContent = (text) => {
     ));
 };
 
-const TourTooltip = ({ index, step, backProps, closeProps, primaryProps, tooltipProps, isLastStep, theme }) => (
-    <div {...tooltipProps} className="bg-white rounded-xl shadow-2xl p-4 sm:p-6 max-w-sm sm:max-w-md w-full border animate-fade-in" style={{ borderColor: theme.border }}>
-        {step.title && <h2 className="text-lg sm:text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>{step.title}</h2>}
-        <div className="text-sm" style={{ color: theme.text }}>{renderContent(step.content)}</div>
-        <div className="flex items-center justify-between mt-4">
-            <button {...closeProps} className="text-xs hover:underline" style={{ color: theme.textMuted }}>Skip tour</button>
-            <div className="flex items-center gap-2">
-                {index > 0 && (
-                    <button {...backProps} className="px-3 py-1.5 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}`}}>
-                        Back
+const TourTooltip = ({ index, step, backProps, closeProps, primaryProps, tooltipProps, isLastStep, theme }) => {
+    const content = (
+        <div {...tooltipProps} className="bg-white rounded-xl shadow-2xl p-4 sm:p-6 max-w-sm sm:max-w-md w-full border animate-fade-in" style={{ borderColor: theme.border }}>
+            {step.title && <h2 className="text-lg sm:text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>{step.title}</h2>}
+            <div className="text-sm" style={{ color: theme.text }}>{renderContent(step.content)}</div>
+            <div className="flex items-center justify-between mt-4">
+                <button {...closeProps} className="text-xs hover:underline" style={{ color: theme.textMuted }}>Skip tour</button>
+                <div className="flex items-center gap-2">
+                    {index > 0 && (
+                        <button {...backProps} className="px-3 py-1.5 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}`}}>
+                            Back
+                        </button>
+                    )}
+                    <button {...primaryProps} className="px-3 py-1.5 rounded-md text-sm font-semibold text-white" style={{ backgroundColor: theme.primary }}>
+                        {isLastStep ? 'Finish' : 'Next'}
                     </button>
-                )}
-                <button {...primaryProps} className="px-3 py-1.5 rounded-md text-sm font-semibold text-white" style={{ backgroundColor: theme.primary }}>
-                    {isLastStep ? 'Finish' : 'Next'}
-                </button>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+
+    if (isLastStep && step.placement === 'center') {
+        return (
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+                {content}
+            </div>
+        );
+    }
+
+    return content;
+};
 
 const useIsMobile = (breakpoint = 768) => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
