@@ -1,0 +1,9 @@
+.main-content {
+    transition: margin-left 0.3s ease-in-out;
+    margin-left: 0; /* remove extra left gap */
+}
+
+.sidebar-container:hover + .topbar + .main-content,
+.sidebar-container:hover ~ .main-content {
+    margin-left: 0; /* keep content aligned on hover */
+}

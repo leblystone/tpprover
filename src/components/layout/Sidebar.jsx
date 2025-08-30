@@ -1,0 +1,86 @@
+import React, { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store } from 'lucide-react'
+import logo from '../../assets/tpp-logo.png'
+import '../../styles/sidebar.css'
+
+const Sidebar = ({ theme }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    const updateIsOpen = () => {
+      setIsOpen(window.innerWidth >= 768)
+    }
+    updateIsOpen()
+    window.addEventListener('resize', updateIsOpen)
+    return () => window.removeEventListener('resize', updateIsOpen)
+  }, [])
+
+  const links = [
+    { to: '/dashboard', label: 'Dashboard', icon: Home, tourId: 'dashboard-welcome' },
+    { to: '/calendar', label: 'Calendar', icon: Calendar, tourId: 'sidebar-calendar' },
+    { to: '/protocols', label: 'Protocols', icon: FlaskConical, tourId: 'sidebar-protocols' },
+    { to: '/recon', label: 'Reconstitution', icon: Calculator, tourId: 'sidebar-recon' },
+    { to: '/stockpile', label: 'Stockpile', icon: Boxes, tourId: 'sidebar-stockpile' },
+    { to: '/orders', label: 'Orders', icon: ShoppingCart, tourId: 'sidebar-orders' },
+    { to: '/vendors', label: 'Vendors', icon: Store, tourId: 'sidebar-vendors' },
+  ]
+
+  const bottomLinks = [
+    { to: '/announcements', icon: Megaphone, label: 'Announcements', tourId: 'sidebar-announcements' },
+    { to: '/account', icon: User, label: 'Account' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
+  ]
+
+  return (
+    <>
+      <style>{`
+        .sidebar-link-active {
+          background-color: ${theme.primary};
+          color: ${theme.textOnPrimary};
+          border-radius: 0.5rem;
+        }
+        .sidebar-link:hover:not(.sidebar-link-active) {
+          background-color: ${theme.primaryLight} !important;
+          color: ${theme.textOnPrimary} !important;
+          border-radius: 0.5rem;
+        }
+      `}</style>
+      <aside 
+        className="hidden md:flex md:w-24 md:flex-col p-3 border-r card-shadow fixed left-0 top-0 h-screen z-40 sidebar-container"
+        style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+      >
+        <div className="mb-4 mt-2 flex items-center justify-center">
+          <img src={logo} alt="Logo" className="h-16 w-16 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+        </div>
+        <nav className="flex flex-col space-y-2">
+          {links.map(({ to, icon: Icon, label, tourId }) => (
+            <NavLink key={to} to={to} title={label} data-tour={tourId} 
+              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 ${isActive ? 'sidebar-link-active' : ''}`}
+              style={({ isActive }) => ({ color: isActive ? theme.textOnPrimary : theme.textLight })}
+            >
+              <Icon className="h-6 w-6 flex-shrink-0" />
+              <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="mt-auto space-y-2">
+          {bottomLinks.map(({ to, icon: Icon, label, tourId }) => (
+            <NavLink key={to} to={to} title={label} data-tour={tourId}
+              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 ${isActive ? 'sidebar-link-active' : ''}`}
+              style={({ isActive }) => ({ color: isActive ? theme.textOnPrimary : theme.textLight })}
+            >
+              <Icon className="h-6 w-6 flex-shrink-0" />
+              <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </aside>
+    </>
+  )
+}
+
+export default Sidebar
+
+
