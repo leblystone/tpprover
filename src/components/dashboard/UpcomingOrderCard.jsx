@@ -5,7 +5,7 @@
 export default function UpcomingOrderCard({ order, theme }) {
   const navigate = useNavigate()
   if (!order) return (
-    <div className="p-8 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
+    <div className="p-8 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground }}>
       <h3 className="h3 mb-6 border-b pb-3" style={{ color: theme.primaryDark, borderColor: theme.border }}>Incoming Peptides</h3>
       <p>No active orders.</p>
     </div>
@@ -21,7 +21,7 @@ export default function UpcomingOrderCard({ order, theme }) {
   else if (order.shipDate) current = 1
 
   return (
-    <div className="p-8 rounded-xl content-card w-full h-full flex flex-col items-center" style={{ backgroundColor: theme.white }}>
+    <div className="p-8 rounded-xl content-card w-full h-full flex flex-col items-center transition-opacity" style={{ backgroundColor: theme.cardBackground }}>
       <h3 className="h3 mb-4 border-b pb-2 text-center" style={{ color: theme.primaryDark, borderColor: theme.border }}>Incoming Peptides</h3>
       <div className="w-full flex flex-col items-center mb-6">
         <div className="text-xl font-bold mb-0" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
@@ -29,19 +29,54 @@ export default function UpcomingOrderCard({ order, theme }) {
           <span style={{ fontWeight: 500, color: theme.text }}>From:</span> {order.vendor}
         </div>
       </div>
-      <div className="flex items-center justify-center gap-6 mb-6">
+      <div className="w-full flex items-center justify-between relative mb-8 px-4">
+          <div 
+            className="absolute top-1/2 -translate-y-1/2 left-0 h-1" 
+            style={{ 
+              width: '100%',
+              backgroundColor: theme.secondary 
+            }}
+          />
+          <div 
+            className="absolute top-1/2 -translate-y-1/2 left-0 h-1" 
+            style={{ 
+              width: `${(current / (steps.length - 1)) * 100}%`,
+              backgroundColor: theme.primary,
+              transition: 'width 0.3s ease-in-out'
+            }}
+          />
+          {steps.map((s, idx) => (
+            <div key={s.status} className="flex flex-col items-center z-10">
+              <div
+                className="rounded-full p-3 border-4"
+                style={{ 
+                  backgroundColor: idx <= current ? theme.primary : theme.cardBackground,
+                  borderColor: idx <= current ? theme.primary : theme.secondary
+                }}
+              >
+                {React.cloneElement(s.icon, { color: idx <= current ? theme.textOnPrimary : theme.textLight })}
+              </div>
+            </div>
+          ))}
+      </div>
+
+      <div className="w-full flex justify-between px-4">
         {steps.map((s, idx) => (
-          <div key={s.status} className="flex flex-col items-center">
-            <div className={`rounded-full p-3 ${idx <= current ? 'bg-green-100' : 'bg-gray-100'}`}>{s.icon}</div>
-            <span className={`text-xs mt-2 ${idx <= current ? 'text-green-700 font-semibold' : 'text-gray-400'}`}>{s.label}</span>
-          </div>
+            <span
+              key={s.status}
+              className="text-xs text-center"
+              style={{ color: idx <= current ? theme.primaryDark : theme.textLight, fontWeight: idx <= current ? '600' : '400' }}
+            >
+              {s.label}
+            </span>
         ))}
       </div>
-      <div className="mb-4">
-        {current === 1 && <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">In Transit</span>}
-        {current === 2 && <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Delivered</span>}
-      </div>
-      <button className="mt-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 w-full" style={{ backgroundColor: theme.primary, color: theme.white }} onClick={() => navigate('/orders')}>
+      
+      <button
+        className="mt-8 px-6 py-3 rounded-lg font-semibold transition-all duration-200 w-full"
+        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+        onClick={() => navigate('/orders')}
+      >
         View Orders
       </button>
     </div>

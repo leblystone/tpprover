@@ -1,22 +1,16 @@
-import React, { Suspense } from 'react'
-import { createRoot } from 'react-dom/client'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
+import { router } from './routes'
+import { AppProvider } from './context/AppContext'
 import './index.css'
-import { router } from './routes.jsx'
-import { seedDemoData } from './utils/seed'
 
-const root = createRoot(document.getElementById('root'))
-try { seedDemoData() } catch {}
-// Enable tester flag in development for program badges
-try {
-  if (!import.meta.env.PROD) {
-    localStorage.setItem('tpprover_is_tester', '1')
-  }
-} catch {}
-root.render(
-  <Suspense fallback={<div className="p-6">Loading...</div>}>
-    <RouterProvider router={router} />
-  </Suspense>
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <AppProvider>
+      <RouterProvider router={router} />
+    </AppProvider>
+  </React.StrictMode>,
 )
 
 // Service worker: enable in production only; unregister in dev to avoid module fetch issues

@@ -1,28 +1,490 @@
 import React, { useEffect, useMemo, useState } from 'react'
- import { themes, defaultThemeName } from '../theme/themes'
+import { useOutletContext } from 'react-router-dom'
+import { themes, defaultThemeName } from '../theme/themes'
 import CalendarHeader from '../components/calendar/CalendarHeader'
 import MonthGrid, { toKey } from '../components/calendar/MonthGrid'
 import { formatMMDDYYYY } from '../utils/date'
 import WeekView from '../components/calendar/WeekView'
 // Removed notes-only modal to avoid overlap; using DayView for all edits
 import DayView from '../components/calendar/DayView'
+import NotesModal from '../components/calendar/NotesModal'
+import { calculateRecon } from '../utils/recon'
+import { useAppContext } from '../context/AppContext'
+
+const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
+let colorIndex = 0;
+const protocolColorMap = {};
+
+function getProtocolColor(protocolName, theme) {
+    if (!protocolColorMap[protocolName]) {
+        protocolColorMap[protocolName] = theme[protocolColors[colorIndex % protocolColors.length]];
+        colorIndex++;
+    }
+    return protocolColorMap[protocolName];
+}
+
+// Helper to safely parse YYYY-MM-DD strings into local time dates
+function parseDateString(dateString) {
+    if (!dateString) return null;
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return new Date(dateString); // Fallback for other formats
+    const [year, month, day] = parts.map(Number);
+    return new Date(year, month - 1, day);
+}
+
+function getWindows(p) {
+    try {
+      if (!p?.startDate) return { start: null, end: null, washStart: null, washEnd: null }
+      const startDt = parseDateString(p.startDate)
+      let endDt = null;
+      if (p.endDate) {
+        endDt = parseDateString(p.endDate);
+      } else if (p.duration && p.duration.noEnd !== true && Number(p.duration.count) > 0) {
+          const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
+          
+          if (cyclePeptide) {
+              const onDays = Number(cyclePeptide.frequency.onDays) || 0;
+              const offDays = Number(cyclePeptide.frequency.offDays) || 0;
+              if (onDays > 0) {
+                  const durationInDays = (() => {
+                      const count = Number(p.duration.count);
+                      const unit = p.duration.unit.toLowerCase();
+                      if (unit.includes('day')) return count;
+                      if (unit.includes('week')) return count * 7;
+                      if (unit.includes('month')) return count * 30;
+                      return 0;
+                  })();
+                  const fullCycles = Math.floor(durationInDays / onDays);
+                  const remainingOnDays = durationInDays % onDays;
+                  let totalDays = fullCycles * (onDays + offDays);
+                  if (remainingOnDays > 0) {
+                      totalDays += remainingOnDays;
+                  } else if (fullCycles > 0) {
+                      totalDays -= offDays;
+                  }
+                  endDt = new Date(startDt);
+                  endDt.setDate(endDt.getDate() + totalDays - 1);
+              }
+          } else {
+            // Fallback for non-cycle protocols
+            endDt = new Date(startDt);
+            const unit = String(p.duration.unit || 'week').toLowerCase();
+            const count = Number(p.duration.count) || 0;
+            if (unit.includes('day')) endDt.setDate(endDt.getDate() + count - 1);
+            else if (unit.includes('week')) endDt.setDate(endDt.getDate() + (count * 7) - 1);
+            else if (unit.includes('month')) { endDt.setMonth(endDt.getMonth() + count); endDt.setDate(endDt.getDate() - 1); }
+          }
+      }
+
+      let washStart = null, washEnd = null
+      if (p.washout?.enabled && endDt) {
+        washStart = new Date(endDt.getFullYear(), endDt.getMonth(), endDt.getDate() + 1)
+        washEnd = new Date(washStart)
+        const wUnit = String(p.washout.unit || 'week').toLowerCase()
+        const wCount = Number(p.washout.count) || 0
+        if (wCount > 0) {
+          if (wUnit === 'day') washEnd.setDate(washEnd.getDate() + wCount - 1)
+          else if (wUnit === 'week') washEnd.setDate(washEnd.getDate() + (wCount * 7) - 1)
+          else if (wUnit === 'month') { washEnd.setMonth(washEnd.getMonth() + wCount); washEnd.setDate(washEnd.getDate() - 1) }
+        } else { washStart = null; washEnd = null }
+      }
+      return { start: startDt, end: endDt, washStart, washEnd }
+    } catch { return { start: null, end: null, washStart: null, washEnd: null } }
+}
 
 export default function Calendar() {
-  const [themeName] = useState(defaultThemeName)
-  const theme = themes[themeName]
+  const { theme } = useOutletContext()
+  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys } = useAppContext();
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState('month') // 'month' | 'week'
   const [entries, setEntries] = useState({})
   const [activeDay, setActiveDay] = useState(null)
+  const [editingNotesFor, setEditingNotesFor] = useState(null)
   // scheduled structure: { [dateKey]: { peptides: string[], supplements: string[], buys: number } }
   const [scheduled, setScheduled] = useState({})
   const [done, setDone] = useState({})
-  const [bump, setBump] = useState(() => { try { return localStorage.getItem('tpprover_calendar_bump') || '0' } catch { return '0' } })
+  const [protocolTimelines, setProtocolTimelines] = useState([]);
   // Load persisted notes (entries) and done slots
   useEffect(() => {
     try { const raw = localStorage.getItem('tpprover_calendar_notes'); if (raw) setEntries(JSON.parse(raw)) } catch {}
     try { const rawDone = localStorage.getItem('tpprover_calendar_done'); if (rawDone) setDone(JSON.parse(rawDone)) } catch {}
   }, [])
+
+  useEffect(() => {
+    // This effect will now handle reloading protocol and supplement data when the calendar bump event occurs.
+    const loadData = () => {
+        try {
+          const supps = supplements
+          // For the current month, mark days with supplement counts
+          const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+          const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+          const next = {}
+          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dayKey = d.toLocaleDateString('en-US', { weekday: 'short' })
+            const daySupps = supps.filter(s => !s.days || s.days.length === 0 || s.days.includes(dayKey))
+            if (daySupps.length > 0) {
+              const key = toKey(d)
+              const bySlot = { ...(next[key]?.bySlot || {}) }
+              for (const s of daySupps) {
+                const slots = Array.isArray(s.schedule) ? s.schedule : (s.schedule === 'PM' ? ['Evening'] : s.schedule === 'AM' ? ['Morning'] : ['Morning','Evening'])
+                for (const slot of slots) {
+                  bySlot[slot] = {
+                    peptides: bySlot[slot]?.peptides || [],
+                    supplements: [...(bySlot[slot]?.supplements || []), s.name || 'Supplement'],
+                  }
+                }
+              }
+              next[key] = {
+                ...(next[key] || {}),
+                supplements: Array(daySupps.length).fill('supp'),
+                bySlot,
+              }
+            }
+          }
+          // Upcoming buys badges from Orders: mark orders with status 'Order Placed' within next N days
+          const N = 7
+          const today = new Date()
+          const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + N)
+          for (const o of orders) {
+            if ((o.status || '') !== 'Order Placed' || !o.date) continue
+            const od = parseDateString(o.date)
+            if (od >= today && od <= horizon) {
+              const key = toKey(od)
+              const label = (o.group && o.group.title) ? o.group.title : (o.peptide || 'Buy')
+              next[key] = {
+                ...(next[key] || {}),
+                buys: (next[key]?.buys || 0) + 1,
+                buyDetails: [ ...(next[key]?.buyDetails || []), label ].slice(0, 3),
+              }
+            }
+          }
+          // Scheduled group buys: mark all days in [openDate, closeDate]
+          const rawScheduled = localStorage.getItem('tpprover_scheduled_buys')
+          const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : []
+          // Protocol indicators: count by time-of-day occurrences + wash-out chips
+          const prots = protocols
+          const metricsByKey = (metrics || []).reduce((map, m) => {
+            try {
+              const d = parseDateString(m.date)
+              const key = toKey(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
+              map[key] = m
+            } catch {}
+            return map
+          }, {})
+
+          const sortedMetrics = (metrics || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+          const metricsWithTrend = sortedMetrics.map((metric, index) => {
+              if (index === 0) return { ...metric, weightTrend: 'none', bodyfatTrend: 'none' };
+              const prev = sortedMetrics[index - 1];
+              const weightTrend = parseFloat(metric.weight) > parseFloat(prev.weight) ? 'up' : parseFloat(metric.weight) < parseFloat(prev.weight) ? 'down' : 'none';
+              const bodyfatTrend = parseFloat(metric.bodyfat) > parseFloat(prev.bodyfat) ? 'up' : parseFloat(metric.bodyfat) < parseFloat(prev.bodyfat) ? 'down' : 'none';
+              return { ...metric, weightTrend, bodyfatTrend };
+          });
+
+          const metricsByKeyWithTrend = metricsWithTrend.reduce((map, m) => {
+              try {
+                  const d = new Date(m.date);
+                  const key = toKey(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+                  map[key] = m;
+              } catch {}
+              return map;
+          }, {});
+
+          const timelines = prots.map(p => {
+            const windows = getWindows(p);
+            return {
+                ...windows,
+                id: p.id,
+                name: p.protocolName || 'Unnamed Protocol',
+                color: getProtocolColor(p.protocolName, theme),
+            };
+          }).filter(t => t.start);
+          setProtocolTimelines(timelines);
+
+          const getNormalizedPeptides = (p) => {
+            const basePeptides = (Array.isArray(p.peptides) && p.peptides.length > 0)
+              ? p.peptides
+              : [{ name: p.name || p.peptide, dosage: p.dosage, frequency: p.frequency }]
+            return basePeptides.map(pep => {
+              const f = pep?.frequency || {}
+              const type = f.type || 'daily'
+              const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['Morning']
+              return { ...pep, frequency: { ...f, type, time } }
+            })
+          }
+
+          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const key = toKey(d)
+            // Mark scheduled group buys covering this day
+            for (const gb of scheduledBuys) {
+              if (!gb?.openDate || !gb?.closeDate) continue
+              const od = parseDateString(gb.openDate)
+              const cd = parseDateString(gb.closeDate)
+              const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+              if (dOnly >= new Date(od.getFullYear(), od.getMonth(), od.getDate()) && dOnly <= new Date(cd.getFullYear(), cd.getMonth(), cd.getDate())) {
+                const label = gb.item || 'Group Buy'
+                next[key] = {
+                  ...(next[key] || {}),
+                  groupBuys: [ ...(next[key]?.groupBuys || []), label ],
+                }
+              }
+            }
+            const activeProtoNames = new Set()
+            const count = prots.reduce((acc, p) => {
+              const { start: ps, end: pe } = getWindows(p)
+              const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+              const psOnly = ps ? new Date(ps.getFullYear(), ps.getMonth(), ps.getDate()) : null
+              const peOnly = pe ? new Date(pe.getFullYear(), pe.getMonth(), pe.getDate()) : null
+              const inRange = (!psOnly || psOnly <= dOnly) && (!peOnly || peOnly >= dOnly)
+              const active = p.active !== false
+              
+              if (!inRange || !active) return acc;
+              if (p.protocolName) activeProtoNames.add(p.protocolName)
+
+              let dailyDoses = 0;
+
+              getNormalizedPeptides(p).forEach(pep => {
+                  const freq = pep.frequency || {};
+                  let isScheduledToday = false;
+                  
+                  // Adjust for timezone when comparing dates
+                  const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
+                  const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+
+                  switch (freq.type) {
+                      case 'daily':
+                          isScheduledToday = true;
+                          break;
+                      case 'weekly':
+                          const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+                          if (freq.days?.includes(dayName)) {
+                              isScheduledToday = true;
+                          }
+                          break;
+                      case 'cycle':
+                          const on = Number(freq.onDays) || 0;
+                          const off = Number(freq.offDays) || 0;
+                          if (on > 0) {
+                              const cycleLen = on + off;
+                              const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                              if (dayDiff >= 0) {
+                                  const dayInCycle = dayDiff % cycleLen;
+                                  if (dayInCycle < on) {
+                                      isScheduledToday = true;
+                                  }
+                              }
+                          }
+                          break;
+                      default:
+                          break;
+                  }
+
+                  if (isScheduledToday) {
+                      dailyDoses += (pep.frequency?.time?.length || 1);
+                  }
+              });
+
+              return acc + dailyDoses;
+            }, 0)
+            if (count > 0) {
+              const bySlot = prots.reduce((obj, p) => {
+                const { start: ps, end: pe } = getWindows(p)
+                const dOnly2 = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+                const psOnly2 = ps ? new Date(ps.getFullYear(), ps.getMonth(), ps.getDate()) : null
+                const peOnly2 = pe ? new Date(pe.getFullYear(), pe.getMonth(), pe.getDate()) : null
+                const inRange = (!psOnly2 || psOnly2 <= dOnly2) && (!peOnly2 || peOnly2 >= dOnly2)
+                const active = p.active !== false
+                if (inRange && active) {
+                  const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1
+                  
+                  const protocolPeptideNames = getNormalizedPeptides(p).map(p => (p.name || '').toLowerCase().trim()).sort();
+                  const reconItem = reconItems.find(r => {
+                      if (!r.peptides || r.peptides.length === 0) return false;
+                      const reconPeptideNames = r.peptides.map(p => (p.name || '').toLowerCase().trim()).sort();
+                      if (protocolPeptideNames.length === 0 || reconPeptideNames.length === 0) return false;
+                      return protocolPeptideNames.length === reconPeptideNames.length && protocolPeptideNames.every((val, index) => val === reconPeptideNames[index]);
+                  });
+
+                  if (isBlended) {
+                    const times = new Set()
+                    let doseDisplay = ""
+                    
+                    if (reconItem) {
+                        const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
+                            const dose = Number(pep.dose) || 0;
+                            return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
+                        }, 0);
+                        const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
+                        const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
+                        if (calc.unitsPerDose > 0) {
+                            doseDisplay = ` - ${calc.unitsPerDose.toFixed(0)} units`;
+                        }
+                    } else {
+                        const doseParts = [];
+                        getNormalizedPeptides(p).forEach(pep => { 
+                            doseParts.push(`${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`);
+                        })
+                        doseDisplay = `: ${doseParts.join(' + ')}`;
+                    }
+
+                    getNormalizedPeptides(p).forEach(pep => { 
+                        (pep.frequency?.time || ['Morning']).forEach(t => times.add(t));
+                    })
+                    
+                    Array.from(times).forEach(t => {
+                      const currentSlot = obj[t] || { peptides: [], supplements: [] }
+                      let deliveryInfo = '';
+                      if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
+                      if (reconItem?.deliveryMethod === 'syringe') deliveryInfo = ' (Syringe)';
+                      const peptideName = `${p.protocolName || 'Blended Protocol'}${doseDisplay}${deliveryInfo}`;
+                      const peptideData = {
+                          name: `${p.protocolName || 'Blended Protocol'}${doseDisplay}`,
+                          deliveryMethod: reconItem?.deliveryMethod,
+                          penColor: reconItem?.penColor
+                      };
+                      if (!currentSlot.peptides.some(item => item.name === peptideData.name)) {
+                        obj[t] = {
+                          ...currentSlot,
+                          peptides: [...currentSlot.peptides, peptideData],
+                        }
+                      }
+                    })
+                    return obj
+                  }
+                  getNormalizedPeptides(p).forEach(pep => {
+                      const freq = pep.frequency || {};
+                      let isScheduledToday = false;
+                      
+                      const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
+                      const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+
+                      switch (freq.type) {
+                          case 'daily':
+                              isScheduledToday = true;
+                              break;
+                          case 'weekly':
+                              const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+                              if (freq.days?.includes(dayName)) {
+                                  isScheduledToday = true;
+                              }
+                              break;
+                          case 'cycle':
+                              const on = Number(freq.onDays) || 0;
+                              const off = Number(freq.offDays) || 0;
+                              if (on > 0) {
+                                  const cycleLen = on + off;
+                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                                  if (dayDiff >= 0) {
+                                      const dayInCycle = dayDiff % cycleLen;
+                                      if (dayInCycle < on) {
+                                          isScheduledToday = true;
+                                      }
+                                  }
+                              }
+                              break;
+                          default:
+                              break;
+                      }
+
+                      if (isScheduledToday) {
+                          pep.frequency.time.forEach(t => {
+                              const currentSlot = obj[t] || { peptides: [], supplements: [] };
+                              let doseInfo = `${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`;
+
+                              if (reconItem) {
+                                  const calc = calculateRecon({ 
+                                      mg: reconItem.mg, 
+                                      water: reconItem.water, 
+                                      dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
+                                  });
+                                  if (calc.unitsPerDose > 0) {
+                                      doseInfo = `${calc.unitsPerDose.toFixed(0)} units`;
+                                  }
+                              }
+
+                              let deliveryInfo = '';
+                              if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
+                              if (reconItem?.deliveryMethod === 'syringe') deliveryInfo = ' (Syringe)';
+
+                              const peptideName = `${pep.name || 'Peptide'} - ${doseInfo}${deliveryInfo}`;
+                              const peptideData = {
+                                  name: `${pep.name || 'Peptide'} - ${doseInfo}`,
+                                  deliveryMethod: reconItem?.deliveryMethod,
+                                  penColor: reconItem?.penColor
+                              };
+                              
+                              if (!currentSlot.peptides.some(item => item.name === peptideData.name)) {
+                                obj[t] = {
+                                    ...currentSlot,
+                                    peptides: [...currentSlot.peptides, peptideData],
+                                };
+                              }
+                          });
+                      }
+                  });
+                }
+                return obj
+              }, (next[key]?.bySlot || {}))
+
+              const times = Object.keys(bySlot).reduce((acc, slot) => {
+                acc[slot] = (bySlot[slot]?.peptides?.length || 0)
+                return acc
+              }, {})
+
+              // compute day completion (all scheduled done)
+              const doneForDay = done[key] || {}
+              const maxTotal = Object.values(times).reduce((a, b) => a + (b || 0), 0)
+              const doneTotal = Object.values(doneForDay).reduce((a, b) => a + (b || 0), 0)
+              const doneAll = maxTotal > 0 && doneTotal >= maxTotal
+
+              next[key] = { ...(next[key] || {}), times, bySlot, done: doneForDay, doneAll, protocols: Array.from(activeProtoNames) }
+            }
+            // Wash-out chips
+            for (const p of prots) {
+              const { washStart, washEnd } = getWindows(p)
+              if (washStart && washEnd) {
+                const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+                if (dOnly >= new Date(washStart.getFullYear(), washStart.getMonth(), washStart.getDate()) && dOnly <= new Date(washEnd.getFullYear(), washEnd.getMonth(), washEnd.getDate())) {
+                  next[key] = { ...(next[key] || {}), washout: [ ...(next[key]?.washout || []), (p.protocolName || 'Protocol') ] }
+                }
+              }
+            }
+            // Scheduled Group Buys
+            const dayBuys = (scheduledBuys || []).filter(b => {
+                if (!b?.openDate || !b?.closeDate) return false;
+                const open = parseDateString(b.openDate);
+                const close = parseDateString(b.closeDate);
+                const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                return dOnly >= open && dOnly <= close;
+            });
+            if (dayBuys.length > 0) {
+                next[key] = { ...(next[key] || {}), groupBuys: [...(next[key]?.groupBuys || []), ...dayBuys.map(b => b.item)] };
+            }
+          }
+          // Group buys: mark any order with .group that falls on this month (for subtle count in month header)
+          for (const o of orders) {
+            if (!o.group || !o.date) continue
+            const od = parseDateString(o.date)
+            if (od.getMonth() === currentDate.getMonth() && od.getFullYear() === currentDate.getFullYear()) {
+              const key = toKey(od)
+              next[key] = { ...(next[key] || {}), groupBuys: [ ...(next[key]?.groupBuys || []), (o.group.title || 'Group Buy') ] }
+            }
+          }
+          // Attach metrics if present for each day key
+          for (const k of Object.keys(next)) {
+            if (metricsByKeyWithTrend[k]) {
+              next[k] = { ...(next[k] || {}), metrics: metricsByKeyWithTrend[k] }
+            }
+          }
+
+          setScheduled(prev => ({ ...prev, ...next }))
+        } catch (e) {
+          console.error('[Calendar Debug] Error in loadData:', e);
+        }
+    };
+
+    loadData(); // Initial load
+  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys]);
 
   // Seed a mock group buy once so visuals show up
   useEffect(() => {
@@ -42,16 +504,6 @@ export default function Calendar() {
       }
     } catch {}
   }, [])
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === 'tpprover_calendar_bump') setBump(e.newValue || String(Date.now()))
-    }
-    window.addEventListener('storage', onStorage)
-    const iv = setInterval(() => {
-      try { const v = localStorage.getItem('tpprover_calendar_bump'); if (v !== bump) setBump(v || '0') } catch {}
-    }, 1500)
-    return () => { window.removeEventListener('storage', onStorage); clearInterval(iv) }
-  }, [bump])
 
   useEffect(() => { try { localStorage.setItem('tpprover_calendar_notes', JSON.stringify(entries)) } catch {} }, [entries])
   useEffect(() => { try { localStorage.setItem('tpprover_calendar_done', JSON.stringify(done)) } catch {} }, [done])
@@ -60,93 +512,7 @@ export default function Calendar() {
 
   // Auto indicators based on Supplements (Research) and Protocols (placeholder for now)
   // Read supplements saved in local storage by Research page (if any)
-  useEffect(() => {
-    try {
-      const rawSupp = localStorage.getItem('tpprover_supplements')
-      const supps = rawSupp ? JSON.parse(rawSupp) : []
-      // For the current month, mark days with supplement counts
-      const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-      const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
-      const next = {}
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const dayKey = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-        const count = supps.filter(s => s.days?.includes(dayKey)).length
-        if (count > 0) {
-          const key = toKey(d)
-          next[key] = { ...(next[key] || {}), supplements: Array(count).fill('supp'), bySlot: { ...(next[key]?.bySlot||{}) } }
-          // add names by slot
-          for (const s of supps) {
-            if (!s.days?.includes(dayKey)) continue
-            const slot = s.schedule === 'PM' ? 'Evening' : 'Morning'
-            next[key].bySlot[slot] = [...(next[key].bySlot[slot]||[]), s.name || 'Supplement']
-          }
-        }
-      }
-      // Upcoming buys badges from Orders: mark orders with status 'Order Placed' within next N days
-      const rawOrders = localStorage.getItem('tpprover_orders')
-      const orders = rawOrders ? JSON.parse(rawOrders) : []
-      const N = 7
-      const today = new Date()
-      const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + N)
-      for (const o of orders) {
-        if ((o.status || '') !== 'Order Placed' || !o.date) continue
-        const od = new Date(o.date)
-        if (od >= today && od <= horizon) {
-          const key = toKey(od)
-          next[key] = { ...(next[key] || {}), buys: (next[key]?.buys || 0) + 1 }
-        }
-      }
-      // Protocol indicators: count by time-of-day occurrences
-      const rawProt = localStorage.getItem('tpprover_protocols')
-      const prots = rawProt ? JSON.parse(rawProt) : []
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const key = toKey(d)
-        const weekday = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-        // within date range and matches active day
-        const count = prots.reduce((acc, p) => {
-          const inRange = (!p.startDate || new Date(p.startDate) <= d) && (!p.endDate || new Date(p.endDate) >= d)
-          const dayOk = !Array.isArray(p.activeDays) || p.activeDays.includes(weekday)
-          const active = p.active !== false
-          const times = Array.isArray(p.frequency?.time) ? p.frequency.time.length : 0
-          return acc + (inRange && dayOk && active ? times : 0)
-        }, 0)
-        if (count > 0) {
-          const times = prots.reduce((obj, p) => {
-            const inRange = (!p.startDate || new Date(p.startDate) <= d) && (!p.endDate || new Date(p.endDate) >= d)
-            const dayOk = !Array.isArray(p.activeDays) || p.activeDays.includes(weekday)
-            const active = p.active !== false
-            if (inRange && dayOk && active && Array.isArray(p.frequency?.time)) {
-              for (const t of p.frequency.time) obj[t] = (obj[t] || 0) + 1
-            }
-            return obj
-          }, {})
-          // names by slot
-          const bySlot = prots.reduce((obj, p) => {
-            const inRange = (!p.startDate || new Date(p.startDate) <= d) && (!p.endDate || new Date(p.endDate) >= d)
-            const dayOk = !Array.isArray(p.activeDays) || p.activeDays.includes(weekday)
-            const active = p.active !== false
-            if (inRange && dayOk && active && Array.isArray(p.frequency?.time)) {
-              for (const t of p.frequency.time) {
-                obj[t] = [...(obj[t]||[]), p.name || 'Protocol']
-              }
-            }
-            return obj
-          }, {})
-          next[key] = { ...(next[key] || {}), times, bySlot: { ...(next[key]?.bySlot||{}), ...bySlot }, done: done[key] || {} }
-        }
-      }
-      // Group buys: mark any order with .group that falls on this month
-      for (const o of orders) {
-        if (!o.group || !o.date) continue
-        const od = new Date(o.date)
-        if (od.getMonth() === currentDate.getMonth() && od.getFullYear() === currentDate.getFullYear()) {
-          const key = toKey(od)
-          next[key] = { ...(next[key] || {}), groupBuys: (next[key]?.groupBuys || 0) + 1 }
-        }
-      }
-      setScheduled(prev => ({ ...prev, ...next }))
-    } catch {}
-  }, [currentDate, done, bump])
+  
 
   const toggleSlot = (dateObj, slot) => {
     const key = toKey(dateObj)
@@ -174,41 +540,69 @@ export default function Calendar() {
     setActiveDay(null)
   }
 
+  const handleSaveNotes = (text) => {
+      if (!editingNotesFor) return;
+      const key = toKey(editingNotesFor);
+      setEntries(prev => ({ ...prev, [key]: text }));
+  }
+
+  const handlePrev = () => {
+    if (viewMode === 'week') {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 7));
+    } else {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    }
+  };
+
+  const handleNext = () => {
+    if (viewMode === 'week') {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 7));
+    } else {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    }
+  };
+
   return (
     <section className="space-y-4">
       <CalendarHeader
         currentDate={currentDate}
-        onPrev={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-        onNext={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+        weekStart={weekStart}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onToday={() => setCurrentDate(new Date())}
         viewMode={viewMode}
         onChangeView={setViewMode}
         theme={theme}
       />
-      <div className="rounded border bg-white p-4 content-card" style={{ borderColor: theme.border }}>
+      <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         {viewMode === 'month' ? (
-          <MonthGrid date={currentDate} entries={entries} scheduled={scheduled} theme={theme} onDayClick={setActiveDay} />
+          <MonthGrid
+            date={currentDate}
+            entries={entries}
+            scheduled={scheduled}
+            theme={theme}
+            onDayClick={(d) => {
+              if (!d) return
+              setCurrentDate(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
+              setViewMode('week')
+            }}
+          />
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <button className="px-2 py-1 rounded border" style={{ borderColor: theme.border }} onClick={() => setActiveDay(new Date())}>Today</button>
-              <button className="px-2 py-1 rounded border" style={{ borderColor: theme.border }} onClick={() => setActiveDay(weekStart)}>Open Day</button>
-            </div>
-            <WeekView startDate={weekStart} entries={entries} scheduled={scheduled} theme={theme} onDayClick={setActiveDay} />
+            <WeekView startDate={weekStart} entries={entries} scheduled={scheduled} theme={theme} onDayClick={setActiveDay} onNotesClick={setEditingNotesFor} />
           </div>
         )}
       </div>
 
-      <DayView
-        open={!!activeDay}
-        onClose={() => setActiveDay(null)}
-        date={activeDay}
-        theme={theme}
-        notes={activeDay ? entries[toKey(activeDay)] : ''}
-        onSave={(text) => { if (!activeDay) return; setEntries(prev => ({ ...prev, [toKey(activeDay)]: text })); setActiveDay(null) }}
-        scheduled={activeDay ? scheduled[toKey(activeDay)] : {}}
-        done={done[activeDay ? toKey(activeDay) : ''] || {}}
-        onToggleSlot={(slot) => toggleSlot(activeDay, slot)}
+      <NotesModal
+          open={!!editingNotesFor}
+          onClose={() => setEditingNotesFor(null)}
+          theme={theme}
+          notes={editingNotesFor ? entries[toKey(editingNotesFor)] : ''}
+          onSave={handleSaveNotes}
       />
+
+      {/* Inline day edit could be implemented here in future. Modal temporarily disabled per request. */}
     </section>
   )
 }

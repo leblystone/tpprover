@@ -1,5 +1,6 @@
  import React, { useMemo, useState } from 'react'
  import Modal from '../common/Modal'
+ import { generateId } from '../../utils/string'
 
 export default function OCRImportModal({ open, onClose, theme, onImport }) {
   const [file, setFile] = useState(null)
@@ -41,7 +42,7 @@ export default function OCRImportModal({ open, onClose, theme, onImport }) {
   }
 
   const save = () => {
-    const payload = { id: Date.now(), ...(parsed || {}), raw: text }
+    const payload = { id: generateId(), ...(parsed || {}), raw: text }
     try {
       const raw = localStorage.getItem('tpprover_imports')
       const arr = raw ? JSON.parse(raw) : []

@@ -1,17 +1,28 @@
- import React from 'react'
+import React from 'react'
 
-export default function Tabs({ value, onChange, options = [], theme, compact = false }) {
-  // Match Calendar Month/Week styling when compact is true
-  const containerClass = compact ? 'flex gap-1 bg-gray-100 p-1 rounded-full shadow-inner' : 'flex gap-2 bg-gray-100 p-1 rounded-full shadow-inner'
-  const baseBtn = compact ? 'px-4 py-1.5 text-sm' : 'px-5 py-2 text-sm'
+export default function Tabs({ value, onChange, options = [], theme, compact = false, stretch = false }) {
+  const containerClass = `
+    ${stretch ? 'w-full flex-1' : ''} 
+    ${compact ? 'flex gap-1 p-1.5 rounded-xl' : 'flex gap-2 p-2.5 rounded-xl'}
+  `.trim()
+  
+  const baseBtn = `
+    ${compact ? 'px-4 py-2 text-sm' : 'px-5 py-2.5 text-sm'} 
+    ${stretch ? 'flex-1 text-center' : ''}
+    font-semibold rounded-lg transition-all duration-200 focus:outline-none
+  `.trim()
+
   return (
-    <div className={containerClass}>
+    <div className={containerClass} style={{ backgroundColor: theme.secondary }}>
       {options.map(opt => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`${baseBtn} font-semibold rounded-full transition-all duration-200 focus:outline-none ${value === opt.value ? 'text-white shadow' : 'text-gray-600 hover:bg-gray-200'}`}
-          style={value === opt.value ? { backgroundColor: theme?.primary, color: theme?.white } : {}}
+          className={`${baseBtn} ${value === opt.value ? 'shadow-md' : 'shadow-sm hover:shadow-md'}`}
+          style={{ 
+            backgroundColor: value === opt.value ? theme.primary : theme.cardBackground, 
+            color: value === opt.value ? theme.textOnPrimary : theme.textLight 
+          }}
         >
           {opt.label}
         </button>

@@ -63,7 +63,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
           <div className="space-y-2">
             {(morningItems.length > 0) && (
               <div>
-                <div className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>Morning</div>
+                <div className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>AM</div>
                 <div className="flex flex-wrap gap-2">
                   {morningItems.map((it, idx) => (
                     <span key={`m-${idx}`} className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: it.type==='protocol' ? theme?.accent : '#EFF6FF', color: it.type==='protocol' ? theme?.accentText : '#1D4ED8' }}>{it.name}</span>
@@ -73,7 +73,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
             )}
             {(eveningItems.length > 0) && (
               <div>
-                <div className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>Evening</div>
+                <div className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>PM</div>
                 <div className="flex flex-wrap gap-2">
                   {eveningItems.map((it, idx) => (
                     <span key={`e-${idx}`} className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: it.type==='protocol' ? theme?.accent : '#EFF6FF', color: it.type==='protocol' ? theme?.accentText : '#1D4ED8' }}>{it.name}</span>

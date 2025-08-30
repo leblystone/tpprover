@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react'
- import Modal from '../common/Modal'
- import TextInput from '../common/inputs/TextInput'
- import { formatMMDDYYYY } from '../../utils/date'
+import Modal from '../common/Modal'
+import TextInput from '../common/inputs/TextInput'
+import { formatMMDDYYYY } from '../../utils/date'
 
-const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Domestic Warehouse','Bad Packaging','Broken Vials','Vetted']
+const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Vetted']
 
-export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave }) {
+export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete }) {
   const [form, setForm] = useState(createEmptyVendor())
   useEffect(() => {
-    if (open) setForm(vendor ? { ...createEmptyVendor(), ...vendor } : createEmptyVendor())
+    if (open) {
+      const base = vendor ? { ...createEmptyVendor(), ...vendor } : createEmptyVendor()
+      // Ensure at least one contact input (default to email)
+      if (!Array.isArray(base.contacts) || base.contacts.length === 0) {
+        base.contacts = [{ type: 'email', value: '' }]
+      }
+      setForm(base)
+    }
   }, [open, vendor])
 
   const addContact = () => setForm(prev => ({ ...prev, contacts: [...prev.contacts, { type: 'email', value: '' }] }))
@@ -16,49 +23,52 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   const removeContact = (idx) => setForm(prev => ({ ...prev, contacts: prev.contacts.filter((_, i) => i !== idx) }))
 
   return (
-    <Modal open={open} onClose={onClose} title={form.name || 'Vendor Details'} theme={theme} footer={(
-      <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="text-xs" style={{ color: theme?.text }}>Category:</div>
-          <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-            {['domestic','international','group'].map(k => (
-              <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, type: k }))}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-full ${form.type === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                style={form.type === k ? { backgroundColor: theme?.primary } : {}}>
-                {k.charAt(0).toUpperCase() + k.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 justify-end">
-          <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-          <button onClick={() => onSave?.(form)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
-        </div>
+    <Modal open={open} onClose={onClose} title={form.name || 'Vendor Details'} theme={theme} maxWidth="max-w-4xl" footer={(
+      <div className="w-full flex items-center justify-end gap-2">
+        {vendor?.id && (
+          <button onClick={() => onDelete?.(vendor.id)} className="px-3 py-2 rounded-md border mr-auto bg-red-600 text-white hover:bg-red-700">Delete</button>
+        )}
+        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
+        <button onClick={() => onSave?.(form)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
       </div>
     )}>
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-          <div className="flex items-baseline justify-between">
-          <div className="flex-1 mr-3"><TextInput label="Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Vendor" theme={theme} /></div>
-            <div className="hidden sm:block text-sm font-medium" style={{ color: theme.text }}>Rating</div>
-          </div>
-          <div className="block text-sm" style={{ color: theme.text }}>
-            <div className="mt-2 flex items-center gap-1 justify-center" aria-label="Rating">
+        {/* Header card: Name, Rating, Category */}
+        <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+          <div className="sm:col-span-1"><TextInput label="Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Vendor" theme={theme} /></div>
+          <div className="flex flex-col items-start sm:items-start gap-2">
+            <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Rating</div>
+            <div className="flex items-center justify-around w-full rounded-md p-1 shadow-inner border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} aria-label="Rating">
               {[1,2,3,4,5].map(n => (
-                <button key={n} type="button" className="p-1" onClick={() => setForm(prev => ({ ...prev, rating: n }))}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={form.rating >= n ? theme.primary : 'none'} stroke={form.rating >= n ? theme.primary : theme.border} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+                <button key={n} type="button" className="p-2" onClick={() => setForm(prev => ({ ...prev, rating: n }))}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={form.rating >= n ? theme.primary : 'none'} stroke={form.rating >= n ? theme.primary : theme.border} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col items-start sm:items-start gap-2">
+            <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Category</div>
+            <div className="flex w-full rounded-md p-1 shadow-inner" style={{ backgroundColor: theme.cardBackground }}>
+              {['domestic','international','group'].map(k => (
+                <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, type: k }))}
+                  className={`flex-1 text-center px-2 py-1.5 text-xs font-semibold rounded-md ${form.type === k ? '' : 'hover:opacity-80'}`}
+                  style={{ backgroundColor: form.type === k ? theme?.primary : 'transparent', color: form.type === k ? theme.textOnPrimary : theme.text }}>
+                  {k.charAt(0).toUpperCase() + k.slice(1)}
                 </button>
               ))}
             </div>
           </div>
         </div>
+        </div>
 
-        <div>
+        {/* Contacts card */}
+        <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <div className="font-semibold mb-2" style={{ color: theme.text }}>Contacts</div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.contacts.map((c, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                <select className="col-span-3 p-2 rounded border" value={c.type} onChange={e => updateContact(idx, 'type', e.target.value)} style={{ borderColor: theme.border }}>
+              <div key={idx} className="grid grid-cols-12 gap-3 items-center">
+                <select className="col-span-3 p-2 rounded border" value={c.type} onChange={e => updateContact(idx, 'type', e.target.value)} style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}>
                   <option value="name">Name</option>
                   <option value="email">Email</option>
                   <option value="phone">Phone</option>
@@ -74,24 +84,24 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   value={c.value}
                   onChange={e => updateContact(idx, 'value', e.target.value)}
                   placeholder={getContactPlaceholder(c.type)}
-                  style={{ borderColor: theme.border }}
+                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
                 />
-                <button className="col-span-1 p-2 rounded hover:bg-gray-100" onClick={() => removeContact(idx)}>✕</button>
+                <button className="col-span-1 p-2 rounded hover:bg-gray-100" style={{ color: theme.text }} onClick={() => removeContact(idx)}>✕</button>
               </div>
             ))}
             <button className="px-3 py-2 rounded-md text-sm font-semibold border-dashed border" style={{ borderColor: theme.primary, color: theme.primary }} onClick={addContact}>+ Add Contact</button>
           </div>
         </div>
 
-        {/* Removed website/telegram/reddit/discord fields; use Contacts above */}
+        {/* Payment card */}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded border p-4 content-card grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <label className="block text-sm font-medium" style={{ color: theme.text }}>Payment Methods
-            <div className="mt-2 flex flex-wrap gap-2 text-sm">
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
               {['Card','Zelle','Crypto','PayPal','Wire'].map(p => (
-                <label key={p} className="inline-flex items-center gap-1">
-                  <input type="checkbox" checked={!!form.payments[p.toLowerCase()]} onChange={e => setForm(prev => ({ ...prev, payments: { ...prev.payments, [p.toLowerCase()]: e.target.checked } }))} />
-                  {p}
+                <label key={p} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={!!form.payments[p.toLowerCase()]} onChange={e => setForm(prev => ({ ...prev, payments: { ...prev.payments, [p.toLowerCase()]: e.target.checked } }))} className="h-4 w-4 rounded" style={{ accentColor: theme?.primary }} />
+                  <span>{p}</span>
                 </label>
               ))}
             </div>
@@ -99,24 +109,25 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <TextInput label="Payment Notes" value={form.payments.notes} onChange={v => setForm(prev => ({ ...prev, payments: { ...prev.payments, notes: v } }))} placeholder="Preferences / fees / tips" theme={theme} />
         </div>
 
-        <div>
-          <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Labels</div>
-          <div className="flex flex-wrap gap-2 text-sm">
-            {labelOptions.map(l => (
-              <label key={l} className="inline-flex items-center gap-1">
-                <input type="checkbox" checked={Array.isArray(form.labels) && form.labels.includes(l)} onChange={e => setForm(prev => ({ ...prev, labels: e.target.checked ? Array.from(new Set([...(prev.labels||[]), l])) : (prev.labels||[]).filter(x => x !== l) }))} />
-                {l}
-              </label>
-            ))}
-          </div>
+        {/* Labels + Notes card */}
+        <div className="rounded border p-4 content-card grid grid-cols-1 sm:grid-cols-2 gap-4 items-start" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+          <label className="block text-sm font-medium" style={{ color: theme.text }}>Labels
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              {labelOptions.map(l => (
+                <label key={l} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={Array.isArray(form.labels) && form.labels.includes(l)} onChange={e => setForm(prev => ({ ...prev, labels: e.target.checked ? Array.from(new Set([...(prev.labels||[]), l])) : (prev.labels||[]).filter(x => x !== l) }))} className="h-4 w-4 rounded" style={{ accentColor: theme?.primary }} />
+                  <span>{l}</span>
+                </label>
+              ))}
+            </div>
+          </label>
+          <label className="block text-sm font-medium" style={{ color: theme.text }}>Notes
+            <textarea className="w-full p-3 rounded-lg border text-sm" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Vendor notes" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }} />
+          </label>
         </div>
 
-        <label className="block text-sm font-medium" style={{ color: theme.text }}>Notes
-          <textarea className="w-full p-3 rounded-lg border text-sm" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Vendor notes" style={{ borderColor: theme.border }} />
-        </label>
-
-        {/* Inline order history */}
-        <div>
+        {/* Order history card */}
+        <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <div className="font-semibold mb-2" style={{ color: theme.text }}>Order History</div>
           <VendorOrderHistory vendorName={form.name} theme={theme} />
         </div>
@@ -124,6 +135,9 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
     </Modal>
   )
 }
+
+// Also export a named version for flexibility in import styles
+export { VendorDetailsModal }
 
 function NameSuggestions({ anchorValue, onPick, theme }) {
   let vendors = []

@@ -1,0 +1,16 @@
+.sidebar-container {
+    transition: width 0.3s ease-in-out;
+}
+
+.sidebar-container:hover {
+    width: 16rem; /* 256px */
+}
+
+.sidebar-link-label {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.sidebar-container:hover .sidebar-link-label {
+    opacity: 1;
+}

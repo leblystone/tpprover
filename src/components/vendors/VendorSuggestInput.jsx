@@ -11,9 +11,9 @@ export default function VendorSuggestInput({ label = 'Vendor', value, onChange, 
   const list = React.useMemo(() => {
     const s = (q || '').toLowerCase()
     if (!s) return []
-    const uniq = Array.from(new Set(vendors))
-    return uniq.filter(v => v.toLowerCase().includes(s)).slice(0, 6)
-  }, [q])
+    const uniq = Array.from(new Set(vendors.map(v => v.name || v))) // Handle both objects and strings
+    return uniq.filter(v => typeof v === 'string' && v.toLowerCase().includes(s)).slice(0, 6)
+  }, [q, vendors])
 
   return (
     <div className="relative">

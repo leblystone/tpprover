@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../common/Modal'
-import TextInput from '../common/inputs/TextInput'
+import TextInput from '../common/inputs/TextInput.jsx'
 
 export default function GlossaryQuickModal({ open, onClose, theme }) {
   const [q, setQ] = useState('')
