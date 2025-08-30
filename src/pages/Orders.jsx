@@ -137,7 +137,34 @@ export default function Orders() {
 						{ value: 'groupbuy', label: 'Group Buy' },
 					]}
 				/>
-				<button className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => setShowAddModal(true)}><PlusCircle className="h-4 w-4" /> Add Order</button>
+				<div className="flex items-center gap-2">
+					<button className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => setShowAddModal(true)}><PlusCircle className="h-4 w-4" /> Add Order</button>
+					<button
+						className="px-3 py-2 rounded-md text-sm font-semibold"
+						style={{ backgroundColor: theme.accent, color: theme.accentText }}
+						onClick={() => {
+							const demo = {
+								id: generateId(),
+								vendor: 'Example Labs',
+								vendorId: (vendors.find(v => v.name === 'Example Labs')||{}).id || null,
+								type: activeTab,
+								status: 'Delivered',
+								date: new Date().toISOString(),
+								deliveryDate: new Date().toISOString(),
+								items: [
+									{ id: 'i1', name: 'BPC-157', mg: 5, quantity: 1, price: 55 },
+									{ id: 'i2', name: 'TB-500', mg: 5, quantity: 1, price: 60 }
+								],
+								isMock: true
+							}
+							handleStockpileUpdate(null, demo);
+							setOrders(prev => [demo, ...prev])
+						}}
+						title="Adds a demo invoice and updates stockpile"
+					>
+						Add Test Invoice
+					</button>
+				</div>
 			</div>
 
 			<div className="mt-6">
