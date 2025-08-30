@@ -11,6 +11,7 @@ import { useAppContext } from './context/AppContext';
 import DemoDataBanner from './components/ui/DemoDataBanner';
 import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
 import DashboardOnboarding from './components/onboarding/DashboardOnboarding';
+import BetaEnded from './pages/BetaEnded';
 
 function App() {
   const [themeName] = useState(() => {
@@ -42,6 +43,20 @@ function App() {
         setShowDemoBanner(true);
     }
   }, [hasMockData]);
+
+  // Beta access control
+  const isBetaActive = () => {
+    const phase1EndDate = new Date('2024-09-07T00:00:00Z'); // Sept 6th midnight UTC
+    const phase2EndDate = new Date('2024-09-14T00:00:00Z'); // Sept 13th midnight UTC
+    const now = new Date();
+    // For testing, you can uncomment the line below to simulate the beta having ended.
+    // return false;
+    return now <= phase2EndDate;
+  };
+
+  if (!isBetaActive()) {
+    return <BetaEnded />;
+  }
 
   // Capture PWA install prompt for later use
   useEffect(() => {

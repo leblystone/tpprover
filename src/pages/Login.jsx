@@ -122,12 +122,14 @@ export default function Login() {
                     <div className="p-8 space-y-6 rounded-xl shadow-lg" style={{ backgroundColor: theme.white }}>
                         <div className="text-center">
                             <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>{mode === 'login' ? 'Welcome Back' : 'Create an Account'}</h2>
+                            {/* Beta access: Sign-up disabled
                             <p className="text-sm text-gray-500 mt-1">
                                 {mode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
                                 <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }} className="font-semibold hover:underline" style={{ color: theme.primary }}>
                                     {mode === 'login' ? "Sign Up" : "Login"}
                                 </button>
                             </p>
+                            */}
                         </div>
 
                         <form className="space-y-4" onSubmit={handleSubmit}>

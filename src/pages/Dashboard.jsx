@@ -770,7 +770,7 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500">You've earned {earnedCount} of {totalBadges} badges.</p>
             </div>
             <button 
-                onClick={() => setShowBadges(true)}
+                onClick={() => navigate('/badges')}
                 className="px-4 py-2 rounded-md text-sm font-semibold" 
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
