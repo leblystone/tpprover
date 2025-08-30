@@ -122,7 +122,7 @@ const useIsMobile = (breakpoint = 768) => {
     return isMobile;
 };
 
-export default function Tour({ theme, startTour, onTourEnd }) {
+export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
     const [run, setRun] = useState(false);
     const [stepIndex, setStepIndex] = useState(0);
     const navigate = useNavigate();
@@ -173,9 +173,8 @@ export default function Tour({ theme, startTour, onTourEnd }) {
             onFinish={() => { setRun(false); onTourEnd(); }}
             onRequestInstall={() => {
                 try {
-                    const p = window.deferredPrompt;
-                    if (p && typeof p.prompt === 'function') {
-                        p.prompt();
+                    if (installPrompt) {
+                        installPrompt.prompt();
                         return;
                     }
                 } catch {}

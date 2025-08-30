@@ -46,11 +46,8 @@ function App() {
   // Capture PWA install prompt for later use
   useEffect(() => {
     const handler = (e) => {
-      try {
-        e.preventDefault();
-        setInstallPrompt(e);
-        window.deferredPrompt = e;
-      } catch {}
+      e.preventDefault();
+      setInstallPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -73,13 +70,11 @@ function App() {
     setStartTour(false);
     try {
       const already = localStorage.getItem('tpprover_pwa_prompted');
-      const promptEvt = installPrompt || window.deferredPrompt;
-      if (!already && promptEvt && typeof promptEvt.prompt === 'function') {
-        await Promise.resolve().then(() => promptEvt.prompt());
-        try { await promptEvt.userChoice } catch {}
+      if (!already && installPrompt) {
+        await installPrompt.prompt();
+        await installPrompt.userChoice;
         localStorage.setItem('tpprover_pwa_prompted', 'true');
         setInstallPrompt(null);
-        try { window.deferredPrompt = null } catch {}
       }
     } catch {}
   };
@@ -107,6 +102,7 @@ function App() {
         theme={theme}
         startTour={startTour}
         onTourEnd={handleTourEnd}
+        installPrompt={installPrompt}
       />
       <GlossaryQuickModal open={showGlossary} onClose={() => setShowGlossary(false)} theme={theme} />
       <DashboardOnboarding
