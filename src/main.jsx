@@ -13,9 +13,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Service worker: enable in production only; unregister in dev to avoid module fetch issues
+// Service worker: enable in production only; unregister in dev to avoid cache issues
 if ('serviceWorker' in navigator) {
-  if (import.meta.env.PROD) {
+  if (import.meta.env && import.meta.env.PROD) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     })
