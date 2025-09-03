@@ -60,7 +60,7 @@ export default function TasksList({ tasks, theme, onToggle }) {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
                 <TaskListSection title="AM" tasks={amTasks} theme={theme} onToggle={onToggle} />
-                <div className="border-l pl-4 -ml-2">
+                <div className="mt-4 border-t pt-4 md:mt-0 md:border-t-0 md:border-l md:pl-4" style={{ borderColor: theme.border }}>
                      <TaskListSection title="PM" tasks={pmTasks} theme={theme} onToggle={onToggle} />
                 </div>
             </div>
