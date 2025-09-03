@@ -10,36 +10,21 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
 
   // Render one full-width card per order; assume orders already sorted chronologically
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {orders.map(o => (
         <div key={o.id} className="rounded-lg border p-4 shadow-sm content-card" style={{ borderColor: theme?.border || '#eee', backgroundColor: theme.cardBackground }}>
-          <div className="grid grid-cols-12 gap-4 items-center">
-
-            <div className="col-span-12 sm:col-span-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            {/* Left side: Title and Vendor */}
+            <div className="flex-grow">
               <div className="font-semibold text-base" style={{ color: theme?.text }}>{formatOrderTitle(o)}</div>
               <div className="text-sm flex items-center gap-2 mt-1" style={{ color: theme.textLight }}>
                 <Package size={14} /> {o.vendorId ? vendorMap[o.vendorId] : o.vendor}
               </div>
             </div>
 
-            <div className="col-span-6 sm:col-span-2 text-sm" style={{ color: theme.textLight }}>
-              <div className="flex items-center gap-2"><Beaker size={14} /> {formatTotalQuantity(o)}</div>
-              <div className="flex items-center gap-2 mt-1"><DollarSign size={14} /> {formatTotalCost(o)}</div>
-            </div>
-
-            <div className="col-span-6 sm:col-span-3 text-sm" style={{ color: theme.textLight }}>
-              <div className="flex items-center gap-2"><Calendar size={14} /> Ordered: {formatMMDDYYYY(o.date)}</div>
-              <div className="flex items-center gap-2 mt-1">
-                <Truck size={14} /> 
-                {o.status === 'Delivered' 
-                    ? `Delivered: ${formatMMDDYYYY(o.deliveryDate) || ''}`
-                    : `Est. Delivery: ${formatMMDDYYYY(o.deliveryDate) || 'Pending'}`
-                }
-              </div>
-            </div>
-
-            <div className="col-span-12 sm:col-span-3 flex items-center justify-end gap-2">
-              <span className="px-2 py-1 rounded-full text-xs font-semibold" style={statusStyle(o.status, theme)}>
+            {/* Right side: Status and Actions */}
+            <div className="flex items-center gap-2 mt-4 sm:mt-0 flex-shrink-0">
+               <span className="px-2 py-1 rounded-full text-xs font-semibold" style={statusStyle(o.status, theme)}>
                 {displayStatus(o.status)}
               </span>
               <button aria-label="Update shipping status" className="p-2 rounded-md hover:bg-gray-100" style={{ color: theme.primary }} onClick={() => onAdvance?.(o)}>
@@ -50,6 +35,21 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
               </button>
             </div>
           </div>
+          
+          {/* Details grid for larger screens, stacked for mobile */}
+          <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm" style={{ borderColor: theme.border, color: theme.textLight }}>
+            <div className="flex items-center gap-2"><Beaker size={14} /> {formatTotalQuantity(o)}</div>
+            <div className="flex items-center gap-2"><DollarSign size={14} /> {formatTotalCost(o)}</div>
+            <div className="flex items-center gap-2"><Calendar size={14} /> Ordered: {formatMMDDYYYY(o.date)}</div>
+            <div className="flex items-center gap-2">
+              <Truck size={14} /> 
+              {o.status === 'Delivered' 
+                  ? `Delivered: ${formatMMDDYYYY(o.deliveryDate) || ''}`
+                  : `Est. Delivery: ${formatMMDDYYYY(o.deliveryDate) || 'Pending'}`
+              }
+            </div>
+          </div>
+
           {o.notes && (
             <div className="mt-3 pt-3 border-t text-xs flex items-start gap-2" style={{ borderColor: theme.border, color: theme.textLight }}>
               <Info size={14} className="mt-0.5" />

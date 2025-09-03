@@ -94,4 +94,5 @@ export { default as Crown } from 'lucide-react/dist/esm/icons/crown.js'
 export { default as Megaphone } from 'lucide-react/dist/esm/icons/megaphone.js'
 export { default as Wrench } from 'lucide-react/dist/esm/icons/wrench.js'
 export { default as Sparkles } from 'lucide-react/dist/esm/icons/sparkles.js'
+export { default as Lock } from 'lucide-react/dist/esm/icons/lock.js'
 

@@ -241,6 +241,10 @@
                     onClick={() => {
                         if (window.confirm("Are you sure you want to remove all sample data? This action cannot be undone.")) {
                             clearMockData();
+                            // Set a flag to prevent re-seeding on next load
+                            localStorage.setItem('tpprover_demo_data_cleared', 'true');
+                            // Hide the banner permanently
+                            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
                             window.location.reload();
                         }
                     }}

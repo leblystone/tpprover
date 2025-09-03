@@ -23,8 +23,11 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const loadAppData = () => {
             try {
-                // Always attempt to seed; seedInitialData is idempotent and will only fill when empty
-                seedInitialData();
+                // Seed initial data only if the user hasn't explicitly cleared it
+                const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
+                if (demoDataCleared !== 'true') {
+                    seedInitialData();
+                }
 
                 const savedProtocols = localStorage.getItem('tpprover_protocols');
                 if (savedProtocols) setProtocols(JSON.parse(savedProtocols));

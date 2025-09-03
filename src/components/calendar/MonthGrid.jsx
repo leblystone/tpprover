@@ -55,7 +55,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const buyCount = (sched.buys || 0) + (sched.groupBuys || 0)
                     
                     return (
-                        <button key={i} className={`p-1 sm:p-2 rounded border text-left h-28 sm:h-32 hover:bg-gray-50 flex flex-col justify-between relative ${sched.doneAll ? 'bg-green-50' : ''}`} style={{ borderColor: theme.border }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
+                        <button key={i} className={`p-1 sm:p-2 rounded border text-left aspect-square hover:bg-gray-50 flex flex-col justify-between relative ${sched.doneAll ? 'bg-green-50' : ''}`} style={{ borderColor: theme.border }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             <div>
                                 <div className="text-xs font-semibold mb-1 flex items-center justify-between" style={{ color: theme.text }}>
                                     <span className="flex items-center gap-1">
@@ -74,7 +74,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                                     {peptideCount}
                                                     </span>
                                                 )}
-                                                {suppCount > 0 && (<span className="inline-flex items-center gap-0.5"><Pill className="h-3 w-3" />{suppCount}</span>)}
+                                                {suppCount > 0 && (<span className="inline-flex items-center gap-0.5" title={`${suppCount} supplement(s)`}><Pill className="h-3 w-3" /></span>)}
                                                 {buyCount > 0 && (<span className="inline-flex items-center gap-0.5"><ShoppingCart className="h-3 w-3" />{buyCount}</span>)}
                                             </span>
                                         </div>

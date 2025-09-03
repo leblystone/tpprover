@@ -139,26 +139,37 @@ export function seedInitialData() {
 
 export function clearMockData() {
     try {
-        Object.values(DATA_KEYS).forEach(key => {
+        const ALL_MOCK_KEYS = [
+            'tpprover_vendors',
+            'tpprover_orders',
+            'tpprover_scheduled_buys',
+            'tpprover_protocols',
+            'tpprover_supplements',
+            'tpprover_recon_items',
+            'tpprover_metrics',
+            'tpprover_stockpile',
+        ];
+
+        ALL_MOCK_KEYS.forEach(key => {
             const raw = localStorage.getItem(key);
             if (raw) {
-                const data = JSON.parse(raw);
-                if (Array.isArray(data)) {
-                    const filteredData = data.filter(item => !item.isMock);
-                    localStorage.setItem(key, JSON.stringify(filteredData));
-                }
+                try {
+                    const data = JSON.parse(raw);
+                    if (Array.isArray(data)) {
+                        const filteredData = data.filter(item => !item.isMock);
+                        localStorage.setItem(key, JSON.stringify(filteredData));
+                    }
+                } catch {}
             }
         });
-        
-        // Also clear derived data like stockpile
-        const stockpileRaw = localStorage.getItem('tpprover_stockpile');
-        if (stockpileRaw) {
-            const stockpile = JSON.parse(stockpileRaw);
-            const filteredStockpile = stockpile.filter(item => !item.isMock);
-            localStorage.setItem('tpprover_stockpile', JSON.stringify(filteredStockpile));
+
+        // Special handling for calendar notes (object, not array)
+        const notesRaw = localStorage.getItem('tpprover_calendar_notes');
+        if (notesRaw) {
+            localStorage.setItem('tpprover_calendar_notes', JSON.stringify({}));
         }
 
-        console.log('Mock data cleared.');
+        console.log('All mock data cleared.');
     } catch (e) {
         console.error("Failed to clear mock data:", e);
     }

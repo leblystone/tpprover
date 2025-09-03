@@ -5,12 +5,10 @@ import MobileNav from './components/layout/MobileSidebar'
 import Topbar from './components/layout/Topbar'
 import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
-import Tour from './components/onboarding/Tour';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
 import DemoDataBanner from './components/ui/DemoDataBanner';
 import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
-import DashboardOnboarding from './components/onboarding/DashboardOnboarding';
 import BetaEnded from './pages/BetaEnded';
 
 function App() {
@@ -24,12 +22,10 @@ function App() {
   const theme = themes[themeName]
   const { hasMockData } = useAppContext();
   const [showWelcome, setShowWelcome] = useState(false);
-  const [startTour, setStartTour] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [showDemoBanner, setShowDemoBanner] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
-  const [showDashboardOnboarding, setShowDashboardOnboarding] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
 
   useEffect(() => {
@@ -76,26 +72,12 @@ function App() {
     localStorage.setItem('tpprover_has_onboarded', 'true');
   };
 
-  const handleStartTour = () => {
+  const startTour = () => {
     setShowWelcome(false);
-    localStorage.setItem('tpprover_has_onboarded', 'true');
-    // We're usually already on /dashboard; ensure navigation happens, then start next tick
-    navigate('/dashboard');
-    setTimeout(() => setShowDashboardOnboarding(true), 0);
+    navigate('/?tour=true');
   };
 
-  const handleTourEnd = async () => {
-    setStartTour(false);
-    try {
-      const already = localStorage.getItem('tpprover_pwa_prompted');
-      if (!already && installPrompt) {
-        await installPrompt.prompt();
-        await installPrompt.userChoice;
-        localStorage.setItem('tpprover_pwa_prompted', 'true');
-        setInstallPrompt(null);
-      }
-    } catch {}
-  };
+  const glossaryTerm = new URLSearchParams(window.location.search).get('glossary');
 
   return (
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
@@ -105,7 +87,7 @@ function App() {
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
         <main className="flex-1 overflow-x-hidden overflow-y-auto main-content p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
-            <Outlet context={{ theme }} />
+            <Outlet context={{ theme, installPrompt }} />
           </Suspense>
         </main>
       </div>
@@ -113,24 +95,10 @@ function App() {
       <WelcomeModal
         open={showWelcome}
         onClose={handleCloseWelcome}
-        onStartTour={handleStartTour}
+        onStartTour={startTour}
         theme={theme}
-      />
-      <Tour
-        theme={theme}
-        startTour={startTour}
-        onTourEnd={handleTourEnd}
-        installPrompt={installPrompt}
       />
       <GlossaryQuickModal open={showGlossary} onClose={() => setShowGlossary(false)} theme={theme} />
-      <DashboardOnboarding
-        open={showDashboardOnboarding}
-        theme={theme}
-        onComplete={() => {
-          setShowDashboardOnboarding(false);
-          setStartTour(true);
-        }}
-      />
     </div>
   )
 }

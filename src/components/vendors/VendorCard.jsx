@@ -87,7 +87,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                     
                     {vendor.contacts && vendor.contacts.length > 0 && (
                         <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                            <div className="grid grid-cols-1 gap-x-4 gap-y-2">
                                 {vendor.contacts.filter(c => c.value).map(c => {
                                     const action = buildContactHref(c.type, c.value);
                                     const content = (
@@ -115,7 +115,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                 {/* Bottom Section: Payments, Labels, Buttons */}
                 <div>
                     {(paymentMethods.length > 0 || (vendor.labels && vendor.labels.length > 0)) && (
-                        <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: theme.border }}>
+                        <div className="mt-3 pt-3 border-t space-y-3" style={{ borderColor: theme.border }}>
                             {paymentMethods.length > 0 && (
                                 <div className="flex flex-wrap gap-2 text-xs">
                                     {paymentMethods.map(({ label, Icon }) => (
@@ -127,7 +127,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                 </div>
                             )}
                             {vendor.labels && vendor.labels.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-2">
                                     {vendor.labels.map(l => {
                                         let labelClass = "px-2 py-1 rounded-full text-xs font-semibold ";
                                         if (GOOD_LABELS.includes(l)) labelClass += "bg-green-100 text-green-800";

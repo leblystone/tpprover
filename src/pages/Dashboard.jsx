@@ -1000,7 +1000,7 @@ const MetricDisplay = ({ icon, value, label, theme }) => (
 
 function MiniLineChart({ data = [], color = '#3B82F6', theme }) {
   if (!data || data.length === 0) return <div className="text-xs text-gray-500">No data</div>
-  const vw = 600; const vh = 180; const padding = 12
+  const vw = 100; const vh = 40; const padding = 2
   const ys = data.map(d => d.y).filter(n => typeof n === 'number' && !isNaN(n))
   const minY = Math.min(...ys); const maxY = Math.max(...ys)
   const yRange = maxY - minY || 1
@@ -1010,8 +1010,8 @@ function MiniLineChart({ data = [], color = '#3B82F6', theme }) {
     return `${x},${y}`
   }).join(' ')
   return (
-    <svg width="100%" height={vh} viewBox={`0 0 ${vw} ${vh}`} className="rounded border" style={{ borderColor: theme?.border, backgroundColor: theme.cardBackground }}>
-      <polyline fill="none" stroke={color} strokeWidth="2" points={points} />
+    <svg width="100%" viewBox={`0 0 ${vw} ${vh}`} className="rounded border" style={{ borderColor: theme?.border, backgroundColor: theme.cardBackground }}>
+      <polyline fill="none" stroke={color} strokeWidth="0.5" points={points} />
     </svg>
   )
 }

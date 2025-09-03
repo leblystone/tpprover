@@ -1,0 +1,32 @@
+{
+  "short_name": "The Pep Planner",
+  "name": "The Pep Planner",
+  "description": "Professional Research Management Tool with Advanced Analytics and Security",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "tpp-logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "tpp-logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#9E948A",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary"
+}
+
+
+
+
+

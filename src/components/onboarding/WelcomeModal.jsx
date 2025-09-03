@@ -13,7 +13,7 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                 </h1>
                 
                 <p className="text-gray-600 mb-6">
-                    Thank you for joining our beta testing! The app will remain open for you from <b>August 30th - September 6th</b>. Feedback will be requested at the end of your trial testing. Once again, I appreciate your time! I hope you enjoy The Pep Planner.✌️
+                    Thank you for joining our beta testing! The app will remain open for you from <b>September 6th - September 13th</b>. Feedback will be requested at the end of your trial testing. Once again, I appreciate your time! I hope you enjoy The Pep Planner.✌️
                 </p>
 
                 <div className="flex justify-center mb-6">

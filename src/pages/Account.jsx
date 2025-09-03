@@ -1,5 +1,5 @@
-  import React from 'react'
-  import { useOutletContext } from 'react-router-dom'
+  import React, { useTransition } from 'react'
+  import { useOutletContext, useNavigate } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
   import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2 } from 'lucide-react'
   import Modal from '../components/common/Modal'
@@ -24,6 +24,8 @@
 
   export default function Account() {
     const { theme } = useOutletContext()
+    const navigate = useNavigate()
+    const [isPending, startTransition] = useTransition()
     const [user, setUser] = React.useState(() => {
       try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
     })
@@ -118,9 +120,19 @@
     }
 
     const logout = () => {
-      try { localStorage.removeItem('tpprover_user') } catch {}
-      setUser(null)
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Signed out', type: 'success' } }))
+      try {
+        // Clear all session-related data
+        localStorage.removeItem('tpprover_user')
+        localStorage.removeItem('tpprover_auth_token');
+        // Add any other keys you use for session state
+      } catch {}
+      
+      startTransition(() => {
+        setUser(null)
+        navigate('/login');
+      });
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Signed out successfully', type: 'success' } }))
     }
 
     // Security: change password

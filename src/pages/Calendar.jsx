@@ -437,8 +437,23 @@ export default function Calendar() {
               const doneTotal = Object.values(doneForDay).reduce((a, b) => a + (b || 0), 0)
               const doneAll = maxTotal > 0 && doneTotal >= maxTotal
 
-              next[key] = { ...(next[key] || {}), times, bySlot, done: doneForDay, doneAll, protocols: Array.from(activeProtoNames) }
+              // Merge bySlot data carefully instead of overwriting
+              const existingBySlot = next[key]?.bySlot || {};
+              const mergedBySlot = { ...existingBySlot };
+              for (const slot in bySlot) {
+                  mergedBySlot[slot] = {
+                      peptides: [...(mergedBySlot[slot]?.peptides || []), ...(bySlot[slot]?.peptides || [])],
+                      supplements: [...(mergedBySlot[slot]?.supplements || []), ...(bySlot[slot]?.supplements || [])],
+                  };
+              }
+
+              next[key] = { ...(next[key] || {}), times, bySlot: mergedBySlot, done: doneForDay, doneAll, protocols: Array.from(activeProtoNames) }
             }
+            // Ensure supplement data is preserved even if there are no protocols for a day
+            if (!next[key]?.supplements && scheduled[key]?.supplements) {
+                next[key] = { ...next[key], supplements: scheduled[key].supplements };
+            }
+            
             // Wash-out chips
             for (const p of prots) {
               const { washStart, washEnd } = getWindows(p)
