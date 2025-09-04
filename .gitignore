@@ -3,6 +3,8 @@
 
 # Build output
 /dist
+.netlify
+
 
 # Logs
 logs
@@ -22,3 +24,6 @@ yarn-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Netlify
+.netlify/
