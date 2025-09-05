@@ -170,7 +170,17 @@ export function clearMockData() {
         // Special handling for calendar notes (object, not array)
         const notesRaw = localStorage.getItem('tpprover_calendar_notes');
         if (notesRaw) {
-            localStorage.setItem('tpprover_calendar_notes', JSON.stringify({}));
+            try {
+                const notes = JSON.parse(notesRaw);
+                const filteredNotes = Object.entries(notes).reduce((acc, [key, value]) => {
+                    // Assuming mock notes are simple strings and user notes are objects with a text property
+                    if (value && typeof value === 'object' && value.text) {
+                        acc[key] = value;
+                    }
+                    return acc;
+                }, {});
+                localStorage.setItem('tpprover_calendar_notes', JSON.stringify(filteredNotes));
+            } catch {}
         }
 
         console.log('All mock data cleared.');
