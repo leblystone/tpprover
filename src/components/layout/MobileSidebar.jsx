@@ -7,7 +7,7 @@ import FeedbackModal from '../common/FeedbackModal';
 import InstallInstructionsModal from '../common/InstallInstructionsModal';
 import PwaUnsupportedModal from '../common/PwaUnsupportedModal';
 
-export default function MobileSidebar({ open, onClose, theme, installPrompt, isPwaSupported }) {
+export default function MobileSidebar({ open, onClose, theme, installPrompt, isPwaSupported, isPwaInstalled }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { logout } = useAppContext();
@@ -95,9 +95,11 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
             <button
                 onClick={handleInstallClick}
                 className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
+                style={{ cursor: isPwaInstalled ? 'default' : 'pointer', opacity: isPwaInstalled ? 0.6 : 1 }}
+                disabled={isPwaInstalled}
             >
                 <DownloadCloud className="h-6 w-6" />
-                <span className="text-lg font-medium truncate">Install App</span>
+                <span className="text-lg font-medium truncate">{isPwaInstalled ? 'Installed' : 'Install App'}</span>
             </button>
             <button
               onClick={() => { logout(); onClose(); }}

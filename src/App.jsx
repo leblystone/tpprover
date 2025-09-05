@@ -28,11 +28,17 @@ function App() {
   const [showGlossary, setShowGlossary] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isPwaSupported, setIsPwaSupported] = useState(false);
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
     if ('serviceWorker' in navigator) {
         setIsPwaSupported(true);
+    }
+
+    // Check if the app is running in standalone mode (i.e., installed)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        setIsPwaInstalled(true);
     }
   }, []);
 
@@ -89,7 +95,7 @@ function App() {
 
   return (
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
-      <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} />
+      <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
       <div className="flex-1 flex flex-col md:ml-24">
         <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} onGlossaryClick={() => setShowGlossary(true)} />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
@@ -99,7 +105,7 @@ function App() {
           </Suspense>
         </main>
       </div>
-      <MobileNav theme={theme} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} installPrompt={installPrompt} isPwaSupported={isPwaSupported} />
+      <MobileNav theme={theme} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
       <WelcomeModal
         open={showWelcome}
         onClose={handleCloseWelcome}

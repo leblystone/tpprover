@@ -8,7 +8,7 @@ import FeedbackModal from '../common/FeedbackModal'
 import InstallInstructionsModal from '../common/InstallInstructionsModal';
 import PwaUnsupportedModal from '../common/PwaUnsupportedModal';
 
-const Sidebar = ({ theme, installPrompt, isPwaSupported }) => {
+const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
   const { logout } = useAppContext();
@@ -102,12 +102,13 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported }) => {
           </button>
           <button 
             onClick={handleInstallClick} 
-            title="Install App"
+            title={isPwaInstalled ? "App is already installed" : "Install App"}
             className="flex items-center justify-start h-14 w-full sidebar-link p-4"
-            style={{ color: theme.textLight }}
+            style={{ color: theme.textLight, cursor: isPwaInstalled ? 'default' : 'pointer', opacity: isPwaInstalled ? 0.6 : 1 }}
+            disabled={isPwaInstalled}
           >
             <DownloadCloud className="h-6 w-6 flex-shrink-0" />
-            <span className="text-sm font-semibold ml-4 sidebar-link-label">Install App</span>
+            <span className="text-sm font-semibold ml-4 sidebar-link-label">{isPwaInstalled ? 'Installed' : 'Install App'}</span>
           </button>
         </div>
       </aside>
