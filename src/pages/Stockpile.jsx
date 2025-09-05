@@ -130,7 +130,19 @@ export default function Stockpile() {
   const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '' }]))
   const removeManageRow = (id) => setManageRows(prev => prev.filter(r => r.id !== id))
   const saveManage = () => {
-    const cleaned = manageRows.filter(r => (r.name || '').trim())
+    // First, convert any "kit" entries in the temporary edit state back to "vial" for storage
+    const convertedRows = manageRows.map(row => {
+      if (row.unit === 'kit') {
+        return {
+          ...row,
+          quantity: String((Number(row.quantity) || 0) * 10),
+          unit: 'vial'
+        };
+      }
+      return row;
+    });
+
+    const cleaned = convertedRows.filter(r => (r.name || '').trim())
     const others = (items || []).filter(i => (i.name || '') !== manageName)
     // Append history snapshots and usage markers
     try {
@@ -345,7 +357,14 @@ export default function Stockpile() {
           <button onClick={() => setOpenAdd(false)} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
           <button onClick={() => { 
               const finalVendor = (vendors || []).find(v => v.name === form.vendor);
-              const itemToAdd = { ...form, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
+              let itemToAdd = { ...form, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
+              
+              // Convert kit to vials before saving
+              if (itemToAdd.unit === 'kit') {
+                  itemToAdd.quantity = (Number(itemToAdd.quantity) || 0) * 10;
+                  itemToAdd.unit = 'vial';
+              }
+
               setItems(prev => [itemToAdd, ...prev]); 
               setOpenAdd(false); 
               setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '' }) 
@@ -360,13 +379,13 @@ export default function Stockpile() {
               <div className="flex items-center p-2 rounded border" style={{ borderColor: theme?.border }}>
                 <input className="flex-1 border-none outline-none text-sm bg-transparent" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} placeholder="1" />
                 <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-                  {['vial'].map(k => (
-                    <button key={k} type="button"
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-full text-white`}
-                      style={{ backgroundColor: theme.primary, cursor: 'default' }}>
-                      {k.charAt(0).toUpperCase() + k.slice(1)}
-                    </button>
-                  ))}
+                    {['vial','kit'].map(k => (
+                        <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                            style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
+                            {k.charAt(0).toUpperCase() + k.slice(1)}
+                        </button>
+                    ))}
                 </div>
               </div>
             </div>
@@ -416,13 +435,32 @@ export default function Stockpile() {
                   <div className="flex items-center p-2 rounded border" style={{ borderColor: theme?.border }}>
                     <input className="flex-1 border-none outline-none text-sm bg-transparent" value={row.quantity || ''} onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))} placeholder="1" />
                     <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-                      {['vial'].map(k => (
-                        <button key={k} type="button"
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-full text-white`}
-                          style={{ backgroundColor: theme.primary, cursor: 'default' }}>
-                          {k.charAt(0).toUpperCase() + k.slice(1)}
-                        </button>
-                      ))}
+                        {['vial','kit'].map(k => (
+                            <button key={k} type="button" onClick={() => {
+                                const oldUnit = row.unit || 'vial';
+                                if (oldUnit === k) return;
+                                setManageRows(prev => prev.map(r => {
+                                    if (r.id !== row.id) return r;
+                                    const qty = Number(r.quantity) || 0;
+                                    let newQty = qty;
+                                    if (oldUnit === 'kit' && k === 'vial') {
+                                        newQty = qty * 10;
+                                    } else if (oldUnit === 'vial' && k === 'kit') {
+                                        if (qty > 0 && qty % 10 === 0) {
+                                            newQty = qty / 10;
+                                        } else {
+                                            alert("You can only convert to kits if you have a multiple of 10 vials.");
+                                            return r; // Return original row without changes
+                                        }
+                                    }
+                                    return { ...r, unit: k, quantity: String(newQty) };
+                                }));
+                            }}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((row.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                                style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
+                                {k.charAt(0).toUpperCase() + k.slice(1)}
+                            </button>
+                        ))}
                     </div>
                   </div>
                 </div>
