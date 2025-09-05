@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink, useLocation, useOutletContext } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, DownloadCloud } from 'lucide-react'
 import logo from '../../assets/tpp-logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 import FeedbackModal from '../common/FeedbackModal'
 import InstallInstructionsModal from '../common/InstallInstructionsModal';
+import PwaUnsupportedModal from '../common/PwaUnsupportedModal';
 
-const Sidebar = ({ theme, installPrompt }) => {
+const Sidebar = ({ theme, installPrompt, isPwaSupported }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
   const { logout } = useAppContext();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
   useEffect(() => {
     const updateIsOpen = () => {
@@ -22,6 +24,16 @@ const Sidebar = ({ theme, installPrompt }) => {
     window.addEventListener('resize', updateIsOpen)
     return () => window.removeEventListener('resize', updateIsOpen)
   }, [])
+
+  const handleInstallClick = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+    } else if (isPwaSupported) {
+      setShowInstallModal(true);
+    } else {
+      setShowUnsupportedModal(true);
+    }
+  };
 
   const links = [
     { to: '/dashboard', label: 'Dashboard', icon: Home, tourId: 'dashboard-welcome' },
@@ -89,7 +101,7 @@ const Sidebar = ({ theme, installPrompt }) => {
             <span className="text-sm font-semibold ml-4 sidebar-link-label">Feedback</span>
           </button>
           <button 
-            onClick={() => installPrompt ? installPrompt.prompt() : setShowInstallModal(true)} 
+            onClick={handleInstallClick} 
             title="Install App"
             className="flex items-center justify-start h-14 w-full sidebar-link p-4"
             style={{ color: theme.textLight }}
@@ -101,6 +113,7 @@ const Sidebar = ({ theme, installPrompt }) => {
       </aside>
       <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
       <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} theme={theme} />
+      <PwaUnsupportedModal open={showUnsupportedModal} onClose={() => setShowUnsupportedModal(false)} theme={theme} />
     </>
   )
 }
