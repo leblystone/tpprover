@@ -29,7 +29,13 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <button onClick={() => onDelete?.(vendor.id)} className="px-3 py-2 rounded-md border mr-auto bg-red-600 text-white hover:bg-red-700">Delete</button>
         )}
         <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-        <button onClick={() => onSave?.(form)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
+        <button onClick={() => {
+            const dataToSave = { ...form };
+            if (dataToSave.isStub) {
+                delete dataToSave.isStub; // Remove the stub flag
+            }
+            onSave?.(dataToSave);
+        }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
       </div>
     )}>
       <div className="space-y-4">

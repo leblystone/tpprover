@@ -129,9 +129,17 @@
     }
 
     const clearAllData = () => {
-      const removed = clearAppData('tpprover_')
-      try { ['tpprover_orders_bump','tpprover_calendar_bump'].forEach(k => localStorage.removeItem(k)) } catch {}
-      setTimeout(() => window.location.reload(), 200)
+        if (window.confirm("Are you sure you want to permanently delete ALL data? This will log you out and cannot be undone.")) {
+            try {
+                Object.keys(localStorage)
+                    .filter(key => key.startsWith('tpprover_'))
+                    .forEach(key => localStorage.removeItem(key));
+                window.location.href = '/login'; // Redirect to login after wipe
+            } catch (e) {
+                console.error("Failed to clear all data", e);
+                window.location.reload();
+            }
+        }
     }
 
     const clearSessionOnly = () => {
@@ -149,6 +157,23 @@
       saveSettings(next)
     }
 
+    const sendTestNotification = () => {
+      if ('Notification' in window && 'serviceWorker' in navigator) {
+        Notification.requestPermission(status => {
+          if (status === 'granted') {
+            navigator.serviceWorker.ready.then(registration => {
+              registration.showNotification('Test Notification', {
+                body: 'This is a test notification from your PWA!',
+                icon: '/tpp-logo.png'
+              });
+            });
+          }
+        });
+      } else {
+        alert('Push notifications are not supported by your browser.');
+      }
+    };
+
     return (
       <section className="space-y-6">
         {/* Notifications */}
@@ -158,6 +183,7 @@
           <div className="space-y-3">
             <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />
             <SettingToggle checked={settings.notifications.push} onChange={v => update('notifications.push', v)} label="Push Notifications" description="Get notified in real-time on your devices." theme={theme} />
+            <button onClick={sendTestNotification} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Send Test Notification</button>
             <SettingToggle checked={settings.notifications.billing} onChange={v => update('notifications.billing', v)} label="Billing Updates" description="Get notified about invoices and payment status." theme={theme} />
             <SettingToggle checked={settings.notifications.researchReminders} onChange={v => update('notifications.researchReminders', v)} label="Research Reminders" description="Stay on track with your research schedule." theme={theme} />
             <SettingToggle checked={settings.notifications.groupBuys} onChange={v => update('notifications.groupBuys', v)} label="Group Buy Updates" description="Get alerts for new group buy opportunities." theme={theme} />
@@ -237,8 +263,8 @@
             <div>
                 <button 
                     onClick={() => {
-                        if (window.confirm("Are you sure you want to remove all app data? This will not log you out, but it cannot be undone.")) {
-                            clearAppData();
+                        if (window.confirm("Are you sure you want to remove all demo data? Your own entries will not be affected.")) {
+                            clearMockData();
                             // Set a flag to prevent re-seeding on next load
                             localStorage.setItem('tpprover_demo_data_cleared', 'true');
                             // Hide the banner permanently
@@ -248,9 +274,9 @@
                     }}
                     className="px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
                 >
-                    Clear App Data
+                    Remove Demo Data
                 </button>
-                <p className="text-xs text-gray-500 mt-1">Remove all orders, protocols, etc., to start with a clean slate.</p>
+                <p className="text-xs text-gray-500 mt-1">Remove all sample orders, protocols, etc., to start with a clean slate.</p>
             </div>
             <div>
               <div className="font-semibold text-red-600 mb-2">Danger Zone</div>

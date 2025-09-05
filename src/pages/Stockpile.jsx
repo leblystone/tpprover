@@ -12,7 +12,7 @@ import { generateId } from '../utils/string'
 export default function Stockpile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate();
-  const { vendors, orders, stockpile: items, setStockpile: setItems } = useAppContext();
+  const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems } = useAppContext();
   const [openAdd, setOpenAdd] = useState(false)
   const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '' })
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
@@ -113,6 +113,13 @@ export default function Stockpile() {
         };
       }
       return row;
+    });
+
+    // Auto-create any new vendors that were typed in
+    convertedRows.forEach(row => {
+        if (row.vendor && !vendors.some(v => v.name.toLowerCase() === row.vendor.toLowerCase())) {
+            addVendor({ name: row.vendor, isStub: true });
+        }
     });
 
     const cleaned = convertedRows.filter(r => (r.name || '').trim())
@@ -332,6 +339,11 @@ export default function Stockpile() {
         <>
           <button onClick={() => setOpenAdd(false)} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
           <button onClick={() => { 
+              // Auto-create new vendor if it doesn't exist
+              if (form.vendor && !vendors.some(v => v.name.toLowerCase() === form.vendor.toLowerCase())) {
+                  addVendor({ name: form.vendor, isStub: true });
+              }
+
               const finalVendor = (vendors || []).find(v => v.name === form.vendor);
               let itemToAdd = { ...form, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
               

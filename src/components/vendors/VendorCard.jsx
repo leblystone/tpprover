@@ -76,9 +76,16 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
     if (p.cashapp) paymentMethods.push({ label: 'CashApp', Icon: SiCashapp });
     if (p.alipay) paymentMethods.push({ label: 'AliPay', Icon: FaAlipay });
 
+    const cardStyle = {
+        borderColor: vendor.isStub ? theme.primary : theme.border,
+        backgroundColor: theme.cardBackground,
+        borderStyle: vendor.isStub ? 'dashed' : 'solid',
+        borderWidth: vendor.isStub ? '2px' : '1px',
+    };
+
     return (
         <>
-            <div className="p-4 rounded-lg border flex flex-col justify-between h-full" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="p-4 rounded-lg border flex flex-col justify-between h-full" style={cardStyle}>
                 {/* Top Section: Name, Rating, Contacts */}
                 <div>
                     <div className="flex items-start justify-between">
@@ -90,6 +97,18 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         </div>
                     </div>
                     
+                    {vendor.isStub && (
+                        <div className="mt-3 text-center">
+                            <button 
+                                onClick={() => onEditClick(vendor)}
+                                className="w-full px-3 py-2 rounded-md text-sm font-semibold"
+                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                            >
+                                Complete Profile
+                            </button>
+                        </div>
+                    )}
+
                     {vendor.contacts && vendor.contacts.length > 0 && (
                         <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
                             <div className="grid grid-cols-1 gap-x-4 gap-y-2">
