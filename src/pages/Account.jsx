@@ -4,6 +4,8 @@
   import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2 } from 'lucide-react'
   import Modal from '../components/common/Modal'
   import { useAppContext } from '../context/AppContext'
+  import { useBadgeStats } from '../utils/badges'
+  import BadgeImage from '../components/badges/BadgeImage'
 
   // Local helpers for auth + subscription data (local testing)
   function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -27,6 +29,7 @@
     const { theme } = useOutletContext()
     const navigate = useNavigate()
     const { user, logout } = useAppContext();
+    const { earnedBadges } = useBadgeStats();
     const [isPending, startTransition] = useTransition()
     // const [user, setUser] = React.useState(() => {
     //   try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
@@ -84,18 +87,8 @@
       return rec?.createdAt ? new Date(rec.createdAt) : null
     }, [authDb, user])
 
-    const [editingName, setEditingName] = React.useState(false)
-    const [nameDraft, setNameDraft] = React.useState(user?.name || '')
     const [editingEmail, setEditingEmail] = React.useState(false)
     const [emailDraft, setEmailDraft] = React.useState(user?.email || '')
-
-    const saveName = () => {
-      const next = { ...(user || {}), name: nameDraft }
-      try { localStorage.setItem('tpprover_user', JSON.stringify(next)) } catch {}
-      // setUser(next) // This should be handled by AppContext now
-      setEditingName(false)
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Name updated', type: 'success' } }))
-    }
 
     const saveEmail = () => {
       const oldKey = (user?.email || '').toLowerCase()
@@ -234,14 +227,6 @@
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>Name</div>
-                  <div className="font-medium">{user.name || '—'}</div>
-                </div>
-                <button className="text-sm font-medium hover:underline" style={{ color: theme.primary }} onClick={() => { setEditingName(true); setNameDraft(user.name || '') }}>Edit</button>
-              </div>
-              <hr style={{ borderColor: theme.border }}/>
-              <div className="flex justify-between items-center">
-                <div>
                   <div className="text-sm" style={{ color: theme.textLight }}>Email</div>
                   <div className="font-medium">{user.email}</div>
                 </div>
@@ -255,6 +240,23 @@
             </div>
           ) : (
             <div className="text-sm" style={{ color: theme.textLight }}>You are not signed in. Go to Login.</div>
+          )}
+        </div>
+
+        {/* Badges */}
+        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Badges Earned</h2>
+          {earnedBadges.length > 0 ? (
+            <div className="flex flex-wrap gap-4">
+              {earnedBadges.map(badge => (
+                <div key={badge.name} className="flex flex-col items-center text-center">
+                  <BadgeImage badgeName={badge.name} size="large" />
+                  <span className="text-xs mt-2 font-semibold">{badge.name}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm" style={{ color: theme.textLight }}>No badges earned yet. Keep exploring!</div>
           )}
         </div>
 
@@ -386,16 +388,6 @@
               </div>
             )}
           </div>
-        </Modal>
-
-        {/* Edit Name Modal */}
-        <Modal open={editingName} onClose={() => setEditingName(false)} title="Edit Name" theme={theme} footer={
-          <>
-            <button className="px-3 py-2 rounded-md" onClick={() => setEditingName(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Cancel</button>
-            <button className="px-3 py-2 rounded-md font-semibold" onClick={saveName} style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
-          </>
-        }>
-          <input value={nameDraft} onChange={e => setNameDraft(e.target.value)} className="w-full p-2 rounded border text-sm" style={{ borderColor: theme.border }} placeholder="Your name" />
         </Modal>
 
         {/* Edit Email Modal */}
