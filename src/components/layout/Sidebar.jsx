@@ -5,12 +5,14 @@ import logo from '../../assets/tpp-logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 import FeedbackModal from '../common/FeedbackModal'
+import InstallInstructionsModal from '../common/InstallInstructionsModal';
 
 const Sidebar = ({ theme, installPrompt }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
   const { logout } = useAppContext();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   useEffect(() => {
     const updateIsOpen = () => {
@@ -86,18 +88,19 @@ const Sidebar = ({ theme, installPrompt }) => {
             <MessageSquare className="h-6 w-6 flex-shrink-0" />
             <span className="text-sm font-semibold ml-4 sidebar-link-label">Feedback</span>
           </button>
-          {installPrompt && (
-              <button onClick={() => installPrompt.prompt()} title="Install App"
-                className="flex items-center justify-start h-14 w-full sidebar-link p-4"
-                style={{ color: theme.textLight }}
-              >
-                <DownloadCloud className="h-6 w-6 flex-shrink-0" />
-                <span className="text-sm font-semibold ml-4 sidebar-link-label">Install App</span>
-              </button>
-          )}
+          <button 
+            onClick={() => installPrompt ? installPrompt.prompt() : setShowInstallModal(true)} 
+            title="Install App"
+            className="flex items-center justify-start h-14 w-full sidebar-link p-4"
+            style={{ color: theme.textLight }}
+          >
+            <DownloadCloud className="h-6 w-6 flex-shrink-0" />
+            <span className="text-sm font-semibold ml-4 sidebar-link-label">Install App</span>
+          </button>
         </div>
       </aside>
       <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
+      <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} theme={theme} />
     </>
   )
 }

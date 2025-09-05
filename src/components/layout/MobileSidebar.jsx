@@ -4,12 +4,14 @@ import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConi
 import { NavLink, useOutletContext } from 'react-router-dom'
 import { useAppContext } from '../../context/AppContext'
 import FeedbackModal from '../common/FeedbackModal';
+import InstallInstructionsModal from '../common/InstallInstructionsModal';
 
 export default function MobileSidebar({ open, onClose, theme, installPrompt }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { logout } = useAppContext();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   useEffect(() => {
     const durationMs = 240
@@ -76,15 +78,20 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt }) {
               <MessageSquare className="h-6 w-6" />
               <span className="text-lg font-medium truncate">Feedback</span>
             </button>
-            {installPrompt && (
-                <button
-                    onClick={() => { installPrompt.prompt(); onClose(); }}
-                    className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
-                >
-                    <DownloadCloud className="h-6 w-6" />
-                    <span className="text-lg font-medium truncate">Install App</span>
-                </button>
-            )}
+            <button
+                onClick={() => {
+                  if (installPrompt) {
+                    installPrompt.prompt();
+                  } else {
+                    setShowInstallModal(true);
+                  }
+                  onClose();
+                }}
+                className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
+            >
+                <DownloadCloud className="h-6 w-6" />
+                <span className="text-lg font-medium truncate">Install App</span>
+            </button>
             <button
               onClick={() => { logout(); onClose(); }}
               className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
@@ -96,6 +103,7 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt }) {
         </nav>
       </div>
       <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
+      <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} theme={theme} />
     </div>
   )
   return createPortal(overlay, document.body)
