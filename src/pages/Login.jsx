@@ -16,7 +16,7 @@ export default function Login() {
     const { setUser } = useAppContext();
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
-    const [mode, setMode] = useState('login'); // 'login' | 'signup'
+    const [mode, setMode] = useState('promptEmail'); // 'promptEmail' | 'login' | 'signup'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -88,21 +88,43 @@ export default function Login() {
       return true;
     };
 
+    const handleEmailSubmit = () => {
+        if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+        const db = getAuthDb();
+        const rec = db[(email || '').toLowerCase()];
+        if (rec) {
+            setMode('login');
+        } else {
+            setMode('signup');
+        }
+        setError('');
+    };
+
     const handleSubmit = (e) => {
-      e.preventDefault();
-      setError('');
-      setLoading(true);
-      setTimeout(() => {
-          if (mode === 'login') {
-              if (!doLogin()) {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        if (mode === 'promptEmail') {
+            setLoading(false);
+            handleEmailSubmit();
+            return;
+        }
+
+        setTimeout(() => {
+            if (mode === 'login') {
+                if (!doLogin()) {
+                  setLoading(false);
+                }
+            } else { // signup
+                setShowTerms(true);
                 setLoading(false);
-              }
-          } else {
-              setShowTerms(true);
-              setLoading(false);
-          }
-      }, 500); // Simulate network delay
-  };
+            }
+        }, 500); // Simulate network delay
+    };
 
   const acceptTerms = () => {
       setShowTerms(false);
@@ -126,29 +148,55 @@ export default function Login() {
 
                     <div className="p-8 space-y-6 rounded-xl shadow-lg" style={{ backgroundColor: theme.white }}>
                         <div className="text-center">
-                            <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>{mode === 'login' ? 'Welcome Back' : 'Create an Account'}</h2>
-                            <p className="text-sm text-gray-500 mt-1">
-                                {mode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
-                                <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }} className="font-semibold hover:underline" style={{ color: theme.primary }}>
-                                    {mode === 'login' ? "Sign Up" : "Login"}
-                                </button>
-                            </p>
+                            <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>
+                                {mode === 'promptEmail' && 'Sign in or create an account'}
+                                {mode === 'login' && 'Welcome Back'}
+                                {mode === 'signup' && 'Create an Account'}
+                            </h2>
+                            {mode !== 'promptEmail' && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    <button onClick={() => { setMode('promptEmail'); setPassword(''); setConfirmPassword(''); setError(''); }} className="font-semibold hover:underline" style={{ color: theme.primary }}>
+                                        Use a different email
+                                    </button>
+                                </p>
+                            )}
                         </div>
 
                         <form className="space-y-4" onSubmit={handleSubmit}>
                             <div className="relative">
-                                <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
+                                <input 
+                                    type="email" 
+                                    placeholder="Email Address" 
+                                    value={email} 
+                                    onChange={e => setEmail(e.target.value)} 
+                                    required 
+                                    className="w-full px-4 py-3 border rounded-lg bg-gray-50" 
+                                    style={{ borderColor: theme.border }} 
+                                    disabled={mode !== 'promptEmail'}
+                                />
                             </div>
-                            <div className="relative">
-                                <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
-                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                </button>
-                            </div>
-                            {mode === 'signup' && (
+                            
+                            {mode === 'login' && (
                                 <div className="relative">
-                                    <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
+                                    <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
                                 </div>
+                            )}
+
+                            {mode === 'signup' && (
+                                <>
+                                    <div className="relative">
+                                        <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
+                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                    <div className="relative">
+                                        <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
+                                    </div>
+                                </>
                             )}
 
                             {error && (
@@ -175,7 +223,9 @@ export default function Login() {
                             )}
 
                             <button type="submit" disabled={loading} className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: loading ? 0.7 : 1 }}>
-                                {loading ? 'Processing...' : (mode === 'login' ? 'Login' : 'Create Account')}
+                                {loading ? 'Processing...' : 
+                                 (mode === 'promptEmail' ? 'Continue' : 
+                                 (mode === 'login' ? 'Login' : 'Create Account'))}
                             </button>
                         </form>
                     </div>

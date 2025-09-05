@@ -76,11 +76,12 @@ export default function Vendors() {
 				onClose={() => { setShowAddModal(false); setEditingVendor(null) }}
 				theme={theme}
 				vendor={editingVendor}
+                activeTab={activeTab}
 				onSave={(data) => {
-					if (editingVendor.id) {
+					if (editingVendor?.id) {
 						updateVendor({ ...editingVendor, ...data });
 					} else {
-						addVendor({ id: Date.now(), ...data, type: activeTab });
+						addVendor({ id: Date.now(), ...data });
 					}
 					setShowAddModal(false)
 					setEditingVendor(null)

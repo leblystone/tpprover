@@ -77,13 +77,6 @@ const Sidebar = ({ theme }) => {
               <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>
             </NavLink>
           ))}
-          <button onClick={logout} title="Log Out"
-            className="flex items-center justify-start h-14 w-full sidebar-link p-4"
-            style={{ color: theme.textLight }}
-          >
-            <LogOut className="h-6 w-6 flex-shrink-0" />
-            <span className="text-sm font-semibold ml-4 sidebar-link-label">Log Out</span>
-          </button>
         </div>
       </aside>
     </>

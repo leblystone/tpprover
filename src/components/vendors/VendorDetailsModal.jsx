@@ -5,18 +5,22 @@ import { formatMMDDYYYY } from '../../utils/date'
 
 const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Vetted', 'Puck Problem']
 
-export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete }) {
+export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, activeTab }) {
   const [form, setForm] = useState(createEmptyVendor())
   useEffect(() => {
     if (open) {
       const base = vendor ? { ...createEmptyVendor(), ...vendor } : createEmptyVendor()
+      // Set default category for new vendors from the active tab
+      if (!vendor?.id) {
+          base.type = activeTab || 'domestic';
+      }
       // Ensure at least one contact input (default to email)
       if (!Array.isArray(base.contacts) || base.contacts.length === 0) {
         base.contacts = [{ type: 'email', value: '' }]
       }
       setForm(base)
     }
-  }, [open, vendor])
+  }, [open, vendor, activeTab])
 
   const addContact = () => setForm(prev => ({ ...prev, contacts: [...prev.contacts, { type: 'email', value: '' }] }))
   const updateContact = (idx, key, value) => setForm(prev => ({ ...prev, contacts: prev.contacts.map((c, i) => i === idx ? { ...c, [key]: value } : c) }))
