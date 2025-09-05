@@ -1,7 +1,7 @@
 import React from 'react';
 import { Info, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { clearAppData } from '../../utils/reset';
+import { clearMockData } from '../../utils/seed';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
     const navigate = useNavigate();
@@ -13,8 +13,8 @@ export default function DemoDataBanner({ theme, sticky = false }) {
     };
 
     const handleClearData = () => {
-        if (window.confirm("Are you sure you want to remove all app data? This will not log you out, but it cannot be undone.")) {
-            clearAppData();
+        if (window.confirm("Are you sure you want to remove the sample demo data? Your own entries will not be affected.")) {
+            clearMockData();
             localStorage.setItem('tpprover_demo_data_cleared', 'true');
             localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
             window.location.reload();

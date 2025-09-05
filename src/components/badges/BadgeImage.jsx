@@ -99,6 +99,11 @@ const BadgeBackgroundPattern = ({ name, color }) => {
 
 
 export default function BadgeImage({ name, size = 72, theme, caption = true, iconUrl, iconSizeFactor = 0.6 }) {
+  // Failsafe for missing name prop
+  if (typeof name !== 'string' || !name) {
+    return null; // or a placeholder component
+  }
+
   const Icon = pickIcon(name)
   const finish = chooseFinish(name, theme)
   const clip = pickShape(name)
