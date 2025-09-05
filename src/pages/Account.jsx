@@ -355,7 +355,7 @@
                   </div>
                   <div>
                     <div className="text-xs mb-1">Last 4 Digits</div>
-                    <input className="w-full p-2 rounded border" maxLength={4} value={pmDraft.last4} onChange={e => setPmDraft(d => ({ ...d, last4: e.target.value.replace(/\D/g,'').slice(0,4) }))} placeholder="1234" style={{ borderColor: theme.border }} />
+                    <input className="w-full p-2 rounded border" maxLength={4} value={pmDraft.last4} onChange={e => setPmDraft(d => ({ ...d, last4: (e.target.value || '').replace(/\D/g,'').slice(0,4) }))} placeholder="1234" style={{ borderColor: theme.border }} />
                   </div>
                 </div>
                 <div className="text-right mt-3"><button className="px-3 py-2 rounded-md text-sm hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={savePaymentMethod}>Update Payment Method</button></div>
