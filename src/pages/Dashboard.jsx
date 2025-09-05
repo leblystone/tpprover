@@ -30,7 +30,7 @@ export default function Dashboard() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
-  const { setScheduledBuys, orders } = useAppContext();
+  const { setScheduledBuys, orders, setOrders, setVendors, setProtocols } = useAppContext();
   
   // Mock minimal data to render the dashboard without external deps
   const [vitamins, setVitamins] = useState([
@@ -701,15 +701,14 @@ export default function Dashboard() {
         theme={theme}
         vendor={editingVendor}
         onSave={(v) => {
-          // Save vendor name for suggestions
-          try {
-            const set = new Set([...(JSON.parse(localStorage.getItem('tpprover_vendors')||'[]')||[]), v.name].filter(Boolean))
-            const arr = Array.from(set)
-            localStorage.setItem('tpprover_vendors', JSON.stringify(arr))
-            setVendorNames(arr)
-          } catch {}
-          setEditingVendor(null)
-          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Vendor saved', type: 'success' } }))
+          setVendors(prev => {
+            if (v.id) {
+              return prev.map(p => p.id === v.id ? v : p);
+            }
+            return [...prev, { ...v, id: Date.now() }];
+          });
+          setEditingVendor(null);
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Vendor saved', type: 'success' } }));
         }}
       />
 
@@ -720,22 +719,17 @@ export default function Dashboard() {
         theme={theme}
         vendorList={vendorNames}
         onSave={(o) => {
-          try {
-            const raw = localStorage.getItem('tpprover_orders')
-            const all = raw ? JSON.parse(raw) : []
-            const id = o.id || Date.now()
-            all.unshift({ ...o, id })
-            localStorage.setItem('tpprover_orders', JSON.stringify(all))
-            // add vendor name
-            if (o.vendor) {
-              const set = new Set([...(JSON.parse(localStorage.getItem('tpprover_vendors')||'[]')||[]), o.vendor])
-              const arr = Array.from(set)
-              localStorage.setItem('tpprover_vendors', JSON.stringify(arr))
-              setVendorNames(arr)
-            }
-          } catch {}
-          setShowNewOrder(false)
-          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Order added', type: 'success' } }))
+          const newOrder = { ...o, id: o.id || Date.now() };
+          setOrders(prev => [newOrder, ...prev]);
+          if (o.vendor) {
+            setVendors(prev => {
+              const existing = prev.find(v => v.name === o.vendor);
+              if (existing) return prev;
+              return [...prev, { id: Date.now(), name: o.vendor }];
+            });
+          }
+          setShowNewOrder(false);
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Order added', type: 'success' } }));
         }}
         onDelete={() => setShowNewOrder(false)}
       />
@@ -745,16 +739,14 @@ export default function Dashboard() {
         onClose={() => setShowNewProtocol(false)}
         theme={theme}
         onSave={(data) => {
-          try {
-            const raw = localStorage.getItem('tpprover_protocols')
-            const arr = raw ? JSON.parse(raw) : []
-            arr.unshift({ id: Date.now(), ...data })
-            localStorage.setItem('tpprover_protocols', JSON.stringify(arr))
-            // bump calendar
-            const now = String(Date.now())
-            localStorage.setItem('tpprover_calendar_bump', now)
-            window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: now }))
-          } catch {}
+          const newProtocol = { id: Date.now(), ...data };
+          setProtocols(prev => [newProtocol, ...prev]);
+          
+          // bump calendar
+          const now = String(Date.now())
+          localStorage.setItem('tpprover_calendar_bump', now)
+          window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: now }))
+
           setShowNewProtocol(false)
           window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol created', type: 'success' } }))
         }}
