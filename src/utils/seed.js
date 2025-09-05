@@ -89,10 +89,14 @@ const DATA_KEYS = {
 
 export function seedInitialData() {
     try {
+        // FAILSAFE: Check if any non-mock data exists. If so, abort immediately.
+        const vendorsRaw = localStorage.getItem('tpprover_vendors');
+        if (vendorsRaw && JSON.parse(vendorsRaw).some(v => !v.isMock)) return;
+        const ordersRaw = localStorage.getItem('tpprover_orders');
+        if (ordersRaw && JSON.parse(ordersRaw).some(o => !o.isMock)) return;
+
         const hasSeeded = localStorage.getItem('tpprover_has_seeded');
         // Seed if not seeded or if stores are empty (e.g., user cleared demo data only)
-        const vendorsRaw = localStorage.getItem('tpprover_vendors');
-        const ordersRaw = localStorage.getItem('tpprover_orders');
         const protocolsRaw = localStorage.getItem('tpprover_protocols');
         const alreadyHasData = [vendorsRaw, ordersRaw, protocolsRaw].some(r => {
             try { return Array.isArray(JSON.parse(r)) && JSON.parse(r).length > 0 } catch { return false }

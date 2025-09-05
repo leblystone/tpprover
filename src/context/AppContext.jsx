@@ -25,17 +25,9 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const loadAppData = () => {
             try {
-                // Check if there is ANY existing data first.
-                const hasExistingData = [
-                    'tpprover_protocols', 'tpprover_orders', 'tpprover_vendors', 
-                    'tpprover_stockpile', 'tpprover_scheduled_buys'
-                ].some(key => localStorage.getItem(key) && JSON.parse(localStorage.getItem(key)).length > 0);
-
-                // Seed initial data only if there's no existing data and user hasn't cleared it before.
-                const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
-                if (!hasExistingData && demoDataCleared !== 'true') {
-                    seedInitialData();
-                }
+                // The seedInitialData function has its own internal checks to prevent overwriting user data.
+                // We can call it safely on every app load.
+                seedInitialData();
 
                 const savedProtocols = localStorage.getItem('tpprover_protocols');
                 if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
