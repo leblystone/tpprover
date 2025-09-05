@@ -461,7 +461,9 @@ const PlanCard = ({ theme, title, price, interval, onSelect, current, popular, s
       {popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-semibold rounded-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Most Popular</div>}
       <div className="font-bold text-lg">{title}</div>
       {subtitle && <div className="text-xs text-gray-500">{subtitle}</div>}
-      <div className="text-3xl font-bold my-3">{price}<span className="text-base font-normal text-gray-500">{interval}</span></div>
+      <div className="text-3xl font-bold my-3">
+        {price || ''}<span className="text-base font-normal text-gray-500">{interval || ''}</span>
+      </div>
       <button
         className="w-full px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-50"
         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
