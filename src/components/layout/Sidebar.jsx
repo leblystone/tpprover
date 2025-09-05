@@ -6,10 +6,9 @@ import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 import FeedbackModal from '../common/FeedbackModal'
 
-const Sidebar = ({ theme }) => {
+const Sidebar = ({ theme, installPrompt }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
-  const { installPrompt } = useOutletContext();
   const { logout } = useAppContext();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 

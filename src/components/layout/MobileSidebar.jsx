@@ -5,10 +5,9 @@ import { NavLink, useOutletContext } from 'react-router-dom'
 import { useAppContext } from '../../context/AppContext'
 import FeedbackModal from '../common/FeedbackModal';
 
-export default function MobileSidebar({ open, onClose, theme }) {
+export default function MobileSidebar({ open, onClose, theme, installPrompt }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { installPrompt } = useOutletContext();
   const { logout } = useAppContext();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 

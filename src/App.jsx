@@ -81,7 +81,7 @@ function App() {
 
   return (
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
-      <Sidebar theme={theme} />
+      <Sidebar theme={theme} installPrompt={installPrompt} />
       <div className="flex-1 flex flex-col md:ml-24">
         <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} onGlossaryClick={() => setShowGlossary(true)} />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
@@ -91,7 +91,7 @@ function App() {
           </Suspense>
         </main>
       </div>
-      <MobileNav theme={theme} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <MobileNav theme={theme} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} installPrompt={installPrompt} />
       <WelcomeModal
         open={showWelcome}
         onClose={handleCloseWelcome}
