@@ -43,22 +43,39 @@ export default function Stockpile() {
   }, [items, vendorMap])
 
   const groups = useMemo(() => {
-    const map = new Map()
+    const map = new Map();
     for (const it of filtered) {
-      const name = it.name || 'Unknown'
-      const mg = String(it.mg || '')
-      const qty = Number(it.quantity) || 0
-      const mgNum = Number(it.mg) || 0
-      if (!map.has(name)) map.set(name, { name, totalMg: 0, variants: {} })
-      const g = map.get(name)
-      g.totalMg += qty * mgNum
-      if (!g.variants[mg]) g.variants[mg] = { mg, totalVials: 0, items: [] }
-      const v = g.variants[mg]
-      v.totalVials += qty
-      v.items.push(it)
+      // Use a composite key to uniquely identify a group
+      const key = `${it.name}|${it.mg}|${it.vendorId || it.vendor}`;
+      const name = it.name || 'Unknown';
+      const mg = String(it.mg || '');
+      const vendor = it.vendorId ? vendorMap[it.vendorId] : (it.vendor || 'Unknown');
+      const qty = Number(it.quantity) || 0;
+      const mgNum = Number(it.mg) || 0;
+
+      if (!map.has(key)) {
+        map.set(key, { 
+          key, 
+          name, 
+          mg, 
+          vendor, 
+          totalVials: 0, 
+          totalMg: 0, 
+          items: [] 
+        });
+      }
+
+      const g = map.get(key);
+      g.totalVials += qty;
+      g.totalMg += qty * mgNum;
+      g.items.push(it);
     }
-    return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name))
-  }, [filtered])
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.name !== b.name) return a.name.localeCompare(b.name);
+      if (a.mg !== b.mg) return String(a.mg).localeCompare(String(b.mg));
+      return a.vendor.localeCompare(b.vendor);
+    });
+  }, [filtered, vendorMap]);
 
   const incomingGroups = useMemo(() => {
     const list = Array.isArray(orders) ? orders.filter(o => {
@@ -196,74 +213,71 @@ export default function Stockpile() {
             <div className="font-semibold" style={{ color: theme.primaryDark }}>On-hand Stock</div>
             <hr className="mb-3" style={{ borderColor: theme.border }} />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groups.filter(g => g.totalMg > 0).map(g => (
-              <div key={g.name} className="relative p-4 rounded-lg border content-card shadow-sm flex flex-col justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
-                    <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{g.totalMg} mg</div>
-                  </div>
-                  <div className="space-y-3">
-                  {Object.values(g.variants).sort((a,b)=>String(a.mg).localeCompare(String(b.mg))).map(v => (
-                    <div key={v.mg} className="rounded-md border p-3" style={{ borderColor: theme.border }}>
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} mg</div>
-                        <div className="text-xs font-semibold">{v.totalVials} vials</div>
-                      </div>
-                      <ul className="mt-1 text-xs space-y-3">
-                         {v.items.map(item => (
-                             <li key={item.id} className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 font-medium"><Package size={12} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
-                                    <div className="flex items-center">
-                                        {item.orderId && (
-                                            <button title="View Source Order" className="p-1" style={{ color: theme.primary }} onClick={() => navigate(`/orders`, { state: { openOrderId: item.orderId } })}>
-                                                <ShoppingCart size={14} />
-                                            </button>
-                                        )}
-                                        <button title="Send to Recon Calculator" className="p-1" style={{ color: theme.primary }} onClick={() => {
-                                            try {
-                                                const payload = { peptide: g.name, mg: String(item.mg), vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, cost: item.cost };
-                                                localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
-                                                window.history.pushState({}, '', '/recon');
-                                                window.dispatchEvent(new PopStateEvent('popstate'));
-                                            } catch {}
-                                        }}>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C12 2 5 9 5 14a7 7 0 0 0 14 0c0-5-7-12-7-12z"></path></svg>
-                                        </button>
+                {groups.filter(g => g.totalVials > 0).map(g => (
+                    <div key={g.key} className="relative p-4 rounded-lg border content-card shadow-sm flex flex-col justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
+                                <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{g.totalVials} {g.totalVials === 1 ? 'vial' : 'vials'}</div>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="rounded-md border p-3" style={{ borderColor: theme.border }}>
+                                    <div className="flex items-center justify-between text-sm mb-2">
+                                        <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {g.mg} mg</div>
+                                        <div className="font-medium flex items-center gap-2"><Package size={14} /> {g.vendor}</div>
                                     </div>
+                                    <ul className="mt-1 text-xs space-y-3">
+                                        {g.items.map(item => (
+                                            <li key={item.id} className="space-y-1">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2 font-medium">
+                                                        {item.quantity} {Number(item.quantity) === 1 ? 'vial' : 'vials'}
+                                                        {Number(item.quantity) <= 2 && !item.orderId && <span className="text-red-500 font-semibold ml-1">Low</span>}
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        {item.orderId && (
+                                                            <button title="View Source Order" className="p-1" style={{ color: theme.primary }} onClick={() => navigate(`/orders`, { state: { openOrderId: item.orderId } })}>
+                                                                <ShoppingCart size={14} />
+                                                            </button>
+                                                        )}
+                                                        <button title="Send to Recon Calculator" className="p-1" style={{ color: theme.primary }} onClick={() => {
+                                                            try {
+                                                                const payload = { peptide: g.name, mg: String(item.mg), vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, cost: item.cost };
+                                                                localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
+                                                                window.history.pushState({}, '', '/recon');
+                                                                window.dispatchEvent(new PopStateEvent('popstate'));
+                                                            } catch { }
+                                                        }}>
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C12 2 5 9 5 14a7 7 0 0 0 14 0c0-5-7-12-7-12z"></path></svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
+                                                {(Number(item.cost) > 0 && Number(item.mg) > 0) && (
+                                                    <div className="flex items-center gap-2 pl-5">
+                                                        <DollarSign size={12} />
+                                                        <span>${(Number(item.cost) / Number(item.mg)).toFixed(2)} / mg</span>
+                                                    </div>
+                                                )}
+                                                {item.notes && (
+                                                    <div className="flex items-start gap-2 pl-5 mt-1 text-gray-500">
+                                                        <FileText size={12} className="mt-0.5" />
+                                                        <p className="text-xs italic">{item.notes}</p>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
-                                {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
-                                <div className="flex items-center gap-2 pl-5">
-                                  <Hash size={12} /> 
-                                  <span>{item.quantity} {Number(item.quantity) === 1 ? 'vial' : 'vials'} {Number(item.quantity) <= 2 && <span className="text-red-500 font-semibold ml-1">Low</span>}</span>
-                                </div>
-                                {(Number(item.cost) > 0 && Number(item.mg) > 0) && (
-                                    <div className="flex items-center gap-2 pl-5">
-                                        <DollarSign size={12} />
-                                        <span>${(Number(item.cost) / Number(item.mg)).toFixed(2)} / mg</span>
-                                    </div>
-                                )}
-                                {item.notes && (
-                                    <div className="flex items-start gap-2 pl-5 mt-1 text-gray-500">
-                                        <FileText size={12} className="mt-0.5" />
-                                        <p className="text-xs italic">{item.notes}</p>
-                                    </div>
-                                )}
-                              </li>
-                         ))}
-                      </ul>
+                            </div>
+                        </div>
+                        <div className="mt-4 flex items-center justify-end gap-2">
+                            <button className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => openManage(g.name)}>
+                                <Edit size={14} /> Manage
+                            </button>
+                        </div>
                     </div>
-                  ))}
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-end gap-2">
-                  <button className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => openManage(g.name)}>
-                    <Edit size={14} /> Manage
-                  </button>
-                </div>
-              </div>
-            ))}
+                ))}
             </div>
             {incomingGroups.length > 0 && (
               <>
@@ -302,12 +316,12 @@ export default function Stockpile() {
               </>
             )}
 
-            {groups.some(g => g.totalMg <= 0) && (
+            {groups.some(g => g.totalVials <= 0) && (
               <>
                 <div className="font-semibold" style={{ color: theme.primaryDark }}>Out of Stock</div>
                 <hr className="mb-3" style={{ borderColor: theme.border }} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
-                  {groups.filter(g => g.totalMg <= 0).map(g => (
+                  {groups.filter(g => g.totalVials <= 0).map(g => (
                     <div key={`oos-${g.name}`} className="relative p-4 rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div style={{ fontSize: '64px', color: 'rgba(185,28,28,0.10)', fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
@@ -346,10 +360,10 @@ export default function Stockpile() {
               <div className="flex items-center p-2 rounded border" style={{ borderColor: theme?.border }}>
                 <input className="flex-1 border-none outline-none text-sm bg-transparent" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} placeholder="1" />
                 <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-                  {['vial','kit'].map(k => (
-                    <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                      style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
+                  {['vial'].map(k => (
+                    <button key={k} type="button"
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-full text-white`}
+                      style={{ backgroundColor: theme.primary, cursor: 'default' }}>
                       {k.charAt(0).toUpperCase() + k.slice(1)}
                     </button>
                   ))}
@@ -402,24 +416,10 @@ export default function Stockpile() {
                   <div className="flex items-center p-2 rounded border" style={{ borderColor: theme?.border }}>
                     <input className="flex-1 border-none outline-none text-sm bg-transparent" value={row.quantity || ''} onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))} placeholder="1" />
                     <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-                      {['vial','kit'].map(k => (
-                        <button key={k} type="button" onClick={() => {
-                          const oldUnit = row.unit || 'vial';
-                          if (oldUnit === k) return;
-                          setManageRows(prev => prev.map(r => {
-                            if (r.id !== row.id) return r;
-                            const qty = Number(r.quantity) || 0;
-                            let newQty = qty;
-                            if (oldUnit === 'kit' && k === 'vial') {
-                              newQty = qty * 10;
-                            } else if (oldUnit === 'vial' && k === 'kit') {
-                              newQty = qty / 10;
-                            }
-                            return { ...r, unit: k, quantity: String(newQty) };
-                          }));
-                        }}
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((row.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                          style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
+                      {['vial'].map(k => (
+                        <button key={k} type="button"
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-full text-white`}
+                          style={{ backgroundColor: theme.primary, cursor: 'default' }}>
                           {k.charAt(0).toUpperCase() + k.slice(1)}
                         </button>
                       ))}
