@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store } from 'lucide-react'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut } from 'lucide-react'
 import logo from '../../assets/tpp-logo.png'
 import '../../styles/sidebar.css'
+import { useAppContext } from '../../context/AppContext'
 
 const Sidebar = ({ theme }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const { logout } = useAppContext();
 
   useEffect(() => {
     const updateIsOpen = () => {
@@ -75,6 +77,13 @@ const Sidebar = ({ theme }) => {
               <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>
             </NavLink>
           ))}
+          <button onClick={logout} title="Log Out"
+            className="flex items-center justify-start h-14 w-full sidebar-link p-4"
+            style={{ color: theme.textLight }}
+          >
+            <LogOut className="h-6 w-6 flex-shrink-0" />
+            <span className="text-sm font-semibold ml-4 sidebar-link-label">Log Out</span>
+          </button>
         </div>
       </aside>
     </>

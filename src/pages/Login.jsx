@@ -4,6 +4,7 @@ import { themes, defaultThemeName } from '../theme/themes';
 import { X, Plus, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/tpp-logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
+import { useAppContext } from '../context/AppContext';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -12,6 +13,7 @@ const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) 
 
 export default function Login() {
     const navigate = useNavigate();
+    const { setUser } = useAppContext();
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     const [mode, setMode] = useState('login'); // 'login' | 'signup'
@@ -43,6 +45,8 @@ export default function Login() {
       const user = { email, name: email.split('@')[0] }
       try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
       try { localStorage.setItem('tpprover_auth_token', 'local_dev_token') } catch {}
+      try { localStorage.setItem('tpprover_has_onboarded', 'true') } catch {}
+      setUser(user);
       navigate('/dashboard');
       return true;
     };
@@ -79,6 +83,7 @@ export default function Login() {
         localStorage.setItem('tpprover_subscription', JSON.stringify(trial))
       } catch {}
       try { localStorage.setItem('tpprover_auth_token', 'local_dev_token') } catch {}
+      setUser(user);
       navigate('/dashboard');
       return true;
     };

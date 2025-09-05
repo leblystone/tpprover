@@ -3,6 +3,7 @@
   import { themes, defaultThemeName } from '../theme/themes'
   import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2 } from 'lucide-react'
   import Modal from '../components/common/Modal'
+  import { useAppContext } from '../context/AppContext'
 
   // Local helpers for auth + subscription data (local testing)
   function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -25,10 +26,11 @@
   export default function Account() {
     const { theme } = useOutletContext()
     const navigate = useNavigate()
+    const { user, logout } = useAppContext();
     const [isPending, startTransition] = useTransition()
-    const [user, setUser] = React.useState(() => {
-      try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
-    })
+    // const [user, setUser] = React.useState(() => {
+    //   try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
+    // })
     const [sub, setSub] = React.useState(() => loadSubscription())
     const [billing, setBilling] = React.useState(() => loadBilling())
     const [security, setSecurity] = React.useState(() => loadSecurity() || { twoFactorEnabled: false, twoFactorMethod: 'email', authSecret: '', emailVisible: true })
@@ -90,7 +92,7 @@
     const saveName = () => {
       const next = { ...(user || {}), name: nameDraft }
       try { localStorage.setItem('tpprover_user', JSON.stringify(next)) } catch {}
-      setUser(next)
+      // setUser(next) // This should be handled by AppContext now
       setEditingName(false)
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Name updated', type: 'success' } }))
     }
@@ -114,25 +116,9 @@
       }
       const nextUser = { ...(user || {}), email: emailDraft }
       try { localStorage.setItem('tpprover_user', JSON.stringify(nextUser)) } catch {}
-      setUser(nextUser)
+      // setUser(nextUser) // This should be handled by AppContext now
       setEditingEmail(false)
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Email updated', type: 'success' } }))
-    }
-
-    const logout = () => {
-      try {
-        // Clear all session-related data
-        localStorage.removeItem('tpprover_user')
-        localStorage.removeItem('tpprover_auth_token');
-        // Add any other keys you use for session state
-      } catch {}
-      
-      startTransition(() => {
-        setUser(null)
-        navigate('/login');
-      });
-      
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Signed out successfully', type: 'success' } }))
     }
 
     // Security: change password

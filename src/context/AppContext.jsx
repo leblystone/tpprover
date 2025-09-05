@@ -18,9 +18,25 @@ export function AppProvider({ children }) {
     const [calendarNotes, setCalendarNotes] = useState({});
     const [stockpile, setStockpile] = useState([]);
     const [scheduledBuys, setScheduledBuys] = useState([]);
+    const [user, setUser] = useState(null);
 
     // Load initial data from localStorage on mount
     useEffect(() => {
+        const authToken = localStorage.getItem('tpprover_auth_token');
+        if (authToken) {
+            // In a real app, you'd verify the token with a backend.
+            // For now, we'll just assume the token means the user is logged in.
+            // We'll decode it to get user info if it's a JWT, or just set a dummy user.
+            try {
+                // Assuming token is a simple user identifier for now
+                setUser({ token: authToken });
+            } catch (e) {
+                console.error("Failed to parse auth token", e);
+                setUser(null);
+                localStorage.removeItem('tpprover_auth_token');
+            }
+        }
+
         const loadAppData = () => {
             try {
                 // Seed initial data only if the user hasn't explicitly cleared it
@@ -65,6 +81,15 @@ export function AppProvider({ children }) {
 
         loadAppData();
     }, []);
+
+    const logout = () => {
+        setUser(null);
+        localStorage.removeItem('tpprover_auth_token');
+        localStorage.removeItem('tpprover_user');
+        // The ProtectedRoute will now redirect to /login
+        // We might need to navigate explicitly if the component doesn't re-render automatically
+        window.location.href = '/login';
+    };
 
     // Persist data to localStorage whenever it changes
     const saveData = (key, data) => {
@@ -148,6 +173,9 @@ export function AppProvider({ children }) {
         calendarNotes,
         stockpile,
         scheduledBuys,
+        user,
+        logout,
+        setUser,
         setProtocols,
         setReconItems,
         setReconHistory,

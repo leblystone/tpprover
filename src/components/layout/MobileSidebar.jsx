@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Megaphone, User, Settings } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Megaphone, User, Settings, LogOut } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useAppContext } from '../../context/AppContext'
 
 export default function MobileSidebar({ open, onClose, theme }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const { logout } = useAppContext();
+
   useEffect(() => {
     const durationMs = 240
     if (open) {
@@ -64,6 +67,13 @@ export default function MobileSidebar({ open, onClose, theme }) {
                 <span className="text-lg font-medium truncate">{label}</span>
               </NavLink>
             ))}
+            <button
+              onClick={() => { logout(); onClose(); }}
+              className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
+            >
+              <LogOut className="h-6 w-6" />
+              <span className="text-lg font-medium truncate">Log Out</span>
+            </button>
           </div>
         </nav>
       </div>
