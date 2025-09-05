@@ -19,22 +19,21 @@ export function AppProvider({ children }) {
     const [stockpile, setStockpile] = useState([]);
     const [scheduledBuys, setScheduledBuys] = useState([]);
     const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Load initial data from localStorage on mount
     useEffect(() => {
-        const authToken = localStorage.getItem('tpprover_auth_token');
-        if (authToken) {
-            // In a real app, you'd verify the token with a backend.
-            // For now, we'll just assume the token means the user is logged in.
-            // We'll decode it to get user info if it's a JWT, or just set a dummy user.
-            try {
-                // Assuming token is a simple user identifier for now
+        try {
+            const authToken = localStorage.getItem('tpprover_auth_token');
+            if (authToken) {
                 setUser({ token: authToken });
-            } catch (e) {
-                console.error("Failed to parse auth token", e);
-                setUser(null);
-                localStorage.removeItem('tpprover_auth_token');
             }
+        } catch (e) {
+            console.error("Failed to parse auth token", e);
+            setUser(null);
+            localStorage.removeItem('tpprover_auth_token');
+        } finally {
+            setIsLoading(false);
         }
 
         const loadAppData = () => {
@@ -197,6 +196,7 @@ export function AppProvider({ children }) {
         deleteSupplement,
         updateCalendarNote,
         hasMockData,
+        isLoading,
     };
 
     return (

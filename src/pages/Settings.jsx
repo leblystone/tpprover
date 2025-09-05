@@ -36,7 +36,6 @@
       privacy: {
         analytics: false,
         functional: true,
-        marketing: false,
         dataSharing: false,
       },
     }
@@ -202,7 +201,6 @@
           <div className="space-y-3">
             <SettingToggle checked={settings.privacy.functional} onChange={v => update('privacy.functional', v)} label="Functional Cookies" description="Required for the app to work correctly." theme={theme} disabled />
             <SettingToggle checked={settings.privacy.analytics} onChange={v => update('privacy.analytics', v)} label="Analytics Cookies" description="Help us improve the app with usage data." theme={theme} />
-            <SettingToggle checked={settings.privacy.marketing} onChange={v => update('privacy.marketing', v)} label="Marketing Cookies" description="Allow personalized offers and ads." theme={theme} />
             <SettingToggle checked={settings.privacy.dataSharing} onChange={v => update('privacy.dataSharing', v)} label="Anonymous Usage Metrics" description="Help us improve by sharing anonymous data." theme={theme} />
           </div>
         </div>
@@ -239,8 +237,8 @@
             <div>
                 <button 
                     onClick={() => {
-                        if (window.confirm("Are you sure you want to remove all sample data? This action cannot be undone.")) {
-                            clearMockData();
+                        if (window.confirm("Are you sure you want to remove all app data? This will not log you out, but it cannot be undone.")) {
+                            clearAppData();
                             // Set a flag to prevent re-seeding on next load
                             localStorage.setItem('tpprover_demo_data_cleared', 'true');
                             // Hide the banner permanently
@@ -250,9 +248,9 @@
                     }}
                     className="px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
                 >
-                    Remove Demo Data
+                    Clear App Data
                 </button>
-                <p className="text-xs text-gray-500 mt-1">Remove all the initial sample data to start with a clean slate.</p>
+                <p className="text-xs text-gray-500 mt-1">Remove all orders, protocols, etc., to start with a clean slate.</p>
             </div>
             <div>
               <div className="font-semibold text-red-600 mb-2">Danger Zone</div>
