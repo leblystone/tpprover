@@ -23,24 +23,17 @@ export function AppProvider({ children }) {
 
     // Load initial data from localStorage on mount
     useEffect(() => {
-        try {
-            const authToken = localStorage.getItem('tpprover_auth_token');
-            if (authToken) {
-                setUser({ token: authToken });
-            }
-        } catch (e) {
-            console.error("Failed to parse auth token", e);
-            setUser(null);
-            localStorage.removeItem('tpprover_auth_token');
-        } finally {
-            setIsLoading(false);
-        }
-
         const loadAppData = () => {
             try {
-                // Seed initial data only if the user hasn't explicitly cleared it
+                // Check if there is ANY existing data first.
+                const hasExistingData = [
+                    'tpprover_protocols', 'tpprover_orders', 'tpprover_vendors', 
+                    'tpprover_stockpile', 'tpprover_scheduled_buys'
+                ].some(key => localStorage.getItem(key) && JSON.parse(localStorage.getItem(key)).length > 0);
+
+                // Seed initial data only if there's no existing data and user hasn't cleared it before.
                 const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
-                if (demoDataCleared !== 'true') {
+                if (!hasExistingData && demoDataCleared !== 'true') {
                     seedInitialData();
                 }
 
@@ -79,6 +72,19 @@ export function AppProvider({ children }) {
         };
 
         loadAppData();
+        
+        try {
+            const authToken = localStorage.getItem('tpprover_auth_token');
+            if (authToken) {
+                setUser({ token: authToken });
+            }
+        } catch (e) {
+            console.error("Failed to parse auth token", e);
+            setUser(null);
+            localStorage.removeItem('tpprover_auth_token');
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     const logout = () => {
