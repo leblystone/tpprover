@@ -74,7 +74,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   const addItem = () => {
       setForm(prev => ({
           ...prev,
-          items: [...(prev.items || []), { id: Date.now() }]
+          items: [...(prev.items || []), { id: Date.now(), quantity: 1, unit: 'vial' }]
       }));
   };
 
