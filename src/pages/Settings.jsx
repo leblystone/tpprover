@@ -131,9 +131,17 @@
     const clearAllData = () => {
         if (window.confirm("Are you sure you want to permanently delete ALL data? This will log you out and cannot be undone.")) {
             try {
-                Object.keys(localStorage)
-                    .filter(key => key.startsWith('tpprover_'))
-                    .forEach(key => localStorage.removeItem(key));
+                // Manually list all known keys for this app to ensure complete removal.
+                const allAppKeys = [
+                    'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+                    'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics',
+                    'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile',
+                    'tpprover_scheduled_buys', 'tpprover_auth_token', 'tpprover_user',
+                    'tpprover_settings', 'tpprover_theme', 'tpprover_has_onboarded',
+                    'tpprover_has_seeded', 'tpprover_demo_data_cleared', 
+                    'tpprover_demo_banner_dismissed'
+                ];
+                allAppKeys.forEach(key => localStorage.removeItem(key));
                 window.location.href = '/login'; // Redirect to login after wipe
             } catch (e) {
                 console.error("Failed to clear all data", e);
