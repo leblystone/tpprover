@@ -34,7 +34,7 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [filters, setFilters] = useState({ payment: [], contact: [], label: [] })
 
-	const filteredVendors = vendors.filter(v => (v.category || 'domestic') === activeTab)
+	const filteredVendors = vendors.filter(v => (v.type || 'domestic') === activeTab)
 
 	return (
 		<section>
@@ -54,7 +54,7 @@ export default function Vendors() {
 						{ value: 'groupbuy', label: 'Group Buy' },
 					]}
 				/>
-				<button onClick={() => setEditingVendor({})} className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}><PlusCircle className="h-4 w-4" /> New Vendor</button>
+				<button onClick={() => { setEditingVendor({}); setShowAddModal(true); }} className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}><PlusCircle className="h-4 w-4" /> New Vendor</button>
 			</div>
 
 			<div className="mt-6">
@@ -80,7 +80,7 @@ export default function Vendors() {
 					if (editingVendor.id) {
 						updateVendor({ ...editingVendor, ...data });
 					} else {
-						addVendor({ id: Date.now(), ...data, category: activeTab });
+						addVendor({ id: Date.now(), ...data, type: activeTab });
 					}
 					setShowAddModal(false)
 					setEditingVendor(null)

@@ -102,7 +102,7 @@ export default function Orders() {
 	const advanceOrderStatus = (order) => {
 		const currentStatus = (order.status || 'Order Placed').toLowerCase();
 		let nextStatus = 'Order Placed';
-		if (currentStatus.includes('placed')) {
+		if (currentStatus.includes('placed') || currentStatus.includes('delayed')) {
 			nextStatus = 'Shipped';
 		} else if (currentStatus.includes('ship') || currentStatus.includes('transit')) {
 			nextStatus = 'Delivered';
@@ -142,20 +142,33 @@ export default function Orders() {
 
 			<div className="mt-6">
 				{activeTab === 'groupbuy' ? (
-					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-						<div className="lg:col-span-2">
-							<OrderList 
-								orders={filteredOrders} 
-								onEdit={(order) => { setEditingOrder(order); setShowAddModal(true); }}
-								onDelete={(id) => setOrders(prev => prev.filter(o => o.id !== id))}
-								onAdvance={advanceOrderStatus}
-								theme={theme}
-								vendors={vendors}
-							/>
-						</div>
-						<div>
-							<ScheduledBuysPanel theme={theme} />
-						</div>
+					<div>
+						{filteredOrders.length > 0 ? (
+							<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+								<div className="lg:col-span-2">
+									<OrderList 
+										orders={filteredOrders} 
+										onEdit={(order) => { setEditingOrder(order); setShowAddModal(true); }}
+										onDelete={(id) => setOrders(prev => prev.filter(o => o.id !== id))}
+										onAdvance={advanceOrderStatus}
+										theme={theme}
+										vendors={vendors}
+									/>
+								</div>
+								<div>
+									<ScheduledBuysPanel theme={theme} />
+								</div>
+							</div>
+						) : (
+							<div>
+								<p className="w-full text-sm mb-4" style={{ color: theme?.textLight || '#666' }}>No orders.</p>
+								<div className="flex justify-end">
+									<div className="w-full lg:w-1/2 xl:w-1/3">
+										<ScheduledBuysPanel theme={theme} />
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 				) : (
 					<OrderList 

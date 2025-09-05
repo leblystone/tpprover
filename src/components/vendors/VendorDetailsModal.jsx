@@ -3,7 +3,7 @@ import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
 import { formatMMDDYYYY } from '../../utils/date'
 
-const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Vetted']
+const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Vetted', 'Puck Problem']
 
 export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete }) {
   const [form, setForm] = useState(createEmptyVendor())
@@ -98,7 +98,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         <div className="rounded border p-4 content-card grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <label className="block text-sm font-medium" style={{ color: theme.text }}>Payment Methods
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              {['Card','Zelle','Crypto','PayPal','Wire'].map(p => (
+              {['Card','Zelle','Crypto','PayPal','Wire', 'Venmo', 'CashApp', 'AliPay'].map(p => (
                 <label key={p} className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={!!form.payments[p.toLowerCase()]} onChange={e => setForm(prev => ({ ...prev, payments: { ...prev.payments, [p.toLowerCase()]: e.target.checked } }))} className="h-4 w-4 rounded" style={{ accentColor: theme?.primary }} />
                   <span>{p}</span>

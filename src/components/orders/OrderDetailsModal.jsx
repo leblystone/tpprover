@@ -180,6 +180,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   { label: 'Order Placed', value: 'Order Placed' },
                   { label: 'In Transit', value: 'Shipped' },
                   { label: 'Delivered', value: 'Delivered' },
+                  { label: 'Delayed', value: 'Delayed' },
                 ].map(opt => (
                   <button key={opt.value} type="button" onClick={() => setForm({ ...form, status: opt.value, shipDate: opt.value==='Shipped' ? (form.shipDate || new Date().toISOString().slice(0,10)) : form.shipDate, deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || new Date().toISOString().slice(0,10)) : form.deliveryDate })}
                     className={`flex-1 text-center px-3 py-1.5 text-sm font-semibold rounded-md ${form.status === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}

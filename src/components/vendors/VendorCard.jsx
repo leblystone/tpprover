@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, Banknote, Coins, Wallet, Landmark, Edit } from 'lucide-react';
+import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, Edit } from 'lucide-react';
 import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaFacebook } from 'react-icons/fa';
+import { SiZelle, SiCashapp } from 'react-icons/si';
+import { FaPaypal, FaAlipay } from 'react-icons/fa6';
+import { RiBitCoinFill } from "react-icons/ri";
 import ShareModal from '../common/ShareModal';
 
 const GOOD_LABELS = ['Reliable', 'Fast Shipping', 'Overfill', 'Vetted'];
-const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'Out of Service'];
+const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'Out of Service', 'Puck Problem'];
 
 const getContactIcon = (type) => {
     const s = String(type || '').toLowerCase();
@@ -66,10 +69,12 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
     const paymentMethods = [];
     const p = vendor?.payments || {};
     if (p.card) paymentMethods.push({ label: 'Card', Icon: CreditCard });
-    if (p.zelle) paymentMethods.push({ label: 'Zelle', Icon: Banknote });
-    if (p.crypto) paymentMethods.push({ label: 'Crypto', Icon: Coins });
-    if (p.paypal) paymentMethods.push({ label: 'PayPal', Icon: Wallet });
-    if (p.wire) paymentMethods.push({ label: 'Wire', Icon: Landmark });
+    if (p.zelle) paymentMethods.push({ label: 'Zelle', Icon: SiZelle });
+    if (p.crypto) paymentMethods.push({ label: 'Crypto', Icon: RiBitCoinFill });
+    if (p.paypal) paymentMethods.push({ label: 'PayPal', Icon: FaPaypal });
+    if (p.venmo) paymentMethods.push({ label: 'Venmo', Icon: FaPaypal }); // Using PayPal icon for Venmo as it's a subsidiary and visually similar
+    if (p.cashapp) paymentMethods.push({ label: 'CashApp', Icon: SiCashapp });
+    if (p.alipay) paymentMethods.push({ label: 'AliPay', Icon: FaAlipay });
 
     return (
         <>
