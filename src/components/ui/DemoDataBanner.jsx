@@ -1,6 +1,7 @@
 import React from 'react';
 import { Info, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { clearAppData } from '../../utils/reset';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
     const navigate = useNavigate();
@@ -9,6 +10,15 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         // Only allow dismissing when not sticky
         if (sticky) return;
         try { localStorage.setItem('tpprover_demo_banner_dismissed', 'true'); } catch {}
+    };
+
+    const handleClearData = () => {
+        if (window.confirm("Are you sure you want to remove all app data? This will not log you out, but it cannot be undone.")) {
+            clearAppData();
+            localStorage.setItem('tpprover_demo_data_cleared', 'true');
+            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+            window.location.reload();
+        }
     };
 
     const handleNavigate = () => {
@@ -22,9 +32,13 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         >
             <Info size={20} />
             <p>
-                You are viewing <strong>demo data</strong>. This content is fake and for exploration only.
-                <button onClick={handleNavigate} className="font-semibold underline hover:opacity-80 ml-2">
-                    Manage demo data in Settings
+                You are viewing <strong>demo data</strong>. 
+                <button onClick={handleClearData} className="font-semibold underline hover:opacity-80 ml-2">
+                    Remove Now
+                </button>
+                 <span className="mx-1">|</span> 
+                <button onClick={handleNavigate} className="font-semibold underline hover:opacity-80">
+                    Manage in Settings
                 </button>
             </p>
             {!sticky && (

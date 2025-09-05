@@ -26,7 +26,7 @@ function useLocalStorage(key, initialValue) {
 
 export default function Orders() {
 	const { theme } = useOutletContext()
-	const { orders, setOrders, vendors } = useAppContext();
+	const { orders, setOrders, vendors, setStockpile } = useAppContext();
 	const location = useLocation()
 	const [activeTab, setActiveTab] = useState('domestic')
 	const [showAddModal, setShowAddModal] = useState(false)
@@ -59,43 +59,35 @@ export default function Orders() {
 			return; // No change related to delivery status
 		}
 
-		try {
-			let stockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
+		// Status changed TO Delivered: Add items to stockpile.
+		if (newStatus.includes('delivered')) {
+			const newStockItems = (newOrder.items || []).map(item => {
+				const quantity = Number(item.quantity) || 1;
+				const isKit = (item.unit || '').toLowerCase() === 'kit';
+				const vialsPerItem = isKit ? 10 : 1;
+				const price = Number(item.price) || 0;
+				const costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
 
-			// Status changed TO Delivered: Add items to stockpile.
-			if (newStatus.includes('delivered')) {
-				const newStockItems = (newOrder.items || []).map(item => {
-					const quantity = Number(item.quantity) || 1;
-					const isKit = (item.unit || '').toLowerCase() === 'kit';
-					const vialsPerItem = isKit ? 10 : 1;
-					const price = Number(item.price) || 0;
-					const costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
-	
-					return {
-						id: `orderitem-${newOrder.id}-${item.id}`,
-						name: item.name,
-						mg: item.mg,
-						quantity: quantity * vialsPerItem,
-						unit: 'vial',
-						cost: costPerVial,
-						vendor: newOrder.vendor,
-						vendorId: newOrder.vendorId,
-						purchaseDate: newOrder.date,
-						notes: `From order #${newOrder.id}`,
-						orderId: newOrder.id
-					};
-				});
-				stockpile = [...stockpile, ...newStockItems];
-			} 
-			// Status changed FROM Delivered: Remove items from stockpile.
-			else if (prevStatus.includes('delivered')) {
-				const orderIdPrefix = `orderitem-${previousOrder.id}-`;
-				stockpile = stockpile.filter(stockItem => !stockItem.id?.startsWith(orderIdPrefix));
-			}
-	
-			localStorage.setItem('tpprover_stockpile', JSON.stringify(stockpile));
-		} catch (e) {
-			console.error("Failed to update stockpile on status change", e);
+				return {
+					id: `orderitem-${newOrder.id}-${item.id}`,
+					name: item.name,
+					mg: item.mg,
+					quantity: quantity * vialsPerItem,
+					unit: 'vial',
+					cost: costPerVial,
+					vendor: newOrder.vendor,
+					vendorId: newOrder.vendorId,
+					purchaseDate: newOrder.date,
+					notes: `From order #${newOrder.id}`,
+					orderId: newOrder.id
+				};
+			});
+			setStockpile(prev => [...prev, ...newStockItems]);
+		} 
+		// Status changed FROM Delivered: Remove items from stockpile.
+		else if (prevStatus.includes('delivered')) {
+			const orderIdPrefix = `orderitem-${previousOrder.id}-`;
+			setStockpile(prev => prev.filter(stockItem => !stockItem.id?.startsWith(orderIdPrefix)));
 		}
 	};
 

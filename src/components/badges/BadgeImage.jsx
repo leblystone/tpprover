@@ -17,12 +17,14 @@ const SHAPES = {
 };
 
 function pickShape(name) {
+    if (typeof name !== 'string' || !name) return Object.values(SHAPES)[0];
     const hash = hashString(name);
     const shapes = Object.values(SHAPES);
     return shapes[hash % shapes.length];
 }
 
 function pickIcon(name) {
+  if (typeof name !== 'string' || !name) return Award;
   const key = name.toLowerCase()
   if (key.includes('delivery')) return PackageCheck;
   if (key.includes('investor')) return Landmark;
@@ -40,6 +42,7 @@ function pickIcon(name) {
 }
 
 function chooseFinish(name, theme) {
+    if (typeof name !== 'string' || !name) return { start: theme?.accent, mid: theme?.primary, end: theme?.primaryDark, border: theme?.primaryDark };
     const n = name.toLowerCase();
     const gold = { start: '#FFDE7A', mid: '#FFC43A', end: '#B8860B', border: '#8B6914' };
     const silver = { start: '#F3F4F6', mid: '#CDD3DD', end: '#9AA3AE', border: '#6B7280' };

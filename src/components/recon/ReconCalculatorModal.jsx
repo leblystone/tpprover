@@ -208,7 +208,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                 <div className="sm:col-span-3">
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Dose</div>
                   <div className="flex items-center p-0.5 rounded border h-[42px]" style={{ borderColor: theme?.border }}>
-                    <input className="flex-1 w-full border-none outline-none text-sm bg-transparent px-2 py-1.5" value={p.dose || ''} onChange={e => updatePeptide(p.id, 'dose', e.target.value)} placeholder="250" type="number" />
+                    <input className="flex-1 w-full border-none outline-none text-lg text-right bg-transparent px-2 py-1.5" value={p.dose || ''} onChange={e => updatePeptide(p.id, 'dose', e.target.value)} placeholder="250" type="number" />
                     <div className="inline-flex rounded-full bg-gray-100 p-0.5 shadow-inner">
                       {['mcg','mg'].map(unit => (
                         <button key={unit} type="button" onClick={() => updatePeptide(p.id, 'doseUnit', unit)}

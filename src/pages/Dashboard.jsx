@@ -85,6 +85,7 @@ export default function Dashboard() {
   const [upcomingBuys, setUpcomingBuys] = useState([])
   const [showImport, setShowImport] = useState(false)
   const [editingVendor, setEditingVendor] = useState(null)
+  const [showNewVendor, setShowNewVendor] = useState(false)
   const [showNewOrder, setShowNewOrder] = useState(false)
   const [showNewProtocol, setShowNewProtocol] = useState(false)
   const [vendorNames, setVendorNames] = useState(() => { try { return JSON.parse(localStorage.getItem('tpprover_vendors')||'[]') } catch { return [] } })
@@ -598,7 +599,7 @@ export default function Dashboard() {
         <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 gap-6" data-tour-id="action-buttons">
                 <ActionButton onClick={() => { setShowNewOrder(true) }} icon={<ShoppingCart />} label="New Order" theme={theme} />
-                <ActionButton onClick={() => { setEditingVendor({ id: Date.now(), name: '', notes: '' }) }} icon={<Users />} label="New Vendor" theme={theme} />
+                <ActionButton onClick={() => { setEditingVendor(null); setShowNewVendor(true); }} icon={<Users />} label="New Vendor" theme={theme} />
                 <ActionButton onClick={() => { setShowRecon(true) }} icon={<Droplet />} label="Recon Calculator" theme={theme} />
                 <ActionButton onClick={() => { setShowNewProtocol(true) }} icon={<Plus />} label="New Protocol" theme={theme} />
             </div>
@@ -696,19 +697,20 @@ export default function Dashboard() {
     <OCRImportModal open={showImport} onClose={() => setShowImport(false)} theme={theme} onImport={() => addToast('Import saved', 'success')} />
 
     <VendorDetailsModal
-        open={!!editingVendor}
-        onClose={() => setEditingVendor(null)}
+        open={!!editingVendor || showNewVendor}
+        onClose={() => { setEditingVendor(null); setShowNewVendor(false); }}
         theme={theme}
         vendor={editingVendor}
         onSave={(v) => {
           setVendors(prev => {
-            if (v.id) {
+            const existing = prev.find(p => p.id === v.id);
+            if (existing) {
               return prev.map(p => p.id === v.id ? v : p);
             }
             return [...prev, { ...v, id: Date.now() }];
           });
           setEditingVendor(null);
-          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Vendor saved', type: 'success' } }));
+          setShowNewVendor(false);
         }}
       />
 
@@ -729,7 +731,6 @@ export default function Dashboard() {
             });
           }
           setShowNewOrder(false);
-          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Order added', type: 'success' } }));
         }}
         onDelete={() => setShowNewOrder(false)}
       />
@@ -739,7 +740,7 @@ export default function Dashboard() {
         onClose={() => setShowNewProtocol(false)}
         theme={theme}
         onSave={(data) => {
-          const newProtocol = { id: Date.now(), ...data };
+          const newProtocol = { id: Date.now(), ...data, active: false, startDate: data.startDate || '' };
           setProtocols(prev => [newProtocol, ...prev]);
           
           // bump calendar
@@ -748,7 +749,6 @@ export default function Dashboard() {
           window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: now }))
 
           setShowNewProtocol(false)
-          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol created', type: 'success' } }))
         }}
       />
 

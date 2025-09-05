@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput.jsx'
+import { Search } from 'lucide-react';
 
 export default function GlossaryQuickModal({ open, onClose, theme }) {
   const [q, setQ] = useState('')
@@ -15,7 +16,21 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
       </>
     )}>
       <div className="space-y-3">
-        <TextInput label="Search" value={q} onChange={setQ} placeholder="BPC-157" theme={theme} />
+        <div className="flex items-center gap-2">
+            <TextInput label="Search Local" value={q} onChange={setQ} placeholder="BPC-157" theme={theme} className="flex-grow" />
+            <button
+                onClick={() => {
+                    const query = encodeURIComponent(`${q} peptide OR supplement site:examine.com OR site:wikipedia.org`);
+                    window.open(`https://www.google.com/search?q=${query}`, '_blank');
+                }}
+                className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2 mt-6"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                title="Search online for this term"
+            >
+                <Search size={16} />
+                <span>Search Online</span>
+            </button>
+        </div>
         <div className="text-xs p-2 rounded border" style={{ borderColor: theme?.border, color: theme?.text }}>
           Disclaimer: Information is provided for research and educational purposes only. Not medical advice.
         </div>
