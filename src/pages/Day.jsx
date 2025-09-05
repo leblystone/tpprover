@@ -8,8 +8,25 @@ export default function Day() {
   const [date, setDate] = useState(() => new Date())
   const [text, setText] = useState('')
   const key = useMemo(() => toKey(date), [date])
-  useEffect(() => { try { const raw = localStorage.getItem('tpprover_calendar_notes'); const obj = raw ? JSON.parse(raw) : {}; setText(obj[key] || '') } catch {} }, [key])
-  const save = () => { try { const raw = localStorage.getItem('tpprover_calendar_notes'); const obj = raw ? JSON.parse(raw) : {}; obj[key] = text; localStorage.setItem('tpprover_calendar_notes', JSON.stringify(obj)) } catch {} }
+  useEffect(() => { 
+    try { 
+      const raw = localStorage.getItem('tpprover_calendar_notes'); 
+      const obj = raw ? JSON.parse(raw) : {}; 
+      setText(obj[key]?.text || '') 
+    } catch {} 
+  }, [key])
+  
+  const save = () => { 
+    try { 
+      const raw = localStorage.getItem('tpprover_calendar_notes'); 
+      const obj = raw ? JSON.parse(raw) : {}; 
+      // Preserve the isMock flag if it exists, otherwise set it to false
+      const isMock = obj[key]?.isMock || false;
+      obj[key] = { text, isMock }; 
+      localStorage.setItem('tpprover_calendar_notes', JSON.stringify(obj)) 
+    } catch {} 
+  }
+
   const title = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   return (
     <section className="space-y-4">

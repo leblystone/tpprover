@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Megaphone, User, Settings, LogOut } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Megaphone, User, Settings, LogOut, MessageSquare, DownloadCloud } from 'lucide-react'
+import { NavLink, useOutletContext } from 'react-router-dom'
 import { useAppContext } from '../../context/AppContext'
+import FeedbackModal from '../common/FeedbackModal';
 
 export default function MobileSidebar({ open, onClose, theme }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const { installPrompt } = useOutletContext();
   const { logout } = useAppContext();
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   useEffect(() => {
     const durationMs = 240
@@ -68,6 +71,22 @@ export default function MobileSidebar({ open, onClose, theme }) {
               </NavLink>
             ))}
             <button
+              onClick={() => { setShowFeedbackModal(true); onClose(); }}
+              className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
+            >
+              <MessageSquare className="h-6 w-6" />
+              <span className="text-lg font-medium truncate">Feedback</span>
+            </button>
+            {installPrompt && (
+                <button
+                    onClick={() => { installPrompt.prompt(); onClose(); }}
+                    className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
+                >
+                    <DownloadCloud className="h-6 w-6" />
+                    <span className="text-lg font-medium truncate">Install App</span>
+                </button>
+            )}
+            <button
               onClick={() => { logout(); onClose(); }}
               className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
             >
@@ -77,6 +96,7 @@ export default function MobileSidebar({ open, onClose, theme }) {
           </div>
         </nav>
       </div>
+      <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
     </div>
   )
   return createPortal(overlay, document.body)

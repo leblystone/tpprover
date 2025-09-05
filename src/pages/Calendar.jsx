@@ -613,7 +613,7 @@ export default function Calendar() {
           open={!!editingNotesFor}
           onClose={() => setEditingNotesFor(null)}
           theme={theme}
-          notes={editingNotesFor ? entries[toKey(editingNotesFor)] : ''}
+          notes={editingNotesFor ? entries[toKey(editingNotesFor)]?.text : ''}
           onSave={handleSaveNotes}
       />
 

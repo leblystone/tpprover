@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
-import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut } from 'lucide-react'
+import { NavLink, useLocation, useOutletContext } from 'react-router-dom'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, DownloadCloud } from 'lucide-react'
 import logo from '../../assets/tpp-logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
+import FeedbackModal from '../common/FeedbackModal'
 
 const Sidebar = ({ theme }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const { installPrompt } = useOutletContext();
   const { logout } = useAppContext();
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   useEffect(() => {
     const updateIsOpen = () => {
@@ -77,8 +80,25 @@ const Sidebar = ({ theme }) => {
               <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>
             </NavLink>
           ))}
+          <button onClick={() => setShowFeedbackModal(true)} title="Feedback"
+            className="flex items-center justify-start h-14 w-full sidebar-link p-4"
+            style={{ color: theme.textLight }}
+          >
+            <MessageSquare className="h-6 w-6 flex-shrink-0" />
+            <span className="text-sm font-semibold ml-4 sidebar-link-label">Feedback</span>
+          </button>
+          {installPrompt && (
+              <button onClick={() => installPrompt.prompt()} title="Install App"
+                className="flex items-center justify-start h-14 w-full sidebar-link p-4"
+                style={{ color: theme.textLight }}
+              >
+                <DownloadCloud className="h-6 w-6 flex-shrink-0" />
+                <span className="text-sm font-semibold ml-4 sidebar-link-label">Install App</span>
+              </button>
+          )}
         </div>
       </aside>
+      <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
     </>
   )
 }
