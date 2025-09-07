@@ -13,13 +13,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Service worker: enable in production only; unregister in dev to avoid cache issues
+// Service worker: enable for both dev and prod for testing purposes
 if ('serviceWorker' in navigator) {
-  if (import.meta.env && import.meta.env.PROD) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
-    })
-  } else {
-    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())).catch(() => {})
-  }
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.error('Service worker registration failed:', err);
+      });
+    });
 }

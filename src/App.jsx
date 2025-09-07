@@ -9,6 +9,7 @@ import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
 import DemoDataBanner from './components/ui/DemoDataBanner';
 import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
+import SuccessModal from './components/ui/SuccessModal';
 import BetaEnded from './pages/BetaEnded';
 import TourController from './components/onboarding/TourController';
 
@@ -30,6 +31,7 @@ function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isPwaSupported, setIsPwaSupported] = useState(false);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false);
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
@@ -59,6 +61,15 @@ function App() {
         setShowDemoBanner(false);
     }
   }, [hasMockData]);
+
+  // Listen for demo data success events from banner
+  useEffect(() => {
+    const handleDemoSuccess = () => {
+      setShowDemoSuccessModal(true);
+    };
+    window.addEventListener('demo-data-cleared', handleDemoSuccess);
+    return () => window.removeEventListener('demo-data-cleared', handleDemoSuccess);
+  }, []);
 
   // Beta access control
   const isBetaActive = () => {
@@ -120,6 +131,13 @@ function App() {
       />
       <GlossaryQuickModal open={showGlossary} onClose={() => setShowGlossary(false)} theme={theme} />
       <TourController theme={theme} installPrompt={installPrompt} />
+      <SuccessModal
+        open={showDemoSuccessModal}
+        onClose={() => setShowDemoSuccessModal(false)}
+        title="Demo Data Removed!"
+        message="All sample data has been successfully removed. Your personal entries remain safe and intact."
+        theme={theme}
+      />
     </div>
   )
 }

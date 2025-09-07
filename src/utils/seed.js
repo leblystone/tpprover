@@ -89,6 +89,10 @@ const DATA_KEYS = {
 
 export function seedInitialData() {
     try {
+        // Check if user has explicitly cleared demo data - if so, never re-seed
+        const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
+        if (demoDataCleared === 'true') return;
+
         // FAILSAFE: Check if any non-mock data exists. If so, abort immediately.
         const vendorsRaw = localStorage.getItem('tpprover_vendors');
         if (vendorsRaw && JSON.parse(vendorsRaw).some(v => !v.isMock)) return;

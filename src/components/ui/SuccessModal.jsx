@@ -7,16 +7,16 @@ export default function SuccessModal({ open, onClose, title, message, theme }) {
         <Modal 
             open={open} 
             onClose={onClose} 
-            title={title || "Success!"} 
+            title="" 
             theme={theme}
             maxWidth="max-w-md"
         >
-            <div className="text-center py-6">
+            <div className="text-center py-8 px-4">
                 {/* Success Icon with Animation */}
                 <div className="mx-auto mb-6 relative">
                     <div 
                         className="w-20 h-20 rounded-full flex items-center justify-center mx-auto animate-pulse"
-                        style={{ backgroundColor: `${theme.success}20` }}
+                        style={{ backgroundColor: theme.successBg }}
                     >
                         <CheckCircle 
                             size={48} 
@@ -38,9 +38,15 @@ export default function SuccessModal({ open, onClose, title, message, theme }) {
                 </div>
 
                 {/* Success Message */}
-                <div className="space-y-3">
+                <div className="space-y-4">
+                    <h3 
+                        className="text-xl font-bold"
+                        style={{ color: theme.primaryDark }}
+                    >
+                        {title || "Success!"}
+                    </h3>
                     <p 
-                        className="text-lg font-semibold"
+                        className="text-base leading-relaxed"
                         style={{ color: theme.text }}
                     >
                         {message || "Operation completed successfully!"}
@@ -57,10 +63,20 @@ export default function SuccessModal({ open, onClose, title, message, theme }) {
                 <div className="mt-8">
                     <button
                         onClick={onClose}
-                        className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                        className="px-8 py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg border"
                         style={{ 
                             backgroundColor: theme.success,
-                            boxShadow: `0 4px 12px ${theme.success}30`
+                            color: theme.textOnPrimary,
+                            borderColor: theme.success,
+                            boxShadow: `0 4px 12px ${theme.success}25`
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = theme.primaryDark;
+                            e.target.style.borderColor = theme.primaryDark;
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = theme.success;
+                            e.target.style.borderColor = theme.success;
                         }}
                     >
                         Perfect!
