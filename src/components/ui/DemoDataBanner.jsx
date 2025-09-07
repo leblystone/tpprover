@@ -25,6 +25,11 @@ export default function DemoDataBanner({ theme, sticky = false }) {
 
             // Refresh the app context data instead of reloading the page
             refreshDataAfterClear();
+            
+            // Show success confirmation
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                detail: { message: 'Demo data removed successfully! Your personal data remains intact.', type: 'success' } 
+            }));
         }
     };
 

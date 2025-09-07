@@ -281,6 +281,11 @@
                             localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
                             // Refresh the app context data instead of reloading the page
                             refreshDataAfterClear();
+                            
+                            // Show success confirmation
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                detail: { message: 'Demo data removed successfully! Your personal data remains intact.', type: 'success' } 
+                            }));
                         }
                     }}
                     className="px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
