@@ -798,7 +798,10 @@ export default function Dashboard() {
           })
           setShowAddSupplement(false)
           setEditingSupplement(null)
-          bumpCalendar()
+          
+          const now = String(Date.now())
+          localStorage.setItem('tpprover_calendar_bump', now)
+          window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: now }))
         }}
       />
       <BadgesModal open={showBadges} onClose={() => setShowBadges(false)} theme={theme} />
