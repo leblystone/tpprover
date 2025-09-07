@@ -154,6 +154,43 @@ export function AppProvider({ children }) {
         setCalendarNotes(prev => ({...prev, [dateKey]: text}));
     };
 
+    const refreshDataAfterClear = () => {
+        // Reload all data from localStorage after clearing mock data
+        try {
+            const savedProtocols = localStorage.getItem('tpprover_protocols');
+            setProtocols(savedProtocols ? JSON.parse(savedProtocols) : []);
+
+            const savedRecon = localStorage.getItem('tpprover_recon_items');
+            setReconItems(savedRecon ? JSON.parse(savedRecon) : []);
+            
+            const savedHistory = localStorage.getItem('tpprover_recon_history');
+            setReconHistory(savedHistory ? JSON.parse(savedHistory) : []);
+
+            const savedSupps = localStorage.getItem('tpprover_supplements');
+            setSupplements(savedSupps ? JSON.parse(savedSupps) : []);
+
+            const savedOrders = localStorage.getItem('tpprover_orders');
+            setOrders(savedOrders ? JSON.parse(savedOrders) : []);
+
+            const savedMetrics = localStorage.getItem('tpprover_metrics');
+            setMetrics(savedMetrics ? JSON.parse(savedMetrics) : []);
+
+            const savedVendors = localStorage.getItem('tpprover_vendors');
+            setVendors(savedVendors ? JSON.parse(savedVendors) : []);
+            
+            const savedNotes = localStorage.getItem('tpprover_calendar_notes');
+            setCalendarNotes(savedNotes ? JSON.parse(savedNotes) : {});
+
+            const savedStockpile = localStorage.getItem('tpprover_stockpile');
+            setStockpile(savedStockpile ? JSON.parse(savedStockpile) : []);
+
+            const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
+            setScheduledBuys(savedScheduledBuys ? JSON.parse(savedScheduledBuys) : []);
+        } catch (error) {
+            console.error("Error refreshing data after clear:", error);
+        }
+    };
+
     const hasMockData = useMemo(() => {
         const allData = [...protocols, ...orders, ...vendors, ...supplements, ...reconItems, ...stockpile, ...metrics];
         const hasArrayMockData = allData.some(item => item.isMock === true);
@@ -200,6 +237,7 @@ export function AppProvider({ children }) {
         updateSupplement,
         deleteSupplement,
         updateCalendarNote,
+        refreshDataAfterClear,
         hasMockData,
         isLoading,
     };

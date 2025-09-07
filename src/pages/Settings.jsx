@@ -5,6 +5,7 @@
   import { clearAppData, clearSpecific } from '../utils/reset'
   import { clearMockData } from '../utils/seed'
   import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
+  import { useAppContext } from '../context/AppContext'
 
   // Settings persistence (local-only)
   function loadSettings() {
@@ -43,6 +44,7 @@
 
   export default function Settings() {
     const { theme } = useOutletContext()
+    const { refreshDataAfterClear } = useAppContext()
     const [pwaPrompted, setPWAPrompted] = useState(false)
     const [selectedTheme, setSelectedTheme] = useState(() => {
         try { return localStorage.getItem('tpprover_theme') || defaultThemeName } catch { return defaultThemeName }
@@ -277,12 +279,13 @@
                             localStorage.setItem('tpprover_demo_data_cleared', 'true');
                             // Hide the banner permanently
                             localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
-                            window.location.reload();
+                            // Refresh the app context data instead of reloading the page
+                            refreshDataAfterClear();
                         }
                     }}
                     className="px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
                 >
-                    Remove Demo Data
+                    Remove demo data
                 </button>
                 <p className="text-xs text-gray-500 mt-1">Remove all sample orders, protocols, etc., to start with a clean slate.</p>
             </div>

@@ -2,9 +2,11 @@ import React from 'react';
 import { Info, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clearMockData } from '../../utils/seed';
+import { useAppContext } from '../../context/AppContext';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
     const navigate = useNavigate();
+    const { refreshDataAfterClear } = useAppContext();
 
     const handleDismiss = () => {
         // Only allow dismissing when not sticky
@@ -21,7 +23,8 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             // Ensure the user is not prompted with the welcome modal again
             localStorage.setItem('tpprover_has_onboarded', 'true');
 
-            window.location.reload();
+            // Refresh the app context data instead of reloading the page
+            refreshDataAfterClear();
         }
     };
 
@@ -38,7 +41,7 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             <p>
                 You are viewing <strong>demo data</strong>. 
                 <button onClick={handleClearData} className="font-semibold underline hover:opacity-80 ml-2">
-                    Remove demo data
+                    Remove now
                 </button>
                  <span className="mx-1">|</span> 
                 <button onClick={handleNavigate} className="font-semibold underline hover:opacity-80">
