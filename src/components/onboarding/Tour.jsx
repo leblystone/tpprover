@@ -4,6 +4,12 @@ import { useNavigate } from 'react-router-dom';
 
 const TOUR_STEPS = [
     {
+        target: '[data-tour="dashboard-welcome"]',
+        content: "Welcome to your Dashboard! This is your command center, giving you a complete overview of your research at a glance.",
+        title: 'Welcome to The Pep Planner!',
+        path: '/dashboard',
+    },
+    {
         target: '[data-tour="sidebar-recon"]',
         content: "Here's where the magic happens! 🧪\n\n- Track every vial you reconstitute and link it to a vendor.\n- Choose your delivery method: syringe 💉 or pen 🖊️.\n- Pick a color for your pen to keep things organized!\n- Use the calculator to figure out your doses.",
         title: 'Reconstitution',

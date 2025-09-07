@@ -6,6 +6,7 @@
   import { clearMockData } from '../utils/seed'
   import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
   import { useAppContext } from '../context/AppContext'
+  import SuccessModal from '../components/ui/SuccessModal'
 
   // Settings persistence (local-only)
   function loadSettings() {
@@ -50,6 +51,7 @@
         try { return localStorage.getItem('tpprover_theme') || defaultThemeName } catch { return defaultThemeName }
     })
     const [showTerms, setShowTerms] = useState(false)
+    const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false)
     const [user, setUser] = useState(() => {
       try { return JSON.parse(localStorage.getItem('tpprover_user') || '{}') } catch { return {} }
     })
@@ -282,10 +284,8 @@
                             // Refresh the app context data instead of reloading the page
                             refreshDataAfterClear();
                             
-                            // Show success confirmation
-                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                detail: { message: 'Demo data removed successfully! Your personal data remains intact.', type: 'success' } 
-                            }));
+                            // Show modern success modal
+                            setShowDemoSuccessModal(true);
                         }
                     }}
                     className="px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -305,6 +305,13 @@
           </div>
         </div>
         <TermsOfServiceModal open={showTerms} onClose={() => setShowTerms(false)} onAgree={null} theme={theme} />
+        <SuccessModal
+          open={showDemoSuccessModal}
+          onClose={() => setShowDemoSuccessModal(false)}
+          title="Demo Data Removed!"
+          message="All sample data has been successfully removed. Your personal entries remain safe and intact."
+          theme={theme}
+        />
       </section>
     )
   }
