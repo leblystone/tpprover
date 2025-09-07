@@ -1,13 +1,59 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput.jsx'
-import { Search } from 'lucide-react';
+import { Search, Brain, AlertTriangle, Loader } from 'lucide-react';
 
 export default function GlossaryQuickModal({ open, onClose, theme }) {
   const [q, setQ] = useState('')
   const [items, setItems] = useState([])
+  const [aiResearch, setAiResearch] = useState({ loading: false, data: null, error: null, query: '' })
+  
   useEffect(() => { try { const raw = localStorage.getItem('tpprover_glossary'); setItems(raw ? JSON.parse(raw) : []) } catch {} }, [open])
   const filtered = useMemo(() => items.filter(i => (i.name||'').toLowerCase().includes(q.toLowerCase())), [items, q])
+
+  const handleAIResearch = async () => {
+    if (!q.trim()) return;
+    
+    setAiResearch({ loading: true, data: null, error: null, query: q });
+    
+    try {
+      // Check if the query seems peptide-related first
+      const peptideKeywords = [
+        'peptide', 'bpc', 'tb-500', 'ghrp', 'cjc', 'ipamorelin', 'semaglutide', 'tirzepatide', 
+        'melanotan', 'pt-141', 'mod-grf', 'hexarelin', 'sermorelin', 'tesamorelin', 'aod', 
+        'fragment', 'ghk', 'copper', 'thymosin', 'epitalon', 'selank', 'semax', 'noopept',
+        'oxytocin', 'vasopressin', 'insulin', 'glucagon', 'growth hormone', 'igf', 'mgf'
+      ];
+      
+      const isPeptideRelated = peptideKeywords.some(keyword => 
+        q.toLowerCase().includes(keyword.toLowerCase()) || 
+        keyword.toLowerCase().includes(q.toLowerCase()) ||
+        q.toLowerCase().replace(/[-\s]/g, '').includes(keyword.replace(/[-\s]/g, ''))
+      );
+      
+      if (!isPeptideRelated) {
+        setAiResearch({ 
+          loading: false, 
+          data: null, 
+          error: 'Research Error: This query does not appear to be peptide-related. Please search for peptide names or related compounds.',
+          query: q 
+        });
+        return;
+      }
+      
+      // Compile comprehensive peptide research data
+      const researchData = await compilePeptideResearch(q);
+      setAiResearch({ loading: false, data: researchData, error: null, query: q });
+      
+    } catch (error) {
+      setAiResearch({ 
+        loading: false, 
+        data: null, 
+        error: 'Research Error: Unable to compile peptide data at this time. Please try again later.',
+        query: q 
+      });
+    }
+  };
 
   return (
     <Modal open={open} onClose={onClose} title="Peptide Glossary" theme={theme} footer={(
@@ -17,37 +63,104 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
     )}>
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-            <TextInput label="Search Local" value={q} onChange={setQ} placeholder="BPC-157" theme={theme} className="flex-grow" />
+            <TextInput label="Search Peptide" value={q} onChange={setQ} placeholder="BPC-157" theme={theme} className="flex-grow" />
             <button
-                onClick={() => {
-                    const query = encodeURIComponent(`${q} peptide OR supplement site:examine.com OR site:wikipedia.org`);
-                    window.open(`https://www.google.com/search?q=${query}`, '_blank');
-                }}
-                className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2 mt-6"
+                onClick={handleAIResearch}
+                disabled={!q.trim() || aiResearch.loading}
+                className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                title="Search online for this term"
+                title="Research this peptide with AI"
             >
-                <Search size={16} />
-                <span>Search Online</span>
+                {aiResearch.loading ? (
+                    <>
+                        <Loader size={16} className="animate-spin" />
+                        <span>Researching...</span>
+                    </>
+                ) : (
+                    <>
+                        <Brain size={16} />
+                        <span>AI Research</span>
+                    </>
+                )}
             </button>
         </div>
         <div className="text-xs p-2 rounded border" style={{ borderColor: theme?.border, color: theme?.text }}>
           Disclaimer: Information is provided for research and educational purposes only. Not medical advice.
         </div>
-        {filtered.length === 0 ? (
-          <div className="text-sm text-gray-500">No glossary entries yet.</div>
-        ) : (
-          <ul className="space-y-2">
-            {filtered.map(i => (
-              <li key={i.id} className="p-2 rounded border" style={{ borderColor: theme?.border }}>
-                <div className="font-semibold">{i.name}</div>
-                <div className="text-xs text-gray-500">{i.category}</div>
-                <div className="text-sm mt-1">{i.notes}</div>
-                <AIInfo name={i.name} />
-              </li>
-            ))}
-          </ul>
+        
+        {/* AI Research Results */}
+        {aiResearch.error && (
+          <div className="p-4 rounded-lg border-2 border-red-200 bg-red-50">
+            <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
+              <AlertTriangle size={18} />
+              <span>Research Error</span>
+            </div>
+            <p className="text-red-600 text-sm">{aiResearch.error}</p>
+          </div>
         )}
+        
+        {aiResearch.data && (
+          <div className="p-4 rounded-lg border-2" style={{ borderColor: theme.success, backgroundColor: theme.successBg }}>
+            <div className="flex items-center gap-2 mb-3" style={{ color: theme.success }}>
+              <Brain size={18} />
+              <span className="font-semibold">AI Research: {aiResearch.data.name}</span>
+            </div>
+            
+            <div className="space-y-3 text-sm" style={{ color: theme.text }}>
+              <div>
+                <span className="font-semibold">Classification:</span> {aiResearch.data.classification}
+              </div>
+              
+              <div>
+                <span className="font-semibold">Mechanism:</span> {aiResearch.data.mechanism}
+              </div>
+              
+              <div>
+                <span className="font-semibold">Common Research Uses:</span>
+                <ul className="list-disc list-inside mt-1 ml-2">
+                  {aiResearch.data.commonUses.map((use, index) => (
+                    <li key={index}>{use}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <span className="font-semibold">Dosage Information:</span> {aiResearch.data.dosageRanges}
+              </div>
+              
+              <div>
+                <span className="font-semibold">Safety Notes:</span> {aiResearch.data.safetyNotes}
+              </div>
+              
+              <div>
+                <span className="font-semibold">Research Status:</span> {aiResearch.data.researchStatus}
+              </div>
+              
+              <div className="text-xs italic pt-2 border-t" style={{ borderColor: theme.border }}>
+                {aiResearch.data.disclaimer}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Local Glossary Entries */}
+        <div className="border-t pt-3" style={{ borderColor: theme.border }}>
+          <h4 className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>Local Glossary</h4>
+          {filtered.length === 0 ? (
+            <div className="text-sm text-gray-500">No glossary entries yet.</div>
+          ) : (
+            <ul className="space-y-2">
+              {filtered.map(i => (
+                <li key={i.id} className="p-2 rounded border" style={{ borderColor: theme?.border }}>
+                  <div className="font-semibold">{i.name}</div>
+                  <div className="text-xs text-gray-500">{i.category}</div>
+                  <div className="text-sm mt-1">{i.notes}</div>
+                  <AIInfo name={i.name} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </Modal>
   )

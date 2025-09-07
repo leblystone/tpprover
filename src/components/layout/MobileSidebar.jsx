@@ -39,6 +39,13 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
     onClose();
   };
 
+  const handleModalInstall = () => {
+    setShowInstallModal(false);
+    if (installPrompt) {
+      installPrompt.prompt();
+    }
+  };
+
   if (!mounted) return null
   const links = [
     { to: '/dashboard', label: 'Dashboard', icon: Home },
@@ -112,7 +119,7 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
         </nav>
       </div>
       <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
-      <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} theme={theme} />
+      <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} onInstall={handleModalInstall} theme={theme} />
       <PwaUnsupportedModal open={showUnsupportedModal} onClose={() => setShowUnsupportedModal(false)} theme={theme} />
     </div>
   )

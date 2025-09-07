@@ -35,6 +35,13 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
     }
   };
 
+  const handleModalInstall = () => {
+    setShowInstallModal(false);
+    if (installPrompt) {
+      installPrompt.prompt();
+    }
+  };
+
   const links = [
     { to: '/dashboard', label: 'Dashboard', icon: Home, tourId: 'dashboard-welcome' },
     { to: '/calendar', label: 'Calendar', icon: Calendar, tourId: 'sidebar-calendar' },
@@ -113,7 +120,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
         </div>
       </aside>
       <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
-      <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} theme={theme} />
+      <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} onInstall={handleModalInstall} theme={theme} />
       <PwaUnsupportedModal open={showUnsupportedModal} onClose={() => setShowUnsupportedModal(false)} theme={theme} />
     </>
   )
