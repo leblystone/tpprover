@@ -28,10 +28,23 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
       }
       const suppItems = []
       for (const s of supplements) {
-        if (!Array.isArray(s?.days) || !s.days.includes(weekday)) continue
-        if (s.schedule === 'AM') suppItems.push({ name: s.name || 'Supplement', time: 'AM' })
-        else if (s.schedule === 'PM') suppItems.push({ name: s.name || 'Supplement', time: 'PM' })
-        else if (s.schedule === 'BOTH') { suppItems.push({ name: s.name || 'Supplement', time: 'AM' }); suppItems.push({ name: s.name || 'Supplement', time: 'PM' }) }
+        // Include supplement if no specific days are set, or if the current weekday is included
+        const shouldInclude = !Array.isArray(s?.days) || s.days.length === 0 || s.days.includes(weekday);
+        if (!shouldInclude) continue;
+        
+        // Handle both array format ['AM', 'PM'] and legacy string format
+        const schedule = Array.isArray(s.schedule) ? s.schedule : [s.schedule];
+        
+        for (const time of schedule) {
+          if (time === 'AM') suppItems.push({ name: s.name || 'Supplement', time: 'Morning' })
+          else if (time === 'PM') suppItems.push({ name: s.name || 'Supplement', time: 'Evening' })
+        }
+        
+        // Handle legacy 'BOTH' format
+        if (s.schedule === 'BOTH') {
+          suppItems.push({ name: s.name || 'Supplement', time: 'Morning' });
+          suppItems.push({ name: s.name || 'Supplement', time: 'Evening' });
+        }
       }
       const buyItems = orders.filter(o => (o.date || '').slice(0,10) === iso).map(o => ({
         vendor: o.vendor || 'Vendor', peptide: o.peptide || '', mg: o.mg, group: !!o.group, status: o.status || 'Order Placed'

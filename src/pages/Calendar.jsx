@@ -104,6 +104,7 @@ export default function Calendar() {
   const [scheduled, setScheduled] = useState({})
   const [done, setDone] = useState({})
   const [protocolTimelines, setProtocolTimelines] = useState([]);
+  const [calendarBump, setCalendarBump] = useState(0);
   // Load persisted notes (entries) and done slots
   useEffect(() => {
     try { const raw = localStorage.getItem('tpprover_calendar_notes'); if (raw) setEntries(JSON.parse(raw)) } catch {}
@@ -499,7 +500,18 @@ export default function Calendar() {
     };
 
     loadData(); // Initial load
-  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys]);
+  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump]);
+
+  // Listen for calendar bump events from other components
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'tpprover_calendar_bump') {
+        setCalendarBump(Date.now());
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Seed a mock group buy once so visuals show up
   useEffect(() => {
