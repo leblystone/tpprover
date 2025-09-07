@@ -17,6 +17,10 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             clearMockData();
             localStorage.setItem('tpprover_demo_data_cleared', 'true');
             localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+            
+            // Ensure the user is not prompted with the welcome modal again
+            localStorage.setItem('tpprover_has_onboarded', 'true');
+
             window.location.reload();
         }
     };
@@ -34,7 +38,7 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             <p>
                 You are viewing <strong>demo data</strong>. 
                 <button onClick={handleClearData} className="font-semibold underline hover:opacity-80 ml-2">
-                    Remove Now
+                    Remove demo data
                 </button>
                  <span className="mx-1">|</span> 
                 <button onClick={handleNavigate} className="font-semibold underline hover:opacity-80">

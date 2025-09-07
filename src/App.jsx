@@ -49,8 +49,13 @@ function App() {
     }
 
     const bannerDismissed = localStorage.getItem('tpprover_demo_banner_dismissed');
-    if (hasMockData && bannerDismissed !== 'true') {
+    const dataCleared = localStorage.getItem('tpprover_demo_data_cleared');
+    
+    // Show banner if there's mock data and it hasn't been dismissed or cleared
+    if (hasMockData && bannerDismissed !== 'true' && dataCleared !== 'true') {
         setShowDemoBanner(true);
+    } else {
+        setShowDemoBanner(false);
     }
   }, [hasMockData]);
 

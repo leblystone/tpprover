@@ -155,9 +155,16 @@ export function AppProvider({ children }) {
     };
 
     const hasMockData = useMemo(() => {
-        const allData = [...protocols, ...orders, ...vendors, ...supplements, ...reconItems];
-        return allData.some(item => item.isMock === true);
-    }, [protocols, orders, vendors, supplements, reconItems]);
+        const allData = [...protocols, ...orders, ...vendors, ...supplements, ...reconItems, ...stockpile, ...metrics];
+        const hasArrayMockData = allData.some(item => item.isMock === true);
+        
+        // Also check calendar notes for mock data
+        const hasCalendarMockData = Object.values(calendarNotes).some(note => 
+            typeof note === 'object' && note.isMock === true
+        );
+        
+        return hasArrayMockData || hasCalendarMockData;
+    }, [protocols, orders, vendors, supplements, reconItems, stockpile, metrics, calendarNotes]);
 
     const value = {
         protocols,

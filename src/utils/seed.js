@@ -77,7 +77,7 @@ export const MOCK_METRICS = [
 ];
 
 export const MOCK_NOTES = {
-    [new Date().toISOString().slice(0,10)]: 'Demo note: calendar entries will appear here.'
+    [new Date().toISOString().slice(0,10)]: { text: 'Demo note: calendar entries will appear here.', isMock: true }
 };
 
 const DATA_KEYS = {
@@ -143,7 +143,7 @@ export function seedInitialData() {
 
 export function clearMockData() {
     try {
-        const ALL_MOCK_KEYS = [
+        const ALL_DATA_KEYS = [
             'tpprover_vendors',
             'tpprover_orders',
             'tpprover_scheduled_buys',
@@ -152,36 +152,37 @@ export function clearMockData() {
             'tpprover_recon_items',
             'tpprover_metrics',
             'tpprover_stockpile',
+            'tpprover_calendar_notes',
         ];
 
-        ALL_MOCK_KEYS.forEach(key => {
+        ALL_DATA_KEYS.forEach(key => {
             const raw = localStorage.getItem(key);
-            if (raw) {
-                try {
-                    const data = JSON.parse(raw);
-                    if (Array.isArray(data)) {
-                        const filteredData = data.filter(item => !item.isMock);
-                        localStorage.setItem(key, JSON.stringify(filteredData));
-                    }
-                } catch {}
+            if (!raw) return;
+
+            try {
+                const data = JSON.parse(raw);
+                let filteredData;
+
+                if (Array.isArray(data)) {
+                    filteredData = data.filter(item => !item.isMock);
+                } else if (typeof data === 'object' && data !== null) {
+                    filteredData = Object.entries(data).reduce((acc, [itemKey, value]) => {
+                        if (!value.isMock) {
+                            acc[itemKey] = value;
+                        }
+                        return acc;
+                    }, {});
+                } else {
+                    // For simple values, if we need to handle them, we would, but for now, we leave them.
+                    filteredData = data;
+                }
+                
+                localStorage.setItem(key, JSON.stringify(filteredData));
+
+            } catch (e) {
+                console.error(`Failed to process key ${key}:`, e);
             }
         });
-
-        // Special handling for calendar notes (object, not array)
-        const notesRaw = localStorage.getItem('tpprover_calendar_notes');
-        if (notesRaw) {
-            try {
-                const notes = JSON.parse(notesRaw);
-                const filteredNotes = Object.entries(notes).reduce((acc, [key, value]) => {
-                    // Assuming mock notes are simple strings and user notes are objects with a text property
-                    if (value && typeof value === 'object' && value.text) {
-                        acc[key] = value;
-                    }
-                    return acc;
-                }, {});
-                localStorage.setItem('tpprover_calendar_notes', JSON.stringify(filteredNotes));
-            } catch {}
-        }
 
         console.log('All mock data cleared.');
     } catch (e) {
