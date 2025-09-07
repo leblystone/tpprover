@@ -10,6 +10,7 @@ import { useAppContext } from './context/AppContext';
 import DemoDataBanner from './components/ui/DemoDataBanner';
 import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
 import BetaEnded from './pages/BetaEnded';
+import TourController from './components/onboarding/TourController';
 
 function App() {
   const [themeName] = useState(() => {
@@ -118,6 +119,7 @@ function App() {
         theme={theme}
       />
       <GlossaryQuickModal open={showGlossary} onClose={() => setShowGlossary(false)} theme={theme} />
+      <TourController theme={theme} installPrompt={installPrompt} />
     </div>
   )
 }
