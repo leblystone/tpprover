@@ -78,8 +78,8 @@ function App() {
       return true;
     }
 
-    const phase1EndDate = new Date('2024-09-07T00:00:00Z'); // Sept 6th midnight UTC
-    const phase2EndDate = new Date('2024-09-14T00:00:00Z'); // Sept 13th midnight UTC
+    const phase1EndDate = new Date('2024-09-11T00:00:00Z'); // Sept 10th midnight UTC
+    const phase2EndDate = new Date('2024-09-18T00:00:00Z'); // Sept 17th midnight UTC
     const now = new Date();
     return now <= phase2EndDate;
   };
