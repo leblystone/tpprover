@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users } from 'lucide-react';
+import { Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 
 export default function Admin() {
@@ -10,6 +10,11 @@ export default function Admin() {
   const [password, setPassword] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [activeTab, setActiveTab] = useState('announcements');
+  const [inviteCodes, setInviteCodes] = useState({});
+  const [emailWhitelist, setEmailWhitelist] = useState([]);
+  const [newEmails, setNewEmails] = useState('');
+  const [copiedCode, setCopiedCode] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     body: '',
@@ -18,7 +23,7 @@ export default function Admin() {
   });
 
   // Simple admin authentication (you can change this password)
-  const ADMIN_PASSWORD = 'tpp-admin-2024';
+  const ADMIN_PASSWORD = 'j&jm9102';
 
   const categoryOptions = [
     { value: 'New Feature', icon: Sparkles, color: theme.info },
@@ -34,8 +39,9 @@ export default function Admin() {
       setIsAuthenticated(true);
     }
     
-    // Load announcements
+    // Load data
     loadAnnouncements();
+    loadInviteData();
   }, []);
 
   const loadAnnouncements = () => {
@@ -56,6 +62,108 @@ export default function Admin() {
     } catch (error) {
       console.error('Error saving announcements:', error);
     }
+  };
+
+  const loadInviteData = () => {
+    try {
+      const codes = localStorage.getItem('tpprover_invite_codes');
+      if (codes) {
+        setInviteCodes(JSON.parse(codes));
+      }
+      
+      const whitelist = localStorage.getItem('tpprover_email_whitelist');
+      if (whitelist) {
+        setEmailWhitelist(JSON.parse(whitelist));
+      }
+    } catch (error) {
+      console.error('Error loading invite data:', error);
+    }
+  };
+
+  const generateInviteCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = 'BETA-';
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  const createInviteCodes = (count, emails = []) => {
+    try {
+      const newCodes = { ...inviteCodes };
+      const createdCodes = [];
+      
+      for (let i = 0; i < count; i++) {
+        let code = generateInviteCode();
+        // Ensure unique codes
+        while (newCodes[code]) {
+          code = generateInviteCode();
+        }
+        
+        newCodes[code] = {
+          code,
+          email: emails[i] || null,
+          created: new Date().toISOString(),
+          used: false,
+          usedBy: null,
+          usedAt: null
+        };
+        
+        createdCodes.push(code);
+      }
+      
+      localStorage.setItem('tpprover_invite_codes', JSON.stringify(newCodes));
+      setInviteCodes(newCodes);
+      return createdCodes;
+    } catch (error) {
+      console.error('Error creating invite codes:', error);
+      return [];
+    }
+  };
+
+  const deleteInviteCode = (code) => {
+    try {
+      const newCodes = { ...inviteCodes };
+      delete newCodes[code];
+      localStorage.setItem('tpprover_invite_codes', JSON.stringify(newCodes));
+      setInviteCodes(newCodes);
+    } catch (error) {
+      console.error('Error deleting invite code:', error);
+    }
+  };
+
+  const updateEmailWhitelist = (emails) => {
+    try {
+      const cleanEmails = emails
+        .split(/[\n,;]/)
+        .map(email => email.trim().toLowerCase())
+        .filter(email => email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email));
+      
+      const uniqueEmails = [...new Set([...emailWhitelist, ...cleanEmails])];
+      localStorage.setItem('tpprover_email_whitelist', JSON.stringify(uniqueEmails));
+      setEmailWhitelist(uniqueEmails);
+      setNewEmails('');
+    } catch (error) {
+      console.error('Error updating email whitelist:', error);
+    }
+  };
+
+  const removeFromWhitelist = (email) => {
+    try {
+      const newWhitelist = emailWhitelist.filter(e => e !== email);
+      localStorage.setItem('tpprover_email_whitelist', JSON.stringify(newWhitelist));
+      setEmailWhitelist(newWhitelist);
+    } catch (error) {
+      console.error('Error removing from whitelist:', error);
+    }
+  };
+
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedCode(id);
+      setTimeout(() => setCopiedCode(null), 2000);
+    });
   };
 
   const handleLogin = (e) => {
@@ -164,17 +272,19 @@ export default function Admin() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
-          <p className="text-sm" style={{ color: theme.textLight }}>Manage announcements and app content</p>
+          <p className="text-sm" style={{ color: theme.textLight }}>Manage announcements, invites, and beta access</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          >
-            <Plus size={18} />
-            New Announcement
-          </button>
+          {activeTab === 'announcements' && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              <Plus size={18} />
+              New Announcement
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="px-4 py-2 rounded-md font-semibold"
@@ -185,8 +295,41 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Add/Edit Form */}
-      {showAddForm && (
+      {/* Tabs */}
+      <div className="border-b" style={{ borderColor: theme.border }}>
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('announcements')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'announcements' ? 'border-current' : 'border-transparent hover:opacity-70'}`}
+            style={{ color: activeTab === 'announcements' ? theme.primary : theme.textLight }}
+          >
+            <Megaphone size={16} className="inline mr-2" />
+            Announcements ({announcements.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('invites')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'invites' ? 'border-current' : 'border-transparent hover:opacity-70'}`}
+            style={{ color: activeTab === 'invites' ? theme.primary : theme.textLight }}
+          >
+            <Key size={16} className="inline mr-2" />
+            Beta Invites ({Object.keys(inviteCodes).length})
+          </button>
+          <button
+            onClick={() => setActiveTab('whitelist')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'whitelist' ? 'border-current' : 'border-transparent hover:opacity-70'}`}
+            style={{ color: activeTab === 'whitelist' ? theme.primary : theme.textLight }}
+          >
+            <Mail size={16} className="inline mr-2" />
+            Email Whitelist ({emailWhitelist.length})
+          </button>
+        </nav>
+      </div>
+
+      {/* Announcements Tab */}
+      {activeTab === 'announcements' && (
+        <>
+          {/* Add/Edit Form */}
+          {showAddForm && (
         <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
@@ -338,6 +481,181 @@ export default function Admin() {
           )}
         </div>
       </div>
+        </>
+      )}
+
+      {/* Beta Invites Tab */}
+      {activeTab === 'invites' && (
+        <div className="space-y-6">
+          <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Generate Invite Codes</h2>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => createInviteCodes(1)}
+                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  <Plus size={16} />
+                  Generate 1 Code
+                </button>
+                <button
+                  onClick={() => createInviteCodes(5)}
+                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+                  style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
+                >
+                  <Plus size={16} />
+                  Generate 5 Codes
+                </button>
+                <button
+                  onClick={() => createInviteCodes(10)}
+                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+                  style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                >
+                  <Plus size={16} />
+                  Generate 10 Codes
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+              <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
+                Invite Codes ({Object.keys(inviteCodes).length})
+              </h2>
+            </div>
+            
+            <div className="divide-y" style={{ borderColor: theme.border }}>
+              {Object.keys(inviteCodes).length === 0 ? (
+                <div className="p-8 text-center">
+                  <Key size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
+                  <p className="text-lg font-medium" style={{ color: theme.text }}>No invite codes generated</p>
+                  <p className="text-sm" style={{ color: theme.textLight }}>Generate codes to invite beta testers</p>
+                </div>
+              ) : (
+                Object.values(inviteCodes).map(invite => (
+                  <div key={invite.code} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <code className="px-3 py-1 rounded bg-gray-100 font-mono text-sm font-semibold" style={{ backgroundColor: theme.secondary }}>
+                            {invite.code}
+                          </code>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${invite.used ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                            {invite.used ? 'Used' : 'Available'}
+                          </span>
+                          {invite.email && (
+                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                              {invite.email}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs" style={{ color: theme.textLight }}>
+                          Created: {formatMMDDYYYY(invite.created)}
+                          {invite.used && invite.usedBy && (
+                            <span> • Used by {invite.usedBy} on {formatMMDDYYYY(invite.usedAt)}</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => copyToClipboard(invite.code, invite.code)}
+                          className="p-2 rounded hover:opacity-70"
+                          style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                          title="Copy Code"
+                        >
+                          {copiedCode === invite.code ? <Check size={16} /> : <Copy size={16} />}
+                        </button>
+                        <button
+                          onClick={() => deleteInviteCode(invite.code)}
+                          className="p-2 rounded hover:opacity-70"
+                          style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Whitelist Tab */}
+      {activeTab === 'whitelist' && (
+        <div className="space-y-6">
+          <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+              <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Add Emails to Whitelist</h2>
+              <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                Enter email addresses (one per line, or separated by commas/semicolons)
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <textarea
+                value={newEmails}
+                onChange={(e) => setNewEmails(e.target.value)}
+                placeholder="user@example.com&#10;another@example.com&#10;test@example.com"
+                className="w-full p-3 rounded border h-32 resize-none"
+                style={{ borderColor: theme.border, backgroundColor: theme.background }}
+              />
+              <button
+                onClick={() => updateEmailWhitelist(newEmails)}
+                className="px-6 py-2 rounded-md font-semibold flex items-center gap-2"
+                style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
+                disabled={!newEmails.trim()}
+              >
+                <Plus size={16} />
+                Add to Whitelist
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+              <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
+                Whitelisted Emails ({emailWhitelist.length})
+              </h2>
+            </div>
+            
+            <div className="divide-y" style={{ borderColor: theme.border }}>
+              {emailWhitelist.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Mail size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
+                  <p className="text-lg font-medium" style={{ color: theme.text }}>No emails whitelisted</p>
+                  <p className="text-sm" style={{ color: theme.textLight }}>Add email addresses to allow beta access</p>
+                </div>
+              ) : (
+                emailWhitelist.map(email => (
+                  <div key={email} className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Mail size={16} style={{ color: theme.textLight }} />
+                      <span style={{ color: theme.text }}>{email}</span>
+                    </div>
+                    <button
+                      onClick={() => removeFromWhitelist(email)}
+                      className="p-1 rounded hover:opacity-70"
+                      style={{ color: theme.error }}
+                      title="Remove from whitelist"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,64 @@ function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_au
 function setAuthDb(db) { try { localStorage.setItem('tpprover_auth_users', JSON.stringify(db || {})) } catch {} }
 const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) } catch { return String(s) } }
 
+// Beta invite system
+function getInviteCodes() { 
+  try { 
+    return JSON.parse(localStorage.getItem('tpprover_invite_codes') || '{}') 
+  } catch { 
+    return {} 
+  } 
+}
+
+function getEmailWhitelist() { 
+  try { 
+    return JSON.parse(localStorage.getItem('tpprover_email_whitelist') || '[]') 
+  } catch { 
+    return [] 
+  } 
+}
+
+function validateInvite(email, code) {
+  const whitelist = getEmailWhitelist();
+  const codes = getInviteCodes();
+  
+  // Check if email is whitelisted
+  if (!whitelist.includes(email.toLowerCase())) {
+    return { valid: false, error: 'This email is not authorized for beta access. Please contact support if you believe this is an error.' };
+  }
+  
+  // Check if invite code exists and is valid
+  if (!codes[code]) {
+    return { valid: false, error: 'Invalid invite code. Please check your invitation email for the correct code.' };
+  }
+  
+  // Check if code is already used
+  if (codes[code].used) {
+    return { valid: false, error: 'This invite code has already been used.' };
+  }
+  
+  // Check if code is for this email (if email is specified)
+  if (codes[code].email && codes[code].email.toLowerCase() !== email.toLowerCase()) {
+    return { valid: false, error: 'This invite code is not valid for your email address.' };
+  }
+  
+  return { valid: true };
+}
+
+function markInviteUsed(code, email) {
+  try {
+    const codes = getInviteCodes();
+    if (codes[code]) {
+      codes[code].used = true;
+      codes[code].usedBy = email;
+      codes[code].usedAt = new Date().toISOString();
+      localStorage.setItem('tpprover_invite_codes', JSON.stringify(codes));
+    }
+  } catch (e) {
+    console.error('Error marking invite as used:', e);
+  }
+}
+
 export default function Login() {
     const navigate = useNavigate();
     const { setUser } = useAppContext();
@@ -24,6 +82,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [showTerms, setShowTerms] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [inviteCode, setInviteCode] = useState('');
 
     const pwErrors = useMemo(() => {
       if (mode !== 'signup') return []
@@ -53,11 +112,28 @@ export default function Login() {
 
     const doSignup = () => {
       if (pwErrors.length > 0) { setError('Please fix the password requirements.'); return false; }
+      
+      // Validate invite code and email
+      if (!inviteCode.trim()) {
+        setError('Invite code is required for beta access.');
+        return false;
+      }
+      
+      const inviteValidation = validateInvite(email, inviteCode.trim());
+      if (!inviteValidation.valid) {
+        setError(inviteValidation.error);
+        return false;
+      }
+      
       const db = getAuthDb()
       const key = (email || '').toLowerCase()
       if (!key) { setError('Email is required'); return false; }
       if (db[key]) { setError('An account already exists with this email. Please login.'); return false; }
-      db[key] = { p: enc(password), createdAt: Date.now() }
+      
+      // Mark invite code as used
+      markInviteUsed(inviteCode.trim(), email);
+      
+      db[key] = { p: enc(password), createdAt: Date.now(), inviteCode: inviteCode.trim() }
       setAuthDb(db)
       const user = { 
         email, 
@@ -93,6 +169,14 @@ export default function Login() {
             setError('Please enter a valid email address.');
             return;
         }
+        
+        // Check if email is whitelisted for beta
+        const whitelist = getEmailWhitelist();
+        if (!whitelist.includes(email.toLowerCase())) {
+            setError('This email is not authorized for beta access. Please contact support if you believe this is an error.');
+            return;
+        }
+        
         const db = getAuthDb();
         const rec = db[(email || '').toLowerCase()];
         if (rec) {
@@ -187,6 +271,18 @@ export default function Login() {
 
                             {mode === 'signup' && (
                                 <>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Beta Invite Code" 
+                                            value={inviteCode} 
+                                            onChange={e => setInviteCode(e.target.value)} 
+                                            required 
+                                            className="w-full px-4 py-3 border rounded-lg bg-gray-50 font-mono tracking-wider" 
+                                            style={{ borderColor: theme.border }}
+                                        />
+                                        <div className="text-xs text-gray-500 mt-1">Enter the invite code from your beta invitation email</div>
+                                    </div>
                                     <div className="relative">
                                         <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">

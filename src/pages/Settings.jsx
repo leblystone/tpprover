@@ -169,23 +169,6 @@
       saveSettings(next)
     }
 
-    const sendTestNotification = () => {
-      if ('Notification' in window && 'serviceWorker' in navigator) {
-        Notification.requestPermission(status => {
-          if (status === 'granted') {
-            navigator.serviceWorker.ready.then(registration => {
-              registration.showNotification('Test Notification', {
-                body: 'This is a test notification from your PWA!',
-                icon: '/tpp-logo.png'
-              });
-            });
-          }
-        });
-      } else {
-        alert('Push notifications are not supported by your browser.');
-      }
-    };
-
     return (
       <section className="space-y-6">
         {/* Notifications */}
@@ -195,7 +178,6 @@
           <div className="space-y-3">
             <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />
             <SettingToggle checked={settings.notifications.push} onChange={v => update('notifications.push', v)} label="Push Notifications" description="Get notified in real-time on your devices." theme={theme} />
-            <button onClick={sendTestNotification} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Send Test Notification</button>
             <SettingToggle checked={settings.notifications.billing} onChange={v => update('notifications.billing', v)} label="Billing Updates" description="Get notified about invoices and payment status." theme={theme} />
             <SettingToggle checked={settings.notifications.researchReminders} onChange={v => update('notifications.researchReminders', v)} label="Research Reminders" description="Stay on track with your research schedule." theme={theme} />
             <SettingToggle checked={settings.notifications.groupBuys} onChange={v => update('notifications.groupBuys', v)} label="Group Buy Updates" description="Get alerts for new group buy opportunities." theme={theme} />
