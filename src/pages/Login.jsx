@@ -129,7 +129,8 @@ export default function Login() {
       }
     };
 
-    const doSignup = async () => {
+    // Validate signup credentials without creating account
+    const validateSignupCredentials = async () => {
       if (pwErrors.length > 0) { setError('Please fix the password requirements.'); return false; }
       
       // Validate invite code and email
@@ -149,6 +150,16 @@ export default function Login() {
           }
         }
         
+        return true; // All validations passed
+      } catch (error) {
+        console.error('Validation failed:', error);
+        setError('Validation failed. Please try again.');
+        return false;
+      }
+    };
+
+    const doSignup = async () => {
+      try {
         // Create Firebase user
         const { user: firebaseUser } = await registerUser(email, password, isReturningUser ? null : inviteCode.trim());
         
@@ -263,7 +274,11 @@ export default function Login() {
             if (mode === 'login') {
                 await doLogin();
             } else { // signup
-                setShowTerms(true);
+                // Validate credentials first, then show terms
+                const validationSuccess = await validateSignupCredentials();
+                if (validationSuccess) {
+                    setShowTerms(true);
+                }
                 setLoading(false);
             }
         } catch (error) {
