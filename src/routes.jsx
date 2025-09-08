@@ -30,6 +30,11 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/admin',
+    element: <Admin />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/rover/:type/share/:encodedData',
     element: <Rover />,
     errorElement: <NotFound />,
@@ -59,7 +64,6 @@ export const router = createBrowserRouter([
           { path: 'account', element: <Account /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
-          { path: 'admin', element: <Admin /> },
         ]
       }
     ]
