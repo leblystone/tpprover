@@ -2,6 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
+import {
+  getInviteCodes,
+  createInviteCodes,
+  deleteInviteCode,
+  getEmailWhitelist,
+  updateEmailWhitelist,
+  getAnnouncements,
+  saveAnnouncement,
+  deleteAnnouncement,
+  getUserList,
+  getAnalytics
+} from '../services/firebase';
 
 export default function Admin() {
   const { theme } = useOutletContext();
@@ -44,37 +56,31 @@ export default function Admin() {
     loadInviteData();
   }, []);
 
-  const loadAnnouncements = () => {
+  const loadAnnouncements = async () => {
     try {
-      const saved = localStorage.getItem('tpprover_announcements');
-      if (saved) {
-        setAnnouncements(JSON.parse(saved));
-      }
+      const firebaseAnnouncements = await getAnnouncements();
+      setAnnouncements(firebaseAnnouncements);
     } catch (error) {
       console.error('Error loading announcements:', error);
     }
   };
 
-  const saveAnnouncements = (newAnnouncements) => {
+  const saveAnnouncementToFirebase = async (announcement) => {
     try {
-      localStorage.setItem('tpprover_announcements', JSON.stringify(newAnnouncements));
-      setAnnouncements(newAnnouncements);
+      await saveAnnouncement(announcement);
+      await loadAnnouncements(); // Reload to get updated data
     } catch (error) {
-      console.error('Error saving announcements:', error);
+      console.error('Error saving announcement:', error);
     }
   };
 
-  const loadInviteData = () => {
+  const loadInviteData = async () => {
     try {
-      const codes = localStorage.getItem('tpprover_invite_codes');
-      if (codes) {
-        setInviteCodes(JSON.parse(codes));
-      }
+      const codes = await getInviteCodes();
+      setInviteCodes(codes);
       
-      const whitelist = localStorage.getItem('tpprover_email_whitelist');
-      if (whitelist) {
-        setEmailWhitelist(JSON.parse(whitelist));
-      }
+      const whitelist = await getEmailWhitelist();
+      setEmailWhitelist(whitelist);
     } catch (error) {
       console.error('Error loading invite data:', error);
     }
@@ -89,51 +95,43 @@ export default function Admin() {
     return code;
   };
 
-  const createInviteCodes = (count, emails = []) => {
+  const createInviteCodesFirebase = async (count, emails = []) => {
     try {
-      const newCodes = { ...inviteCodes };
+      const existingCodes = await getInviteCodes();
       const createdCodes = [];
       
       for (let i = 0; i < count; i++) {
         let code = generateInviteCode();
         // Ensure unique codes
-        while (newCodes[code]) {
+        while (existingCodes[code]) {
           code = generateInviteCode();
         }
         
-        newCodes[code] = {
+        createdCodes.push({
           code,
           email: emails[i] || null,
-          created: new Date().toISOString(),
-          used: false,
-          usedBy: null,
-          usedAt: null
-        };
-        
-        createdCodes.push(code);
+        });
       }
       
-      localStorage.setItem('tpprover_invite_codes', JSON.stringify(newCodes));
-      setInviteCodes(newCodes);
-      return createdCodes;
+      await createInviteCodes(createdCodes);
+      await loadInviteData(); // Reload to get updated data
+      return createdCodes.map(c => c.code);
     } catch (error) {
       console.error('Error creating invite codes:', error);
       return [];
     }
   };
 
-  const deleteInviteCode = (code) => {
+  const deleteInviteCodeFirebase = async (code) => {
     try {
-      const newCodes = { ...inviteCodes };
-      delete newCodes[code];
-      localStorage.setItem('tpprover_invite_codes', JSON.stringify(newCodes));
-      setInviteCodes(newCodes);
+      await deleteInviteCode(code);
+      await loadInviteData(); // Reload to get updated data
     } catch (error) {
       console.error('Error deleting invite code:', error);
     }
   };
 
-  const updateEmailWhitelist = (emails) => {
+  const updateEmailWhitelistFirebase = async (emails) => {
     try {
       const cleanEmails = emails
         .split(/[\n,;]/)
@@ -141,19 +139,19 @@ export default function Admin() {
         .filter(email => email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email));
       
       const uniqueEmails = [...new Set([...emailWhitelist, ...cleanEmails])];
-      localStorage.setItem('tpprover_email_whitelist', JSON.stringify(uniqueEmails));
-      setEmailWhitelist(uniqueEmails);
+      await updateEmailWhitelist(uniqueEmails);
+      await loadInviteData(); // Reload to get updated data
       setNewEmails('');
     } catch (error) {
       console.error('Error updating email whitelist:', error);
     }
   };
 
-  const removeFromWhitelist = (email) => {
+  const removeFromWhitelistFirebase = async (email) => {
     try {
       const newWhitelist = emailWhitelist.filter(e => e !== email);
-      localStorage.setItem('tpprover_email_whitelist', JSON.stringify(newWhitelist));
-      setEmailWhitelist(newWhitelist);
+      await updateEmailWhitelist(newWhitelist);
+      await loadInviteData(); // Reload to get updated data
     } catch (error) {
       console.error('Error removing from whitelist:', error);
     }
@@ -182,26 +180,15 @@ export default function Admin() {
     localStorage.removeItem('tpp_admin_auth');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     const newAnnouncement = {
       ...formData,
-      id: editingAnnouncement ? editingAnnouncement.id : Date.now(),
+      id: editingAnnouncement ? editingAnnouncement.id : undefined, // Let Firebase generate ID for new ones
     };
 
-    let updatedAnnouncements;
-    if (editingAnnouncement) {
-      // Update existing
-      updatedAnnouncements = announcements.map(a => 
-        a.id === editingAnnouncement.id ? newAnnouncement : a
-      );
-    } else {
-      // Add new
-      updatedAnnouncements = [newAnnouncement, ...announcements];
-    }
-
-    saveAnnouncements(updatedAnnouncements);
+    await saveAnnouncementToFirebase(newAnnouncement);
     resetForm();
   };
 
@@ -216,10 +203,10 @@ export default function Admin() {
     setShowAddForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this announcement?')) {
-      const updatedAnnouncements = announcements.filter(a => a.id !== id);
-      saveAnnouncements(updatedAnnouncements);
+      await deleteAnnouncement(id);
+      await loadAnnouncements(); // Reload to get updated data
     }
   };
 
@@ -496,7 +483,7 @@ export default function Admin() {
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => createInviteCodes(1)}
+                  onClick={() => createInviteCodesFirebase(1)}
                   className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                 >
@@ -504,7 +491,7 @@ export default function Admin() {
                   Generate 1 Code
                 </button>
                 <button
-                  onClick={() => createInviteCodes(5)}
+                  onClick={() => createInviteCodesFirebase(5)}
                   className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
                   style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
                 >
@@ -512,7 +499,7 @@ export default function Admin() {
                   Generate 5 Codes
                 </button>
                 <button
-                  onClick={() => createInviteCodes(10)}
+                  onClick={() => createInviteCodesFirebase(10)}
                   className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
                   style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
                 >
@@ -573,7 +560,7 @@ export default function Admin() {
                           {copiedCode === invite.code ? <Check size={16} /> : <Copy size={16} />}
                         </button>
                         <button
-                          onClick={() => deleteInviteCode(invite.code)}
+                          onClick={() => deleteInviteCodeFirebase(invite.code)}
                           className="p-2 rounded hover:opacity-70"
                           style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}
                           title="Delete"
@@ -609,7 +596,7 @@ export default function Admin() {
                 style={{ borderColor: theme.border, backgroundColor: theme.background }}
               />
               <button
-                onClick={() => updateEmailWhitelist(newEmails)}
+                onClick={() => updateEmailWhitelistFirebase(newEmails)}
                 className="px-6 py-2 rounded-md font-semibold flex items-center gap-2"
                 style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
                 disabled={!newEmails.trim()}
@@ -642,7 +629,7 @@ export default function Admin() {
                       <span style={{ color: theme.text }}>{email}</span>
                     </div>
                     <button
-                      onClick={() => removeFromWhitelist(email)}
+                      onClick={() => removeFromWhitelistFirebase(email)}
                       className="p-1 rounded hover:opacity-70"
                       style={{ color: theme.error }}
                       title="Remove from whitelist"

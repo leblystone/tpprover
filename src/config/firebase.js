@@ -22,16 +22,14 @@ export const db = getFirestore(app);
 // Initialize Auth
 export const auth = getAuth(app);
 
-// Connect to emulators in development (optional)
-if (import.meta.env.DEV && typeof window !== 'undefined') {
-  // Only connect to emulators if not already connected
-  try {
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectAuthEmulator(auth, 'http://localhost:9099');
-  } catch (error) {
-    // Emulators already connected or not available
-    console.log('Firebase emulators not connected:', error.message);
-  }
-}
+// Emulators disabled - using production Firebase services
+// if (import.meta.env.DEV && typeof window !== 'undefined') {
+//   try {
+//     connectFirestoreEmulator(db, 'localhost', 8080);
+//     connectAuthEmulator(auth, 'http://localhost:9099');
+//   } catch (error) {
+//     console.log('Firebase emulators not connected:', error.message);
+//   }
+// }
 
 export default app;
