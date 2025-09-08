@@ -14,7 +14,7 @@ export default function Stockpile() {
   const navigate = useNavigate();
   const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems } = useAppContext();
   const [openAdd, setOpenAdd] = useState(false)
-  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '' })
+  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '' })
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
@@ -242,6 +242,7 @@ export default function Stockpile() {
                                                             </button>
                                                         </div>
                                                     </div>
+                                                    {item.date && <div className="text-xs text-gray-400 pl-5">{new Date(item.date).toLocaleDateString()}</div>}
                                                     {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
                                                     <div className="flex items-center gap-2 pl-5">
                                                         <Hash size={12} />
@@ -355,7 +356,7 @@ export default function Stockpile() {
 
               setItems(prev => [itemToAdd, ...prev]); 
               setOpenAdd(false); 
-              setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '' }) 
+              setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '' }) 
             }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
         </>
       )}>
@@ -381,6 +382,9 @@ export default function Stockpile() {
           <TextInput label="Purity %" value={form.purity} onChange={v => setForm({ ...form, purity: v })} placeholder="e.g., 98" theme={theme} />
           <TextInput label="Cap Color" value={form.capColor} onChange={v => setForm({ ...form, capColor: v })} placeholder="Blue" theme={theme} />
           <TextInput label="Batch #" value={form.batchNumber} onChange={v => setForm({ ...form, batchNumber: v })} placeholder="#" theme={theme} />
+        </div>
+        <div className="mt-3">
+            <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => setForm({ ...form, date: v })} theme={theme} />
         </div>
       </Modal>
 
