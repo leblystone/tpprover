@@ -129,7 +129,7 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Peptide Glossary" theme={theme} footer={(
+    <Modal open={open} onClose={onClose} title="Research" theme={theme} footer={(
       <>
         <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Close</button>
       </>
@@ -152,7 +152,7 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
                 ) : (
                     <>
                         <Brain size={16} />
-                        <span>AI Research</span>
+                        <span>Research</span>
                     </>
                 )}
             </button>
@@ -197,17 +197,22 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
                 </ul>
               </div>
               
-              <div>
-                <span className="font-semibold">Dosage Information:</span> {aiResearch.data.dosageRanges}
+              <div className="p-3 rounded-lg border-2 border-yellow-200 bg-yellow-50">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle size={16} className="text-yellow-600" />
+                  <span className="font-semibold text-yellow-800">Research Dosage Information</span>
+                </div>
+                <p className="text-sm text-yellow-700 mb-2">{aiResearch.data.dosageRanges}</p>
+                <p className="text-xs text-yellow-600 font-medium">
+                  ⚠️ This information is for research purposes only and is NOT medical advice. 
+                  Always consult with qualified healthcare professionals before considering any compounds.
+                </p>
               </div>
               
               <div>
                 <span className="font-semibold">Safety Notes:</span> {aiResearch.data.safetyNotes}
               </div>
               
-              <div>
-                <span className="font-semibold">Research Status:</span> {aiResearch.data.researchStatus}
-              </div>
               
               <div className="text-xs italic pt-2 border-t" style={{ borderColor: theme.border }}>
                 {aiResearch.data.disclaimer}

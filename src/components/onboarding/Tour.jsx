@@ -53,8 +53,8 @@ const TOUR_STEPS = [
     },
     {
         target: '[data-tour="topbar-glossary"]',
-        content: "Your quick reference guide! 📖\n\n- Look up peptides for **quick, high-level details**.\n- This is for **research purposes only** and is not medical advice. 🚩\n- Coming soon: **AI-powered summaries** for even more data! 🤖",
-        title: 'Peptide Glossary',
+        content: "Your research companion! 📖\n\n- Look up peptides for **detailed research information**.\n- Get **AI-powered research summaries** with dosage information.\n- This is for **research purposes only** and is not medical advice. 🚩",
+        title: 'Research',
         path: '/dashboard',
     },
     {
