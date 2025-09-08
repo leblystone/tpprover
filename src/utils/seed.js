@@ -154,6 +154,7 @@ export function clearMockData() {
             'tpprover_protocols',
             'tpprover_supplements',
             'tpprover_recon_items',
+            'tpprover_recon_history',
             'tpprover_metrics',
             'tpprover_stockpile',
             'tpprover_calendar_notes',
@@ -170,8 +171,17 @@ export function clearMockData() {
                 if (Array.isArray(data)) {
                     filteredData = data.filter(item => !item.isMock);
                 } else if (typeof data === 'object' && data !== null) {
+                    // Handle calendar notes and other object structures
                     filteredData = Object.entries(data).reduce((acc, [itemKey, value]) => {
-                        if (!value.isMock) {
+                        // For calendar notes, check if the value has isMock property
+                        if (typeof value === 'object' && value !== null && value.isMock) {
+                            // Skip mock calendar entries
+                            return acc;
+                        } else if (typeof value === 'object' && value !== null && !value.isMock) {
+                            // Keep non-mock objects
+                            acc[itemKey] = value;
+                        } else if (typeof value !== 'object') {
+                            // Keep primitive values (strings, etc.)
                             acc[itemKey] = value;
                         }
                         return acc;
