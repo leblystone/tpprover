@@ -25,19 +25,19 @@ service cloud.firestore {
     // Invite codes - read for validation during signup, admin can manage
     match /inviteCodes/{codeId} {
       allow read: if true; // Anyone can read for validation during signup
-      allow create, update, delete: if isAdmin(); // Only admin can manage invite codes
+      allow create, update, delete: if true; // Temporarily open for beta launch
     }
     
     // Email whitelist - read for validation during signup, admin can manage
     match /config/emailWhitelist {
       allow read: if true; // Anyone can read for validation during signup
-      allow write: if isAdmin(); // Only admin can update email whitelist
+      allow write: if true; // Temporarily open for beta launch
     }
     
     // Announcements - all users can read, admin can manage
     match /announcements/{announcementId} {
       allow read: if true; // All users can read announcements
-      allow create, update, delete: if isAdmin(); // Only admin can manage announcements
+      allow create, update, delete: if true; // Temporarily open for beta launch
     }
     
     // Analytics - admin only for privacy
