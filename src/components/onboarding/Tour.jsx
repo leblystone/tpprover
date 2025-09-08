@@ -57,12 +57,14 @@ const TOUR_STEPS = [
         title: 'Research',
         path: '/dashboard',
     },
+    /* Import feature temporarily hidden
     {
         target: '[data-tour="topbar-import"]',
         content: "Save time on data entry! 📄\n\n- Use your camera to **scan images** of your research notes.\n- **Upload spreadsheets** to import data directly into your planner.\n- Perfect for migrating from an old tracking system!",
         title: 'Import (OCR)',
         path: '/dashboard',
     },
+    */
     {
         target: 'body',
         content: "That's the grand tour of The Pep Planner!\n\nFeel free to explore and start organizing your research.\nIf you ever need a refresher you can restart this tour from your Settings.\n\nHappy researching!",

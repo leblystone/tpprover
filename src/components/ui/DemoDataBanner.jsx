@@ -1,12 +1,9 @@
 import React from 'react';
 import { Info, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { clearMockData } from '../../utils/seed';
-import { useAppContext } from '../../context/AppContext';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
     const navigate = useNavigate();
-    const { refreshDataAfterClear } = useAppContext();
 
     const handleDismiss = () => {
         // Only allow dismissing when not sticky
@@ -14,22 +11,6 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         try { localStorage.setItem('tpprover_demo_banner_dismissed', 'true'); } catch {}
     };
 
-    const handleClearData = () => {
-        if (window.confirm("Are you sure you want to remove the sample demo data? Your own entries will not be affected.")) {
-            clearMockData();
-            localStorage.setItem('tpprover_demo_data_cleared', 'true');
-            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
-            
-            // Ensure the user is not prompted with the welcome modal again
-            localStorage.setItem('tpprover_has_onboarded', 'true');
-
-            // Refresh the app context data instead of reloading the page
-            refreshDataAfterClear();
-            
-            // Dispatch event for App.jsx to show success modal
-            window.dispatchEvent(new CustomEvent('demo-data-cleared'));
-        }
-    };
 
     const handleNavigate = () => {
         navigate('/settings');
@@ -43,11 +24,7 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             <Info size={20} />
             <p>
                 You are viewing <strong>demo data</strong>. 
-                <button onClick={handleClearData} className="font-semibold underline hover:opacity-80 ml-2">
-                    Remove now
-                </button>
-                 <span className="mx-1">|</span> 
-                <button onClick={handleNavigate} className="font-semibold underline hover:opacity-80">
+                <button onClick={handleNavigate} className="font-semibold underline hover:opacity-80 ml-2">
                     Manage in Settings
                 </button>
             </p>

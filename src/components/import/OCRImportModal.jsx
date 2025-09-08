@@ -260,15 +260,15 @@ export default function OCRImportModal({ open, onClose, theme, onImport }) {
               </div>
 
               {/* Raw data detected */}
-              {(parsed.potentialOrders.length > 0 || parsed.potentialStock.length > 0) && (
+              {(parsed?.potentialOrders?.length > 0 || parsed?.potentialStock?.length > 0) && (
                 <div className="mt-3 p-2 rounded" style={{ backgroundColor: theme?.secondary }}>
                   <h6 className="text-xs font-medium mb-1">Detected Data:</h6>
-                  {parsed.potentialOrders.length > 0 && (
+                  {parsed?.potentialOrders?.length > 0 && (
                     <div className="text-xs mb-1">
                       <span className="font-medium">Orders:</span> {parsed.potentialOrders.join('; ')}
                     </div>
                   )}
-                  {parsed.potentialStock.length > 0 && (
+                  {parsed?.potentialStock?.length > 0 && (
                     <div className="text-xs">
                       <span className="font-medium">Stock:</span> {parsed.potentialStock.join('; ')}
                     </div>

@@ -3,7 +3,6 @@ import { useOutletContext } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import { Megaphone, Sparkles, Wrench, Users } from 'lucide-react'
 import { formatMMDDYYYY } from '../utils/date'
-import announcementsData from '../announcements.json';
 
 export default function Announcements() {
   const { theme } = useOutletContext()
@@ -27,8 +26,32 @@ export default function Announcements() {
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
-  const posts = React.useMemo(() => {
-    return announcementsData;
+  const [posts, setPosts] = React.useState([]);
+  
+  React.useEffect(() => {
+    // Load announcements from localStorage
+    const loadAnnouncements = () => {
+      try {
+        const saved = localStorage.getItem('tpprover_announcements');
+        if (saved) {
+          setPosts(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+      }
+    };
+    
+    loadAnnouncements();
+    
+    // Listen for changes to announcements
+    const handleStorageChange = (e) => {
+      if (e.key === 'tpprover_announcements') {
+        loadAnnouncements();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [])
 
   const [filter, setFilter] = React.useState('All')
@@ -66,7 +89,14 @@ export default function Announcements() {
       </div>
 
       <div className="space-y-4">
-        {filteredPosts.map(p => {
+        {filteredPosts.length === 0 ? (
+          <div className="text-center py-12">
+            <Megaphone size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
+            <h3 className="text-lg font-medium mb-2" style={{ color: theme.text }}>No announcements yet</h3>
+            <p className="text-sm" style={{ color: theme.textLight }}>Check back later for updates from the team!</p>
+          </div>
+        ) : (
+          filteredPosts.map(p => {
           const CatIcon = categoryStyles[p.category]?.icon || Megaphone
           const catColor = categoryStyles[p.category]?.color || '#6b7280'
           const catBg = categoryStyles[p.category]?.bg || '#f9fafb'
@@ -95,7 +125,7 @@ export default function Announcements() {
               </div>
             </div>
           )
-        })}
+        }))}
       </div>
     </section>
   )

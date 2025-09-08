@@ -49,9 +49,11 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
           )}
           <button className="p-2 rounded-full no-shadow" title="Global Search" onClick={() => setShowSearch(s => !s)} style={{ color: theme.text }}><Search className="h-5 w-5" /></button>
           <button data-tour="topbar-glossary" className="p-2 rounded-full no-shadow" title="Research" onClick={onGlossaryClick} style={{ color: theme.text }}><BookText className="h-5 w-5" /></button>
+          {/* Import feature temporarily hidden - uncomment to re-enable
           {onDashboard && (
             <button data-tour="topbar-import" className="p-2 rounded-full no-shadow" title="Import (OCR)" onClick={() => window.dispatchEvent(new CustomEvent('tpp:openImport'))} style={{ color: theme.text }}><Upload className="h-5 w-5" /></button>
           )}
+          */}
           <button className="p-2 rounded-full no-shadow" title="Help" onClick={() => setShowHelp(true)} style={{ color: theme.text }}><HelpCircle className="h-5 w-5" /></button>
         </div>
       </header>
