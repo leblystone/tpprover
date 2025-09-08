@@ -42,7 +42,7 @@ export default function Vendors() {
 				<h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Vendors</h1>
 			</div>
 
-			<div className="flex items-center justify-between mb-6">
+			<div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
 				<Tabs
 					value={activeTab}
 					onChange={v => setActiveTab(v)}
@@ -54,7 +54,7 @@ export default function Vendors() {
 						{ value: 'groupbuy', label: 'Group Buy' },
 					]}
 				/>
-				<button onClick={() => { setEditingVendor({}); setShowAddModal(true); }} className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}><PlusCircle className="h-4 w-4" /> New Vendor</button>
+				<button onClick={() => { setEditingVendor({}); setShowAddModal(true); }} className="w-full sm:w-auto px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center justify-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}><PlusCircle className="h-4 w-4" /> New Vendor</button>
 			</div>
 
 			<div className="mt-6">
