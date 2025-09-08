@@ -33,14 +33,14 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
 
   const weekdayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   return (
-    <div>
+    <div className="h-full flex flex-col">
       <div className="grid grid-cols-7 text-xs mb-2" style={{ color: theme.textLight }}>
         {weekdayHeaders.map(d => <div key={d} className="px-1 py-1 sm:px-2 text-center">
             <span className="hidden sm:inline">{d}</span>
             <span className="sm:hidden">{d.charAt(0)}</span>
         </div>)}
       </div>
-      <div className="grid grid-cols-1 gap-1 sm:gap-2">
+      <div className="grid grid-cols-1 gap-1 sm:gap-2 flex-1">
         {weeks.map((week, weekIndex) => (
             <div key={weekIndex} className="grid grid-cols-7 gap-1 sm:gap-2 relative">
                 
@@ -55,7 +55,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const buyCount = (sched.buys || 0) + (sched.groupBuys || 0)
                     
                     return (
-                        <button key={i} className={`p-1 sm:p-2 rounded border text-left aspect-square hover:bg-gray-50 flex flex-col justify-between relative ${sched.doneAll ? 'bg-green-50' : ''}`} style={{ borderColor: theme.border }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
+                        <button key={i} className={`p-1 sm:p-2 rounded border text-left hover:bg-gray-50 flex flex-col justify-between relative ${sched.doneAll ? 'bg-green-50' : ''}`} style={{ borderColor: theme.border }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             <div>
                                 <div className="text-xs font-semibold mb-1 flex items-center justify-between" style={{ color: theme.text }}>
                                     <span className="flex items-center gap-1">

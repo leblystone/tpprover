@@ -590,7 +590,7 @@ export default function Calendar() {
   };
 
   return (
-    <section className="space-y-4">
+    <section className="flex flex-col h-full">
       <CalendarHeader
         currentDate={currentDate}
         weekStart={weekStart}
@@ -601,7 +601,7 @@ export default function Calendar() {
         onChangeView={setViewMode}
         theme={theme}
       />
-      <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="rounded border p-4 content-card flex-1" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         {viewMode === 'month' ? (
           <MonthGrid
             date={currentDate}
