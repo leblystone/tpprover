@@ -14,9 +14,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: [
-        'lucide-react'
-      ]
+      // Removed lucide-react from external - it should be bundled
     }
   }
 })
