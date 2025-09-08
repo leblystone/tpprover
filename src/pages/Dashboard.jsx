@@ -209,7 +209,7 @@ export default function Dashboard() {
         return base.map(pep => {
           const f = pep?.frequency || {}
           const type = f.type || 'daily'
-          const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['Morning']
+          const time = Array.isArray(f?.time) && f.time.length > 0 ? f.time : ['Morning']
           return { ...pep, frequency: { ...f, type, time } }
         })
       }
