@@ -27,6 +27,69 @@ import { encryptUserData, decryptUserData, hashPassword } from '../utils/encrypt
 // ============================================================================
 
 /**
+ * Check if user should be granted founder status (first 100 users)
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} - Whether user is a founder
+ */
+export async function checkAndAssignFounderStatus(userId) {
+  try {
+    // Get current user count from analytics
+    const analyticsRef = doc(db, 'analytics', 'userCount');
+    const analyticsDoc = await getDoc(analyticsRef);
+    
+    let currentCount = 0;
+    if (analyticsDoc.exists()) {
+      currentCount = analyticsDoc.data().totalUsers || 0;
+    }
+    
+    // Increment user count
+    const newCount = currentCount + 1;
+    await setDoc(analyticsRef, {
+      totalUsers: newCount,
+      lastUpdated: serverTimestamp()
+    }, { merge: true });
+    
+    // Check if this user is in the first 100
+    const isFounder = newCount <= 100;
+    
+    if (isFounder) {
+      // Store founder status in user document
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, {
+        isFounder: true,
+        founderNumber: newCount,
+        registeredAt: serverTimestamp()
+      }, { merge: true });
+    }
+    
+    return isFounder;
+  } catch (error) {
+    console.error('Error checking founder status:', error);
+    return false;
+  }
+}
+
+/**
+ * Get user's founder status from Firebase
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} - Whether user is a founder
+ */
+export async function getUserFounderStatus(userId) {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      return userDoc.data().isFounder || false;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error getting founder status:', error);
+    return false;
+  }
+}
+
+/**
  * Register a new user with email and password
  */
 export async function registerUser(email, password, inviteCode) {

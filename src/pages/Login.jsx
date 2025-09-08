@@ -11,7 +11,9 @@ import {
   loginUser, 
   getInviteCodes, 
   getEmailWhitelist,
-  markInviteCodeUsed 
+  markInviteCodeUsed,
+  checkAndAssignFounderStatus,
+  getUserFounderStatus
 } from '../services/firebase';
 
 // Lightweight local auth to mirror old app behavior for local testing
@@ -99,13 +101,38 @@ export default function Login() {
         
         // Store password for encryption
         setFirebasePassword(password);
+
+        // Set beta tester flag for all users during beta period
+        localStorage.setItem('tpprover_is_tester', 'true');
         
-        // Set user in app context
-        const user = { 
+        // Check existing founder status for returning users
+        try {
+          const isFounder = await getUserFounderStatus(firebaseUser.uid);
+          if (isFounder) {
+            localStorage.setItem('tpprover_is_founder', 'true');
+          }
+        } catch (error) {
+          console.error('Error checking existing founder status:', error);
+        }
+
+        // Set user in app context  
+        let user = { 
           email: firebaseUser.email, 
           name: firebaseUser.email.split('@')[0],
           uid: firebaseUser.uid
         };
+        
+        // Set createdAt for account age tracking if not already set
+        try {
+          const existingUser = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
+          if (!existingUser.createdAt) {
+            user.createdAt = new Date().toISOString();
+          } else {
+            user.createdAt = existingUser.createdAt;
+          }
+        } catch {
+          user.createdAt = new Date().toISOString();
+        }
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
@@ -166,11 +193,25 @@ export default function Login() {
         // Store password for encryption
         setFirebasePassword(password);
         
+        // Set beta tester flag for all users during beta period
+        localStorage.setItem('tpprover_is_tester', 'true');
+        
+        // Check and assign founder status (first 100 users)
+        try {
+          const isFounder = await checkAndAssignFounderStatus(firebaseUser.uid);
+          if (isFounder) {
+            localStorage.setItem('tpprover_is_founder', 'true');
+          }
+        } catch (error) {
+          console.error('Error checking founder status:', error);
+        }
+        
         // Set user in app context
         const user = { 
           email: firebaseUser.email, 
           name: firebaseUser.email.split('@')[0],
           uid: firebaseUser.uid,
+          createdAt: new Date().toISOString(),
           termsAgreed: { date: new Date().toISOString() }
         };
         
