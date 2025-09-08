@@ -221,24 +221,6 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
           </div>
         )}
         
-        {/* Local Glossary Entries */}
-        <div className="border-t pt-3" style={{ borderColor: theme.border }}>
-          <h4 className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>Local Glossary</h4>
-          {filtered.length === 0 ? (
-            <div className="text-sm text-gray-500">No glossary entries yet.</div>
-          ) : (
-            <ul className="space-y-2">
-              {filtered.map(i => (
-                <li key={i.id} className="p-2 rounded border" style={{ borderColor: theme?.border }}>
-                  <div className="font-semibold">{i.name}</div>
-                  <div className="text-xs text-gray-500">{i.category}</div>
-                  <div className="text-sm mt-1">{i.notes}</div>
-                  <AIInfo name={i.name} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
     </Modal>
   )
