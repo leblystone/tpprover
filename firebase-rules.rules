@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users can only read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can only read/write their own encrypted data
+    match /userdata/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Invite codes - read for validation, write only for admins
+    match /inviteCodes/{codeId} {
+      allow read: if true; // Anyone can read for validation
+      allow write: if false; // Only server/admin can write
+    }
+    
+    // Email whitelist - read only for validation
+    match /config/emailWhitelist {
+      allow read: if true; // Anyone can read for validation
+      allow write: if false; // Only server/admin can write
+    }
+    
+    // Announcements - read for all users
+    match /announcements/{announcementId} {
+      allow read: if true; // All users can read announcements
+      allow write: if false; // Only server/admin can write
+    }
+    
+    // Analytics - no direct access (server only)
+    match /analytics/{document} {
+      allow read, write: if false; // Server only
+    }
+    
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -7,10 +7,13 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --port 5173",
-    "deploy": "git add . && git commit -m \"$npm_config_message\" && git push origin tpprover && firebase deploy --only hosting --project tpp-splendide",
-    "deploy:hosting": "npm run build && firebase deploy --only hosting --project tpp-splendide"
+    "deploy": "git add . && git commit -m \"$npm_config_message\" && git push origin tpprover && npm run build && firebase deploy --project tpp-splendide",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting --project tpp-splendide",
+    "deploy:rules": "firebase deploy --only firestore:rules --project tpp-splendide"
   },
   "dependencies": {
+    "crypto-js": "^4.2.0",
+    "firebase": "^12.2.1",
     "framer-motion": "^12.23.12",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.539.0",

@@ -26,6 +26,7 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
     account: 'Account',
     login: 'Login',
     announcements: 'From: The Pep Planner',
+    badges: 'Badges',
   };
   const title = titles[seg] || 'TPPRover';
 
