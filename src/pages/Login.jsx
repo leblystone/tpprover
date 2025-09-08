@@ -175,13 +175,17 @@ export default function Login() {
       } catch (error) {
         console.error('Signup failed:', error);
         if (error.code === 'auth/email-already-in-use') {
-          setError('An account already exists with this email. Please login.');
+          setError('An account already exists with this email. Try logging in instead, or use the "Forgot Password" option if needed.');
         } else if (error.code === 'auth/invalid-email') {
-          setError('Please enter a valid email address.');
+          setError('Please enter a valid email address (example: user@example.com).');
         } else if (error.code === 'auth/weak-password') {
-          setError('Password is too weak. Please choose a stronger password.');
+          setError('Password must be at least 8 characters with uppercase, lowercase, and numbers. Try: MyPassword123');
+        } else if (error.code === 'auth/network-request-failed') {
+          setError('Network error. Please check your internet connection and try again.');
+        } else if (error.code === 'auth/too-many-requests') {
+          setError('Too many failed attempts. Please wait a few minutes before trying again.');
         } else {
-          setError('Registration failed. Please try again.');
+          setError(`Registration failed: ${error.message}. Please try again or contact support if this persists.`);
         }
         return false;
       }
@@ -197,7 +201,7 @@ export default function Login() {
             // Check if email is whitelisted for beta
             const whitelist = await getEmailWhitelist();
             if (!whitelist.includes(email.toLowerCase())) {
-                setError('This email is not authorized for beta access. Please contact support if you believe this is an error.');
+                setError('This email is not authorized for beta access. Please check your invitation email or contact support with your email address for assistance.');
                 return;
             }
             
@@ -271,7 +275,12 @@ export default function Login() {
                             )}
                         </div>
 
-                        <form className="space-y-4" onSubmit={handleSubmit}>
+                        <form className="space-y-4" onSubmit={handleSubmit} onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSubmit(e);
+                            }
+                          }}>
                             <div className="relative">
                                 <input 
                                     type="email" 

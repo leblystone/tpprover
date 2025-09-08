@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check } from 'lucide-react';
+import { Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import {
   getInviteCodes,
@@ -46,6 +46,12 @@ export default function Admin() {
   const [emailWhitelist, setEmailWhitelist] = useState([]);
   const [newEmails, setNewEmails] = useState('');
   const [copiedCode, setCopiedCode] = useState(null);
+  const [loading, setLoading] = useState({
+    announcements: false,
+    inviteCodes: false,
+    emailWhitelist: false,
+    submitting: false
+  });
   const [formData, setFormData] = useState({
     title: '',
     body: '',
@@ -76,11 +82,14 @@ export default function Admin() {
   }, []);
 
   const loadAnnouncements = async () => {
+    setLoading(prev => ({ ...prev, announcements: true }));
     try {
       const firebaseAnnouncements = await getAnnouncements();
       setAnnouncements(firebaseAnnouncements);
     } catch (error) {
       console.error('Error loading announcements:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, announcements: false }));
     }
   };
 
@@ -94,6 +103,7 @@ export default function Admin() {
   };
 
   const loadInviteData = async () => {
+    setLoading(prev => ({ ...prev, inviteCodes: true, emailWhitelist: true }));
     try {
       const codes = await getInviteCodes();
       setInviteCodes(codes);
@@ -102,6 +112,8 @@ export default function Admin() {
       setEmailWhitelist(whitelist);
     } catch (error) {
       console.error('Error loading invite data:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, inviteCodes: false, emailWhitelist: false }));
     }
   };
 
@@ -151,6 +163,7 @@ export default function Admin() {
   };
 
   const updateEmailWhitelistFirebase = async (emails) => {
+    setLoading(prev => ({ ...prev, emailWhitelist: true }));
     try {
       const cleanEmails = emails
         .split(/[\n,;]/)
@@ -163,6 +176,8 @@ export default function Admin() {
       setNewEmails('');
     } catch (error) {
       console.error('Error updating email whitelist:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, emailWhitelist: false }));
     }
   };
 
@@ -201,14 +216,21 @@ export default function Admin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(prev => ({ ...prev, submitting: true }));
     
-    const newAnnouncement = {
-      ...formData,
-      id: editingAnnouncement ? editingAnnouncement.id : undefined, // Let Firebase generate ID for new ones
-    };
+    try {
+      const newAnnouncement = {
+        ...formData,
+        id: editingAnnouncement ? editingAnnouncement.id : undefined, // Let Firebase generate ID for new ones
+      };
 
-    await saveAnnouncementToFirebase(newAnnouncement);
-    resetForm();
+      await saveAnnouncementToFirebase(newAnnouncement);
+      resetForm();
+    } catch (error) {
+      console.error('Error submitting announcement:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, submitting: false }));
+    }
   };
 
   const handleEdit = (announcement) => {
@@ -346,7 +368,12 @@ export default function Admin() {
             </button>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}>
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Title</label>
               <input
@@ -401,11 +428,21 @@ export default function Admin() {
             <div className="flex items-center gap-3 pt-2">
               <button
                 type="submit"
-                className="px-6 py-2 rounded-md font-semibold flex items-center gap-2"
+                disabled={loading.submitting}
+                className="px-6 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
               >
-                <Save size={18} />
-                {editingAnnouncement ? 'Update' : 'Create'}
+                {loading.submitting ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    {editingAnnouncement ? 'Update' : 'Create'}
+                  </>
+                )}
               </button>
               <button
                 type="button"
@@ -503,26 +540,29 @@ export default function Admin() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => createInviteCodesFirebase(1)}
-                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+                  disabled={loading.inviteCodes}
+                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                 >
-                  <Plus size={16} />
+                  {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
                   Generate 1 Code
                 </button>
                 <button
                   onClick={() => createInviteCodesFirebase(5)}
-                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+                  disabled={loading.inviteCodes}
+                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
                 >
-                  <Plus size={16} />
+                  {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
                   Generate 5 Codes
                 </button>
                 <button
                   onClick={() => createInviteCodesFirebase(10)}
-                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2"
+                  disabled={loading.inviteCodes}
+                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
                 >
-                  <Plus size={16} />
+                  {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
                   Generate 10 Codes
                 </button>
               </div>
@@ -616,12 +656,21 @@ export default function Admin() {
               />
               <button
                 onClick={() => updateEmailWhitelistFirebase(newEmails)}
-                className="px-6 py-2 rounded-md font-semibold flex items-center gap-2"
+                className="px-6 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
-                disabled={!newEmails.trim()}
+                disabled={!newEmails.trim() || loading.emailWhitelist}
               >
-                <Plus size={16} />
-                Add to Whitelist
+                {loading.emailWhitelist ? (
+                  <>
+                    <Loader size={16} className="animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    Add to Whitelist
+                  </>
+                )}
               </button>
             </div>
           </div>

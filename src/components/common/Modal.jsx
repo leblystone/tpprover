@@ -1,8 +1,23 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
 
 export default function Modal({ open, onClose, onBack, title, theme, children, footer, maxWidth }) {
+  // Add keyboard shortcuts
+  useEffect(() => {
+    if (!open) return;
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+  
   if (!open) return null
   const content = (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
