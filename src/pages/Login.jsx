@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { X, Plus, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
@@ -58,7 +58,7 @@ async function validateInvite(email, code) {
 export default function Login() {
     const navigate = useNavigate();
     const { setUser } = useAppContext();
-    const { setPassword: setFirebasePassword } = useFirebase();
+    const { firebaseUser, isFirebaseLoading, setPassword: setFirebasePassword } = useFirebase();
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     const [mode, setMode] = useState('promptEmail'); // 'promptEmail' | 'login' | 'signup'
@@ -70,6 +70,16 @@ export default function Login() {
     const [showTerms, setShowTerms] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [inviteCode, setInviteCode] = useState('');
+    const [isReturningUser, setIsReturningUser] = useState(false);
+    
+    // Check if user is already authenticated
+    useEffect(() => {
+        if (!isFirebaseLoading && firebaseUser) {
+            // User is already logged in, redirect to dashboard
+            setUser({ email: firebaseUser.email, uid: firebaseUser.uid });
+            navigate('/dashboard');
+        }
+    }, [firebaseUser, isFirebaseLoading, setUser, navigate]);
 
     const pwErrors = useMemo(() => {
       if (mode !== 'signup') return []
@@ -123,20 +133,24 @@ export default function Login() {
       if (pwErrors.length > 0) { setError('Please fix the password requirements.'); return false; }
       
       // Validate invite code and email
-      if (!inviteCode.trim()) {
+      // Only require invite code for new users
+      if (!isReturningUser && !inviteCode.trim()) {
         setError('Invite code is required for beta access.');
         return false;
       }
       
       try {
-        const inviteValidation = await validateInvite(email, inviteCode.trim());
-        if (!inviteValidation.valid) {
-          setError(inviteValidation.error);
-          return false;
+        // Only validate invite code for new users
+        if (!isReturningUser) {
+          const inviteValidation = await validateInvite(email, inviteCode.trim());
+          if (!inviteValidation.valid) {
+            setError(inviteValidation.error);
+            return false;
+          }
         }
         
         // Create Firebase user
-        const { user: firebaseUser } = await registerUser(email, password, inviteCode.trim());
+        const { user: firebaseUser } = await registerUser(email, password, isReturningUser ? null : inviteCode.trim());
         
         // Store password for encryption
         setFirebasePassword(password);
@@ -198,15 +212,34 @@ export default function Login() {
         }
         
         try {
-            // Check if email is whitelisted for beta
+            // Check if this is a returning user by trying to login first
+            try {
+                // Try to login with a dummy password to see if user exists
+                await loginUser(email, 'dummy_password_check');
+            } catch (loginError) {
+                if (loginError.code === 'auth/wrong-password') {
+                    // User exists! Show login form
+                    setIsReturningUser(true);
+                    setMode('login');
+                    setError('');
+                    return;
+                } else if (loginError.code === 'auth/user-not-found') {
+                    // New user - continue with signup flow
+                    setIsReturningUser(false);
+                } else {
+                    // Other error, fall through to whitelist check
+                    console.log('Login check failed:', loginError);
+                }
+            }
+            
+            // For new users, check if email is whitelisted for beta
             const whitelist = await getEmailWhitelist();
             if (!whitelist.includes(email.toLowerCase())) {
                 setError('This email is not authorized for beta access. Please check your invitation email or contact support with your email address for assistance.');
                 return;
             }
             
-            // For now, always go to signup for new Firebase users
-            // Firebase will handle if user already exists
+            // New user - show signup form
             setMode('signup');
             setError('');
         } catch (error) {
@@ -264,7 +297,7 @@ export default function Login() {
                             <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>
                                 {mode === 'promptEmail' && 'Sign in or create an account'}
                                 {mode === 'login' && 'Welcome Back'}
-                                {mode === 'signup' && 'Create an Account'}
+                                {mode === 'signup' && (isReturningUser ? 'Complete Your Account Setup' : 'Join the Beta')}
                             </h2>
                             {mode !== 'promptEmail' && (
                                 <p className="text-sm text-gray-500 mt-1">
@@ -303,7 +336,7 @@ export default function Login() {
                                 </div>
                             )}
 
-                            {mode === 'signup' && (
+                            {mode === 'signup' && !isReturningUser && (
                                 <>
                                     <div className="relative">
                                         <input 
@@ -317,6 +350,11 @@ export default function Login() {
                                         />
                                         <div className="text-xs text-gray-500 mt-1">Enter the invite code from your beta invitation email</div>
                                     </div>
+                                </>
+                            )}
+                            
+                            {mode === 'signup' && (
+                                <>
                                     <div className="relative">
                                         <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
@@ -355,7 +393,8 @@ export default function Login() {
                             <button type="submit" disabled={loading} className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: loading ? 0.7 : 1 }}>
                                 {loading ? 'Processing...' : 
                                  (mode === 'promptEmail' ? 'Continue' : 
-                                 (mode === 'login' ? 'Login' : 'Create Account'))}
+                                 (mode === 'login' ? 'Login' : 
+                                 (isReturningUser ? 'Create Account' : 'Join Beta')))}
                             </button>
                         </form>
                     </div>
