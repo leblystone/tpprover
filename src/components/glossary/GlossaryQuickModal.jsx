@@ -3,6 +3,35 @@ import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput.jsx'
 import { Search, Brain, AlertTriangle, Loader } from 'lucide-react';
 
+// Levenshtein distance function for fuzzy string matching
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
 // AI-powered peptide research compilation
 async function compilePeptideResearch(peptideName) {
   // Simulate comprehensive research compilation
@@ -11,9 +40,10 @@ async function compilePeptideResearch(peptideName) {
   // Create detailed research profile based on peptide name
   const name = peptideName.toUpperCase();
   
-  // Common peptide database
+  // Enhanced peptide database with common variations and aliases
   const peptideDatabase = {
     'BPC-157': {
+      aliases: ['BPC157', 'BPC 157', 'BODY PROTECTION COMPOUND'],
       classification: 'Gastric Pentadecapeptide',
       mechanism: 'Promotes angiogenesis, accelerates healing of various tissues including tendons, muscles, nervous system, and ligaments through growth hormone receptor pathways.',
       commonUses: ['Tissue repair research', 'Wound healing studies', 'Gastrointestinal research', 'Tendon and ligament research'],
@@ -22,6 +52,7 @@ async function compilePeptideResearch(peptideName) {
       researchStatus: 'Extensively studied in animal models, limited human clinical data available.'
     },
     'TB-500': {
+      aliases: ['TB500', 'THYMOSIN BETA-4', 'THYMOSIN'],
       classification: 'Synthetic Thymosin Beta-4 Fragment',
       mechanism: 'Promotes cell migration, angiogenesis, and wound healing through actin regulation and anti-inflammatory pathways.',
       commonUses: ['Wound healing research', 'Cardiovascular research', 'Muscle repair studies', 'Anti-inflammatory research'],
@@ -30,6 +61,7 @@ async function compilePeptideResearch(peptideName) {
       researchStatus: 'Promising preclinical results, early-stage clinical research ongoing.'
     },
     'SEMAGLUTIDE': {
+      aliases: ['OZEMPIC', 'WEGOVY', 'RYBELSUS'],
       classification: 'GLP-1 Receptor Agonist',
       mechanism: 'Mimics incretin hormones, regulates blood glucose, slows gastric emptying, and promotes satiety through GLP-1 receptor activation.',
       commonUses: ['Diabetes research', 'Weight management studies', 'Cardiovascular research', 'Metabolic research'],
@@ -37,25 +69,73 @@ async function compilePeptideResearch(peptideName) {
       safetyNotes: 'FDA-approved medication with established safety profile. Requires medical supervision.',
       researchStatus: 'Extensively studied with multiple approved clinical applications.'
     },
+    'TIRZEPATIDE': {
+      aliases: ['MOUNJARO', 'ZEPBOUND'],
+      classification: 'Dual GLP-1/GIP Receptor Agonist',
+      mechanism: 'Activates both GLP-1 and GIP receptors, providing enhanced glucose control and weight management through dual incretin pathways.',
+      commonUses: ['Type 2 diabetes research', 'Obesity research', 'Metabolic syndrome studies', 'Cardiovascular research'],
+      dosageRanges: 'Clinical dosages range from 2.5mg to 15mg weekly, with gradual titration protocols.',
+      safetyNotes: 'FDA-approved medication with established clinical safety profile. Requires medical supervision.',
+      researchStatus: 'Recently approved with extensive Phase III clinical trial data.'
+    },
+    'RETATRUTIDE': {
+      aliases: ['RETRATRUTIDE', 'RETATRUTID', 'RETRATRUTID', 'LY3437943'],
+      classification: 'Triple Hormone Receptor Agonist',
+      mechanism: 'Activates GLP-1, GIP, and glucagon receptors, providing comprehensive metabolic effects including glucose control, weight loss, and energy expenditure.',
+      commonUses: ['Obesity research', 'Type 2 diabetes research', 'Metabolic research', 'Weight management studies'],
+      dosageRanges: 'Investigational dosages in clinical trials range from 1mg to 12mg weekly, with dose escalation protocols.',
+      safetyNotes: 'Investigational compound currently in clinical trials. Safety profile still being established.',
+      researchStatus: 'Phase II clinical trials completed with promising efficacy data. Phase III trials ongoing.'
+    },
     'IPAMORELIN': {
+      aliases: ['IPAM', 'NNC 26-0161'],
       classification: 'Growth Hormone Releasing Peptide (GHRP)',
       mechanism: 'Selectively stimulates growth hormone release from the pituitary gland through ghrelin receptor activation.',
       commonUses: ['Growth hormone research', 'Anti-aging studies', 'Muscle development research', 'Sleep quality research'],
       dosageRanges: 'Research dosages typically range from 100-300 mcg, 2-3 times daily.',
       safetyNotes: 'Research peptide with limited long-term safety data. For investigational purposes only.',
       researchStatus: 'Promising research results, not approved for therapeutic use.'
+    },
+    'CJC-1295': {
+      aliases: ['CJC1295', 'MOD-GRF', 'MODGRF', 'CJC-1295 DAC', 'CJC-1295 NO DAC'],
+      classification: 'Growth Hormone Releasing Hormone Analog',
+      mechanism: 'Extended-release GHRH analog that stimulates growth hormone release with prolonged half-life.',
+      commonUses: ['Growth hormone research', 'Anti-aging studies', 'Body composition research', 'Recovery studies'],
+      dosageRanges: 'Research protocols typically use 1-2mg weekly for DAC version, or 100-300 mcg 2-3x daily for no-DAC version.',
+      safetyNotes: 'Research compound with limited clinical safety data. For investigational use only.',
+      researchStatus: 'Preclinical and early clinical research ongoing.'
     }
   };
   
-  // Check if we have specific data for this peptide
-  const specificData = peptideDatabase[name];
+  // Check if we have specific data for this peptide (including aliases)
+  let specificData = peptideDatabase[name];
+  let matchedName = name;
+  
+  // If not found by exact name, check aliases
+  if (!specificData) {
+    for (const [key, data] of Object.entries(peptideDatabase)) {
+      if (data.aliases && data.aliases.some(alias => alias === name || fuzzyMatchStrings(name, alias))) {
+        specificData = data;
+        matchedName = key;
+        break;
+      }
+    }
+  }
   
   if (specificData) {
     return {
-      name: peptideName,
+      name: matchedName,
+      originalQuery: peptideName,
       ...specificData,
       disclaimer: 'This information is compiled from available research literature and is for educational purposes only. Not medical advice.'
     };
+  }
+  
+  // Helper function for alias matching
+  function fuzzyMatchStrings(str1, str2) {
+    const s1 = str1.toLowerCase().replace(/[-\s]/g, '');
+    const s2 = str2.toLowerCase().replace(/[-\s]/g, '');
+    return s1 === s2 || levenshteinDistance(s1, s2) <= Math.max(1, Math.floor(Math.min(s1.length, s2.length) * 0.2));
   }
   
   // Generic peptide research profile for unknown peptides
@@ -80,9 +160,27 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
   const [q, setQ] = useState('')
   const [items, setItems] = useState([])
   const [aiResearch, setAiResearch] = useState({ loading: false, data: null, error: null, query: '' })
+  const [showSuggestions, setShowSuggestions] = useState(false)
   
   useEffect(() => { try { const raw = localStorage.getItem('tpprover_glossary'); setItems(raw ? JSON.parse(raw) : []) } catch {} }, [open])
   const filtered = useMemo(() => items.filter(i => (i.name||'').toLowerCase().includes(q.toLowerCase())), [items, q])
+  
+  // Generate peptide suggestions based on current query
+  const peptideSuggestions = useMemo(() => {
+    if (!q.trim() || q.length < 2) return [];
+    
+    const commonPeptides = [
+      'BPC-157', 'TB-500', 'Semaglutide', 'Tirzepatide', 'Retatrutide', 'Ipamorelin', 'CJC-1295',
+      'GHRP-2', 'GHRP-6', 'Sermorelin', 'Tesamorelin', 'Hexarelin', 'AOD-9604', 'Fragment 176-191',
+      'IGF-1', 'MGF', 'Melanotan II', 'PT-141', 'GHK-Cu', 'Epitalon', 'Selank', 'Semax'
+    ];
+    
+    const query = q.toLowerCase();
+    return commonPeptides
+      .filter(peptide => peptide.toLowerCase().includes(query) || 
+                        levenshteinDistance(query, peptide.toLowerCase()) <= 2)
+      .slice(0, 5);
+  }, [q])
 
   const handleAIResearch = async () => {
     if (!q.trim()) return;
@@ -90,19 +188,55 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
     setAiResearch({ loading: true, data: null, error: null, query: q });
     
     try {
-      // Check if the query seems peptide-related first
+      // Enhanced peptide detection with fuzzy matching and common variations
       const peptideKeywords = [
-        'peptide', 'bpc', 'tb-500', 'ghrp', 'cjc', 'ipamorelin', 'semaglutide', 'tirzepatide', 
-        'melanotan', 'pt-141', 'mod-grf', 'hexarelin', 'sermorelin', 'tesamorelin', 'aod', 
-        'fragment', 'ghk', 'copper', 'thymosin', 'epitalon', 'selank', 'semax', 'noopept',
-        'oxytocin', 'vasopressin', 'insulin', 'glucagon', 'growth hormone', 'igf', 'mgf'
+        // Core peptide terms
+        'peptide', 'protein', 'hormone', 'fragment', 'analog', 'agonist', 'antagonist',
+        
+        // Popular peptides (with common variations)
+        'bpc', 'bpc-157', 'bpc157', 'tb-500', 'tb500', 'thymosin', 
+        'semaglutide', 'ozempic', 'wegovy', 'tirzepatide', 'mounjaro', 'zepbound',
+        'retatrutide', 'retratrutide', 'retatrutid', 'retratrutid', // Common misspellings
+        'ipamorelin', 'ipam', 'cjc', 'cjc-1295', 'cjc1295', 'mod-grf', 'modgrf',
+        'ghrp', 'ghrp-2', 'ghrp-6', 'ghrp2', 'ghrp6', 'hexarelin', 'sermorelin', 'tesamorelin',
+        
+        // Growth factors
+        'igf', 'igf-1', 'igf1', 'mgf', 'mechano', 'growth hormone', 'gh', 'hgh',
+        
+        // Other compounds
+        'melanotan', 'mt-2', 'mt2', 'pt-141', 'pt141', 'bremelanotide',
+        'aod', 'aod-9604', 'aod9604', 'fragment 176-191', '176-191',
+        'ghk', 'ghk-cu', 'copper peptide', 'epitalon', 'epithalon',
+        'selank', 'semax', 'noopept', 'oxytocin', 'vasopressin',
+        'insulin', 'glucagon', 'glp-1', 'glp1', 'gip', 'incretin',
+        
+        // Research terms
+        'mcg', 'subcutaneous', 'reconstitution', 'lyophilized', 'vial',
+        'research compound', 'investigational', 'clinical trial'
       ];
       
-      const isPeptideRelated = peptideKeywords.some(keyword => 
-        q.toLowerCase().includes(keyword.toLowerCase()) || 
-        keyword.toLowerCase().includes(q.toLowerCase()) ||
-        q.toLowerCase().replace(/[-\s]/g, '').includes(keyword.replace(/[-\s]/g, ''))
-      );
+      // Fuzzy matching function for misspellings
+      const fuzzyMatch = (query, keyword) => {
+        const q = query.toLowerCase().replace(/[-\s]/g, '');
+        const k = keyword.toLowerCase().replace(/[-\s]/g, '');
+        
+        // Exact match
+        if (q === k) return true;
+        
+        // Contains match
+        if (q.includes(k) || k.includes(q)) return true;
+        
+        // Levenshtein distance for close matches (allows 1-2 character differences)
+        if (Math.abs(q.length - k.length) <= 2) {
+          const distance = levenshteinDistance(q, k);
+          const threshold = Math.max(1, Math.floor(Math.min(q.length, k.length) * 0.2)); // 20% error tolerance
+          return distance <= threshold;
+        }
+        
+        return false;
+      };
+      
+      const isPeptideRelated = peptideKeywords.some(keyword => fuzzyMatch(q, keyword));
       
       if (!isPeptideRelated) {
         setAiResearch({ 
@@ -136,7 +270,47 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
     )}>
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-            <TextInput label="Search Peptide" value={q} onChange={setQ} placeholder="BPC-157" theme={theme} className="flex-grow" />
+            <div className="flex-grow relative">
+              <TextInput 
+                label="Search Peptide" 
+                value={q} 
+                onChange={(value) => {
+                  setQ(value);
+                  setShowSuggestions(value.length >= 2);
+                }} 
+                placeholder="Type peptide name (e.g., BPC-157, Retatrutide)" 
+                theme={theme} 
+                className="flex-grow"
+                onFocus={() => setShowSuggestions(q.length >= 2)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
+              
+              {/* Suggestion dropdown */}
+              {showSuggestions && peptideSuggestions.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow-lg" style={{ borderColor: theme?.border }}>
+                  <div className="py-1">
+                    <div className="px-3 py-1 text-xs font-semibold text-gray-500 border-b" style={{ borderColor: theme?.border }}>
+                      Suggestions:
+                    </div>
+                    {peptideSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                        onClick={() => {
+                          setQ(suggestion);
+                          setShowSuggestions(false);
+                        }}
+                        style={{ color: theme?.text }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <button
                 onClick={handleAIResearch}
                 disabled={!q.trim() || aiResearch.loading}
@@ -177,6 +351,11 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
             <div className="flex items-center gap-2 mb-3" style={{ color: theme.success }}>
               <Brain size={18} />
               <span className="font-semibold">AI Research: {aiResearch.data.name}</span>
+              {aiResearch.data.originalQuery && aiResearch.data.originalQuery.toLowerCase() !== aiResearch.data.name.toLowerCase() && (
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                  Found match for "{aiResearch.data.originalQuery}"
+                </span>
+              )}
             </div>
             
             <div className="space-y-3 text-sm" style={{ color: theme.text }}>
