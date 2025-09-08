@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
 import { Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import {
@@ -15,8 +14,28 @@ import {
   getAnalytics
 } from '../services/firebase';
 
+// Admin theme (standalone since admin is outside the main app context)
+const adminTheme = {
+  primary: '#7f9e95',
+  primaryDark: '#6b8a80',
+  success: '#10b981',
+  successBg: '#ecfdf5',
+  error: '#ef4444',
+  warning: '#f59e0b',
+  info: '#3b82f6',
+  accent: '#8b5cf6',
+  accentText: '#ffffff',
+  background: '#ffffff',
+  cardBackground: '#ffffff',
+  text: '#111827',
+  textLight: '#6b7280',
+  textOnPrimary: '#ffffff',
+  border: '#e5e7eb',
+  white: '#ffffff'
+};
+
 export default function Admin() {
-  const { theme } = useOutletContext();
+  const theme = adminTheme;
   const [announcements, setAnnouncements] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');

@@ -13,7 +13,6 @@ import {
   getEmailWhitelist,
   markInviteCodeUsed 
 } from '../services/firebase';
-import { initializeFirebaseData, addEmailToWhitelist } from '../utils/firebaseInit';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -71,7 +70,6 @@ export default function Login() {
     const [showTerms, setShowTerms] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [inviteCode, setInviteCode] = useState('');
-    const [isInitializing, setIsInitializing] = useState(false);
 
     const pwErrors = useMemo(() => {
       if (mode !== 'signup') return []
@@ -246,20 +244,6 @@ export default function Login() {
       }
   };
 
-  // Initialize Firebase with test data
-  const handleInitializeFirebase = async () => {
-    setIsInitializing(true);
-    try {
-      await initializeFirebaseData();
-      if (email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        await addEmailToWhitelist(email);
-      }
-      alert('Firebase initialized! You can now test with:\nEmail: ' + (email || 'test@example.com') + '\nInvite Code: BETA-TEST123');
-    } catch (error) {
-      alert('Failed to initialize Firebase: ' + error.message);
-    }
-    setIsInitializing(false);
-  };
 
     return (
         <>
@@ -365,25 +349,6 @@ export default function Login() {
                                  (mode === 'login' ? 'Login' : 'Create Account'))}
                             </button>
                         </form>
-
-                        {/* Temporary Firebase Initialization Button */}
-                        {import.meta.env.DEV && (
-                            <div className="mt-4 p-4 border rounded-lg" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
-                                <p className="text-xs text-gray-600 mb-2">Development Only - Initialize Firebase:</p>
-                                <button
-                                    type="button"
-                                    onClick={handleInitializeFirebase}
-                                    disabled={isInitializing}
-                                    className="w-full px-4 py-2 rounded-md text-sm font-semibold"
-                                    style={{ 
-                                        backgroundColor: isInitializing ? theme.textLight : theme.info, 
-                                        color: theme.textOnPrimary 
-                                    }}
-                                >
-                                    {isInitializing ? 'Initializing...' : 'Setup Firebase Test Data'}
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
