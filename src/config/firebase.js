@@ -1,17 +1,16 @@
-import { initializeApp } from 'firebase/app';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
-// Your Firebase config - you'll need to get this from Firebase Console
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  // TODO: Replace with your actual Firebase config
-  // You'll get this from Firebase Console > Project Settings > General > Your apps
-  apiKey: "your-api-key-here",
+  apiKey: "AIzaSyDzGVtlnIk0QzUSgK6o41KGpYKk6opdgcE",
   authDomain: "tpp-splendide.firebaseapp.com",
   projectId: "tpp-splendide",
-  storageBucket: "tpp-splendide.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id"
+  storageBucket: "tpp-splendide.firebasestorage.app",
+  messagingSenderId: "97564473391",
+  appId: "1:97564473391:web:71f235c49040e559aa6eda"
 };
 
 // Initialize Firebase
@@ -23,7 +22,7 @@ export const db = getFirestore(app);
 // Initialize Auth
 export const auth = getAuth(app);
 
-// Connect to emulators in development
+// Connect to emulators in development (optional)
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   // Only connect to emulators if not already connected
   try {

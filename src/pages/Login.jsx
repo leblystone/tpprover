@@ -5,73 +5,60 @@ import { X, Plus, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/tpp-logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import { useAppContext } from '../context/AppContext';
+import { useFirebase } from '../context/FirebaseContext';
+import { 
+  registerUser, 
+  loginUser, 
+  getInviteCodes, 
+  getEmailWhitelist,
+  markInviteCodeUsed 
+} from '../services/firebase';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
 function setAuthDb(db) { try { localStorage.setItem('tpprover_auth_users', JSON.stringify(db || {})) } catch {} }
 const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) } catch { return String(s) } }
 
-// Beta invite system
-function getInviteCodes() { 
-  try { 
-    return JSON.parse(localStorage.getItem('tpprover_invite_codes') || '{}') 
-  } catch { 
-    return {} 
-  } 
-}
+// Legacy localStorage functions removed - now using Firebase
 
-function getEmailWhitelist() { 
-  try { 
-    return JSON.parse(localStorage.getItem('tpprover_email_whitelist') || '[]') 
-  } catch { 
-    return [] 
-  } 
-}
-
-function validateInvite(email, code) {
-  const whitelist = getEmailWhitelist();
-  const codes = getInviteCodes();
-  
-  // Check if email is whitelisted
-  if (!whitelist.includes(email.toLowerCase())) {
-    return { valid: false, error: 'This email is not authorized for beta access. Please contact support if you believe this is an error.' };
-  }
-  
-  // Check if invite code exists and is valid
-  if (!codes[code]) {
-    return { valid: false, error: 'Invalid invite code. Please check your invitation email for the correct code.' };
-  }
-  
-  // Check if code is already used
-  if (codes[code].used) {
-    return { valid: false, error: 'This invite code has already been used.' };
-  }
-  
-  // Check if code is for this email (if email is specified)
-  if (codes[code].email && codes[code].email.toLowerCase() !== email.toLowerCase()) {
-    return { valid: false, error: 'This invite code is not valid for your email address.' };
-  }
-  
-  return { valid: true };
-}
-
-function markInviteUsed(code, email) {
+async function validateInvite(email, code) {
   try {
-    const codes = getInviteCodes();
-    if (codes[code]) {
-      codes[code].used = true;
-      codes[code].usedBy = email;
-      codes[code].usedAt = new Date().toISOString();
-      localStorage.setItem('tpprover_invite_codes', JSON.stringify(codes));
+    const whitelist = await getEmailWhitelist();
+    const codes = await getInviteCodes();
+    
+    // Check if email is whitelisted
+    if (!whitelist.includes(email.toLowerCase())) {
+      return { valid: false, error: 'This email is not authorized for beta access. Please contact support if you believe this is an error.' };
     }
-  } catch (e) {
-    console.error('Error marking invite as used:', e);
+    
+    // Check if invite code exists and is valid
+    if (!codes[code]) {
+      return { valid: false, error: 'Invalid invite code. Please check your invitation email for the correct code.' };
+    }
+    
+    // Check if code is already used
+    if (codes[code].used) {
+      return { valid: false, error: 'This invite code has already been used.' };
+    }
+    
+    // Check if code is for this email (if email is specified)
+    if (codes[code].email && codes[code].email.toLowerCase() !== email.toLowerCase()) {
+      return { valid: false, error: 'This invite code is not valid for your email address.' };
+    }
+    
+    return { valid: true };
+  } catch (error) {
+    console.error('Invite validation failed:', error);
+    return { valid: false, error: 'Unable to validate invite code. Please try again.' };
   }
 }
+
+// markInviteUsed now handled by Firebase service
 
 export default function Login() {
     const navigate = useNavigate();
     const { setUser } = useAppContext();
+    const { setPassword: setFirebasePassword } = useFirebase();
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     const [mode, setMode] = useState('promptEmail'); // 'promptEmail' | 'login' | 'signup'
@@ -96,21 +83,43 @@ export default function Login() {
       return errs
     }, [mode, password, confirmPassword]);
 
-    const doLogin = () => {
-      const db = getAuthDb()
-      const rec = db[(email || '').toLowerCase()]
-      if (!rec) { setError('No account found with this email. Please create a new account.'); return false; }
-      if (rec.p !== enc(password)) { setError('Incorrect password. Please try again or reset your password.'); return false; }
-      const user = { email, name: email.split('@')[0] }
-      try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
-      try { localStorage.setItem('tpprover_auth_token', 'local_dev_token') } catch {}
-      try { localStorage.setItem('tpprover_has_onboarded', 'true') } catch {}
-      setUser(user);
-      navigate('/dashboard');
-      return true;
+    const doLogin = async () => {
+      try {
+        const firebaseUser = await loginUser(email, password);
+        
+        // Store password for encryption
+        setFirebasePassword(password);
+        
+        // Set user in app context
+        const user = { 
+          email: firebaseUser.email, 
+          name: firebaseUser.email.split('@')[0],
+          uid: firebaseUser.uid
+        };
+        
+        try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
+        try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
+        try { localStorage.setItem('tpprover_has_onboarded', 'true') } catch {}
+        
+        setUser(user);
+        navigate('/dashboard');
+        return true;
+      } catch (error) {
+        console.error('Login failed:', error);
+        if (error.code === 'auth/user-not-found') {
+          setError('No account found with this email. Please create a new account.');
+        } else if (error.code === 'auth/wrong-password') {
+          setError('Incorrect password. Please try again.');
+        } else if (error.code === 'auth/invalid-email') {
+          setError('Please enter a valid email address.');
+        } else {
+          setError('Login failed. Please try again.');
+        }
+        return false;
+      }
     };
 
-    const doSignup = () => {
+    const doSignup = async () => {
       if (pwErrors.length > 0) { setError('Please fix the password requirements.'); return false; }
       
       // Validate invite code and email
@@ -119,105 +128,120 @@ export default function Login() {
         return false;
       }
       
-      const inviteValidation = validateInvite(email, inviteCode.trim());
-      if (!inviteValidation.valid) {
-        setError(inviteValidation.error);
+      try {
+        const inviteValidation = await validateInvite(email, inviteCode.trim());
+        if (!inviteValidation.valid) {
+          setError(inviteValidation.error);
+          return false;
+        }
+        
+        // Create Firebase user
+        const { user: firebaseUser } = await registerUser(email, password, inviteCode.trim());
+        
+        // Store password for encryption
+        setFirebasePassword(password);
+        
+        // Set user in app context
+        const user = { 
+          email: firebaseUser.email, 
+          name: firebaseUser.email.split('@')[0],
+          uid: firebaseUser.uid,
+          termsAgreed: { date: new Date().toISOString() }
+        };
+        
+        try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
+        try {
+          const now = new Date()
+          const end = new Date(now)
+          end.setDate(end.getDate() + 7)
+          const trial = {
+            id: String(Date.now()),
+            plan: 'Pro Monthly',
+            price: 9.99,
+            interval: 'month',
+            currency: 'USD',
+            status: 'trialing',
+            startedAt: now.toISOString(),
+            currentPeriodEnd: end.toISOString(),
+            paymentMethod: null,
+          }
+          localStorage.setItem('tpprover_subscription', JSON.stringify(trial))
+        } catch {}
+        try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
+        
+        setUser(user);
+        navigate('/dashboard');
+        return true;
+      } catch (error) {
+        console.error('Signup failed:', error);
+        if (error.code === 'auth/email-already-in-use') {
+          setError('An account already exists with this email. Please login.');
+        } else if (error.code === 'auth/invalid-email') {
+          setError('Please enter a valid email address.');
+        } else if (error.code === 'auth/weak-password') {
+          setError('Password is too weak. Please choose a stronger password.');
+        } else {
+          setError('Registration failed. Please try again.');
+        }
         return false;
       }
-      
-      const db = getAuthDb()
-      const key = (email || '').toLowerCase()
-      if (!key) { setError('Email is required'); return false; }
-      if (db[key]) { setError('An account already exists with this email. Please login.'); return false; }
-      
-      // Mark invite code as used
-      markInviteUsed(inviteCode.trim(), email);
-      
-      db[key] = { p: enc(password), createdAt: Date.now(), inviteCode: inviteCode.trim() }
-      setAuthDb(db)
-      const user = { 
-        email, 
-        name: email.split('@')[0],
-        termsAgreed: { date: new Date().toISOString() }
-      }
-      try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
-      try {
-        const now = new Date()
-        const end = new Date(now)
-        end.setDate(end.getDate() + 7)
-        const trial = {
-          id: String(Date.now()),
-          plan: 'Pro Monthly',
-          price: 9.99,
-          interval: 'month',
-          currency: 'USD',
-          status: 'trialing',
-          startedAt: now.toISOString(),
-          currentPeriodEnd: end.toISOString(),
-          paymentMethod: null,
-        }
-        localStorage.setItem('tpprover_subscription', JSON.stringify(trial))
-      } catch {}
-      try { localStorage.setItem('tpprover_auth_token', 'local_dev_token') } catch {}
-      setUser(user);
-      navigate('/dashboard');
-      return true;
     };
 
-    const handleEmailSubmit = () => {
+    const handleEmailSubmit = async () => {
         if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
             setError('Please enter a valid email address.');
             return;
         }
         
-        // Check if email is whitelisted for beta
-        const whitelist = getEmailWhitelist();
-        if (!whitelist.includes(email.toLowerCase())) {
-            setError('This email is not authorized for beta access. Please contact support if you believe this is an error.');
-            return;
-        }
-        
-        const db = getAuthDb();
-        const rec = db[(email || '').toLowerCase()];
-        if (rec) {
-            setMode('login');
-        } else {
+        try {
+            // Check if email is whitelisted for beta
+            const whitelist = await getEmailWhitelist();
+            if (!whitelist.includes(email.toLowerCase())) {
+                setError('This email is not authorized for beta access. Please contact support if you believe this is an error.');
+                return;
+            }
+            
+            // For now, always go to signup for new Firebase users
+            // Firebase will handle if user already exists
             setMode('signup');
+            setError('');
+        } catch (error) {
+            console.error('Email validation failed:', error);
+            setError('Unable to validate email. Please try again.');
         }
-        setError('');
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
         if (mode === 'promptEmail') {
+            await handleEmailSubmit();
             setLoading(false);
-            handleEmailSubmit();
             return;
         }
 
-        setTimeout(() => {
+        try {
             if (mode === 'login') {
-                if (!doLogin()) {
-                  setLoading(false);
-                }
+                await doLogin();
             } else { // signup
                 setShowTerms(true);
                 setLoading(false);
             }
-        }, 500); // Simulate network delay
+        } catch (error) {
+            setLoading(false);
+        }
     };
 
-  const acceptTerms = () => {
+  const acceptTerms = async () => {
       setShowTerms(false);
       setLoading(true);
-      setTimeout(() => {
-          if (!doSignup()) {
-            setLoading(false);
-          }
-      }, 500);
+      try {
+          await doSignup();
+      } catch (error) {
+          setLoading(false);
+      }
   };
 
     return (
@@ -339,5 +363,6 @@ export default function Login() {
         </>
     );
 }
+
 
 
