@@ -128,8 +128,8 @@ export default function Admin() {
 
   const generateUniversalCode = (phase) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = `PHASE${phase}-`;
-    for (let i = 0; i < 6; i++) {
+    let code = `BETA-PHASE${phase}-`;
+    for (let i = 0; i < 8; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
