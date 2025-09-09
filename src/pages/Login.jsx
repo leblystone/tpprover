@@ -262,7 +262,13 @@ export default function Login() {
       } catch (error) {
         console.error('Signup failed:', error);
         if (error.code === 'auth/email-already-in-use') {
-          setError('An account already exists with this email. Try logging in instead, or use the "Forgot Password" option if needed.');
+          setError('Account found! Switching to login form...');
+          // Automatically switch to login mode for existing users
+          setTimeout(() => {
+            setIsReturningUser(true);
+            setMode('login');
+            setError('Please enter your password to log in.');
+          }, 1500);
         } else if (error.code === 'auth/invalid-email') {
           setError('Please enter a valid email address (example: user@example.com).');
         } else if (error.code === 'auth/weak-password') {
