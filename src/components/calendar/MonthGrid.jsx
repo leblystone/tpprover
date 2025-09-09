@@ -105,7 +105,6 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                             </span>
                                         </div>
                                     )}
-                                </div>
                                 <div className="space-y-1">
                                     <div className="sm:hidden space-y-1">
                                         {peptides.slice(0, 2).map((p, idx) => (
