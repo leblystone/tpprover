@@ -33,13 +33,27 @@ async function validateInvite(email, code) {
       return { valid: false, error: 'This email is not authorized for beta access. Please contact support if you believe this is an error.' };
     }
     
-    // Get all active universal codes from Firebase
+    // Get all invite codes from Firebase
     const codes = await getInviteCodes();
-    const universalCodes = Object.keys(codes).filter(key => codes[key].isUniversal && codes[key].active);
+    console.log('🔍 All invite codes from Firebase:', codes);
     
-    // Check if the provided code matches any active universal code
+    // Check both universal codes AND individual available codes
     const codeUpper = code.toUpperCase();
-    const isValidCode = universalCodes.some(universalCode => universalCode.toUpperCase() === codeUpper);
+    let isValidCode = false;
+    
+    // Check universal codes (active)
+    const universalCodes = Object.keys(codes).filter(key => codes[key].isUniversal && codes[key].active);
+    console.log('🔍 Universal codes:', universalCodes);
+    isValidCode = universalCodes.some(universalCode => universalCode.toUpperCase() === codeUpper);
+    
+    // If not a universal code, check individual codes (available/unused)
+    if (!isValidCode) {
+      const individualCodes = Object.keys(codes).filter(key => !codes[key].isUniversal && !codes[key].used);
+      console.log('🔍 Individual available codes:', individualCodes);
+      isValidCode = individualCodes.some(individualCode => individualCode.toUpperCase() === codeUpper);
+    }
+    
+    console.log('🔍 Code validation result:', isValidCode);
     
     if (!isValidCode) {
       return { valid: false, error: 'Invalid beta access code. Please check your invitation email for the correct code.' };

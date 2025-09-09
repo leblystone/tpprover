@@ -78,16 +78,35 @@ export async function checkAndAssignFounderStatus(userId) {
 export async function checkUserExists(email) {
   try {
     console.log('🔍 Firebase: Checking sign-in methods for:', email);
+    console.log('🔍 Firebase: Using project:', auth.app.options.projectId);
+    console.log('🔍 Firebase: Auth domain:', auth.app.options.authDomain);
+    
     const signInMethods = await fetchSignInMethodsForEmail(auth, email);
     console.log('🔍 Firebase: Sign-in methods found:', signInMethods);
+    console.log('🔍 Firebase: Sign-in methods length:', signInMethods.length);
+    
     const exists = signInMethods.length > 0;
-    console.log('🔍 Firebase: User exists?', exists);
+    console.log('🔍 Firebase: User exists in AUTH?', exists);
+    
+    // Additional check: Look in Firestore users collection
+    try {
+      const { doc, getDoc } = await import('firebase/firestore');
+      const userDoc = await getDoc(doc(db, 'users', email.toLowerCase()));
+      console.log('🔍 Firebase: User exists in FIRESTORE?', userDoc.exists());
+      if (userDoc.exists()) {
+        console.log('🔍 Firebase: User data in Firestore:', userDoc.data());
+      }
+    } catch (firestoreError) {
+      console.log('🔍 Firebase: Could not check Firestore:', firestoreError.message);
+    }
+    
     return exists;
   } catch (error) {
     console.error('❌ Firebase: Error checking user existence:', error);
     console.error('❌ Firebase: Error details:', {
       code: error.code,
-      message: error.message
+      message: error.message,
+      projectId: auth.app.options.projectId
     });
     return false;
   }
