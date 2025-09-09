@@ -1,5 +1,53 @@
 import { useMemo } from 'react';
 
+// Define all beta testing periods
+// To add a new beta period for future testing rounds, simply add a new object to this array:
+// {
+//   name: 'Beta Round X',
+//   startDate: new Date('YYYY-MM-DDTHH:mm:ssZ'), // UTC timestamp
+//   endDate: new Date('YYYY-MM-DDTHH:mm:ssZ')    // UTC timestamp
+// }
+const BETA_PERIODS = [
+  {
+    name: 'Beta Round 1',
+    startDate: new Date('2024-09-10T00:00:00Z'), // September 10th, 2024
+    endDate: new Date('2024-09-18T00:00:00Z')    // September 17th, 2024 (end of day)
+  }
+  // Future beta rounds will be added here automatically
+  // Example for Beta Round 2:
+  // {
+  //   name: 'Beta Round 2', 
+  //   startDate: new Date('2024-12-01T00:00:00Z'),
+  //   endDate: new Date('2024-12-15T00:00:00Z')
+  // }
+];
+
+// Check if a user signed up during any beta testing period
+function isBetaTester(userCreatedAt) {
+  if (!userCreatedAt) return false;
+  
+  const createdDate = new Date(userCreatedAt);
+  
+  // Check if user signed up during any beta period
+  return BETA_PERIODS.some(period => {
+    return createdDate >= period.startDate && createdDate <= period.endDate;
+  });
+}
+
+// Utility function to add new beta periods (for future use)
+export function addBetaPeriod(name, startDate, endDate) {
+  BETA_PERIODS.push({
+    name,
+    startDate: new Date(startDate),
+    endDate: new Date(endDate)
+  });
+}
+
+// Get all current beta periods (for admin reference)
+export function getBetaPeriods() {
+  return [...BETA_PERIODS];
+}
+
 export function useBadgeStats() {
     const allBadges = useMemo(() => {
     return [
@@ -31,7 +79,7 @@ export function useBadgeStats() {
       { category: 'Milestones', name: 'Veteran Researcher', description: 'One year of app usage from account creation.', check: s => s.accountAgeDays >= 365, progress: s => s.accountAgeDays / 365 },
 
       // Program
-      { category: 'Program', name: 'The Catalyst', description: 'Participate as a beta tester.', check: (s) => s.isTester, progress: s => s.isTester ? 1 : 0 },
+      { category: 'Program', name: 'The Catalyst', description: 'Participate as a beta tester during official beta testing periods.', check: (s) => s.isBetaTester, progress: s => s.isBetaTester ? 1 : 0 },
       { category: 'Program', name: 'The Founders Circle', description: 'Be one of the first 100 users.', check: (s) => s.isFounder, progress: s => s.isFounder ? 1 : 0 }
     ];
     }, []);
@@ -46,7 +94,13 @@ export function useBadgeStats() {
         const stacks = JSON.parse(localStorage.getItem('tpprover_stacks') || '[]').length
         const user = JSON.parse(localStorage.getItem('tpprover_user') || '{}')
         
-        const isTester = (() => { try { const v = localStorage.getItem('tpprover_is_tester'); return v === '1' || v === 'true' } catch { return false } })()
+        // Legacy tester flag (for existing beta testers)
+        const legacyTester = (() => { try { const v = localStorage.getItem('tpprover_is_tester'); return v === '1' || v === 'true' } catch { return false } })()
+        
+        // Check if user is a beta tester based on signup date during beta periods
+        const isBetaTesterByDate = isBetaTester(user.createdAt)
+        const isBetaTesterFinal = legacyTester || isBetaTesterByDate
+        
         const isFounder = (() => { try { const v = localStorage.getItem('tpprover_is_founder'); return v === '1' || v === 'true' } catch { return false } })()
         
         const delivered = orders.filter(o => o.status === 'Delivered').length
@@ -74,7 +128,7 @@ export function useBadgeStats() {
 
         const accountAgeDays = user.createdAt ? Math.floor((new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24)) : 0;
 
-        return { delivered, internationalOrders, groupBuys, activeProtocols, stockpile, lowStock, supplementCount, totalSpend, streak, isTester, isFounder, vendors, stacks, accountAgeDays };
+        return { delivered, internationalOrders, groupBuys, activeProtocols, stockpile, lowStock, supplementCount, totalSpend, streak, isBetaTester: isBetaTesterFinal, isFounder, vendors, stacks, accountAgeDays };
     }, []);
 
     const earnedBadges = useMemo(() => {
