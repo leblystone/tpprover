@@ -687,7 +687,7 @@ export default function Admin() {
         )}
         </div>
       )}
-
+      
       {/* Beta Invites Tab */}
       {activeTab === 'invites' && (
         <div className="space-y-6">
@@ -1095,5 +1095,5 @@ export default function Admin() {
       )}
       </div>
     </div>
-  );
+  ); // End of Admin component
 }
