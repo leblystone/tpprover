@@ -81,7 +81,12 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         {d ? d.getDate() : ''}
                                     </span>
                                     {d && (
-                                        <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-0.5">
+                                            {buyCount > 0 && <ShoppingCart size={12} style={{ color: theme.primary }} />}
+                                        </div>
+                                    )}
+                                </div>
+                                {d && (<div className="flex items-center gap-1">
                                             {sched.doneAll && <span title="All tasks done" className="text-green-500 text-base">✓</span>}
                                             <span className="flex items-center gap-1 text-[10px]" style={{ color: theme.textLight }}>
                                                 {peptideCount > 0 && (

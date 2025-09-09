@@ -8,6 +8,7 @@ import TasksList from '../components/dashboard/TasksList'
 import UpcomingOrderCard from '../components/dashboard/UpcomingOrderCard'
 import ReconCalculatorModal from '../components/recon/ReconCalculatorModal'
 import UpcomingBuys from '../components/dashboard/UpcomingBuys'
+import PendingVendorsView from '../components/dashboard/PendingVendorsView'
 import { ToastContainer, Toast } from '../components/ui/Toast'
 import OCRImportModal from '../components/import/OCRImportModal'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
@@ -50,15 +51,27 @@ export default function Dashboard() {
 
   const incomingOrder = useMemo(() => {
     if (!orders || orders.length === 0) return null;
-    const placedOrders = orders.filter(o => o.status === 'Order Placed');
-    if (placedOrders.length === 0) return null;
-    placedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-    const latest = placedOrders[0];
+    
+    // Get most recent non-delivered order (any status except delivered)
+    const activeOrders = orders.filter(o => {
+        const status = (o.status || '').toLowerCase();
+        return !status.includes('delivered');
+    });
+    
+    if (activeOrders.length === 0) return null;
+    
+    // Sort by date to get the most recent
+    activeOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latest = activeOrders[0];
+    
     return {
         peptide: latest.items?.[0]?.name || 'Unknown Item',
         mg: latest.items?.[0]?.mg || 'N/A',
-        vendor: latest.vendorName || 'Unknown Vendor',
-        shipDate: latest.date
+        vendor: latest.vendorName || latest.vendor || 'Unknown Vendor',
+        status: latest.status || 'Order Placed',
+        shipDate: latest.shipDate || latest.date,
+        deliveryDate: latest.deliveryDate,
+        tracking: latest.tracking
     };
   }, [orders]);
 
@@ -660,6 +673,17 @@ export default function Dashboard() {
                 onNewOrder={() => setShowNewOrder(true)}
             />
             <UpcomingBuys buys={upcomingBuys} theme={theme} onAdd={() => setShowAddBuyModal(true)} />
+            {pendingVendors.length > 0 && (
+                <PendingVendorsView 
+                    vendors={pendingVendors} 
+                    theme={theme} 
+                    onViewAll={() => navigate('/vendors')}
+                    onComplete={(vendor) => {
+                        setEditingVendor(vendor);
+                        setShowNewVendor(true);
+                    }}
+                />
+            )}
         </div>
       </div>
 
@@ -809,7 +833,23 @@ export default function Dashboard() {
         onClose={() => setShowAddBuyModal(false)}
         theme={theme}
         onSave={(buy) => {
-            setScheduledBuys(prev => [...prev, { ...buy, id: generateId() }]);
+            const newBuy = { ...buy, id: generateId() };
+            setScheduledBuys(prev => [...prev, newBuy]);
+            
+            // Update local upcomingBuys state immediately
+            const now = new Date();
+            if (new Date(newBuy.openDate) >= now || (new Date(newBuy.closeDate) >= now && new Date(newBuy.openDate) <= now)) {
+                setUpcomingBuys(prev => [...prev, {
+                    id: newBuy.id,
+                    name: newBuy.item,
+                    date: newBuy.openDate,
+                    vendor: newBuy.vendor,
+                    openDate: newBuy.openDate,
+                    closeDate: newBuy.closeDate,
+                    notes: newBuy.notes
+                }]);
+            }
+            
             setShowAddBuyModal(false);
         }}
       />
