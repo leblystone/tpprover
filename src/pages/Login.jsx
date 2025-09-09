@@ -27,32 +27,28 @@ const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) 
 async function validateInvite(email, code) {
   try {
     const whitelist = await getEmailWhitelist();
-    const codes = await getInviteCodes();
     
     // Check if email is whitelisted
     if (!whitelist.includes(email.toLowerCase())) {
       return { valid: false, error: 'This email is not authorized for beta access. Please contact support if you believe this is an error.' };
     }
     
-    // Check if invite code exists and is valid
-    if (!codes[code]) {
-      return { valid: false, error: 'Invalid invite code. Please check your invitation email for the correct code.' };
-    }
+    // Get all active universal codes from Firebase
+    const codes = await getInviteCodes();
+    const universalCodes = Object.keys(codes).filter(key => codes[key].isUniversal && codes[key].active);
     
-    // Check if code is already used
-    if (codes[code].used) {
-      return { valid: false, error: 'This invite code has already been used.' };
-    }
+    // Check if the provided code matches any active universal code
+    const codeUpper = code.toUpperCase();
+    const isValidCode = universalCodes.some(universalCode => universalCode.toUpperCase() === codeUpper);
     
-    // Check if code is for this email (if email is specified)
-    if (codes[code].email && codes[code].email.toLowerCase() !== email.toLowerCase()) {
-      return { valid: false, error: 'This invite code is not valid for your email address.' };
+    if (!isValidCode) {
+      return { valid: false, error: 'Invalid beta access code. Please check your invitation email for the correct code.' };
     }
     
     return { valid: true };
   } catch (error) {
     console.error('Invite validation failed:', error);
-    return { valid: false, error: 'Unable to validate invite code. Please try again.' };
+    return { valid: false, error: 'Unable to validate beta access code. Please try again.' };
   }
 }
 
@@ -188,7 +184,7 @@ export default function Login() {
 
     const doSignup = async () => {
       try {
-        // Create Firebase user
+        // Create Firebase user with the actual invite code used
         const { user: firebaseUser } = await registerUser(email, password, isReturningUser ? null : inviteCode.trim());
         
         // Store password for encryption
@@ -269,10 +265,11 @@ export default function Login() {
             const userExists = await checkUserExists(email);
             
             if (userExists) {
-                // User exists! Show login form
+                // User exists! Show login form - skip all invite/whitelist validation
                 setIsReturningUser(true);
                 setMode('login');
                 setError('');
+                setLoading(false);
                 return;
             } else {
                 // New user - continue with signup flow

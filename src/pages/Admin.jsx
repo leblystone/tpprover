@@ -126,6 +126,15 @@ export default function Admin() {
     return code;
   };
 
+  const generateUniversalCode = (phase) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = `PHASE${phase}-`;
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
   const createInviteCodesFirebase = async (count, emails = []) => {
     try {
       const existingCodes = await getInviteCodes();
@@ -150,6 +159,35 @@ export default function Admin() {
     } catch (error) {
       console.error('Error creating invite codes:', error);
       return [];
+    }
+  };
+
+  const createUniversalCodeFirebase = async (phase) => {
+    try {
+      const existingCodes = await getInviteCodes();
+      let code = generateUniversalCode(phase);
+      
+      // Ensure unique codes
+      while (existingCodes[code]) {
+        code = generateUniversalCode(phase);
+      }
+      
+      const universalCode = {
+        code,
+        email: null,
+        isUniversal: true,
+        active: true,
+        phase: phase,
+        createdAt: new Date().toISOString(),
+        description: `Universal code for Phase ${phase} beta testing`
+      };
+      
+      await createInviteCodes([universalCode]);
+      await loadInviteData(); // Reload to get updated data
+      return code;
+    } catch (error) {
+      console.error('Error creating universal code:', error);
+      return null;
     }
   };
 
@@ -544,35 +582,73 @@ export default function Admin() {
                 <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Generate Invite Codes</h2>
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => createInviteCodesFirebase(1)}
-                  disabled={loading.inviteCodes}
-                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                >
-                  {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
-                  Generate 1 Code
-                </button>
-                <button
-                  onClick={() => createInviteCodesFirebase(5)}
-                  disabled={loading.inviteCodes}
-                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
-                >
-                  {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
-                  Generate 5 Codes
-                </button>
-                <button
-                  onClick={() => createInviteCodesFirebase(10)}
-                  disabled={loading.inviteCodes}
-                  className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
-                >
-                  {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
-                  Generate 10 Codes
-                </button>
+            <div className="p-6 space-y-6">
+              {/* Universal Codes Section */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="font-semibold text-blue-900 mb-2">Universal Phase Codes</h3>
+                <p className="text-sm text-blue-700 mb-4">
+                  Create universal codes for different testing phases. All whitelisted users can use these codes for bulk invitations.
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => createUniversalCodeFirebase(1)}
+                    disabled={loading.inviteCodes}
+                    className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
+                    Phase 1 Code
+                  </button>
+                  <button
+                    onClick={() => createUniversalCodeFirebase(2)}
+                    disabled={loading.inviteCodes}
+                    className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
+                    Phase 2 Code
+                  </button>
+                  <button
+                    onClick={() => createUniversalCodeFirebase(3)}
+                    disabled={loading.inviteCodes}
+                    className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
+                    Phase 3 Code
+                  </button>
+                </div>
+              </div>
+
+              {/* Individual Codes Section */}
+              <div>
+                <h3 className="font-semibold mb-3" style={{ color: theme.text }}>Individual Codes (Optional)</h3>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => createInviteCodesFirebase(1)}
+                    disabled={loading.inviteCodes}
+                    className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
+                    Generate 1 Code
+                  </button>
+                  <button
+                    onClick={() => createInviteCodesFirebase(5)}
+                    disabled={loading.inviteCodes}
+                    className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
+                  >
+                    {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
+                    Generate 5 Codes
+                  </button>
+                  <button
+                    onClick={() => createInviteCodesFirebase(10)}
+                    disabled={loading.inviteCodes}
+                    className="px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                  >
+                    {loading.inviteCodes ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
+                    Generate 10 Codes
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -600,9 +676,20 @@ export default function Admin() {
                           <code className="px-3 py-1 rounded bg-gray-100 font-mono text-sm font-semibold" style={{ backgroundColor: theme.secondary }}>
                             {invite.code}
                           </code>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${invite.used ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                            {invite.used ? 'Used' : 'Available'}
-                          </span>
+                          {invite.isUniversal ? (
+                            <>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                Universal - Phase {invite.phase}
+                              </span>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${invite.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                {invite.active ? 'Active' : 'Inactive'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${invite.used ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                              {invite.used ? 'Used' : 'Available'}
+                            </span>
+                          )}
                           {invite.email && (
                             <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
                               {invite.email}

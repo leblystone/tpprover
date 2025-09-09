@@ -126,9 +126,20 @@ export async function registerUser(email, password, inviteCode) {
     
     await setDoc(doc(db, 'users', user.uid), userData);
     
-    // Mark invite code as used
+    // Mark invite code as used (skip for universal codes)
     if (inviteCode) {
-      await markInviteCodeUsed(inviteCode, email);
+      try {
+        const codes = await getInviteCodes();
+        const code = codes[inviteCode];
+        // Only mark as used if it's not a universal code
+        if (code && !code.isUniversal) {
+          await markInviteCodeUsed(inviteCode, email);
+        }
+      } catch (error) {
+        console.error('Error checking code type:', error);
+        // If we can't check, assume it's a regular code and try to mark as used
+        await markInviteCodeUsed(inviteCode, email);
+      }
     }
     
     return { user, userData };
