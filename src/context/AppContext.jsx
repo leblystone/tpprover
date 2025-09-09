@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { seedInitialData } from '../utils/seed';
+import { logoutUser, onAuthChange } from '../services/firebase';
 
 const AppContext = createContext();
 
@@ -65,27 +66,57 @@ export function AppProvider({ children }) {
 
         loadAppData();
         
-        try {
-            const authToken = localStorage.getItem('tpprover_auth_token');
-            if (authToken) {
-                setUser({ token: authToken });
+        // Listen to Firebase auth changes instead of just localStorage
+        const unsubscribe = onAuthChange((firebaseUser) => {
+            if (firebaseUser) {
+                // User is authenticated, load their profile from localStorage
+                try {
+                    const savedUser = localStorage.getItem('tpprover_user');
+                    if (savedUser) {
+                        setUser(JSON.parse(savedUser));
+                    } else {
+                        // Create user profile if it doesn't exist
+                        const userProfile = {
+                            email: firebaseUser.email,
+                            name: firebaseUser.email.split('@')[0],
+                            uid: firebaseUser.uid
+                        };
+                        setUser(userProfile);
+                        localStorage.setItem('tpprover_user', JSON.stringify(userProfile));
+                    }
+                } catch (e) {
+                    console.error("Failed to load user profile", e);
+                    setUser(null);
+                }
+            } else {
+                // User is not authenticated, clear everything
+                setUser(null);
+                localStorage.removeItem('tpprover_auth_token');
+                localStorage.removeItem('tpprover_user');
             }
-        } catch (e) {
-            console.error("Failed to parse auth token", e);
-            setUser(null);
-            localStorage.removeItem('tpprover_auth_token');
-        } finally {
             setIsLoading(false);
-        }
+        });
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, []);
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('tpprover_auth_token');
-        localStorage.removeItem('tpprover_user');
-        // The ProtectedRoute will now redirect to /login
-        // We might need to navigate explicitly if the component doesn't re-render automatically
-        window.location.href = '/login';
+    const logout = async () => {
+        try {
+            // Sign out from Firebase - the auth state listener will handle the rest
+            await logoutUser();
+            
+            // Redirect to login (the auth state listener will clear user/localStorage)
+            window.location.href = '/login';
+        } catch (error) {
+            console.error('Logout failed:', error);
+            // If Firebase logout fails, force clear everything manually
+            setUser(null);
+            localStorage.removeItem('tpprover_auth_token');
+            localStorage.removeItem('tpprover_user');
+            window.location.href = '/login';
+        }
     };
 
     // Persist data to localStorage whenever it changes
