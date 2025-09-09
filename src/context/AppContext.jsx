@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { seedInitialData } from '../utils/seed';
 import { logoutUser, onAuthChange } from '../services/firebase';
+import { useFirebase } from './FirebaseContext';
 
 const AppContext = createContext();
 
@@ -21,6 +22,9 @@ export function AppProvider({ children }) {
     const [scheduledBuys, setScheduledBuys] = useState([]);
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    
+    // Firebase sync integration
+    const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase } = useFirebase();
 
     // Load initial data from localStorage on mount
     useEffect(() => {
@@ -67,7 +71,7 @@ export function AppProvider({ children }) {
         loadAppData();
         
         // Listen to Firebase auth changes instead of just localStorage
-        const unsubscribe = onAuthChange((firebaseUser) => {
+        const unsubscribe = onAuthChange(async (firebaseUser) => {
             if (firebaseUser) {
                 // User is authenticated, load their profile from localStorage
                 try {
@@ -83,6 +87,29 @@ export function AppProvider({ children }) {
                         };
                         setUser(userProfile);
                         localStorage.setItem('tpprover_user', JSON.stringify(userProfile));
+                    }
+                    
+                    // Try to load data from Firebase if user has password set
+                    if (hasPassword) {
+                        try {
+                            const firebaseData = await loadFromFirebase();
+                            if (firebaseData) {
+                                // Load Firebase data into state
+                                if (firebaseData.protocols) setProtocols(firebaseData.protocols);
+                                if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
+                                if (firebaseData.reconHistory) setReconHistory(firebaseData.reconHistory);
+                                if (firebaseData.supplements) setSupplements(firebaseData.supplements);
+                                if (firebaseData.orders) setOrders(firebaseData.orders);
+                                if (firebaseData.metrics) setMetrics(firebaseData.metrics);
+                                if (firebaseData.vendors) setVendors(firebaseData.vendors);
+                                if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
+                                if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
+                                if (firebaseData.scheduledBuys) setScheduledBuys(firebaseData.scheduledBuys);
+                                console.log('✅ User data loaded from Firebase');
+                            }
+                        } catch (error) {
+                            console.log('📱 Using local data (Firebase sync unavailable):', error.message);
+                        }
                     }
                 } catch (e) {
                     console.error("Failed to load user profile", e);
@@ -100,7 +127,35 @@ export function AppProvider({ children }) {
         return () => {
             if (unsubscribe) unsubscribe();
         };
-    }, []);
+    }, [hasPassword, loadFromFirebase]);
+
+    // Auto-sync data to Firebase when it changes
+    useEffect(() => {
+        if (firebaseUser && hasPassword) {
+            const userData = {
+                protocols,
+                reconItems,
+                reconHistory,
+                supplements,
+                orders,
+                metrics,
+                vendors,
+                calendarNotes,
+                stockpile,
+                scheduledBuys
+            };
+            
+            // Only sync if we have some data to sync
+            const hasData = Object.values(userData).some(data => 
+                Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
+            );
+            
+            if (hasData) {
+                console.log('🔄 Syncing data to Firebase...');
+                debouncedSync(userData);
+            }
+        }
+    }, [firebaseUser, hasPassword, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, debouncedSync]);
 
     const logout = async () => {
         try {
