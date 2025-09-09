@@ -634,8 +634,8 @@ export default function Admin() {
             </button>
           </div>
         ) : (
-          <div className="grid gap-4">{
-            announcements.map(announcement => {
+          <div className="grid gap-4">
+            {announcements.map(announcement => {
               const categoryInfo = categoryOptions.find(cat => cat.value === announcement.category);
               const CategoryIcon = categoryInfo?.icon || Megaphone;
               
@@ -682,10 +682,9 @@ export default function Admin() {
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-      )}
+            })}
+          </div>
+        )}
 
       {/* Beta Invites Tab */}
       {activeTab === 'invites' && (
