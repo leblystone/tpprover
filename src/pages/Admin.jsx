@@ -1095,5 +1095,7 @@ export default function Admin() {
       )}
       </div>
     </div>
-  ); // End of Admin component
+  );
 }
+
+export default Admin;
