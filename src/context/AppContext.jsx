@@ -22,6 +22,7 @@ export function AppProvider({ children }) {
     const [scheduledBuys, setScheduledBuys] = useState([]);
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     
     // Firebase sync integration
     const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase } = useFirebase();
@@ -111,6 +112,9 @@ export function AppProvider({ children }) {
                             console.log('📱 Using local data (Firebase sync unavailable):', error.message);
                         }
                     }
+                    
+                    // Mark initial load as complete
+                    setIsInitialLoad(false);
                 } catch (e) {
                     console.error("Failed to load user profile", e);
                     setUser(null);
@@ -131,31 +135,34 @@ export function AppProvider({ children }) {
 
     // Auto-sync data to Firebase when it changes
     useEffect(() => {
-        if (firebaseUser && hasPassword) {
-            const userData = {
-                protocols,
-                reconItems,
-                reconHistory,
-                supplements,
-                orders,
-                metrics,
-                vendors,
-                calendarNotes,
-                stockpile,
-                scheduledBuys
-            };
-            
-            // Only sync if we have some data to sync
-            const hasData = Object.values(userData).some(data => 
-                Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
-            );
-            
-            if (hasData) {
-                console.log('🔄 Syncing data to Firebase...');
-                debouncedSync(userData);
-            }
+        // Don't sync during initial load or if user isn't authenticated
+        if (isInitialLoad || !firebaseUser || !hasPassword) {
+            return;
         }
-    }, [firebaseUser, hasPassword, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, debouncedSync]);
+
+        const userData = {
+            protocols,
+            reconItems,
+            reconHistory,
+            supplements,
+            orders,
+            metrics,
+            vendors,
+            calendarNotes,
+            stockpile,
+            scheduledBuys
+        };
+        
+        // Only sync if we have some data to sync
+        const hasData = Object.values(userData).some(data => 
+            Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
+        );
+        
+        if (hasData) {
+            console.log('🔄 Syncing data to Firebase...');
+            debouncedSync(userData);
+        }
+    }, [isInitialLoad, firebaseUser, hasPassword, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, debouncedSync]);
 
     const logout = async () => {
         try {

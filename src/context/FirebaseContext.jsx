@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { onAuthChange, loadUserData, saveUserData } from '../services/firebase.js';
 
 const FirebaseContext = createContext();
@@ -34,7 +34,7 @@ export function FirebaseProvider({ children }) {
     };
 
     // Sync user data to Firebase (encrypted)
-    const syncToFirebase = async (userData) => {
+    const syncToFirebase = useCallback(async (userData) => {
         if (!firebaseUser || !userPassword) {
             console.log('Cannot sync: user not authenticated or password not available');
             return false;
@@ -54,10 +54,10 @@ export function FirebaseProvider({ children }) {
             setTimeout(() => setSyncStatus('idle'), 5000);
             return false;
         }
-    };
+    }, [firebaseUser, userPassword]);
 
     // Load user data from Firebase (decrypt)
-    const loadFromFirebase = async () => {
+    const loadFromFirebase = useCallback(async () => {
         if (!firebaseUser || !userPassword) {
             console.log('Cannot load: user not authenticated or password not available');
             return null;
@@ -75,12 +75,12 @@ export function FirebaseProvider({ children }) {
             setTimeout(() => setSyncStatus('idle'), 5000);
             return null;
         }
-    };
+    }, [firebaseUser, userPassword]);
 
     // Auto-sync when data changes (debounced)
     const [syncTimeout, setSyncTimeout] = useState(null);
     
-    const debouncedSync = (userData) => {
+    const debouncedSync = useCallback((userData) => {
         if (syncTimeout) {
             clearTimeout(syncTimeout);
         }
@@ -90,7 +90,7 @@ export function FirebaseProvider({ children }) {
         }, 2000); // Wait 2 seconds after last change
         
         setSyncTimeout(timeout);
-    };
+    }, [syncTimeout, syncToFirebase]);
 
     const value = {
         firebaseUser,
