@@ -85,20 +85,28 @@ export async function checkUserExists(email) {
     console.log('🔍 Firebase: Sign-in methods found:', signInMethods);
     console.log('🔍 Firebase: Sign-in methods length:', signInMethods.length);
     
-    const exists = signInMethods.length > 0;
-    console.log('🔍 Firebase: User exists in AUTH?', exists);
+    const authExists = signInMethods.length > 0;
+    console.log('🔍 Firebase: User exists in AUTH?', authExists);
     
     // Additional check: Look in Firestore users collection
+    let firestoreExists = false;
     try {
       const { doc, getDoc } = await import('firebase/firestore');
       const userDoc = await getDoc(doc(db, 'users', email.toLowerCase()));
-      console.log('🔍 Firebase: User exists in FIRESTORE?', userDoc.exists());
-      if (userDoc.exists()) {
+      firestoreExists = userDoc.exists();
+      console.log('🔍 Firebase: User exists in FIRESTORE?', firestoreExists);
+      if (firestoreExists) {
         console.log('🔍 Firebase: User data in Firestore:', userDoc.data());
       }
     } catch (firestoreError) {
       console.log('🔍 Firebase: Could not check Firestore:', firestoreError.message);
     }
+    
+    // If user exists in either place, consider them as existing
+    // This handles cases where user was created but there's a sync issue
+    const exists = authExists || firestoreExists;
+    
+    console.log('🔍 Firebase: Final user exists decision:', exists, '(auth:', authExists, ', firestore:', firestoreExists, ')');
     
     return exists;
   } catch (error) {
@@ -153,19 +161,13 @@ export async function registerUser(email, password, inviteCode) {
     
     await setDoc(doc(db, 'users', user.uid), userData);
     
-    // Mark invite code as used (skip for universal codes)
+    // Mark invite code as used (handles both individual and universal codes)
     if (inviteCode) {
       try {
-        const codes = await getInviteCodes();
-        const code = codes[inviteCode];
-        // Only mark as used if it's not a universal code
-        if (code && !code.isUniversal) {
-          await markInviteCodeUsed(inviteCode, email);
-        }
-      } catch (error) {
-        console.error('Error checking code type:', error);
-        // If we can't check, assume it's a regular code and try to mark as used
         await markInviteCodeUsed(inviteCode, email);
+      } catch (error) {
+        console.error('Error marking invite code as used:', error);
+        // Don't throw - registration should still succeed even if code marking fails
       }
     }
     
@@ -308,15 +310,37 @@ export async function createInviteCodes(codes) {
 }
 
 /**
- * Mark invite code as used
+ * Mark invite code as used (for individual codes) or increment usage count (for universal codes)
  */
 export async function markInviteCodeUsed(code, email) {
   try {
-    await updateDoc(doc(db, 'inviteCodes', code), {
-      used: true,
-      usedBy: email,
-      usedAt: serverTimestamp()
-    });
+    // First, get the code to check if it's universal
+    const codeDoc = await getDoc(doc(db, 'inviteCodes', code));
+    if (!codeDoc.exists()) {
+      throw new Error('Invite code not found');
+    }
+    
+    const codeData = codeDoc.data();
+    
+    if (codeData.isUniversal) {
+      // For universal codes, increment usage count and add to users list
+      const currentUsedBy = codeData.usedBy || [];
+      const currentUsageCount = codeData.usageCount || 0;
+      
+      await updateDoc(doc(db, 'inviteCodes', code), {
+        usageCount: currentUsageCount + 1,
+        usedBy: [...currentUsedBy, { email, usedAt: serverTimestamp() }],
+        lastUsedAt: serverTimestamp()
+      });
+    } else {
+      // For individual codes, mark as used (single use)
+      await updateDoc(doc(db, 'inviteCodes', code), {
+        used: true,
+        usedBy: email,
+        usedAt: serverTimestamp()
+      });
+    }
+    
     return true;
   } catch (error) {
     console.error('Failed to mark invite code as used:', error);

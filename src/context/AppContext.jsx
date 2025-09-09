@@ -23,6 +23,7 @@ export function AppProvider({ children }) {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [isClearingDemoData, setIsClearingDemoData] = useState(false);
     
     // Firebase sync integration
     const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase } = useFirebase();
@@ -135,8 +136,8 @@ export function AppProvider({ children }) {
 
     // Auto-sync data to Firebase when it changes
     useEffect(() => {
-        // Don't sync during initial load or if user isn't authenticated
-        if (isInitialLoad || !firebaseUser || !hasPassword) {
+        // Don't sync during initial load, demo data clearing, or if user isn't authenticated
+        if (isInitialLoad || isClearingDemoData || !firebaseUser || !hasPassword) {
             return;
         }
 
@@ -162,7 +163,7 @@ export function AppProvider({ children }) {
             console.log('🔄 Syncing data to Firebase...');
             debouncedSync(userData);
         }
-    }, [isInitialLoad, firebaseUser, hasPassword, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, debouncedSync]);
+    }, [isInitialLoad, isClearingDemoData, firebaseUser, hasPassword, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, debouncedSync]);
 
     const logout = async () => {
         try {
@@ -248,6 +249,9 @@ export function AppProvider({ children }) {
     };
 
     const refreshDataAfterClear = () => {
+        // Prevent Firebase sync during demo data clearing
+        setIsClearingDemoData(true);
+        
         // Reload all data from localStorage after clearing mock data
         try {
             const savedProtocols = localStorage.getItem('tpprover_protocols');
@@ -279,8 +283,15 @@ export function AppProvider({ children }) {
 
             const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
             setScheduledBuys(savedScheduledBuys ? JSON.parse(savedScheduledBuys) : []);
+            
+            // Re-enable Firebase sync after a short delay
+            setTimeout(() => {
+                setIsClearingDemoData(false);
+                console.log('✅ Demo data cleared and Firebase sync re-enabled');
+            }, 1000);
         } catch (error) {
             console.error("Error refreshing data after clear:", error);
+            setIsClearingDemoData(false);
         }
     };
 

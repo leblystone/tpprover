@@ -285,23 +285,25 @@ export default function Login() {
         }
         
         try {
-            console.log('🔍 Checking if user exists for email:', email);
+            console.log('🔍 STEP 1: Checking if user exists for email:', email);
             
             // Check if user exists using proper Firebase method
             const userExists = await checkUserExists(email);
-            console.log('🔍 checkUserExists result:', userExists);
+            console.log('🔍 STEP 2: checkUserExists result:', userExists);
             
             if (userExists) {
                 // User exists! Show login form - skip all invite/whitelist validation
-                console.log('✅ Existing user detected - showing login form');
+                console.log('✅ STEP 3: Existing user detected - showing login form');
+                console.log('🔄 STEP 4: Setting isReturningUser to true and mode to login');
                 setIsReturningUser(true);
                 setMode('login');
                 setError('');
+                console.log('✅ STEP 5: Returning early - should NOT show invite code field');
                 setLoading(false);
                 return;
             } else {
                 // New user - continue with signup flow
-                console.log('🆕 New user detected - checking whitelist');
+                console.log('🆕 STEP 3: New user detected - checking whitelist');
                 setIsReturningUser(false);
             }
             
