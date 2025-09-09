@@ -685,8 +685,6 @@ export default function Admin() {
             })
           )}
         </div>
-      </div>
-        </>
       )}
 
       {/* Beta Invites Tab */}
