@@ -80,12 +80,17 @@
     const [manageOpen, setManageOpen] = React.useState(false)
     const [selectedPlan, setSelectedPlan] = React.useState('month')
 
-    const authDb = React.useMemo(() => getAuthDb(), [user?.email])
+    // Get creation date from Firebase user data (stored in localStorage after login)
     const createdAt = React.useMemo(() => {
-      const key = (user?.email || '').toLowerCase()
-      const rec = authDb[key]
-      return rec?.createdAt ? new Date(rec.createdAt) : null
-    }, [authDb, user])
+      if (user?.createdAt) {
+        return new Date(user.createdAt);
+      }
+      // Fallback to legacy localStorage auth system for old users
+      const authDb = getAuthDb();
+      const key = (user?.email || '').toLowerCase();
+      const rec = authDb[key];
+      return rec?.createdAt ? new Date(rec.createdAt) : null;
+    }, [user])
 
     const [editingEmail, setEditingEmail] = React.useState(false)
     const [emailDraft, setEmailDraft] = React.useState(user?.email || '')

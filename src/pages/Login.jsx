@@ -119,16 +119,26 @@ export default function Login() {
           uid: firebaseUser.uid
         };
         
-        // Set createdAt for account age tracking if not already set
+        // Set createdAt for account age tracking - use Firebase user creation date
         try {
           const existingUser = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
-          if (!existingUser.createdAt) {
-            user.createdAt = new Date().toISOString();
-          } else {
+          if (existingUser.createdAt) {
+            // Use existing localStorage date if available
             user.createdAt = existingUser.createdAt;
+          } else if (firebaseUser.metadata?.creationTime) {
+            // Use Firebase user creation date for accurate signup date
+            user.createdAt = new Date(firebaseUser.metadata.creationTime).toISOString();
+          } else {
+            // Fallback to current date (should rarely happen)
+            user.createdAt = new Date().toISOString();
           }
         } catch {
-          user.createdAt = new Date().toISOString();
+          // Use Firebase creation time as fallback
+          if (firebaseUser.metadata?.creationTime) {
+            user.createdAt = new Date(firebaseUser.metadata.creationTime).toISOString();
+          } else {
+            user.createdAt = new Date().toISOString();
+          }
         }
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
