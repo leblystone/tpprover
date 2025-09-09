@@ -123,9 +123,10 @@ export default function UpcomingOrderCard({ order, theme }) {
       lastLocation = `${trackingInfo.location.city}, ${trackingInfo.location.state}`
     }
   } else {
-    // Fallback to manual status
+    // Fallback to manual status - ONLY use explicit status, not dates
     if (order.deliveryDate) current = 2
-    else if (order.shipDate || (order.status && order.status.toLowerCase().includes('ship'))) current = 1
+    else if (order.status && (order.status.toLowerCase().includes('ship') || order.status.toLowerCase().includes('transit'))) current = 1
+    else current = 0 // Default to "Order Placed" if no tracking and no shipped status
   }
 
   return (

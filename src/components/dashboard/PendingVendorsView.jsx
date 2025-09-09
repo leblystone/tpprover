@@ -12,8 +12,8 @@ export default function PendingVendorsView({ vendors, theme, onViewAll, onComple
     <div className="p-8 rounded-xl content-card w-full" style={{ backgroundColor: theme.white }}>
       <h3 className="h3 mb-6 border-b pb-3" style={{ color: theme.primaryDark, borderColor: theme.border }}>Pending Vendors</h3>
       <div className="space-y-4">
-        {vendors.map((vendor) => (
-          <div key={vendor.id} className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: theme.border }}>
+        {vendors.map((vendor, index) => (
+          <div key={vendor.id || `vendor-${index}`} className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: theme.border }}>
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
               <div>
