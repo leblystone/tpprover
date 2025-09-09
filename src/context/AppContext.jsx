@@ -273,7 +273,10 @@ export function AppProvider({ children }) {
     useEffect(() => { saveData('tpprover_protocols', protocols) }, [protocols]);
     useEffect(() => { saveData('tpprover_recon_items', reconItems) }, [reconItems]);
     useEffect(() => { saveData('tpprover_recon_history', reconHistory) }, [reconHistory]);
-    useEffect(() => { saveData('tpprover_supplements', supplements) }, [supplements]);
+    useEffect(() => { 
+        console.log('💾 Saving supplements to localStorage:', supplements);
+        saveData('tpprover_supplements', supplements);
+    }, [supplements]);
     useEffect(() => { saveData('tpprover_orders', orders) }, [orders]);
     useEffect(() => { saveData('tpprover_metrics', metrics) }, [metrics]);
     useEffect(() => { saveData('tpprover_vendors', vendors) }, [vendors]);
@@ -326,7 +329,18 @@ export function AppProvider({ children }) {
     };
 
     const addSupplement = (newSupplement) => {
-        setSupplements(prev => [{...newSupplement, id: Date.now()}, ...prev]);
+        // Only generate ID if not already provided
+        const supplementToAdd = {
+            ...newSupplement,
+            id: newSupplement.id || Date.now()
+        };
+        
+        console.log('💊 Adding supplement:', supplementToAdd);
+        setSupplements(prev => {
+            const updated = [supplementToAdd, ...prev];
+            console.log('💊 Updated supplements array:', updated);
+            return updated;
+        });
     };
 
     const updateSupplement = (updatedSupplement) => {

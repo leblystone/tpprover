@@ -83,6 +83,10 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     {d && (
                                         <div className="flex items-center gap-0.5">
                                             {buyCount > 0 && <ShoppingCart size={12} style={{ color: theme.primary }} />}
+                                            {/* Show supplement delivery method icons */}
+                                            {deliveryMethods.map((delivery, idx) => (
+                                                <span key={idx}>{getSupplementIcon(delivery, "h-3 w-3")}</span>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
@@ -98,8 +102,6 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                                     {peptideCount}
                                                     </span>
                                                 )}
-                                                {suppCount > 0 && (<span className="inline-flex items-center gap-0.5" title={`${suppCount} supplement(s)`}>{getSupplementIcon(primaryDelivery)}</span>)}
-                                                {buyCount > 0 && (<span className="inline-flex items-center gap-0.5"><ShoppingCart className="h-3 w-3" />{buyCount}</span>)}
                                             </span>
                                         </div>
                                     )}
