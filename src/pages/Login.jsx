@@ -13,7 +13,8 @@ import {
   getEmailWhitelist,
   markInviteCodeUsed,
   checkAndAssignFounderStatus,
-  getUserFounderStatus
+  getUserFounderStatus,
+  checkUserExists
 } from '../services/firebase';
 
 // Lightweight local auth to mirror old app behavior for local testing
@@ -264,24 +265,18 @@ export default function Login() {
         }
         
         try {
-            // Check if this is a returning user by trying to login first
-            try {
-                // Try to login with a dummy password to see if user exists
-                await loginUser(email, 'dummy_password_check');
-            } catch (loginError) {
-                if (loginError.code === 'auth/wrong-password') {
-                    // User exists! Show login form
-                    setIsReturningUser(true);
-                    setMode('login');
-                    setError('');
-                    return;
-                } else if (loginError.code === 'auth/user-not-found') {
-                    // New user - continue with signup flow
-                    setIsReturningUser(false);
-                } else {
-                    // Other error, fall through to whitelist check
-                    console.log('Login check failed:', loginError);
-                }
+            // Check if user exists using proper Firebase method
+            const userExists = await checkUserExists(email);
+            
+            if (userExists) {
+                // User exists! Show login form
+                setIsReturningUser(true);
+                setMode('login');
+                setError('');
+                return;
+            } else {
+                // New user - continue with signup flow
+                setIsReturningUser(false);
             }
             
             // For new users, check if email is whitelisted for beta

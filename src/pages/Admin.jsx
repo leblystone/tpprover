@@ -265,29 +265,37 @@ export default function Admin() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="max-w-md w-full p-8 rounded-lg border shadow-lg" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <div className="text-center mb-6">
-            <Megaphone size={48} className="mx-auto mb-4" style={{ color: theme.primary }} />
-            <h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
+        <div className="max-w-md w-full p-8 rounded-lg border shadow-sm content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
+              <Megaphone size={32} style={{ color: theme.primary }} />
+            </div>
+            <h1 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>Admin Panel</h1>
             <p className="text-sm" style={{ color: theme.textLight }}>Enter admin password to continue</p>
           </div>
           
-          <form onSubmit={handleLogin}>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Admin password"
-              className="w-full p-3 rounded border mb-4"
-              style={{ borderColor: theme.border, backgroundColor: theme.background }}
-              required
-            />
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Admin password"
+                className="w-full p-4 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                style={{ 
+                  borderColor: theme.border, 
+                  backgroundColor: theme.background,
+                  focusRingColor: theme.primary
+                }}
+                required
+              />
+            </div>
             <button
               type="submit"
-              className="w-full p-3 rounded font-semibold"
+              className="w-full p-4 rounded-lg font-semibold transition-colors hover:opacity-90"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
-              Login
+              Access Admin Panel
             </button>
           </form>
         </div>

@@ -1,52 +1,52 @@
-  import React, { useEffect, useState } from 'react'
-  import { useOutletContext } from 'react-router-dom'
-  import { themes, defaultThemeName } from '../theme/themes'
-  import { exportToCSV } from '../utils/export'
-  import { clearAppData, clearSpecific } from '../utils/reset'
-  import { clearMockData } from '../utils/seed'
-  import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
-  import { useAppContext } from '../context/AppContext'
-  import SuccessModal from '../components/ui/SuccessModal'
+import React, { useEffect, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
+import { themes, defaultThemeName } from '../theme/themes'
+import { exportToCSV } from '../utils/export'
+import { clearAppData, clearSpecific } from '../utils/reset'
+import { clearMockData } from '../utils/seed'
+import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
+import { useAppContext } from '../context/AppContext'
+import SuccessModal from '../components/ui/SuccessModal'
 
-  // Settings persistence (local-only)
-  function loadSettings() {
-    try { return JSON.parse(localStorage.getItem('tpprover_settings') || 'null') } catch { return null }
+// Settings persistence (local-only)
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem('tpprover_settings') || 'null') } catch { return null }
+}
+function saveSettings(obj) {
+  try { localStorage.setItem('tpprover_settings', JSON.stringify(obj)) } catch {}
+}
+function getDefaultSettings() {
+  const tz = Intl?.DateTimeFormat?.().resolvedOptions?.().timeZone || 'UTC'
+  return {
+    notifications: {
+      email: true,
+      push: false,
+      billing: true,
+      researchReminders: true,
+      groupBuys: true,
+    },
+    appearance: {
+      mode: 'system', // 'system' | 'light' | 'dark'
+      fontScale: '1.0', // '0.9' | '1.0' | '1.1' | '1.25'
+      highContrast: false,
+    },
+    region: {
+      language: 'en-US',
+      timeZone: tz,
+      weekStartsOn: 'monday', // 'sunday' | 'monday'
+    },
+    privacy: {
+      analytics: false,
+      functional: true,
+      dataSharing: false,
+    },
   }
-  function saveSettings(obj) {
-    try { localStorage.setItem('tpprover_settings', JSON.stringify(obj)) } catch {}
-  }
-  function getDefaultSettings() {
-    const tz = Intl?.DateTimeFormat?.().resolvedOptions?.().timeZone || 'UTC'
-    return {
-      notifications: {
-        email: true,
-        push: false,
-        billing: true,
-        researchReminders: true,
-        groupBuys: true,
-      },
-      appearance: {
-        mode: 'system', // 'system' | 'light' | 'dark'
-        fontScale: '1.0', // '0.9' | '1.0' | '1.1' | '1.25'
-        highContrast: false,
-      },
-      region: {
-        language: 'en-US',
-        timeZone: tz,
-        weekStartsOn: 'monday', // 'sunday' | 'monday'
-      },
-      privacy: {
-        analytics: false,
-        functional: true,
-        dataSharing: false,
-      },
-    }
-  }
+}
 
-  export default function Settings() {
-    const { theme } = useOutletContext()
-    const { refreshDataAfterClear } = useAppContext()
-    const [pwaPrompted, setPWAPrompted] = useState(false)
+export default function Settings() {
+  const { theme } = useOutletContext()
+  const { refreshDataAfterClear } = useAppContext()
+  const [pwaPrompted, setPWAPrompted] = useState(false)
     const [selectedTheme, setSelectedTheme] = useState(() => {
         try { return localStorage.getItem('tpprover_theme') || defaultThemeName } catch { return defaultThemeName }
     })

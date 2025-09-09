@@ -17,7 +17,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  fetchSignInMethodsForEmail
 } from 'firebase/auth';
 import { db, auth } from '../config/firebase.js';
 import { encryptUserData, decryptUserData, hashPassword } from '../utils/encryption.js';
@@ -65,6 +66,21 @@ export async function checkAndAssignFounderStatus(userId) {
     return isFounder;
   } catch (error) {
     console.error('Error checking founder status:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a user exists with the given email
+ * @param {string} email - User email
+ * @returns {Promise<boolean>} - Whether user exists
+ */
+export async function checkUserExists(email) {
+  try {
+    const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+    return signInMethods.length > 0;
+  } catch (error) {
+    console.error('Error checking user existence:', error);
     return false;
   }
 }
