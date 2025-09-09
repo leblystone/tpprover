@@ -271,11 +271,15 @@ export default function Login() {
         }
         
         try {
+            console.log('🔍 Checking if user exists for email:', email);
+            
             // Check if user exists using proper Firebase method
             const userExists = await checkUserExists(email);
+            console.log('🔍 checkUserExists result:', userExists);
             
             if (userExists) {
                 // User exists! Show login form - skip all invite/whitelist validation
+                console.log('✅ Existing user detected - showing login form');
                 setIsReturningUser(true);
                 setMode('login');
                 setError('');
@@ -283,21 +287,26 @@ export default function Login() {
                 return;
             } else {
                 // New user - continue with signup flow
+                console.log('🆕 New user detected - checking whitelist');
                 setIsReturningUser(false);
             }
             
             // For new users, check if email is whitelisted for beta
             const whitelist = await getEmailWhitelist();
+            console.log('📋 Email whitelist:', whitelist);
+            console.log('🔍 Checking if', email.toLowerCase(), 'is in whitelist');
+            
             if (!whitelist.includes(email.toLowerCase())) {
                 setError('This email is not authorized for beta access. Please check your invitation email or contact support with your email address for assistance.');
                 return;
             }
             
             // New user - show signup form
+            console.log('✅ Email is whitelisted - showing signup form');
             setMode('signup');
             setError('');
         } catch (error) {
-            console.error('Email validation failed:', error);
+            console.error('❌ Email validation failed:', error);
             setError('Unable to validate email. Please try again.');
         }
     };

@@ -77,10 +77,18 @@ export async function checkAndAssignFounderStatus(userId) {
  */
 export async function checkUserExists(email) {
   try {
+    console.log('🔍 Firebase: Checking sign-in methods for:', email);
     const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-    return signInMethods.length > 0;
+    console.log('🔍 Firebase: Sign-in methods found:', signInMethods);
+    const exists = signInMethods.length > 0;
+    console.log('🔍 Firebase: User exists?', exists);
+    return exists;
   } catch (error) {
-    console.error('Error checking user existence:', error);
+    console.error('❌ Firebase: Error checking user existence:', error);
+    console.error('❌ Firebase: Error details:', {
+      code: error.code,
+      message: error.message
+    });
     return false;
   }
 }
