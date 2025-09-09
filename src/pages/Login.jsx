@@ -43,8 +43,8 @@ async function validateInvite(email, code) {
     const codeUpper = code.toUpperCase();
     let isValidCode = false;
     
-    // Check universal codes (active)
-    const universalCodes = Object.keys(codes).filter(key => codes[key].isUniversal && codes[key].active);
+    // Check universal codes (active) - ignore 'used' field for universal codes
+    const universalCodes = Object.keys(codes).filter(key => codes[key].isUniversal && codes[key].active !== false);
     console.log('🔍 Universal codes:', universalCodes);
     isValidCode = universalCodes.some(universalCode => universalCode.toUpperCase() === codeUpper);
     

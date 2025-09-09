@@ -1,28 +1,33 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
+import { submitFeedback } from '../../services/firebase';
+import { useAppContext } from '../../context/AppContext';
 
 export default function FeedbackModal({ open, onClose, theme }) {
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [error, setError] = useState('');
+    const { user } = useAppContext();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!message.trim()) return;
         
         setIsSubmitting(true);
+        setError('');
 
         try {
-            // Create mailto link with FEEDBACK/BUG subject
-            const subject = encodeURIComponent('FEEDBACK/BUG');
-            const body = encodeURIComponent(message);
-            const mailtoLink = `mailto:contact@thepepplanner.com?subject=${subject}&body=${body}`;
-            
-            // Open email client
-            window.location.href = mailtoLink;
+            await submitFeedback({
+                message: message.trim(),
+                userEmail: user?.email || 'anonymous',
+                userId: user?.uid || null,
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            });
             
             // Show success message
-            setIsSubmitting(false);
             setIsSubmitted(true);
             setMessage('');
             
@@ -31,12 +36,12 @@ export default function FeedbackModal({ open, onClose, theme }) {
                 setIsSubmitted(false);
             }, 3000);
         } catch (error) {
+            console.error('Error submitting feedback:', error);
+            setError('Failed to submit feedback. Please try again.');
+        } finally {
             setIsSubmitting(false);
-            alert('Error opening email client. Please manually email contact@thepepplanner.com');
         }
     };
-    
-    // Using mailto: link instead of Netlify forms for direct email
 
     return (
         <Modal
@@ -49,7 +54,7 @@ export default function FeedbackModal({ open, onClose, theme }) {
             {isSubmitted ? (
                 <div className="text-center p-8">
                     <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Thank You!</h3>
-                    <p className="mt-2 text-sm" style={{ color: theme.text }}>Your email client should have opened with your feedback. Please send the email to complete the submission.</p>
+                    <p className="mt-2 text-sm" style={{ color: theme.text }}>Your feedback has been submitted successfully. We'll review it and get back to you if needed.</p>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -72,6 +77,11 @@ export default function FeedbackModal({ open, onClose, theme }) {
                             placeholder="I noticed that..."
                         />
                     </div>
+                    {error && (
+                        <div className="text-sm p-2 rounded" style={{ color: theme.error, backgroundColor: `${theme.error}10` }}>
+                            {error}
+                        </div>
+                    )}
                     <div className="text-right">
                         <button
                             type="submit"
@@ -84,7 +94,7 @@ export default function FeedbackModal({ open, onClose, theme }) {
                                 cursor: (isSubmitting || !message) ? 'not-allowed' : 'pointer'
                             }}
                         >
-                            {isSubmitting ? 'Sending...' : 'Send Feedback'}
+                            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
                         </button>
                     </div>
                 </form>

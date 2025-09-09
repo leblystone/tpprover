@@ -61,7 +61,42 @@ export default function Goals() {
                   </button>
                   <div style={{ color: g.completed ? theme.textLight : theme.text }} className={g.completed ? 'line-through' : ''}>
                     <div className="font-medium text-sm">{g.text}</div>
-                    {g.dueDate && <div className="text-xs" style={{ color: theme.textLight }}>Due: {g.dueDate}</div>}
+                    {g.dueDate && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs" style={{ color: theme.textLight }}>
+                          Due: {new Date(g.dueDate).toLocaleDateString()}
+                        </span>
+                        {!g.completed && (() => {
+                          const dueDate = new Date(g.dueDate);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          dueDate.setHours(0, 0, 0, 0);
+                          const diffTime = dueDate.getTime() - today.getTime();
+                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                          let color = theme.info;
+                          let countdownText = '';
+                          
+                          if (diffDays < 0) {
+                            color = theme.error;
+                            countdownText = `${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} overdue`;
+                          } else if (diffDays === 0) {
+                            color = theme.warning;
+                            countdownText = 'Due today';
+                          } else if (diffDays <= 7) {
+                            color = theme.warning;
+                            countdownText = `${diffDays} day${diffDays !== 1 ? 's' : ''} left`;
+                          } else {
+                            countdownText = `${diffDays} day${diffDays !== 1 ? 's' : ''} left`;
+                          }
+                          
+                          return (
+                            <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: `${color}20`, color: color }}>
+                              {countdownText}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button className="p-1 rounded hover:opacity-80" onClick={() => { setEditingGoal(g); setShowGoal(true) }}><Edit className="h-4 w-4" /></button>

@@ -11,7 +11,8 @@ import {
   orderBy, 
   limit,
   serverTimestamp,
-  increment
+  increment,
+  addDoc
 } from 'firebase/firestore';
 import { 
   createUserWithEmailAndPassword, 
@@ -336,13 +337,16 @@ export async function markInviteCodeUsed(code, email) {
     
     if (codeData.isUniversal) {
       // For universal codes, increment usage count and add to users list
+      // NEVER mark universal codes as 'used: true' - they should remain unlimited
       const currentUsedBy = codeData.usedBy || [];
       const currentUsageCount = codeData.usageCount || 0;
       
       await updateDoc(doc(db, 'inviteCodes', code), {
         usageCount: currentUsageCount + 1,
         usedBy: [...currentUsedBy, { email, usedAt: serverTimestamp() }],
-        lastUsedAt: serverTimestamp()
+        lastUsedAt: serverTimestamp(),
+        active: true, // Ensure universal codes remain active
+        used: false  // Explicitly ensure universal codes are never marked as used
       });
     } else {
       // For individual codes, mark as used (single use)
@@ -556,6 +560,96 @@ export async function getUserList() {
     return users;
   } catch (error) {
     console.error('Failed to get user list:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// FEEDBACK SYSTEM
+// ============================================================================
+
+/**
+ * Submit feedback from users
+ * @param {Object} feedbackData - The feedback data
+ * @returns {Promise<string>} - The feedback document ID
+ */
+export async function submitFeedback(feedbackData) {
+  try {
+    const feedbackRef = collection(db, 'feedback');
+    const docRef = await addDoc(feedbackRef, {
+      ...feedbackData,
+      status: 'new',
+      submittedAt: serverTimestamp(),
+      adminNotes: ''
+    });
+    
+    console.log('✅ Feedback submitted successfully with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('❌ Failed to submit feedback:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all feedback for admin view
+ * @returns {Promise<Array>} - Array of feedback items
+ */
+export async function getAllFeedback() {
+  try {
+    const feedbackRef = collection(db, 'feedback');
+    const q = query(feedbackRef, orderBy('submittedAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const feedback = [];
+    querySnapshot.forEach((doc) => {
+      feedback.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return feedback;
+  } catch (error) {
+    console.error('❌ Failed to get feedback:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update feedback status and admin notes
+ * @param {string} feedbackId - The feedback document ID
+ * @param {Object} updates - Updates to apply
+ * @returns {Promise<void>}
+ */
+export async function updateFeedback(feedbackId, updates) {
+  try {
+    const feedbackRef = doc(db, 'feedback', feedbackId);
+    await updateDoc(feedbackRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('✅ Feedback updated successfully');
+  } catch (error) {
+    console.error('❌ Failed to update feedback:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete feedback
+ * @param {string} feedbackId - The feedback document ID
+ * @returns {Promise<void>}
+ */
+export async function deleteFeedback(feedbackId) {
+  try {
+    const feedbackRef = doc(db, 'feedback', feedbackId);
+    await deleteDoc(feedbackRef);
+    
+    console.log('✅ Feedback deleted successfully');
+  } catch (error) {
+    console.error('❌ Failed to delete feedback:', error);
     throw error;
   }
 }

@@ -1,27 +1,10 @@
-[1mdiff --git a/src/components/glossary/GlossaryQuickModal.jsx b/src/components/glossary/GlossaryQuickModal.jsx[m
-[1mindex 070690e..8e0b6af 100644[m
-[1m--- a/src/components/glossary/GlossaryQuickModal.jsx[m
-[1m+++ b/src/components/glossary/GlossaryQuickModal.jsx[m
-[36m@@ -3,2 +3,3 @@[m [mimport Modal from '../common/Modal'[m
- import TextInput from '../common/inputs/TextInput.jsx'[m
-[32m+[m[32mimport { Search } from 'lucide-react';[m
- [m
-[36m@@ -17,3 +18,17 @@[m [mexport default function GlossaryQuickModal({ open, onClose, theme }) {[m
-       <div className="space-y-3">[m
-[31m-        <TextInput label="Search" value={q} onChange={setQ} placeholder="BPC-157" theme={theme} />[m
-[32m+[m[32m        <div className="flex items-center gap-2">[m
-[32m+[m[32m            <TextInput label="Search Local" value={q} onChange={setQ} placeholder="BPC-157" theme={theme} className="flex-grow" />[m
-[32m+[m[32m            <button[m
-[32m+[m[32m                onClick={() => {[m
-[32m+[m[32m                    const query = encodeURIComponent(`${q} peptide OR supplement site:examine.com OR site:wikipedia.org`);[m
-[32m+[m[32m                    window.open(`https://www.google.com/search?q=${query}`, '_blank');[m
-[32m+[m[32m                }}[m
-[32m+[m[32m                className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2 mt-6"[m
-[32m+[m[32m                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}[m
-[32m+[m[32m                title="Search online for this term"[m
-[32m+[m[32m            >[m
-[32m+[m[32m                <Search size={16} />[m
-[32m+[m[32m                <span>Search Online</span>[m
-[32m+[m[32m            </button>[m
-[32m+[m[32m        </div>[m
-         <div className="text-xs p-2 rounded border" style={{ borderColor: theme?.border, color: theme?.text }}>[m
+[33m1269c7a[m MAJOR ENHANCEMENT: Real-time Shipment Tracking System - Added comprehensive Shippo API integration for USPS/UPS/FedEx tracking - Enhanced UpcomingOrderCard with real-time tracking status display - Automatic carrier detection from tracking number format - Smart caching system (30min cache) to reduce API calls - Mock data fallback for development without API key - Real-time status updates: Order Placed  In Transit  Delivered - Location tracking with city/state display - Manual refresh functionality with loading states - Error handling and graceful degradation - Tracking number display with loading indicators - Dashboard now shows ACTUAL shipping status, not just order status - Beta-ready tracking system for incoming peptides card!
+[33mc2f83d6[m CRITICAL FIX: Supplements persistence issue resolved - Fixed ID conflict in addSupplement function (was overwriting IDs from modal) - Added debugging logs to track supplement saving flow - Supplements now properly persist when added from dashboard - This was a critical beta-blocking bug affecting user data
+[33m541d40b[m CRITICAL BETA FIXES: Dashboard and Calendar Issues - Fixed pending vendors display on dashboard with completion handler - Fixed incoming peptides status logic to show actual order status - Fixed upcoming buys saving from dashboard (immediate state update) - Added shopping cart icons to monthly calendar for group buys - Improved monthly calendar supplement icons (delivery method specific) - Cleaned up monthly view to minimize clutter, focus on protocols - Icons now strategically placed: supplements (delivery icons), group buys (cart icon)
+[33m3a22ee8[m  Implement comprehensive badge system for beta launch
+[33me94dcbc[m Fix terms of service modal flow - only show after credential validation
+[33ma247871[m Production-ready UX improvements and security enhancements
+[33m0bbdf24[m feat(install): redesign install app modal
+[33m5828e29[m Improve SuccessModal theming and fix banner demo data removal
+[33m75e8ec6[m Replace outdated toast with modern success popup modal
+[33m26bb421[m Fix supplement calendar synchronization issues

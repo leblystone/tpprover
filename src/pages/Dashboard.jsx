@@ -581,14 +581,32 @@ export default function Dashboard() {
                                     (() => {
                                         const dueDate = new Date(g.dueDate);
                                         const today = new Date();
+                                        today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+                                        dueDate.setHours(0, 0, 0, 0);
                                         const diffTime = dueDate.getTime() - today.getTime();
                                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                                         let color = theme.info;
-                                        if (diffDays < 0) color = theme.error;
-                                        else if (diffDays <= 7) color = theme.warning;
+                                        let countdownText = '';
+                                        
+                                        if (diffDays < 0) {
+                                            color = theme.error;
+                                            countdownText = `${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} overdue`;
+                                        } else if (diffDays === 0) {
+                                            color = theme.warning;
+                                            countdownText = 'Due today';
+                                        } else if (diffDays <= 7) {
+                                            color = theme.warning;
+                                            countdownText = `${diffDays} day${diffDays !== 1 ? 's' : ''} left`;
+                                        } else {
+                                            countdownText = `${diffDays} day${diffDays !== 1 ? 's' : ''} left`;
+                                        }
+                                        
                                         return (
-                                            <div className="mt-1">
+                                            <div className="mt-1 flex flex-col gap-1">
                                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${color}20`, color: color }}>
+                                                    {countdownText}
+                                                </span>
+                                                <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>
                                                     {formatMMDDYYYY(dueDate)}
                                                 </span>
                                             </div>
