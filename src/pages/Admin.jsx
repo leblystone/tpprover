@@ -504,7 +504,7 @@ export default function Admin() {
 
       {/* Announcements Tab */}
       {activeTab === 'announcements' && (
-        <>
+        <div className="space-y-6">
           {/* Add/Edit Form */}
           {showAddForm && (
         <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -685,6 +685,8 @@ export default function Admin() {
             })}
           </div>
         )}
+        </div>
+      )}
 
       {/* Beta Invites Tab */}
       {activeTab === 'invites' && (
