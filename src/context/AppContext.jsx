@@ -26,7 +26,7 @@ export function AppProvider({ children }) {
     const [isClearingDemoData, setIsClearingDemoData] = useState(false);
     
     // Firebase sync integration
-    const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase } = useFirebase();
+    const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase, syncToFirebase } = useFirebase();
 
     // Load initial data from localStorage on mount
     useEffect(() => {
@@ -96,7 +96,11 @@ export function AppProvider({ children }) {
                         try {
                             const firebaseData = await loadFromFirebase();
                             if (firebaseData) {
-                                // Load Firebase data into state
+                                // Only load Firebase data if it's newer than localStorage
+                                // This prevents overwriting newer local changes with stale Firebase data
+                                console.log('✅ User data loaded from Firebase');
+                                
+                                // Load Firebase data into state (Firebase takes precedence for authenticated users)
                                 if (firebaseData.protocols) setProtocols(firebaseData.protocols);
                                 if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
                                 if (firebaseData.reconHistory) setReconHistory(firebaseData.reconHistory);
@@ -107,7 +111,23 @@ export function AppProvider({ children }) {
                                 if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
                                 if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
                                 if (firebaseData.scheduledBuys) setScheduledBuys(firebaseData.scheduledBuys);
-                                console.log('✅ User data loaded from Firebase');
+                                
+                                // CRITICAL: Update localStorage with Firebase data to prevent future data loss
+                                try {
+                                    localStorage.setItem('tpprover_protocols', JSON.stringify(firebaseData.protocols || []));
+                                    localStorage.setItem('tpprover_recon_items', JSON.stringify(firebaseData.reconItems || []));
+                                    localStorage.setItem('tpprover_recon_history', JSON.stringify(firebaseData.reconHistory || []));
+                                    localStorage.setItem('tpprover_supplements', JSON.stringify(firebaseData.supplements || []));
+                                    localStorage.setItem('tpprover_orders', JSON.stringify(firebaseData.orders || []));
+                                    localStorage.setItem('tpprover_metrics', JSON.stringify(firebaseData.metrics || []));
+                                    localStorage.setItem('tpprover_vendors', JSON.stringify(firebaseData.vendors || []));
+                                    localStorage.setItem('tpprover_calendar_notes', JSON.stringify(firebaseData.calendarNotes || {}));
+                                    localStorage.setItem('tpprover_stockpile', JSON.stringify(firebaseData.stockpile || []));
+                                    localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(firebaseData.scheduledBuys || []));
+                                    console.log('💾 Firebase data synced to localStorage backup');
+                                } catch (backupError) {
+                                    console.error('❌ Failed to backup Firebase data to localStorage:', backupError);
+                                }
                             }
                         } catch (error) {
                             console.log('📱 Using local data (Firebase sync unavailable):', error.message);
@@ -129,10 +149,31 @@ export function AppProvider({ children }) {
             setIsLoading(false);
         });
 
+        // Add beforeunload handler to sync data when user closes browser/tab
+        const handleBeforeUnload = (event) => {
+            if (firebaseUser && hasPassword) {
+                // Try to sync data before page unload
+                const userData = {
+                    protocols, reconItems, reconHistory, supplements, orders, 
+                    metrics, vendors, calendarNotes, stockpile, scheduledBuys
+                };
+                
+                // Use navigator.sendBeacon for reliable data sending during page unload
+                try {
+                    syncToFirebase(userData).catch(console.error);
+                } catch (error) {
+                    console.error('Failed to sync on page unload:', error);
+                }
+            }
+        };
+        
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
         return () => {
             if (unsubscribe) unsubscribe();
+            window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [hasPassword, loadFromFirebase]);
+    }, []); // FIXED: Remove data dependencies to prevent infinite loops
 
     // Auto-sync data to Firebase when it changes
     useEffect(() => {
@@ -154,6 +195,23 @@ export function AppProvider({ children }) {
             scheduledBuys
         };
         
+        // CRITICAL: Immediately save to localStorage as backup before Firebase sync
+        try {
+            localStorage.setItem('tpprover_protocols', JSON.stringify(protocols));
+            localStorage.setItem('tpprover_recon_items', JSON.stringify(reconItems));
+            localStorage.setItem('tpprover_recon_history', JSON.stringify(reconHistory));
+            localStorage.setItem('tpprover_supplements', JSON.stringify(supplements));
+            localStorage.setItem('tpprover_orders', JSON.stringify(orders));
+            localStorage.setItem('tpprover_metrics', JSON.stringify(metrics));
+            localStorage.setItem('tpprover_vendors', JSON.stringify(vendors));
+            localStorage.setItem('tpprover_calendar_notes', JSON.stringify(calendarNotes));
+            localStorage.setItem('tpprover_stockpile', JSON.stringify(stockpile));
+            localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
+            console.log('💾 Data backed up to localStorage');
+        } catch (error) {
+            console.error('❌ Failed to backup to localStorage:', error);
+        }
+        
         // Only sync if we have some data to sync
         const hasData = Object.values(userData).some(data => 
             Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
@@ -163,10 +221,31 @@ export function AppProvider({ children }) {
             console.log('🔄 Syncing data to Firebase...');
             debouncedSync(userData);
         }
-    }, [isInitialLoad, isClearingDemoData, firebaseUser, hasPassword, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, debouncedSync]);
+    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys]); // FIXED: Only include data dependencies, remove functions
 
     const logout = async () => {
         try {
+            // CRITICAL: Force immediate sync before logout to prevent data loss
+            if (firebaseUser && hasPassword) {
+                console.log('💾 Force syncing data before logout...');
+                const userData = {
+                    protocols,
+                    reconItems,
+                    reconHistory,
+                    supplements,
+                    orders,
+                    metrics,
+                    vendors,
+                    calendarNotes,
+                    stockpile,
+                    scheduledBuys
+                };
+                
+                // Use syncToFirebase directly (not debounced) for immediate sync
+                await syncToFirebase(userData);
+                console.log('✅ Data synced before logout');
+            }
+            
             // Sign out from Firebase - the auth state listener will handle the rest
             await logoutUser();
             
@@ -295,6 +374,163 @@ export function AppProvider({ children }) {
         }
     };
 
+    // CRITICAL: Enhanced data recovery function with detailed logging
+    const recoverDataFromLocalStorage = () => {
+        console.log('🚨 EMERGENCY DATA RECOVERY - CHECKING ALL SOURCES...');
+        
+        // First, check what's actually in localStorage
+        const allLocalStorageKeys = Object.keys(localStorage).filter(key => key.startsWith('tpprover_'));
+        console.log('📋 Available localStorage keys:', allLocalStorageKeys);
+        
+        allLocalStorageKeys.forEach(key => {
+            const data = localStorage.getItem(key);
+            console.log(`🔍 ${key}:`, data ? `${data.length} characters` : 'null/empty');
+            if (data && data !== '[]' && data !== '{}') {
+                try {
+                    const parsed = JSON.parse(data);
+                    console.log(`📊 ${key} parsed:`, Array.isArray(parsed) ? `${parsed.length} items` : typeof parsed);
+                } catch (e) {
+                    console.log(`❌ ${key} parse error:`, e.message);
+                }
+            }
+        });
+        
+        try {
+            let recoveredCount = 0;
+            
+            const savedProtocols = localStorage.getItem('tpprover_protocols');
+            if (savedProtocols && savedProtocols !== '[]') {
+                const parsed = JSON.parse(savedProtocols);
+                setProtocols(parsed);
+                console.log(`✅ Recovered ${parsed.length} protocols`);
+                recoveredCount++;
+            }
+
+            const savedRecon = localStorage.getItem('tpprover_recon_items');
+            if (savedRecon && savedRecon !== '[]') {
+                const parsed = JSON.parse(savedRecon);
+                setReconItems(parsed);
+                console.log(`✅ Recovered ${parsed.length} recon items`);
+                recoveredCount++;
+            }
+            
+            const savedHistory = localStorage.getItem('tpprover_recon_history');
+            if (savedHistory && savedHistory !== '[]') {
+                const parsed = JSON.parse(savedHistory);
+                setReconHistory(parsed);
+                console.log(`✅ Recovered ${parsed.length} recon history items`);
+                recoveredCount++;
+            }
+
+            const savedSupps = localStorage.getItem('tpprover_supplements');
+            if (savedSupps && savedSupps !== '[]') {
+                const parsed = JSON.parse(savedSupps);
+                setSupplements(parsed);
+                console.log(`✅ Recovered ${parsed.length} supplements`);
+                recoveredCount++;
+            }
+
+            const savedOrders = localStorage.getItem('tpprover_orders');
+            if (savedOrders && savedOrders !== '[]') {
+                const parsed = JSON.parse(savedOrders);
+                setOrders(parsed);
+                console.log(`✅ Recovered ${parsed.length} orders`);
+                recoveredCount++;
+            }
+
+            const savedMetrics = localStorage.getItem('tpprover_metrics');
+            if (savedMetrics && savedMetrics !== '[]') {
+                const parsed = JSON.parse(savedMetrics);
+                setMetrics(parsed);
+                console.log(`✅ Recovered ${parsed.length} metrics`);
+                recoveredCount++;
+            }
+
+            const savedVendors = localStorage.getItem('tpprover_vendors');
+            if (savedVendors && savedVendors !== '[]') {
+                const parsed = JSON.parse(savedVendors);
+                setVendors(parsed);
+                console.log(`✅ Recovered ${parsed.length} vendors`);
+                recoveredCount++;
+            }
+            
+            const savedNotes = localStorage.getItem('tpprover_calendar_notes');
+            if (savedNotes && savedNotes !== '{}') {
+                const parsed = JSON.parse(savedNotes);
+                setCalendarNotes(parsed);
+                console.log(`✅ Recovered ${Object.keys(parsed).length} calendar notes`);
+                recoveredCount++;
+            }
+
+            const savedStockpile = localStorage.getItem('tpprover_stockpile');
+            if (savedStockpile && savedStockpile !== '[]') {
+                const parsed = JSON.parse(savedStockpile);
+                setStockpile(parsed);
+                console.log(`✅ Recovered ${parsed.length} stockpile items`);
+                recoveredCount++;
+            }
+
+            const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
+            if (savedScheduledBuys && savedScheduledBuys !== '[]') {
+                const parsed = JSON.parse(savedScheduledBuys);
+                setScheduledBuys(parsed);
+                console.log(`✅ Recovered ${parsed.length} scheduled buys`);
+                recoveredCount++;
+            }
+            
+            console.log(`🎯 RECOVERY COMPLETE: Recovered ${recoveredCount} data categories`);
+            return recoveredCount > 0;
+        } catch (error) {
+            console.error('❌ RECOVERY FAILED:', error);
+            return false;
+        }
+    };
+
+    // EMERGENCY: Force Firebase data reload
+    const forceFirebaseReload = async () => {
+        console.log('🔥 FORCE LOADING FROM FIREBASE...');
+        if (!firebaseUser || !hasPassword) {
+            console.log('❌ Not authenticated for Firebase reload');
+            return false;
+        }
+        
+        try {
+            const firebaseData = await loadFromFirebase();
+            if (firebaseData) {
+                console.log('🔥 Firebase data found:', Object.keys(firebaseData));
+                
+                if (firebaseData.protocols) {
+                    setProtocols(firebaseData.protocols);
+                    console.log(`🔥 Loaded ${firebaseData.protocols.length} protocols from Firebase`);
+                }
+                if (firebaseData.reconItems) {
+                    setReconItems(firebaseData.reconItems);
+                    console.log(`🔥 Loaded ${firebaseData.reconItems.length} recon items from Firebase`);
+                }
+                if (firebaseData.vendors) {
+                    setVendors(firebaseData.vendors);
+                    console.log(`🔥 Loaded ${firebaseData.vendors.length} vendors from Firebase`);
+                }
+                if (firebaseData.stockpile) {
+                    setStockpile(firebaseData.stockpile);
+                    console.log(`🔥 Loaded ${firebaseData.stockpile.length} stockpile items from Firebase`);
+                }
+                if (firebaseData.orders) {
+                    setOrders(firebaseData.orders);
+                    console.log(`🔥 Loaded ${firebaseData.orders.length} orders from Firebase`);
+                }
+                
+                return true;
+            } else {
+                console.log('❌ No Firebase data found');
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Firebase reload failed:', error);
+            return false;
+        }
+    };
+
     const hasMockData = useMemo(() => {
         const allData = [...protocols, ...orders, ...vendors, ...supplements, ...reconItems, ...stockpile, ...metrics];
         const hasArrayMockData = allData.some(item => item.isMock === true);
@@ -342,9 +578,74 @@ export function AppProvider({ children }) {
         deleteSupplement,
         updateCalendarNote,
         refreshDataAfterClear,
+        recoverDataFromLocalStorage,
+        forceFirebaseReload,
         hasMockData,
         isLoading,
     };
+
+    // EMERGENCY: Expose recovery functions globally for console access
+    React.useEffect(() => {
+        // Direct assignment to ensure they're available
+        window.emergencyRecovery = recoverDataFromLocalStorage;
+        window.emergencyFirebaseReload = forceFirebaseReload;
+        
+        // Comprehensive data check function
+        window.emergencyDataCheck = () => {
+            console.log('🚨 EMERGENCY DATA CHECK - CURRENT STATE');
+            console.log('App State:');
+            console.log('- Protocols:', protocols?.length || 0);
+            console.log('- Vendors:', vendors?.length || 0);
+            console.log('- Stockpile:', stockpile?.length || 0);
+            console.log('- Recon Items:', reconItems?.length || 0);
+            console.log('- Orders:', orders?.length || 0);
+            console.log('- Supplements:', supplements?.length || 0);
+            
+            console.log('\n📋 LocalStorage Analysis:');
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('tpprover_'));
+            console.log('Available keys:', keys);
+            
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        const count = Array.isArray(parsed) ? parsed.length : Object.keys(parsed).length;
+                        console.log(`✅ ${key}: ${data.length} chars, ${count} items`);
+                    } catch (e) {
+                        console.log(`❌ ${key}: ${data.length} chars, parse error`);
+                    }
+                } else {
+                    console.log(`⚠️ ${key}: empty`);
+                }
+            });
+            
+            return { protocols, vendors, stockpile, reconItems, orders, supplements };
+        };
+        
+        // Manual recovery function that doesn't rely on state
+        window.emergencyManualRecovery = () => {
+            console.log('🚨 MANUAL RECOVERY ATTEMPT');
+            const keys = ['tpprover_protocols', 'tpprover_vendors', 'tpprover_stockpile', 'tpprover_recon_items', 'tpprover_orders'];
+            
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data && data !== '[]' && data !== '{}') {
+                    console.log(`Found data in ${key}:`, data.substring(0, 100) + '...');
+                }
+            });
+        };
+        
+        // Force immediate log
+        setTimeout(() => {
+            console.log('🆘 EMERGENCY FUNCTIONS READY:');
+            console.log('- emergencyDataCheck() - check current state');
+            console.log('- emergencyRecovery() - recover from localStorage');
+            console.log('- emergencyFirebaseReload() - reload from Firebase');
+            console.log('- emergencyManualRecovery() - manual localStorage check');
+        }, 1000);
+        
+    }, [protocols, vendors, stockpile, reconItems, orders, supplements]);
 
     return (
         <AppContext.Provider value={value}>

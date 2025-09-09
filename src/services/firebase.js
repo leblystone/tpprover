@@ -91,7 +91,6 @@ export async function checkUserExists(email) {
     // Additional check: Look in Firestore users collection
     let firestoreExists = false;
     try {
-      const { doc, getDoc } = await import('firebase/firestore');
       const userDoc = await getDoc(doc(db, 'users', email.toLowerCase()));
       firestoreExists = userDoc.exists();
       console.log('🔍 Firebase: User exists in FIRESTORE?', firestoreExists);
@@ -108,10 +107,9 @@ export async function checkUserExists(email) {
     
     console.log('🔍 Firebase: Final user exists decision:', exists, '(auth:', authExists, ', firestore:', firestoreExists, ')');
     
-    // Additional fallback: Try to get user by UID if we have it
+    // Additional fallback: Try to get user by email query if we have it
     if (!exists) {
       try {
-        const { query, where, getDocs, collection } = await import('firebase/firestore');
         const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
         const querySnapshot = await getDocs(q);
         const firestoreByQuery = !querySnapshot.empty;

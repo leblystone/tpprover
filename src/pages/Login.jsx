@@ -313,6 +313,7 @@ export default function Login() {
             } else {
                 // New user - continue with signup flow
                 console.log('🆕 STEP 3: New user detected - checking whitelist');
+                console.log('❗ If you are an existing user but seeing this, use "Already have an account?" button below');
                 setIsReturningUser(false);
             }
             
@@ -524,14 +525,19 @@ export default function Login() {
 
                         {/* Additional Options */}
                         <div className="mt-4 text-center space-y-2">
-                            {mode === 'signup' && !isReturningUser && (
-                                <button 
-                                    onClick={forceLoginMode}
-                                    className="text-sm underline hover:no-underline"
-                                    style={{ color: theme.primary }}
-                                >
-                                    Already have an account? Log in instead
-                                </button>
+                            {(mode === 'signup' && !isReturningUser) && (
+                                <div className="space-y-2">
+                                    <button 
+                                        onClick={forceLoginMode}
+                                        className="text-sm underline hover:no-underline font-medium"
+                                        style={{ color: theme.primary }}
+                                    >
+                                        Already have an account? Log in instead
+                                    </button>
+                                    <div className="text-xs" style={{ color: theme.textLight }}>
+                                        Use this if you're an existing user but weren't automatically detected
+                                    </div>
+                                </div>
                             )}
                             
                             {mode === 'login' && (

@@ -1,6 +1,17 @@
 import React from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown } from 'lucide-react'
+import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker } from 'lucide-react'
+
+// Helper function to get supplement icon based on delivery method
+function getSupplementIcon(delivery, className = "h-3 w-3") {
+    switch (String(delivery || '').toLowerCase()) {
+        case 'injection': return <Syringe className={className} />;
+        case 'powder': return <Beaker className={className} />;
+        case 'pill':
+        case 'oral':
+        default: return <Pill className={className} />;
+    }
+}
 
 function getMonthDays(date) {
   const start = new Date(date.getFullYear(), date.getMonth(), 1)
@@ -52,6 +63,14 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const peptides = Array.from(new Set([...(sched.bySlot?.Morning?.peptides || []), ...(sched.bySlot?.Evening?.peptides || [])]))
                     const peptideCount = peptides.length
                     const suppCount = sched.supplements?.length || 0
+                    // Get all supplements from bySlot to determine delivery methods
+                    const allSupplements = [
+                        ...(sched.bySlot?.Morning?.supplements || []),
+                        ...(sched.bySlot?.Evening?.supplements || [])
+                    ];
+                    // Get unique delivery methods for icon display
+                    const deliveryMethods = [...new Set(allSupplements.map(s => typeof s === 'object' ? s.delivery : 'oral'))];
+                    const primaryDelivery = deliveryMethods[0] || 'oral';
                     const buyCount = (sched.buys || 0) + (sched.groupBuys || 0)
                     
                     return (
@@ -74,7 +93,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                                     {peptideCount}
                                                     </span>
                                                 )}
-                                                {suppCount > 0 && (<span className="inline-flex items-center gap-0.5" title={`${suppCount} supplement(s)`}><Pill className="h-3 w-3" /></span>)}
+                                                {suppCount > 0 && (<span className="inline-flex items-center gap-0.5" title={`${suppCount} supplement(s)`}>{getSupplementIcon(primaryDelivery)}</span>)}
                                                 {buyCount > 0 && (<span className="inline-flex items-center gap-0.5"><ShoppingCart className="h-3 w-3" />{buyCount}</span>)}
                                             </span>
                                         </div>

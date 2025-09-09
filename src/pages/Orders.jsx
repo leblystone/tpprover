@@ -26,7 +26,7 @@ function useLocalStorage(key, initialValue) {
 
 export default function Orders() {
 	const { theme } = useOutletContext()
-	const { orders, setOrders, vendors, setStockpile } = useAppContext();
+	const { orders, setOrders, vendors, addVendor, setStockpile } = useAppContext();
 	const location = useLocation()
 	const [activeTab, setActiveTab] = useState('domestic')
 	const [showAddModal, setShowAddModal] = useState(false)
@@ -181,6 +181,11 @@ export default function Orders() {
 				order={editingOrder}
 				vendors={vendors}
 				onSave={(data) => {
+					// Auto-create new vendor if it doesn't exist (same logic as stockpile)
+					if (data.vendor && !vendors.some(v => v.name.toLowerCase() === data.vendor.toLowerCase())) {
+						addVendor({ name: data.vendor, isStub: true });
+					}
+					
 					const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
 					if (editingOrder) {
 						const updatedOrder = { ...editingOrder, ...data, vendorId };

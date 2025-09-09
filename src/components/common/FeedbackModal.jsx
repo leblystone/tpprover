@@ -8,41 +8,35 @@ export default function FeedbackModal({ open, onClose, theme }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!message.trim()) return;
+        
         setIsSubmitting(true);
 
-        const formData = new FormData();
-        formData.append('form-name', 'feedback');
-        formData.append('message', message);
-
-        fetch('/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(formData).toString(),
-        })
-        .then(() => {
+        try {
+            // Create mailto link with FEEDBACK/BUG subject
+            const subject = encodeURIComponent('FEEDBACK/BUG');
+            const body = encodeURIComponent(message);
+            const mailtoLink = `mailto:contact@thepepplanner.com?subject=${subject}&body=${body}`;
+            
+            // Open email client
+            window.location.href = mailtoLink;
+            
+            // Show success message
             setIsSubmitting(false);
             setIsSubmitted(true);
             setMessage('');
+            
             setTimeout(() => {
                 onClose();
                 setIsSubmitted(false);
-            }, 3000); // Close modal after 3 seconds
-        })
-        .catch((error) => {
+            }, 3000);
+        } catch (error) {
             setIsSubmitting(false);
-            // You could add more robust error handling here
-            alert('Error submitting feedback. Please try again.');
-        });
+            alert('Error opening email client. Please manually email contact@thepepplanner.com');
+        }
     };
     
-    // This is a hidden form that Netlify's bots will detect on deploy
-    const netlifyHiddenForm = (
-        <form name="feedback" data-netlify="true" netlify-honeypot="bot-field" hidden>
-            <input type="hidden" name="form-name" value="feedback" />
-            <input type="text" name="bot-field" />
-            <textarea name="message"></textarea>
-        </form>
-    );
+    // Using mailto: link instead of Netlify forms for direct email
 
     return (
         <Modal
@@ -52,11 +46,10 @@ export default function FeedbackModal({ open, onClose, theme }) {
             theme={theme}
             maxWidth="max-w-lg"
         >
-            {netlifyHiddenForm}
             {isSubmitted ? (
                 <div className="text-center p-8">
                     <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Thank You!</h3>
-                    <p className="mt-2 text-sm" style={{ color: theme.text }}>Your feedback has been sent. We appreciate you helping us improve.</p>
+                    <p className="mt-2 text-sm" style={{ color: theme.text }}>Your email client should have opened with your feedback. Please send the email to complete the submission.</p>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">

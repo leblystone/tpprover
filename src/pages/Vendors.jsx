@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import Tabs from '../components/common/Tabs'
@@ -34,7 +34,52 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [filters, setFilters] = useState({ payment: [], contact: [], label: [] })
 
+	// Helper function to identify and clean up duplicate vendors
+	const cleanupDuplicateVendors = () => {
+		const vendorsByName = {};
+		const duplicates = [];
+		
+		// Group vendors by name (case-insensitive)
+		vendors.forEach(vendor => {
+			const name = vendor.name.toLowerCase();
+			if (!vendorsByName[name]) {
+				vendorsByName[name] = [];
+			}
+			vendorsByName[name].push(vendor);
+		});
+		
+		// Find duplicates
+		Object.entries(vendorsByName).forEach(([name, vendorGroup]) => {
+			if (vendorGroup.length > 1) {
+				duplicates.push({ name, vendors: vendorGroup });
+			}
+		});
+		
+		if (duplicates.length > 0) {
+			console.log('🔍 Found duplicate vendors:', duplicates);
+			// Auto-merge: keep the complete vendor, remove the stub
+			duplicates.forEach(({ name, vendors: vendorGroup }) => {
+				const completeVendor = vendorGroup.find(v => !v.isStub);
+				const stubVendors = vendorGroup.filter(v => v.isStub);
+				
+				if (completeVendor && stubVendors.length > 0) {
+					console.log(`🧹 Cleaning up ${stubVendors.length} stub vendor(s) for "${completeVendor.name}"`);
+					stubVendors.forEach(stub => deleteVendor(stub.id));
+				}
+			});
+		} else {
+			console.log('✅ No duplicate vendors found');
+		}
+	};
+
 	const filteredVendors = vendors.filter(v => (v.type || 'domestic') === activeTab)
+
+	// DISABLED: Auto-cleanup on component mount - caused data loss
+	// useEffect(() => {
+	// 	if (vendors.length > 0) {
+	// 		cleanupDuplicateVendors();
+	// 	}
+	// }, [vendors.length]); // Only run when vendors are first loaded
 
 	return (
 		<section>

@@ -86,8 +86,9 @@ export function FirebaseProvider({ children }) {
         }
         
         const timeout = setTimeout(() => {
+            console.log('⏰ Debounce timer expired - syncing data to Firebase');
             syncToFirebase(userData);
-        }, 2000); // Wait 2 seconds after last change
+        }, 1000); // Wait 1 second after last change (reduced from 2 seconds)
         
         setSyncTimeout(timeout);
     }, [syncTimeout, syncToFirebase]);

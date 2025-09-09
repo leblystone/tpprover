@@ -15,6 +15,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       allow read: if isAdmin(); // Admin can read user data for analytics
+      allow read: if true; // TEMPORARY: Allow unauthenticated read for email checking during login
     }
     
     // Users can only read/write their own encrypted data

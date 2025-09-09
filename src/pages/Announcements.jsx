@@ -29,15 +29,34 @@ export default function Announcements() {
   const [posts, setPosts] = React.useState([]);
   
   React.useEffect(() => {
-    // Load announcements from localStorage
-    const loadAnnouncements = () => {
+    // Load announcements from Firebase and cache in localStorage
+    const loadAnnouncements = async () => {
       try {
+        // First try to load from localStorage for immediate display
         const saved = localStorage.getItem('tpprover_announcements');
         if (saved) {
           setPosts(JSON.parse(saved));
         }
+        
+        // Then load from Firebase and update cache
+        const { getAnnouncements } = await import('../services/firebase');
+        const firebaseAnnouncements = await getAnnouncements();
+        
+        if (firebaseAnnouncements && firebaseAnnouncements.length > 0) {
+          setPosts(firebaseAnnouncements);
+          localStorage.setItem('tpprover_announcements', JSON.stringify(firebaseAnnouncements));
+        }
       } catch (error) {
         console.error('Error loading announcements:', error);
+        // Fall back to localStorage only
+        try {
+          const saved = localStorage.getItem('tpprover_announcements');
+          if (saved) {
+            setPosts(JSON.parse(saved));
+          }
+        } catch (fallbackError) {
+          console.error('Error loading from localStorage fallback:', fallbackError);
+        }
       }
     };
     
@@ -46,7 +65,14 @@ export default function Announcements() {
     // Listen for changes to announcements
     const handleStorageChange = (e) => {
       if (e.key === 'tpprover_announcements') {
-        loadAnnouncements();
+        try {
+          const saved = localStorage.getItem('tpprover_announcements');
+          if (saved) {
+            setPosts(JSON.parse(saved));
+          }
+        } catch (error) {
+          console.error('Error loading announcements from storage event:', error);
+        }
       }
     };
     

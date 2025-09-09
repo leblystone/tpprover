@@ -67,7 +67,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                 <div className="space-y-2">
                     <div className="text-sm font-medium" style={{ color: theme.text }}>Frequency</div>
                     <div className="inline-flex rounded-md p-1 border w-full" style={{ backgroundColor: theme.cardBackground }}>
-                        {['daily', 'weekly', 'cycle'].map(type => (
+                        {['daily', 'weekly', 'custom', 'cycle'].map(type => (
                             <button 
                                 key={type} 
                                 type="button" 
@@ -78,7 +78,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     backgroundColor: (item.frequency?.type || 'daily') === type ? theme.primary : 'transparent'
                                 }}
                             >
-                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                                {type === 'custom' ? 'Every X Days' : type.charAt(0).toUpperCase() + type.slice(1)}
                             </button>
                         ))}
                     </div>
@@ -105,6 +105,22 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     {day}
                                 </button>
                             ))}
+                        </div>
+                    )}
+                    {item.frequency?.type === 'custom' && (
+                        <div className="flex items-center gap-2 p-2 rounded-md border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <span className="text-sm" style={{ color: theme.text }}>Every</span>
+                            <input 
+                                type="number" 
+                                value={item.frequency?.customDays || ''} 
+                                onChange={e => handleFrequencyChange('customDays', e.target.value)} 
+                                className="w-20 p-1.5 border rounded text-center" 
+                                placeholder="1" 
+                                min="1"
+                                max="365"
+                                style={{ backgroundColor: theme.secondary, borderColor: theme.border, color: theme.text }} 
+                            />
+                            <span className="text-sm" style={{ color: theme.text }}>day(s)</span>
                         </div>
                     )}
                     {/* Time of Day selection */}

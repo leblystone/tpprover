@@ -259,7 +259,8 @@ export default function Admin() {
     try {
       const newAnnouncement = {
         ...formData,
-        id: editingAnnouncement ? editingAnnouncement.id : undefined, // Let Firebase generate ID for new ones
+        // Only include id for existing announcements, let Firebase generate ID for new ones
+        ...(editingAnnouncement?.id && { id: editingAnnouncement.id })
       };
 
       await saveAnnouncementToFirebase(newAnnouncement);

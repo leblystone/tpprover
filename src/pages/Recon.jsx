@@ -167,17 +167,22 @@ export default function Recon() {
 
 										<div className="flex justify-between items-center mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
 											<div className="flex items-center gap-2">
-												{item.deliveryMethod === 'pen' && item.penColor ? (
-													<div 
+									{item.deliveryMethod === 'pen' && item.penColor ? (
+														<div 
                                                         className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" 
                                                         style={{ 
                                                             background: getChromeGradient(PEN_COLORS[item.penColor] || item.penColor), 
                                                             color: ['Gold', 'Silver', 'Light Pink', 'Light Blue', 'Lime Green', 'Yellow', 'White'].includes(item.penColor) ? theme.text : theme.textOnPrimary 
                                                         }}
                                                     >
-														<PenTool size={12} />
-														<span>{item.penColor} Pen</span>
-													</div>
+															<PenTool size={12} />
+															<span>{
+                                                                // Handle both name format ("Light Blue") and hex format ("#ADD8E6")
+                                                                item.penColor.startsWith('#') 
+                                                                    ? Object.keys(PEN_COLORS).find(name => PEN_COLORS[name] === item.penColor) || 'Custom'
+                                                                    : item.penColor
+                                                            } Pen</span>
+														</div>
 												) : (
                                                     <div className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.text }}>
                                                         <Syringe size={12} />

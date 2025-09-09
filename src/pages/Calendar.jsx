@@ -131,7 +131,11 @@ export default function Calendar() {
                 for (const slot of slots) {
                   bySlot[slot] = {
                     peptides: bySlot[slot]?.peptides || [],
-                    supplements: [...(bySlot[slot]?.supplements || []), s.name || 'Supplement'],
+                    supplements: [...(bySlot[slot]?.supplements || []), {
+                      name: s.name || 'Supplement',
+                      delivery: s.delivery || 'oral',
+                      dose: s.dose
+                    }],
                   }
                 }
               }
@@ -276,6 +280,15 @@ export default function Calendar() {
                               }
                           }
                           break;
+                      case 'custom':
+                          const customDays = Number(freq.customDays) || 1;
+                          if (customDays > 0) {
+                              const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                              if (dayDiff >= 0 && dayDiff % customDays === 0) {
+                                  isScheduledToday = true;
+                              }
+                          }
+                          break;
                       default:
                           break;
                   }
@@ -380,6 +393,15 @@ export default function Calendar() {
                                       if (dayInCycle < on) {
                                           isScheduledToday = true;
                                       }
+                                  }
+                              }
+                              break;
+                          case 'custom':
+                              const customDays = Number(freq.customDays) || 1;
+                              if (customDays > 0) {
+                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                                  if (dayDiff >= 0 && dayDiff % customDays === 0) {
+                                      isScheduledToday = true;
                                   }
                               }
                               break;

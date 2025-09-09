@@ -221,7 +221,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
       
       <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
         <button
-          onClick={() => onSave?.({ ...form, deliveryMethod, penColor, cost })}
+          onClick={() => {
+            // Convert hex color to name before saving
+            const selectedPenColor = penColors.find(p => p.hex === penColor);
+            const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
+            onSave?.({ ...form, deliveryMethod, penColor: penColorName, cost });
+          }}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold hover:opacity-90 transition-all"
           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
         >

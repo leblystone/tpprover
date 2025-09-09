@@ -18,7 +18,7 @@ import useLocalStorage from '../utils/hooks'
 import { formatMMDDYYYY } from '../utils/date'
 import GoalModal from '../components/research/GoalModal'
 import BodyMetricsModal from '../components/research/BodyMetricsModal'
-import SupplementEditorModal from '../components/research/SupplementEditorModal'
+import SupplementEditorModal from '../components/dashboard/SupplementEditorModal'
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard'
 import BadgesModal from '../components/badges/BadgesModal'
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal'
@@ -30,7 +30,7 @@ export default function Dashboard() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
-  const { setScheduledBuys, orders, setOrders, setVendors, setProtocols } = useAppContext();
+  const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement } = useAppContext();
   
   // Mock minimal data to render the dashboard without external deps
   const [vitamins, setVitamins] = useState([
@@ -62,21 +62,21 @@ export default function Dashboard() {
     };
   }, [orders]);
 
-  const pendingVendors = useMemo(() => ([
-    { id: 1001, name: 'Vendor X', notes: 'Auto-created from reconstitution' },
-    { id: 1002, name: 'Vendor Y', notes: 'Auto-created from orders' },
-  ]), [])
+  // Get actual pending vendors (auto-created with isStub: true)
+  const pendingVendors = useMemo(() => {
+    return vendors.filter(vendor => vendor.isStub === true);
+  }, [vendors])
 
-  const [supplements, setSupplements] = useState([]);
-
-  useEffect(() => {
-      try {
-          const raw = localStorage.getItem('tpprover_supplements');
-          if(raw) {
-              setSupplements(JSON.parse(raw));
-          }
-      } catch {}
-  }, []);
+  // Use supplements from AppContext instead of local state
+  // const [supplements, setSupplements] = useState([]);
+  // useEffect(() => {
+  //     try {
+  //         const raw = localStorage.getItem('tpprover_supplements');
+  //         if(raw) {
+  //             setSupplements(JSON.parse(raw));
+  //         }
+  //     } catch {}
+  // }, []);
 
   const [todaysTasks, setTodaysTasks] = useState([])
   const [washoutReminders, setWashoutReminders] = useState([])
@@ -790,12 +790,11 @@ export default function Dashboard() {
         theme={theme}
         supplement={editingSupplement}
         onSave={(data) => {
-          setSupplements(prev => {
-            if (editingSupplement) {
-              return prev.map(v => v.id === editingSupplement.id ? { ...v, ...data } : v)
-            }
-            return [{ id: Date.now(), ...data }, ...prev]
-          })
+          if (editingSupplement) {
+            updateSupplement(data);
+          } else {
+            addSupplement(data);
+          }
           setShowAddSupplement(false)
           setEditingSupplement(null)
           
