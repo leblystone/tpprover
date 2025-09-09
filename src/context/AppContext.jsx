@@ -179,6 +179,12 @@ export function AppProvider({ children }) {
     useEffect(() => {
         // Don't sync during initial load, demo data clearing, or if user isn't authenticated
         if (isInitialLoad || isClearingDemoData || !firebaseUser || !hasPassword) {
+            console.log('🛡️ SYNC BLOCKED:', { 
+                isInitialLoad, 
+                isClearingDemoData, 
+                hasFirebaseUser: !!firebaseUser, 
+                hasPassword 
+            });
             return;
         }
 
@@ -196,18 +202,29 @@ export function AppProvider({ children }) {
         };
         
         // CRITICAL: Immediately save to localStorage as backup before Firebase sync
+        // SAFETY CHECK: Never save empty arrays that could overwrite existing data
         try {
-            localStorage.setItem('tpprover_protocols', JSON.stringify(protocols));
-            localStorage.setItem('tpprover_recon_items', JSON.stringify(reconItems));
-            localStorage.setItem('tpprover_recon_history', JSON.stringify(reconHistory));
-            localStorage.setItem('tpprover_supplements', JSON.stringify(supplements));
-            localStorage.setItem('tpprover_orders', JSON.stringify(orders));
-            localStorage.setItem('tpprover_metrics', JSON.stringify(metrics));
-            localStorage.setItem('tpprover_vendors', JSON.stringify(vendors));
-            localStorage.setItem('tpprover_calendar_notes', JSON.stringify(calendarNotes));
-            localStorage.setItem('tpprover_stockpile', JSON.stringify(stockpile));
-            localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
-            console.log('💾 Data backed up to localStorage');
+            // Only save if we have actual data or if it's not empty
+            const hasAnyData = protocols.length > 0 || reconItems.length > 0 || reconHistory.length > 0 || 
+                              supplements.length > 0 || orders.length > 0 || metrics.length > 0 || 
+                              vendors.length > 0 || stockpile.length > 0 || scheduledBuys.length > 0 ||
+                              Object.keys(calendarNotes).length > 0;
+
+            if (hasAnyData) {
+                localStorage.setItem('tpprover_protocols', JSON.stringify(protocols));
+                localStorage.setItem('tpprover_recon_items', JSON.stringify(reconItems));
+                localStorage.setItem('tpprover_recon_history', JSON.stringify(reconHistory));
+                localStorage.setItem('tpprover_supplements', JSON.stringify(supplements));
+                localStorage.setItem('tpprover_orders', JSON.stringify(orders));
+                localStorage.setItem('tpprover_metrics', JSON.stringify(metrics));
+                localStorage.setItem('tpprover_vendors', JSON.stringify(vendors));
+                localStorage.setItem('tpprover_calendar_notes', JSON.stringify(calendarNotes));
+                localStorage.setItem('tpprover_stockpile', JSON.stringify(stockpile));
+                localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
+                console.log('💾 Data backed up to localStorage');
+            } else {
+                console.log('🛡️ SAFETY: Prevented saving empty data arrays to localStorage');
+            }
         } catch (error) {
             console.error('❌ Failed to backup to localStorage:', error);
         }
