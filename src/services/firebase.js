@@ -108,6 +108,20 @@ export async function checkUserExists(email) {
     
     console.log('🔍 Firebase: Final user exists decision:', exists, '(auth:', authExists, ', firestore:', firestoreExists, ')');
     
+    // Additional fallback: Try to get user by UID if we have it
+    if (!exists) {
+      try {
+        const { query, where, getDocs, collection } = await import('firebase/firestore');
+        const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+        const querySnapshot = await getDocs(q);
+        const firestoreByQuery = !querySnapshot.empty;
+        console.log('🔍 Firebase: User exists by query?', firestoreByQuery);
+        return firestoreByQuery;
+      } catch (queryError) {
+        console.log('🔍 Firebase: Query fallback failed:', queryError.message);
+      }
+    }
+    
     return exists;
   } catch (error) {
     console.error('❌ Firebase: Error checking user existence:', error);

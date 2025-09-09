@@ -16,6 +16,8 @@ import {
   getUserFounderStatus,
   checkUserExists
 } from '../services/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -75,6 +77,7 @@ export default function Login() {
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     const [mode, setMode] = useState('promptEmail'); // 'promptEmail' | 'login' | 'signup'
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -333,6 +336,38 @@ export default function Login() {
         }
     };
 
+    const handleForgotPassword = async () => {
+        if (!email) {
+            setError('Please enter your email address first.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await sendPasswordResetEmail(auth, email);
+            setError('');
+            alert(`Password reset email sent to ${email}. Check your inbox and spam folder.`);
+            setShowForgotPassword(false);
+        } catch (error) {
+            console.error('Password reset failed:', error);
+            if (error.code === 'auth/user-not-found') {
+                setError('No account found with this email address.');
+            } else if (error.code === 'auth/invalid-email') {
+                setError('Please enter a valid email address.');
+            } else {
+                setError('Failed to send password reset email. Please try again.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const forceLoginMode = () => {
+        setIsReturningUser(true);
+        setMode('login');
+        setError('Please enter your password to log in.');
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -486,6 +521,30 @@ export default function Login() {
                                  (isReturningUser ? 'Create Account' : 'Join Beta')))}
                             </button>
                         </form>
+
+                        {/* Additional Options */}
+                        <div className="mt-4 text-center space-y-2">
+                            {mode === 'signup' && !isReturningUser && (
+                                <button 
+                                    onClick={forceLoginMode}
+                                    className="text-sm underline hover:no-underline"
+                                    style={{ color: theme.primary }}
+                                >
+                                    Already have an account? Log in instead
+                                </button>
+                            )}
+                            
+                            {mode === 'login' && (
+                                <button 
+                                    onClick={handleForgotPassword}
+                                    disabled={loading}
+                                    className="text-sm underline hover:no-underline disabled:opacity-50"
+                                    style={{ color: theme.primary }}
+                                >
+                                    Forgot your password?
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
