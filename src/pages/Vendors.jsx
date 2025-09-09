@@ -34,42 +34,12 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [filters, setFilters] = useState({ payment: [], contact: [], label: [] })
 
-	// Helper function to identify and clean up duplicate vendors
+	// DISABLED: Dangerous cleanup function that caused data loss
+	// This function has been permanently disabled due to critical data loss incident
+	// Manual cleanup can be done through UI if needed
 	const cleanupDuplicateVendors = () => {
-		const vendorsByName = {};
-		const duplicates = [];
-		
-		// Group vendors by name (case-insensitive)
-		vendors.forEach(vendor => {
-			const name = vendor.name.toLowerCase();
-			if (!vendorsByName[name]) {
-				vendorsByName[name] = [];
-			}
-			vendorsByName[name].push(vendor);
-		});
-		
-		// Find duplicates
-		Object.entries(vendorsByName).forEach(([name, vendorGroup]) => {
-			if (vendorGroup.length > 1) {
-				duplicates.push({ name, vendors: vendorGroup });
-			}
-		});
-		
-		if (duplicates.length > 0) {
-			console.log('🔍 Found duplicate vendors:', duplicates);
-			// Auto-merge: keep the complete vendor, remove the stub
-			duplicates.forEach(({ name, vendors: vendorGroup }) => {
-				const completeVendor = vendorGroup.find(v => !v.isStub);
-				const stubVendors = vendorGroup.filter(v => v.isStub);
-				
-				if (completeVendor && stubVendors.length > 0) {
-					console.log(`🧹 Cleaning up ${stubVendors.length} stub vendor(s) for "${completeVendor.name}"`);
-					stubVendors.forEach(stub => deleteVendor(stub.id));
-				}
-			});
-		} else {
-			console.log('✅ No duplicate vendors found');
-		}
+		console.warn('⚠️ Automatic cleanup disabled for safety. Use manual cleanup if needed.');
+		return false;
 	};
 
 	const filteredVendors = vendors.filter(v => (v.type || 'domestic') === activeTab)

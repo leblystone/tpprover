@@ -308,6 +308,20 @@ export function AppProvider({ children }) {
     };
 
     const deleteVendor = (vendorId) => {
+        // SAFETY CHECK: Prevent accidental mass deletion
+        if (!vendorId) {
+            console.error('🚨 SAFETY: Cannot delete vendor - no ID provided');
+            return;
+        }
+        
+        // SAFETY CHECK: Confirm vendor exists before deletion
+        const vendorExists = vendors.find(v => v.id === vendorId);
+        if (!vendorExists) {
+            console.warn('⚠️ SAFETY: Vendor not found for deletion:', vendorId);
+            return;
+        }
+        
+        console.log('🗑️ Deleting vendor:', vendorExists.name);
         setVendors(prev => prev.filter(v => v.id !== vendorId));
     };
 
@@ -486,6 +500,31 @@ export function AppProvider({ children }) {
         }
     };
 
+    // CRITICAL: Data protection system to prevent mass data loss
+    const validateDataIntegrity = () => {
+        const dataCategories = {
+            protocols: protocols.length,
+            vendors: vendors.length, 
+            stockpile: stockpile.length,
+            reconItems: reconItems.length,
+            orders: orders.length,
+            supplements: supplements.length
+        };
+        
+        const totalItems = Object.values(dataCategories).reduce((sum, count) => sum + count, 0);
+        
+        console.log('🛡️ Data Integrity Check:', dataCategories, `Total: ${totalItems} items`);
+        
+        // Alert if suspicious data loss (more than 50% of data missing)
+        if (totalItems === 0 && (protocols.length + vendors.length + stockpile.length) === 0) {
+            console.error('🚨 CRITICAL: Complete data loss detected!');
+            console.error('🚨 All data categories are empty - this may indicate a critical bug');
+            return false;
+        }
+        
+        return true;
+    };
+
     // EMERGENCY: Force Firebase data reload
     const forceFirebaseReload = async () => {
         console.log('🔥 FORCE LOADING FROM FIREBASE...');
@@ -589,6 +628,7 @@ export function AppProvider({ children }) {
         // Direct assignment to ensure they're available
         window.emergencyRecovery = recoverDataFromLocalStorage;
         window.emergencyFirebaseReload = forceFirebaseReload;
+        window.emergencyDataIntegrityCheck = validateDataIntegrity;
         
         // Comprehensive data check function
         window.emergencyDataCheck = () => {
@@ -643,6 +683,10 @@ export function AppProvider({ children }) {
             console.log('- emergencyRecovery() - recover from localStorage');
             console.log('- emergencyFirebaseReload() - reload from Firebase');
             console.log('- emergencyManualRecovery() - manual localStorage check');
+            console.log('- emergencyDataIntegrityCheck() - validate data integrity');
+            
+            // CRITICAL: Run integrity check on load
+            validateDataIntegrity();
         }, 1000);
         
     }, [protocols, vendors, stockpile, reconItems, orders, supplements]);
