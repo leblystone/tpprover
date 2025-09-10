@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle } from 'lucide-react';
+import { 
+  Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
+  BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
+  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle
+} from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import {
   getInviteCodes,
@@ -14,6 +18,95 @@ import {
   updateFeedback,
   deleteFeedback
 } from '../services/firebase';
+
+// Mock data generation functions
+const generateMockUserGrowth = () => {
+  const data = [];
+  const now = new Date();
+  for (let i = 30; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    data.push({
+      date: date.toISOString().split('T')[0],
+      users: Math.floor(Math.random() * 10) + (30 - i) * 2,
+      newUsers: Math.floor(Math.random() * 5) + 1
+    });
+  }
+  return data;
+};
+
+const generateMockFeatureUsage = () => ({
+  protocols: { uses: 245, trend: 'up' },
+  calendar: { uses: 189, trend: 'up' },
+  recon: { uses: 156, trend: 'down' },
+  orders: { uses: 134, trend: 'up' },
+  stockpile: { uses: 98, trend: 'up' },
+  feedback: { uses: 67, trend: 'up' }
+});
+
+const generateMockSessionData = () => {
+  const data = [];
+  for (let i = 7; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    data.push({
+      date: date.toISOString().split('T')[0],
+      avgDuration: Math.floor(Math.random() * 300) + 600, // 10-15 minutes
+      sessions: Math.floor(Math.random() * 20) + 30
+    });
+  }
+  return data;
+};
+
+const generateMockDeviceBreakdown = () => ({
+  mobile: { count: 156, percentage: 62 },
+  desktop: { count: 87, percentage: 35 },
+  tablet: { count: 8, percentage: 3 }
+});
+
+const generateMockSubscriptionData = () => ({
+  active: 23,
+  trial: 45,
+  cancelled: 3,
+  revenue: 2847.50,
+  conversions: [
+    { date: '2024-09-10', count: 5, revenue: 149.50 },
+    { date: '2024-09-11', count: 8, revenue: 239.20 },
+    { date: '2024-09-12', count: 3, revenue: 89.70 }
+  ]
+});
+
+const analyzeFeedback = (feedbackList) => {
+  const categories = {};
+  const sentiment = { positive: 0, negative: 0, neutral: 0 };
+  
+  feedbackList.forEach(item => {
+    // Simple categorization based on keywords
+    const message = item.message.toLowerCase();
+    if (message.includes('bug') || message.includes('error') || message.includes('broken')) {
+      categories.bugs = (categories.bugs || 0) + 1;
+    } else if (message.includes('feature') || message.includes('add') || message.includes('want')) {
+      categories.features = (categories.features || 0) + 1;
+    } else if (message.includes('love') || message.includes('great') || message.includes('awesome')) {
+      categories.praise = (categories.praise || 0) + 1;
+      sentiment.positive++;
+    } else if (message.includes('hate') || message.includes('bad') || message.includes('terrible')) {
+      sentiment.negative++;
+    } else {
+      sentiment.neutral++;
+    }
+  });
+  
+  return {
+    categories,
+    sentiment,
+    trends: [
+      { week: 'This week', feedback: feedbackList.length, change: '+12%' },
+      { week: 'Last week', feedback: Math.max(0, feedbackList.length - 5), change: '+8%' }
+    ],
+    autoResponses: []
+  };
+};
 
 // Admin theme (standalone since admin is outside the main app context)
 const adminTheme = {
@@ -42,19 +135,46 @@ function Admin() {
   const [password, setPassword] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
-  const [activeTab, setActiveTab] = useState('announcements');
+  const [activeTab, setActiveTab] = useState('analytics');
   const [inviteCodes, setInviteCodes] = useState({});
   const [emailWhitelist, setEmailWhitelist] = useState([]);
   const [newEmails, setNewEmails] = useState('');
   const [copiedCode, setCopiedCode] = useState(null);
   const [feedback, setFeedback] = useState([]);
   const [expandedFeedback, setExpandedFeedback] = useState(null);
+  const [analytics, setAnalytics] = useState({
+    userGrowth: [],
+    featureUsage: {},
+    sessionData: [],
+    deviceBreakdown: {}
+  });
+  const [subscriptions, setSubscriptions] = useState({
+    active: 0,
+    trial: 0,
+    cancelled: 0,
+    revenue: 0,
+    conversions: []
+  });
+  const [featureFlags, setFeatureFlags] = useState({
+    betaFeatures: {},
+    uiExperiments: {},
+    emailSettings: {},
+    maintenanceMode: false
+  });
+  const [feedbackAnalysis, setFeedbackAnalysis] = useState({
+    categories: {},
+    sentiment: {},
+    trends: [],
+    autoResponses: []
+  });
   const [loading, setLoading] = useState({
     announcements: false,
     feedback: false,
     inviteCodes: false,
     emailWhitelist: false,
-    submitting: false
+    submitting: false,
+    analytics: false,
+    subscriptions: false
   });
   const [formData, setFormData] = useState({
     title: '',
@@ -84,6 +204,10 @@ function Admin() {
     loadAnnouncements();
     loadInviteData();
     loadFeedback();
+    loadAnalytics();
+    loadSubscriptionData();
+    loadFeatureFlags();
+    loadFeedbackAnalysis();
   }, []);
 
   const loadAnnouncements = async () => {
@@ -133,6 +257,66 @@ function Admin() {
       console.error('❌ Error loading feedback:', error);
     } finally {
       setLoading(prev => ({ ...prev, feedback: false }));
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setLoading(prev => ({ ...prev, analytics: true }));
+    try {
+      // Generate mock analytics data - in production, this would come from Firebase Analytics
+      const userGrowth = generateMockUserGrowth();
+      const featureUsage = generateMockFeatureUsage();
+      const sessionData = generateMockSessionData();
+      const deviceBreakdown = generateMockDeviceBreakdown();
+      
+      setAnalytics({
+        userGrowth,
+        featureUsage,
+        sessionData,
+        deviceBreakdown
+      });
+    } catch (error) {
+      console.error('❌ Error loading analytics:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, analytics: false }));
+    }
+  };
+
+  const loadSubscriptionData = async () => {
+    setLoading(prev => ({ ...prev, subscriptions: true }));
+    try {
+      // Generate mock subscription data - in production, this would come from Stripe/Firebase
+      const mockSubscriptions = generateMockSubscriptionData();
+      setSubscriptions(mockSubscriptions);
+    } catch (error) {
+      console.error('❌ Error loading subscription data:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, subscriptions: false }));
+    }
+  };
+
+  const loadFeatureFlags = async () => {
+    try {
+      // Load feature flags from localStorage for now - in production, from Firebase
+      const flags = JSON.parse(localStorage.getItem('tpp_admin_feature_flags') || '{}');
+      setFeatureFlags({
+        betaFeatures: flags.betaFeatures || {},
+        uiExperiments: flags.uiExperiments || {},
+        emailSettings: flags.emailSettings || {},
+        maintenanceMode: flags.maintenanceMode || false
+      });
+    } catch (error) {
+      console.error('❌ Error loading feature flags:', error);
+    }
+  };
+
+  const loadFeedbackAnalysis = async () => {
+    try {
+      // Analyze existing feedback for insights
+      const analysis = analyzeFeedback(feedback);
+      setFeedbackAnalysis(analysis);
+    } catch (error) {
+      console.error('❌ Error analyzing feedback:', error);
     }
   };
 
@@ -423,8 +607,40 @@ function Admin() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
+            { 
+              id: 'analytics', 
+              label: 'Analytics', 
+              icon: BarChart3, 
+              count: analytics.userGrowth.length > 0 ? analytics.userGrowth[analytics.userGrowth.length - 1]?.users || 0 : 0,
+              desc: 'User growth & feature usage',
+              color: '#3b82f6' 
+            },
+            { 
+              id: 'subscriptions', 
+              label: 'Subscriptions', 
+              icon: CreditCard, 
+              count: subscriptions.active + subscriptions.trial,
+              desc: 'Revenue & conversion tracking',
+              color: '#10b981' 
+            },
+            { 
+              id: 'features', 
+              label: 'Feature Toggles', 
+              icon: Flag, 
+              count: Object.keys(featureFlags.betaFeatures || {}).length,
+              desc: 'Beta flags & experiments',
+              color: '#f59e0b' 
+            },
+            { 
+              id: 'feedback', 
+              label: 'Smart Feedback', 
+              icon: MessageSquare, 
+              count: feedback.filter(f => f.status === 'new').length,
+              desc: 'AI-powered feedback insights',
+              color: '#8b5cf6' 
+            },
             { 
               id: 'announcements', 
               label: 'Announcements', 
@@ -439,7 +655,7 @@ function Admin() {
               icon: Key, 
               count: Object.keys(inviteCodes).length,
               desc: 'Generate & manage invite codes',
-              color: '#8b5cf6' 
+              color: '#06b6d4' 
             },
             { 
               id: 'whitelist', 
@@ -447,15 +663,7 @@ function Admin() {
               icon: Mail, 
               count: emailWhitelist.length,
               desc: 'Manage approved email addresses',
-              color: '#06b6d4' 
-            },
-            { 
-              id: 'feedback', 
-              label: 'Feedback Inbox', 
-              icon: MessageSquare, 
-              count: feedback.filter(f => f.status === 'new').length,
-              desc: 'User feedback & bug reports',
-              color: '#f59e0b' 
+              color: '#64748b' 
             },
           ].map(tab => {
             const Icon = tab.icon;
@@ -494,6 +702,269 @@ function Admin() {
             );
           })}
         </div>
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            {/* User Growth Chart */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Growth</h2>
+                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>Daily user registration and activity</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm" style={{ color: theme.success }}>
+                  <TrendingUp size={16} />
+                  +23% this week
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <div className="h-64 flex items-end justify-between gap-1 p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                    {analytics.userGrowth.slice(-14).map((day, index) => (
+                      <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
+                        <div 
+                          className="bg-blue-500 rounded-t w-full transition-all hover:bg-blue-600"
+                          style={{ height: `${(day.users / Math.max(...analytics.userGrowth.map(d => d.users))) * 200}px`, minHeight: '4px' }}
+                          title={`${day.date}: ${day.users} users`}
+                        />
+                        <span className="text-xs" style={{ color: theme.textLight }}>
+                          {new Date(day.date).getDate()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{analytics.userGrowth[analytics.userGrowth.length - 1]?.users || 0}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Total Users</div>
+                  </div>
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                    <div className="text-2xl font-bold" style={{ color: theme.success }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>New This Month</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature Usage */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feature Usage</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(analytics.featureUsage).map(([feature, data]) => (
+                  <div key={feature} className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{feature}</span>
+                      {data.trend === 'up' ? (
+                        <TrendingUp size={16} style={{ color: theme.success }} />
+                      ) : (
+                        <TrendingDown size={16} style={{ color: theme.error }} />
+                      )}
+                    </div>
+                    <div className="text-2xl font-bold" style={{ color: theme.primaryDark }}>{data.uses}</div>
+                    <div className="text-xs" style={{ color: theme.textLight }}>total uses</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Session Analytics */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Session Duration</h2>
+                <div className="space-y-3">
+                  {analytics.sessionData.slice(-5).map((session) => (
+                    <div key={session.date} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
+                      <span className="text-sm" style={{ color: theme.text }}>{new Date(session.date).toLocaleDateString()}</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium" style={{ color: theme.primaryDark }}>
+                          {Math.floor(session.avgDuration / 60)}m {session.avgDuration % 60}s
+                        </div>
+                        <div className="text-xs" style={{ color: theme.textLight }}>{session.sessions} sessions</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
+                <div className="space-y-4">
+                  {Object.entries(analytics.deviceBreakdown).map(([device, data]) => (
+                    <div key={device} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {device === 'mobile' && <Smartphone size={16} style={{ color: theme.info }} />}
+                          {device === 'desktop' && <Monitor size={16} style={{ color: theme.success }} />}
+                          {device === 'tablet' && <Smartphone size={16} style={{ color: theme.warning }} />}
+                          <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{device}</span>
+                        </div>
+                        <span className="text-sm" style={{ color: theme.textLight }}>{data.count} ({data.percentage}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full bg-blue-500" 
+                          style={{ width: `${data.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'subscriptions' && (
+          <div className="space-y-6">
+            {/* Revenue Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
+                    <DollarSign size={20} style={{ color: theme.success }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.success }}>${subscriptions.revenue}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Total Revenue</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.info + '20' }}>
+                    <Users size={20} style={{ color: theme.info }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{subscriptions.active}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Active Subs</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
+                    <Clock size={20} style={{ color: theme.warning }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.warning }}>{subscriptions.trial}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Trial Users</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.error + '20' }}>
+                    <X size={20} style={{ color: theme.error }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.error }}>{subscriptions.cancelled}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Cancelled</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Conversion Tracking */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Recent Conversions</h2>
+              <div className="space-y-3">
+                {subscriptions.conversions.map((conversion, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
+                        <Target size={16} style={{ color: theme.success }} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: theme.text }}>{conversion.date}</div>
+                        <div className="text-xs" style={{ color: theme.textLight }}>{conversion.count} conversions</div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-medium" style={{ color: theme.success }}>${conversion.revenue}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'features' && (
+          <div className="space-y-6">
+            {/* Feature Flags */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Beta Feature Flags</h2>
+                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>Control feature rollouts and experiments</p>
+                </div>
+                <button className="px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                  <Plus size={16} className="mr-2" />
+                  Add Flag
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {[
+                  { name: 'Advanced Analytics', key: 'advanced_analytics', enabled: true, description: 'Enhanced analytics dashboard' },
+                  { name: 'AI Recommendations', key: 'ai_recommendations', enabled: false, description: 'AI-powered protocol suggestions' },
+                  { name: 'Team Collaboration', key: 'team_collaboration', enabled: false, description: 'Share protocols with team members' },
+                  { name: 'Export to PDF', key: 'pdf_export', enabled: true, description: 'Export reports as PDF files' }
+                ].map((flag) => (
+                  <div key={flag.key} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <Flag size={16} style={{ color: flag.enabled ? theme.success : theme.textLight }} />
+                        <span className="font-medium" style={{ color: theme.text }}>{flag.name}</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${flag.enabled ? 'text-green-700 bg-green-100' : 'text-gray-700 bg-gray-100'}`}>
+                          {flag.enabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                      <p className="text-sm" style={{ color: theme.textLight }}>{flag.description}</p>
+                    </div>
+                    <button 
+                      className="ml-4 p-2 rounded-lg hover:opacity-70"
+                      style={{ color: flag.enabled ? theme.success : theme.textLight }}
+                    >
+                      {flag.enabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Maintenance Mode */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.error + '20' }}>
+                    <Shield size={24} style={{ color: theme.error }} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold" style={{ color: theme.primaryDark }}>Maintenance Mode</h3>
+                    <p className="text-sm" style={{ color: theme.textLight }}>Temporarily disable app access for updates</p>
+                  </div>
+                </div>
+                <button 
+                  className="p-2 rounded-lg hover:opacity-70"
+                  style={{ color: featureFlags.maintenanceMode ? theme.error : theme.textLight }}
+                >
+                  {featureFlags.maintenanceMode ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                </button>
+              </div>
+              {featureFlags.maintenanceMode && (
+                <div className="mt-4 p-3 rounded-lg flex items-center gap-2" style={{ backgroundColor: theme.error + '10' }}>
+                  <AlertTriangle size={16} style={{ color: theme.error }} />
+                  <span className="text-sm" style={{ color: theme.error }}>Maintenance mode is currently ACTIVE</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {activeTab === 'announcements' && (
           <div className="space-y-6">
@@ -676,13 +1147,102 @@ function Admin() {
 
         {activeTab === 'feedback' && (
           <div className="space-y-6">
+            {/* Feedback Analytics Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.info + '20' }}>
+                    <MessageSquare size={20} style={{ color: theme.info }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{feedback.length}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Total Feedback</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
+                    <ThumbsUp size={20} style={{ color: theme.success }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.success }}>{feedbackAnalysis.sentiment.positive || 0}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Positive</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.error + '20' }}>
+                    <ThumbsDown size={20} style={{ color: theme.error }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.error }}>{feedbackAnalysis.sentiment.negative || 0}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Negative</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
+                    <Hash size={20} style={{ color: theme.warning }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.warning }}>{Object.keys(feedbackAnalysis.categories).length}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Categories</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Feedback Categories & Trends */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feedback Categories</h2>
+                <div className="space-y-3">
+                  {Object.entries(feedbackAnalysis.categories).map(([category, count]) => (
+                    <div key={category} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
+                      <div className="flex items-center gap-2">
+                        {category === 'bugs' && <AlertTriangle size={16} style={{ color: theme.error }} />}
+                        {category === 'features' && <Sparkles size={16} style={{ color: theme.info }} />}
+                        {category === 'praise' && <ThumbsUp size={16} style={{ color: theme.success }} />}
+                        <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{category}</span>
+                      </div>
+                      <span className="text-sm font-bold" style={{ color: theme.primaryDark }}>{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feedback Trends</h2>
+                <div className="space-y-3">
+                  {feedbackAnalysis.trends.map((trend, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: theme.text }}>{trend.week}</div>
+                        <div className="text-xs" style={{ color: theme.textLight }}>{trend.feedback} feedback items</div>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm font-medium" style={{ color: theme.success }}>
+                        <TrendingUp size={14} />
+                        {trend.change}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="p-6 border-b" style={{ borderColor: theme.border }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Feedback Inbox</h2>
+                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Smart Feedback Inbox</h2>
                     <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      User feedback, bug reports, and suggestions
+                      AI-powered categorization and sentiment analysis
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
