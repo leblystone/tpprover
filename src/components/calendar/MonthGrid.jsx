@@ -78,15 +78,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const primaryDelivery = deliveryMethods[0] || 'oral';
                     const buyCount = (sched.buys || 0) + (sched.groupBuys?.length || 0)
                     
-                    // Debug logging for first few days
-                    if (d && d.getDate() <= 3) {
-                        console.log(`📅 Day ${d.getDate()} data:`, {
-                            buyCount,
-                            deliveryMethods,
-                            peptideCount,
-                            sched: JSON.stringify(sched, null, 2)
-                        });
-                    }
+                    // Icons are now working correctly!
                     
                     return (
                         <button key={i} className={`p-1 sm:p-2 rounded border text-left hover:bg-gray-50 flex flex-col justify-between relative ${sched.doneAll ? 'bg-green-50' : ''}`} style={{ borderColor: theme.border }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
@@ -97,10 +89,10 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     </span>
                                     {d && (
                                         <div className="flex items-center gap-0.5">
-                                            {buyCount > 0 && <ShoppingCart size={12} style={{ color: theme.primary }} />}
+                                            {buyCount > 0 && <ShoppingCart size={16} style={{ color: theme.primary }} />}
                                             {/* Show supplement delivery method icons */}
                                             {deliveryMethods.map((delivery, idx) => (
-                                                <span key={idx}>{getSupplementIcon(delivery, "h-3 w-3")}</span>
+                                                <span key={idx}>{getSupplementIcon(delivery, "h-4 w-4")}</span>
                                             ))}
                                         </div>
                                     )}
@@ -111,8 +103,8 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                                 {peptideCount > 0 && (
                                                     <span className="inline-flex items-center gap-0.5">
                                                     <span className="inline-flex relative">
-                                                        <Droplet className="h-3 w-3" />
-                                                        <Droplet className="h-3 w-3 -ml-1" />
+                                                        <Droplet className="h-4 w-4" />
+                                                        <Droplet className="h-4 w-4 -ml-1.5" />
                                                     </span>
                                                     {peptideCount}
                                                     </span>
