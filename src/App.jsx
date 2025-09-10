@@ -13,6 +13,8 @@ import SuccessModal from './components/ui/SuccessModal';
 import BetaEnded from './pages/BetaEnded';
 import TourController from './components/onboarding/TourController';
 import FeedbackModal from './components/common/FeedbackModal';
+import InstallInstructionsModal from './components/common/InstallInstructionsModal';
+import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
 
 function App() {
   const [themeName] = useState(() => {
@@ -34,6 +36,8 @@ function App() {
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
   const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
@@ -112,6 +116,13 @@ function App() {
 
   const glossaryTerm = new URLSearchParams(window.location.search).get('glossary');
 
+  const handleModalInstall = () => {
+    setShowInstallModal(false);
+    if (installPrompt) {
+      installPrompt.prompt();
+    }
+  };
+
   return (
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
@@ -124,7 +135,17 @@ function App() {
           </Suspense>
         </main>
       </div>
-      <MobileNav theme={theme} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onShowFeedback={() => setShowFeedbackModal(true)} />
+      <MobileNav 
+        theme={theme} 
+        open={mobileMenuOpen} 
+        onClose={() => setMobileMenuOpen(false)} 
+        installPrompt={installPrompt} 
+        isPwaSupported={isPwaSupported} 
+        isPwaInstalled={isPwaInstalled} 
+        onShowFeedback={() => setShowFeedbackModal(true)}
+        onShowInstall={() => setShowInstallModal(true)}
+        onShowUnsupported={() => setShowUnsupportedModal(true)}
+      />
       <WelcomeModal
         open={showWelcome}
         onClose={handleCloseWelcome}
@@ -143,6 +164,17 @@ function App() {
       <FeedbackModal 
         open={showFeedbackModal} 
         onClose={() => setShowFeedbackModal(false)} 
+        theme={theme} 
+      />
+      <InstallInstructionsModal 
+        open={showInstallModal} 
+        onClose={() => setShowInstallModal(false)} 
+        onInstall={handleModalInstall} 
+        theme={theme} 
+      />
+      <PwaUnsupportedModal 
+        open={showUnsupportedModal} 
+        onClose={() => setShowUnsupportedModal(false)} 
         theme={theme} 
       />
     </div>

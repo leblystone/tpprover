@@ -3,15 +3,11 @@ import { createPortal } from 'react-dom'
 import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Megaphone, User, Settings, LogOut, MessageSquare, DownloadCloud } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAppContext } from '../../context/AppContext'
-import InstallInstructionsModal from '../common/InstallInstructionsModal';
-import PwaUnsupportedModal from '../common/PwaUnsupportedModal';
 
-export default function MobileSidebar({ open, onClose, theme, installPrompt, isPwaSupported, isPwaInstalled, onShowFeedback }) {
+export default function MobileSidebar({ open, onClose, theme, installPrompt, isPwaSupported, isPwaInstalled, onShowFeedback, onShowInstall, onShowUnsupported }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { logout } = useAppContext();
-  const [showInstallModal, setShowInstallModal] = useState(false);
-  const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
   useEffect(() => {
     const durationMs = 240
@@ -27,21 +23,17 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
   }, [open])
 
   const handleInstallClick = () => {
-    if (installPrompt) {
-      installPrompt.prompt();
-    } else if (isPwaSupported) {
-      setShowInstallModal(true);
-    } else {
-      setShowUnsupportedModal(true);
-    }
     onClose();
-  };
-
-  const handleModalInstall = () => {
-    setShowInstallModal(false);
-    if (installPrompt) {
-      installPrompt.prompt();
-    }
+    // Small delay to let sidebar close before opening modal
+    setTimeout(() => {
+      if (installPrompt) {
+        installPrompt.prompt();
+      } else if (isPwaSupported) {
+        onShowInstall && onShowInstall();
+      } else {
+        onShowUnsupported && onShowUnsupported();
+      }
+    }, 100);
   };
 
   if (!mounted) return null
@@ -120,8 +112,6 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
           </div>
         </nav>
       </div>
-      <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} onInstall={handleModalInstall} theme={theme} />
-      <PwaUnsupportedModal open={showUnsupportedModal} onClose={() => setShowUnsupportedModal(false)} theme={theme} />
     </div>
   )
   return createPortal(overlay, document.body)
