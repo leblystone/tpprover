@@ -390,7 +390,7 @@ function Admin() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Admin Dashboard</h1>
-                <p className="text-sm" style={{ color: theme.textLight }}>Manage your TPP Rover platform</p>
+                <p className="text-sm" style={{ color: theme.textLight }}>Manage your The Pep Planner platform</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -834,9 +834,197 @@ function Admin() {
           </div>
         )}
 
+        {activeTab === 'invites' && (
+          <div className="space-y-6">
+            <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Beta Invite Codes</h2>
+                    <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                      Generate and manage beta invitation codes
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => createInviteCodesFirebase(5)}
+                      className="px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90"
+                      style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                    >
+                      Generate 5 Codes
+                    </button>
+                    <button
+                      onClick={() => createUniversalCodeFirebase(1)}
+                      className="px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90"
+                      style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                    >
+                      Universal Code
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {loading.inviteCodes ? (
+                  <div className="text-center py-8">
+                    <Loader size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+                    <p className="mt-2 text-sm" style={{ color: theme.textLight }}>Loading invite codes...</p>
+                  </div>
+                ) : Object.keys(inviteCodes).length === 0 ? (
+                  <div className="text-center py-8">
+                    <Key size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
+                    <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No invite codes yet</h3>
+                    <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                      Generate codes to invite beta testers
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(inviteCodes).map(([code, data]) => (
+                      <div key={code} className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <code className="font-mono text-sm px-2 py-1 rounded" style={{ backgroundColor: theme.primary + '15', color: theme.primaryDark }}>
+                              {code}
+                            </code>
+                            {data.isUniversal && (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>
+                                Universal
+                              </span>
+                            )}
+                            {data.used && !data.isUniversal && (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: theme.success + '20', color: theme.success }}>
+                                Used
+                              </span>
+                            )}
+                          </div>
+                          {data.email && (
+                            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                              Email: {data.email}
+                            </p>
+                          )}
+                          {data.isUniversal && (
+                            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                              Uses: {data.usageCount || 0} • Phase {data.phase}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => copyToClipboard(code, code)}
+                            className="p-2 rounded hover:opacity-70"
+                            style={{ color: theme.primary }}
+                            title="Copy code"
+                          >
+                            {copiedCode === code ? <Check size={16} /> : <Copy size={16} />}
+                          </button>
+                          <button
+                            onClick={() => deleteInviteCodeFirebase(code)}
+                            className="p-2 rounded hover:opacity-70"
+                            style={{ color: theme.error }}
+                            title="Delete code"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'whitelist' && (
+          <div className="space-y-6">
+            <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Email Whitelist</h2>
+                    <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                      Manage approved email addresses for beta access
+                    </p>
+                  </div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>
+                    {emailWhitelist.length} approved emails
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                    Add Email Addresses
+                  </label>
+                  <textarea
+                    value={newEmails}
+                    onChange={(e) => setNewEmails(e.target.value)}
+                    placeholder="Enter email addresses (one per line, or comma-separated)"
+                    className="w-full p-3 border rounded-lg h-32 resize-none"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                  />
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={() => updateEmailWhitelistFirebase(newEmails)}
+                      disabled={!newEmails.trim() || loading.emailWhitelist}
+                      className="px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                      style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
+                    >
+                      {loading.emailWhitelist ? (
+                        <>
+                          <Loader size={16} className="animate-spin mr-2" />
+                          Adding...
+                        </>
+                      ) : (
+                        'Add to Whitelist'
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium mb-3" style={{ color: theme.text }}>
+                    Approved Emails ({emailWhitelist.length})
+                  </h3>
+                  {emailWhitelist.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Mail size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
+                      <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No emails whitelisted</h3>
+                      <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                        Add email addresses to allow beta access
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      {emailWhitelist.map((email, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                          <span className="text-sm font-mono" style={{ color: theme.text }}>
+                            {email}
+                          </span>
+                          <button
+                            onClick={() => removeFromWhitelistFirebase(email)}
+                            className="p-1 rounded hover:opacity-70"
+                            style={{ color: theme.error }}
+                            title="Remove from whitelist"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center py-8">
           <p className="text-sm" style={{ color: theme.textLight }}>
-            Admin Panel - TPP Rover Management System
+            Admin Panel - The Pep Planner Management System
           </p>
         </div>
       </div>
