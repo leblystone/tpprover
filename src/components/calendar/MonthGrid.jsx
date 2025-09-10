@@ -73,6 +73,16 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const primaryDelivery = deliveryMethods[0] || 'oral';
                     const buyCount = (sched.buys || 0) + (sched.groupBuys || 0)
                     
+                    // Debug logging for first few days
+                    if (d && d.getDate() <= 3) {
+                        console.log(`📅 Day ${d.getDate()} data:`, {
+                            buyCount,
+                            deliveryMethods,
+                            peptideCount,
+                            sched: JSON.stringify(sched, null, 2)
+                        });
+                    }
+                    
                     return (
                         <button key={i} className={`p-1 sm:p-2 rounded border text-left hover:bg-gray-50 flex flex-col justify-between relative ${sched.doneAll ? 'bg-green-50' : ''}`} style={{ borderColor: theme.border }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             <div>
