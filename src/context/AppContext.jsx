@@ -281,6 +281,16 @@ export function AppProvider({ children }) {
     // Persist data to localStorage whenever it changes
     const saveData = (key, data) => {
         try {
+            // CRITICAL SAFETY CHECK: Never save empty arrays that could overwrite existing data
+            if (Array.isArray(data) && data.length === 0) {
+                // Check if there's existing data in localStorage before overwriting with empty array
+                const existingData = localStorage.getItem(key);
+                if (existingData && existingData !== '[]') {
+                    console.log(`🛡️ SAFETY: Prevented saving empty array to ${key} (existing data found)`);
+                    return;
+                }
+            }
+            
             localStorage.setItem(key, JSON.stringify(data));
         } catch (error) {
             console.error(`Error saving ${key} to localStorage`, error);
@@ -292,6 +302,12 @@ export function AppProvider({ children }) {
     useEffect(() => { saveData('tpprover_recon_history', reconHistory) }, [reconHistory]);
     useEffect(() => { 
         console.log('💾 Saving supplements to localStorage:', supplements);
+        console.log('🔍 Current state during supplements save:', {
+            isInitialLoad,
+            hasFirebaseUser: !!firebaseUser,
+            hasPassword,
+            supplementsLength: supplements.length
+        });
         saveData('tpprover_supplements', supplements);
     }, [supplements]);
     useEffect(() => { saveData('tpprover_orders', orders) }, [orders]);
