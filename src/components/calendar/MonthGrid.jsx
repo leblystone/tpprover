@@ -60,18 +60,23 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const key = d ? toKey(d) : ''
                     const entryText = d && entries[key] ? entries[key].slice(0, 40) : ''
                     const sched = (d && scheduled[key]) || {}
-                    const peptides = Array.from(new Set([...(sched.bySlot?.Morning?.peptides || []), ...(sched.bySlot?.Evening?.peptides || [])]))
+                    const peptides = Array.from(new Set([
+                        ...(sched.bySlot?.Morning?.peptides || []), 
+                        ...(sched.bySlot?.Evening?.peptides || []),
+                        ...(sched.bySlot?.PM?.peptides || []) // Add PM slot!
+                    ]))
                     const peptideCount = peptides.length
                     const suppCount = sched.supplements?.length || 0
                     // Get all supplements from bySlot to determine delivery methods
                     const allSupplements = [
                         ...(sched.bySlot?.Morning?.supplements || []),
-                        ...(sched.bySlot?.Evening?.supplements || [])
+                        ...(sched.bySlot?.Evening?.supplements || []),
+                        ...(sched.bySlot?.PM?.supplements || []) // Add PM slot!
                     ];
                     // Get unique delivery methods for icon display
                     const deliveryMethods = [...new Set(allSupplements.map(s => typeof s === 'object' ? s.delivery : 'oral'))];
                     const primaryDelivery = deliveryMethods[0] || 'oral';
-                    const buyCount = (sched.buys || 0) + (sched.groupBuys || 0)
+                    const buyCount = (sched.buys || 0) + (sched.groupBuys?.length || 0)
                     
                     // Debug logging for first few days
                     if (d && d.getDate() <= 3) {
