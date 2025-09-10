@@ -464,9 +464,29 @@ export default function Calendar() {
               const existingBySlot = next[key]?.bySlot || {};
               const mergedBySlot = { ...existingBySlot };
               for (const slot in bySlot) {
+                  const existingPeptides = mergedBySlot[slot]?.peptides || [];
+                  const newPeptides = bySlot[slot]?.peptides || [];
+                  const existingSupplements = mergedBySlot[slot]?.supplements || [];
+                  const newSupplements = bySlot[slot]?.supplements || [];
+                  
+                  // Remove duplicates by checking name property
+                  const uniquePeptides = [...existingPeptides];
+                  newPeptides.forEach(newPep => {
+                      if (!uniquePeptides.some(existing => existing.name === newPep.name)) {
+                          uniquePeptides.push(newPep);
+                      }
+                  });
+                  
+                  const uniqueSupplements = [...existingSupplements];
+                  newSupplements.forEach(newSup => {
+                      if (!uniqueSupplements.some(existing => existing.name === newSup.name)) {
+                          uniqueSupplements.push(newSup);
+                      }
+                  });
+                  
                   mergedBySlot[slot] = {
-                      peptides: [...(mergedBySlot[slot]?.peptides || []), ...(bySlot[slot]?.peptides || [])],
-                      supplements: [...(mergedBySlot[slot]?.supplements || []), ...(bySlot[slot]?.supplements || [])],
+                      peptides: uniquePeptides,
+                      supplements: uniqueSupplements,
                   };
               }
 

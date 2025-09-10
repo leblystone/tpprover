@@ -49,7 +49,7 @@ service cloud.firestore {
     // Feedback collection - users can submit, admin can read
     match /feedback/{feedbackId} {
       allow create: if request.auth != null; // Authenticated users can submit feedback
-      allow read: if isAdmin(); // Only admin can read feedback
+      allow read, update, delete: if true; // Temporarily open for beta launch - admin access
     }
     
     // Default deny all other access

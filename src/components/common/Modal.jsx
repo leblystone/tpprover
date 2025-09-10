@@ -20,11 +20,11 @@ export default function Modal({ open, onClose, onBack, title, theme, children, f
   
   if (!open) return null
   const content = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div 
-        className={`relative w-full ${maxWidth || 'max-w-lg'} rounded-xl shadow-2xl mx-4 flex flex-col`} 
-        style={{ backgroundColor: theme.cardBackground, maxHeight: '90vh' }}
+        className={`relative w-full ${maxWidth || 'max-w-lg'} rounded-xl shadow-2xl flex flex-col`} 
+        style={{ backgroundColor: theme.cardBackground, maxHeight: '90vh', minHeight: 'auto' }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-2">
