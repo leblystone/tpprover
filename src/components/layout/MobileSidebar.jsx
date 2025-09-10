@@ -3,15 +3,13 @@ import { createPortal } from 'react-dom'
 import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Megaphone, User, Settings, LogOut, MessageSquare, DownloadCloud } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAppContext } from '../../context/AppContext'
-import FeedbackModal from '../common/FeedbackModal';
 import InstallInstructionsModal from '../common/InstallInstructionsModal';
 import PwaUnsupportedModal from '../common/PwaUnsupportedModal';
 
-export default function MobileSidebar({ open, onClose, theme, installPrompt, isPwaSupported, isPwaInstalled }) {
+export default function MobileSidebar({ open, onClose, theme, installPrompt, isPwaSupported, isPwaInstalled, onShowFeedback }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { logout } = useAppContext();
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
@@ -93,7 +91,11 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
               </NavLink>
             ))}
             <button
-              onClick={() => { setShowFeedbackModal(true); onClose(); }}
+              onClick={() => { 
+                onClose(); 
+                // Small delay to let sidebar close before opening modal
+                setTimeout(() => onShowFeedback && onShowFeedback(), 100);
+              }}
               className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
             >
               <MessageSquare className="h-6 w-6" />
@@ -118,7 +120,6 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
           </div>
         </nav>
       </div>
-      <FeedbackModal open={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} theme={theme} />
       <InstallInstructionsModal open={showInstallModal} onClose={() => setShowInstallModal(false)} onInstall={handleModalInstall} theme={theme} />
       <PwaUnsupportedModal open={showUnsupportedModal} onClose={() => setShowUnsupportedModal(false)} theme={theme} />
     </div>

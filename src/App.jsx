@@ -12,6 +12,7 @@ import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
 import SuccessModal from './components/ui/SuccessModal';
 import BetaEnded from './pages/BetaEnded';
 import TourController from './components/onboarding/TourController';
+import FeedbackModal from './components/common/FeedbackModal';
 
 function App() {
   const [themeName] = useState(() => {
@@ -32,6 +33,7 @@ function App() {
   const [isPwaSupported, setIsPwaSupported] = useState(false);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
   const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
@@ -122,7 +124,7 @@ function App() {
           </Suspense>
         </main>
       </div>
-      <MobileNav theme={theme} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
+      <MobileNav theme={theme} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onShowFeedback={() => setShowFeedbackModal(true)} />
       <WelcomeModal
         open={showWelcome}
         onClose={handleCloseWelcome}
@@ -137,6 +139,11 @@ function App() {
         title="Demo Data Removed!"
         message="All sample data has been successfully removed. Your personal entries remain safe and intact."
         theme={theme}
+      />
+      <FeedbackModal 
+        open={showFeedbackModal} 
+        onClose={() => setShowFeedbackModal(false)} 
+        theme={theme} 
       />
     </div>
   )
