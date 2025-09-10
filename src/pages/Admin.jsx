@@ -125,10 +125,12 @@ function Admin() {
   const loadFeedback = async () => {
     setLoading(prev => ({ ...prev, feedback: true }));
     try {
+      console.log('📥 Loading feedback from Firebase...');
       const feedbackData = await getAllFeedback();
+      console.log('📥 Loaded feedback:', feedbackData.length, 'items');
       setFeedback(feedbackData);
     } catch (error) {
-      console.error('Error loading feedback:', error);
+      console.error('❌ Error loading feedback:', error);
     } finally {
       setLoading(prev => ({ ...prev, feedback: false }));
     }

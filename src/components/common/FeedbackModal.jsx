@@ -18,7 +18,7 @@ export default function FeedbackModal({ open, onClose, theme }) {
         setError('');
 
         try {
-            await submitFeedback({
+            console.log('📝 Submitting feedback...', {
                 message: message.trim(),
                 userEmail: user?.email || 'anonymous',
                 userId: user?.uid || null,
@@ -26,6 +26,17 @@ export default function FeedbackModal({ open, onClose, theme }) {
                 url: window.location.href,
                 timestamp: new Date().toISOString()
             });
+
+            const feedbackId = await submitFeedback({
+                message: message.trim(),
+                userEmail: user?.email || 'anonymous',
+                userId: user?.uid || null,
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            });
+            
+            console.log('✅ Feedback submitted successfully with ID:', feedbackId);
             
             // Show success message
             setIsSubmitted(true);
@@ -36,7 +47,7 @@ export default function FeedbackModal({ open, onClose, theme }) {
                 setIsSubmitted(false);
             }, 3000);
         } catch (error) {
-            console.error('Error submitting feedback:', error);
+            console.error('❌ Error submitting feedback:', error);
             setError('Failed to submit feedback. Please try again.');
         } finally {
             setIsSubmitting(false);
