@@ -92,12 +92,16 @@ export function AppProvider({ children }) {
                     }
                     
                     // Try to load data from Firebase if user has password set
-                    if (hasPassword) {
+                    // CRITICAL FIX: Also attempt sync if localStorage is empty (cache cleared scenario)
+                    const hasEmptyLocalStorage = !localStorage.getItem('tpprover_protocols') || 
+                                                JSON.parse(localStorage.getItem('tpprover_protocols') || '[]').length === 0;
+                    
+                    if (hasPassword || hasEmptyLocalStorage) {
                         try {
+                            console.log('🔄 Attempting Firebase data recovery...', { hasPassword, hasEmptyLocalStorage });
                             const firebaseData = await loadFromFirebase();
                             if (firebaseData) {
-                                // Only load Firebase data if it's newer than localStorage
-                                // This prevents overwriting newer local changes with stale Firebase data
+                                // Load Firebase data if available, especially when localStorage is empty
                                 console.log('✅ User data loaded from Firebase');
                                 
                                 // Load Firebase data into state (Firebase takes precedence for authenticated users)
@@ -131,6 +135,30 @@ export function AppProvider({ children }) {
                             }
                         } catch (error) {
                             console.log('📱 Using local data (Firebase sync unavailable):', error.message);
+                            
+                            // If Firebase sync failed and we have empty localStorage, provide recovery option
+                            if (hasEmptyLocalStorage) {
+                                console.warn('🚨 CRITICAL: Empty localStorage detected with failed Firebase sync!');
+                                console.log('🔧 Recovery options available:');
+                                console.log('- window.recoverDataFromFirebase() - manual recovery function');
+                                console.log('- Check if you need to re-enter your password');
+                                
+                                // Make recovery function globally available
+                                window.recoverDataFromFirebase = async () => {
+                                    try {
+                                        console.log('🔄 Attempting manual data recovery...');
+                                        const firebaseData = await loadFromFirebase();
+                                        if (firebaseData) {
+                                            console.log('✅ Data recovered! Reloading page...');
+                                            window.location.reload();
+                                        } else {
+                                            console.error('❌ No data found in Firebase');
+                                        }
+                                    } catch (err) {
+                                        console.error('❌ Manual recovery failed:', err);
+                                    }
+                                };
+                            }
                         }
                     }
                     

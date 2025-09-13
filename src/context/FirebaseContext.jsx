@@ -58,9 +58,14 @@ export function FirebaseProvider({ children }) {
 
     // Load user data from Firebase (decrypt)
     const loadFromFirebase = useCallback(async () => {
-        if (!firebaseUser || !userPassword) {
-            console.log('Cannot load: user not authenticated or password not available');
+        if (!firebaseUser) {
+            console.log('Cannot load: user not authenticated');
             return null;
+        }
+        
+        if (!userPassword) {
+            console.log('⚠️ Password not available, attempting to load without decryption...');
+            // Try to load data anyway - it might be unencrypted or we can prompt for password
         }
 
         try {
