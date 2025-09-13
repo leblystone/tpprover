@@ -167,22 +167,14 @@ export async function registerUser(email, password, inviteCode) {
       email: email.toLowerCase(),
       uid: user.uid,
       createdAt: serverTimestamp(),
-      inviteCodeUsed: inviteCode,
       lastActive: serverTimestamp(),
       isActive: true
     };
     
     await setDoc(doc(db, 'users', user.uid), userData);
     
-    // Mark invite code as used (handles both individual and universal codes)
-    if (inviteCode) {
-      try {
-        await markInviteCodeUsed(inviteCode, email);
-      } catch (error) {
-        console.error('Error marking invite code as used:', error);
-        // Don't throw - registration should still succeed even if code marking fails
-      }
-    }
+    // Track registration analytics
+    await updateAnalytics('userRegistration');
     
     return { user, userData };
   } catch (error) {
@@ -203,6 +195,9 @@ export async function loginUser(email, password) {
     await updateDoc(doc(db, 'users', user.uid), {
       lastActive: serverTimestamp()
     });
+    
+    // Track login analytics
+    await updateAnalytics('userLogin');
     
     return user;
   } catch (error) {
@@ -492,9 +487,20 @@ async function updateAnalytics(action, data = {}) {
         if (data.orders) updates['featureUsage.ordersTracked'] = increment(data.orders.length || 0);
         if (data.vendors) updates['featureUsage.vendorsAdded'] = increment(data.vendors.length || 0);
         if (data.stockpile) updates['featureUsage.stockpileItems'] = increment(data.stockpile.length || 0);
+        if (data.reconItems) updates['featureUsage.reconCalculations'] = increment(data.reconItems.length || 0);
+        if (data.calendarNotes) updates['featureUsage.calendarEntries'] = increment(Object.keys(data.calendarNotes).length || 0);
         break;
       case 'userActive':
         updates['activeUsers'] = increment(1);
+        updates['dailyActiveUsers'] = increment(1);
+        break;
+      case 'userLogin':
+        updates['totalLogins'] = increment(1);
+        updates['dailyLogins'] = increment(1);
+        break;
+      case 'userRegistration':
+        updates['totalRegistrations'] = increment(1);
+        updates['dailyRegistrations'] = increment(1);
         break;
     }
     
@@ -519,16 +525,35 @@ export async function getAnalytics() {
     const docSnap = await getDoc(docRef);
     
     if (!docSnap.exists()) {
-      return {
+      console.log('📊 Analytics collection does not exist, creating initial document...');
+      
+      // Create initial analytics document
+      const initialData = {
         totalUsers: 0,
         activeUsers: 0,
         featureUsage: {
           protocolsCreated: 0,
           ordersTracked: 0,
           vendorsAdded: 0,
-          stockpileItems: 0
-        }
+          stockpileItems: 0,
+          reconCalculations: 0,
+          calendarEntries: 0
+        },
+        totalLogins: 0,
+        dailyLogins: 0,
+        totalRegistrations: 0,
+        dailyRegistrations: 0,
+        lastUpdated: serverTimestamp()
       };
+      
+      try {
+        await setDoc(docRef, initialData);
+        console.log('✅ Analytics collection initialized successfully');
+        return initialData;
+      } catch (createError) {
+        console.warn('⚠️ Could not create analytics collection, returning default data:', createError.message);
+        return initialData;
+      }
     }
     
     return docSnap.data();

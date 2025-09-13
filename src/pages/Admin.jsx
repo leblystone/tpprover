@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
-  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle
+  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle, RefreshCw, Info
 } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import {
-  getInviteCodes,
-  createInviteCodes,
-  deleteInviteCode,
   getEmailWhitelist,
   updateEmailWhitelist,
   getAnnouncements,
@@ -16,65 +13,96 @@ import {
   deleteAnnouncement,
   getAllFeedback,
   updateFeedback,
-  deleteFeedback
+  deleteFeedback,
+  getAnalytics,
+  getUserList
 } from '../services/firebase';
 
-// Mock data generation functions
-const generateMockUserGrowth = () => {
-  const data = [];
+// Real-time analytics helper functions
+const calculateUserGrowth = (users) => {
   const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  
+  // Group users by registration date
+  const dailyRegistrations = {};
+  let totalUsers = 0;
+  
+  users.forEach(user => {
+    if (user.createdAt && user.createdAt.toDate) {
+      const date = user.createdAt.toDate().toISOString().split('T')[0];
+      dailyRegistrations[date] = (dailyRegistrations[date] || 0) + 1;
+      totalUsers++;
+    }
+  });
+  
+  // Generate 30-day growth data
+  const growthData = [];
+  let cumulativeUsers = 0;
+  
   for (let i = 30; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toISOString().split('T')[0],
-      users: Math.floor(Math.random() * 10) + (30 - i) * 2,
-      newUsers: Math.floor(Math.random() * 5) + 1
+    const dateStr = date.toISOString().split('T')[0];
+    const newUsers = dailyRegistrations[dateStr] || 0;
+    cumulativeUsers += newUsers;
+    
+    growthData.push({
+      date: dateStr,
+      users: cumulativeUsers,
+      newUsers: newUsers
     });
   }
-  return data;
+  
+  return growthData;
 };
 
-const generateMockFeatureUsage = () => ({
-  protocols: { uses: 245, trend: 'up' },
-  calendar: { uses: 189, trend: 'up' },
-  recon: { uses: 156, trend: 'down' },
-  orders: { uses: 134, trend: 'up' },
-  stockpile: { uses: 98, trend: 'up' },
-  feedback: { uses: 67, trend: 'up' }
-});
+const calculateFeatureUsage = (analyticsData) => {
+  const usage = analyticsData?.featureUsage || {};
+  return {
+    protocols: { uses: usage.protocolsCreated || 0, trend: 'up' },
+    orders: { uses: usage.ordersTracked || 0, trend: 'up' },
+    vendors: { uses: usage.vendorsAdded || 0, trend: 'up' },
+    stockpile: { uses: usage.stockpileItems || 0, trend: 'up' },
+    recon: { uses: usage.reconCalculations || 0, trend: 'up' },
+    calendar: { uses: usage.calendarEntries || 0, trend: 'up' }
+  };
+};
 
-const generateMockSessionData = () => {
-  const data = [];
+const calculateSessionData = (users) => {
+  const now = new Date();
+  const sessionData = [];
+  
+  // Calculate sessions based on lastActive timestamps
   for (let i = 7; i >= 0; i--) {
-    const date = new Date();
+    const date = new Date(now);
     date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toISOString().split('T')[0],
-      avgDuration: Math.floor(Math.random() * 300) + 600, // 10-15 minutes
-      sessions: Math.floor(Math.random() * 20) + 30
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const activeThatDay = users.filter(user => {
+      if (!user.lastActive || !user.lastActive.toDate) return false;
+      const lastActiveDate = user.lastActive.toDate().toISOString().split('T')[0];
+      return lastActiveDate === dateStr;
+    }).length;
+    
+    sessionData.push({
+      date: dateStr,
+      sessions: activeThatDay,
+      avgDuration: activeThatDay > 0 ? 900 : 0 // Assume 15 min average when active
     });
   }
-  return data;
+  
+  return sessionData;
 };
 
-const generateMockDeviceBreakdown = () => ({
-  mobile: { count: 156, percentage: 62 },
-  desktop: { count: 87, percentage: 35 },
-  tablet: { count: 8, percentage: 3 }
-});
-
-const generateMockSubscriptionData = () => ({
-  active: 23,
-  trial: 45,
-  cancelled: 3,
-  revenue: 2847.50,
-  conversions: [
-    { date: '2024-09-10', count: 5, revenue: 149.50 },
-    { date: '2024-09-11', count: 8, revenue: 239.20 },
-    { date: '2024-09-12', count: 3, revenue: 89.70 }
-  ]
-});
+const calculateDeviceBreakdown = () => {
+  // For now, return placeholder data - in production, this would come from analytics
+  // You could implement user-agent tracking in the future
+  return {
+    mobile: { count: 0, percentage: 60 },
+    desktop: { count: 0, percentage: 35 },
+    tablet: { count: 0, percentage: 5 }
+  };
+};
 
 const analyzeFeedback = (feedbackList) => {
   const categories = {};
@@ -136,24 +164,25 @@ function Admin() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [activeTab, setActiveTab] = useState('analytics');
-  const [inviteCodes, setInviteCodes] = useState({});
   const [emailWhitelist, setEmailWhitelist] = useState([]);
   const [newEmails, setNewEmails] = useState('');
-  const [copiedCode, setCopiedCode] = useState(null);
   const [feedback, setFeedback] = useState([]);
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
     featureUsage: {},
     sessionData: [],
-    deviceBreakdown: {}
+    deviceBreakdown: {},
+    totalUsers: 0,
+    activeUsers: 0
   });
+  const [users, setUsers] = useState([]);
   const [subscriptions, setSubscriptions] = useState({
     active: 0,
-    trial: 0,
-    cancelled: 0,
-    revenue: 0,
-    conversions: []
+    beta: 0,
+    total: 0,
+    thisWeek: 0,
+    recentRegistrations: []
   });
   const [featureFlags, setFeatureFlags] = useState({
     betaFeatures: {},
@@ -170,7 +199,6 @@ function Admin() {
   const [loading, setLoading] = useState({
     announcements: false,
     feedback: false,
-    inviteCodes: false,
     emailWhitelist: false,
     submitting: false,
     analytics: false,
@@ -202,10 +230,10 @@ function Admin() {
     
     // Load data
     loadAnnouncements();
-    loadInviteData();
+    loadEmailWhitelist();
     loadFeedback();
-    loadAnalytics();
-    loadSubscriptionData();
+    loadRealAnalytics();
+    loadUserData();
     loadFeatureFlags();
     loadFeedbackAnalysis();
   }, []);
@@ -231,18 +259,15 @@ function Admin() {
     }
   };
 
-  const loadInviteData = async () => {
-    setLoading(prev => ({ ...prev, inviteCodes: true, emailWhitelist: true }));
+  const loadEmailWhitelist = async () => {
+    setLoading(prev => ({ ...prev, emailWhitelist: true }));
     try {
-      const codes = await getInviteCodes();
-      setInviteCodes(codes);
-      
       const whitelist = await getEmailWhitelist();
       setEmailWhitelist(whitelist);
     } catch (error) {
-      console.error('Error loading invite data:', error);
+      console.error('Error loading email whitelist:', error);
     } finally {
-      setLoading(prev => ({ ...prev, inviteCodes: false, emailWhitelist: false }));
+      setLoading(prev => ({ ...prev, emailWhitelist: false }));
     }
   };
 
@@ -260,36 +285,99 @@ function Admin() {
     }
   };
 
-  const loadAnalytics = async () => {
+  const loadRealAnalytics = async () => {
     setLoading(prev => ({ ...prev, analytics: true }));
     try {
-      // Generate mock analytics data - in production, this would come from Firebase Analytics
-      const userGrowth = generateMockUserGrowth();
-      const featureUsage = generateMockFeatureUsage();
-      const sessionData = generateMockSessionData();
-      const deviceBreakdown = generateMockDeviceBreakdown();
+      console.log('📊 Loading real-time analytics from Firebase...');
+      
+      // Load user data first (this should work)
+      const userData = await getUserList();
+      console.log('👥 User data:', userData.length, 'users');
+      
+      // Try to load analytics data, but handle permissions gracefully
+      let analyticsData = {
+        totalUsers: userData.length,
+        activeUsers: 0,
+        featureUsage: {}
+      };
+      
+      try {
+        const firebaseAnalytics = await getAnalytics();
+        analyticsData = { ...analyticsData, ...firebaseAnalytics };
+        console.log('📊 Analytics data loaded successfully:', analyticsData);
+      } catch (analyticsError) {
+        console.warn('⚠️ Analytics collection not accessible, using user-based data:', analyticsError.message);
+        // Calculate basic analytics from user data instead
+        analyticsData.featureUsage = {
+          protocolsCreated: 0,
+          ordersTracked: 0,
+          vendorsAdded: 0,
+          stockpileItems: 0,
+          reconCalculations: 0,
+          calendarEntries: 0
+        };
+      }
+      
+      const userGrowth = calculateUserGrowth(userData);
+      const featureUsage = calculateFeatureUsage(analyticsData);
+      const sessionData = calculateSessionData(userData);
+      const deviceBreakdown = calculateDeviceBreakdown();
       
       setAnalytics({
         userGrowth,
         featureUsage,
         sessionData,
-        deviceBreakdown
+        deviceBreakdown,
+        totalUsers: analyticsData.totalUsers || userData.length,
+        activeUsers: analyticsData.activeUsers || 0
       });
+      
+      setUsers(userData);
+      
+      // Calculate subscription data from real users
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const recentUsers = userData.filter(user => {
+        if (!user.createdAt || !user.createdAt.toDate) return false;
+        return user.createdAt.toDate() >= weekAgo;
+      });
+      
+      setSubscriptions({
+        active: userData.filter(u => u.isActive).length,
+        beta: userData.length, // All users are beta users currently
+        total: userData.length,
+        thisWeek: recentUsers.length,
+        recentRegistrations: recentUsers.slice(0, 5).map(user => ({
+          date: user.createdAt?.toDate()?.toISOString().split('T')[0] || 'Unknown',
+          email: user.email
+        }))
+      });
+      
     } catch (error) {
-      console.error('❌ Error loading analytics:', error);
+      console.error('❌ Error loading real analytics:', error);
+      // Fallback to empty data
+      setAnalytics({
+        userGrowth: [],
+        featureUsage: {},
+        sessionData: [],
+        deviceBreakdown: { mobile: { count: 0, percentage: 60 }, desktop: { count: 0, percentage: 35 }, tablet: { count: 0, percentage: 5 } },
+        totalUsers: 0,
+        activeUsers: 0
+      });
     } finally {
       setLoading(prev => ({ ...prev, analytics: false }));
     }
   };
 
-  const loadSubscriptionData = async () => {
+  const loadUserData = async () => {
     setLoading(prev => ({ ...prev, subscriptions: true }));
     try {
-      // Generate mock subscription data - in production, this would come from Stripe/Firebase
-      const mockSubscriptions = generateMockSubscriptionData();
-      setSubscriptions(mockSubscriptions);
+      console.log('👥 Loading user data...');
+      const userData = await getUserList();
+      setUsers(userData);
+      console.log('👥 Loaded', userData.length, 'users');
     } catch (error) {
-      console.error('❌ Error loading subscription data:', error);
+      console.error('❌ Error loading user data:', error);
     } finally {
       setLoading(prev => ({ ...prev, subscriptions: false }));
     }
@@ -434,7 +522,7 @@ function Admin() {
       
       const uniqueEmails = [...new Set([...emailWhitelist, ...cleanEmails])];
       await updateEmailWhitelist(uniqueEmails);
-      await loadInviteData();
+      await loadEmailWhitelist();
       setNewEmails('');
     } catch (error) {
       console.error('Error updating email whitelist:', error);
@@ -447,7 +535,7 @@ function Admin() {
     try {
       const newWhitelist = emailWhitelist.filter(e => e !== email);
       await updateEmailWhitelist(newWhitelist);
-      await loadInviteData();
+      await loadEmailWhitelist();
     } catch (error) {
       console.error('Error removing from whitelist:', error);
     }
@@ -566,18 +654,142 @@ function Admin() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: theme.border }}>
-        <div className="max-w-7xl mx-auto px-6 py-6">
+    <div className="min-h-screen flex" style={{ backgroundColor: '#f8fafc' }}>
+      {/* Sidebar Navigation */}
+      <div className="w-64 bg-white border-r flex flex-col" style={{ borderColor: theme.border }}>
+        {/* Header */}
+        <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
+              <Wrench size={20} style={{ color: theme.primary }} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
+              <p className="text-xs" style={{ color: theme.textLight }}>The Pep Planner</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Items */}
+        <nav className="flex-1 p-4 space-y-2">
+          {[
+            { 
+              id: 'analytics', 
+              label: 'Analytics', 
+              icon: BarChart3, 
+              count: analytics.totalUsers || 0,
+              desc: 'User insights',
+              color: '#3b82f6' 
+            },
+            { 
+              id: 'subscriptions', 
+              label: 'Users', 
+              icon: Users, 
+              count: subscriptions.total || 0,
+              desc: 'Beta users',
+              color: '#10b981' 
+            },
+            { 
+              id: 'feedback', 
+              label: 'Feedback', 
+              icon: MessageSquare, 
+              count: feedback.filter(f => f.status === 'new').length,
+              desc: 'Keyword analysis',
+              color: '#8b5cf6' 
+            },
+            { 
+              id: 'announcements', 
+              label: 'Announcements', 
+              icon: Megaphone, 
+              count: announcements.length,
+              desc: 'App announcements',
+              color: theme.primary 
+            },
+            { 
+              id: 'whitelist', 
+              label: 'Email Whitelist', 
+              icon: Mail, 
+              count: emailWhitelist.length,
+              desc: 'Approved emails',
+              color: '#64748b' 
+            },
+            { 
+              id: 'features', 
+              label: 'Feature Flags', 
+              icon: Flag, 
+              count: Object.keys(featureFlags.betaFeatures || {}).length,
+              desc: 'Beta features',
+              color: '#f59e0b' 
+            },
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full p-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
+                  isActive ? 'shadow-md' : 'hover:shadow-sm'
+                }`}
+                style={{
+                  backgroundColor: isActive ? tab.color + '10' : 'transparent',
+                  border: `1px solid ${isActive ? tab.color + '30' : 'transparent'}`,
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center`} style={{ backgroundColor: tab.color + '20' }}>
+                    <Icon size={16} style={{ color: tab.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-sm truncate" style={{ color: isActive ? tab.color : theme.text }}>{tab.label}</h3>
+                      {tab.count > 0 && (
+                        <span className="text-xs px-2 py-1 rounded-full ml-2" style={{ backgroundColor: tab.color + '20', color: tab.color }}>
+                          {tab.count}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs truncate" style={{ color: theme.textLight }}>{tab.desc}</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-4 border-t space-y-3" style={{ borderColor: theme.border }}>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: theme.success + '10' }}>
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.success }}></div>
+            <span className="text-xs font-medium" style={{ color: theme.success }}>Admin Active</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full px-3 py-2 rounded-lg font-medium text-sm hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Header */}
+        <div className="bg-white border-b p-6" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-                <Wrench size={24} style={{ color: theme.primary }} />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Admin Dashboard</h1>
-                <p className="text-sm" style={{ color: theme.textLight }}>Manage your The Pep Planner platform</p>
-              </div>
+            <div>
+              <h2 className="text-2xl font-bold capitalize" style={{ color: theme.primaryDark }}>
+                {activeTab === 'subscriptions' ? 'Beta Users' : activeTab.replace(/([A-Z])/g, ' $1').trim()}
+              </h2>
+              <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                {activeTab === 'analytics' && 'Real-time platform analytics and user insights'}
+                {activeTab === 'subscriptions' && 'Beta user management and registration tracking'}
+                {activeTab === 'feedback' && 'User feedback management with keyword-based categorization'}
+                {activeTab === 'announcements' && 'Manage app-wide announcements and notifications'}
+                {activeTab === 'whitelist' && 'Manage approved email addresses for beta access'}
+                {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
+              </p>
             </div>
             <div className="flex items-center gap-3">
               {activeTab === 'announcements' && (
@@ -590,118 +802,26 @@ function Admin() {
                   New Announcement
                 </button>
               )}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: theme.success + '15' }}>
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.success }}></div>
-                <span className="text-sm font-medium" style={{ color: theme.success }}>Admin Active</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}
-              >
-                Logout
-              </button>
+              {(activeTab === 'analytics' || activeTab === 'subscriptions') && (
+                <button
+                  onClick={() => {
+                    loadRealAnalytics();
+                    loadUserData();
+                  }}
+                  disabled={loading.analytics || loading.subscriptions}
+                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+                  style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                >
+                  <RefreshCw size={18} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
+                  Refresh Data
+                </button>
+              )}
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { 
-              id: 'analytics', 
-              label: 'Analytics', 
-              icon: BarChart3, 
-              count: analytics.userGrowth.length > 0 ? analytics.userGrowth[analytics.userGrowth.length - 1]?.users || 0 : 0,
-              desc: 'User growth & feature usage',
-              color: '#3b82f6' 
-            },
-            { 
-              id: 'subscriptions', 
-              label: 'Subscriptions', 
-              icon: CreditCard, 
-              count: subscriptions.active + subscriptions.trial,
-              desc: 'Revenue & conversion tracking',
-              color: '#10b981' 
-            },
-            { 
-              id: 'features', 
-              label: 'Feature Toggles', 
-              icon: Flag, 
-              count: Object.keys(featureFlags.betaFeatures || {}).length,
-              desc: 'Beta flags & experiments',
-              color: '#f59e0b' 
-            },
-            { 
-              id: 'feedback', 
-              label: 'Smart Feedback', 
-              icon: MessageSquare, 
-              count: feedback.filter(f => f.status === 'new').length,
-              desc: 'AI-powered feedback insights',
-              color: '#8b5cf6' 
-            },
-            { 
-              id: 'announcements', 
-              label: 'Announcements', 
-              icon: Megaphone, 
-              count: announcements.length,
-              desc: 'Manage app-wide announcements',
-              color: theme.primary 
-            },
-            { 
-              id: 'invites', 
-              label: 'Beta Invites', 
-              icon: Key, 
-              count: Object.keys(inviteCodes).length,
-              desc: 'Generate & manage invite codes',
-              color: '#06b6d4' 
-            },
-            { 
-              id: 'whitelist', 
-              label: 'Email Whitelist', 
-              icon: Mail, 
-              count: emailWhitelist.length,
-              desc: 'Manage approved email addresses',
-              color: '#64748b' 
-            },
-          ].map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`p-6 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] ${
-                  isActive ? 'ring-2 ring-opacity-50 shadow-lg' : 'hover:shadow-md'
-                }`}
-                style={{
-                  backgroundColor: isActive ? tab.color + '10' : theme.cardBackground,
-                  border: `1px solid ${theme.border}`,
-                  ringColor: isActive ? tab.color : 'transparent'
-                }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center`} style={{ backgroundColor: tab.color + '20' }}>
-                    <Icon size={24} style={{ color: tab.color }} />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold" style={{ color: tab.color }}>{tab.count}</div>
-                    <div className="text-xs" style={{ color: theme.textLight }}>items</div>
-                  </div>
-                </div>
-                <h3 className="font-semibold text-lg mb-1" style={{ color: theme.text }}>{tab.label}</h3>
-                <p className="text-sm" style={{ color: theme.textLight }}>{tab.desc}</p>
-                {isActive && (
-                  <div className="mt-3 flex items-center gap-2 text-xs font-medium" style={{ color: tab.color }}>
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tab.color }}></div>
-                    Currently viewing
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {/* Content Area */}
+        <div className="flex-1 p-6 overflow-auto">
 
         {activeTab === 'analytics' && (
           <div className="space-y-6">
@@ -737,14 +857,18 @@ function Admin() {
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{analytics.userGrowth[analytics.userGrowth.length - 1]?.users || 0}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Total Users</div>
-                  </div>
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                    <div className="text-2xl font-bold" style={{ color: theme.success }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>New This Month</div>
-                  </div>
+                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.info }}>{analytics.totalUsers}</div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>Total Users</div>
+                </div>
+                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.success }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>New This Month</div>
+                </div>
+                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.warning }}>{analytics.activeUsers}</div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>Active Users</div>
+                </div>
                 </div>
               </div>
             </div>
@@ -819,28 +943,28 @@ function Admin() {
 
         {activeTab === 'subscriptions' && (
           <div className="space-y-6">
-            {/* Revenue Overview */}
+            {/* Beta User Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
-                    <DollarSign size={20} style={{ color: theme.success }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.success }}>${subscriptions.revenue}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Total Revenue</div>
-                  </div>
-                </div>
-              </div>
-              
               <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.info + '20' }}>
                     <Users size={20} style={{ color: theme.info }} />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{subscriptions.active}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Active Subs</div>
+                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{subscriptions.total}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Total Beta Users</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
+                    <CheckCircle size={20} style={{ color: theme.success }} />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold" style={{ color: theme.success }}>{subscriptions.active}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Active Users</div>
                   </div>
                 </div>
               </div>
@@ -848,46 +972,114 @@ function Admin() {
               <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
-                    <Clock size={20} style={{ color: theme.warning }} />
+                    <TrendingUp size={20} style={{ color: theme.warning }} />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.warning }}>{subscriptions.trial}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Trial Users</div>
+                    <div className="text-2xl font-bold" style={{ color: theme.warning }}>{subscriptions.thisWeek}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>This Week</div>
                   </div>
                 </div>
               </div>
               
               <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.error + '20' }}>
-                    <X size={20} style={{ color: theme.error }} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.accent + '20' }}>
+                    <Mail size={20} style={{ color: theme.accent }} />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.error }}>{subscriptions.cancelled}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Cancelled</div>
+                    <div className="text-2xl font-bold" style={{ color: theme.accent }}>{emailWhitelist.length}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Whitelisted Emails</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Conversion Tracking */}
+            {/* Recent Registrations */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Recent Conversions</h2>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Recent Registrations</h2>
               <div className="space-y-3">
-                {subscriptions.conversions.map((conversion, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
-                        <Target size={16} style={{ color: theme.success }} />
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: theme.text }}>{conversion.date}</div>
-                        <div className="text-xs" style={{ color: theme.textLight }}>{conversion.count} conversions</div>
+                {subscriptions.recentRegistrations.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm" style={{ color: theme.textLight }}>No recent registrations</p>
+                  </div>
+                ) : (
+                  subscriptions.recentRegistrations.map((reg, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
+                          <Users size={16} style={{ color: theme.success }} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: theme.text }}>{reg.email}</div>
+                          <div className="text-xs" style={{ color: theme.textLight }}>Registered {reg.date}</div>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm font-medium" style={{ color: theme.success }}>${conversion.revenue}</div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Detailed User Activity */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Activity Details</h2>
+                <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
+                  Limited Tracking
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Current Activity Limitations */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm" style={{ color: theme.text }}>Currently Tracked:</h3>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Registration Date', icon: Users, available: true },
+                      { label: 'Last Login Time', icon: Clock, available: true },
+                      { label: 'Invite Code Used', icon: Key, available: true },
+                      { label: 'Account Status', icon: CheckCircle, available: true }
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <item.icon size={14} style={{ color: item.available ? theme.success : theme.textLight }} />
+                        <span style={{ color: item.available ? theme.text : theme.textLight }}>{item.label}</span>
+                        <div className={`w-2 h-2 rounded-full ${item.available ? 'bg-green-400' : 'bg-gray-300'}`}></div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Missing Tracking */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm" style={{ color: theme.text }}>Not Currently Tracked:</h3>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Session Duration', icon: Clock },
+                      { label: 'Page Views', icon: Eye },
+                      { label: 'Feature Usage', icon: Activity },
+                      { label: 'Real-time Status', icon: Zap }
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <item.icon size={14} style={{ color: theme.textLight }} />
+                        <span style={{ color: theme.textLight }}>{item.label}</span>
+                        <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: theme.info + '10' }}>
+                <div className="flex items-start gap-3">
+                  <Info size={16} style={{ color: theme.info }} className="mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: theme.info }}>Enhanced Tracking Available</p>
+                    <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                      We can implement detailed session tracking, page analytics, feature usage metrics, and real-time user status. 
+                      This would give you insights into user behavior, popular features, and engagement patterns.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -895,45 +1087,95 @@ function Admin() {
 
         {activeTab === 'features' && (
           <div className="space-y-6">
-            {/* Feature Flags */}
+            {/* Feature Flags Explanation */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
+                  <AlertTriangle size={24} style={{ color: theme.warning }} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Feature Flags - Currently Non-Functional</h2>
+                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                    The current feature toggle system is just a UI mockup and doesn't actually control any app functionality. 
+                    However, this would be <strong>extremely valuable</strong> for your future launch.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-sm" style={{ color: theme.success }}>Future Benefits:</h3>
+                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
+                        <li>• Gradual feature rollouts (10% → 50% → 100% users)</li>
+                        <li>• A/B testing different UI versions</li>
+                        <li>• Beta features for select users</li>
+                        <li>• Instant kill switches for problematic features</li>
+                        <li>• User tier-based feature access</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-sm" style={{ color: theme.info }}>Example Use Cases:</h3>
+                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
+                        <li>• New protocol builder → 25% of users first</li>
+                        <li>• Advanced analytics → paid users only</li>
+                        <li>• Team collaboration → beta testers</li>
+                        <li>• Export features → disable if server overloaded</li>
+                        <li>• New UI design → A/B test vs old design</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mock Feature Flags (Non-Functional) */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Beta Feature Flags</h2>
-                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>Control feature rollouts and experiments</p>
+                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Feature Flags (Demo Only)</h2>
+                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>These toggles don't actually control anything yet</p>
                 </div>
-                <button className="px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                  <Plus size={16} className="mr-2" />
-                  Add Flag
-                </button>
+                <span className="px-3 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
+                  Not Functional
+                </span>
               </div>
               
               <div className="space-y-3">
                 {[
-                  { name: 'Advanced Analytics', key: 'advanced_analytics', enabled: true, description: 'Enhanced analytics dashboard' },
-                  { name: 'AI Recommendations', key: 'ai_recommendations', enabled: false, description: 'AI-powered protocol suggestions' },
-                  { name: 'Team Collaboration', key: 'team_collaboration', enabled: false, description: 'Share protocols with team members' },
-                  { name: 'Export to PDF', key: 'pdf_export', enabled: true, description: 'Export reports as PDF files' }
+                  { name: 'Enhanced Dashboard', key: 'enhanced_dashboard', enabled: true, description: 'Advanced analytics and insights', rollout: '100%' },
+                  { name: 'Protocol Sharing', key: 'protocol_sharing', enabled: false, description: 'Share protocols with other users', rollout: '0%' },
+                  { name: 'PDF Exports', key: 'pdf_exports', enabled: true, description: 'Export data as PDF reports', rollout: '100%' },
+                  { name: 'Team Workspaces', key: 'team_workspaces', enabled: false, description: 'Collaborate with team members', rollout: '0%' },
+                  { name: 'Advanced Search', key: 'advanced_search', enabled: false, description: 'Enhanced search and filtering', rollout: '25%' }
                 ].map((flag) => (
-                  <div key={flag.key} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <div key={flag.key} className="flex items-center justify-between p-4 rounded-lg border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
+                      <div className="flex items-center gap-3 mb-2">
                         <Flag size={16} style={{ color: flag.enabled ? theme.success : theme.textLight }} />
                         <span className="font-medium" style={{ color: theme.text }}>{flag.name}</span>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${flag.enabled ? 'text-green-700 bg-green-100' : 'text-gray-700 bg-gray-100'}`}>
                           {flag.enabled ? 'Enabled' : 'Disabled'}
                         </span>
+                        <span className="px-2 py-1 text-xs rounded" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                          {flag.rollout}
+                        </span>
                       </div>
                       <p className="text-sm" style={{ color: theme.textLight }}>{flag.description}</p>
                     </div>
                     <button 
-                      className="ml-4 p-2 rounded-lg hover:opacity-70"
+                      className="ml-4 p-2 rounded-lg hover:opacity-70 cursor-not-allowed opacity-50"
                       style={{ color: flag.enabled ? theme.success : theme.textLight }}
+                      title="Not functional - demo only"
                     >
                       {flag.enabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                     </button>
                   </div>
                 ))}
+              </div>
+              
+              <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.info + '10' }}>
+                <p className="text-xs" style={{ color: theme.textLight }}>
+                  💡 <strong>Implementation Note:</strong> To make this functional, we'd need to create a Firebase collection for feature flags, 
+                  add flag checking logic throughout the app, and implement user segmentation rules.
+                </p>
               </div>
             </div>
 
@@ -946,22 +1188,22 @@ function Admin() {
                   </div>
                   <div>
                     <h3 className="font-semibold" style={{ color: theme.primaryDark }}>Maintenance Mode</h3>
-                    <p className="text-sm" style={{ color: theme.textLight }}>Temporarily disable app access for updates</p>
+                    <p className="text-sm" style={{ color: theme.textLight }}>Would temporarily disable app access for updates</p>
                   </div>
                 </div>
-                <button 
-                  className="p-2 rounded-lg hover:opacity-70"
-                  style={{ color: featureFlags.maintenanceMode ? theme.error : theme.textLight }}
-                >
-                  {featureFlags.maintenanceMode ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                </button>
-              </div>
-              {featureFlags.maintenanceMode && (
-                <div className="mt-4 p-3 rounded-lg flex items-center gap-2" style={{ backgroundColor: theme.error + '10' }}>
-                  <AlertTriangle size={16} style={{ color: theme.error }} />
-                  <span className="text-sm" style={{ color: theme.error }}>Maintenance mode is currently ACTIVE</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
+                    Demo Only
+                  </span>
+                  <button 
+                    className="p-2 rounded-lg hover:opacity-70 cursor-not-allowed opacity-50"
+                    style={{ color: featureFlags.maintenanceMode ? theme.error : theme.textLight }}
+                    title="Not functional - demo only"
+                  >
+                    {featureFlags.maintenanceMode ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -1242,7 +1484,7 @@ function Admin() {
                   <div>
                     <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Smart Feedback Inbox</h2>
                     <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      AI-powered categorization and sentiment analysis
+                      Keyword-based categorization and sentiment analysis
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -1396,108 +1638,6 @@ function Admin() {
           </div>
         )}
 
-        {activeTab === 'invites' && (
-          <div className="space-y-6">
-            <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="p-6 border-b" style={{ borderColor: theme.border }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Beta Invite Codes</h2>
-                    <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      Generate and manage beta invitation codes
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => createInviteCodesFirebase(5)}
-                      className="px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90"
-                      style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
-                    >
-                      Generate 5 Codes
-                    </button>
-                    <button
-                      onClick={() => createUniversalCodeFirebase(1)}
-                      className="px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90"
-                      style={{ backgroundColor: theme.accent, color: theme.accentText }}
-                    >
-                      Universal Code
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                {loading.inviteCodes ? (
-                  <div className="text-center py-8">
-                    <Loader size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
-                    <p className="mt-2 text-sm" style={{ color: theme.textLight }}>Loading invite codes...</p>
-                  </div>
-                ) : Object.keys(inviteCodes).length === 0 ? (
-                  <div className="text-center py-8">
-                    <Key size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
-                    <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No invite codes yet</h3>
-                    <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      Generate codes to invite beta testers
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.entries(inviteCodes).map(([code, data]) => (
-                      <div key={code} className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <code className="font-mono text-sm px-2 py-1 rounded" style={{ backgroundColor: theme.primary + '15', color: theme.primaryDark }}>
-                              {code}
-                            </code>
-                            {data.isUniversal && (
-                              <span className="px-2 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>
-                                Universal
-                              </span>
-                            )}
-                            {data.used && !data.isUniversal && (
-                              <span className="px-2 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: theme.success + '20', color: theme.success }}>
-                                Used
-                              </span>
-                            )}
-                          </div>
-                          {data.email && (
-                            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                              Email: {data.email}
-                            </p>
-                          )}
-                          {data.isUniversal && (
-                            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                              Uses: {data.usageCount || 0} • Phase {data.phase}
-                            </p>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => copyToClipboard(code, code)}
-                            className="p-2 rounded hover:opacity-70"
-                            style={{ color: theme.primary }}
-                            title="Copy code"
-                          >
-                            {copiedCode === code ? <Check size={16} /> : <Copy size={16} />}
-                          </button>
-                          <button
-                            onClick={() => deleteInviteCodeFirebase(code)}
-                            className="p-2 rounded hover:opacity-70"
-                            style={{ color: theme.error }}
-                            title="Delete code"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'whitelist' && (
           <div className="space-y-6">
@@ -1584,10 +1724,6 @@ function Admin() {
           </div>
         )}
 
-        <div className="text-center py-8">
-          <p className="text-sm" style={{ color: theme.textLight }}>
-            Admin Panel - The Pep Planner Management System
-          </p>
         </div>
       </div>
     </div>

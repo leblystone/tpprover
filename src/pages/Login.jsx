@@ -9,9 +9,7 @@ import { useFirebase } from '../context/FirebaseContext';
 import { 
   registerUser, 
   loginUser, 
-  getInviteCodes, 
   getEmailWhitelist,
-  markInviteCodeUsed,
   checkAndAssignFounderStatus,
   getUserFounderStatus,
   checkUserExists
@@ -26,7 +24,7 @@ const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) 
 
 // Legacy localStorage functions removed - now using Firebase
 
-async function validateInvite(email, code) {
+async function validateEmail(email) {
   try {
     const whitelist = await getEmailWhitelist();
     
@@ -35,36 +33,10 @@ async function validateInvite(email, code) {
       return { valid: false, error: 'This email is not authorized for beta access. Please contact support if you believe this is an error.' };
     }
     
-    // Get all invite codes from Firebase
-    const codes = await getInviteCodes();
-    console.log('🔍 All invite codes from Firebase:', codes);
-    
-    // Check both universal codes AND individual available codes
-    const codeUpper = code.toUpperCase();
-    let isValidCode = false;
-    
-    // Check universal codes (active) - ignore 'used' field for universal codes
-    const universalCodes = Object.keys(codes).filter(key => codes[key].isUniversal && codes[key].active !== false);
-    console.log('🔍 Universal codes:', universalCodes);
-    isValidCode = universalCodes.some(universalCode => universalCode.toUpperCase() === codeUpper);
-    
-    // If not a universal code, check individual codes (available/unused)
-    if (!isValidCode) {
-      const individualCodes = Object.keys(codes).filter(key => !codes[key].isUniversal && !codes[key].used);
-      console.log('🔍 Individual available codes:', individualCodes);
-      isValidCode = individualCodes.some(individualCode => individualCode.toUpperCase() === codeUpper);
-    }
-    
-    console.log('🔍 Code validation result:', isValidCode);
-    
-    if (!isValidCode) {
-      return { valid: false, error: 'Invalid beta access code. Please check your invitation email for the correct code.' };
-    }
-    
     return { valid: true };
   } catch (error) {
-    console.error('Invite validation failed:', error);
-    return { valid: false, error: 'Unable to validate beta access code. Please try again.' };
+    console.error('Email validation failed:', error);
+    return { valid: false, error: 'Unable to validate email access. Please try again.' };
   }
 }
 
@@ -85,7 +57,6 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [showTerms, setShowTerms] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [inviteCode, setInviteCode] = useState('');
     const [isReturningUser, setIsReturningUser] = useState(false);
     
     // Check if user is already authenticated
@@ -184,19 +155,12 @@ export default function Login() {
     const validateSignupCredentials = async () => {
       if (pwErrors.length > 0) { setError('Please fix the password requirements.'); return false; }
       
-      // Validate invite code and email
-      // Only require invite code for new users
-      if (!isReturningUser && !inviteCode.trim()) {
-        setError('Invite code is required for beta access.');
-        return false;
-      }
-      
       try {
-        // Only validate invite code for new users
+        // Validate email whitelist for new users
         if (!isReturningUser) {
-          const inviteValidation = await validateInvite(email, inviteCode.trim());
-          if (!inviteValidation.valid) {
-            setError(inviteValidation.error);
+          const emailValidation = await validateEmail(email);
+          if (!emailValidation.valid) {
+            setError(emailValidation.error);
             return false;
           }
         }
@@ -211,8 +175,8 @@ export default function Login() {
 
     const doSignup = async () => {
       try {
-        // Create Firebase user with the actual invite code used
-        const { user: firebaseUser } = await registerUser(email, password, isReturningUser ? null : inviteCode.trim());
+        // Create Firebase user
+        const { user: firebaseUser } = await registerUser(email, password, null);
         
         // Store password for encryption
         setFirebasePassword(password);
@@ -462,20 +426,11 @@ export default function Login() {
                             )}
 
                             {mode === 'signup' && !isReturningUser && (
-                                <>
-                                    <div className="relative">
-                                        <input 
-                                            type="text" 
-                                            placeholder="Beta Invite Code" 
-                                            value={inviteCode} 
-                                            onChange={e => setInviteCode(e.target.value)} 
-                                            required 
-                                            className="w-full px-4 py-3 border rounded-lg bg-gray-50 font-mono tracking-wider" 
-                                            style={{ borderColor: theme.border }}
-                                        />
-                                        <div className="text-xs text-gray-500 mt-1">Enter the invite code from your beta invitation email</div>
+                                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                                    <div className="text-sm text-blue-800">
+                                        <strong>Beta Access:</strong> Only whitelisted email addresses can create accounts during the beta period.
                                     </div>
-                                </>
+                                </div>
                             )}
                             
                             {mode === 'signup' && (
