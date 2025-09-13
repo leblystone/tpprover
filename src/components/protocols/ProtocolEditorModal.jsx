@@ -21,6 +21,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         if (!open) return;
 
         let initialData = protocol ? { ...createEmpty(), ...protocol } : createEmpty();
+        
+        // Clean duration data on load to prevent corruption
+        if (initialData.duration && initialData.duration.count !== '') {
+            let cleanCount = String(initialData.duration.count).replace(/[^\d.]/g, '');
+            if (cleanCount !== '' && !isNaN(cleanCount)) {
+                initialData.duration.count = parseFloat(cleanCount);
+            } else {
+                initialData.duration.count = '';
+            }
+        }
 
         // Migration logic for old single-peptide protocols
         if (initialData.name && (!initialData.peptides || initialData.peptides.length === 0)) {
@@ -117,10 +127,30 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     };
 
     const handleDurationChange = (field, value) => {
-        setForm(prev => ({
-            ...prev,
-            duration: { ...prev.duration, [field]: value }
-        }))
+        setForm(prev => {
+            let processedValue = value;
+            
+            // Clean and validate the input for count field
+            if (field === 'count') {
+                // Remove any non-numeric characters except decimal point
+                processedValue = String(value).replace(/[^\d.]/g, '');
+                
+                // Convert to number if it's a valid number, otherwise keep as string for partial input
+                if (processedValue !== '' && !isNaN(processedValue)) {
+                    processedValue = processedValue;
+                } else if (processedValue === '') {
+                    processedValue = '';
+                } else {
+                    // Invalid input, don't update
+                    return prev;
+                }
+            }
+            
+            return {
+                ...prev,
+                duration: { ...prev.duration, [field]: processedValue }
+            };
+        });
     };
 
     const handleWashoutChange = (field, value) => {
@@ -151,10 +181,23 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         }
 
         if (finalForm.duration) {
+            // Clean and validate duration count
+            let cleanCount = finalForm.duration.count;
+            if (!finalForm.duration.noEnd && cleanCount !== '') {
+                // Remove any non-numeric characters and convert to number
+                cleanCount = String(cleanCount).replace(/[^\d.]/g, '');
+                cleanCount = cleanCount === '' ? '' : parseFloat(cleanCount);
+                
+                // Validate reasonable range (1-999)
+                if (cleanCount < 1 || cleanCount > 999) {
+                    cleanCount = '';
+                }
+            }
+            
             finalForm.duration = {
                 ...finalForm.duration,
                 unit: fromEditorUnit(finalForm.duration.unit),
-                count: finalForm.duration.noEnd ? '' : finalForm.duration.count
+                count: finalForm.duration.noEnd ? '' : cleanCount
             };
         }
         if (finalForm.washout) {
@@ -272,7 +315,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         <div className="flex items-center gap-2">
                             <TextInput 
                                 type="number" 
-                                value={form.duration?.noEnd ? '' : form.duration?.count || ''} 
+                                value={form.duration?.noEnd ? '' : String(form.duration?.count || '')} 
                                 onChange={v => handleDurationChange('count', v)} 
                                 theme={theme} 
                                 placeholder="e.g., 4"
