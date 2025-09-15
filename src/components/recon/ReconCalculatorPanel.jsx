@@ -53,17 +53,21 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
   }, [prefill])
 
   const totalMg = useMemo(() => form.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0), [form.peptides]);
-  const totalDoseInMcg = useMemo(() => {
-    return form.peptides.reduce((sum, p) => {
-        const dose = Number(p.dose) || 0;
-        if (p.doseUnit === 'mg') {
-            return sum + (dose * 1000);
-        }
-        return sum + dose;
-    }, 0);
-  }, [form.peptides]);
-
-  const calc = useMemo(() => calculateRecon({ mg: totalMg, water: form.water, dose: totalDoseInMcg }), [totalMg, form.water, totalDoseInMcg])
+  const calc = useMemo(() => {
+    // For multi-peptide calculations, we need to handle each dose unit properly
+    // We'll calculate based on the first peptide's dose unit and value
+    const firstPeptide = form.peptides[0];
+    if (!firstPeptide || !firstPeptide.dose) {
+      return { unitsPerDose: 0, dosesPerVial: 0, concentration: 0 };
+    }
+    
+    return calculateRecon({ 
+      mg: totalMg, 
+      water: form.water, 
+      dose: firstPeptide.dose,
+      doseUnit: firstPeptide.doseUnit || 'mcg'
+    });
+  }, [totalMg, form.water, form.peptides])
   const costPerDose = useMemo(() => {
     if (cost && calc.dosesPerVial > 0) return `$${(Number(cost) / calc.dosesPerVial).toFixed(2)}`
     return ''
@@ -172,10 +176,19 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 <div className="sm:col-span-3"><TextInput label="mg/vial" type="number" value={p.mg} onChange={v => updatePeptide(p.id, 'mg', v)} placeholder="10" theme={theme} disabled={prefill?.peptides?.length > 0} /></div>
                 <div className="sm:col-span-3">
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Dose</div>
+                  {p.doseUnit === 'sprays' && (
+                    <div className="text-xs text-gray-500 mb-1">
+                      💡 Assumes 100 mcg per spray (typical nasal spray)
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <input 
-                      className="w-full border rounded px-3 py-2 text-sm bg-transparent" 
-                      style={{ borderColor: theme?.border }}
+                      className="w-full border rounded px-3 py-2 text-sm" 
+                      style={{ 
+                        borderColor: theme?.border || '#d1d5db',
+                        backgroundColor: theme?.cardBackground || 'white',
+                        color: theme?.text || 'black'
+                      }}
                       value={p.dose || ''} 
                       onChange={e => updatePeptide(p.id, 'dose', e.target.value)} 
                       placeholder="250" 

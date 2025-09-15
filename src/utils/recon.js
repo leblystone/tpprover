@@ -1,13 +1,32 @@
-export function calculateRecon({ mg, water, dose }) {
+export function calculateRecon({ mg, water, dose, doseUnit = 'mcg' }) {
   const mgNum = Number(mg) || 0
   const waterMl = Number(water) || 0
-  const doseMcg = Number(dose) || 0
-  if (mgNum <= 0 || waterMl <= 0 || doseMcg <= 0) return { unitsPerDose: 0, dosesPerVial: 0, concentration: 0 }
-  // Assume 1 mL = 100 insulin units
-  const totalMcg = mgNum * 1000
+  const doseValue = Number(dose) || 0
+  
+  if (mgNum <= 0 || waterMl <= 0 || doseValue <= 0) {
+    return { unitsPerDose: 0, dosesPerVial: 0, concentration: 0 }
+  }
+  
+  const totalMcg = mgNum * 1000 // Total peptide in mcg
   const concentration = totalMcg / waterMl // mcg per mL
+  
+  // Convert dose to mcg based on unit
+  let doseMcg = doseValue
+  if (doseUnit === 'mg') {
+    doseMcg = doseValue * 1000
+  } else if (doseUnit === 'sprays') {
+    // Nasal sprays: typically 100 mcg per spray (can be adjusted)
+    doseMcg = doseValue * 100
+  } else if (doseUnit === 'mL') {
+    // For mL dosing, calculate based on concentration
+    doseMcg = doseValue * concentration
+  }
+  // mcg is default, no conversion needed
+  
+  // Assume 1 mL = 100 insulin units
   const unitsPerDose = (doseMcg / concentration) * 100 // convert mL to insulin units
   const dosesPerVial = Math.floor(totalMcg / doseMcg)
+  
   return { unitsPerDose, dosesPerVial, concentration }
 }
 
