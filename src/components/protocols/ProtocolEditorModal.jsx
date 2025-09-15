@@ -127,29 +127,42 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     };
 
     const handleDurationChange = (field, value) => {
+        console.log('🔢 Duration change:', { field, value, type: typeof value });
+        
         setForm(prev => {
             let processedValue = value;
             
             // Clean and validate the input for count field
             if (field === 'count') {
-                // Remove any non-numeric characters except decimal point
-                processedValue = String(value).replace(/[^\d.]/g, '');
-                
-                // Convert to number if it's a valid number, otherwise keep as string for partial input
-                if (processedValue !== '' && !isNaN(processedValue)) {
-                    processedValue = processedValue;
-                } else if (processedValue === '') {
+                // Allow empty string for clearing
+                if (value === '') {
                     processedValue = '';
                 } else {
-                    // Invalid input, don't update
-                    return prev;
+                    // Convert to string and clean non-numeric characters (except decimal point)
+                    const cleanValue = String(value).replace(/[^\d.]/g, '');
+                    
+                    // If it's a valid number or partial number (like "1" or "12."), keep it
+                    if (cleanValue !== '' && !isNaN(parseFloat(cleanValue))) {
+                        processedValue = cleanValue;
+                    } else if (cleanValue !== '') {
+                        // If we have digits but it's not a valid number, keep the digits
+                        processedValue = cleanValue;
+                    } else {
+                        // No valid input, keep empty
+                        processedValue = '';
+                    }
                 }
+                
+                console.log('🔢 Processed value:', { original: value, processed: processedValue });
             }
             
-            return {
+            const newForm = {
                 ...prev,
                 duration: { ...prev.duration, [field]: processedValue }
             };
+            
+            console.log('🔢 New duration:', newForm.duration);
+            return newForm;
         });
     };
 

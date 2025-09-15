@@ -2,7 +2,7 @@ import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import BetaEndedSurvey from '../components/beta/BetaEndedSurvey';
 import { useAppContext } from '../context/AppContext';
-import { hasBetaLifetimeAccess, isBetaTester } from '../utils/betaAccess';
+import { hasBetaLifetimeAccess, isBetaTester, isBetaPeriodEnded } from '../utils/betaAccess';
 
 /**
  * Beta Ended Survey Page
@@ -11,6 +11,38 @@ import { hasBetaLifetimeAccess, isBetaTester } from '../utils/betaAccess';
 export default function BetaEndedSurveyPage() {
   const { theme } = useOutletContext();
   const { user } = useAppContext();
+
+  // Check if beta has ended
+  const betaEnded = isBetaPeriodEnded();
+
+  // Show message if beta hasn't ended yet
+  if (!betaEnded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md mx-auto text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-2xl">β</span>
+            </div>
+            <h1 className="text-xl font-bold text-blue-800 mb-2">Beta Still Active!</h1>
+            <p className="text-blue-600 mb-4">
+              The feedback survey will be available after beta ends on <strong>September 21st</strong>.
+            </p>
+            <p className="text-sm text-blue-500 mb-4">
+              Continue enjoying all beta features! The survey will appear automatically after beta ends.
+            </p>
+            <button
+              onClick={() => window.location.href = '/account'}
+              className="px-6 py-2 rounded-md font-medium hover:opacity-90"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Back to Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Redirect if user already has lifetime access
   if (hasBetaLifetimeAccess(user)) {

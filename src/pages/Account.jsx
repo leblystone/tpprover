@@ -415,44 +415,84 @@
                 </div>
               ) : isBetaTester(user) ? (
                 // Beta user who hasn't completed feedback yet
-                <div className="space-y-4">
-                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">β</span>
-                      </div>
-                      <div>
-                        <div className="font-semibold text-yellow-800">Beta Tester - Feedback Needed!</div>
-                        <div className="text-xs text-yellow-600">Help us improve and earn lifetime access</div>
-                      </div>
-                    </div>
-                    <div className="text-sm text-yellow-700 space-y-2">
-                      <p>🎯 <strong>You're a beta tester!</strong> Complete our feedback survey to earn <strong>lifetime access</strong> to all features.</p>
-                      <p>✨ <strong>What you'll get:</strong> Permanent access to all current and future features - no monthly payments ever!</p>
-                    </div>
-                    <div className="mt-3">
-                      <button 
-                        className="px-4 py-2 rounded-md font-medium hover:opacity-90 text-sm"
-                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                        onClick={() => {
-                          window.location.href = '/beta-survey';
-                        }}
-                      >
-                        📝 Complete Feedback Survey → Get Lifetime Access
-                      </button>
-                    </div>
-                  </div>
+                (() => {
+                  const betaStatus = getBetaStatusForUser(user);
+                  const isEnded = isBetaPeriodEnded();
                   
-                  {/* Show current trial/subscription status */}
-                  {sub && (
-                    <div className="text-xs" style={{ color: theme.textLight }}>
-                      <div>Current Status: {sub.plan} ({sub.status})</div>
-                      {sub.status === 'trialing' && (
-                        <div>Trial ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                  return (
+                    <div className="space-y-4">
+                      <div className={`bg-gradient-to-r rounded-lg p-4 border ${
+                        isEnded ? 'from-red-50 to-orange-50 border-red-200' :
+                        'from-blue-50 to-purple-50 border-blue-200'
+                      }`}>
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            isEnded ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+                            'bg-gradient-to-r from-blue-500 to-purple-500'
+                          }`}>
+                            <span className="text-white font-bold text-sm">
+                              {isEnded ? '⏰' : 'β'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className={`font-semibold ${
+                              isEnded ? 'text-red-800' : 'text-blue-800'
+                            }`}>
+                              {isEnded ? '⏰ Beta Has Ended - Survey Available!' : '🚀 Beta Testing Active'}
+                            </div>
+                            <div className={`text-xs ${
+                              isEnded ? 'text-red-600' : 'text-blue-600'
+                            }`}>
+                              {isEnded ? 'Complete survey to activate lifetime access' : 'Enjoy testing - survey available after beta ends'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-sm space-y-2 ${
+                          isEnded ? 'text-red-700' : 'text-blue-700'
+                        }`}>
+                          {isEnded ? (
+                            <>
+                              <p>🎯 <strong>Beta has ended!</strong> Thank you for being part of our testing journey.</p>
+                              <p>📝 <strong>Complete our feedback survey</strong> to activate your guaranteed lifetime access.</p>
+                              <p>✨ <strong>What you'll get:</strong> Permanent access to all features, priority support, and all future updates - completely free!</p>
+                            </>
+                          ) : (
+                            <>
+                              <p>🎉 <strong>You're a beta tester!</strong> Continue using all features during the beta period.</p>
+                              <p>⏰ <strong>After beta ends (Sept 21st)</strong>, you'll be able to complete a feedback survey to secure lifetime access.</p>
+                              <p>✨ <strong>What you'll get:</strong> Permanent access to all current and future features - no monthly payments ever!</p>
+                            </>
+                          )}
+                        </div>
+                        
+                        {/* Only show survey button AFTER beta ends */}
+                        {isEnded && (
+                          <div className="mt-3">
+                            <button 
+                              className="px-4 py-2 rounded-md font-medium hover:opacity-90 text-sm animate-pulse"
+                              style={{ backgroundColor: '#dc2626', color: 'white' }}
+                              onClick={() => {
+                                window.location.href = '/beta-survey';
+                              }}
+                            >
+                              🚨 Complete Survey Now → Activate Lifetime Access
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                  
+                      {/* Show current trial/subscription status */}
+                      {sub && (
+                        <div className="text-xs" style={{ color: theme.textLight }}>
+                          <div>Current Status: {sub.plan} ({sub.status})</div>
+                          {sub.status === 'trialing' && (
+                            <div>Trial ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()
               ) : sub ? (
                 // Regular user with subscription
                 <div className="space-y-4">

@@ -43,7 +43,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             if (navigator.share) {
                 await navigator.share({
                     title: `Check out this ${title}`,
-                    text: `Shared from TPPRover`,
+                    text: `Shared from The Pep Planner`,
                     files: [file],
                 });
             } else {

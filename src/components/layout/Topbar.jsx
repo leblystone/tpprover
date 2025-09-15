@@ -29,7 +29,7 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
     announcements: 'From: The Pep Planner',
     badges: 'Badges',
   };
-  const title = titles[seg] || 'TPPRover';
+  const title = titles[seg] || 'The Pep Planner';
 
   const [showSearch, setShowSearch] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { markBetaFeedbackCompleted } from '../../utils/betaAccess';
+import React, { useState, useEffect } from 'react';
+import { markBetaFeedbackCompleted, isBetaPeriodEnded, getBetaStatusForUser } from '../../utils/betaAccess';
+import { getTimeUntilBetaEnd, getDaysUntilBetaEnd } from '../../config/betaConfig';
 import { useAppContext } from '../../context/AppContext';
 
 /**
@@ -9,6 +10,9 @@ import { useAppContext } from '../../context/AppContext';
 export default function BetaEndedSurvey({ theme, onComplete }) {
   const { user } = useAppContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState('');
+  const [daysLeft, setDaysLeft] = useState(0);
+  const [isEnded, setIsEnded] = useState(false);
   const [formData, setFormData] = useState({
     // Survey questions - customize these to match your Google Form
     overallExperience: '',
@@ -19,6 +23,23 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
     additionalComments: '',
     email: user?.email || ''
   });
+
+  // Update countdown timer
+  useEffect(() => {
+    const updateTimer = () => {
+      setTimeLeft(getTimeUntilBetaEnd());
+      setDaysLeft(getDaysUntilBetaEnd());
+      setIsEnded(isBetaPeriodEnded());
+    };
+
+    // Update immediately
+    updateTimer();
+
+    // Update every minute
+    const interval = setInterval(updateTimer, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -94,24 +115,80 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
     });
   };
 
+  const betaStatus = getBetaStatusForUser(user);
+
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Beta Ended Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 mb-6">
+      {/* Dynamic Beta Header */}
+      <div className={`bg-gradient-to-r rounded-lg p-6 mb-6 border ${
+        isEnded ? 'from-red-50 to-orange-50 border-red-200' :
+        daysLeft <= 3 ? 'from-yellow-50 to-orange-50 border-yellow-200' :
+        'from-blue-50 to-purple-50 border-blue-200'
+      }`}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-lg">β</span>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            isEnded ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+            daysLeft <= 3 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+            'bg-gradient-to-r from-blue-500 to-purple-500'
+          }`}>
+            <span className="text-white font-bold text-lg">
+              {isEnded ? '⏰' : daysLeft <= 3 ? '⚠️' : 'β'}
+            </span>
           </div>
           <div>
-            <div className="font-bold text-xl text-blue-800">Beta Testing Complete!</div>
-            <div className="text-sm text-blue-600">Your feedback shapes the future of TPP Splendide</div>
+            <div className={`font-bold text-xl ${
+              isEnded ? 'text-red-800' :
+              daysLeft <= 3 ? 'text-yellow-800' :
+              'text-blue-800'
+            }`}>
+              {betaStatus.title}
+            </div>
+            <div className={`text-sm ${
+              isEnded ? 'text-red-600' :
+              daysLeft <= 3 ? 'text-yellow-600' :
+              'text-blue-600'
+            }`}>
+              Your feedback shapes the future of The Pep Planner
+            </div>
           </div>
         </div>
         
-        <div className="space-y-3 text-blue-700">
-          <p>🎉 <strong>Congratulations!</strong> You've been part of our beta testing journey.</p>
-          <p>🎯 <strong>Your lifetime access is guaranteed</strong> - just complete this quick survey to activate it.</p>
-          <p>✨ <strong>What you'll get:</strong> Permanent access to all features, priority support, and all future updates - completely free!</p>
+        {/* Countdown or Status Message */}
+        {!isEnded && daysLeft > 0 && (
+          <div className="mb-4 p-3 bg-white/50 rounded-md">
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: theme.primary }}>
+                {timeLeft}
+              </div>
+              <div className="text-sm text-gray-600">until beta ends</div>
+            </div>
+          </div>
+        )}
+        
+        <div className={`space-y-3 ${
+          isEnded ? 'text-red-700' :
+          daysLeft <= 3 ? 'text-yellow-700' :
+          'text-blue-700'
+        }`}>
+          {isEnded ? (
+            <>
+              <p>🎯 <strong>Beta has ended, but don't worry!</strong> Your lifetime access is still guaranteed.</p>
+              <p>📝 <strong>Complete this survey</strong> to immediately activate your permanent access.</p>
+              <p>✨ <strong>What you'll get:</strong> Lifetime access to all features, priority support, and all future updates - completely free!</p>
+            </>
+          ) : daysLeft <= 3 ? (
+            <>
+              <p>⚠️ <strong>Beta ending soon!</strong> Complete your survey before {timeLeft} to secure lifetime access.</p>
+              <p>🎯 <strong>Your lifetime access is guaranteed</strong> - just finish this quick survey to activate it.</p>
+              <p>✨ <strong>What you'll get:</strong> Permanent access to all features, priority support, and all future updates - completely free!</p>
+            </>
+          ) : (
+            <>
+              <p>🎉 <strong>Congratulations!</strong> You've been part of our beta testing journey.</p>
+              <p>🎯 <strong>Your lifetime access is guaranteed</strong> - complete this survey anytime to activate it.</p>
+              <p>✨ <strong>What you'll get:</strong> Permanent access to all features, priority support, and all future updates - completely free!</p>
+            </>
+          )}
         </div>
       </div>
 
@@ -119,13 +196,13 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="rounded-lg border p-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>
-            Help Us Improve - Quick Feedback Survey
+            Help Us Improve The Pep Planner - Quick Feedback Survey
           </h3>
 
           {/* Overall Experience */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-              How would you rate your overall experience with TPP Splendide? *
+              How would you rate your overall experience with The Pep Planner? *
             </label>
             <select
               required
@@ -198,7 +275,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
               required
               value={formData.suggestedImprovements}
               onChange={(e) => handleInputChange('suggestedImprovements', e.target.value)}
-              placeholder="Tell us what features, improvements, or changes would make TPP Splendide even better for you..."
+              placeholder="Tell us what features, improvements, or changes would make The Pep Planner even better for you..."
               rows={4}
               className="w-full p-3 border rounded-md"
               style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
@@ -208,7 +285,7 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
           {/* Recommendation */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-              How likely are you to recommend TPP Splendide to other peptide users? *
+              How likely are you to recommend The Pep Planner to other peptide users? *
             </label>
             <select
               required
@@ -246,13 +323,26 @@ export default function BetaEndedSurvey({ theme, onComplete }) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-3 rounded-md font-semibold text-lg hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              className={`px-8 py-3 rounded-md font-semibold text-lg hover:opacity-90 disabled:opacity-50 flex items-center gap-2 ${
+                isEnded ? 'animate-pulse' : ''
+              }`}
+              style={{ 
+                backgroundColor: isEnded ? '#dc2626' : theme.primary, 
+                color: theme.textOnPrimary 
+              }}
             >
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                   Submitting...
+                </>
+              ) : isEnded ? (
+                <>
+                  🚨 Submit Survey & Activate Lifetime Access Now!
+                </>
+              ) : daysLeft <= 3 ? (
+                <>
+                  ⚡ Submit Survey & Secure Lifetime Access
                 </>
               ) : (
                 <>

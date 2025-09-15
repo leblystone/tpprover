@@ -31,7 +31,7 @@ export default function WelcomeOnboarding({ theme }) {
 				<div className="p-8">
 					<div className="flex items-center gap-3 mb-4">
 						<img src="/tpp-logo.png" alt="TPP" className="w-10 h-10 rounded" />
-						<h2 className="text-2xl font-extrabold tracking-tight" style={{ color: theme?.primaryDark }}>Welcome to TPP Rover</h2>
+						<h2 className="text-2xl font-extrabold tracking-tight" style={{ color: theme?.primaryDark }}>Welcome to The Pep Planner</h2>
 					</div>
 					<p className="text-sm mb-6" style={{ color: theme?.text }}>
 						Let’s get you set up. Pick an action to begin, or explore at your own pace.
