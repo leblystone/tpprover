@@ -65,9 +65,9 @@ export default function BetaClosed() {
         </div>
 
         {hasCompletedSurvey ? (
-          /* Thanks Message - Survey Already Completed */
           <div className="rounded-lg border p-6 content-card shadow-sm" 
                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            {/* Thanks Message - Survey Already Completed */}
             {/* Success Header */}
             <div className="p-8 text-center rounded-lg mb-6" 
                  style={{ backgroundColor: theme.successBg, color: theme.text }}>
@@ -164,9 +164,9 @@ export default function BetaClosed() {
             
           </div>
         ) : (
-          /* Survey Form - Not Yet Completed */
           <div className="rounded-lg border p-6 content-card shadow-sm" 
                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            {/* Survey Form - Not Yet Completed */}
             {/* Survey Header */}
             <div className="p-8 text-center rounded-lg mb-6" 
                  style={{ backgroundColor: theme.warningBg, color: theme.text }}>
