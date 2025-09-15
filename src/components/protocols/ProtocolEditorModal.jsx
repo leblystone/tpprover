@@ -10,6 +10,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const createEmpty = () => ({
         protocolName: '',
         purpose: '',
+        protocolType: 'separate', // 'separate' | 'blended'
         peptides: [{ id: Date.now(), frequency: { type: 'daily', time: ['Morning'] } }],
         duration: { count: '', unit: 'weeks', noEnd: false },
         washout: { enabled: false, duration: '', unit: 'weeks' },
@@ -238,10 +239,69 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             placeholder="e.g., Immunity" 
                         />
                     </div>
+                    
+                    {/* Protocol Type Selection */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                            Protocol Type
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => handleChange('protocolType', 'separate')}
+                                className={`p-3 border-2 rounded-lg text-left transition-colors ${
+                                    form.protocolType === 'separate' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                                style={{ 
+                                    borderColor: form.protocolType === 'separate' ? theme.primary : theme.border,
+                                    backgroundColor: form.protocolType === 'separate' ? theme.primary + '10' : 'transparent'
+                                }}
+                            >
+                                <div className="font-semibold text-sm" style={{ color: theme.text }}>Separate Peptides</div>
+                                <div className="text-xs mt-1" style={{ color: theme.textLight }}>
+                                    Each peptide has its own delivery method, timing, and schedule
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleChange('protocolType', 'blended')}
+                                className={`p-3 border-2 rounded-lg text-left transition-colors ${
+                                    form.protocolType === 'blended' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                                style={{ 
+                                    borderColor: form.protocolType === 'blended' ? theme.primary : theme.border,
+                                    backgroundColor: form.protocolType === 'blended' ? theme.primary + '10' : 'transparent'
+                                }}
+                            >
+                                <div className="font-semibold text-sm" style={{ color: theme.text }}>Blended Protocol</div>
+                                <div className="text-xs mt-1" style={{ color: theme.textLight }}>
+                                    All peptides mixed together with shared delivery method and timing
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Separator */}
                 <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+                {/* Shared Settings for Blended Protocols */}
+                {form.protocolType === 'blended' && form.peptides?.length > 0 && (
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Shared Protocol Settings</h3>
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <DosingScheduleEditor
+                                frequency={form.peptides[0]?.frequency || { type: 'daily', time: ['Morning'] }}
+                                onChange={(newFreq) => {
+                                    // Apply the same frequency to all peptides in blended protocol
+                                    const updatedPeptides = form.peptides.map(p => ({ ...p, frequency: newFreq }));
+                                    handleChange('peptides', updatedPeptides);
+                                }}
+                                theme={theme}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Peptides Section */}
                 <div className="space-y-4">
@@ -257,9 +317,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     item={p}
                                     onChange={(updated) => handlePeptideChange(index, updated)}
                                     onRemove={() => removePeptide(index)}
+                                    protocolType={form.protocolType}
+                                    isFirstPeptide={index === 0}
                                     theme={theme}
                                     isOnlyItem={form.peptides.length === 1}
-                                    isBlended={form.blendMode === 'blended'}
                                 />
                                 
                                 {/* Show protocol type selector after first peptide if there are multiple */}

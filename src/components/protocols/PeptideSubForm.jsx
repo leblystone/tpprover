@@ -18,7 +18,7 @@ const penColors = [
     { name: 'Gray', hex: '#9CA3AF' },
 ];
 
-export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem }) {
+export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
     
     const handleChange = (field, value) => {
         onChange({ ...item, [field]: value });
@@ -96,8 +96,12 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             </div>
                         </div>
                         
-                        <div>
-                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Delivery Method</div>
+                        {/* Delivery Method - Only show for separate protocols or first peptide in blended */}
+                        {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
+                            <div>
+                                <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>
+                                    Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal" style={{ color: theme.textLight }}>(shared by all peptides)</span>}
+                                </div>
                             <div className="flex gap-2">
                                 <button 
                                     type="button"
@@ -184,11 +188,13 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 </div>
                             )}
                         </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Frequency & Schedule */}
-                <div className="space-y-4">
+                {/* Frequency & Schedule - Only show for separate protocols, hidden for blended (handled globally) */}
+                {protocolType === 'separate' && (
+                    <div className="space-y-4">
                     <div>
                         <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Frequency</div>
                         <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
@@ -289,8 +295,10 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         </div>
                     </div>
                 </div>
+                )}
 
-                {/* Titration Section */}
+                {/* Titration Section - Only show for separate protocols or first peptide in blended */}
+                {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -320,6 +328,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         />
                     )}
                 </div>
+                )}
             </div>
         </div>
     );
