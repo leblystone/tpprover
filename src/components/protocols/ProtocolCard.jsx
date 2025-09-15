@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Syringe } from 'lucide-react';
+import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Syringe, Pen } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
+import { getChromeGradient } from '../../utils/recon';
+
+const penColors = [
+    { name: 'Gold', hex: '#DAA520' },
+    { name: 'Silver', hex: '#C0C0C0' },
+    { name: 'Black', hex: '#000000' },
+    { name: 'Blue', hex: '#0066CC' },
+    { name: 'Red', hex: '#CC0000' },
+    { name: 'Green', hex: '#00AA00' },
+    { name: 'Purple', hex: '#6600CC' },
+    { name: 'Orange', hex: '#FF6600' },
+    { name: 'Pink', hex: '#FF69B4' },
+    { name: 'White', hex: '#FFFFFF' },
+    { name: 'Gray', hex: '#9CA3AF' },
+];
 
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
@@ -78,7 +93,57 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                         )}
                         <div className="flex items-start gap-2"><Clock size={14} className="mt-0.5 flex-shrink-0" /><span>{p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}${p.duration.count > 1 ? 's' : ''}` : 'Duration not set')}</span></div>
                         {p.washout?.enabled && p.washout?.count > 0 && (<div className="flex items-start gap-2"><RotateCw size={14} className="mt-0.5 flex-shrink-0" /><span>Washout: {p.washout.count} {p.washout.unit}{p.washout.count > 1 ? 's' : ''}</span></div>)}
-                        {p.penType && (<div className="flex items-start gap-2"><Syringe size={14} className="mt-0.5 flex-shrink-0" /><span>{formatPenType(p.penType)}</span></div>)}
+                        {/* Delivery Methods from Peptides */}
+                        {p.peptides && p.peptides.length > 0 && (() => {
+                            const deliveryMethods = [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'syringe'))];
+                            const penPeptides = p.peptides.filter(pep => (pep.deliveryMethod || 'syringe') === 'pen');
+                            
+                            return deliveryMethods.map(method => (
+                                <div key={method} className="flex items-start gap-2">
+                                    {method === 'pen' ? <Pen size={14} className="mt-0.5 flex-shrink-0" /> : <Syringe size={14} className="mt-0.5 flex-shrink-0" />}
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium">
+                                            {method === 'pen' ? 'Pen Delivery' : 'Syringe Delivery'}
+                                        </span>
+                                        {method === 'pen' && penPeptides.map((pep, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 text-xs">
+                                                {pep.penType && (
+                                                    <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                                                        {pep.penType === 'other' ? 'Other' : 
+                                                            pep.penType === 'savvio' ? '🖊️ Savvio' :
+                                                            pep.penType === 'novo' ? '🖊️ Novo' :
+                                                            pep.penType === 'v1' ? '🖊️ V1' :
+                                                            pep.penType === 'v2' ? '🖊️ V2' :
+                                                            pep.penType === 'v3' ? '🖊️ V3' :
+                                                            pep.penType === 'bird-pen' ? '🖊️ Bird Pen' :
+                                                            pep.penType === 'luxura' ? '🖊️ Luxura' :
+                                                            pep.penType === 'gansulin' ? '🖊️ Gansulin' :
+                                                            `🖊️ ${pep.penType}`
+                                                        }
+                                                    </span>
+                                                )}
+                                                {pep.penColor && (() => {
+                                                    const colorInfo = penColors.find(c => c.name === pep.penColor);
+                                                    if (colorInfo) {
+                                                        return (
+                                                            <div 
+                                                                className="w-4 h-4 rounded-full border-2" 
+                                                                style={{ 
+                                                                    background: getChromeGradient(colorInfo.hex),
+                                                                    borderColor: colorInfo.hex
+                                                                }}
+                                                                title={`${pep.penColor} Pen`}
+                                                            />
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ));
+                        })()}
                         {p.notes && (<div className="flex items-start gap-2"><FileText size={14} className="mt-0.5 flex-shrink-0" /><p className="text-xs italic border-l-2 pl-2" style={{ borderColor: theme.border }}>{p.notes}</p></div>)}
                     </div>
                 </div>

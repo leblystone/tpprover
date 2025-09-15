@@ -168,6 +168,7 @@ export default function Recon() {
 										<div className="flex justify-between items-center mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
 											<div className="flex items-center gap-2">
 									{item.deliveryMethod === 'pen' && item.penColor ? (
+													<div className="flex flex-col gap-1">
 														<div 
                                                         className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" 
                                                         style={{ 
@@ -183,6 +184,22 @@ export default function Recon() {
                                                                     : item.penColor
                                                             } Pen</span>
 														</div>
+														{item.penType && (
+															<div className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+																{item.penType === 'other' ? 'Other Pen' : 
+																	item.penType === 'savvio' ? '🖊️ Savvio' :
+																	item.penType === 'novo' ? '🖊️ Novo' :
+																	item.penType === 'v1' ? '🖊️ V1' :
+																	item.penType === 'v2' ? '🖊️ V2' :
+																	item.penType === 'v3' ? '🖊️ V3' :
+																	item.penType === 'bird-pen' ? '🖊️ Bird Pen' :
+																	item.penType === 'luxura' ? '🖊️ Luxura' :
+																	item.penType === 'gansulin' ? '🖊️ Gansulin' :
+																	`🖊️ ${item.penType}`
+																}
+															</div>
+														)}
+													</div>
 												) : (
                                                     <div className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.text }}>
                                                         <Syringe size={12} />
