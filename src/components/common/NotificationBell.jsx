@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, MessageSquare } from 'lucide-react';
 import { getUserNotifications, markNotificationAsRead } from '../../services/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
@@ -8,6 +8,7 @@ export default function NotificationBell({ theme }) {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(false);
+  const notificationRef = useRef(null);
 
   useEffect(() => {
     if (firebaseUser?.email) {
@@ -17,6 +18,25 @@ export default function NotificationBell({ theme }) {
       return () => clearInterval(interval);
     }
   }, [firebaseUser?.email]);
+
+  // Handle click outside to close notifications panel
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   const loadNotifications = async () => {
     if (!firebaseUser?.email) {
@@ -38,27 +58,30 @@ export default function NotificationBell({ theme }) {
   };
 
   const handleBellClick = async () => {
-    setShowNotifications(!showNotifications);
-    
-    // Auto-mark all unread notifications as read when bell is clicked
-    const unreadNotifications = notifications.filter(n => !n.isRead);
-    if (unreadNotifications.length > 0) {
-      try {
-        // Mark all unread notifications as read
-        for (const notification of unreadNotifications) {
-          await markNotificationAsRead(notification.id);
-        }
-        
-        // Update local state
+    if (!showNotifications) {
+      // Opening notifications panel - mark all as read immediately for instant UI feedback
+      const unreadNotifications = notifications.filter(n => !n.isRead);
+      if (unreadNotifications.length > 0) {
+        // Update UI immediately (optimistic update)
         setNotifications(prev => 
           prev.map(n => ({ ...n, isRead: true, readAt: new Date() }))
         );
         
-        console.log('🔔 Auto-marked', unreadNotifications.length, 'notifications as read');
-      } catch (error) {
-        console.error('Failed to auto-mark notifications as read:', error);
+        // Then update Firebase in background
+        try {
+          for (const notification of unreadNotifications) {
+            await markNotificationAsRead(notification.id);
+          }
+          console.log('🔔 Auto-marked', unreadNotifications.length, 'notifications as read');
+        } catch (error) {
+          console.error('Failed to auto-mark notifications as read:', error);
+          // Revert optimistic update on error
+          loadNotifications();
+        }
       }
     }
+    
+    setShowNotifications(!showNotifications);
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -98,7 +121,7 @@ export default function NotificationBell({ theme }) {
   }, [firebaseUser, loadNotifications]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={notificationRef}>
       <button
         onClick={handleBellClick}
         className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -114,10 +137,8 @@ export default function NotificationBell({ theme }) {
       </button>
 
       {showNotifications && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border shadow-lg z-50"
-               style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border shadow-lg z-50"
+             style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
             <div className="p-4 border-b" style={{ borderColor: theme.border }}>
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold" style={{ color: theme.text }}>Notifications</h3>
@@ -174,7 +195,6 @@ export default function NotificationBell({ theme }) {
               )}
             </div>
           </div>
-        </>
       )}
     </div>
   );
