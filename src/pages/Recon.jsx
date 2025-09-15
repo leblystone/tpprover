@@ -101,7 +101,15 @@ export default function Recon() {
 								{ value: 'reconstituted', label: 'Reconstituted' },
 								{ value: 'history', label: 'History' },
 							]} />
-							<button className="p-2 rounded-md" style={{ color: theme.text }} title="Search entries" onClick={() => setSearchOpen(v => !v)}>
+							<button 
+								className="p-2 rounded-md hover:bg-opacity-10 hover:bg-gray-500 transition-colors" 
+								style={{ color: theme.text, backgroundColor: searchOpen ? theme.accent : 'transparent' }} 
+								title="Search entries" 
+								onClick={() => {
+									console.log('Search button clicked, current state:', searchOpen);
+									setSearchOpen(v => !v);
+								}}
+							>
 								<Search className="h-4 w-4" />
 							</button>
 							{searchOpen && (
