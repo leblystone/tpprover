@@ -37,13 +37,34 @@ export default function Stockpile() {
     for (const it of filtered) {
       const name = it.name || 'Unknown'
       const mg = String(it.mg || '')
+      const mgUnit = it.mgUnit || 'mg'
       const qty = Number(it.quantity) || 0
       const mgNum = Number(it.mg) || 0
-      if (!map.has(name)) map.set(name, { name, totalMg: 0, variants: {} })
-      const g = map.get(name)
+      
+      // Create a unique key that includes the unit to separate mg from mL items
+      const groupKey = `${name}__${mgUnit}`
+      
+      if (!map.has(groupKey)) {
+        map.set(groupKey, { 
+          name, 
+          unit: mgUnit,
+          totalMg: 0, 
+          variants: {} 
+        })
+      }
+      const g = map.get(groupKey)
       g.totalMg += qty * mgNum
-      if (!g.variants[mg]) g.variants[mg] = { mg, totalVials: 0, items: [] }
-      const v = g.variants[mg]
+      
+      const variantKey = `${mg}__${mgUnit}`
+      if (!g.variants[variantKey]) {
+        g.variants[variantKey] = { 
+          mg, 
+          unit: mgUnit,
+          totalVials: 0, 
+          items: [] 
+        }
+      }
+      const v = g.variants[variantKey]
       v.totalVials += qty
       v.items.push(it)
     }
@@ -64,22 +85,37 @@ export default function Stockpile() {
       for (const item of o.items) {
         const name = item.name || 'Unknown';
         const mg = String(item.mg || '');
+        const mgUnit = item.mgUnit || 'mg';
         const vendorName = o.vendorId ? vendorMap[o.vendorId] : (o.vendor || 'Unknown');
         const mgNum = Number(item.mg) || 0;
         const quantity = Number(item.quantity) || 1;
         const isKit = (item.unit || '').toLowerCase() === 'kit';
         const vials = isKit ? quantity * 10 : quantity;
 
-        if (!map.has(name)) {
-          map.set(name, { name, totalMg: 0, variants: {} });
+        // Create a unique key that includes the unit
+        const groupKey = `${name}__${mgUnit}`;
+        
+        if (!map.has(groupKey)) {
+          map.set(groupKey, { 
+            name, 
+            unit: mgUnit,
+            totalMg: 0, 
+            variants: {} 
+          });
         }
-        const g = map.get(name);
+        const g = map.get(groupKey);
         g.totalMg += mgNum * vials;
 
-        if (!g.variants[mg]) {
-          g.variants[mg] = { mg, totalMg: 0, vendors: {} };
+        const variantKey = `${mg}__${mgUnit}`;
+        if (!g.variants[variantKey]) {
+          g.variants[variantKey] = { 
+            mg, 
+            unit: mgUnit,
+            totalMg: 0, 
+            vendors: {} 
+          };
         }
-        const v = g.variants[mg];
+        const v = g.variants[variantKey];
         v.totalMg += mgNum * vials;
 
         if (!v.vendors[vendorName]) {
@@ -210,13 +246,13 @@ export default function Stockpile() {
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
-                                <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{g.totalMg} mg</div>
+                                <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{g.totalMg} {g.unit || 'mg'}</div>
                             </div>
                             <div className="space-y-3">
                                 {Object.values(g.variants).sort((a, b) => String(a.mg).localeCompare(String(b.mg))).map(v => (
                                     <div key={v.mg} className="rounded-md border p-3" style={{ borderColor: theme.border }}>
                                         <div className="flex items-center justify-between text-sm mb-2">
-                                            <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} mg</div>
+                                            <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
                                             <div className="text-xs font-semibold">{v.totalVials} vials</div>
                                         </div>
                                         <ul className="mt-1 text-xs space-y-3">
@@ -251,7 +287,7 @@ export default function Stockpile() {
                                                     {(Number(item.cost) > 0 && Number(item.mg) > 0) && (
                                                         <div className="flex items-center gap-2 pl-5">
                                                             <DollarSign size={12} />
-                                                            <span>${(Number(item.cost) / Number(item.mg)).toFixed(2)} / mg</span>
+                                                            <span>${(Number(item.cost) / Number(item.mg)).toFixed(2)} / {item.mgUnit || 'mg'}</span>
                                                         </div>
                                                     )}
                                                     {item.notes && (
@@ -284,14 +320,14 @@ export default function Stockpile() {
                     <div key={`incoming-${g.name}`} className="p-4 rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
-                        <div className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">{g.totalMg} mg en route</div>
+                        <div className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">{g.totalMg} {g.unit || 'mg'} en route</div>
                       </div>
                       <div className="space-y-2">
                         {Object.values(g.variants).sort((a,b)=>String(a.mg).localeCompare(String(b.mg))).map(v => (
                           <div key={v.mg} className="rounded-md border p-3" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
                             <div className="flex items-center justify-between text-sm mb-2">
-                              <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} mg</div>
-                              <div className="text-xs">{v.totalMg} mg</div>
+                              <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
+                              <div className="text-xs">{v.totalMg} {v.unit || 'mg'}</div>
                             </div>
                             <ul className="mt-1 text-xs space-y-1">
                               {Object.entries(v.vendors).sort((a,b)=>a[0].localeCompare(b[0])).map(([vendor, qtyMg]) => {

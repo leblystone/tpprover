@@ -265,6 +265,95 @@
           )}
         </div>
 
+        {/* Subscription */}
+        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Subscription</h2>
+          {sub ? (
+            <div className="space-y-4">
+              {sub.status === 'trialing' && (
+                <TrialProgressBar 
+                  theme={theme} 
+                  startDate={sub.startedAt} 
+                  endDate={sub.currentPeriodEnd} 
+                />
+              )}
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>Current Plan</div>
+                  <div className="font-medium">{sub.plan}</div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>
+                    Status: <span className={`font-semibold ${sub.status === 'active' ? 'text-green-600' : sub.status === 'trialing' ? 'text-blue-600' : 'text-red-600'}`}>
+                      {sub.status === 'trialing' ? 'Trial' : sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                  onClick={() => setManageOpen(true)}
+                >
+                  Manage
+                </button>
+              </div>
+              {sub.status !== 'canceled' && (
+                <div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>
+                    {sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                  </div>
+                  {sub.paymentMethod && (
+                    <div className="text-sm" style={{ color: theme.textLight }}>
+                      Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-sm" style={{ color: theme.textLight }}>No active subscription</div>
+              <button 
+                className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                onClick={() => setManageOpen(true)}
+              >
+                Choose Plan
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Billing History */}
+        {sub && billing.length > 0 && (
+          <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Billing History</h2>
+              <button 
+                className="px-2 py-1 rounded text-xs hover:opacity-90" 
+                style={{ backgroundColor: theme.secondary, color: theme.text }} 
+                onClick={addTestInvoice}
+              >
+                Add Test Invoice
+              </button>
+            </div>
+            <div className="space-y-2">
+              {billing.slice(0, 5).map(invoice => (
+                <div key={invoice.id} className="flex justify-between items-center py-2 border-b last:border-b-0" style={{ borderColor: theme.border }}>
+                  <div>
+                    <div className="text-sm font-medium">{invoice.description}</div>
+                    <div className="text-xs" style={{ color: theme.textLight }}>{new Date(invoice.date).toLocaleDateString()}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">${invoice.amount}</div>
+                    <div className={`text-xs font-medium ${invoice.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
+                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Security */}
         <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Security</h2>

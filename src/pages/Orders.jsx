@@ -54,13 +54,46 @@ export default function Orders() {
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
 		const prevStatus = (previousOrder?.status || '').toLowerCase();
 		const newStatus = (newOrder?.status || '').toLowerCase();
+		
+		const wasDelivered = prevStatus.includes('delivered');
+		const isDelivered = newStatus.includes('delivered');
 
-		if (prevStatus.includes('delivered') === newStatus.includes('delivered')) {
-			return; // No change related to delivery status
+		// If both orders are delivered, we need to update existing stockpile items
+		if (wasDelivered && isDelivered && previousOrder && newOrder) {
+			const orderIdPrefix = `orderitem-${newOrder.id}-`;
+			
+			// Remove old stockpile items for this order
+			setStockpile(prev => prev.filter(stockItem => !stockItem.id?.startsWith(orderIdPrefix)));
+			
+			// Add updated stockpile items
+			const updatedStockItems = (newOrder.items || []).map(item => {
+				const quantity = Number(item.quantity) || 1;
+				const isKit = (item.unit || '').toLowerCase() === 'kit';
+				const vialsPerItem = isKit ? 10 : 1;
+				const price = Number(item.price) || 0;
+				const costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
+
+				return {
+					id: `orderitem-${newOrder.id}-${item.id}`,
+					name: item.name || '',
+					mg: item.mg || '',
+					mgUnit: item.mgUnit || 'mg', // Fix: Include mgUnit field
+					quantity: quantity * vialsPerItem,
+					unit: 'vial',
+					cost: costPerVial,
+					vendor: newOrder.vendor || '',
+					vendorId: newOrder.vendorId,
+					purchaseDate: newOrder.date,
+					notes: `From order #${newOrder.id}`,
+					orderId: newOrder.id
+				};
+			});
+			setStockpile(prev => [...prev, ...updatedStockItems]);
+			return;
 		}
 
 		// Status changed TO Delivered: Add items to stockpile.
-		if (newStatus.includes('delivered')) {
+		if (!wasDelivered && isDelivered) {
 			const newStockItems = (newOrder.items || []).map(item => {
 				const quantity = Number(item.quantity) || 1;
 				const isKit = (item.unit || '').toLowerCase() === 'kit';
@@ -70,12 +103,13 @@ export default function Orders() {
 
 				return {
 					id: `orderitem-${newOrder.id}-${item.id}`,
-					name: item.name,
-					mg: item.mg,
+					name: item.name || '',
+					mg: item.mg || '',
+					mgUnit: item.mgUnit || 'mg', // Fix: Include mgUnit field
 					quantity: quantity * vialsPerItem,
 					unit: 'vial',
 					cost: costPerVial,
-					vendor: newOrder.vendor,
+					vendor: newOrder.vendor || '',
 					vendorId: newOrder.vendorId,
 					purchaseDate: newOrder.date,
 					notes: `From order #${newOrder.id}`,
@@ -85,7 +119,7 @@ export default function Orders() {
 			setStockpile(prev => [...prev, ...newStockItems]);
 		} 
 		// Status changed FROM Delivered: Remove items from stockpile.
-		else if (prevStatus.includes('delivered')) {
+		else if (wasDelivered && !isDelivered) {
 			const orderIdPrefix = `orderitem-${previousOrder.id}-`;
 			setStockpile(prev => prev.filter(stockItem => !stockItem.id?.startsWith(orderIdPrefix)));
 		}

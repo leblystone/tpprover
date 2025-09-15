@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
-  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle, RefreshCw, Info
+  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle, RefreshCw, Info,
+  UserPlus
 } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import {
@@ -184,6 +185,7 @@ function Admin() {
   const [activeTab, setActiveTab] = useState('analytics');
   const [emailWhitelist, setEmailWhitelist] = useState([]);
   const [newEmails, setNewEmails] = useState('');
+  const [userList, setUserList] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [analytics, setAnalytics] = useState({
@@ -282,6 +284,10 @@ function Admin() {
     try {
       const whitelist = await getEmailWhitelist();
       setEmailWhitelist(whitelist);
+      
+      // Also load user list to check signup status
+      const users = await getUserList();
+      setUserList(users);
     } catch (error) {
       console.error('Error loading email whitelist:', error);
     } finally {
@@ -560,6 +566,46 @@ function Admin() {
     } catch (error) {
       console.error('Error removing from whitelist:', error);
     }
+  };
+
+  // Helper function to get signup status for an email
+  const getEmailSignupStatus = (email) => {
+    const user = userList.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    if (!user) {
+      return { 
+        status: 'pending', 
+        icon: Clock, 
+        color: theme.textLight, 
+        text: 'Not signed up',
+        user: null 
+      };
+    }
+    
+    const signupDate = user.createdAt ? new Date(user.createdAt.seconds * 1000) : null;
+    const lastActiveDate = user.lastActive ? new Date(user.lastActive.seconds * 1000) : null;
+    
+    return { 
+      status: 'signed_up', 
+      icon: CheckCircle, 
+      color: theme.success, 
+      text: 'Active user',
+      user,
+      signupDate,
+      lastActiveDate
+    };
+  };
+
+  // Get signup statistics
+  const getSignupStats = () => {
+    const signedUp = emailWhitelist.filter(email => 
+      userList.some(u => u.email?.toLowerCase() === email.toLowerCase())
+    );
+    return {
+      total: emailWhitelist.length,
+      signedUp: signedUp.length,
+      pending: emailWhitelist.length - signedUp.length,
+      signupRate: emailWhitelist.length > 0 ? (signedUp.length / emailWhitelist.length * 100) : 0
+    };
   };
 
   const copyToClipboard = (text, id) => {
@@ -1010,6 +1056,19 @@ function Admin() {
                   <div>
                     <div className="text-2xl font-bold" style={{ color: theme.accent }}>{emailWhitelist.length}</div>
                     <div className="text-sm" style={{ color: theme.textLight }}>Whitelisted Emails</div>
+                    {emailWhitelist.length > 0 && (
+                      <div className="text-xs mt-1 flex items-center gap-2">
+                        <span style={{ color: theme.success }}>
+                          {getSignupStats().signedUp} signed up
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-full text-xs font-medium" style={{
+                          backgroundColor: theme.success + '15',
+                          color: theme.success
+                        }}>
+                          {getSignupStats().signupRate.toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1709,9 +1768,30 @@ function Admin() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium mb-3" style={{ color: theme.text }}>
-                    Approved Emails ({emailWhitelist.length})
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-medium" style={{ color: theme.text }}>
+                      Approved Emails ({emailWhitelist.length})
+                    </h3>
+                    {emailWhitelist.length > 0 && (
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className="flex items-center gap-1">
+                          <CheckCircle size={14} style={{ color: theme.success }} />
+                          <span style={{ color: theme.success }}>{getSignupStats().signedUp} signed up</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock size={14} style={{ color: theme.textLight }} />
+                          <span style={{ color: theme.textLight }}>{getSignupStats().pending} pending</span>
+                        </div>
+                        <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ 
+                          backgroundColor: theme.success + '20', 
+                          color: theme.success 
+                        }}>
+                          {getSignupStats().signupRate.toFixed(0)}% signup rate
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
                   {emailWhitelist.length === 0 ? (
                     <div className="text-center py-8">
                       <Mail size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
@@ -1722,21 +1802,44 @@ function Admin() {
                     </div>
                   ) : (
                     <div className="grid gap-2">
-                      {emailWhitelist.map((email, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                          <span className="text-sm font-mono" style={{ color: theme.text }}>
-                            {email}
-                          </span>
-                          <button
-                            onClick={() => removeFromWhitelistFirebase(email)}
-                            className="p-1 rounded hover:opacity-70"
-                            style={{ color: theme.error }}
-                            title="Remove from whitelist"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
+                      {emailWhitelist.map((email, index) => {
+                        const signupStatus = getEmailSignupStatus(email);
+                        const StatusIcon = signupStatus.icon;
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="flex items-center gap-2">
+                                <StatusIcon size={16} style={{ color: signupStatus.color }} />
+                                <span className="text-sm font-mono" style={{ color: theme.text }}>
+                                  {email}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 ml-auto mr-3">
+                                <span className="text-xs px-2 py-1 rounded-full font-medium" style={{
+                                  backgroundColor: signupStatus.color + '20',
+                                  color: signupStatus.color
+                                }}>
+                                  {signupStatus.text}
+                                </span>
+                                {signupStatus.signupDate && (
+                                  <span className="text-xs" style={{ color: theme.textLight }}>
+                                    Joined {signupStatus.signupDate.toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => removeFromWhitelistFirebase(email)}
+                              className="p-1 rounded hover:opacity-70 flex-shrink-0"
+                              style={{ color: theme.error }}
+                              title="Remove from whitelist"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
