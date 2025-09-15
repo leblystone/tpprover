@@ -161,6 +161,13 @@ export default function BetaClosed() {
                 </div>
               </div>
             </div>
+            
+            {/* Footer */}
+            <div className="text-center mt-8">
+              <p className="text-sm" style={{ color: theme.textLight }}>
+                © 2025 The Pep Planner. Thank you for being part of our beta testing journey.
+              </p>
+            </div>
           </div>
         ) : (
           /* Survey Form - Not Yet Completed */
@@ -324,15 +331,15 @@ export default function BetaClosed() {
                 </div>
               </div>
             </div>
+            
+            {/* Footer */}
+            <div className="text-center mt-8">
+              <p className="text-sm" style={{ color: theme.textLight }}>
+                © 2025 The Pep Planner. Thank you for being part of our beta testing journey.
+              </p>
+            </div>
           </div>
         )}
-
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-sm" style={{ color: theme.textLight }}>
-            © 2025 The Pep Planner. Thank you for being part of our beta testing journey.
-          </p>
-        </div>
       </div>
     </div>
   );
