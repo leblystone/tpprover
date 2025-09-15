@@ -24,12 +24,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         
         // Clean duration data on load to prevent corruption
         if (initialData.duration && initialData.duration.count !== '') {
-            let cleanCount = String(initialData.duration.count).replace(/[^\d.]/g, '');
-            if (cleanCount !== '' && !isNaN(cleanCount)) {
-                initialData.duration.count = parseFloat(cleanCount);
-            } else {
-                initialData.duration.count = '';
-            }
+            // Keep it simple - just ensure it's a string for the input
+            initialData.duration.count = String(initialData.duration.count);
         }
 
         // Migration logic for old single-peptide protocols
@@ -130,31 +126,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         console.log('🔢 Duration change:', { field, value, type: typeof value });
         
         setForm(prev => {
-            let processedValue = value;
-            
-            // Clean and validate the input for count field
-            if (field === 'count') {
-                // Allow empty string for clearing
-                if (value === '') {
-                    processedValue = '';
-                } else {
-                    // Convert to string and clean non-numeric characters (except decimal point)
-                    const cleanValue = String(value).replace(/[^\d.]/g, '');
-                    
-                    // If it's a valid number or partial number (like "1" or "12."), keep it
-                    if (cleanValue !== '' && !isNaN(parseFloat(cleanValue))) {
-                        processedValue = cleanValue;
-                    } else if (cleanValue !== '') {
-                        // If we have digits but it's not a valid number, keep the digits
-                        processedValue = cleanValue;
-                    } else {
-                        // No valid input, keep empty
-                        processedValue = '';
-                    }
-                }
-                
-                console.log('🔢 Processed value:', { original: value, processed: processedValue });
-            }
+            // For count field, keep it simple - let the HTML5 number input handle validation
+            const processedValue = field === 'count' ? String(value) : value;
             
             const newForm = {
                 ...prev,
@@ -194,17 +167,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         }
 
         if (finalForm.duration) {
-            // Clean and validate duration count
+            // Validate duration count
             let cleanCount = finalForm.duration.count;
             if (!finalForm.duration.noEnd && cleanCount !== '') {
-                // Remove any non-numeric characters and convert to number
-                cleanCount = String(cleanCount).replace(/[^\d.]/g, '');
-                cleanCount = cleanCount === '' ? '' : parseFloat(cleanCount);
-                
-                // Validate reasonable range (1-999)
-                if (cleanCount < 1 || cleanCount > 999) {
-                    cleanCount = '';
+                const numValue = parseFloat(cleanCount);
+                if (isNaN(numValue) || numValue <= 0 || numValue > 999) {
+                    alert('Please enter a valid duration count (1-999)');
+                    return;
                 }
+                cleanCount = numValue;
             }
             
             finalForm.duration = {
