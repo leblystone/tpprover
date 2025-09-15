@@ -167,45 +167,46 @@ export default function BetaClosed() {
               </div>
 
               <div className="space-y-6">
-                <div className="rounded-lg p-6 border mb-8" 
-                     style={{ backgroundColor: theme.successBg, borderColor: theme.success }}>
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                         style={{ backgroundColor: theme.success }}>
-                      <span className="font-bold text-2xl" style={{ color: theme.textOnPrimary }}>∞</span>
-                    </div>
-                    <h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>🎯 Lifetime Access Guaranteed!</h3>
-                    <p style={{ color: theme.textLight }}>Complete this 5-minute survey to activate your permanent access when we relaunch.</p>
-                  </div>
-                </div>
-
                 <div className="text-center">
-                  <a
-                    href="https://docs.google.com/forms/d/e/1FAIpQLSfpJ4cqo0ND5Yz_KOZqpRL2xXVGtNCWA91XNtEIkYsVOg5sBg/viewform"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 animate-pulse"
-                    style={{ 
-                      backgroundColor: theme.primary, 
-                      color: theme.textOnPrimary 
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.backgroundColor = theme.primaryDark
-                      e.target.style.transform = 'translateY(-1px)'
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.backgroundColor = theme.primary
-                      e.target.style.transform = 'translateY(0)'
-                    }}
-                  >
-                    🚀 Complete Survey & Activate Lifetime Access
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                  <p className="text-sm mt-2" style={{ color: theme.textLight }}>
-                    Opens in a new tab • Your feedback helps us build the best peptide planning app possible
-                  </p>
+                  {/* Lifetime Access Promise */}
+                  <div className="rounded-lg p-6 border mb-8" 
+                       style={{ backgroundColor: theme.successBg, borderColor: theme.success }}>
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                           style={{ backgroundColor: theme.success }}>
+                        <span className="font-bold text-2xl" style={{ color: theme.textOnPrimary }}>∞</span>
+                      </div>
+                      <h3 className="text-xl font-bold mb-2" style={{ color: theme.text }}>🎯 Lifetime Access Guaranteed!</h3>
+                      <p className="mb-4" style={{ color: theme.textLight }}>Complete this 15-minute survey to activate your permanent access when we relaunch.</p>
+                      
+                      <a
+                        href="https://docs.google.com/forms/d/e/1FAIpQLSfpJ4cqo0ND5Yz_KOZqpRL2xXVGtNCWA91XNtEIkYsVOg5sBg/viewform"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200"
+                        style={{ 
+                          backgroundColor: theme.primary, 
+                          color: theme.textOnPrimary 
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.backgroundColor = theme.primaryDark
+                          e.target.style.transform = 'translateY(-1px)'
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.backgroundColor = theme.primary
+                          e.target.style.transform = 'translateY(0)'
+                        }}
+                      >
+                        🚀 Complete Survey & Activate Lifetime Access
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                      <p className="text-sm mt-2" style={{ color: theme.textLight }}>
+                        Opens in a new tab • Your feedback helps us build the best peptide planning app possible
+                      </p>
+                    </div>
+                  </div>
 
                   <div className="mt-4 pt-4" style={{ borderTop: '1px solid ' + theme.border }}>
                     <p className="text-sm mb-2" style={{ color: theme.textLight }}>Already completed the survey?</p>
