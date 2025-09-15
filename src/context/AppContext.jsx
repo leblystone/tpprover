@@ -46,7 +46,38 @@ export function AppProvider({ children }) {
                 if (savedHistory) setReconHistory(JSON.parse(savedHistory));
 
                 const savedSupps = localStorage.getItem('tpprover_supplements');
-                if (savedSupps) setSupplements(JSON.parse(savedSupps));
+                if (savedSupps) {
+                    const supplements = JSON.parse(savedSupps);
+                    // CRITICAL: Clean up any contaminated supplements that might have been auto-created from glossary
+                    const cleanedSupplements = supplements.filter(sup => {
+                        // Remove any supplements that look like they were auto-created from glossary
+                        // Check for dosage ranges text which indicates contamination from glossary
+                        const isContaminated = sup.dose && (
+                            sup.dose.includes('Research dosages typically') ||
+                            sup.dose.includes('Clinical dosages range') ||
+                            sup.dose.includes('Investigational dosages') ||
+                            sup.dose.includes('mcg daily') ||
+                            sup.dose.includes('mg weekly') ||
+                            sup.name === '5-Amino-1MQ' ||
+                            sup.name === '5-AMINO-1MQ' ||
+                            sup.name === '5AMINO1MQ'
+                        );
+                        
+                        if (isContaminated) {
+                            console.log('🧹 Cleaning up contaminated supplement:', sup.name, sup.dose);
+                            return false;
+                        }
+                        return true;
+                    });
+                    
+                    if (cleanedSupplements.length !== supplements.length) {
+                        console.log(`🧹 Cleaned ${supplements.length - cleanedSupplements.length} contaminated supplements`);
+                        // Save cleaned data back to localStorage
+                        localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements));
+                    }
+                    
+                    setSupplements(cleanedSupplements);
+                }
 
                 const savedOrders = localStorage.getItem('tpprover_orders');
                 if (savedOrders) setOrders(JSON.parse(savedOrders));
@@ -120,7 +151,28 @@ export function AppProvider({ children }) {
                                 if (firebaseData.protocols) setProtocols(firebaseData.protocols);
                                 if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
                                 if (firebaseData.reconHistory) setReconHistory(firebaseData.reconHistory);
-                                if (firebaseData.supplements) setSupplements(firebaseData.supplements);
+                                
+                                // Clean up contaminated supplements from Firebase data
+                                let cleanedSupplements = firebaseData.supplements || [];
+                                if (firebaseData.supplements) {
+                                    cleanedSupplements = firebaseData.supplements.filter(sup => {
+                                        const isContaminated = sup.dose && (
+                                            sup.dose.includes('Research dosages typically') ||
+                                            sup.dose.includes('Clinical dosages range') ||
+                                            sup.dose.includes('Investigational dosages') ||
+                                            sup.dose.includes('mcg daily') ||
+                                            sup.dose.includes('mg weekly') ||
+                                            sup.name === '5-Amino-1MQ' ||
+                                            sup.name === '5-AMINO-1MQ' ||
+                                            sup.name === '5AMINO1MQ'
+                                        );
+                                        if (isContaminated) {
+                                            console.log('🧹 Cleaning up contaminated Firebase supplement:', sup.name, sup.dose);
+                                        }
+                                        return !isContaminated;
+                                    });
+                                    setSupplements(cleanedSupplements);
+                                }
                                 if (firebaseData.orders) setOrders(firebaseData.orders);
                                 if (firebaseData.metrics) setMetrics(firebaseData.metrics);
                                 if (firebaseData.vendors) setVendors(firebaseData.vendors);
@@ -133,7 +185,7 @@ export function AppProvider({ children }) {
                                     localStorage.setItem('tpprover_protocols', JSON.stringify(firebaseData.protocols || []));
                                     localStorage.setItem('tpprover_recon_items', JSON.stringify(firebaseData.reconItems || []));
                                     localStorage.setItem('tpprover_recon_history', JSON.stringify(firebaseData.reconHistory || []));
-                                    localStorage.setItem('tpprover_supplements', JSON.stringify(firebaseData.supplements || []));
+                                    localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements || []));
                                     localStorage.setItem('tpprover_orders', JSON.stringify(firebaseData.orders || []));
                                     localStorage.setItem('tpprover_metrics', JSON.stringify(firebaseData.metrics || []));
                                     localStorage.setItem('tpprover_vendors', JSON.stringify(firebaseData.vendors || []));
@@ -168,6 +220,41 @@ export function AppProvider({ children }) {
                                         }
                                     } catch (err) {
                                         console.error('❌ Manual recovery failed:', err);
+                                    }
+                                };
+                                
+                                // Make supplement cleanup function globally available
+                                window.cleanupContaminatedSupplements = () => {
+                                    try {
+                                        console.log('🧹 Cleaning up contaminated supplements...');
+                                        const savedSupps = localStorage.getItem('tpprover_supplements');
+                                        if (savedSupps) {
+                                            const supplements = JSON.parse(savedSupps);
+                                            const cleanedSupplements = supplements.filter(sup => {
+                                                const isContaminated = sup.dose && (
+                                                    sup.dose.includes('Research dosages typically') ||
+                                                    sup.dose.includes('Clinical dosages range') ||
+                                                    sup.dose.includes('Investigational dosages') ||
+                                                    sup.dose.includes('mcg daily') ||
+                                                    sup.dose.includes('mg weekly') ||
+                                                    sup.name === '5-Amino-1MQ' ||
+                                                    sup.name === '5-AMINO-1MQ' ||
+                                                    sup.name === '5AMINO1MQ'
+                                                );
+                                                if (isContaminated) {
+                                                    console.log('🧹 Removing contaminated supplement:', sup.name, sup.dose);
+                                                }
+                                                return !isContaminated;
+                                            });
+                                            localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements));
+                                            console.log(`✅ Cleaned ${supplements.length - cleanedSupplements.length} contaminated supplements`);
+                                            console.log('🔄 Reloading page to apply changes...');
+                                            window.location.reload();
+                                        } else {
+                                            console.log('ℹ️ No supplements found to clean');
+                                        }
+                                    } catch (err) {
+                                        console.error('❌ Cleanup failed:', err);
                                     }
                                 };
                             }
