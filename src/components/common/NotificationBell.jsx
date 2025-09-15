@@ -56,6 +56,33 @@ export default function NotificationBell({ theme }) {
 
   // DEBUG: Always show bell for debugging
   console.log('🔔 NotificationBell: Rendering with', notifications.length, 'notifications');
+  
+  // Make debugging functions available globally
+  React.useEffect(() => {
+    window.debugNotifications = {
+      checkAuth: () => {
+        console.log('🔔 Firebase User:', firebaseUser);
+        console.log('🔔 User Email:', firebaseUser?.email);
+        return firebaseUser;
+      },
+      testNotifications: async () => {
+        if (!firebaseUser?.email) {
+          console.error('🔔 No Firebase user logged in!');
+          return;
+        }
+        try {
+          const notifications = await getUserNotifications(firebaseUser.email);
+          console.log('🔔 Test result:', notifications);
+          return notifications;
+        } catch (error) {
+          console.error('🔔 Test failed:', error);
+        }
+      },
+      forceRefresh: () => {
+        loadNotifications();
+      }
+    };
+  }, [firebaseUser, loadNotifications]);
 
   return (
     <div className="relative">
