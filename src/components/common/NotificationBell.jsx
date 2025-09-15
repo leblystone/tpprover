@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, MessageSquare } from 'lucide-react';
 import { getUserNotifications, markNotificationAsRead } from '../../services/firebase';
-import { useFirebaseAuth } from '../../context/FirebaseContext';
+import { useFirebase } from '../../context/FirebaseContext';
 
 export default function NotificationBell({ theme }) {
-  const { firebaseUser } = useFirebaseAuth();
+  const { firebaseUser } = useFirebase();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(false);
