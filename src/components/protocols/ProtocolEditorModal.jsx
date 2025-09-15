@@ -226,9 +226,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
                         {form?.id ? "Edit Protocol" : "Create New Protocol"}
                     </h2>
-                    <p className="text-sm" style={{ color: theme.textLight }}>
-                        Design your peptide protocol with precision and clarity
-                    </p>
                 </div>
 
                 {/* Protocol Basics - Visual Cards */}
@@ -275,40 +272,40 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </div>
                     </div>
 
-                    {/* Protocol Type - Visual Selection */}
+                    {/* Protocol Type - Side by Side Cards */}
                     <div>
                         <label className="block text-sm font-semibold mb-3" style={{ color: theme.text }}>
                             Protocol Type
                         </label>
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'separate')}
-                                className="w-full p-4 border-2 rounded-xl text-left transition-all transform hover:scale-[1.01]"
+                                className="p-3 border-2 rounded-lg text-center transition-all transform hover:scale-[1.02]"
                                 style={{ 
                                     borderColor: form.protocolType === 'separate' ? theme.primary : theme.border,
                                     backgroundColor: form.protocolType === 'separate' ? theme.primary + '15' : theme.cardBackground,
                                     boxShadow: form.protocolType === 'separate' ? `0 2px 8px ${theme.primary}20` : 'none'
                                 }}
                             >
-                                <div className="font-semibold mb-1" style={{ color: theme.text }}>Separate Peptides</div>
+                                <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Separate</div>
                                 <div className="text-xs" style={{ color: theme.textLight }}>
-                                    Individual timing & delivery for each peptide
+                                    Individual timing
                                 </div>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'blended')}
-                                className="w-full p-4 border-2 rounded-xl text-left transition-all transform hover:scale-[1.01]"
+                                className="p-3 border-2 rounded-lg text-center transition-all transform hover:scale-[1.02]"
                                 style={{ 
                                     borderColor: form.protocolType === 'blended' ? theme.primary : theme.border,
                                     backgroundColor: form.protocolType === 'blended' ? theme.primary + '15' : theme.cardBackground,
                                     boxShadow: form.protocolType === 'blended' ? `0 2px 8px ${theme.primary}20` : 'none'
                                 }}
                             >
-                                <div className="font-semibold mb-1" style={{ color: theme.text }}>Blended Protocol</div>
+                                <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Blended</div>
                                 <div className="text-xs" style={{ color: theme.textLight }}>
-                                    All peptides mixed together, shared settings
+                                    Mixed together
                                 </div>
                             </button>
                         </div>
