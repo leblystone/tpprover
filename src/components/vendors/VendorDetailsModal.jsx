@@ -18,6 +18,16 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       if (!Array.isArray(base.contacts) || base.contacts.length === 0) {
         base.contacts = [{ type: 'email', value: '' }]
       }
+      // Fix: Ensure rating is a number and labels is an array
+      if (typeof base.rating !== 'number') {
+        base.rating = 0;
+      }
+      if (!Array.isArray(base.labels)) {
+        base.labels = [];
+      }
+      if (!base.payments || typeof base.payments !== 'object') {
+        base.payments = { notes: '' };
+      }
       setForm(base)
     }
   }, [open, vendor, activeTab])
@@ -38,7 +48,9 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             if (dataToSave.isStub) {
                 delete dataToSave.isStub; // Remove the stub flag
             }
+            console.log('💾 Saving vendor data:', dataToSave); // Debug log
             onSave?.(dataToSave);
+            onClose(); // Close modal after save
         }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
       </div>
     )}>
@@ -187,11 +199,13 @@ function createEmptyVendor() {
     id: Date.now(),
     name: '',
     type: 'domestic',
+    rating: 0, // Fix: Add missing rating field
     contacts: [],
     payments: { notes: '' },
     platforms: { website: '', telegram: '', reddit: '', discord: '' },
     reliability: 'Unknown',
     notes: '',
+    labels: [], // Fix: Add missing labels field
     isAutoCreated: false,
     needsCompletion: false,
     createdAt: new Date().toISOString(),

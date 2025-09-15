@@ -93,9 +93,12 @@ export default function Vendors() {
 				vendor={editingVendor}
                 activeTab={activeTab}
 				onSave={(data) => {
+					console.log('📝 Vendor save callback triggered:', { editingVendor, data }); // Debug log
 					if (editingVendor?.id) {
+						console.log('🔄 Updating existing vendor:', editingVendor.id);
 						updateVendor({ ...editingVendor, ...data });
 					} else {
+						console.log('➕ Adding new vendor');
 						addVendor({ id: Date.now(), ...data });
 					}
 					setShowAddModal(false)
