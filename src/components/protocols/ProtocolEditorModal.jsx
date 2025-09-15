@@ -220,62 +220,110 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </div>
             )}
         >
-            <div className="space-y-6">
-                {/* Basic Information */}
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <TextInput 
-                            label="Protocol Name" 
-                            value={form.protocolName || ''} 
-                            onChange={v => handleChange('protocolName', v)} 
-                            theme={theme} 
-                            placeholder="e.g., Gut Healing Stack" 
-                        />
-                        <TextInput 
-                            label="Purpose" 
-                            value={form.purpose || ''} 
-                            onChange={v => handleChange('purpose', v)} 
-                            theme={theme} 
-                            placeholder="e.g., Immunity" 
-                        />
+            <div className="space-y-8">
+                {/* Header Section - Clean and Minimal */}
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
+                        {form?.id ? "Edit Protocol" : "Create New Protocol"}
+                    </h2>
+                    <p className="text-sm" style={{ color: theme.textLight }}>
+                        Design your peptide protocol with precision and clarity
+                    </p>
+                </div>
+
+                {/* Protocol Basics - Visual Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-2xl">🧪</span>
+                            </div>
+                            <input
+                                type="text"
+                                value={form.protocolName || ''}
+                                onChange={e => handleChange('protocolName', e.target.value)}
+                                placeholder="Semaglutide + NAD+ Stack"
+                                className="pl-12 w-full px-4 py-3 text-lg font-medium rounded-xl border-2 focus:ring-2 focus:ring-opacity-50 transition-all"
+                                style={{
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.cardBackground,
+                                    color: theme.text,
+                                    focusRingColor: theme.primary
+                                }}
+                            />
+                            <label className="absolute -top-2 left-10 px-2 text-xs font-medium" 
+                                   style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
+                                Protocol Name
+                            </label>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-2xl">🎯</span>
+                            </div>
+                            <input
+                                type="text"
+                                value={form.purpose || ''}
+                                onChange={e => handleChange('purpose', e.target.value)}
+                                placeholder="Weight Loss & Longevity"
+                                className="pl-12 w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-opacity-50 transition-all"
+                                style={{
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.cardBackground,
+                                    color: theme.text
+                                }}
+                            />
+                            <label className="absolute -top-2 left-10 px-2 text-xs font-medium"
+                                   style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
+                                Purpose/Goal
+                            </label>
+                        </div>
                     </div>
-                    
-                    {/* Protocol Type Selection */}
+
+                    {/* Protocol Type - Visual Selection */}
                     <div>
-                        <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                            Protocol Type
+                        <label className="block text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                            🔬 Protocol Type
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-3">
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'separate')}
-                                className={`p-3 border-2 rounded-lg text-left transition-colors ${
-                                    form.protocolType === 'separate' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                                }`}
+                                className="w-full p-4 border-2 rounded-xl text-left transition-all transform hover:scale-[1.02]"
                                 style={{ 
                                     borderColor: form.protocolType === 'separate' ? theme.primary : theme.border,
-                                    backgroundColor: form.protocolType === 'separate' ? theme.primary + '10' : 'transparent'
+                                    backgroundColor: form.protocolType === 'separate' ? theme.primary + '15' : theme.cardBackground,
+                                    boxShadow: form.protocolType === 'separate' ? `0 4px 12px ${theme.primary}30` : 'none'
                                 }}
                             >
-                                <div className="font-semibold text-sm" style={{ color: theme.text }}>Separate Peptides</div>
-                                <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-                                    Each peptide has its own delivery method, timing, and schedule
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">🔬</span>
+                                    <div>
+                                        <div className="font-semibold" style={{ color: theme.text }}>Separate Peptides</div>
+                                        <div className="text-xs" style={{ color: theme.textLight }}>
+                                            Individual timing & delivery for each peptide
+                                        </div>
+                                    </div>
                                 </div>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'blended')}
-                                className={`p-3 border-2 rounded-lg text-left transition-colors ${
-                                    form.protocolType === 'blended' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                                }`}
+                                className="w-full p-4 border-2 rounded-xl text-left transition-all transform hover:scale-[1.02]"
                                 style={{ 
                                     borderColor: form.protocolType === 'blended' ? theme.primary : theme.border,
-                                    backgroundColor: form.protocolType === 'blended' ? theme.primary + '10' : 'transparent'
+                                    backgroundColor: form.protocolType === 'blended' ? theme.primary + '15' : theme.cardBackground,
+                                    boxShadow: form.protocolType === 'blended' ? `0 4px 12px ${theme.primary}30` : 'none'
                                 }}
                             >
-                                <div className="font-semibold text-sm" style={{ color: theme.text }}>Blended Protocol</div>
-                                <div className="text-xs mt-1" style={{ color: theme.textLight }}>
-                                    All peptides mixed together with shared delivery method and timing
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">🧬</span>
+                                    <div>
+                                        <div className="font-semibold" style={{ color: theme.text }}>Blended Protocol</div>
+                                        <div className="text-xs" style={{ color: theme.textLight }}>
+                                            All peptides mixed together, shared settings
+                                        </div>
+                                    </div>
                                 </div>
                             </button>
                         </div>
@@ -285,23 +333,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Separator */}
                 <div className="border-t" style={{ borderColor: theme.border }}></div>
 
-                {/* Shared Settings for Blended Protocols */}
-                {form.protocolType === 'blended' && form.peptides?.length > 0 && (
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Shared Protocol Settings</h3>
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <DosingScheduleEditor
-                                frequency={form.peptides[0]?.frequency || { type: 'daily', time: ['Morning'] }}
-                                onChange={(newFreq) => {
-                                    // Apply the same frequency to all peptides in blended protocol
-                                    const updatedPeptides = form.peptides.map(p => ({ ...p, frequency: newFreq }));
-                                    handleChange('peptides', updatedPeptides);
-                                }}
-                                theme={theme}
-                            />
-                        </div>
-                    </div>
-                )}
 
                 {/* Peptides Section */}
                 <div className="space-y-4">
