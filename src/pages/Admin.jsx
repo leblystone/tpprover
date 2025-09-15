@@ -656,10 +656,6 @@ function Admin() {
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('tpp_admin_auth');
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -752,10 +748,10 @@ function Admin() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: '#f8fafc' }}>
-      {/* Sidebar Navigation */}
-      <div className="w-full lg:w-64 bg-white border-r lg:border-b-0 border-b flex flex-col lg:min-h-screen" style={{ borderColor: theme.border }}>
+      {/* Desktop Sidebar Navigation */}
+      <div className="hidden lg:flex lg:w-64 bg-white border-r flex-col lg:min-h-screen" style={{ borderColor: theme.border }}>
         {/* Header */}
-        <div className="p-4 lg:p-6 border-b" style={{ borderColor: theme.border }}>
+        <div className="p-6 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
               <Wrench size={20} style={{ color: theme.primary }} />
@@ -768,7 +764,7 @@ function Admin() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 p-2 lg:p-4 flex flex-col space-y-1 lg:space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-4 flex flex-col space-y-2 overflow-y-auto">
           {[
             { 
               id: 'analytics', 
@@ -855,18 +851,11 @@ function Admin() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t space-y-3" style={{ borderColor: theme.border }}>
+        <div className="p-4 border-t" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: theme.success + '10' }}>
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.success }}></div>
             <span className="text-xs font-medium" style={{ color: theme.success }}>Admin Active</span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full px-3 py-2 rounded-lg font-medium text-sm hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}
-          >
-            Logout
-          </button>
         </div>
       </div>
 

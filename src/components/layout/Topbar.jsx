@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import GlobalSearchInline from '../search/GlobalSearchInline';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import HelpTipsModal from '../ui/HelpTipsModal';
+import NotificationBell from '../common/NotificationBell';
 
 export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
   const location = useLocation();
@@ -55,6 +56,7 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
             <button data-tour="topbar-import" className="p-2 rounded-full no-shadow" title="Import (OCR)" onClick={() => window.dispatchEvent(new CustomEvent('tpp:openImport'))} style={{ color: theme.text }}><Upload className="h-5 w-5" /></button>
           )}
           */}
+          <NotificationBell theme={theme} />
           <button className="p-2 rounded-full no-shadow" title="Help" onClick={() => setShowHelp(true)} style={{ color: theme.text }}><HelpCircle className="h-5 w-5" /></button>
         </div>
       </header>
