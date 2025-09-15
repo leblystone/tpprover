@@ -18,8 +18,6 @@
 
   function loadSubscription() { try { return JSON.parse(localStorage.getItem('tpprover_subscription') || 'null') } catch { return null } }
   function saveSubscription(sub) { try { localStorage.setItem('tpprover_subscription', JSON.stringify(sub)) } catch {} }
-  function loadBilling() { try { return JSON.parse(localStorage.getItem('tpprover_billing_history') || '[]') } catch { return [] } }
-  function saveBilling(list) { try { localStorage.setItem('tpprover_billing_history', JSON.stringify(list || [])) } catch {} }
   function loadSecurity() { try { return JSON.parse(localStorage.getItem('tpprover_security') || 'null') } catch { return null } }
   function saveSecurity(sec) { try { localStorage.setItem('tpprover_security', JSON.stringify(sec)) } catch {} }
   function genAuthSecret(len = 16) {
@@ -39,7 +37,6 @@
     //   try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
     // })
     const [sub, setSub] = React.useState(() => loadSubscription())
-    const [billing, setBilling] = React.useState(() => loadBilling())
     const [security, setSecurity] = React.useState(() => loadSecurity() || { twoFactorEnabled: false, twoFactorMethod: 'email', authSecret: '', emailVisible: true })
     const [timeLeft, setTimeLeft] = React.useState(null);
 
@@ -117,19 +114,6 @@
             
             saveSubscription(next)
             setSub(next)
-            
-            // Add billing entry
-            const entry = { 
-                id: 'inv_' + Date.now(), 
-                date: now.toISOString(), 
-                amount: planDetails.price, 
-                currency: 'USD', 
-                description: planDetails.name, 
-                status: 'paid' 
-            }
-            const list = [entry, ...billing]
-            saveBilling(list)
-            setBilling(list)
             
             setManageOpen(false) // Close modal
         }
@@ -303,13 +287,6 @@
       }
     }
 
-    const addTestInvoice = () => {
-      const entry = { id: 'inv_' + Date.now(), date: new Date().toISOString(), amount: 9.99, currency: 'USD', description: sub?.plan || 'Charge', status: 'paid' }
-      const list = [entry, ...billing]
-      saveBilling(list)
-      setBilling(list)
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Test invoice added', type: 'success' } }))
-    }
 
     const [pmDraft, setPmDraft] = React.useState({ brand: sub?.paymentMethod?.brand || 'Visa', last4: sub?.paymentMethod?.last4 || '' })
     const updatePaymentMethod = () => { /* integrated into Manage modal */ }
@@ -549,37 +526,6 @@
               )}
         </div>
 
-        {/* Billing History - Only show for non-beta users with billing data */}
-        {!hasBetaLifetimeAccess(user) && sub && billing.length > 0 && (
-          <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Billing History</h2>
-              <button 
-                className="px-2 py-1 rounded text-xs hover:opacity-90" 
-                style={{ backgroundColor: theme.secondary, color: theme.text }} 
-                onClick={addTestInvoice}
-              >
-                Add Test Invoice
-              </button>
-            </div>
-            <div className="space-y-2">
-              {billing.slice(0, 5).map(invoice => (
-                <div key={invoice.id} className="flex justify-between items-center py-2 border-b last:border-b-0" style={{ borderColor: theme.border }}>
-                  <div>
-                    <div className="text-sm font-medium">{invoice.description}</div>
-                    <div className="text-xs" style={{ color: theme.textLight }}>{new Date(invoice.date).toLocaleDateString()}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold">${invoice.amount}</div>
-                    <div className={`text-xs font-medium ${invoice.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
-                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Security */}
         <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
