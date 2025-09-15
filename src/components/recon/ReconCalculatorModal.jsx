@@ -118,6 +118,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         vendorId: vendors.find(v => v.name === form.vendor)?.id || null,
         water: form.water,
         deliveryMethod: deliveryMethod,
+        penType: deliveryMethod === 'pen' ? form.penType : undefined,
         penColor: deliveryMethod === 'pen' ? selectedPenColor?.name : undefined,
         cost: cost,
         date: new Date().toISOString(),
@@ -172,29 +173,59 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                 </button>
             </div>
             {deliveryMethod === 'pen' && (
-                <div className="mt-3">
-                    <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Color</label>
-                    <div className="flex gap-2 flex-wrap">
-                        {penColors.map(({ name, hex }) => {
-                            const style = {
-                                background: getChromeGradient(hex),
-                                borderColor: hex,
-                                ringColor: theme.primary,
-                            };
-                            if (hex === '#FFFFFF') {
-                                style.boxShadow = 'inset 0 0 0 1px #ddd';
-                            }
-                            return (
-                                <button 
-                                    key={name}
-                                    type="button"
-                                    title={name}
-                                    onClick={() => setPenColor(hex)}
-                                    className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${penColor === hex ? 'ring-2 ring-offset-2' : ''}`}
-                                    style={style}
-                                />
-                            );
-                        })}
+                <div className="mt-3 space-y-3">
+                    {/* Pen Type Selection */}
+                    <div>
+                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Type</label>
+                        <select
+                            value={form.penType || ''}
+                            onChange={e => setForm(prev => ({ ...prev, penType: e.target.value }))}
+                            className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
+                            style={{
+                                borderColor: theme.border,
+                                backgroundColor: theme.cardBackground,
+                                color: theme.text,
+                                focusRingColor: theme.primary
+                            }}
+                        >
+                            <option value="">Select pen type (optional)</option>
+                            <option value="savvio">🖊️ Savvio</option>
+                            <option value="novo">🖊️ Novo</option>
+                            <option value="v1">🖊️ V1</option>
+                            <option value="v2">🖊️ V2</option>
+                            <option value="v3">🖊️ V3</option>
+                            <option value="bird-pen">🖊️ Bird Pen</option>
+                            <option value="luxura">🖊️ Luxura</option>
+                            <option value="gansulin">🖊️ Gansulin</option>
+                            <option value="other">✏️ Other</option>
+                        </select>
+                    </div>
+
+                    {/* Pen Color Selection */}
+                    <div>
+                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Color</label>
+                        <div className="flex gap-2 flex-wrap">
+                            {penColors.map(({ name, hex }) => {
+                                const style = {
+                                    background: getChromeGradient(hex),
+                                    borderColor: hex,
+                                    ringColor: theme.primary,
+                                };
+                                if (hex === '#FFFFFF') {
+                                    style.boxShadow = 'inset 0 0 0 1px #ddd';
+                                }
+                                return (
+                                    <button 
+                                        key={name}
+                                        type="button"
+                                        title={name}
+                                        onClick={() => setPenColor(hex)}
+                                        className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${penColor === hex ? 'ring-2 ring-offset-2' : ''}`}
+                                        style={style}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             )}

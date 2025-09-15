@@ -1,7 +1,22 @@
 import React from 'react';
 import TextInput from '../common/inputs/TextInput';
-import { X } from 'lucide-react';
+import { X, Syringe, Pen } from 'lucide-react';
 import DosingScheduleEditor from './DosingScheduleEditor';
+import { getChromeGradient } from '../../utils/recon';
+
+const penColors = [
+    { name: 'Gold', hex: '#DAA520' },
+    { name: 'Silver', hex: '#C0C0C0' },
+    { name: 'Black', hex: '#000000' },
+    { name: 'Blue', hex: '#0066CC' },
+    { name: 'Red', hex: '#CC0000' },
+    { name: 'Green', hex: '#00AA00' },
+    { name: 'Purple', hex: '#6600CC' },
+    { name: 'Orange', hex: '#FF6600' },
+    { name: 'Pink', hex: '#FF69B4' },
+    { name: 'White', hex: '#FFFFFF' },
+    { name: 'Gray', hex: '#9CA3AF' },
+];
 
 export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem }) {
     
@@ -83,19 +98,91 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         
                         <div>
                             <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Delivery Method</div>
-                            <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
-                                {['SubQ', 'IM', 'Nasal'].map(method => (
-                                    <button 
-                                        key={method} 
-                                        type="button" 
-                                        onClick={() => handleChange('deliveryMethod', method)}
-                                        className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded ${(item.deliveryMethod || 'SubQ') === method ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                                        style={(item.deliveryMethod || 'SubQ') === method ? { backgroundColor: theme.primary } : {}}
-                                    >
-                                        {method}
-                                    </button>
-                                ))}
+                            <div className="flex gap-2">
+                                <button 
+                                    type="button"
+                                    onClick={() => handleChange('deliveryMethod', 'syringe')}
+                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    style={{
+                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.border
+                                    }}
+                                >
+                                    <Syringe size={16} /> Syringe
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => handleChange('deliveryMethod', 'pen')}
+                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    style={{
+                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'syringe') === 'pen' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.border
+                                    }}
+                                >
+                                    <Pen size={16} /> Pen
+                                </button>
                             </div>
+                            
+                            {/* Pen Options */}
+                            {(item.deliveryMethod || 'syringe') === 'pen' && (
+                                <div className="mt-3 space-y-3">
+                                    {/* Pen Type Selection */}
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Type</label>
+                                        <select
+                                            value={item.penType || ''}
+                                            onChange={e => handleChange('penType', e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
+                                            style={{
+                                                borderColor: theme.border,
+                                                backgroundColor: theme.cardBackground,
+                                                color: theme.text,
+                                                focusRingColor: theme.primary
+                                            }}
+                                        >
+                                            <option value="">Select pen type (optional)</option>
+                                            <option value="savvio">🖊️ Savvio</option>
+                                            <option value="novo">🖊️ Novo</option>
+                                            <option value="v1">🖊️ V1</option>
+                                            <option value="v2">🖊️ V2</option>
+                                            <option value="v3">🖊️ V3</option>
+                                            <option value="bird-pen">🖊️ Bird Pen</option>
+                                            <option value="luxura">🖊️ Luxura</option>
+                                            <option value="gansulin">🖊️ Gansulin</option>
+                                            <option value="other">✏️ Other</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Pen Color Selection */}
+                                    <div>
+                                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Color</label>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {penColors.map(({ name, hex }) => {
+                                                const style = {
+                                                    background: getChromeGradient(hex),
+                                                    borderColor: hex,
+                                                    ringColor: theme.primary,
+                                                };
+                                                if (hex === '#FFFFFF') {
+                                                    style.boxShadow = 'inset 0 0 0 1px #ddd';
+                                                }
+                                                return (
+                                                    <button 
+                                                        key={name}
+                                                        type="button"
+                                                        title={name}
+                                                        onClick={() => handleChange('penColor', name)}
+                                                        className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${(item.penColor || 'Silver') === name ? 'ring-2 ring-offset-2' : ''}`}
+                                                        style={style}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

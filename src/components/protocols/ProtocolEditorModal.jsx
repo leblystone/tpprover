@@ -6,19 +6,6 @@ import PeptideSubForm from './PeptideSubForm';
 import DosingScheduleEditor from './DosingScheduleEditor';
 
 export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol }) {
-    // Popular pen types for dropdown
-    const popularPenTypes = [
-        { value: '', label: 'Select pen type (optional)' },
-        { value: 'savvio', label: '🖊️ Savvio' },
-        { value: 'novo', label: '🖊️ Novo' },
-        { value: 'v1', label: '🖊️ V1' },
-        { value: 'v2', label: '🖊️ V2' },
-        { value: 'v3', label: '🖊️ V3' },
-        { value: 'bird-pen', label: '🖊️ Bird Pen' },
-        { value: 'luxura', label: '🖊️ Luxura' },
-        { value: 'gansulin', label: '🖊️ Gansulin' },
-        { value: 'other', label: '✏️ Other (specify in notes)' }
-    ];
 
     const createEmpty = () => ({
         protocolName: '',
@@ -26,7 +13,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         peptides: [{ id: Date.now(), frequency: { type: 'daily', time: ['Morning'] } }],
         duration: { count: '', unit: 'weeks', noEnd: false },
         washout: { enabled: false, duration: '', unit: 'weeks' },
-        penType: '',
         notes: ''
     });
 
@@ -430,41 +416,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Separator */}
-                <div className="border-t" style={{ borderColor: theme.border }}></div>
-
-                {/* Pen Type Section */}
-                <div className="space-y-3">
-                    <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Delivery Device</h3>
-                    <div>
-                        <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                            Pen Type
-                        </label>
-                        <select
-                            value={form.penType || ''}
-                            onChange={e => handleChange('penType', e.target.value)}
-                            className="w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
-                            style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
-                                color: theme.text,
-                                focusRingColor: theme.primary
-                            }}
-                        >
-                            {popularPenTypes.map(penType => (
-                                <option key={penType.value} value={penType.value}>
-                                    {penType.label}
-                                </option>
-                            ))}
-                        </select>
-                        {form.penType === 'other' && (
-                            <p className="text-sm mt-2" style={{ color: theme.textLight }}>
-                                💡 Please specify your pen type in the notes section below
-                            </p>
-                        )}
                     </div>
                 </div>
 
