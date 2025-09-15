@@ -110,15 +110,15 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                                 {pep.penType && (
                                                     <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
                                                         {pep.penType === 'other' ? 'Other' : 
-                                                            pep.penType === 'savvio' ? '🖊️ Savvio' :
-                                                            pep.penType === 'novo' ? '🖊️ Novo' :
-                                                            pep.penType === 'v1' ? '🖊️ V1' :
-                                                            pep.penType === 'v2' ? '🖊️ V2' :
-                                                            pep.penType === 'v3' ? '🖊️ V3' :
-                                                            pep.penType === 'bird-pen' ? '🖊️ Bird Pen' :
-                                                            pep.penType === 'luxura' ? '🖊️ Luxura' :
-                                                            pep.penType === 'gansulin' ? '🖊️ Gansulin' :
-                                                            `🖊️ ${pep.penType}`
+                                                            pep.penType === 'savvio' ? 'Savvio' :
+                                                            pep.penType === 'novo' ? 'Novo' :
+                                                            pep.penType === 'v1' ? 'V1' :
+                                                            pep.penType === 'v2' ? 'V2' :
+                                                            pep.penType === 'v3' ? 'V3' :
+                                                            pep.penType === 'bird-pen' ? 'Bird Pen' :
+                                                            pep.penType === 'luxura' ? 'Luxura' :
+                                                            pep.penType === 'gansulin' ? 'Gansulin' :
+                                                            pep.penType
                                                         }
                                                     </span>
                                                 )}

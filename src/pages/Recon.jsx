@@ -187,15 +187,15 @@ export default function Recon() {
 														{item.penType && (
 															<div className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
 																{item.penType === 'other' ? 'Other Pen' : 
-																	item.penType === 'savvio' ? '🖊️ Savvio' :
-																	item.penType === 'novo' ? '🖊️ Novo' :
-																	item.penType === 'v1' ? '🖊️ V1' :
-																	item.penType === 'v2' ? '🖊️ V2' :
-																	item.penType === 'v3' ? '🖊️ V3' :
-																	item.penType === 'bird-pen' ? '🖊️ Bird Pen' :
-																	item.penType === 'luxura' ? '🖊️ Luxura' :
-																	item.penType === 'gansulin' ? '🖊️ Gansulin' :
-																	`🖊️ ${item.penType}`
+																	item.penType === 'savvio' ? 'Savvio' :
+																	item.penType === 'novo' ? 'Novo' :
+																	item.penType === 'v1' ? 'V1' :
+																	item.penType === 'v2' ? 'V2' :
+																	item.penType === 'v3' ? 'V3' :
+																	item.penType === 'bird-pen' ? 'Bird Pen' :
+																	item.penType === 'luxura' ? 'Luxura' :
+																	item.penType === 'gansulin' ? 'Gansulin' :
+																	item.penType
 																}
 															</div>
 														)}
@@ -344,23 +344,53 @@ export default function Recon() {
                             </button>
                         </div>
                         {editingItem?.deliveryMethod === 'pen' && (
-                            <div className="mt-3">
-                                <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Color</label>
-                                <div className="flex gap-2 flex-wrap">
-                                    {Object.entries(PEN_COLORS).map(([name, hex]) => {
-                                        const style = { background: getChromeGradient(hex), borderColor: hex, ringColor: theme.primary };
-                                        if (name === 'White') { style.boxShadow = 'inset 0 0 0 1px #ddd'; }
-                                        return (
-                                            <button 
-                                                key={name}
-                                                type="button"
-                                                title={name}
-                                                onClick={() => setEditingItem(i => ({ ...i, penColor: name }))}
-                                                className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${editingItem?.penColor === name ? 'ring-2 ring-offset-2' : ''}`}
-                                                style={style}
-                                            />
-                                        );
-                                    })}
+                            <div className="mt-3 space-y-3">
+                                {/* Pen Type Selection */}
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Type</label>
+                                    <select
+                                        value={editingItem?.penType || ''}
+                                        onChange={e => setEditingItem(i => ({ ...i, penType: e.target.value }))}
+                                        className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
+                                        style={{
+                                            borderColor: theme.border,
+                                            backgroundColor: theme.cardBackground,
+                                            color: theme.text,
+                                            focusRingColor: theme.primary
+                                        }}
+                                    >
+                                        <option value="">Select pen type (optional)</option>
+                                        <option value="savvio">Savvio</option>
+                                        <option value="novo">Novo</option>
+                                        <option value="v1">V1</option>
+                                        <option value="v2">V2</option>
+                                        <option value="v3">V3</option>
+                                        <option value="bird-pen">Bird Pen</option>
+                                        <option value="luxura">Luxura</option>
+                                        <option value="gansulin">Gansulin</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                
+                                {/* Pen Color Selection */}
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Color</label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {Object.entries(PEN_COLORS).map(([name, hex]) => {
+                                            const style = { background: getChromeGradient(hex), borderColor: hex, ringColor: theme.primary };
+                                            if (name === 'White') { style.boxShadow = 'inset 0 0 0 1px #ddd'; }
+                                            return (
+                                                <button 
+                                                    key={name}
+                                                    type="button"
+                                                    title={name}
+                                                    onClick={() => setEditingItem(i => ({ ...i, penColor: name }))}
+                                                    className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${editingItem?.penColor === name ? 'ring-2 ring-offset-2' : ''}`}
+                                                    style={style}
+                                                />
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         )}

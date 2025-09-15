@@ -28,7 +28,8 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   const { setReconItems, vendors } = useAppContext();
   const [form, setForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] });
   const [deliveryMethod, setDeliveryMethod] = useState('syringe');
-  const [penColor, setPenColor] = useState(penColors.find(c => c.name === 'Silver').hex);
+  const [penType, setPenType] = useState('');
+  const [penColor, setPenColor] = useState('Silver');
   const [cost, setCost] = useState('');
 
   useEffect(() => {
@@ -37,7 +38,8 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         const initialForm = { vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] };
         setCost('');
         setDeliveryMethod('syringe');
-        setPenColor(penColors.find(c => c.name === 'Silver').hex);
+        setPenType('');
+        setPenColor('Silver');
 
         if (prefill) {
             if (prefill.peptides && prefill.peptides.length > 0) {
@@ -106,7 +108,6 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
     }, 0);
 
-    const selectedPenColor = penColors.find(p => p.hex === penColor);
 
     const newItem = {
         id: generateId(),
@@ -118,8 +119,8 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         vendorId: vendors.find(v => v.name === form.vendor)?.id || null,
         water: form.water,
         deliveryMethod: deliveryMethod,
-        penType: deliveryMethod === 'pen' ? form.penType : undefined,
-        penColor: deliveryMethod === 'pen' ? selectedPenColor?.name : undefined,
+        penType: deliveryMethod === 'pen' ? penType : undefined,
+        penColor: deliveryMethod === 'pen' ? penColor : undefined,
         cost: cost,
         date: new Date().toISOString(),
         peptides: form.peptides,
@@ -178,8 +179,8 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                     <div>
                         <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Type</label>
                         <select
-                            value={form.penType || ''}
-                            onChange={e => setForm(prev => ({ ...prev, penType: e.target.value }))}
+                            value={penType}
+                            onChange={e => setPenType(e.target.value)}
                             className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
                             style={{
                                 borderColor: theme.border,
@@ -189,15 +190,15 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                             }}
                         >
                             <option value="">Select pen type (optional)</option>
-                            <option value="savvio">🖊️ Savvio</option>
-                            <option value="novo">🖊️ Novo</option>
-                            <option value="v1">🖊️ V1</option>
-                            <option value="v2">🖊️ V2</option>
-                            <option value="v3">🖊️ V3</option>
-                            <option value="bird-pen">🖊️ Bird Pen</option>
-                            <option value="luxura">🖊️ Luxura</option>
-                            <option value="gansulin">🖊️ Gansulin</option>
-                            <option value="other">✏️ Other</option>
+                            <option value="savvio">Savvio</option>
+                            <option value="novo">Novo</option>
+                            <option value="v1">V1</option>
+                            <option value="v2">V2</option>
+                            <option value="v3">V3</option>
+                            <option value="bird-pen">Bird Pen</option>
+                            <option value="luxura">Luxura</option>
+                            <option value="gansulin">Gansulin</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
 
@@ -219,8 +220,8 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                                         key={name}
                                         type="button"
                                         title={name}
-                                        onClick={() => setPenColor(hex)}
-                                        className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${penColor === hex ? 'ring-2 ring-offset-2' : ''}`}
+                                        onClick={() => setPenColor(name)}
+                                        className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${penColor === name ? 'ring-2 ring-offset-2' : ''}`}
                                         style={style}
                                     />
                                 );

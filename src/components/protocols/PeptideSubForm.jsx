@@ -142,16 +142,16 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 focusRingColor: theme.primary
                                             }}
                                         >
-                                            <option value="">Select pen type (optional)</option>
-                                            <option value="savvio">🖊️ Savvio</option>
-                                            <option value="novo">🖊️ Novo</option>
-                                            <option value="v1">🖊️ V1</option>
-                                            <option value="v2">🖊️ V2</option>
-                                            <option value="v3">🖊️ V3</option>
-                                            <option value="bird-pen">🖊️ Bird Pen</option>
-                                            <option value="luxura">🖊️ Luxura</option>
-                                            <option value="gansulin">🖊️ Gansulin</option>
-                                            <option value="other">✏️ Other</option>
+                           <option value="">Select pen type (optional)</option>
+                           <option value="savvio">Savvio</option>
+                           <option value="novo">Novo</option>
+                           <option value="v1">V1</option>
+                           <option value="v2">V2</option>
+                           <option value="v3">V3</option>
+                           <option value="bird-pen">Bird Pen</option>
+                           <option value="luxura">Luxura</option>
+                           <option value="gansulin">Gansulin</option>
+                           <option value="other">Other</option>
                                         </select>
                                     </div>
 
