@@ -19,19 +19,17 @@ const formatTitration = (titration) => {
 
 const formatPenType = (penType) => {
     const penTypes = {
-        'insulin-pen': '🖊️ Insulin Pen (100 units/mL)',
-        'bd-ultra-fine': '💉 BD Ultra-Fine (31G, 8mm)',
-        'novopen': '🖊️ NovoPen (3mL cartridge)',
-        'flexpen': '🖊️ FlexPen (pre-filled)',
-        'solostar': '🖊️ SoloSTAR (pre-filled)',
-        'kwikpen': '🖊️ KwikPen (pre-filled)',
-        'easypod': '🖊️ easypod (electronic)',
-        'norditropin-pen': '🖊️ Norditropin Pen',
-        'genotropin-pen': '🖊️ Genotropin Pen',
-        'saizen-pen': '🖊️ Saizen Pen',
-        'custom': '✏️ Custom (see notes)'
+        'savvio': '🖊️ Savvio',
+        'novo': '🖊️ Novo',
+        'v1': '🖊️ V1',
+        'v2': '🖊️ V2',
+        'v3': '🖊️ V3',
+        'bird-pen': '🖊️ Bird Pen',
+        'luxura': '🖊️ Luxura',
+        'gansulin': '🖊️ Gansulin',
+        'other': '✏️ Other (see notes)'
     };
-    return penTypes[penType] || penType;
+    return penTypes[penType] || `🖊️ ${penType}`;
 }
 
 export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false }) {

@@ -9,17 +9,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     // Popular pen types for dropdown
     const popularPenTypes = [
         { value: '', label: 'Select pen type (optional)' },
-        { value: 'insulin-pen', label: '🖊️ Insulin Pen (100 units/mL)' },
-        { value: 'bd-ultra-fine', label: '💉 BD Ultra-Fine (31G, 8mm)' },
-        { value: 'novopen', label: '🖊️ NovoPen (3mL cartridge)' },
-        { value: 'flexpen', label: '🖊️ FlexPen (pre-filled)' },
-        { value: 'solostar', label: '🖊️ SoloSTAR (pre-filled)' },
-        { value: 'kwikpen', label: '🖊️ KwikPen (pre-filled)' },
-        { value: 'easypod', label: '🖊️ easypod (electronic)' },
-        { value: 'norditropin-pen', label: '🖊️ Norditropin Pen' },
-        { value: 'genotropin-pen', label: '🖊️ Genotropin Pen' },
-        { value: 'saizen-pen', label: '🖊️ Saizen Pen' },
-        { value: 'custom', label: '✏️ Other (specify in notes)' }
+        { value: 'savvio', label: '🖊️ Savvio' },
+        { value: 'novo', label: '🖊️ Novo' },
+        { value: 'v1', label: '🖊️ V1' },
+        { value: 'v2', label: '🖊️ V2' },
+        { value: 'v3', label: '🖊️ V3' },
+        { value: 'bird-pen', label: '🖊️ Bird Pen' },
+        { value: 'luxura', label: '🖊️ Luxura' },
+        { value: 'gansulin', label: '🖊️ Gansulin' },
+        { value: 'other', label: '✏️ Other (specify in notes)' }
     ];
 
     const createEmpty = () => ({
@@ -462,7 +460,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </option>
                             ))}
                         </select>
-                        {form.penType === 'custom' && (
+                        {form.penType === 'other' && (
                             <p className="text-sm mt-2" style={{ color: theme.textLight }}>
                                 💡 Please specify your pen type in the notes section below
                             </p>
