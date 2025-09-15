@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History } from 'lucide-react';
+import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Syringe } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
 
 const formatIndividualFrequency = (freq) => {
@@ -15,6 +15,23 @@ const formatTitration = (titration) => {
     return titration.map(t => 
         `${t.dose}${t.doseUnit} for ${t.durationCount} ${t.durationUnit}`
     ).join(' → ');
+}
+
+const formatPenType = (penType) => {
+    const penTypes = {
+        'insulin-pen': '🖊️ Insulin Pen (100 units/mL)',
+        'bd-ultra-fine': '💉 BD Ultra-Fine (31G, 8mm)',
+        'novopen': '🖊️ NovoPen (3mL cartridge)',
+        'flexpen': '🖊️ FlexPen (pre-filled)',
+        'solostar': '🖊️ SoloSTAR (pre-filled)',
+        'kwikpen': '🖊️ KwikPen (pre-filled)',
+        'easypod': '🖊️ easypod (electronic)',
+        'norditropin-pen': '🖊️ Norditropin Pen',
+        'genotropin-pen': '🖊️ Genotropin Pen',
+        'saizen-pen': '🖊️ Saizen Pen',
+        'custom': '✏️ Custom (see notes)'
+    };
+    return penTypes[penType] || penType;
 }
 
 export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false }) {
@@ -63,6 +80,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                         )}
                         <div className="flex items-start gap-2"><Clock size={14} className="mt-0.5 flex-shrink-0" /><span>{p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}${p.duration.count > 1 ? 's' : ''}` : 'Duration not set')}</span></div>
                         {p.washout?.enabled && p.washout?.count > 0 && (<div className="flex items-start gap-2"><RotateCw size={14} className="mt-0.5 flex-shrink-0" /><span>Washout: {p.washout.count} {p.washout.unit}{p.washout.count > 1 ? 's' : ''}</span></div>)}
+                        {p.penType && (<div className="flex items-start gap-2"><Syringe size={14} className="mt-0.5 flex-shrink-0" /><span>{formatPenType(p.penType)}</span></div>)}
                         {p.notes && (<div className="flex items-start gap-2"><FileText size={14} className="mt-0.5 flex-shrink-0" /><p className="text-xs italic border-l-2 pl-2" style={{ borderColor: theme.border }}>{p.notes}</p></div>)}
                     </div>
                 </div>
