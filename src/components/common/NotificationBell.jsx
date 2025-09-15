@@ -67,17 +67,19 @@ export default function NotificationBell({ theme }) {
           prev.map(n => ({ ...n, isRead: true, readAt: new Date() }))
         );
         
-        // Then update Firebase in background
-        try {
-          for (const notification of unreadNotifications) {
-            await markNotificationAsRead(notification.id);
+        // Try to sync with Firebase in background (optional)
+        setTimeout(async () => {
+          try {
+            for (const notification of unreadNotifications) {
+              await markNotificationAsRead(notification.id);
+            }
+            console.log('✅ Successfully synced read status to Firebase');
+          } catch (error) {
+            console.warn('⚠️ Firebase sync failed (UI already updated, no impact on UX):', error.message);
+            // Don't revert the optimistic update - user experience is more important than Firebase sync
+            // The notifications will auto-delete after 24 hours anyway
           }
-          console.log('🔔 Auto-marked', unreadNotifications.length, 'notifications as read');
-        } catch (error) {
-          console.error('Failed to auto-mark notifications as read:', error);
-          // Revert optimistic update on error
-          loadNotifications();
-        }
+        }, 100); // Small delay to ensure UI updates first
       }
     }
     

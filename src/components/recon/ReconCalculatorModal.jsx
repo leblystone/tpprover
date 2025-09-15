@@ -202,17 +202,24 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>3. Peptides & Doses</h4>
           <div className="space-y-3">
             {form.peptides.map((p, index) => (
-              <div key={p.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+              <div key={p.id} className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 gap-2 items-end">
                 <div className="sm:col-span-4"><TextInput label={`Peptide/Amino ${index + 1}`} value={p.name} onChange={v => updatePeptide(p.id, 'name', v)} placeholder="Name" theme={theme} disabled={prefill?.peptides?.length > 0} /></div>
                 <div className="sm:col-span-3"><TextInput label="mg/vial" type="number" value={p.mg} onChange={v => updatePeptide(p.id, 'mg', v)} placeholder="10" theme={theme} disabled={prefill?.peptides?.length > 0} /></div>
                 <div className="sm:col-span-3">
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Dose</div>
-                  <div className="flex items-center p-0.5 rounded border h-[42px]" style={{ borderColor: theme?.border }}>
-                    <input className="flex-1 w-full border-none outline-none text-lg text-right bg-transparent px-2 py-1.5" value={p.dose || ''} onChange={e => updatePeptide(p.id, 'dose', e.target.value)} placeholder="250" type="number" />
-                    <div className="inline-flex rounded-full bg-gray-100 p-0.5 shadow-inner">
+                  <div className="space-y-2">
+                    <input 
+                      className="w-full border rounded px-3 py-2 text-sm bg-transparent text-right" 
+                      style={{ borderColor: theme?.border }}
+                      value={p.dose || ''} 
+                      onChange={e => updatePeptide(p.id, 'dose', e.target.value)} 
+                      placeholder="250" 
+                      type="number" 
+                    />
+                    <div className="grid grid-cols-4 gap-1 rounded-md bg-gray-100 p-1">
                       {['mcg','mg','mL','sprays'].map(unit => (
                         <button key={unit} type="button" onClick={() => updatePeptide(p.id, 'doseUnit', unit)}
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${p.doseUnit === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+                          className={`px-1 py-1 text-xs font-semibold rounded ${p.doseUnit === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-200'}`}
                           style={p.doseUnit === unit ? { backgroundColor: theme.primary } : {}}>
                           {unit}
                         </button>
