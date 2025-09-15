@@ -1,0 +1,73 @@
+import React from 'react';
+import { useOutletContext } from 'react-router-dom';
+import BetaEndedSurvey from '../components/beta/BetaEndedSurvey';
+import { useAppContext } from '../context/AppContext';
+import { hasBetaLifetimeAccess, isBetaTester } from '../utils/betaAccess';
+
+/**
+ * Beta Ended Survey Page
+ * Shown to beta users who need to complete feedback to get lifetime access
+ */
+export default function BetaEndedSurveyPage() {
+  const { theme } = useOutletContext();
+  const { user } = useAppContext();
+
+  // Redirect if user already has lifetime access
+  if (hasBetaLifetimeAccess(user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md mx-auto text-center">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-2xl">✓</span>
+            </div>
+            <h1 className="text-xl font-bold text-purple-800 mb-2">You Already Have Lifetime Access!</h1>
+            <p className="text-purple-600 mb-4">Thank you for completing our beta survey.</p>
+            <button
+              onClick={() => window.location.href = '/dashboard'}
+              className="px-6 py-2 rounded-md font-medium hover:opacity-90"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message for non-beta users
+  if (!isBetaTester(user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md mx-auto text-center">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <h1 className="text-xl font-bold text-gray-800 mb-2">Survey Not Available</h1>
+            <p className="text-gray-600 mb-4">This survey is only available to beta testers.</p>
+            <button
+              onClick={() => window.location.href = '/dashboard'}
+              className="px-6 py-2 rounded-md font-medium hover:opacity-90"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen p-6" style={{ backgroundColor: theme.background }}>
+      <BetaEndedSurvey 
+        theme={theme} 
+        onComplete={() => {
+          // Optional: redirect after completion
+          setTimeout(() => {
+            window.location.href = '/account';
+          }, 3000);
+        }}
+      />
+    </div>
+  );
+}

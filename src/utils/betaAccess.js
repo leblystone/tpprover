@@ -1,6 +1,8 @@
 // Beta User Lifetime Access Management
 // Ensures beta testers get lifetime access and are never prompted for subscriptions
 
+import { isBetaEnded, shouldShowBetaEndedUI, getBetaStatusMessage } from '../config/betaConfig';
+
 /**
  * Check if user has beta lifetime access
  * @param {Object} user - User object with email, uid, createdAt
@@ -9,22 +11,16 @@
 export function hasBetaLifetimeAccess(user) {
   if (!user) return false;
   
-  // Check multiple beta indicators
+  // ONLY grant lifetime access to users who actually helped with feedback
   const indicators = [
-    // 1. Legacy beta tester flag (already set)
-    checkLegacyBetaTester(),
-    
-    // 2. Beta feedback completion flag
+    // 1. Beta feedback completion flag (MAIN REQUIREMENT)
     checkBetaFeedbackCompleted(user),
     
-    // 3. Founder status (first 100 users)
-    checkFounderStatus(),
-    
-    // 4. Manual beta lifetime grant
+    // 2. Manual beta lifetime grant (admin override)
     checkManualBetaGrant(user),
     
-    // 5. Signed up during beta period
-    checkBetaPeriodSignup(user)
+    // 3. Founder status (first 100 users) - optional, you can remove if desired
+    checkFounderStatus()
   ];
   
   return indicators.some(indicator => indicator === true);
@@ -89,7 +85,7 @@ function checkBetaPeriodSignup(user) {
   try {
     const userDate = new Date(user.createdAt);
     const betaStartDate = new Date('2024-01-01'); // Adjust to your beta start
-    const betaEndDate = new Date('2024-12-31');   // Adjust to your beta end
+    const betaEndDate = new Date('2024-09-21');   // Beta ends Sept 21st at midnight
     
     return userDate >= betaStartDate && userDate <= betaEndDate;
   } catch {
@@ -192,6 +188,28 @@ export function createBetaLifetimeSubscription(user) {
 }
 
 /**
+ * Check if user is a beta tester (but hasn't necessarily earned lifetime access)
+ * @param {Object} user - User object
+ * @returns {boolean} - Whether user is a beta tester
+ */
+export function isBetaTester(user) {
+  if (!user) return false;
+  
+  const indicators = [
+    // Legacy beta tester flag
+    checkLegacyBetaTester(),
+    
+    // Signed up during beta period
+    checkBetaPeriodSignup(user),
+    
+    // Already has lifetime access
+    hasBetaLifetimeAccess(user)
+  ];
+  
+  return indicators.some(indicator => indicator === true);
+}
+
+/**
  * Check if subscription should be hidden for this user
  * @param {Object} user - User object
  * @returns {boolean} - Whether to hide subscription prompts
@@ -222,4 +240,30 @@ export function getBetaAccessStatus(user) {
       .filter(([key, value]) => value)
       .map(([key]) => key)
   };
+}
+
+/**
+ * Check if user should see beta ended UI
+ * @param {Object} user - User object
+ * @returns {boolean} - Whether to show beta ended messaging
+ */
+export function shouldShowBetaEndedUIForUser(user) {
+  return shouldShowBetaEndedUI(user);
+}
+
+/**
+ * Get beta status message for user
+ * @param {Object} user - User object
+ * @returns {Object} - Status message object
+ */
+export function getBetaStatusForUser(user) {
+  return getBetaStatusMessage(user);
+}
+
+/**
+ * Check if beta period has ended
+ * @returns {boolean} - Whether beta has ended
+ */
+export function isBetaPeriodEnded() {
+  return isBetaEnded();
 }

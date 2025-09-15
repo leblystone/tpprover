@@ -752,12 +752,28 @@ export async function getUserNotifications(userEmail) {
     );
     const querySnapshot = await getDocs(q);
     const notifications = [];
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
     querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const readAt = data.readAt?.toDate ? data.readAt.toDate() : null;
+      
+      // Auto-delete notifications that have been read and are older than 24 hours
+      if (data.isRead && readAt && readAt < twentyFourHoursAgo) {
+        console.log('🔔 Auto-deleting old read notification:', doc.id);
+        deleteDoc(doc.ref).catch(error => 
+          console.error('Failed to delete old notification:', error)
+        );
+        return; // Skip adding to notifications array
+      }
+      
       notifications.push({
         id: doc.id,
-        ...doc.data()
+        ...data
       });
     });
+    
     // Sort notifications by createdAt (newest first) on the client side
     notifications.sort((a, b) => {
       const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;

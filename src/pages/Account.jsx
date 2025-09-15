@@ -9,7 +9,7 @@
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
   import { STRIPE_CONFIG } from '../config/stripe'
   import { verifyStripeConfig } from '../utils/stripe-verify'
-  import { hasBetaLifetimeAccess, createBetaLifetimeSubscription, getBetaAccessStatus } from '../utils/betaAccess'
+  import { hasBetaLifetimeAccess, createBetaLifetimeSubscription, getBetaAccessStatus, isBetaTester, shouldShowBetaEndedUIForUser, getBetaStatusForUser, isBetaPeriodEnded } from '../utils/betaAccess'
 
   // Local helpers for auth + subscription data (local testing)
   function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -45,7 +45,7 @@
 
     React.useEffect(() => {
         const calculateTimeLeft = () => {
-            const betaEndDate = new Date('2024-09-18T00:00:00Z'); // Sept 17th midnight
+            const betaEndDate = new Date('2024-09-21T00:00:00'); // Sept 21st midnight
             const now = new Date();
             const difference = betaEndDate.getTime() - now.getTime();
 
@@ -386,7 +386,7 @@
         <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Subscription</h2>
               {hasBetaLifetimeAccess(user) ? (
-                // Beta user - show lifetime access message
+                // Beta user with completed feedback - show lifetime access message
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
                     <div className="flex items-center gap-3 mb-2">
@@ -395,11 +395,11 @@
                       </div>
                       <div>
                         <div className="font-semibold text-purple-800">Beta Tester Lifetime Access</div>
-                        <div className="text-xs text-purple-600">Thank you for helping us build the perfect peptide planner!</div>
+                        <div className="text-xs text-purple-600">Thank you for completing our feedback survey!</div>
                       </div>
                     </div>
                     <div className="text-sm text-purple-700">
-                      🎉 <strong>You have lifetime access</strong> to all current and future features as a thank you for being a beta tester.
+                      🎉 <strong>You have lifetime access</strong> to all current and future features as a thank you for helping us improve the app.
                       No payments required - ever!
                     </div>
                   </div>
@@ -410,6 +410,46 @@
                       <div>Plan: {sub.plan}</div>
                       <div>Status: <span className="text-green-600 font-semibold">Active (Lifetime)</span></div>
                       <div>Granted: {new Date(sub.grantedAt || sub.startedAt).toLocaleDateString()}</div>
+                    </div>
+                  )}
+                </div>
+              ) : isBetaTester(user) ? (
+                // Beta user who hasn't completed feedback yet
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">β</span>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-yellow-800">Beta Tester - Feedback Needed!</div>
+                        <div className="text-xs text-yellow-600">Help us improve and earn lifetime access</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-yellow-700 space-y-2">
+                      <p>🎯 <strong>You're a beta tester!</strong> Complete our feedback survey to earn <strong>lifetime access</strong> to all features.</p>
+                      <p>✨ <strong>What you'll get:</strong> Permanent access to all current and future features - no monthly payments ever!</p>
+                    </div>
+                    <div className="mt-3">
+                      <button 
+                        className="px-4 py-2 rounded-md font-medium hover:opacity-90 text-sm"
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                        onClick={() => {
+                          window.location.href = '/beta-survey';
+                        }}
+                      >
+                        📝 Complete Feedback Survey → Get Lifetime Access
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Show current trial/subscription status */}
+                  {sub && (
+                    <div className="text-xs" style={{ color: theme.textLight }}>
+                      <div>Current Status: {sub.plan} ({sub.status})</div>
+                      {sub.status === 'trialing' && (
+                        <div>Trial ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                      )}
                     </div>
                   )}
                 </div>

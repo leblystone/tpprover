@@ -37,14 +37,27 @@ export default function NotificationBell({ theme }) {
     }
   };
 
-  const handleMarkAsRead = async (notificationId) => {
-    try {
-      await markNotificationAsRead(notificationId);
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
-      );
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+  const handleBellClick = async () => {
+    setShowNotifications(!showNotifications);
+    
+    // Auto-mark all unread notifications as read when bell is clicked
+    const unreadNotifications = notifications.filter(n => !n.isRead);
+    if (unreadNotifications.length > 0) {
+      try {
+        // Mark all unread notifications as read
+        for (const notification of unreadNotifications) {
+          await markNotificationAsRead(notification.id);
+        }
+        
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => ({ ...n, isRead: true, readAt: new Date() }))
+        );
+        
+        console.log('🔔 Auto-marked', unreadNotifications.length, 'notifications as read');
+      } catch (error) {
+        console.error('Failed to auto-mark notifications as read:', error);
+      }
     }
   };
 
@@ -87,7 +100,7 @@ export default function NotificationBell({ theme }) {
   return (
     <div className="relative">
       <button
-        onClick={() => setShowNotifications(!showNotifications)}
+        onClick={handleBellClick}
         className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
         title="Notifications"
       >
@@ -140,13 +153,7 @@ export default function NotificationBell({ theme }) {
                             {notification.title}
                           </h4>
                           {!notification.isRead && (
-                            <button
-                              onClick={() => handleMarkAsRead(notification.id)}
-                              className="text-xs px-2 py-1 rounded-full hover:bg-gray-200"
-                              style={{ color: theme.primary }}
-                            >
-                              Mark read
-                            </button>
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                           )}
                         </div>
                         <p className="text-sm break-words" style={{ color: theme.text }}>
