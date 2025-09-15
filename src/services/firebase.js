@@ -711,17 +711,23 @@ export async function respondToFeedback(feedbackId, responseText, userEmail) {
       status: 'responded'
     });
 
-    // Create in-app notification for the user
-    const notificationRef = collection(db, 'notifications');
-    await addDoc(notificationRef, {
-      userEmail: userEmail.toLowerCase(),
-      type: 'feedback_response',
-      title: 'Response to Your Feedback',
-      message: responseText,
-      isRead: false,
-      createdAt: serverTimestamp(),
-      feedbackId: feedbackId
-    });
+    // Create in-app notification for the user (with fallback if permissions fail)
+    try {
+      const notificationRef = collection(db, 'notifications');
+      await addDoc(notificationRef, {
+        userEmail: userEmail.toLowerCase(),
+        type: 'feedback_response',
+        title: 'Response to Your Feedback',
+        message: responseText,
+        isRead: false,
+        createdAt: serverTimestamp(),
+        feedbackId: feedbackId
+      });
+      console.log('✅ Notification created successfully');
+    } catch (notificationError) {
+      console.warn('⚠️ Could not create notification (permissions issue):', notificationError.message);
+      console.log('📧 Feedback response saved but user notification failed - consider updating Firebase rules');
+    }
 
     console.log('✅ Feedback response sent successfully');
   } catch (error) {
