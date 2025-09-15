@@ -504,7 +504,16 @@ export function AppProvider({ children }) {
     };
 
     const updateSupplement = (updatedSupplement) => {
-        setSupplements(prev => prev.map(s => s.id === updatedSupplement.id ? updatedSupplement : s));
+        // Handle delete flag
+        if (updatedSupplement._delete) {
+            console.log('🗑️ Deleting supplement:', updatedSupplement.name);
+            setSupplements(prev => prev.filter(s => s.id !== updatedSupplement.id));
+            return;
+        }
+        
+        // Remove _delete flag if it exists and update normally
+        const { _delete, ...cleanSupplement } = updatedSupplement;
+        setSupplements(prev => prev.map(s => s.id === cleanSupplement.id ? cleanSupplement : s));
     };
 
     const deleteSupplement = (supplementId) => {
