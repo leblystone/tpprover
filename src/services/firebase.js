@@ -743,6 +743,7 @@ export async function respondToFeedback(feedbackId, responseText, userEmail) {
  */
 export async function getUserNotifications(userEmail) {
   try {
+    console.log('🔔 Firebase: Getting notifications for email:', userEmail.toLowerCase());
     const q = query(
       collection(db, 'notifications'),
       where('userEmail', '==', userEmail.toLowerCase()),
@@ -757,6 +758,7 @@ export async function getUserNotifications(userEmail) {
         ...doc.data()
       });
     });
+    console.log('🔔 Firebase: Found', notifications.length, 'notifications:', notifications);
     return notifications;
   } catch (error) {
     console.error('❌ Failed to get user notifications:', error);

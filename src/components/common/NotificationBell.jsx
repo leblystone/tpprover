@@ -19,14 +19,19 @@ export default function NotificationBell({ theme }) {
   }, [firebaseUser?.email]);
 
   const loadNotifications = async () => {
-    if (!firebaseUser?.email) return;
+    if (!firebaseUser?.email) {
+      console.log('🔔 NotificationBell: No firebase user email');
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log('🔔 NotificationBell: Loading notifications for:', firebaseUser.email);
       const userNotifications = await getUserNotifications(firebaseUser.email);
+      console.log('🔔 NotificationBell: Received notifications:', userNotifications);
       setNotifications(userNotifications);
     } catch (error) {
-      console.error('Failed to load notifications:', error);
+      console.error('🔔 NotificationBell: Failed to load notifications:', error);
     } finally {
       setLoading(false);
     }
@@ -45,9 +50,12 @@ export default function NotificationBell({ theme }) {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  if (!firebaseUser?.email || notifications.length === 0) {
+  if (!firebaseUser?.email) {
     return null;
   }
+
+  // DEBUG: Always show bell for debugging
+  console.log('🔔 NotificationBell: Rendering with', notifications.length, 'notifications');
 
   return (
     <div className="relative">
