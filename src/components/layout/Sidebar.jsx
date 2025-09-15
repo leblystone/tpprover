@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, DownloadCloud, BookOpen } from 'lucide-react'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, DownloadCloud } from 'lucide-react'
 import logo from '../../assets/tpp-logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
@@ -50,7 +50,6 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
     { to: '/stockpile', label: 'Stockpile', icon: Boxes, tourId: 'sidebar-stockpile' },
     { to: '/orders', label: 'Orders', icon: ShoppingCart, tourId: 'sidebar-orders' },
     { to: '/vendors', label: 'Vendors', icon: Store, tourId: 'sidebar-vendors' },
-    { to: '/research', label: 'Research', icon: BookOpen, tourId: 'sidebar-research' },
   ]
 
   const bottomLinks = [

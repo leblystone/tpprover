@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput.jsx'
-import { Search, Brain, AlertTriangle, Loader } from 'lucide-react';
+import { Search, Brain, AlertTriangle, Loader, Filter, Star, StarOff, BookOpen, Zap, Heart, Target, Shield, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
 
 // Levenshtein distance function for fuzzy string matching
 function levenshteinDistance(str1, str2) {
@@ -448,14 +448,14 @@ async function compilePeptideResearch(peptideName) {
       researchStatus: 'FDA-approved for type 2 diabetes; extensive research on anti-aging effects.'
     },
     
-    'L-AMINO 1MQ CHLORIDE': {
-      aliases: ['1MQ', 'L-AMINO-1MQ'],
+    '5-AMINO-1MQ': {
+      aliases: ['5-AMINO-1MQ', '5AMINO1MQ', '5-AMINO 1MQ', 'L-AMINO 1MQ CHLORIDE', '1MQ', 'L-AMINO-1MQ'],
       classification: 'NNMT Inhibitor',
-      mechanism: 'Inhibits nicotinamide N-methyltransferase (NNMT), potentially affecting cellular metabolism.',
-      commonUses: ['Metabolic research', 'Aging studies', 'Cellular metabolism research'],
-      dosageRanges: 'Research protocols typically use 50-100mg daily.',
-      safetyNotes: 'Research compound with limited safety data.',
-      researchStatus: 'Research compound with emerging metabolic effects.'
+      mechanism: 'Inhibits nicotinamide N-methyltransferase (NNMT), promoting fat loss and metabolic enhancement by increasing NAD+ levels and cellular energy production.',
+      commonUses: ['Fat loss research', 'Metabolic enhancement studies', 'NAD+ research', 'Aging studies', 'Cellular metabolism research'],
+      dosageRanges: 'Research protocols typically use 50-100mg daily, administered orally or via injection.',
+      safetyNotes: 'Research compound with limited long-term safety data. For investigational purposes only.',
+      researchStatus: 'Emerging research compound with promising metabolic and fat loss effects in animal studies.'
     },
     
     'GNB': {
@@ -770,6 +770,119 @@ async function compilePeptideResearch(peptideName) {
       dosageRanges: 'Medical dosing: 5-80mg daily as prescribed.',
       safetyNotes: 'FDA-approved medication with established safety profile for approved uses.',
       researchStatus: 'FDA-approved for muscle spasticity; research on addiction treatment.'
+    },
+    
+    // === PEPTIDE BLENDS & COMBINATIONS ===
+    'BPC-157 + TB-500 BLEND': {
+      aliases: ['BPC TB500 BLEND', 'HEALING BLEND', 'BPC TB COMBO', 'RECOVERY BLEND'],
+      classification: 'Healing Peptide Combination',
+      mechanism: 'Synergistic combination of BPC-157 and TB-500 for enhanced tissue repair, wound healing, and recovery through multiple pathways including angiogenesis and actin regulation.',
+      commonUses: ['Accelerated injury recovery', 'Tissue repair research', 'Post-surgical healing studies', 'Athletic recovery research'],
+      dosageRanges: 'Research protocols typically use 250-500 mcg BPC-157 + 2-5mg TB-500, administered separately or in combination.',
+      safetyNotes: 'Combination of well-studied research peptides. Individual safety profiles apply.',
+      researchStatus: 'Popular combination based on complementary mechanisms of individual peptides.'
+    },
+    
+    'GHRP-2 + MOD GRF 1-29 BLEND': {
+      aliases: ['GHRP2 CJC BLEND', 'GROWTH HORMONE BLEND', 'GH STACK', 'GHRP CJC COMBO'],
+      classification: 'Growth Hormone Releasing Combination',
+      mechanism: 'Synergistic combination that amplifies growth hormone release through dual pathway activation - GHRP-2 stimulates ghrelin receptors while Mod GRF 1-29 stimulates GHRH receptors.',
+      commonUses: ['Enhanced GH release research', 'Body composition studies', 'Anti-aging research', 'Recovery enhancement studies'],
+      dosageRanges: 'Research protocols typically use 100-300 mcg of each peptide, administered together 2-3 times daily.',
+      safetyNotes: 'Well-established peptide combination with known synergistic effects.',
+      researchStatus: 'Popular research combination with established synergistic GH-releasing effects.'
+    },
+    
+    'IPAMORELIN + CJC-1295 BLEND': {
+      aliases: ['IPAM CJC BLEND', 'IPA CJC COMBO', 'SELECTIVE GH BLEND'],
+      classification: 'Selective Growth Hormone Combination',
+      mechanism: 'Combines selective GHRP (Ipamorelin) with long-acting GHRH analog (CJC-1295) for sustained, clean growth hormone release without significant side effects.',
+      commonUses: ['Clean GH release research', 'Sleep quality studies', 'Body composition research', 'Anti-aging studies'],
+      dosageRanges: 'Research protocols typically use 200-300 mcg Ipamorelin + 100-200 mcg CJC-1295, administered together.',
+      safetyNotes: 'Considered one of the safest GH-releasing combinations with minimal side effects.',
+      researchStatus: 'Preferred combination for research due to selective action and minimal side effects.'
+    },
+    
+    // === NASAL FORMULATIONS ===
+    'INSULIN NASAL SPRAY': {
+      aliases: ['INTRANASAL INSULIN', 'NASAL INSULIN', 'BRAIN INSULIN'],
+      classification: 'Intranasal Hormone Therapy',
+      mechanism: 'Bypasses blood-brain barrier via intranasal delivery to enhance cognitive function, memory, and neuroprotection without systemic metabolic effects.',
+      commonUses: ['Cognitive enhancement research', 'Memory studies', 'Alzheimer\'s research', 'Neuroprotection studies'],
+      dosageRanges: 'Research protocols typically use 20-40 IU administered intranasally.',
+      safetyNotes: 'Intranasal delivery avoids systemic hypoglycemia risk. Research compound with promising safety profile.',
+      researchStatus: 'Active clinical research for cognitive disorders and neurodegenerative diseases.'
+    },
+    
+    'OXYTOCIN NASAL SPRAY': {
+      aliases: ['INTRANASAL OXYTOCIN', 'NASAL OXYTOCIN', 'SOCIAL BONDING SPRAY'],
+      classification: 'Intranasal Neuropeptide',
+      mechanism: 'Direct delivery to brain via nasal route, enhancing social bonding, trust, empathy, and reducing social anxiety through oxytocin receptor activation.',
+      commonUses: ['Social behavior research', 'Autism studies', 'Anxiety research', 'Relationship therapy research'],
+      dosageRanges: 'Research protocols typically use 12-40 IU administered intranasally.',
+      safetyNotes: 'Well-established safety profile for intranasal administration.',
+      researchStatus: 'Extensive clinical research on social and emotional effects.'
+    },
+    
+    'SELANK NASAL SPRAY': {
+      aliases: ['INTRANASAL SELANK', 'NASAL SELANK', 'SELANK DROPS'],
+      classification: 'Intranasal Anxiolytic Peptide',
+      mechanism: 'Enhanced bioavailability through nasal delivery, providing anxiolytic, nootropic, and stress-reducing effects through tuftsin analog action.',
+      commonUses: ['Anxiety research', 'Stress management studies', 'Cognitive enhancement research', 'Mood regulation studies'],
+      dosageRanges: 'Research protocols typically use 2-6 drops (approximately 100-300 mcg) intranasally.',
+      safetyNotes: 'Nasal delivery improves bioavailability and reduces systemic exposure.',
+      researchStatus: 'Established anxiolytic research compound with proven nasal delivery benefits.'
+    },
+    
+    'SEMAX NASAL SPRAY': {
+      aliases: ['INTRANASAL SEMAX', 'NASAL SEMAX', 'SEMAX DROPS'],
+      classification: 'Intranasal Nootropic Peptide',
+      mechanism: 'Direct brain delivery via nasal route for enhanced cognitive function, neuroprotection, and memory improvement through ACTH analog action.',
+      commonUses: ['Cognitive enhancement research', 'Neuroprotection studies', 'Memory research', 'Stroke recovery research'],
+      dosageRanges: 'Research protocols typically use 2-6 drops (approximately 200-600 mcg) intranasally.',
+      safetyNotes: 'Nasal administration provides targeted brain delivery with established safety profile.',
+      researchStatus: 'Well-established nootropic with proven benefits via intranasal delivery.'
+    },
+    
+    'KISSPEPTIN NASAL SPRAY': {
+      aliases: ['INTRANASAL KISSPEPTIN', 'NASAL KISS1', 'KISSPEPTIN DROPS'],
+      classification: 'Intranasal Reproductive Peptide',
+      mechanism: 'Direct hypothalamic delivery via nasal route to stimulate GnRH release and regulate reproductive hormone axis.',
+      commonUses: ['Reproductive research', 'Fertility studies', 'Hormonal regulation research', 'Puberty research'],
+      dosageRanges: 'Clinical research protocols vary, typically administered as measured nasal doses.',
+      safetyNotes: 'Clinical research compound with ongoing safety evaluation for intranasal use.',
+      researchStatus: 'Active clinical research for reproductive disorders and fertility treatments.'
+    },
+    
+    // === ADDITIONAL POPULAR PEPTIDES ===
+    'DIHEXA': {
+      aliases: ['DIHEXA', 'N-HEXANOIC-TYR-ILE-(6) AMINOHEXANOIC AMIDE'],
+      classification: 'Cognitive Enhancement Compound',
+      mechanism: 'Potent cognitive enhancer that promotes synaptogenesis and neuroplasticity through hepatocyte growth factor (HGF) pathway activation.',
+      commonUses: ['Memory enhancement research', 'Neuroplasticity studies', 'Cognitive disorder research', 'Neurodegenerative disease research'],
+      dosageRanges: 'Research protocols typically use 5-10mg daily, administered orally.',
+      safetyNotes: 'Research compound with limited long-term safety data. Potent effects require careful dosing.',
+      researchStatus: 'Promising preclinical results for cognitive enhancement and neuroprotection.'
+    },
+    
+    'EPITALON': {
+      aliases: ['EPITHALON', 'EPITALONE', 'EPITALON TETRAPEPTIDE'],
+      classification: 'Anti-Aging Tetrapeptide',
+      mechanism: 'Telomerase activator that may extend cellular lifespan, regulate circadian rhythms, and provide anti-aging effects through pineal gland function enhancement.',
+      commonUses: ['Anti-aging research', 'Longevity studies', 'Circadian rhythm research', 'Cellular aging research'],
+      dosageRanges: 'Research protocols typically use 5-10mg administered via injection for 10-20 day cycles.',
+      safetyNotes: 'Research compound with promising safety profile in studies.',
+      researchStatus: 'Promising anti-aging research with telomere lengthening effects demonstrated.'
+    },
+    
+    'CEREBROLYSIN': {
+      aliases: ['CEREBROLYSIN', 'BRAIN-DERIVED PEPTIDES', 'NEUROPEPTIDE COMPLEX'],
+      classification: 'Neuropeptide Complex',
+      mechanism: 'Complex mixture of brain-derived peptides that provides neuroprotection, promotes neuroplasticity, and supports cognitive function through multiple neurotrophic pathways.',
+      commonUses: ['Stroke research', 'Dementia studies', 'Traumatic brain injury research', 'Cognitive enhancement studies'],
+      dosageRanges: 'Medical protocols typically use 5-30ml administered intravenously.',
+      safetyNotes: 'Prescription medication in many countries with established clinical safety profile.',
+      researchStatus: 'Extensive clinical research with proven neuroprotective and cognitive benefits.'
     }
   };
   
@@ -827,6 +940,53 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
   const [items, setItems] = useState([])
   const [aiResearch, setAiResearch] = useState({ loading: false, data: null, error: null, query: '' })
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [activeTab, setActiveTab] = useState('search') // 'search', 'browse', 'favorites'
+  const [selectedCategory, setSelectedCategory] = useState('All Categories')
+  const [favorites, setFavorites] = useState([])
+  const [expandedCategories, setExpandedCategories] = useState(new Set(['Popular']))
+  
+  // Load favorites from localStorage
+  useEffect(() => {
+    try {
+      const savedFavorites = localStorage.getItem('tpprover_research_favorites');
+      if (savedFavorites) {
+        setFavorites(JSON.parse(savedFavorites));
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  }, [open])
+  
+  // Save favorites to localStorage
+  const saveFavorites = (newFavorites) => {
+    try {
+      localStorage.setItem('tpprover_research_favorites', JSON.stringify(newFavorites));
+      setFavorites(newFavorites);
+    } catch (error) {
+      console.error('Error saving favorites:', error);
+    }
+  };
+  
+  const toggleFavorite = (peptideName) => {
+    const newFavorites = favorites.includes(peptideName) 
+      ? favorites.filter(f => f !== peptideName)
+      : [...favorites, peptideName];
+    saveFavorites(newFavorites);
+  };
+  
+  // Peptide categories for browsing
+  const peptideCategories = {
+    'Popular': ['BPC-157', 'TB-500', 'Semaglutide', 'Tirzepatide', 'Ipamorelin', 'CJC-1295', '5-Amino-1MQ'],
+    'Growth Hormone': ['Ipamorelin', 'CJC-1295', 'GHRP-2', 'GHRP-6', 'Sermorelin', 'Tesamorelin', 'Hexarelin', 'HGH'],
+    'Healing & Recovery': ['BPC-157', 'TB-500', 'GHK-Cu', 'BPC-157 + TB-500 Blend', 'PEG MGF', 'Thymosin Alpha 1'],
+    'Weight Loss': ['Semaglutide', 'Tirzepatide', 'Retatrutide', '5-Amino-1MQ', 'AOD-9604', 'Tesofensine', 'Mazdutide'],
+    'Cognitive & Brain': ['Selank', 'Semax', 'Dihexa', 'Cerebrolysin', 'Noopept', 'Insulin Nasal Spray', 'Oxytocin Nasal Spray'],
+    'Anti-Aging': ['Epitalon', 'NMN', 'NAD+', 'MOTS-C', 'SS31', 'Metformin', 'Glutathione'],
+    'Nasal Sprays': ['Insulin Nasal Spray', 'Oxytocin Nasal Spray', 'Selank Nasal Spray', 'Semax Nasal Spray', 'Kisspeptin Nasal Spray'],
+    'Blends & Combos': ['BPC-157 + TB-500 Blend', 'GHRP-2 + Mod GRF 1-29 Blend', 'Ipamorelin + CJC-1295 Blend'],
+    'Tanning & Libido': ['Melanotan II', 'Melanotan 1', 'PT-141'],
+    'Liver & Detox': ['TUDCA', 'UDCA', 'NAC', 'Glutathione', 'Berberine'],
+  }
   
   useEffect(() => { try { const raw = localStorage.getItem('tpprover_glossary'); setItems(raw ? JSON.parse(raw) : []) } catch {} }, [open])
   const filtered = useMemo(() => items.filter(i => (i.name||'').toLowerCase().includes(q.toLowerCase())), [items, q])
@@ -842,7 +1002,10 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
       'Adamax', 'Adipotide', 'AICAR', 'Cagrilintide', 'DSIP', 'FOX04 DRI', 'Kisspeptin',
       'KPV', 'LL-37', 'Mazdutide', 'Melanotan 1', 'MOTS-C', 'NA Selank Amidate', 'NA Semax Amidate',
       'Oxytocin', 'PEG MGF', 'SNAP-8', 'SS31', 'Survodutide', 'Thymosin Alpha 1', 'Thymulin',
-      'Tesofensine', 'Metformin', 'NMN', 'NAD+', 'Glutathione', 'TUDCA', 'NAC', 'Berberine'
+      'Tesofensine', 'Metformin', 'NMN', 'NAD+', 'Glutathione', 'TUDCA', 'NAC', 'Berberine',
+      '5-Amino-1MQ', 'Dihexa', 'Cerebrolysin', 'BPC-157 + TB-500 Blend', 'GHRP-2 + Mod GRF Blend',
+      'Ipamorelin + CJC-1295 Blend', 'Insulin Nasal Spray', 'Oxytocin Nasal Spray', 'Selank Nasal Spray',
+      'Semax Nasal Spray', 'Kisspeptin Nasal Spray'
     ];
     
     const query = q.toLowerCase();
@@ -878,7 +1041,15 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
         'mots-c', 'mitochondrial peptide', 'selank', 'semax', 'na selank', 'na semax',
         'oxytocin', 'p21', 'pe-22-28', 'peg mgf', 'pt-141', 'pt141', 'bremelanotide',
         'snap-8', 'snap8', 'ss31', 'ss-31', 'elamipretide', 'survodutide', 'bi 456906',
-        'thymosin alpha 1', 'ta1', 'zadaxin', 'thymulin', 'fts',
+        'thymosin alpha 1', 'ta1', 'zadaxin', 'thymulin', 'fts', '5-amino-1mq', '5amino1mq',
+        
+        // Nasal formulations
+        'nasal spray', 'intranasal', 'nasal insulin', 'nasal oxytocin', 'nasal selank', 'nasal semax',
+        'nasal melanotan', 'nasal pt141', 'nasal kisspeptin', 'nasal dsip',
+        
+        // Amino blends and combinations
+        'amino blend', 'peptide blend', 'stack', 'combination', 'blend', 'mix',
+        'bpc tb500 blend', 'ghrp cjc blend', 'healing blend', 'growth blend',
         
         // Growth factors
         'igf', 'igf-1', 'igf1', 'lr3', 'mgf', 'mechano', 'growth hormone', 'gh', 'hgh',
@@ -961,144 +1132,349 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
     }
   };
 
+  const toggleCategory = (category) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const getCategoryIcon = (category) => {
+    const iconMap = {
+      'Popular': <Sparkles size={16} />,
+      'Growth Hormone': <Zap size={16} />,
+      'Healing & Recovery': <Heart size={16} />,
+      'Weight Loss': <Target size={16} />,
+      'Cognitive & Brain': <Brain size={16} />,
+      'Anti-Aging': <Shield size={16} />,
+      'Nasal Sprays': <Search size={16} />,
+      'Blends & Combos': <BookOpen size={16} />,
+      'Tanning & Libido': <Star size={16} />,
+      'Liver & Detox': <Shield size={16} />
+    };
+    return iconMap[category] || <BookOpen size={16} />;
+  };
+
+  const renderPeptideCard = (peptideName, showCategory = false) => {
+    const isFavorite = favorites.includes(peptideName);
+    
+    return (
+      <div key={peptideName} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow" 
+           style={{ borderColor: theme?.border, backgroundColor: theme?.cardBackground }}>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setQ(peptideName);
+                setActiveTab('search');
+                handleAIResearch();
+              }}
+              className="font-medium text-left hover:underline"
+              style={{ color: theme?.text }}
+            >
+              {peptideName}
+            </button>
+            {showCategory && (
+              <span className="text-xs px-2 py-1 rounded-full" 
+                    style={{ backgroundColor: theme?.accent, color: theme?.text }}>
+                {Object.entries(peptideCategories).find(([_, peptides]) => 
+                  peptides.includes(peptideName))?.[0] || 'Other'}
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={() => toggleFavorite(peptideName)}
+          className="p-1 rounded hover:bg-opacity-10 hover:bg-gray-500 transition-colors"
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          {isFavorite ? (
+            <Star size={16} className="fill-current" style={{ color: theme?.warning }} />
+          ) : (
+            <StarOff size={16} style={{ color: theme?.textLight }} />
+          )}
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <Modal open={open} onClose={onClose} title="Research" theme={theme} footer={(
+    <Modal open={open} onClose={onClose} title="Research Database" theme={theme} footer={(
       <>
         <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Close</button>
       </>
     )}>
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-            <div className="flex-grow relative">
-              <TextInput 
-                label="Search Peptide" 
-                value={q} 
-                onChange={(value) => {
-                  setQ(value);
-                  setShowSuggestions(value.length >= 2);
-                }} 
-                placeholder="Type peptide name (e.g., BPC-157, Retatrutide)" 
-                theme={theme} 
-                className="flex-grow"
-                onFocus={() => setShowSuggestions(q.length >= 2)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              />
-              
-              {/* Suggestion dropdown */}
-              {showSuggestions && peptideSuggestions.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow-lg" style={{ borderColor: theme?.border }}>
-                  <div className="py-1">
-                    <div className="px-3 py-1 text-xs font-semibold text-gray-500 border-b" style={{ borderColor: theme?.border }}>
-                      Suggestions:
+      <div className="space-y-4">
+        {/* Tab Navigation */}
+        <div className="flex border-b" style={{ borderColor: theme?.border }}>
+          <button
+            onClick={() => setActiveTab('search')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'search' ? 'border-current' : 'border-transparent hover:border-gray-300'
+            }`}
+            style={{ color: activeTab === 'search' ? theme?.primary : theme?.textLight }}
+          >
+            <div className="flex items-center gap-2">
+              <Search size={16} />
+              Search
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('browse')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'browse' ? 'border-current' : 'border-transparent hover:border-gray-300'
+            }`}
+            style={{ color: activeTab === 'browse' ? theme?.primary : theme?.textLight }}
+          >
+            <div className="flex items-center gap-2">
+              <Filter size={16} />
+              Browse
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('favorites')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'favorites' ? 'border-current' : 'border-transparent hover:border-gray-300'
+            }`}
+            style={{ color: activeTab === 'favorites' ? theme?.primary : theme?.textLight }}
+          >
+            <div className="flex items-center gap-2">
+              <Star size={16} />
+              Favorites ({favorites.length})
+            </div>
+          </button>
+        </div>
+
+        {/* Search Tab */}
+        {activeTab === 'search' && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+                <div className="flex-grow relative">
+                  <TextInput 
+                    label="Search Peptide" 
+                    value={q} 
+                    onChange={(value) => {
+                      setQ(value);
+                      setShowSuggestions(value.length >= 2);
+                    }} 
+                    placeholder="Type peptide name (e.g., BPC-157, 5-Amino-1MQ)" 
+                    theme={theme} 
+                    className="flex-grow"
+                    onFocus={() => setShowSuggestions(q.length >= 2)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  />
+                  
+                  {/* Suggestion dropdown */}
+                  {showSuggestions && peptideSuggestions.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow-lg" style={{ borderColor: theme?.border }}>
+                      <div className="py-1">
+                        <div className="px-3 py-1 text-xs font-semibold text-gray-500 border-b" style={{ borderColor: theme?.border }}>
+                          Suggestions:
+                        </div>
+                        {peptideSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                            onClick={() => {
+                              setQ(suggestion);
+                              setShowSuggestions(false);
+                            }}
+                            style={{ color: theme?.text }}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    {peptideSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                        onClick={() => {
-                          setQ(suggestion);
-                          setShowSuggestions(false);
-                        }}
-                        style={{ color: theme?.text }}
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
+                  )}
                 </div>
-              )}
+                
+                <button
+                    onClick={handleAIResearch}
+                    disabled={!q.trim() || aiResearch.loading}
+                    className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    title="Research this peptide with AI"
+                >
+                    {aiResearch.loading ? (
+                        <>
+                            <Loader size={16} className="animate-spin" />
+                            <span>Researching...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Brain size={16} />
+                            <span>Research</span>
+                        </>
+                    )}
+                </button>
             </div>
             
-            <button
-                onClick={handleAIResearch}
-                disabled={!q.trim() || aiResearch.loading}
-                className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                title="Research this peptide with AI"
-            >
-                {aiResearch.loading ? (
-                    <>
-                        <Loader size={16} className="animate-spin" />
-                        <span>Researching...</span>
-                    </>
-                ) : (
-                    <>
-                        <Brain size={16} />
-                        <span>Research</span>
-                    </>
-                )}
-            </button>
-        </div>
+            {/* AI Research Results */}
+            {aiResearch.error && (
+              <div className="p-4 rounded-lg border-2 border-red-200 bg-red-50">
+                <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
+                  <AlertTriangle size={18} />
+                  <span>Research Error</span>
+                </div>
+                <p className="text-red-600 text-sm">{aiResearch.error}</p>
+              </div>
+            )}
+            
+            {aiResearch.data && (
+              <div className="p-4 rounded-lg border-2" style={{ borderColor: theme.success, backgroundColor: theme.successBg }}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2" style={{ color: theme.success }}>
+                    <Brain size={18} />
+                    <span className="font-semibold">AI Research: {aiResearch.data.name}</span>
+                    {aiResearch.data.originalQuery && aiResearch.data.originalQuery.toLowerCase() !== aiResearch.data.name.toLowerCase() && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                        Found match for "{aiResearch.data.originalQuery}"
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => toggleFavorite(aiResearch.data.name)}
+                    className="p-1 rounded hover:bg-opacity-10 hover:bg-gray-500 transition-colors"
+                    title={favorites.includes(aiResearch.data.name) ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    {favorites.includes(aiResearch.data.name) ? (
+                      <Star size={16} className="fill-current" style={{ color: theme?.warning }} />
+                    ) : (
+                      <StarOff size={16} style={{ color: theme?.textLight }} />
+                    )}
+                  </button>
+                </div>
+                
+                <div className="space-y-3 text-sm" style={{ color: theme.text }}>
+                  <div>
+                    <span className="font-semibold">Classification:</span> {aiResearch.data.classification}
+                  </div>
+                  
+                  <div>
+                    <span className="font-semibold">Mechanism:</span> {aiResearch.data.mechanism}
+                  </div>
+                  
+                  <div>
+                    <span className="font-semibold">Common Research Uses:</span>
+                    <ul className="list-disc list-inside mt-1 ml-2">
+                      {aiResearch.data.commonUses.map((use, index) => (
+                        <li key={index}>{use}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="p-3 rounded-lg border-2 border-yellow-200 bg-yellow-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle size={16} className="text-yellow-600" />
+                      <span className="font-semibold text-yellow-800">Research Dosage Information</span>
+                    </div>
+                    <p className="text-sm text-yellow-700 mb-2">{aiResearch.data.dosageRanges}</p>
+                    <p className="text-xs text-yellow-600 font-medium">
+                      ⚠️ This information is for research purposes only and is NOT medical advice. 
+                      Always consult with qualified healthcare professionals before considering any compounds.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <span className="font-semibold">Safety Notes:</span> {aiResearch.data.safetyNotes}
+                  </div>
+                  
+                  <div className="text-xs italic pt-2 border-t" style={{ borderColor: theme.border }}>
+                    {aiResearch.data.disclaimer}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Browse Tab */}
+        {activeTab === 'browse' && (
+          <div className="space-y-4">
+            <div className="text-sm p-3 rounded-lg border" style={{ borderColor: theme?.border, backgroundColor: theme?.infoBg, color: theme?.text }}>
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen size={16} />
+                <span className="font-semibold">Discover Peptides by Category</span>
+              </div>
+              Browse our comprehensive database organized by research applications and benefits.
+            </div>
+            
+            <div className="space-y-2">
+              {Object.entries(peptideCategories).map(([category, peptides]) => (
+                <div key={category} className="border rounded-lg" style={{ borderColor: theme?.border }}>
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="w-full flex items-center justify-between p-3 hover:bg-opacity-5 hover:bg-gray-500 transition-colors"
+                    style={{ color: theme?.text }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {getCategoryIcon(category)}
+                      <span className="font-medium">{category}</span>
+                      <span className="text-xs px-2 py-1 rounded-full" 
+                            style={{ backgroundColor: theme?.accent, color: theme?.text }}>
+                        {peptides.length}
+                      </span>
+                    </div>
+                    {expandedCategories.has(category) ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )}
+                  </button>
+                  
+                  {expandedCategories.has(category) && (
+                    <div className="border-t p-3 space-y-2" style={{ borderColor: theme?.border }}>
+                      {peptides.map(peptide => renderPeptideCard(peptide))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Favorites Tab */}
+        {activeTab === 'favorites' && (
+          <div className="space-y-4">
+            {favorites.length === 0 ? (
+              <div className="text-center py-8">
+                <Star size={48} className="mx-auto mb-4" style={{ color: theme?.textLight }} />
+                <h3 className="text-lg font-medium mb-2" style={{ color: theme?.text }}>
+                  No Favorites Yet
+                </h3>
+                <p className="text-sm mb-4" style={{ color: theme?.textLight }}>
+                  Star your favorite peptides while browsing to save them here for quick access.
+                </p>
+                <button
+                  onClick={() => setActiveTab('browse')}
+                  className="px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
+                >
+                  Browse Peptides
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <Star size={16} style={{ color: theme?.warning }} />
+                  <span className="font-medium" style={{ color: theme?.text }}>
+                    Your Favorite Peptides ({favorites.length})
+                  </span>
+                </div>
+                {favorites.map(peptide => renderPeptideCard(peptide, true))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="text-xs p-2 rounded border" style={{ borderColor: theme?.border, color: theme?.text }}>
           Disclaimer: Information is provided for research and educational purposes only. Not medical advice.
         </div>
-        
-        {/* AI Research Results */}
-        {aiResearch.error && (
-          <div className="p-4 rounded-lg border-2 border-red-200 bg-red-50">
-            <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
-              <AlertTriangle size={18} />
-              <span>Research Error</span>
-            </div>
-            <p className="text-red-600 text-sm">{aiResearch.error}</p>
-          </div>
-        )}
-        
-        {aiResearch.data && (
-          <div className="p-4 rounded-lg border-2" style={{ borderColor: theme.success, backgroundColor: theme.successBg }}>
-            <div className="flex items-center gap-2 mb-3" style={{ color: theme.success }}>
-              <Brain size={18} />
-              <span className="font-semibold">AI Research: {aiResearch.data.name}</span>
-              {aiResearch.data.originalQuery && aiResearch.data.originalQuery.toLowerCase() !== aiResearch.data.name.toLowerCase() && (
-                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
-                  Found match for "{aiResearch.data.originalQuery}"
-                </span>
-              )}
-            </div>
-            
-            <div className="space-y-3 text-sm" style={{ color: theme.text }}>
-              <div>
-                <span className="font-semibold">Classification:</span> {aiResearch.data.classification}
-              </div>
-              
-              <div>
-                <span className="font-semibold">Mechanism:</span> {aiResearch.data.mechanism}
-              </div>
-              
-              <div>
-                <span className="font-semibold">Common Research Uses:</span>
-                <ul className="list-disc list-inside mt-1 ml-2">
-                  {aiResearch.data.commonUses.map((use, index) => (
-                    <li key={index}>{use}</li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div className="p-3 rounded-lg border-2 border-yellow-200 bg-yellow-50">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle size={16} className="text-yellow-600" />
-                  <span className="font-semibold text-yellow-800">Research Dosage Information</span>
-                </div>
-                <p className="text-sm text-yellow-700 mb-2">{aiResearch.data.dosageRanges}</p>
-                <p className="text-xs text-yellow-600 font-medium">
-                  ⚠️ This information is for research purposes only and is NOT medical advice. 
-                  Always consult with qualified healthcare professionals before considering any compounds.
-                </p>
-              </div>
-              
-              <div>
-                <span className="font-semibold">Safety Notes:</span> {aiResearch.data.safetyNotes}
-              </div>
-              
-              
-              <div className="text-xs italic pt-2 border-t" style={{ borderColor: theme.border }}>
-                {aiResearch.data.disclaimer}
-              </div>
-            </div>
-          </div>
-        )}
-        
       </div>
     </Modal>
   )
