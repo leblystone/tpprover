@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp, Syringe } from 'lucide-react';
+import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp } from 'lucide-react';
 import { formatMMDDYYYY } from '../../utils/date';
 import logo from '../../assets/tpp-logo.png';
 
@@ -7,23 +7,6 @@ export default function SharedProtocolCard({ item: p, theme }) {
     if (!p) return null;
 
     const Icon = ({ I }) => <I size={16} className="mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />;
-
-    const formatPenType = (penType) => {
-        const penTypes = {
-            'insulin-pen': '🖊️ Insulin Pen (100 units/mL)',
-            'bd-ultra-fine': '💉 BD Ultra-Fine (31G, 8mm)',
-            'novopen': '🖊️ NovoPen (3mL cartridge)',
-            'flexpen': '🖊️ FlexPen (pre-filled)',
-            'solostar': '🖊️ SoloSTAR (pre-filled)',
-            'kwikpen': '🖊️ KwikPen (pre-filled)',
-            'easypod': '🖊️ easypod (electronic)',
-            'norditropin-pen': '🖊️ Norditropin Pen',
-            'genotropin-pen': '🖊️ Genotropin Pen',
-            'saizen-pen': '🖊️ Saizen Pen',
-            'custom': '✏️ Custom (see notes)'
-        };
-        return penTypes[penType] || penType;
-    };
 
     return (
         <div className="p-6 rounded-xl border bg-white w-full max-w-md" style={{ borderColor: theme.border, fontFamily: 'sans-serif' }}>
@@ -40,9 +23,6 @@ export default function SharedProtocolCard({ item: p, theme }) {
                 <div className="flex items-start gap-3"><Icon I={Clock} /><span><strong>Duration:</strong> {p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}(s)` : 'N/A')}</span></div>
                 {p.washout?.enabled && p.washout?.count > 0 && (
                     <div className="flex items-start gap-3"><Icon I={RotateCw} /><span><strong>Washout:</strong> {p.washout.count} {p.washout.unit}(s)</span></div>
-                )}
-                {p.penType && (
-                    <div className="flex items-start gap-3"><Icon I={Syringe} /><span><strong>Pen Type:</strong> {formatPenType(p.penType)}</span></div>
                 )}
             </div>
 
