@@ -47,63 +47,38 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     };
 
     return (
-        <div className="p-6 rounded-xl relative" style={{ backgroundColor: theme.cardBackground }}>
+        <div className="p-4 rounded-lg border relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             {!isOnlyItem && (
-                <button type="button" onClick={onRemove} className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg" aria-label="Remove peptide">
-                    <X size={16} />
+                <button type="button" onClick={onRemove} className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600" aria-label="Remove peptide">
+                    <X size={14} />
                 </button>
             )}
 
-            <div className="space-y-8">
-                {/* Peptide Header */}
-                <div className="space-y-6">
-                    {/* Peptide Name */}
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={item.name || ''}
-                            onChange={e => handleChange('name', e.target.value)}
-                            placeholder="e.g., BPC-157, Semaglutide, NAD+"
-                            className="w-full px-4 py-3 text-lg font-medium rounded-xl border-2 focus:ring-2 focus:ring-opacity-50 transition-all"
-                            style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.background,
-                                color: theme.text,
-                                '--tw-ring-color': theme.primary
-                            }}
-                        />
-                        <label className="absolute -top-2 left-3 px-2 text-xs font-medium"
-                               style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
-                            Peptide/Amino Name
-                        </label>
-                    </div>
-
-                    {/* Dosage Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {/* Dosage Amount */}
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={item.dosage?.amount || ''}
-                                onChange={e => handleChange('dosage', { ...item.dosage, amount: e.target.value })}
-                                placeholder="250, 0.5, or 2"
-                                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-opacity-50 transition-all"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.background,
-                                    color: theme.text,
-                                    '--tw-ring-color': theme.primary
-                                }}
+            <div className="space-y-6">
+                {/* Peptide Information */}
+                <div className="space-y-4">
+                    <TextInput 
+                        label="Peptide/Amino Name" 
+                        value={item.name || ''} 
+                        onChange={v => handleChange('name', v)} 
+                        theme={theme} 
+                        placeholder="e.g., BPC-157, Superhuman, Super Shredder, Lipo-C" 
+                    />
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage Amount</div>
+                            <TextInput 
+                                value={item.dosage?.amount || ''} 
+                                onChange={v => handleChange('dosage', { ...item.dosage, amount: v })} 
+                                theme={theme} 
+                                placeholder="250, 0.5, or 2" 
                             />
-                            <label className="absolute -top-2 left-3 px-2 text-xs font-medium"
-                                   style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
-                                Dosage Amount
-                            </label>
                         </div>
                         
-                        {/* Dosage Unit */}
-                        <div className="relative">
-                            <div className="flex rounded-xl border-2 overflow-hidden" style={{ borderColor: theme.border }}>
+                        <div>
+                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage Unit</div>
+                            <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
                                 {(item.deliveryMethod === 'Nasal' 
                                     ? ['mcg', 'mg', 'iu', 'mL', 'sprays'] 
                                     : ['mcg', 'mg', 'iu', 'mL']
@@ -112,53 +87,46 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                         key={unit} 
                                         type="button" 
                                         onClick={() => handleChange('dosage', { ...item.dosage, unit })}
-                                        className="flex-1 px-3 py-3 text-sm font-medium transition-all hover:scale-105"
-                                        style={{
-                                            backgroundColor: (item.dosage?.unit || 'mcg') === unit ? theme.primary : theme.background,
-                                            color: (item.dosage?.unit || 'mcg') === unit ? theme.textOnPrimary : theme.text
-                                        }}
+                                        className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded ${(item.dosage?.unit || 'mcg') === unit ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                                        style={(item.dosage?.unit || 'mcg') === unit ? { backgroundColor: theme.primary } : {}}
                                     >
                                         {unit}
                                     </button>
                                 ))}
                             </div>
-                            <label className="absolute -top-2 left-3 px-2 text-xs font-medium"
-                                   style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
-                                Dosage Unit
-                            </label>
                         </div>
                         
                         {/* Delivery Method - Only show for separate protocols or first peptide in blended */}
                         {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
-                            <div className="relative">
-                                <div className="flex rounded-xl border-2 overflow-hidden" style={{ borderColor: theme.border }}>
-                                    <button 
-                                        type="button"
-                                        onClick={() => handleChange('deliveryMethod', 'syringe')}
-                                        className="flex-1 flex items-center justify-center gap-2 p-3 text-sm font-medium transition-all hover:scale-105"
-                                        style={{
-                                            backgroundColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.background,
-                                            color: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.textOnPrimary : theme.text
-                                        }}
-                                    >
-                                        <Syringe size={16} /> Syringe
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => handleChange('deliveryMethod', 'pen')}
-                                        className="flex-1 flex items-center justify-center gap-2 p-3 text-sm font-medium transition-all hover:scale-105"
-                                        style={{
-                                            backgroundColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.background,
-                                            color: (item.deliveryMethod || 'syringe') === 'pen' ? theme.textOnPrimary : theme.text
-                                        }}
-                                    >
-                                        <Pen size={16} /> Pen
-                                    </button>
+                            <div>
+                                <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>
+                                    Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal" style={{ color: theme.textLight }}>(shared by all peptides)</span>}
                                 </div>
-                                <label className="absolute -top-2 left-3 px-2 text-xs font-medium"
-                                       style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
-                                    Delivery Method {protocolType === 'blended' && <span className="font-normal">(shared by all peptides)</span>}
-                                </label>
+                            <div className="flex gap-2">
+                                <button 
+                                    type="button"
+                                    onClick={() => handleChange('deliveryMethod', 'syringe')}
+                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    style={{
+                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.border
+                                    }}
+                                >
+                                    <Syringe size={16} /> Syringe
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => handleChange('deliveryMethod', 'pen')}
+                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    style={{
+                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'syringe') === 'pen' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.border
+                                    }}
+                                >
+                                    <Pen size={16} /> Pen
+                                </button>
                             </div>
                             
                             {/* Pen Options */}
