@@ -8,6 +8,7 @@
   import BadgeImage from '../components/badges/BadgeImage'
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
   import { STRIPE_CONFIG } from '../config/stripe'
+  import { verifyStripeConfig } from '../utils/stripe-verify'
 
   // Local helpers for auth + subscription data (local testing)
   function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -534,6 +535,13 @@
                 Stripe keys configured! When backend is connected, payments will process through Stripe. 
                 Currently running in demo mode until backend endpoints are deployed.
               </p>
+              <button 
+                className="mt-2 px-3 py-1 rounded text-xs font-medium hover:opacity-90" 
+                style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', border: '1px solid rgba(34, 197, 94, 0.3)' }}
+                onClick={() => verifyStripeConfig()}
+              >
+                🔍 Verify Setup (Check Console)
+              </button>
             </div>
             
             <div>

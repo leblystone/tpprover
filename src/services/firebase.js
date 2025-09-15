@@ -699,6 +699,10 @@ export async function deleteFeedback(feedbackId) {
  */
 export async function respondToFeedback(feedbackId, responseText, userEmail) {
   try {
+    if (!userEmail) {
+      throw new Error('User email is required to send feedback response');
+    }
+
     // Update feedback with response
     const feedbackRef = doc(db, 'feedback', feedbackId);
     await updateDoc(feedbackRef, {

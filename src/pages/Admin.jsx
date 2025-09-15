@@ -623,7 +623,12 @@ function Admin() {
 
     try {
       setLoading(prev => ({ ...prev, submitting: true }));
-      await respondToFeedback(feedbackItem.id, responseText.trim(), feedbackItem.email);
+      console.log('📤 Sending response to feedback:', { 
+        id: feedbackItem.id, 
+        userEmail: feedbackItem.userEmail,
+        responseText: responseText.trim()
+      });
+      await respondToFeedback(feedbackItem.id, responseText.trim(), feedbackItem.userEmail);
       
       // Refresh feedback list to show updated status
       await loadFeedback();
@@ -748,9 +753,9 @@ function Admin() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: '#f8fafc' }}>
       {/* Sidebar Navigation */}
-      <div className="w-full lg:w-64 bg-white border-r lg:border-b-0 border-b flex flex-col lg:flex-col flex-row lg:min-h-screen overflow-x-auto lg:overflow-x-visible" style={{ borderColor: theme.border }}>
+      <div className="w-full lg:w-64 bg-white border-r lg:border-b-0 border-b flex flex-col lg:min-h-screen" style={{ borderColor: theme.border }}>
         {/* Header */}
-        <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+        <div className="p-4 lg:p-6 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
               <Wrench size={20} style={{ color: theme.primary }} />
@@ -763,7 +768,7 @@ function Admin() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 p-4 flex lg:flex-col flex-row lg:space-y-2 lg:space-x-0 space-x-2 space-y-0 overflow-x-auto lg:overflow-x-visible">
+        <nav className="flex-1 p-2 lg:p-4 flex flex-col space-y-1 lg:space-y-2 overflow-y-auto">
           {[
             { 
               id: 'analytics', 
@@ -820,7 +825,7 @@ function Admin() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full lg:w-auto flex-shrink-0 p-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
+                className={`w-full p-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
                   isActive ? 'shadow-md' : 'hover:shadow-sm'
                 }`}
                 style={{
@@ -841,7 +846,7 @@ function Admin() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs truncate" style={{ color: theme.textLight }}>{tab.desc}</p>
+                    <p className="text-xs truncate hidden lg:block" style={{ color: theme.textLight }}>{tab.desc}</p>
                   </div>
                 </div>
               </button>
