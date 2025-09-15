@@ -64,6 +64,7 @@ export default function BetaClosed() {
           </p>
         </div>
 
+        <>
         {hasCompletedSurvey ? (
           /* Thanks Message - Survey Already Completed */
           <div className="rounded-lg border p-6 content-card shadow-sm" 
@@ -333,6 +334,7 @@ export default function BetaClosed() {
             © 2025 The Pep Planner. Thank you for being part of our beta testing journey.
           </p>
         </div>
+        </>
       </div>
     </div>
   );
