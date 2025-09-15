@@ -744,10 +744,10 @@ export async function respondToFeedback(feedbackId, responseText, userEmail) {
 export async function getUserNotifications(userEmail) {
   try {
     console.log('🔔 Firebase: Getting notifications for email:', userEmail.toLowerCase());
+    // Temporarily remove orderBy to avoid index requirement
     const q = query(
       collection(db, 'notifications'),
       where('userEmail', '==', userEmail.toLowerCase()),
-      orderBy('createdAt', 'desc'),
       limit(50)
     );
     const querySnapshot = await getDocs(q);
@@ -758,6 +758,13 @@ export async function getUserNotifications(userEmail) {
         ...doc.data()
       });
     });
+    // Sort notifications by createdAt (newest first) on the client side
+    notifications.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return bTime - aTime; // Descending order (newest first)
+    });
+    
     console.log('🔔 Firebase: Found', notifications.length, 'notifications:', notifications);
     return notifications;
   } catch (error) {

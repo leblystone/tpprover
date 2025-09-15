@@ -9,6 +9,7 @@
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
   import { STRIPE_CONFIG } from '../config/stripe'
   import { verifyStripeConfig } from '../utils/stripe-verify'
+  import { hasBetaLifetimeAccess, createBetaLifetimeSubscription, getBetaAccessStatus } from '../utils/betaAccess'
 
   // Local helpers for auth + subscription data (local testing)
   function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -74,9 +75,18 @@
     }, []);
 
     React.useEffect(() => {
-        // Auto-start trial if no subscription exists on account load
+        // Handle beta users with lifetime access
         if (user && !sub) {
-            createSubscription({ name: 'Pro Monthly (Trial)', price: 0, interval: 'month' }, true)
+            if (hasBetaLifetimeAccess(user)) {
+                // Grant beta users lifetime subscription automatically
+                const betaSubscription = createBetaLifetimeSubscription(user);
+                saveSubscription(betaSubscription);
+                setSub(betaSubscription);
+                console.log('✅ Beta lifetime access activated for:', user.email);
+            } else {
+                // Auto-start trial for non-beta users
+                createSubscription({ name: 'Pro Monthly (Trial)', price: 0, interval: 'month' }, true);
+            }
         }
     }, [user, sub])
 
@@ -372,12 +382,39 @@
           )}
         </div>
 
-        {/* Subscription - Hidden during beta testing */}
-        {false && (
-          <>
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        {/* Subscription - Beta users see lifetime access, others see pricing */}
+        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Subscription</h2>
-              {sub ? (
+              {hasBetaLifetimeAccess(user) ? (
+                // Beta user - show lifetime access message
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">β</span>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-purple-800">Beta Tester Lifetime Access</div>
+                        <div className="text-xs text-purple-600">Thank you for helping us build the perfect peptide planner!</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-purple-700">
+                      🎉 <strong>You have lifetime access</strong> to all current and future features as a thank you for being a beta tester.
+                      No payments required - ever!
+                    </div>
+                  </div>
+                  
+                  {/* Show technical subscription details for beta users */}
+                  {sub && (
+                    <div className="text-xs" style={{ color: theme.textLight }}>
+                      <div>Plan: {sub.plan}</div>
+                      <div>Status: <span className="text-green-600 font-semibold">Active (Lifetime)</span></div>
+                      <div>Granted: {new Date(sub.grantedAt || sub.startedAt).toLocaleDateString()}</div>
+                    </div>
+                  )}
+                </div>
+              ) : sub ? (
+                // Regular user with subscription
                 <div className="space-y-4">
                   {sub.status === 'trialing' && (
                     <TrialProgressBar 
@@ -418,6 +455,7 @@
                   )}
                 </div>
               ) : (
+                // Regular user without subscription
                 <div className="space-y-4">
                   <div className="text-sm" style={{ color: theme.textLight }}>No active subscription</div>
                   <button 
@@ -429,40 +467,38 @@
                   </button>
                 </div>
               )}
-            </div>
+        </div>
 
-            {/* Billing History */}
-            {sub && billing.length > 0 && (
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Billing History</h2>
-                  <button 
-                    className="px-2 py-1 rounded text-xs hover:opacity-90" 
-                    style={{ backgroundColor: theme.secondary, color: theme.text }} 
-                    onClick={addTestInvoice}
-                  >
-                    Add Test Invoice
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {billing.slice(0, 5).map(invoice => (
-                    <div key={invoice.id} className="flex justify-between items-center py-2 border-b last:border-b-0" style={{ borderColor: theme.border }}>
-                      <div>
-                        <div className="text-sm font-medium">{invoice.description}</div>
-                        <div className="text-xs" style={{ color: theme.textLight }}>{new Date(invoice.date).toLocaleDateString()}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">${invoice.amount}</div>
-                        <div className={`text-xs font-medium ${invoice.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
-                          {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                        </div>
-                      </div>
+        {/* Billing History - Only show for non-beta users with billing data */}
+        {!hasBetaLifetimeAccess(user) && sub && billing.length > 0 && (
+          <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Billing History</h2>
+              <button 
+                className="px-2 py-1 rounded text-xs hover:opacity-90" 
+                style={{ backgroundColor: theme.secondary, color: theme.text }} 
+                onClick={addTestInvoice}
+              >
+                Add Test Invoice
+              </button>
+            </div>
+            <div className="space-y-2">
+              {billing.slice(0, 5).map(invoice => (
+                <div key={invoice.id} className="flex justify-between items-center py-2 border-b last:border-b-0" style={{ borderColor: theme.border }}>
+                  <div>
+                    <div className="text-sm font-medium">{invoice.description}</div>
+                    <div className="text-xs" style={{ color: theme.textLight }}>{new Date(invoice.date).toLocaleDateString()}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">${invoice.amount}</div>
+                    <div className={`text-xs font-medium ${invoice.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
+                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Security */}
@@ -504,82 +540,114 @@
         </div>
 
         {/* Manage subscription modal */}
-        <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage Subscription" theme={theme} maxWidth="max-w-2xl" footer={(
+        <Modal open={manageOpen} onClose={() => setManageOpen(false)} title={hasBetaLifetimeAccess(user) ? "Beta Lifetime Access" : "Manage Subscription"} theme={theme} maxWidth="max-w-2xl" footer={(
           <div className="w-full flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              {sub?.customerId && (
-                <button 
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:opacity-90 flex items-center gap-2" 
-                  style={{ backgroundColor: theme.secondary, color: theme.text }}
-                  onClick={openCustomerPortal}
-                >
-                  <ExternalLink size={14} />
-                  Customer Portal
-                </button>
-              )}
-              <button className="px-3 py-2 rounded-md text-sm" style={{ color: theme.error }} onClick={cancelSubscription}>Cancel Subscription</button>
-            </div>
+            {!hasBetaLifetimeAccess(user) && (
+              <div className="flex items-center gap-2">
+                {sub?.customerId && (
+                  <button 
+                    className="px-3 py-2 rounded-md text-sm font-medium hover:opacity-90 flex items-center gap-2" 
+                    style={{ backgroundColor: theme.secondary, color: theme.text }}
+                    onClick={openCustomerPortal}
+                  >
+                    <ExternalLink size={14} />
+                    Customer Portal
+                  </button>
+                )}
+                <button className="px-3 py-2 rounded-md text-sm" style={{ color: theme.error }} onClick={cancelSubscription}>Cancel Subscription</button>
+              </div>
+            )}
             <button className="px-3 py-2 rounded-md" onClick={() => setManageOpen(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Close</button>
           </div>
         )}>
           <div className="space-y-6">
-            {/* Stripe Integration Notice */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
+            {hasBetaLifetimeAccess(user) ? (
+              /* Beta user modal content */
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">β</span>
+                  </div>
+                  <div>
+                    <div className="font-bold text-xl text-purple-800">You Have Lifetime Access!</div>
+                    <div className="text-sm text-purple-600">Thank you for being a beta tester</div>
+                  </div>
                 </div>
-                <span className="font-semibold text-green-800">Stripe Integration Ready</span>
+                <div className="space-y-3 text-purple-700">
+                  <p>🎉 <strong>Congratulations!</strong> As a beta tester, you have lifetime access to all current and future features.</p>
+                  <p>✨ <strong>What this means:</strong></p>
+                  <ul className="list-disc list-inside ml-4 space-y-1 text-sm">
+                    <li>No monthly or annual payments required</li>
+                    <li>Access to all premium features</li>
+                    <li>All future updates and new features included</li>
+                    <li>Priority support as a founding user</li>
+                  </ul>
+                  <p className="text-sm font-medium">This is our way of saying thank you for helping us build the perfect peptide planning app!</p>
+                </div>
               </div>
-              <p className="text-sm text-green-700">
-                Stripe keys configured! When backend is connected, payments will process through Stripe. 
-                Currently running in demo mode until backend endpoints are deployed.
-              </p>
-              <button 
-                className="mt-2 px-3 py-1 rounded text-xs font-medium hover:opacity-90" 
-                style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', border: '1px solid rgba(34, 197, 94, 0.3)' }}
-                onClick={() => verifyStripeConfig()}
-              >
-                🔍 Verify Setup (Check Console)
-              </button>
-            </div>
+            ) : (
+              /* Regular user modal content */
+              <>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="font-semibold text-purple-800">🎉 Founder's Pricing</span>
+                  </div>
+                  <p className="text-sm text-purple-700">
+                    <strong>Lock in these prices forever!</strong> Early supporters get grandfather pricing - your rate never increases, even as we add new features and raise prices for new users.
+                  </p>
+                  <button 
+                    className="mt-2 px-3 py-1 rounded text-xs font-medium hover:opacity-90" 
+                    style={{ backgroundColor: 'rgba(147, 51, 234, 0.1)', color: '#7c2d12', border: '1px solid rgba(147, 51, 234, 0.3)' }}
+                    onClick={() => verifyStripeConfig()}
+                  >
+                    🔍 Verify Setup (Check Console)
+                  </button>
+                </div>
+              </>
+            )}
             
-            <div>
-              <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.primaryDark }}>
-                {sub?.status === 'trialing' ? `Your trial ends on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}` : 'Switch your plan'}
+            {/* Only show pricing plans to non-beta users */}
+            {!hasBetaLifetimeAccess(user) && (
+              <div>
+                <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.primaryDark }}>
+                  {sub?.status === 'trialing' ? `Your trial ends on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}` : 'Switch your plan'}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Monthly Plan */}
+                  <PlanCard
+                    theme={theme}
+                    title="Monthly"
+                    price="$6"
+                    interval="/mo"
+                    current={sub?.interval === 'month'}
+                    onSelect={() => createSubscription({ name: 'Pro Monthly', price: 6.00, interval: 'month' })}
+                  />
+                  {/* Annual Plan */}
+                  <PlanCard
+                    theme={theme}
+                    title="Annual"
+                    price="$79"
+                    interval="/yr"
+                    current={sub?.interval === 'year'}
+                    onSelect={() => createSubscription({ name: 'Pro Annual', price: 79.00, interval: 'year' })}
+                    popular
+                    subtitle="Save $13"
+                  />
+                  {/* Lifetime Plan */}
+                  <PlanCard
+                    theme={theme}
+                    title="Lifetime"
+                    price="$149"
+                    interval="one-time"
+                    current={sub?.interval === 'lifetime'}
+                    onSelect={() => createSubscription({ name: 'Lifetime', price: 149.00, interval: 'lifetime' })}
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Monthly Plan */}
-                <PlanCard
-                  theme={theme}
-                  title="Monthly"
-                  price="$9.99"
-                  interval="/mo"
-                  current={sub?.interval === 'month'}
-                  onSelect={() => createSubscription({ name: 'Pro Monthly', price: 9.99, interval: 'month' })}
-                />
-                {/* Annual Plan */}
-                <PlanCard
-                  theme={theme}
-                  title="Annual"
-                  price="$79.99"
-                  interval="/yr"
-                  current={sub?.interval === 'year'}
-                  onSelect={() => createSubscription({ name: 'Pro Annual', price: 79.99, interval: 'year' })}
-                  popular
-                  subtitle="Save 33%"
-                />
-                {/* Lifetime Plan */}
-                <PlanCard
-                  theme={theme}
-                  title="Lifetime"
-                  price="$149"
-                  interval="one-time"
-                  current={sub?.interval === 'lifetime'}
-                  onSelect={() => createSubscription({ name: 'Lifetime', price: 149.00, interval: 'lifetime' })}
-                />
-              </div>
-            </div>
+            )}
 
             {sub?.interval !== 'lifetime' && (
               <div className="rounded-lg border p-4" style={{ borderColor: theme.border }}>

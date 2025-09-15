@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      // You can implement admin checking logic here if needed
+      // For now, we'll use a simple approach
+      return request.auth != null && request.auth.token.email in [
+        'lebrockmaldonado@gmail.com' // Replace with your actual admin email
+      ];
+    }
+    
+    // Users can only read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAdmin(); // Admin can read user data for analytics
+      allow read: if true; // TEMPORARY: Allow unauthenticated read for email checking during login
+    }
+    
+    // Users can only read/write their own encrypted data
+    match /userdata/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Invite codes - read for validation during signup, admin can manage
+    match /inviteCodes/{codeId} {
+      allow read: if true; // Anyone can read for validation during signup
+      allow create, update, delete: if true; // Temporarily open for beta launch
+    }
+    
+    // Email whitelist - read for validation during signup, admin can manage
+    match /config/emailWhitelist {
+      allow read: if true; // Anyone can read for validation during signup
+      allow write: if true; // Temporarily open for beta launch
+    }
+    
+    // Announcements - all users can read, admin can manage
+    match /announcements/{announcementId} {
+      allow read: if true; // All users can read announcements
+      allow create, update, delete: if true; // Temporarily open for beta launch
+    }
+    
+    // Analytics - admin only for privacy
+    match /analytics/{document} {
+      allow read, write: if isAdmin(); // Only admin can access analytics
+    }
+    
+    // Feedback collection - users can submit, admin can read
+    match /feedback/{feedbackId} {
+      allow create: if request.auth != null; // Authenticated users can submit feedback
+      allow read, update, delete: if true; // Temporarily open for beta launch - admin access
+    }
+    
+    // Notifications - users can read their own, authenticated users can create
+    match /notifications/{document} {
+      allow read: if request.auth != null && request.auth.token.email == resource.data.userEmail;
+      allow create: if request.auth != null; // Allow authenticated users (including admins) to create notifications
+    }
+    
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

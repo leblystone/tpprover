@@ -12,7 +12,7 @@ Go to [Stripe Dashboard → Products](https://dashboard.stripe.com/products)
 3. **Description**: `Monthly subscription to TPP Splendide Pro features`
 4. **Statement descriptor**: `TPP Pro Monthly`
 5. **Pricing model**: `Standard pricing`
-6. **Price**: `$9.99`
+6. **Price**: `$6.00`
 7. **Billing period**: `Monthly`
 8. **Currency**: `USD`
 9. Click **"Save product"**
@@ -24,7 +24,7 @@ Go to [Stripe Dashboard → Products](https://dashboard.stripe.com/products)
 3. **Description**: `Annual subscription to TPP Splendide Pro features (Save 33%)`
 4. **Statement descriptor**: `TPP Pro Annual`
 5. **Pricing model**: `Standard pricing`
-6. **Price**: `$79.99`
+6. **Price**: `$79.00`
 7. **Billing period**: `Yearly`
 8. **Currency**: `USD`
 9. Click **"Save product"**
