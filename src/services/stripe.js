@@ -28,8 +28,8 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
     });
 
     if (!response.ok) {
-      // For demo - simulate successful checkout
-      console.log('🎭 Demo Mode: Simulating successful Stripe checkout');
+      // If backend not available, fall back to demo mode
+      console.log('🎭 Backend not available - running in demo mode');
       return simulateSuccessfulCheckout(priceId);
     }
 
@@ -45,7 +45,7 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
     }
   } catch (error) {
     console.error('Stripe checkout error:', error);
-    // For demo purposes, simulate success
+    // If there's an error (like no backend), fall back to demo mode
     return simulateSuccessfulCheckout(priceId);
   }
 }

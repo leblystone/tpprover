@@ -1660,7 +1660,7 @@ function Admin() {
                               </button>
                             )}
                             
-                            {(item.status === 'new' || item.status === 'reviewed') && (
+                            {(item.status === 'new' || item.status === 'reviewed' || item.status === 'resolved') && (
                               <button
                                 onClick={() => {
                                   setRespondingToFeedback(item.id);

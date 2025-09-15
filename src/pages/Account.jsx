@@ -522,17 +522,17 @@
           </div>
         )}>
           <div className="space-y-6">
-            {/* Stripe Demo Notice */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            {/* Stripe Integration Notice */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
-                <span className="font-semibold text-blue-800">Stripe Demo Mode</span>
+                <span className="font-semibold text-green-800">Stripe Integration Ready</span>
               </div>
-              <p className="text-sm text-blue-700">
-                This is a fully functional demo. In production, payments will be processed securely through Stripe. 
-                Use the test cards: 4242 4242 4242 4242 (Visa), 4000 0000 0000 0002 (Decline).
+              <p className="text-sm text-green-700">
+                Stripe keys configured! When backend is connected, payments will process through Stripe. 
+                Currently running in demo mode until backend endpoints are deployed.
               </p>
             </div>
             
