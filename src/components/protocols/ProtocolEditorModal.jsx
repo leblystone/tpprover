@@ -253,28 +253,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             placeholder="e.g., Immunity" 
                         />
                     </div>
-
-                    {(form.peptides?.length > 1) && (
-                        <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="flex-1">
-                                <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Protocol Type</div>
-                                <p className="text-xs text-gray-500">Blended protocols combine all peptides in one vial</p>
-                            </div>
-                            <div className="inline-flex rounded-md bg-gray-100 p-1 shadow-inner">
-                                {['Separate', 'Blended'].map(k => (
-                                    <button 
-                                        key={k} 
-                                        type="button" 
-                                        onClick={() => handleChange('blendMode', k.toLowerCase())}
-                                        className={`px-3 py-1.5 text-sm font-semibold rounded-md ${(form.blendMode || 'separate') === k.toLowerCase() ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                                        style={(form.blendMode || 'separate') === k.toLowerCase() ? { backgroundColor: theme?.primary } : {}}
-                                    >
-                                        {k}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Separator */}
@@ -289,15 +267,45 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     
                     <div className="space-y-3">
                         {form.peptides?.map((p, index) => (
-                            <PeptideSubForm
-                                key={p.id || index}
-                                item={p}
-                                onChange={(updated) => handlePeptideChange(index, updated)}
-                                onRemove={() => removePeptide(index)}
-                                theme={theme}
-                                isOnlyItem={form.peptides.length === 1}
-                                isBlended={form.blendMode === 'blended'}
-                            />
+                            <div key={p.id || index}>
+                                <PeptideSubForm
+                                    item={p}
+                                    onChange={(updated) => handlePeptideChange(index, updated)}
+                                    onRemove={() => removePeptide(index)}
+                                    theme={theme}
+                                    isOnlyItem={form.peptides.length === 1}
+                                    isBlended={form.blendMode === 'blended'}
+                                />
+                                
+                                {/* Show protocol type selector after first peptide if there are multiple */}
+                                {index === 0 && form.peptides?.length > 1 && (
+                                    <div className="mt-4 mb-2">
+                                        <div className="flex items-center justify-between p-4 rounded-lg border-2 border-dashed" style={{ borderColor: theme.primary, backgroundColor: `${theme.primary}08` }}>
+                                            <div className="flex-1">
+                                                <div className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
+                                                    📋 Multiple Peptides Detected
+                                                </div>
+                                                <p className="text-xs text-gray-600">
+                                                    Are these peptides <strong>blended together in one vial</strong> or taken <strong>separately</strong>?
+                                                </p>
+                                            </div>
+                                            <div className="inline-flex rounded-md bg-white p-1 shadow-md border" style={{ borderColor: theme.border }}>
+                                                {['Separate', 'Blended'].map(k => (
+                                                    <button 
+                                                        key={k} 
+                                                        type="button" 
+                                                        onClick={() => handleChange('blendMode', k.toLowerCase())}
+                                                        className={`px-4 py-2 text-sm font-semibold rounded ${(form.blendMode || 'separate') === k.toLowerCase() ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100'}`}
+                                                        style={(form.blendMode || 'separate') === k.toLowerCase() ? { backgroundColor: theme?.primary } : {}}
+                                                    >
+                                                        {k}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         ))}
                     </div>
 
