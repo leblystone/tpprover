@@ -12,6 +12,7 @@
     "deploy:rules": "firebase deploy --only firestore:rules --project tpp-splendide"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^7.9.0",
     "crypto-js": "^4.2.0",
     "firebase": "^12.2.1",
     "framer-motion": "^12.23.12",
@@ -21,7 +22,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^6.26.2"
+    "react-router-dom": "^6.26.2",
+    "stripe": "^18.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.5",

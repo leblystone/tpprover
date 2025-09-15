@@ -1,11 +1,13 @@
   import React, { useTransition } from 'react'
   import { useOutletContext, useNavigate } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
-  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2 } from 'lucide-react'
+  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink } from 'lucide-react'
   import Modal from '../components/common/Modal'
   import { useAppContext } from '../context/AppContext'
   import { useBadgeStats } from '../utils/badges'
   import BadgeImage from '../components/badges/BadgeImage'
+  import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
+  import { STRIPE_CONFIG } from '../config/stripe'
 
   // Local helpers for auth + subscription data (local testing)
   function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -77,6 +79,66 @@
         }
     }, [user, sub])
 
+    // Listen for Stripe events
+    React.useEffect(() => {
+        const handleStripeSuccess = (event) => {
+            const { planDetails, customerId, subscriptionId } = event.detail;
+            
+            const now = new Date()
+            const end = new Date(now)
+            if (planDetails.interval === 'month') end.setMonth(end.getMonth() + 1)
+            else if (planDetails.interval === 'year') end.setFullYear(end.getFullYear() + 1)
+            else if (planDetails.interval === 'lifetime') end.setFullYear(end.getFullYear() + 100)
+            
+            const next = {
+                id: subscriptionId || String(Date.now()),
+                plan: planDetails.name,
+                price: planDetails.price,
+                interval: planDetails.interval,
+                currency: 'USD',
+                status: 'active',
+                startedAt: now.toISOString(),
+                currentPeriodEnd: end.toISOString(),
+                paymentMethod: { brand: 'Visa', last4: '4242' },
+                customerId,
+                subscriptionId
+            }
+            
+            saveSubscription(next)
+            setSub(next)
+            
+            // Add billing entry
+            const entry = { 
+                id: 'inv_' + Date.now(), 
+                date: now.toISOString(), 
+                amount: planDetails.price, 
+                currency: 'USD', 
+                description: planDetails.name, 
+                status: 'paid' 
+            }
+            const list = [entry, ...billing]
+            saveBilling(list)
+            setBilling(list)
+            
+            setManageOpen(false) // Close modal
+        }
+
+        const handleStripeCancelled = (event) => {
+            if (!sub) return
+            const next = { ...sub, status: 'canceled', endedAt: new Date().toISOString() }
+            saveSubscription(next)
+            setSub(next)
+        }
+
+        window.addEventListener('stripe:checkout:success', handleStripeSuccess)
+        window.addEventListener('stripe:subscription:cancelled', handleStripeCancelled)
+
+        return () => {
+            window.removeEventListener('stripe:checkout:success', handleStripeSuccess)
+            window.removeEventListener('stripe:subscription:cancelled', handleStripeCancelled)
+        }
+    }, [sub, billing])
+
     const [manageOpen, setManageOpen] = React.useState(false)
     const [selectedPlan, setSelectedPlan] = React.useState('month')
 
@@ -144,46 +206,90 @@
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Password updated', type: 'success' } }))
     }
 
-    // Subscription actions (local-only)
-    const createSubscription = (plan = { name: 'Pro Monthly', price: 9.99, interval: 'month' }, trial = false) => {
-      const now = new Date()
-      const end = new Date(now)
+    // Subscription actions with Stripe integration
+    const createSubscription = async (plan = { name: 'Pro Monthly', price: 9.99, interval: 'month' }, trial = false) => {
       if (trial) {
+        // Handle trial creation locally
+        const now = new Date()
+        const end = new Date(now)
         end.setDate(end.getDate() + 7)
-      } else {
-        if (plan.interval === 'month') end.setMonth(end.getMonth() + 1)
-        else if (plan.interval === 'year') end.setFullYear(end.getFullYear() + 1)
-        else if (plan.interval === 'lifetime') end.setFullYear(end.getFullYear() + 100)
+        
+        const next = {
+          id: String(Date.now()),
+          plan: plan.name,
+          price: plan.price,
+          interval: plan.interval,
+          currency: 'USD',
+          status: 'trialing',
+          startedAt: now.toISOString(),
+          currentPeriodEnd: end.toISOString(),
+          paymentMethod: null,
+        }
+        saveSubscription(next)
+        setSub(next)
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Trial started', type: 'success' } }))
+        return
       }
-      const next = {
-        id: String(Date.now()),
-        plan: plan.name,
-        price: plan.price,
-        interval: plan.interval,
-        currency: 'USD',
-        status: trial ? 'trialing' : 'active',
-        startedAt: now.toISOString(),
-        currentPeriodEnd: end.toISOString(),
-        paymentMethod: plan.interval === 'lifetime' ? null : { brand: 'Visa', last4: '4242' },
+
+      // Handle paid subscription with Stripe
+      try {
+        let priceId = '';
+        if (plan.interval === 'month') {
+          priceId = STRIPE_CONFIG.prices.monthly;
+        } else if (plan.interval === 'year') {
+          priceId = STRIPE_CONFIG.prices.annual;
+        } else if (plan.interval === 'lifetime') {
+          priceId = STRIPE_CONFIG.prices.lifetime;
+        }
+
+        await createCheckoutSession(priceId, user?.email, user?.uid);
+        
+      } catch (error) {
+        console.error('Subscription creation error:', error);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
+        }));
       }
-      saveSubscription(next)
-      setSub(next)
-      // Add a billing entry for paid start
-      if (!trial) {
-        const entry = { id: 'inv_' + Date.now(), date: now.toISOString(), amount: plan.price, currency: 'USD', description: `${plan.name}`, status: 'paid' }
-        const list = [entry, ...billing]
-        saveBilling(list)
-        setBilling(list)
-      }
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: trial ? 'Trial started' : 'Subscription active', type: 'success' } }))
     }
 
-    const cancelSubscription = () => {
+    const cancelSubscription = async () => {
       if (!sub) return
-      const next = { ...sub, status: 'canceled', endedAt: new Date().toISOString() }
-      saveSubscription(next)
-      setSub(next)
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Subscription canceled', type: 'success' } }))
+      
+      try {
+        // If it's a Stripe subscription, cancel through Stripe
+        if (sub.subscriptionId) {
+          await stripeCancel(sub.subscriptionId);
+        } else {
+          // Local cancellation for trials/demo
+          const next = { ...sub, status: 'canceled', endedAt: new Date().toISOString() }
+          saveSubscription(next)
+          setSub(next)
+          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Subscription canceled', type: 'success' } }))
+        }
+      } catch (error) {
+        console.error('Cancellation error:', error);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Failed to cancel subscription. Please try again.', type: 'error' } 
+        }));
+      }
+    }
+
+    const openCustomerPortal = async () => {
+      if (!sub?.customerId) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Customer portal not available for this subscription', type: 'info' } 
+        }));
+        return;
+      }
+      
+      try {
+        await createPortalSession(sub.customerId);
+      } catch (error) {
+        console.error('Portal error:', error);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Failed to open customer portal', type: 'error' } 
+        }));
+      }
     }
 
     const addTestInvoice = () => {
@@ -265,93 +371,97 @@
           )}
         </div>
 
-        {/* Subscription */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Subscription</h2>
-          {sub ? (
-            <div className="space-y-4">
-              {sub.status === 'trialing' && (
-                <TrialProgressBar 
-                  theme={theme} 
-                  startDate={sub.startedAt} 
-                  endDate={sub.currentPeriodEnd} 
-                />
-              )}
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>Current Plan</div>
-                  <div className="font-medium">{sub.plan}</div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>
-                    Status: <span className={`font-semibold ${sub.status === 'active' ? 'text-green-600' : sub.status === 'trialing' ? 'text-blue-600' : 'text-red-600'}`}>
-                      {sub.status === 'trialing' ? 'Trial' : sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
-                    </span>
+        {/* Subscription - Hidden during beta testing */}
+        {false && (
+          <>
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Subscription</h2>
+              {sub ? (
+                <div className="space-y-4">
+                  {sub.status === 'trialing' && (
+                    <TrialProgressBar 
+                      theme={theme} 
+                      startDate={sub.startedAt} 
+                      endDate={sub.currentPeriodEnd} 
+                    />
+                  )}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-sm" style={{ color: theme.textLight }}>Current Plan</div>
+                      <div className="font-medium">{sub.plan}</div>
+                      <div className="text-sm" style={{ color: theme.textLight }}>
+                        Status: <span className={`font-semibold ${sub.status === 'active' ? 'text-green-600' : sub.status === 'trialing' ? 'text-blue-600' : 'text-red-600'}`}>
+                          {sub.status === 'trialing' ? 'Trial' : sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                      onClick={() => setManageOpen(true)}
+                    >
+                      Manage
+                    </button>
                   </div>
-                </div>
-                <button 
-                  className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                  onClick={() => setManageOpen(true)}
-                >
-                  Manage
-                </button>
-              </div>
-              {sub.status !== 'canceled' && (
-                <div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>
-                    {sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}
-                  </div>
-                  {sub.paymentMethod && (
-                    <div className="text-sm" style={{ color: theme.textLight }}>
-                      Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}
+                  {sub.status !== 'canceled' && (
+                    <div>
+                      <div className="text-sm" style={{ color: theme.textLight }}>
+                        {sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                      </div>
+                      {sub.paymentMethod && (
+                        <div className="text-sm" style={{ color: theme.textLight }}>
+                          Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-sm" style={{ color: theme.textLight }}>No active subscription</div>
+                  <button 
+                    className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                    onClick={() => setManageOpen(true)}
+                  >
+                    Choose Plan
+                  </button>
+                </div>
               )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="text-sm" style={{ color: theme.textLight }}>No active subscription</div>
-              <button 
-                className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                onClick={() => setManageOpen(true)}
-              >
-                Choose Plan
-              </button>
-            </div>
-          )}
-        </div>
 
-        {/* Billing History */}
-        {sub && billing.length > 0 && (
-          <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Billing History</h2>
-              <button 
-                className="px-2 py-1 rounded text-xs hover:opacity-90" 
-                style={{ backgroundColor: theme.secondary, color: theme.text }} 
-                onClick={addTestInvoice}
-              >
-                Add Test Invoice
-              </button>
-            </div>
-            <div className="space-y-2">
-              {billing.slice(0, 5).map(invoice => (
-                <div key={invoice.id} className="flex justify-between items-center py-2 border-b last:border-b-0" style={{ borderColor: theme.border }}>
-                  <div>
-                    <div className="text-sm font-medium">{invoice.description}</div>
-                    <div className="text-xs" style={{ color: theme.textLight }}>{new Date(invoice.date).toLocaleDateString()}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold">${invoice.amount}</div>
-                    <div className={`text-xs font-medium ${invoice.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
-                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                    </div>
-                  </div>
+            {/* Billing History */}
+            {sub && billing.length > 0 && (
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Billing History</h2>
+                  <button 
+                    className="px-2 py-1 rounded text-xs hover:opacity-90" 
+                    style={{ backgroundColor: theme.secondary, color: theme.text }} 
+                    onClick={addTestInvoice}
+                  >
+                    Add Test Invoice
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="space-y-2">
+                  {billing.slice(0, 5).map(invoice => (
+                    <div key={invoice.id} className="flex justify-between items-center py-2 border-b last:border-b-0" style={{ borderColor: theme.border }}>
+                      <div>
+                        <div className="text-sm font-medium">{invoice.description}</div>
+                        <div className="text-xs" style={{ color: theme.textLight }}>{new Date(invoice.date).toLocaleDateString()}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">${invoice.amount}</div>
+                        <div className={`text-xs font-medium ${invoice.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
+                          {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Security */}
@@ -395,11 +505,37 @@
         {/* Manage subscription modal */}
         <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage Subscription" theme={theme} maxWidth="max-w-2xl" footer={(
           <div className="w-full flex justify-between items-center">
-            <button className="px-3 py-2 rounded-md text-sm" style={{ color: theme.error }} onClick={cancelSubscription}>Cancel Subscription</button>
+            <div className="flex items-center gap-2">
+              {sub?.customerId && (
+                <button 
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:opacity-90 flex items-center gap-2" 
+                  style={{ backgroundColor: theme.secondary, color: theme.text }}
+                  onClick={openCustomerPortal}
+                >
+                  <ExternalLink size={14} />
+                  Customer Portal
+                </button>
+              )}
+              <button className="px-3 py-2 rounded-md text-sm" style={{ color: theme.error }} onClick={cancelSubscription}>Cancel Subscription</button>
+            </div>
             <button className="px-3 py-2 rounded-md" onClick={() => setManageOpen(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Close</button>
           </div>
         )}>
           <div className="space-y-6">
+            {/* Stripe Demo Notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
+                <span className="font-semibold text-blue-800">Stripe Demo Mode</span>
+              </div>
+              <p className="text-sm text-blue-700">
+                This is a fully functional demo. In production, payments will be processed securely through Stripe. 
+                Use the test cards: 4242 4242 4242 4242 (Visa), 4000 0000 0000 0002 (Decline).
+              </p>
+            </div>
+            
             <div>
               <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.primaryDark }}>
                 {sub?.status === 'trialing' ? `Your trial ends on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}` : 'Switch your plan'}

@@ -689,3 +689,85 @@ export async function deleteFeedback(feedbackId) {
     throw error;
   }
 }
+
+/**
+ * Respond to feedback and notify user
+ * @param {string} feedbackId - The feedback document ID
+ * @param {string} responseText - Admin's response
+ * @param {string} userEmail - Email of the feedback submitter
+ * @returns {Promise<void>}
+ */
+export async function respondToFeedback(feedbackId, responseText, userEmail) {
+  try {
+    // Update feedback with response
+    const feedbackRef = doc(db, 'feedback', feedbackId);
+    await updateDoc(feedbackRef, {
+      adminResponse: responseText,
+      responseDate: serverTimestamp(),
+      status: 'responded'
+    });
+
+    // Create in-app notification for the user
+    const notificationRef = collection(db, 'notifications');
+    await addDoc(notificationRef, {
+      userEmail: userEmail.toLowerCase(),
+      type: 'feedback_response',
+      title: 'Response to Your Feedback',
+      message: responseText,
+      isRead: false,
+      createdAt: serverTimestamp(),
+      feedbackId: feedbackId
+    });
+
+    console.log('✅ Feedback response sent successfully');
+  } catch (error) {
+    console.error('❌ Failed to send feedback response:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get notifications for a user
+ * @param {string} userEmail - User's email
+ * @returns {Promise<Array>} - Array of notifications
+ */
+export async function getUserNotifications(userEmail) {
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('userEmail', '==', userEmail.toLowerCase()),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    const querySnapshot = await getDocs(q);
+    const notifications = [];
+    querySnapshot.forEach((doc) => {
+      notifications.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    return notifications;
+  } catch (error) {
+    console.error('❌ Failed to get user notifications:', error);
+    return [];
+  }
+}
+
+/**
+ * Mark notification as read
+ * @param {string} notificationId - The notification document ID
+ * @returns {Promise<void>}
+ */
+export async function markNotificationAsRead(notificationId) {
+  try {
+    const notificationRef = doc(db, 'notifications', notificationId);
+    await updateDoc(notificationRef, {
+      isRead: true,
+      readAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('❌ Failed to mark notification as read:', error);
+    throw error;
+  }
+}
