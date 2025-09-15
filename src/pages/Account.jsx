@@ -132,7 +132,7 @@
             window.removeEventListener('stripe:checkout:success', handleStripeSuccess)
             window.removeEventListener('stripe:subscription:cancelled', handleStripeCancelled)
         }
-    }, [sub, billing])
+    }, [sub])
 
     const [manageOpen, setManageOpen] = React.useState(false)
     const [selectedPlan, setSelectedPlan] = React.useState('month')
