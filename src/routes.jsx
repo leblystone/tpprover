@@ -23,6 +23,7 @@ const Goals = lazy(() => import('./pages/Goals.jsx'))
 const Badges = lazy(() => import('./pages/Badges.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const BetaEndedSurvey = lazy(() => import('./pages/BetaEndedSurvey.jsx'))
+const Research = lazy(() => import('./pages/Research.jsx'))
 
 export const router = createBrowserRouter([
   {
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
           { path: 'account', element: <Account /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
+          { path: 'research', element: <Research /> },
           { path: 'beta-survey', element: <BetaEndedSurvey /> },
         ]
       }
