@@ -43,7 +43,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                         </div>
                         <div className="sm:col-span-3">
                             <PillSelector 
-                                options={['mcg', 'mg', 'iu']}
+                                options={['mcg', 'mg', 'iu', 'mL', 'sprays']}
                                 value={step.doseUnit}
                                 onChange={v => updateStep(index, 'doseUnit', v)}
                             />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, Edit } from 'lucide-react';
+import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, Edit, ShoppingCart, FileText } from 'lucide-react';
 import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaFacebook } from 'react-icons/fa';
 import { SiZelle, SiCashapp } from 'react-icons/si';
 import { FaPaypal, FaAlipay } from 'react-icons/fa6';
@@ -65,6 +65,21 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
     const handleShare = () => {
         setShareModalOpen(true);
     };
+
+    // Check for order history
+    const getOrderHistory = () => {
+        try {
+            const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
+            return orders.filter(order => 
+                (order.vendorId && order.vendorId === vendor.id) || 
+                (!order.vendorId && order.vendor && order.vendor.toLowerCase() === vendor.name.toLowerCase())
+            );
+        } catch {
+            return [];
+        }
+    };
+
+    const orderHistory = getOrderHistory();
 
     const paymentMethods = [];
     const p = vendor?.payments || {};
@@ -134,6 +149,26 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                             </div>
                         </div>
                     )}
+
+                    {vendor.notes && vendor.notes.trim() && (
+                        <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                            <div className="flex items-start gap-2 text-sm">
+                                <FileText size={14} className="mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />
+                                <div 
+                                    className="text-gray-600 text-xs leading-relaxed"
+                                    style={{
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 3,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        maxHeight: '3.6em'
+                                    }}
+                                >
+                                    {vendor.notes}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Bottom Section: Payments, Labels, Buttons */}
@@ -165,13 +200,21 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                     )}
 
                     {!isPublicView && (
-                         <div className="mt-4 pt-4 border-t flex items-center justify-end gap-2" style={{ borderColor: theme.border }}>
-                            <button data-tour="vendor-share" onClick={handleShare} className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0" aria-label="Share vendor">
-                                <Share2 className="h-4 w-4" />
-                            </button>
-                            <button onClick={() => onEditClick(vendor)} className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0" aria-label="Edit vendor">
-                                <Edit className="h-4 w-4" />
-                            </button>
+                         <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: theme.border }}>
+                            {orderHistory.length > 0 && (
+                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                    <ShoppingCart size={12} />
+                                    <span>{orderHistory.length} order{orderHistory.length !== 1 ? 's' : ''}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2 ml-auto">
+                                <button data-tour="vendor-share" onClick={handleShare} className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0" aria-label="Share vendor">
+                                    <Share2 className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => onEditClick(vendor)} className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0" aria-label="Edit vendor">
+                                    <Edit className="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -19,62 +19,84 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                     <X size={14} />
                 </button>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                <div className="sm:col-span-2">
+            <div className="space-y-3">
+                {/* Row 1: Name */}
+                <div>
                     <TextInput 
-                        label="Peptide Name" 
+                        label="Peptide/Amino Name" 
                         value={item.name || ''} 
                         onChange={v => handleChange('name', v)} 
                         theme={theme} 
-                        placeholder="e.g., BPC-157" 
+                        placeholder="e.g., BPC-157, Superhuman, Lipo-C" 
                     />
                 </div>
-                 <div>
-                    <TextInput 
-                        label="mg" 
-                        value={item.mg || ''} 
-                        onChange={v => handleChange('mg', v)} 
-                        theme={theme} 
-                        placeholder="e.g., 10"
-                        type="text"
-                        inputMode="decimal"
-                    />
-                </div>
-                <div>
-                    <TextInput 
-                        label="Price ($)" 
-                        value={item.price || ''} 
-                        onChange={v => handleChange('price', v)} 
-                        theme={theme} 
-                        placeholder="e.g., 45.00"
-                        type="text"
-                        inputMode="decimal"
-                    />
-                </div>
-                <div className="flex items-end gap-1">
-                    <div className="flex-grow">
+                
+                {/* Row 2: Amount/Unit and Price */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Amount & Unit</div>
+                        <div className="flex items-center p-0.5 rounded border" style={{ borderColor: theme.border }}>
+                            <input 
+                                className="flex-1 w-full border-none outline-none text-sm bg-transparent px-2 py-1.5" 
+                                value={item.mg || ''} 
+                                onChange={e => handleChange('mg', e.target.value)} 
+                                placeholder="10 or 0.5" 
+                                type="text"
+                                inputMode="decimal"
+                            />
+                            <div className="inline-flex rounded-full bg-gray-100 p-0.5 shadow-inner">
+                                {['mg', 'mL'].map(unit => (
+                                    <button 
+                                        key={unit} 
+                                        type="button" 
+                                        onClick={() => handleChange('mgUnit', unit)}
+                                        className={`px-2 py-1 text-xs font-semibold rounded-full ${(item.mgUnit || 'mg') === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+                                        style={(item.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
+                                    >
+                                        {unit}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
                         <TextInput 
-                            label="Quantity" 
-                            value={item.quantity || ''} 
-                            onChange={v => handleChange('quantity', v)} 
+                            label="Price ($)" 
+                            value={item.price || ''} 
+                            onChange={v => handleChange('price', v)} 
                             theme={theme} 
-                            placeholder="e.g., 1"
+                            placeholder="e.g., 45.00"
+                            type="text"
+                            inputMode="decimal"
+                        />
+                    </div>
+                </div>
+                
+                {/* Row 3: Quantity and Unit */}
+                <div>
+                    <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Quantity & Unit</div>
+                    <div className="flex items-center p-2 rounded border" style={{ borderColor: theme.border }}>
+                        <input 
+                            className="flex-1 border-none outline-none text-sm bg-transparent" 
+                            value={item.quantity || ''} 
+                            onChange={e => handleChange('quantity', e.target.value)} 
+                            placeholder="1" 
                             type="text"
                             inputMode="numeric"
                         />
-                    </div>
-                    <div className="flex-shrink-0 inline-flex rounded-md bg-white p-1 border" style={{ borderColor: theme.border }}>
-                        {['vial', 'kit'].map(unit => (
-                            <button 
-                                key={unit} 
-                                type="button" 
-                                onClick={() => handleChange('unit', unit)}
-                                className={`px-2 py-1 text-xs font-semibold rounded ${(item.unit || 'vial') === unit ? 'text-white' : 'text-gray-600'}`}
-                                style={(item.unit || 'vial') === unit ? { backgroundColor: theme.primary } : {}}
-                            >
-                                {unit.charAt(0).toUpperCase() + unit.slice(1)}
-                            </button>
-                        ))}
+                        <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+                            {['vial', 'kit'].map(unit => (
+                                <button 
+                                    key={unit} 
+                                    type="button" 
+                                    onClick={() => handleChange('unit', unit)}
+                                    className={`px-3 py-1.5 text-xs font-semibold rounded-full ${(item.unit || 'vial') === unit ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                                    style={(item.unit || 'vial') === unit ? { backgroundColor: theme.primary } : {}}
+                                >
+                                    {unit.charAt(0).toUpperCase() + unit.slice(1)}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

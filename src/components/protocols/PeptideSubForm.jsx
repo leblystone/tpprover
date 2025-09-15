@@ -42,23 +42,43 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 {/* Column 1: Name & Dosage */}
                 <div className="space-y-4">
-                    <TextInput label="Peptide Name" value={item.name || ''} onChange={v => handleChange('name', v)} theme={theme} placeholder="e.g., BPC-157" />
+                    <TextInput label="Peptide/Amino Name" value={item.name || ''} onChange={v => handleChange('name', v)} theme={theme} placeholder="e.g., BPC-157, Superhuman, Super Shredder, Lipo-C" />
                     <div className="grid grid-cols-2 gap-3">
-                        <TextInput label="Dosage Amount" value={item.dosage?.amount || ''} onChange={v => handleChange('dosage', { ...item.dosage, amount: v })} theme={theme} placeholder="e.g., 250" />
+                        <TextInput label="Dosage Amount" value={item.dosage?.amount || ''} onChange={v => handleChange('dosage', { ...item.dosage, amount: v })} theme={theme} placeholder="e.g., 250, 0.5, or 2 sprays" />
                         <div>
                             <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Dosage Unit</div>
                             <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                                {['mcg', 'mg', 'iu'].map(unit => (
+                                {(item.deliveryMethod === 'Nasal' 
+                                    ? ['mcg', 'mg', 'iu', 'mL', 'sprays'] 
+                                    : ['mcg', 'mg', 'iu', 'mL']
+                                ).map(unit => (
                                     <button key={unit} type="button" onClick={() => handleChange('dosage', { ...item.dosage, unit })}
                                         className={`px-2 py-1 text-xs font-semibold rounded`}
                                         style={{
                                             color: item.dosage?.unit === unit ? theme.textOnPrimary : theme.text,
                                             backgroundColor: item.dosage?.unit === unit ? theme.primary : 'transparent'
                                         }}>
-                                        {unit.toUpperCase()}
+                                        {unit}
                                     </button>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+                    
+                    {/* Delivery Method */}
+                    <div>
+                        <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Delivery Method</div>
+                        <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            {['SubQ', 'IM', 'Nasal'].map(method => (
+                                <button key={method} type="button" onClick={() => handleChange('deliveryMethod', method)}
+                                    className={`px-2 py-1 text-xs font-semibold rounded`}
+                                    style={{
+                                        color: (item.deliveryMethod || 'SubQ') === method ? theme.textOnPrimary : theme.text,
+                                        backgroundColor: (item.deliveryMethod || 'SubQ') === method ? theme.primary : 'transparent'
+                                    }}>
+                                    {method}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>

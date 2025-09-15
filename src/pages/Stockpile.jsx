@@ -361,14 +361,39 @@ export default function Stockpile() {
         </>
       )}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <TextInput label="Peptide" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="BPC-157" theme={theme} />
-          <TextInput label="mg" value={form.mg} onChange={v => setForm({ ...form, mg: v })} placeholder="10" theme={theme} />
+          <TextInput label="Peptide/Amino Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="BPC-157, Superhuman, Lipo-C" theme={theme} />
+          <div>
+            <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Amount & Unit</div>
+            <div className="flex items-center p-0.5 rounded border" style={{ borderColor: theme.border }}>
+              <input 
+                className="flex-1 w-full border-none outline-none text-sm bg-transparent px-2 py-1.5" 
+                value={form.mg || ''} 
+                onChange={e => setForm({ ...form, mg: e.target.value })} 
+                placeholder="10 or 0.5" 
+                type="text"
+                inputMode="decimal"
+              />
+              <div className="inline-flex rounded-full bg-gray-100 p-0.5 shadow-inner">
+                {['mg', 'mL'].map(unit => (
+                  <button 
+                    key={unit} 
+                    type="button" 
+                    onClick={() => setForm({ ...form, mgUnit: unit })}
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${(form.mgUnit || 'mg') === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+                    style={(form.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
+                  >
+                    {unit}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="sm:col-span-2">
               <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Quantity & Unit</div>
               <div className="flex items-center p-2 rounded border" style={{ borderColor: theme?.border }}>
                 <input className="flex-1 border-none outline-none text-sm bg-transparent" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} placeholder="1" />
                 <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-                    {['vial','kit'].map(k => (
+                    {['vial','bottle','kit'].map(k => (
                         <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                             style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>

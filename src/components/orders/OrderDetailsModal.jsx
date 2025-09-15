@@ -126,10 +126,10 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>
                     Category <span className="text-red-500">*</span>
                   </div>
-                  <div className="inline-flex rounded-md bg-gray-100 p-1 shadow-inner">
+                  <div className="flex flex-wrap sm:inline-flex rounded-md bg-gray-100 p-1 shadow-inner gap-1">
                     {['domestic','international','group'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
-                        className={`px-3 py-1.5 text-sm font-semibold rounded-md ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                        className={`flex-1 px-2 py-1.5 text-xs sm:text-sm font-semibold rounded-md ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                         style={form.category === k ? { backgroundColor: theme?.primary } : {}}>
                         {k.charAt(0).toUpperCase() + k.slice(1)}
                       </button>
@@ -175,7 +175,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             <div className="sm:col-span-3">
               <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Status</div>
-              <div className="flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
+              <div className="grid grid-cols-2 sm:flex w-full rounded-md bg-gray-100 p-1 shadow-inner gap-1">
                 {[
                   { label: 'Order Placed', value: 'Order Placed' },
                   { label: 'In Transit', value: 'Shipped' },
@@ -183,7 +183,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   { label: 'Delayed', value: 'Delayed' },
                 ].map(opt => (
                   <button key={opt.value} type="button" onClick={() => setForm({ ...form, status: opt.value, shipDate: opt.value==='Shipped' ? (form.shipDate || new Date().toISOString().slice(0,10)) : form.shipDate, deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || new Date().toISOString().slice(0,10)) : form.deliveryDate })}
-                    className={`flex-1 text-center px-3 py-1.5 text-sm font-semibold rounded-md ${form.status === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                    className={`sm:flex-1 text-center px-2 py-1.5 text-xs sm:text-sm font-semibold rounded-md ${form.status === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                     style={form.status === opt.value ? { backgroundColor: theme?.primary } : {}}>
                     {opt.label}
                   </button>

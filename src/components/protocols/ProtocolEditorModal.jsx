@@ -234,19 +234,32 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </div>
             )}
         >
-            <div className="space-y-4">
-                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <TextInput label="Protocol Name" value={form.protocolName || ''} onChange={v => handleChange('protocolName', v)} theme={theme} placeholder="e.g., Gut Healing Stack" />
-                        <TextInput label="Purpose" value={form.purpose || ''} onChange={v => handleChange('purpose', v)} theme={theme} placeholder="e.g., Immunity" />
+            <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <TextInput 
+                            label="Protocol Name" 
+                            value={form.protocolName || ''} 
+                            onChange={v => handleChange('protocolName', v)} 
+                            theme={theme} 
+                            placeholder="e.g., Gut Healing Stack" 
+                        />
+                        <TextInput 
+                            label="Purpose" 
+                            value={form.purpose || ''} 
+                            onChange={v => handleChange('purpose', v)} 
+                            theme={theme} 
+                            placeholder="e.g., Immunity" 
+                        />
                     </div>
-                </div>
 
-                {(form.peptides?.length > 1) && (
-                    <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                        <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Protocol Type</div>
-                        <div className="flex items-center gap-2">
-                            <p className="text-xs text-gray-500 flex-1">Is this a blended protocol (all peptides in one vial) or taken separately?</p>
+                    {(form.peptides?.length > 1) && (
+                        <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="flex-1">
+                                <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Protocol Type</div>
+                                <p className="text-xs text-gray-500">Blended protocols combine all peptides in one vial</p>
+                            </div>
                             <div className="inline-flex rounded-md bg-gray-100 p-1 shadow-inner">
                                 {['Separate', 'Blended'].map(k => (
                                     <button 
@@ -261,132 +274,172 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 ))}
                             </div>
                         </div>
-                    </div>
-                )}
-
-                <div className="space-y-3">
-                    {form.peptides?.map((p, index) => (
-                        <PeptideSubForm
-                            key={p.id || index}
-                            item={p}
-                            onChange={(updated) => handlePeptideChange(index, updated)}
-                            onRemove={() => removePeptide(index)}
-                            theme={theme}
-                            isOnlyItem={form.peptides.length === 1}
-                            isBlended={form.blendMode === 'blended'}
-                        />
-                    ))}
+                    )}
                 </div>
 
-                {form.blendMode === 'blended' && (
-                    <div className="p-4 rounded-lg border space-y-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                         <DosingScheduleEditor 
-                            item={{
-                                frequency: form.sharedFrequency,
-                                titrationEnabled: form.sharedTitrationEnabled,
-                                titration: form.sharedTitration
-                            }}
-                            onChange={(update) => {
-                                setForm(prev => ({
-                                    ...prev,
-                                    sharedFrequency: update.frequency,
-                                    sharedTitrationEnabled: update.titrationEnabled,
-                                    sharedTitration: update.titration,
-                                }));
-                            }}
-                            theme={theme}
-                            isBlendedContext={true}
-                        />
+                {/* Separator */}
+                <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+                {/* Peptides Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Peptides & Amino Blends</h3>
+                        <span className="text-sm text-gray-500">{form.peptides?.length || 0} item{form.peptides?.length !== 1 ? 's' : ''}</span>
                     </div>
-                )}
-
-                <button
-                    type="button"
-                    onClick={addPeptide}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-xs font-semibold border-dashed border-2"
-                    style={{ borderColor: theme.border, color: theme.text }}
-                >
-                    <PlusCircle size={14} /> Add Another Peptide
-                </button>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                        <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Protocol Duration</div>
-                        <div className="flex items-center gap-2">
-                            <TextInput 
-                                type="number" 
-                                value={form.duration?.noEnd ? '' : String(form.duration?.count || '')} 
-                                onChange={v => handleDurationChange('count', v)} 
-                                theme={theme} 
-                                placeholder="e.g., 4"
-                                disabled={form.duration?.noEnd}
-                                className="w-24"
+                    
+                    <div className="space-y-3">
+                        {form.peptides?.map((p, index) => (
+                            <PeptideSubForm
+                                key={p.id || index}
+                                item={p}
+                                onChange={(updated) => handlePeptideChange(index, updated)}
+                                onRemove={() => removePeptide(index)}
+                                theme={theme}
+                                isOnlyItem={form.peptides.length === 1}
+                                isBlended={form.blendMode === 'blended'}
                             />
-                            <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: form.duration?.noEnd ? theme.secondary : theme.cardBackground }}>
-                                {['Day', 'Week', 'Month'].map(unit => (
-                                    <button 
-                                        key={unit} 
-                                        type="button" 
-                                        onClick={() => !form.duration?.noEnd && handleDurationChange('unit', unit)}
+                        ))}
+                    </div>
+
+                    {form.blendMode === 'blended' && (
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Blended Protocol Schedule</div>
+                            <DosingScheduleEditor 
+                                item={{
+                                    frequency: form.sharedFrequency,
+                                    titrationEnabled: form.sharedTitrationEnabled,
+                                    titration: form.sharedTitration
+                                }}
+                                onChange={(update) => {
+                                    setForm(prev => ({
+                                        ...prev,
+                                        sharedFrequency: update.frequency,
+                                        sharedTitrationEnabled: update.titrationEnabled,
+                                        sharedTitration: update.titration,
+                                    }));
+                                }}
+                                theme={theme}
+                                isBlendedContext={true}
+                            />
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={addPeptide}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md text-sm font-medium border-dashed border-2 hover:bg-gray-50 transition-colors"
+                        style={{ borderColor: theme.border, color: theme.text }}
+                    >
+                        <PlusCircle size={16} /> Add Another Peptide/Amino Blend
+                    </button>
+                </div>
+
+                {/* Separator */}
+                <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+                {/* Duration & Washout Section */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Duration & Washout</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Protocol Duration</div>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <TextInput 
+                                        type="number" 
+                                        value={form.duration?.noEnd ? '' : String(form.duration?.count || '')} 
+                                        onChange={v => handleDurationChange('count', v)} 
+                                        theme={theme} 
+                                        placeholder="4"
                                         disabled={form.duration?.noEnd}
-                                        className={`px-3 py-1.5 text-xs font-semibold rounded ${form.duration?.unit === unit && !form.duration?.noEnd ? '' : ''}`}
-                                        style={{
-                                            color: (form.duration?.unit === unit && !form.duration?.noEnd) ? theme.textOnPrimary : theme.text,
-                                            backgroundColor: (form.duration?.unit === unit && !form.duration?.noEnd) ? theme.primary : 'transparent'
-                                        }}
-                                    >
-                                        {unit}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="flex items-center ml-auto pl-2">
-                                <span className="text-sm mr-2" style={{ color: theme.text }}>No end</span>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" checked={form.duration?.noEnd} onChange={e => handleDurationChange('noEnd', e.target.checked)} className="sr-only peer" />
-                                    <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : theme.secondary }}></div>
-                                </label>
+                                        className="w-20"
+                                    />
+                                    <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: form.duration?.noEnd ? theme.secondary : theme.cardBackground }}>
+                                        {['Day', 'Week', 'Month'].map(unit => (
+                                            <button 
+                                                key={unit} 
+                                                type="button" 
+                                                onClick={() => !form.duration?.noEnd && handleDurationChange('unit', unit)}
+                                                disabled={form.duration?.noEnd}
+                                                className={`px-2 py-1 text-xs font-semibold rounded`}
+                                                style={{
+                                                    color: (form.duration?.unit === unit && !form.duration?.noEnd) ? theme.textOnPrimary : theme.text,
+                                                    backgroundColor: (form.duration?.unit === unit && !form.duration?.noEnd) ? theme.primary : 'transparent'
+                                                }}
+                                            >
+                                                {unit}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={form.duration?.noEnd} onChange={e => handleDurationChange('noEnd', e.target.checked)} className="sr-only peer" />
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : theme.secondary }}></div>
+                                    </label>
+                                    <span className="text-sm" style={{ color: theme.text }}>No end date</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                        <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Enable Washout</div>
-                        <div className="flex items-center gap-2">
-                             <label className="relative inline-flex items-center cursor-pointer mr-2">
-                                <input type="checkbox" checked={form.washout?.enabled} onChange={e => handleWashoutChange('enabled', e.target.checked)} className="sr-only peer" />
-                                <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all" style={{backgroundColor: form.washout?.enabled ? theme.primary : theme.secondary}}></div>
-                            </label>
-                            <TextInput 
-                                type="number" 
-                                value={form.washout?.enabled ? form.washout?.duration || '' : ''} 
-                                onChange={v => handleWashoutChange('duration', v)} 
-                                theme={theme} 
-                                placeholder="e.g., 2"
-                                disabled={!form.washout?.enabled}
-                                className="w-24"
-                            />
-                            <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: !form.washout?.enabled ? theme.secondary : theme.cardBackground }}>
-                                {['Day', 'Week', 'Month'].map(unit => (
-                                    <button 
-                                        key={unit} 
-                                        type="button" 
-                                        onClick={() => form.washout?.enabled && handleWashoutChange('unit', unit)}
+                        
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Washout Period</div>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={form.washout?.enabled} onChange={e => handleWashoutChange('enabled', e.target.checked)} className="sr-only peer" />
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.washout?.enabled ? theme.primary : theme.secondary}}></div>
+                                    </label>
+                                    <span className="text-sm" style={{ color: theme.text }}>Enable washout</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <TextInput 
+                                        type="number" 
+                                        value={form.washout?.enabled ? form.washout?.duration || '' : ''} 
+                                        onChange={v => handleWashoutChange('duration', v)} 
+                                        theme={theme} 
+                                        placeholder="2"
                                         disabled={!form.washout?.enabled}
-                                        className={`px-3 py-1.5 text-xs font-semibold rounded ${form.washout?.unit === unit && form.washout?.enabled ? '' : ''}`}
-                                        style={{
-                                            color: (form.washout?.unit === unit && form.washout?.enabled) ? theme.textOnPrimary : theme.text,
-                                            backgroundColor: (form.washout?.unit === unit && form.washout?.enabled) ? theme.primary : 'transparent'
-                                        }}
-                                    >
-                                        {unit}
-                                    </button>
-                                ))}
+                                        className="w-20"
+                                    />
+                                    <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: !form.washout?.enabled ? theme.secondary : theme.cardBackground }}>
+                                        {['Day', 'Week', 'Month'].map(unit => (
+                                            <button 
+                                                key={unit} 
+                                                type="button" 
+                                                onClick={() => form.washout?.enabled && handleWashoutChange('unit', unit)}
+                                                disabled={!form.washout?.enabled}
+                                                className={`px-2 py-1 text-xs font-semibold rounded`}
+                                                style={{
+                                                    color: (form.washout?.unit === unit && form.washout?.enabled) ? theme.textOnPrimary : theme.text,
+                                                    backgroundColor: (form.washout?.unit === unit && form.washout?.enabled) ? theme.primary : 'transparent'
+                                                }}
+                                            >
+                                                {unit}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                    <TextInput label="Notes" value={form.notes || ''} onChange={v => handleChange('notes', v)} theme={theme} placeholder="Add any personal notes for this protocol..." multiline />
+                {/* Separator */}
+                <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+                {/* Notes Section */}
+                <div className="space-y-3">
+                    <h3 className="text-lg font-semibold" style={{ color: theme.text }}>Notes</h3>
+                    <TextInput 
+                        value={form.notes || ''} 
+                        onChange={v => handleChange('notes', v)} 
+                        theme={theme} 
+                        placeholder="Add any personal notes for this protocol..." 
+                        multiline 
+                        rows={3}
+                    />
                 </div>
             </div>
         </Modal>
