@@ -59,7 +59,36 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
     ];
 
     return (
-        <Modal open={open} onClose={onClose} title={supplement?.id ? "Edit Supplement" : "Add Supplement"} theme={theme}>
+        <Modal 
+            open={open} 
+            onClose={onClose} 
+            title={supplement?.id ? "Edit Supplement" : "Add Supplement"} 
+            theme={theme}
+            footer={
+                <div className="flex justify-between items-center w-full">
+                    <div className="flex-1">
+                        {supplement?.id && (
+                            <button 
+                                onClick={() => {
+                                    if (window.confirm('Are you sure you want to delete this supplement?')) {
+                                        onSave({ ...supplement, _delete: true });
+                                        onClose();
+                                    }
+                                }}
+                                className="px-3 py-2 rounded-md border text-red-600 hover:bg-red-50 transition-colors"
+                                style={{ borderColor: '#ef4444' }}
+                            >
+                                Delete
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
+                        <button onClick={handleSave} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.white }}>Save</button>
+                    </div>
+                </div>
+            }
+        >
             <div className="space-y-4 p-1">
                 <TextInput label="Supplement Name" value={name} onChange={setName} theme={theme} placeholder="e.g., Vitamin D3, B12 Injection, Protein Powder" />
                 <TextInput label="Dosage" value={dose} onChange={setDose} theme={theme} placeholder="e.g., 2 pills, 5000 IU, 1ml" />

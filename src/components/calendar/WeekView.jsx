@@ -147,7 +147,7 @@ function SlotContent({ scheduled, theme }) {
       {scheduled.supplements?.map((s, i) => (
         <div key={`s-${i}`} className="flex items-center gap-2 text-xs p-1 rounded" style={{ backgroundColor: theme.secondary }}>
           <Pill size={12} style={{ color: theme.textLight }} />
-          <span className="flex-1 truncate">{s}</span>
+          <span className="flex-1 truncate">{typeof s === 'object' ? s.name : s}</span>
         </div>
       ))}
     </div>
