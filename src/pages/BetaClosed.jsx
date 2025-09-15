@@ -12,17 +12,7 @@ import { REOPEN_DATE } from '../config/betaConfig';
 export default function BetaClosed() {
   const { user } = useAppContext();
   const [theme] = useState(themes[defaultThemeName]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeUntilReopen, setTimeUntilReopen] = useState('');
-  const [formData, setFormData] = useState({
-    overallExperience: '',
-    mostUsefulFeature: '',
-    leastUsefulFeature: '',
-    suggestedImprovements: '',
-    recommendToOthers: '',
-    additionalComments: '',
-    email: user?.email || ''
-  });
 
   // Update countdown to reopen
   useEffect(() => {
@@ -52,57 +42,7 @@ export default function BetaClosed() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      // Submit to Google Form (replace with your actual form URL and field IDs)
-      await submitToGoogleForm(formData);
-      
-      // Mark feedback as completed
-      const success = markBetaFeedbackCompleted(user);
-      
-      if (success) {
-        // Refresh to show thanks message
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Survey submission failed:', error);
-      alert('Survey submission failed. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Submit to Google Form
-  const submitToGoogleForm = async (data) => {
-    // Replace with your actual Google Form URL and field IDs
-    const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse';
-    
-    const formDataToSubmit = new FormData();
-    // Map your form fields to Google Form field IDs
-    formDataToSubmit.append('entry.123456789', data.overallExperience);
-    formDataToSubmit.append('entry.987654321', data.mostUsefulFeature);
-    formDataToSubmit.append('entry.456789123', data.leastUsefulFeature);
-    formDataToSubmit.append('entry.789123456', data.suggestedImprovements);
-    formDataToSubmit.append('entry.321654987', data.recommendToOthers);
-    formDataToSubmit.append('entry.654987321', data.additionalComments);
-    formDataToSubmit.append('entry.147258369', data.email);
-
-    await fetch(GOOGLE_FORM_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: formDataToSubmit
-    });
-  };
 
   const hasCompletedSurvey = hasBetaLifetimeAccess(user);
 
@@ -222,121 +162,113 @@ export default function BetaClosed() {
                 </div>
               </div>
 
-              {/* Survey Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Overall Experience */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    How would you rate your overall experience with The Pep Planner? *
-                  </label>
-                  <select
-                    required
-                    value={formData.overallExperience}
-                    onChange={(e) => handleInputChange('overallExperience', e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select rating...</option>
-                    <option value="excellent">Excellent - Exceeded expectations</option>
-                    <option value="good">Good - Met expectations</option>
-                    <option value="average">Average - Some room for improvement</option>
-                    <option value="poor">Poor - Needs significant improvement</option>
-                  </select>
-                </div>
-
-                {/* Most Useful Feature */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    What was the most useful feature for you? *
-                  </label>
-                  <select
-                    required
-                    value={formData.mostUsefulFeature}
-                    onChange={(e) => handleInputChange('mostUsefulFeature', e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select feature...</option>
-                    <option value="protocol-builder">Protocol Builder</option>
-                    <option value="recon-calculator">Recon Calculator</option>
-                    <option value="order-tracking">Order Tracking</option>
-                    <option value="calendar-planning">Calendar Planning</option>
-                    <option value="vendor-management">Vendor Management</option>
-                    <option value="stockpile-tracking">Stockpile Tracking</option>
-                    <option value="other">Other (please specify in comments)</option>
-                  </select>
-                </div>
-
-                {/* Improvements */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    What improvements would you most like to see? *
-                  </label>
-                  <textarea
-                    required
-                    value={formData.suggestedImprovements}
-                    onChange={(e) => handleInputChange('suggestedImprovements', e.target.value)}
-                    placeholder="Tell us what features, improvements, or changes would make The Pep Planner even better for you..."
-                    rows={4}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Recommendation */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    How likely are you to recommend The Pep Planner to other peptide users? *
-                  </label>
-                  <select
-                    required
-                    value={formData.recommendToOthers}
-                    onChange={(e) => handleInputChange('recommendToOthers', e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select likelihood...</option>
-                    <option value="very-likely">Very likely - I'd actively recommend it</option>
-                    <option value="likely">Likely - I'd recommend if asked</option>
-                    <option value="neutral">Neutral - Might recommend with improvements</option>
-                    <option value="unlikely">Unlikely - Needs significant improvements</option>
-                    <option value="very-unlikely">Very unlikely - Would not recommend</option>
-                  </select>
-                </div>
-
-                {/* Additional Comments */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Any additional comments or suggestions?
-                  </label>
-                  <textarea
-                    value={formData.additionalComments}
-                    onChange={(e) => handleInputChange('additionalComments', e.target.value)}
-                    placeholder="Share any other thoughts, ideas, or feedback..."
-                    rows={3}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <div className="text-center">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-8 py-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl font-semibold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 mx-auto animate-pulse"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        🚀 Submit Survey & Activate Lifetime Access
-                      </>
-                    )}
-                  </button>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Your feedback helps us build the best peptide planning app possible
+              {/* Survey Preview - Links to Google Form */}
+              <div className="space-y-6">
+                {/* Important Note */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-blue-600 text-xl">📝</span>
+                    <h3 className="text-lg font-semibold text-blue-800">Beta Feedback Survey</h3>
+                  </div>
+                  <p className="text-blue-700 text-sm">
+                    Click the button below to open your comprehensive 49-question beta feedback survey. 
+                    Once completed, your lifetime access will be automatically activated when we relaunch!
                   </p>
                 </div>
-              </form>
+
+                {/* Survey Preview */}
+                <div className="bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">📋 What the Survey Covers</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-700">
+                    <div>
+                      <h4 className="font-semibold text-blue-800 mb-2">🎯 User Experience</h4>
+                      <ul className="space-y-1 text-xs">
+                        <li>• First impressions & onboarding</li>
+                        <li>• Navigation & dashboard feedback</li>
+                        <li>• Design & user interface thoughts</li>
+                        <li>• Performance & technical issues</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-blue-800 mb-2">🔧 Feature Feedback</h4>
+                      <ul className="space-y-1 text-xs">
+                        <li>• Protocol management experience</li>
+                        <li>• Vendor & order tracking</li>
+                        <li>• Calendar & scheduling features</li>
+                        <li>• Stockpile & recon calculator</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-blue-800 mb-2">💡 Strategic Insights</h4>
+                      <ul className="space-y-1 text-xs">
+                        <li>• Most valuable features</li>
+                        <li>• Biggest pain points</li>
+                        <li>• Feature wishlist</li>
+                        <li>• Recommendation likelihood</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-blue-800 mb-2">💰 Pricing Feedback</h4>
+                      <ul className="space-y-1 text-xs">
+                        <li>• Payment preferences</li>
+                        <li>• Price point expectations</li>
+                        <li>• Subscription vs lifetime</li>
+                        <li>• Trial structure preferences</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                    <p className="text-sm text-blue-800 font-medium">
+                      ⏱️ Estimated time: 10-15 minutes • 49 comprehensive questions
+                    </p>
+                  </div>
+                </div>
+
+                {/* Submit Button - Link to Google Form */}
+                <div className="text-center">
+                  <a
+                    href="https://docs.google.com/forms/d/e/1FAIpQLSfpJ4cqo0ND5Yz_KOZqpRL2xXVGtNCWA91XNtEIkYsVOg5sBg/viewform"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity animate-pulse"
+                  >
+                    🚀 Complete Survey & Activate Lifetime Access
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Opens in a new tab • Your feedback helps us build the best peptide planning app possible
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    After completing the survey, your lifetime access will be activated automatically
+                  </p>
+                  
+                  {/* Already Completed Button */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm text-gray-600 mb-2">Already completed the survey?</p>
+                    <button
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          'Have you completed the Google Form survey? This will activate your lifetime access.'
+                        );
+                        if (confirmed) {
+                          markBetaFeedbackCompleted(user);
+                          window.location.reload();
+                        }
+                      }}
+                      className="px-4 py-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
+                    >
+                      ✅ I Completed the Survey - Activate Lifetime Access
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
