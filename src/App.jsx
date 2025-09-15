@@ -7,6 +7,7 @@ import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
+import { isBetaTester, hasBetaLifetimeAccess, isBetaPeriodEnded } from './utils/betaAccess';
 import DemoDataBanner from './components/ui/DemoDataBanner';
 import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
 import SuccessModal from './components/ui/SuccessModal';
@@ -15,6 +16,7 @@ import TourController from './components/onboarding/TourController';
 import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
+import BetaEndedPopup from './components/beta/BetaEndedPopup';
 
 function App() {
   const [themeName] = useState(() => {
@@ -25,12 +27,13 @@ function App() {
     }
   });
   const theme = themes[themeName]
-  const { hasMockData } = useAppContext();
+  const { hasMockData, user } = useAppContext();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [showDemoBanner, setShowDemoBanner] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [showBetaEndedPopup, setShowBetaEndedPopup] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isPwaSupported, setIsPwaSupported] = useState(false);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
@@ -38,6 +41,45 @@ function App() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
+
+  // Check for beta ended popup on user login
+  useEffect(() => {
+    if (user && isBetaTester(user) && !hasBetaLifetimeAccess(user) && isBetaPeriodEnded()) {
+      // Check if we should show the popup
+      const lastShown = localStorage.getItem('tpprover_beta_popup_last_shown');
+      const remindLater = localStorage.getItem('tpprover_beta_survey_remind_later');
+      const now = new Date();
+
+      let shouldShow = false;
+
+      if (!lastShown) {
+        // Never shown before, show it
+        shouldShow = true;
+      } else if (remindLater) {
+        // Check if remind time has passed
+        const remindTime = new Date(remindLater);
+        if (now >= remindTime) {
+          shouldShow = true;
+          localStorage.removeItem('tpprover_beta_survey_remind_later');
+        }
+      } else {
+        // Show again if it's been more than 24 hours since last shown
+        const lastShownTime = new Date(lastShown);
+        const hoursSinceLastShown = (now - lastShownTime) / (1000 * 60 * 60);
+        if (hoursSinceLastShown >= 24) {
+          shouldShow = true;
+        }
+      }
+
+      if (shouldShow) {
+        // Small delay to let the app load
+        setTimeout(() => {
+          setShowBetaEndedPopup(true);
+          localStorage.setItem('tpprover_beta_popup_last_shown', now.toISOString());
+        }, 1000);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
@@ -177,6 +219,15 @@ function App() {
         onClose={() => setShowUnsupportedModal(false)} 
         theme={theme} 
       />
+      
+      {/* Beta Ended Popup */}
+      {showBetaEndedPopup && (
+        <BetaEndedPopup 
+          user={user}
+          theme={theme}
+          onClose={() => setShowBetaEndedPopup(false)}
+        />
+      )}
     </div>
   )
 }

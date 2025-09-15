@@ -45,7 +45,7 @@
 
     React.useEffect(() => {
         const calculateTimeLeft = () => {
-            const betaEndDate = new Date('2024-09-21T00:00:00'); // Sept 21st midnight
+            const betaEndDate = new Date('2025-09-21T00:00:00'); // Sept 21st midnight
             const now = new Date();
             const difference = betaEndDate.getTime() - now.getTime();
 

@@ -52,6 +52,13 @@ service cloud.firestore {
       allow read, update, delete: if true; // Temporarily open for beta launch - admin access
     }
     
+    // Notifications - users can read/update their own notifications, admin can create
+    match /notifications/{notificationId} {
+      allow read, update, delete: if request.auth != null && 
+        request.auth.token.email == resource.data.userEmail;
+      allow create: if true; // Admin can create notifications for users
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

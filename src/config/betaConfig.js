@@ -3,8 +3,8 @@
  * Centralized configuration for beta period and transitions
  */
 
-// Beta end date: September 21st, 2024 at midnight (local time)
-export const BETA_END_DATE = new Date('2024-09-21T00:00:00');
+// Beta end date: September 21st, 2025 at midnight (local time)
+export const BETA_END_DATE = new Date('2025-09-21T00:00:00');
 
 // Alternative: Use a specific timezone if needed
 // export const BETA_END_DATE = new Date('2024-09-21T00:00:00-07:00'); // PDT

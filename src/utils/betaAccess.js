@@ -85,7 +85,7 @@ function checkBetaPeriodSignup(user) {
   try {
     const userDate = new Date(user.createdAt);
     const betaStartDate = new Date('2024-01-01'); // Adjust to your beta start
-    const betaEndDate = new Date('2024-09-21');   // Beta ends Sept 21st at midnight
+    const betaEndDate = new Date('2025-09-21');   // Beta ends Sept 21st at midnight
     
     return userDate >= betaStartDate && userDate <= betaEndDate;
   } catch {
