@@ -96,6 +96,18 @@ export function AppProvider({ children }) {
                     const hasEmptyLocalStorage = !localStorage.getItem('tpprover_protocols') || 
                                                 JSON.parse(localStorage.getItem('tpprover_protocols') || '[]').length === 0;
                     
+                    // CRITICAL: If user has empty localStorage but no password, they need to re-enter password
+                    if (hasEmptyLocalStorage && !hasPassword) {
+                        console.log('🔐 New device/browser detected - need password for data sync');
+                        console.log('💡 User should log out and log back in with their password to sync data');
+                        
+                        // Show helpful message in console
+                        console.log('🔧 SOLUTION: Log out and log back in with your password to sync your data from other devices');
+                        
+                        // Set a flag so the login page can show a helpful message
+                        localStorage.setItem('tpp_need_password_for_sync', 'true');
+                    }
+                    
                     if (hasPassword || hasEmptyLocalStorage) {
                         try {
                             console.log('🔄 Attempting Firebase data recovery...', { hasPassword, hasEmptyLocalStorage });

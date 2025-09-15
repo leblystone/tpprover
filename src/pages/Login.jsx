@@ -58,6 +58,7 @@ export default function Login() {
     const [showTerms, setShowTerms] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [isReturningUser, setIsReturningUser] = useState(false);
+    const [needsPasswordForSync, setNeedsPasswordForSync] = useState(false);
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -65,6 +66,13 @@ export default function Login() {
             // User is already logged in, redirect to dashboard
             setUser({ email: firebaseUser.email, uid: firebaseUser.uid });
             navigate('/dashboard');
+        }
+        
+        // Check if user needs to re-enter password for data sync
+        const needsSync = localStorage.getItem('tpp_need_password_for_sync');
+        if (needsSync) {
+            setNeedsPasswordForSync(true);
+            localStorage.removeItem('tpp_need_password_for_sync'); // Clear the flag
         }
     }, [firebaseUser, isFirebaseLoading, setUser, navigate]);
 
@@ -445,6 +453,18 @@ export default function Login() {
                                         <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
                                     </div>
                                 </>
+                            )}
+
+                            {needsPasswordForSync && mode === 'login' && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                                    <div className="flex items-start gap-2">
+                                        <div className="text-blue-600 mt-0.5">🔐</div>
+                                        <div className="text-sm text-blue-800">
+                                            <strong>Data Sync Required:</strong> You're logging in from a new device or browser. 
+                                            Enter your password to sync your data (protocols, orders, stockpile, etc.) from your other devices.
+                                        </div>
+                                    </div>
+                                </div>
                             )}
 
                             {error && (
