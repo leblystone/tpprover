@@ -373,70 +373,25 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </div>
                             </div>
                         ))}
-                                
-                                {/* Show protocol type selector after first peptide if there are multiple */}
-                                {index === 0 && form.peptides?.length > 1 && (
-                                    <div className="mt-4 mb-2">
-                                        <div className="flex items-center justify-between p-4 rounded-lg border-2 border-dashed" style={{ borderColor: theme.primary, backgroundColor: `${theme.primary}08` }}>
-                                            <div className="flex-1">
-                                                <div className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
-                                                    📋 Multiple Peptides Detected
-                                                </div>
-                                                <p className="text-xs text-gray-600">
-                                                    Are these peptides <strong>blended together in one vial</strong> or taken <strong>separately</strong>?
-                                                </p>
-                                            </div>
-                                            <div className="inline-flex rounded-md bg-white p-1 shadow-md border" style={{ borderColor: theme.border }}>
-                                                {['Separate', 'Blended'].map(k => (
-                                                    <button 
-                                                        key={k} 
-                                                        type="button" 
-                                                        onClick={() => handleChange('blendMode', k.toLowerCase())}
-                                                        className={`px-4 py-2 text-sm font-semibold rounded ${(form.blendMode || 'separate') === k.toLowerCase() ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100'}`}
-                                                        style={(form.blendMode || 'separate') === k.toLowerCase() ? { backgroundColor: theme?.primary } : {}}
-                                                    >
-                                                        {k}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
                     </div>
 
-                    {form.blendMode === 'blended' && (
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Blended Protocol Schedule</div>
-                            <DosingScheduleEditor 
-                                item={{
-                                    frequency: form.sharedFrequency,
-                                    titrationEnabled: form.sharedTitrationEnabled,
-                                    titration: form.sharedTitration
-                                }}
-                                onChange={(update) => {
-                                    setForm(prev => ({
-                                        ...prev,
-                                        sharedFrequency: update.frequency,
-                                        sharedTitrationEnabled: update.titrationEnabled,
-                                        sharedTitration: update.titration,
-                                    }));
-                                }}
-                                theme={theme}
-                                isBlendedContext={true}
-                            />
-                        </div>
-                    )}
 
-                    <button
-                        type="button"
-                        onClick={addPeptide}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md text-sm font-medium border-dashed border-2 hover:bg-gray-50 transition-colors"
-                        style={{ borderColor: theme.border, color: theme.text }}
-                    >
-                        <PlusCircle size={16} /> Add Another Peptide/Amino Blend
-                    </button>
+                        {/* Add Peptide Button */}
+                        <button
+                            onClick={addPeptide}
+                            className="p-6 border-2 border-dashed rounded-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.01] hover:shadow-md"
+                            style={{ 
+                                borderColor: theme.border, 
+                                color: theme.textLight,
+                                backgroundColor: theme.cardBackground + '50'
+                            }}
+                        >
+                            <PlusCircle size={24} />
+                            <div className="text-left">
+                                <div className="font-semibold" style={{ color: theme.text }}>Add Another Peptide</div>
+                                <div className="text-sm">Click to add more compounds to this protocol</div>
+                            </div>
+                        </button>
                 </div>
 
                 {/* Separator */}
