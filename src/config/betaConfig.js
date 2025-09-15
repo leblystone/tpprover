@@ -4,8 +4,7 @@
  */
 
 // Beta end date: September 21st, 2025 at midnight (local time)
-// TEMPORARILY SET TO YESTERDAY FOR TESTING - CHANGE BACK WHEN DONE!
-export const BETA_END_DATE = new Date('2024-09-14T00:00:00');
+export const BETA_END_DATE = new Date('2025-09-21T00:00:00');
 
 // App reopen date: September 28th, 2025 (7 days after beta ends)
 export const REOPEN_DATE = new Date('2025-09-28T00:00:00');
