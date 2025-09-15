@@ -15,6 +15,7 @@ import {
   getAllFeedback,
   updateFeedback,
   deleteFeedback,
+  respondToFeedback,
   getAnalytics,
   getUserList
 } from '../services/firebase';
@@ -188,6 +189,8 @@ function Admin() {
   const [userList, setUserList] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [expandedFeedback, setExpandedFeedback] = useState(null);
+  const [respondingToFeedback, setRespondingToFeedback] = useState(null);
+  const [responseText, setResponseText] = useState('');
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
     featureUsage: {},
@@ -615,6 +618,28 @@ function Admin() {
     });
   };
 
+  const handleRespondToFeedback = async (feedbackItem) => {
+    if (!responseText.trim()) return;
+
+    try {
+      setLoading(prev => ({ ...prev, submitting: true }));
+      await respondToFeedback(feedbackItem.id, responseText.trim(), feedbackItem.email);
+      
+      // Refresh feedback list to show updated status
+      await loadFeedback();
+      
+      // Reset response state
+      setRespondingToFeedback(null);
+      setResponseText('');
+      
+      console.log('✅ Response sent successfully');
+    } catch (error) {
+      console.error('❌ Failed to send response:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, submitting: false }));
+    }
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
@@ -721,9 +746,9 @@ function Admin() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: '#f8fafc' }}>
       {/* Sidebar Navigation */}
-      <div className="w-64 bg-white border-r flex flex-col" style={{ borderColor: theme.border }}>
+      <div className="w-full lg:w-64 bg-white border-r lg:border-b-0 border-b flex flex-col lg:flex-col flex-row lg:min-h-screen overflow-x-auto lg:overflow-x-visible" style={{ borderColor: theme.border }}>
         {/* Header */}
         <div className="p-6 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-3">
@@ -738,7 +763,7 @@ function Admin() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 flex lg:flex-col flex-row lg:space-y-2 lg:space-x-0 space-x-2 space-y-0 overflow-x-auto lg:overflow-x-visible">
           {[
             { 
               id: 'analytics', 
@@ -795,7 +820,7 @@ function Admin() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full p-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
+                className={`w-full lg:w-auto flex-shrink-0 p-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
                   isActive ? 'shadow-md' : 'hover:shadow-sm'
                 }`}
                 style={{
@@ -841,10 +866,10 @@ function Admin() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <div className="bg-white border-b p-6" style={{ borderColor: theme.border }}>
-          <div className="flex items-center justify-between">
+        <div className="bg-white border-b p-4 lg:p-6" style={{ borderColor: theme.border }}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold capitalize" style={{ color: theme.primaryDark }}>
                 {activeTab === 'subscriptions' ? 'Beta Users' : activeTab.replace(/([A-Z])/g, ' $1').trim()}
@@ -888,7 +913,7 @@ function Admin() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-4 lg:p-6 overflow-y-auto overflow-x-hidden">
 
         {activeTab === 'analytics' && (
           <div className="space-y-6">
@@ -1470,7 +1495,7 @@ function Admin() {
         {activeTab === 'feedback' && (
           <div className="space-y-6">
             {/* Feedback Analytics Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.info + '20' }}>
@@ -1479,30 +1504,6 @@ function Admin() {
                   <div>
                     <div className="text-2xl font-bold" style={{ color: theme.info }}>{feedback.length}</div>
                     <div className="text-sm" style={{ color: theme.textLight }}>Total Feedback</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
-                    <ThumbsUp size={20} style={{ color: theme.success }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.success }}>{feedbackAnalysis.sentiment.positive || 0}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Positive</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.error + '20' }}>
-                    <ThumbsDown size={20} style={{ color: theme.error }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.error }}>{feedbackAnalysis.sentiment.negative || 0}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Negative</div>
                   </div>
                 </div>
               </div>
@@ -1562,9 +1563,9 @@ function Admin() {
               <div className="p-6 border-b" style={{ borderColor: theme.border }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Smart Feedback Inbox</h2>
+                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Feedback</h2>
                     <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      Keyword-based categorization and sentiment analysis
+                      User feedback management with keyword-based categorization
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -1603,6 +1604,7 @@ function Admin() {
                     const statusColors = {
                       'new': { bg: theme.warning + '15', color: theme.warning, icon: Clock },
                       'reviewed': { bg: theme.info + '15', color: theme.info, icon: Eye },
+                      'responded': { bg: theme.primary + '15', color: theme.primary, icon: MessageSquare },
                       'resolved': { bg: theme.success + '15', color: theme.success, icon: CheckCircle }
                     };
                     const statusConfig = statusColors[item.status] || statusColors.new;
@@ -1610,8 +1612,8 @@ function Admin() {
 
                     return (
                       <div key={item.id} className="p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4 min-w-0">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
                               <div className="flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium" 
                                    style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}>
@@ -1628,11 +1630,11 @@ function Admin() {
                                 }
                               </span>
                             </div>
-                            <p className={`text-sm ${isExpanded ? '' : 'line-clamp-2'}`} style={{ color: theme.text }}>
+                            <p className={`text-sm break-words ${isExpanded ? '' : 'line-clamp-2'}`} style={{ color: theme.text }}>
                               {item.message}
                             </p>
                             {item.url && (
-                              <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                              <p className="text-xs mt-1 break-all" style={{ color: theme.textLight }}>
                                 From: {item.url}
                               </p>
                             )}
@@ -1659,6 +1661,21 @@ function Admin() {
                             )}
                             
                             {(item.status === 'new' || item.status === 'reviewed') && (
+                              <button
+                                onClick={() => {
+                                  setRespondingToFeedback(item.id);
+                                  setResponseText('');
+                                  setExpandedFeedback(item.id);
+                                }}
+                                className="p-1 rounded hover:opacity-70"
+                                style={{ color: theme.primary }}
+                                title="Respond to feedback"
+                              >
+                                <MessageSquare size={16} />
+                              </button>
+                            )}
+                            
+                            {(item.status === 'new' || item.status === 'reviewed' || item.status === 'responded') && (
                               <button
                                 onClick={() => handleUpdateFeedback(item.id, { status: 'resolved' })}
                                 className="p-1 rounded hover:opacity-70"
@@ -1688,9 +1705,69 @@ function Admin() {
                               {item.userId && <p><strong>User ID:</strong> {item.userId}</p>}
                             </div>
                             
+                            {/* Show existing admin response if any */}
+                            {item.adminResponse && (
+                              <div className="p-3 rounded-lg border" style={{ borderColor: theme.primary + '30', backgroundColor: theme.primary + '10' }}>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <MessageSquare size={14} style={{ color: theme.primary }} />
+                                  <span className="text-sm font-medium" style={{ color: theme.primary }}>Your Response</span>
+                                  {item.responseDate && (
+                                    <span className="text-xs" style={{ color: theme.textLight }}>
+                                      {item.responseDate.toDate ? item.responseDate.toDate().toLocaleDateString() : 'Recently'}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm" style={{ color: theme.text }}>{item.adminResponse}</p>
+                              </div>
+                            )}
+
+                            {/* Response form */}
+                            {respondingToFeedback === item.id && (
+                              <div className="space-y-3">
+                                <label className="block text-sm font-medium" style={{ color: theme.text }}>
+                                  Respond to {item.userEmail}
+                                </label>
+                                <textarea
+                                  value={responseText}
+                                  onChange={(e) => setResponseText(e.target.value)}
+                                  className="w-full p-3 border rounded-lg text-sm"
+                                  style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                                  rows="4"
+                                  placeholder="Type your response to the user here..."
+                                />
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleRespondToFeedback(item)}
+                                    disabled={!responseText.trim() || loading.submitting}
+                                    className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                                  >
+                                    {loading.submitting ? (
+                                      <>
+                                        <Loader size={14} className="animate-spin mr-2" />
+                                        Sending...
+                                      </>
+                                    ) : (
+                                      'Send Response'
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setRespondingToFeedback(null);
+                                      setResponseText('');
+                                    }}
+                                    className="px-4 py-2 rounded-lg text-sm font-semibold border"
+                                    style={{ borderColor: theme.border, color: theme.text }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                             <div>
                               <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
-                                Admin Notes
+                                Admin Notes (Internal)
                               </label>
                               <textarea
                                 value={item.adminNotes || ''}
@@ -1773,7 +1850,7 @@ function Admin() {
                       Approved Emails ({emailWhitelist.length})
                     </h3>
                     {emailWhitelist.length > 0 && (
-                      <div className="flex items-center gap-4 text-xs">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs">
                         <div className="flex items-center gap-1">
                           <CheckCircle size={14} style={{ color: theme.success }} />
                           <span style={{ color: theme.success }}>{getSignupStats().signedUp} signed up</span>
@@ -1807,15 +1884,15 @@ function Admin() {
                         const StatusIcon = signupStatus.icon;
                         
                         return (
-                          <div key={index} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                            <div className="flex items-center gap-3 flex-1">
+                          <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <StatusIcon size={16} style={{ color: signupStatus.color }} />
+                              <span className="text-sm font-mono truncate" style={{ color: theme.text }}>
+                                {email}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between sm:justify-end gap-2">
                               <div className="flex items-center gap-2">
-                                <StatusIcon size={16} style={{ color: signupStatus.color }} />
-                                <span className="text-sm font-mono" style={{ color: theme.text }}>
-                                  {email}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 ml-auto mr-3">
                                 <span className="text-xs px-2 py-1 rounded-full font-medium" style={{
                                   backgroundColor: signupStatus.color + '20',
                                   color: signupStatus.color
@@ -1828,15 +1905,15 @@ function Admin() {
                                   </span>
                                 )}
                               </div>
+                              <button
+                                onClick={() => removeFromWhitelistFirebase(email)}
+                                className="p-1 rounded hover:opacity-70 flex-shrink-0"
+                                style={{ color: theme.error }}
+                                title="Remove from whitelist"
+                              >
+                                <X size={16} />
+                              </button>
                             </div>
-                            <button
-                              onClick={() => removeFromWhitelistFirebase(email)}
-                              className="p-1 rounded hover:opacity-70 flex-shrink-0"
-                              style={{ color: theme.error }}
-                              title="Remove from whitelist"
-                            >
-                              <X size={16} />
-                            </button>
                           </div>
                         );
                       })}
