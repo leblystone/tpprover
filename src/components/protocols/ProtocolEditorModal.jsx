@@ -203,7 +203,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         <Modal 
             open={open}
             onClose={onClose}
-            title={form?.id ? "Edit Protocol" : "New Protocol"}
+            title={
+                form?.protocolName 
+                    ? (form?.id ? `Edit: ${form.protocolName}` : `New: ${form.protocolName}`)
+                    : (form?.id ? "Edit Protocol" : "New Protocol")
+            }
             theme={theme}
             maxWidth="max-w-4xl"
             footer={(
@@ -224,7 +228,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Header Section - Clean and Minimal */}
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
-                        {form?.id ? "Edit Protocol" : "Create New Protocol"}
+                        {form?.protocolName 
+                            ? (form?.id ? `Editing: ${form.protocolName}` : `Creating: ${form.protocolName}`)
+                            : (form?.id ? "Edit Protocol" : "Create New Protocol")
+                        }
                     </h2>
                 </div>
 
