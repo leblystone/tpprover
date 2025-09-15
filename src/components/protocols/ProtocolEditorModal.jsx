@@ -228,10 +228,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Header Section - Clean and Minimal */}
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
-                        {form?.protocolName 
-                            ? (form?.id ? `Editing: ${form.protocolName}` : `Creating: ${form.protocolName}`)
-                            : (form?.id ? "Edit Protocol" : "Create New Protocol")
-                        }
+                        {form?.id ? "Edit Protocol" : "Create New Protocol"}
                     </h2>
                 </div>
 
