@@ -102,34 +102,34 @@ export const themes = {
     name: 'Beekeeper (Dark)',
     isDark: true,
     
-    // Core Palette
-    primary: '#E4B65B',
-    primaryDark: '#C99A42',
-    primaryLight: '#FAD48C',
-    secondary: '#4A4A4A',
-    accent: '#FAD48C',
+    // Core Palette - Warm amber/golden accents like the image
+    primary: '#D4A853',        // Rich golden amber (like honeycomb)
+    primaryDark: '#B8942A',    // Deeper amber
+    primaryLight: '#E6C575',   // Light honey gold
+    secondary: '#3F3F3F',      // Dark gray for secondary elements
+    accent: '#E6C575',         // Light honey accent
 
-    // Text
-    text: '#F0F0F0',
-    textLight: '#A0A0A0',
-    textOnPrimary: '#2C2C2C',
+    // Text - High contrast on dark background
+    text: '#FFFFFF',           // Pure white for primary text
+    textLight: '#B5B5B5',      // Light gray for secondary text
+    textOnPrimary: '#1A1A1A',  // Dark text on golden backgrounds
     
-    // Backgrounds
-    background: '#2C2C2C',
-    cardBackground: '#3A3A3A',
+    // Backgrounds - Sophisticated dark grays like the image
+    background: '#2A2A2A',     // Main dark gray background (like hexagon pattern)
+    cardBackground: '#363636', // Slightly lighter for cards
     
     // UI Elements
-    border: '#555555',
-    buttonDisabled: '#7A6B4E',
+    border: '#4A4A4A',         // Subtle borders
+    buttonDisabled: '#666666', // Disabled state
     
-    // Semantic Colors
-    success: '#6A9A6A',
-    warning: '#D4A26D',
-    error: '#C87A7A',
-    info: '#6E93A3',
-    successBg: '#3A5A3A',
-    warningBg: '#6A5A3A',
-    infoBg: '#3A5A6A',
+    // Semantic Colors - Adjusted for dark theme
+    success: '#7FB069',        // Green that works on dark
+    warning: '#D4A853',        // Use primary amber for warnings
+    error: '#E57373',          // Soft red for errors
+    info: '#64B5F6',           // Blue for info
+    successBg: '#2D4A2D',      // Dark green backgrounds
+    warningBg: '#4A3D2D',      // Dark amber backgrounds
+    infoBg: '#2D3A4A',         // Dark blue backgrounds
   },
 };
 

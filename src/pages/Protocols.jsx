@@ -190,22 +190,8 @@ export default function Protocols() {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-end">
-        <div className="flex items-center gap-2">
-          <div className="relative inline-block group">
-            <button aria-label="Import Protocols" className="p-2 rounded-md border" title="Import protocols (CSV/JSON)" onClick={() => fileInputRef.current?.click()} style={{ borderColor: theme.border }}>
-              <FileUp className="h-4 w-4" />
-            </button>
-            {showImportHint && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 rounded-md text-xs shadow-md border hidden group-hover:block" style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}>
-                Import protocols
-                <button className="ml-2" aria-label="Dismiss" onClick={() => { setShowImportHint(false); try { localStorage.setItem('tpprover_protocols_import_hint', 'dismissed') } catch {} }}>×</button>
-              </div>
-            )}
-          </div>
-          <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => setOpenAdd(true)}><PlusCircle className="h-4 w-4 inline mr-1"/>Add Protocol</button>
-        </div>
+        <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => setOpenAdd(true)}><PlusCircle className="h-4 w-4 inline mr-1"/>Add Protocol</button>
       </div>
-      <input ref={fileInputRef} type="file" accept=".csv,.json" className="hidden" onChange={onImportFile} />
       <div>
         {protocols.length === 0 ? (
           <p className="text-sm" style={{ color: theme.textLight }}>No protocols yet.</p>
