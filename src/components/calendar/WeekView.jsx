@@ -1,6 +1,6 @@
 import React from 'react'
 import { toKey } from './MonthGrid'
-import { Droplet, Pill, Edit, Syringe, PenTool } from 'lucide-react'
+import { Droplet, Pill, Edit, Syringe, PenTool, Beaker } from 'lucide-react'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 
 const penColors = [
@@ -13,6 +13,17 @@ const penColors = [
     { name: 'Burgundy', hex: '#800000' }, { name: 'Purple', hex: '#800080' },
 ];
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
+
+// Helper function to get supplement icon based on delivery method
+function getSupplementIcon(delivery, size = 12, color) {
+    switch (String(delivery || '').toLowerCase()) {
+        case 'injection': return <Syringe size={size} style={{ color }} />;
+        case 'powder': return <Beaker size={size} style={{ color }} />;
+        case 'pill':
+        case 'oral':
+        default: return <Pill size={size} style={{ color }} />;
+    }
+}
 
 function DeliveryIndicator({ item, theme }) {
     const size = 18;
@@ -146,7 +157,7 @@ function SlotContent({ scheduled, theme }) {
       ))}
       {scheduled.supplements?.map((s, i) => (
         <div key={`s-${i}`} className="flex items-center gap-2 text-xs p-1 rounded" style={{ backgroundColor: theme.secondary }}>
-          <Pill size={12} style={{ color: theme.textLight }} />
+          {getSupplementIcon(typeof s === 'object' ? s.delivery : 'oral', 12, theme.textLight)}
           <span className="flex-1 truncate">{typeof s === 'object' ? s.name : s}</span>
         </div>
       ))}

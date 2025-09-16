@@ -238,9 +238,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     </div>
                 </div>
 
-                {/* Frequency & Schedule - Only show for separate protocols, hidden for blended (handled globally) */}
-                {protocolType === 'separate' && (
-                    <div className="space-y-4">
+                {/* Frequency & Schedule - Always show for all protocols */}
+                <div className="space-y-4">
                     <div>
                         <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Frequency</div>
                         <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
@@ -341,7 +340,6 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         </div>
                     </div>
                 </div>
-                )}
 
                 {/* Titration Section - Only show for separate protocols, hidden for blended (handled globally) */}
                 {protocolType === 'separate' && (
