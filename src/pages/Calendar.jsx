@@ -140,13 +140,19 @@ export default function Calendar() {
             console.log(`📅 Day ${d.getDate()} (${dayKey}):`, {
               totalSupps: supps.length,
               daySupps: daySupps.length,
-              supplements: daySupps.map(s => ({ name: s.name, delivery: s.delivery, days: s.days }))
+              supplements: daySupps.map(s => ({ name: s.name, delivery: s.delivery, days: s.days, schedule: s.schedule }))
             });
+            
+            // Debug: Show what gets added to bySlot
+            if (daySupps.length > 0) {
+              console.log(`🔍 Processing ${daySupps.length} supplements for day ${d.getDate()}`);
+            }
             if (daySupps.length > 0) {
               const key = toKey(d)
               const bySlot = { ...(next[key]?.bySlot || {}) }
               for (const s of daySupps) {
                 const slots = Array.isArray(s.schedule) ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM','PM'])
+                console.log(`🔧 Supplement "${s.name}" -> slots:`, slots);
                 for (const slot of slots) {
                   bySlot[slot] = {
                     peptides: bySlot[slot]?.peptides || [],
@@ -156,6 +162,7 @@ export default function Calendar() {
                       dose: s.dose
                     }],
                   }
+                  console.log(`✅ Added "${s.name}" (${s.delivery}) to ${slot} slot`);
                 }
               }
               next[key] = {
@@ -575,6 +582,12 @@ export default function Calendar() {
 
           // Force complete refresh instead of merging to prevent stale data
           console.log('🔄 Calendar: Refreshing with new data', { supplements: supps.length, goals: goals.length });
+          console.log('📋 Final scheduled data sample:', Object.keys(next).slice(0, 5).map(key => ({
+            date: key,
+            hasSupplements: !!next[key]?.supplements?.length,
+            bySlot: next[key]?.bySlot ? Object.keys(next[key].bySlot) : [],
+            supplementCount: Object.values(next[key]?.bySlot || {}).reduce((total, slot) => total + (slot.supplements?.length || 0), 0)
+          })));
           setScheduled(next)
         } catch (e) {
           console.error('[Calendar Debug] Error in loadData:', e);
@@ -593,8 +606,18 @@ export default function Calendar() {
   // Expose refresh function globally for debugging
   useEffect(() => {
     window.refreshCalendar = handleRefresh;
-    return () => { delete window.refreshCalendar; };
-  }, []);
+    window.debugSupplements = () => {
+      const supps = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]');
+      console.log('🔍 DEBUG: Supplements in localStorage:', supps);
+      console.log('🔍 DEBUG: Current supplements state:', supplements);
+      console.log('🔍 DEBUG: Current scheduled state keys:', Object.keys(scheduled).slice(0, 10));
+      return { localStorage: supps, state: supplements, scheduled: Object.keys(scheduled).length };
+    };
+    return () => { 
+      delete window.refreshCalendar; 
+      delete window.debugSupplements;
+    };
+  }, [supplements, scheduled]);
 
   // Listen for calendar bump events from other components
   useEffect(() => {
