@@ -197,7 +197,7 @@ export default function Settings() {
                 className="w-full p-2 rounded border"
                 style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
               >
-                {Object.keys(themes).filter(t => t !== 'beekeeper').map(t => <option key={t} value={t}>{themes[t].name}</option>)}
+                {Object.keys(themes).map(t => <option key={t} value={t}>{themes[t].name}</option>)}
               </select>
             </div>
             <SettingSelect label="Font Size" value={settings.appearance.fontScale} onChange={e => update('appearance.fontScale', e.target.value)} options={[{ value: '0.9', label: 'Small' }, { value: '1.0', label: 'Default' }, { value: '1.1', label: 'Large' }, { value: '1.25', label: 'XL' }]} theme={theme} />
