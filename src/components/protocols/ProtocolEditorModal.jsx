@@ -225,12 +225,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             )}
         >
             <div className="space-y-8">
-                {/* Header Section - Clean and Minimal */}
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-2" style={{ color: theme.text }}>
-                        {form?.id ? "Edit Protocol" : "Create New Protocol"}
-                    </h2>
-                </div>
 
                 {/* Protocol Basics - Visual Cards */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
