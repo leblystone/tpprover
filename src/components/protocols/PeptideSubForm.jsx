@@ -1,6 +1,6 @@
 import React from 'react';
 import TextInput from '../common/inputs/TextInput';
-import { X, Syringe, Pen } from 'lucide-react';
+import { X, Syringe, Pen, Spray } from 'lucide-react';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import { getChromeGradient } from '../../utils/recon';
 
@@ -79,7 +79,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         <div>
                             <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage Unit</div>
                             <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
-                                {(item.deliveryMethod === 'Nasal' 
+                                {(item.deliveryMethod === 'nasal' 
                                     ? ['mcg', 'mg', 'iu', 'mL', 'sprays'] 
                                     : ['mcg', 'mg', 'iu', 'mL']
                                 ).map(unit => (
@@ -102,11 +102,11 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>
                                     Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal" style={{ color: theme.textLight }}>(shared by all peptides)</span>}
                                 </div>
-                            <div className="flex gap-2">
+                            <div className="grid grid-cols-3 gap-2">
                                 <button 
                                     type="button"
                                     onClick={() => handleChange('deliveryMethod', 'syringe')}
-                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.textOnPrimary : theme.text,
@@ -118,7 +118,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 <button 
                                     type="button"
                                     onClick={() => handleChange('deliveryMethod', 'pen')}
-                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'syringe') === 'pen' ? theme.textOnPrimary : theme.text,
@@ -126,6 +126,18 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     }}
                                 >
                                     <Pen size={16} /> Pen
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => handleChange('deliveryMethod', 'nasal')}
+                                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    style={{
+                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.primary : theme.border
+                                    }}
+                                >
+                                    <Spray size={16} /> Nasal
                                 </button>
                             </div>
                             

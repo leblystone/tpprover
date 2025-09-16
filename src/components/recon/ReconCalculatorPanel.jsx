@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import TextInput from '../common/inputs/TextInput'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
-import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen } from 'lucide-react'
+import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Spray } from 'lucide-react'
 
 export const penColors = [
     { name: 'Gold', hex: '#DAA520' },
@@ -112,10 +112,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         {/* Delivery Method */}
         <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => setDeliveryMethod('syringe')}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'syringe' ? theme.primary : theme.secondary,
                         color: deliveryMethod === 'syringe' ? theme.textOnPrimary : theme.text,
@@ -126,7 +126,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 </button>
                 <button 
                     onClick={() => setDeliveryMethod('pen')}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'pen' ? theme.primary : theme.secondary,
                         color: deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
@@ -134,6 +134,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     }}
                 >
                     <Pen size={16} /> Pen
+                </button>
+                <button 
+                    onClick={() => setDeliveryMethod('nasal')}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                    style={{
+                        backgroundColor: deliveryMethod === 'nasal' ? theme.primary : theme.secondary,
+                        color: deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
+                        borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border
+                    }}
+                >
+                    <Spray size={16} /> Nasal
                 </button>
             </div>
             {deliveryMethod === 'pen' && (
@@ -308,7 +319,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               </div>
             </div>
             <p className="text-xs text-center mt-3" style={{ color: theme.textLight }}>
-                Based on {deliveryMethod === 'syringe' ? 'an insulin syringe (U-100, 1mL)' : 'a dosage pen'}
+                Based on {deliveryMethod === 'syringe' ? 'an insulin syringe (U-100, 1mL)' : deliveryMethod === 'pen' ? 'a dosage pen' : 'nasal spray delivery'}
             </p>
           </div>
         </div>
