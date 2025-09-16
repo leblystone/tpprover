@@ -139,8 +139,11 @@ export default function NotificationBell({ theme }) {
       </button>
 
       {showNotifications && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border shadow-lg z-[9999]"
-             style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        <>
+          {/* Backdrop to prevent blending */}
+          <div className="fixed inset-0 z-[9998]" onClick={() => setShowNotifications(false)} />
+          <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border shadow-xl z-[9999] ring-1 ring-black/10"
+               style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
             <div className="p-4 border-b" style={{ borderColor: theme.border }}>
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold" style={{ color: theme.text }}>Notifications</h3>
@@ -197,6 +200,7 @@ export default function NotificationBell({ theme }) {
               )}
             </div>
           </div>
+        </>
       )}
     </div>
   );

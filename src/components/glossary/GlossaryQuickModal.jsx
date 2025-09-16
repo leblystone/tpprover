@@ -1043,6 +1043,10 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
         'snap-8', 'snap8', 'ss31', 'ss-31', 'elamipretide', 'survodutide', 'bi 456906',
         'thymosin alpha 1', 'ta1', 'zadaxin', 'thymulin', 'fts', '5-amino-1mq', '5amino1mq',
         
+        // Additional peptides and compounds
+        'cerebrolysin', 'brain-derived peptides', 'neuropeptide complex', 'dihexa', 
+        'nicotinamide mononucleotide', 'nmn', 'nicotinamide adenine dinucleotide', 'nad', 'nad+',
+        
         // Nasal formulations
         'nasal spray', 'intranasal', 'nasal insulin', 'nasal oxytocin', 'nasal selank', 'nasal semax',
         'nasal melanotan', 'nasal pt141', 'nasal kisspeptin', 'nasal dsip',

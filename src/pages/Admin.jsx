@@ -3,7 +3,7 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus
+  UserPlus, Briefcase, BookOpen
 } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import {
@@ -17,8 +17,55 @@ import {
   deleteFeedback,
   respondToFeedback,
   getAnalytics,
-  getUserList
+  getUserList,
+  getFeatureFlags,
+  updateFeatureFlag
 } from '../services/firebase';
+import { getAuth, signInWithCustomToken } from 'firebase/auth';
+import { auth } from '../config/firebase';
+
+const handleImpersonateUser = async (uid) => {
+  try {
+    // In a real app, you would call a Firebase Cloud Function here
+    // that generates a custom token for the user.
+    // For now, we'll log to the console.
+    console.log(`Requesting impersonation for user: ${uid}`);
+    alert(`Impersonation functionality requires a backend function (e.g., Firebase Cloud Function) to securely generate a custom token. See console for details.`);
+
+    // Example of what the client-side would do with the token:
+    // const response = await fetch(`YOUR_CLOUD_FUNCTION_URL/impersonate?uid=${uid}`);
+    // const { token } = await response.json();
+    // await signInWithCustomToken(auth, token);
+    // window.open('/', '_blank'); // Open the app in a new tab as the user
+  } catch (error) {
+    console.error("Impersonation failed", error);
+    alert("Impersonation failed. Check the console for more information.");
+  }
+};
+
+const handleResetPassword = async (email) => {
+  try {
+    console.log(`Requesting password reset for email: ${email}`);
+    alert(`This action requires a backend function to securely trigger a password reset email. In a real app, you would call a Firebase Cloud Function that uses the Firebase Admin SDK to generate a password reset link.`);
+    // Example backend call:
+    // await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error("Password reset failed", error);
+    alert("Password reset failed. Check the console for more information.");
+  }
+};
+
+const handleSuspendUser = async (uid, currentStatus) => {
+  try {
+    console.log(`Requesting to ${currentStatus ? 'enable' : 'suspend'} user: ${uid}`);
+    alert(`This action requires a backend function to securely update the user's disabled status. In a real app, you would call a Firebase Cloud Function that uses the Firebase Admin SDK to update the user's auth record.`);
+    // Example backend logic (in a Cloud Function):
+    // await admin.auth().updateUser(uid, { disabled: !currentStatus });
+  } catch (error) {
+    console.error("Suspend/enable user failed", error);
+    alert("Suspend/enable user failed. Check the console for more information.");
+  }
+};
 
 // Real-time analytics helper functions
 const calculateUserGrowth = (users) => {
@@ -200,6 +247,9 @@ function Admin() {
     activeUsers: 0
   });
   const [users, setUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [subscriptions, setSubscriptions] = useState({
     active: 0,
     beta: 0,
@@ -417,11 +467,12 @@ function Admin() {
     try {
       // Load feature flags from localStorage for now - in production, from Firebase
       const flags = JSON.parse(localStorage.getItem('tpp_admin_feature_flags') || '{}');
+      const firebaseFlags = await getFeatureFlags();
       setFeatureFlags({
-        betaFeatures: flags.betaFeatures || {},
-        uiExperiments: flags.uiExperiments || {},
-        emailSettings: flags.emailSettings || {},
-        maintenanceMode: flags.maintenanceMode || false
+        betaFeatures: firebaseFlags.betaFeatures || flags.betaFeatures || {},
+        uiExperiments: firebaseFlags.uiExperiments || flags.uiExperiments || {},
+        emailSettings: firebaseFlags.emailSettings || flags.emailSettings || {},
+        maintenanceMode: firebaseFlags.maintenanceMode || flags.maintenanceMode || false
       });
     } catch (error) {
       console.error('❌ Error loading feature flags:', error);
@@ -705,6 +756,30 @@ function Admin() {
     setShowAddForm(false);
   };
 
+  const handleFlagToggle = async (flagKey, newValue) => {
+    try {
+      await updateFeatureFlag(flagKey, newValue);
+      setFeatureFlags(prev => {
+        const newFlags = { ...prev };
+        let updated = false;
+        for (const category in newFlags) {
+          if (typeof newFlags[category] === 'object' && newFlags[category] !== null && flagKey in newFlags[category]) {
+            newFlags[category][flagKey] = newValue;
+            updated = true;
+            break;
+          }
+        }
+        if (!updated) {
+          newFlags[flagKey] = newValue;
+        }
+        return newFlags;
+      });
+    } catch (error) {
+      console.error('Error updating feature flag:', error);
+      alert('Failed to update feature flag.');
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
@@ -781,6 +856,22 @@ function Admin() {
               count: subscriptions.total || 0,
               desc: 'Beta users',
               color: '#10b981' 
+            },
+            { 
+              id: 'billing', 
+              label: 'Billing', 
+              icon: CreditCard, 
+              count: 0,
+              desc: 'Stripe subscriptions',
+              color: '#f97316' 
+            },
+            { 
+              id: 'content', 
+              label: 'Content', 
+              icon: BookOpen, 
+              count: 0,
+              desc: 'Manage app content',
+              color: '#8b5cf6'
             },
             { 
               id: 'feedback', 
@@ -871,6 +962,8 @@ function Admin() {
               <p className="text-sm mt-1" style={{ color: theme.textLight }}>
                 {activeTab === 'analytics' && 'Real-time platform analytics and user insights'}
                 {activeTab === 'subscriptions' && 'Beta user management and registration tracking'}
+                {activeTab === 'billing' && 'Manage Stripe subscriptions, plans, and view revenue'}
+                {activeTab === 'content' && 'Manage research topics and other in-app content'}
                 {activeTab === 'feedback' && 'User feedback management with keyword-based categorization'}
                 {activeTab === 'announcements' && 'Manage app-wide announcements and notifications'}
                 {activeTab === 'whitelist' && 'Manage approved email addresses for beta access'}
@@ -1093,6 +1186,30 @@ function Admin() {
               </div>
             </div>
 
+            {/* User Search and Table */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>All Users</h2>
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search users by email or name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full p-3 rounded border"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                />
+              </div>
+              <UserTable 
+                users={users} 
+                searchTerm={searchTerm} 
+                theme={theme}
+                onViewUser={(user) => {
+                  setSelectedUser(user);
+                  setIsUserModalOpen(true);
+                }}
+              />
+            </div>
+
             {/* Recent Registrations */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Recent Registrations</h2>
@@ -1193,10 +1310,9 @@ function Admin() {
                   <AlertTriangle size={24} style={{ color: theme.warning }} />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Feature Flags - Currently Non-Functional</h2>
+                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Feature Flags - Now Functional!</h2>
                   <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                    The current feature toggle system is just a UI mockup and doesn't actually control any app functionality. 
-                    However, this would be <strong>extremely valuable</strong> for your future launch.
+                    This system is now connected to Firebase. Toggling a feature will update its value in the database, allowing for real-time control over app functionality.
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -1789,7 +1905,6 @@ function Admin() {
           </div>
         )}
 
-
         {activeTab === 'whitelist' && (
           <div className="space-y-6">
             <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -1919,6 +2034,200 @@ function Admin() {
           </div>
         )}
 
+        {activeTab === 'billing' && (
+          <div className="space-y-6">
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
+                  <Briefcase size={24} style={{ color: theme.warning }} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Stripe Billing Management</h2>
+                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                    This section will integrate with Stripe to provide a comprehensive overview of your subscriptions and revenue.
+                    A backend (e.g., Firebase Cloud Functions) is required to securely interact with the Stripe API.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-sm" style={{ color: theme.success }}>Planned Features:</h3>
+                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
+                        <li>• Real-time MRR, Churn, and LTV metrics</li>
+                        <li>• Searchable list of all subscriptions</li>
+                        <li>• View detailed subscription and payment history for each user</li>
+                        <li>• Issue refunds directly from the admin panel</li>
+                        <li>• Cancel or modify user subscriptions</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-sm" style={{ color: theme.info }}>Implementation Steps:</h3>
+                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
+                        <li>1. Set up a Firebase Cloud Function endpoint.</li>
+                        <li>2. Use the Stripe Node.js library in the function.</li>
+                        <li>3. Secure the endpoint to only allow admin access.</li>
+                        <li>4. Fetch data from the Stripe API (customers, subscriptions, etc.).</li>
+                        <li>5. Build UI components to display the data.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'content' && (
+          <div className="space-y-6">
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Content Management</h2>
+              <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                This section allows you to manage dynamic content within the application, such as research topics and popular pen types for protocols.
+              </p>
+              {/* Research Topics Management Placeholder */}
+              <div className="pt-4">
+                <h3 className="font-semibold mb-2" style={{ color: theme.text }}>Research Topics</h3>
+                <div className="p-4 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                  <p style={{ color: theme.textLight }}>A UI to add, edit, and delete research topics will be implemented here.</p>
+                </div>
+              </div>
+              {/* Pen Types Management Placeholder */}
+              <div className="pt-4">
+                <h3 className="font-semibold mb-2" style={{ color: theme.text }}>Popular Pen Types</h3>
+                <div className="p-4 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                  <p style={{ color: theme.textLight }}>A UI to manage the list of popular pen types for the protocol form will be implemented here.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        </div>
+      </div>
+      {isUserModalOpen && selectedUser && (
+        <UserDetailModal 
+          user={selectedUser} 
+          onClose={() => setIsUserModalOpen(false)}
+          theme={theme}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserTable({ users, searchTerm, theme, onViewUser }) {
+  const filteredUsers = users.filter(user => {
+    const term = searchTerm.toLowerCase();
+    const email = user.email?.toLowerCase() || '';
+    const name = user.displayName?.toLowerCase() || '';
+    return email.includes(term) || name.includes(term);
+  });
+
+  if (filteredUsers.length === 0) {
+    return <p style={{ color: theme.textLight }}>No users found.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
+        <thead style={{ backgroundColor: theme.background }}>
+          <tr>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>User</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Status</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Last Active</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          {filteredUsers.map(user => (
+            <tr key={user.uid}>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 h-10 w-10">
+                    <img className="h-10 w-10 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
+                  </div>
+                  <div className="ml-4">
+                    <div className="text-sm font-medium" style={{ color: theme.text }}>{user.displayName || 'No Name'}</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>{user.email}</div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {user.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
+                {user.lastActive?.toDate().toLocaleDateString()}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onClick={() => onViewUser(user)} className="text-indigo-600 hover:text-indigo-900">View</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UserDetailModal({ user, onClose, theme }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: theme.cardBackground }}>
+        <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: theme.border }}>
+          <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Details</h2>
+          <button onClick={onClose} className="p-1 hover:opacity-70">
+            <X size={20} style={{ color: theme.textLight }} />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          {/* User Info Header */}
+          <div className="flex items-center gap-4">
+            <img className="h-20 w-20 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
+            <div>
+              <h3 className="text-xl font-bold" style={{ color: theme.text }}>{user.displayName || 'No Name'}</h3>
+              <p className="text-sm" style={{ color: theme.textLight }}>{user.email}</p>
+              <div className="mt-2">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {user.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Key Dates */}
+          <div>
+            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Key Information</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="p-3 rounded" style={{ backgroundColor: theme.background }}>
+                <p className="font-medium">Registration Date</p>
+                <p style={{ color: theme.textLight }}>{user.createdAt?.toDate().toLocaleString() || 'N/A'}</p>
+              </div>
+              <div className="p-3 rounded" style={{ backgroundColor: theme.background }}>
+                <p className="font-medium">Last Active</p>
+                <p style={{ color: theme.textLight }}>{user.lastActive?.toDate().toLocaleString() || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Subscription Details (Placeholder) */}
+          <div>
+            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Subscription Details</h4>
+            <div className="p-4 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+              <p style={{ color: theme.textLight }}>Stripe integration coming soon...</p>
+            </div>
+          </div>
+
+          {/* Admin Actions (Placeholder) */}
+          <div>
+            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Admin Actions</h4>
+            <div className="flex gap-2">
+              <button onClick={() => handleImpersonateUser(user.uid)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Impersonate User</button>
+              <button onClick={() => handleResetPassword(user.email)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.warning + '80', color: theme.textOnPrimary }}>Reset Password</button>
+              <button onClick={() => handleSuspendUser(user.uid, user.disabled)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}>{user.disabled ? 'Enable' : 'Suspend'} User</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

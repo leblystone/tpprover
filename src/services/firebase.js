@@ -468,6 +468,39 @@ export async function deleteAnnouncement(id) {
   }
 }
 
+/**
+ * Get feature flags for admin
+ */
+export async function getFeatureFlags() {
+  try {
+    const docRef = doc(db, 'config', 'featureFlags');
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return {};
+    }
+    
+    return docSnap.data();
+  } catch (error) {
+    console.error('Failed to get feature flags:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a specific feature flag
+ */
+export async function updateFeatureFlag(key, value) {
+  try {
+    const docRef = doc(db, 'config', 'featureFlags');
+    await updateDoc(docRef, { [key]: value });
+    return true;
+  } catch (error) {
+    console.error('Failed to update feature flag:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // ANALYTICS (ANONYMOUS)
 // ============================================================================
