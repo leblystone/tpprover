@@ -136,7 +136,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     <Pen size={16} /> Pen
                 </button>
                 <button 
-                    onClick={() => setDeliveryMethod('nasal')}
+                    onClick={() => {
+                        setDeliveryMethod('nasal');
+                        // Auto-set all peptides to use sprays unit when nasal is selected
+                        setForm(prev => ({
+                            ...prev,
+                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'sprays' }))
+                        }));
+                    }}
                     className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'nasal' ? theme.primary : theme.secondary,

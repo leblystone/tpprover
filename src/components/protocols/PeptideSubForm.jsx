@@ -129,7 +129,13 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 </button>
                                 <button 
                                     type="button"
-                                    onClick={() => handleChange('deliveryMethod', 'nasal')}
+                                    onClick={() => {
+                                        handleChange('deliveryMethod', 'nasal');
+                                        // Auto-set unit to sprays when nasal is selected
+                                        if (!item.dosage || item.dosage.unit !== 'sprays') {
+                                            handleChange('dosage', { ...item.dosage, unit: 'sprays' });
+                                        }
+                                    }}
                                     className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.primary : theme.secondary,
