@@ -151,7 +151,7 @@ export default function Calendar() {
               const key = toKey(d)
               const bySlot = { ...(next[key]?.bySlot || {}) }
               for (const s of daySupps) {
-                const slots = Array.isArray(s.schedule) ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM','PM'])
+                const slots = Array.isArray(s.schedule) && s.schedule.length > 0 ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM','PM'])
                 console.log(`🔧 Supplement "${s.name}" -> slots:`, slots);
                 for (const slot of slots) {
                   bySlot[slot] = {
