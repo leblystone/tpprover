@@ -105,7 +105,13 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             <div className="grid grid-cols-3 gap-2">
                                 <button 
                                     type="button"
-                                    onClick={() => handleChange('deliveryMethod', 'syringe')}
+                                    onClick={() => {
+                                        handleChange('deliveryMethod', 'syringe');
+                                        // Auto-set injection type to SubQ if not already set
+                                        if (!item.injectionType) {
+                                            handleChange('injectionType', 'SubQ');
+                                        }
+                                    }}
                                     className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.secondary,
@@ -146,6 +152,29 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     <Droplets size={16} /> Nasal
                                 </button>
                             </div>
+                            
+                            {/* Syringe Injection Type Options */}
+                            {(item.deliveryMethod || 'syringe') === 'syringe' && (
+                                <div className="mt-3">
+                                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Injection Type</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {['SubQ', 'IM', 'IV'].map(type => (
+                                            <button 
+                                                key={type}
+                                                type="button"
+                                                onClick={() => handleChange('injectionType', type)}
+                                                className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                                    (item.injectionType || 'SubQ') === type 
+                                                        ? 'text-white shadow-md' 
+                                                        : 'text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                                style={(item.injectionType || 'SubQ') === type ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}}>
+                                                {type}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             
                             {/* Pen Options */}
                             {(item.deliveryMethod || 'syringe') === 'pen' && (
