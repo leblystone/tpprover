@@ -444,11 +444,11 @@ const formatFrequency = (freq) => {
   if (!freq) return 'Not set';
   const timeChoice = (() => {
     const times = freq.time || [];
-    const hasMorning = times.includes('Morning');
-    const hasEvening = times.includes('Evening');
-    if (hasMorning && hasEvening) return 'AM/PM';
-    if (hasMorning) return 'AM';
-    if (hasEvening) return 'PM';
+    const hasAM = times.includes('AM') || times.includes('Morning');
+    const hasPM = times.includes('PM') || times.includes('Evening');
+    if (hasAM && hasPM) return 'AM/PM';
+    if (hasAM) return 'AM';
+    if (hasPM) return 'PM';
     return '';
   })();
   

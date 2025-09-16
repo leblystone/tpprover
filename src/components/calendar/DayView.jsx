@@ -36,14 +36,14 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
         const schedule = Array.isArray(s.schedule) ? s.schedule : [s.schedule];
         
         for (const time of schedule) {
-          if (time === 'AM') suppItems.push({ name: s.name || 'Supplement', time: 'Morning' })
-          else if (time === 'PM') suppItems.push({ name: s.name || 'Supplement', time: 'Evening' })
+          if (time === 'AM') suppItems.push({ name: s.name || 'Supplement', time: 'AM' })
+          else if (time === 'PM') suppItems.push({ name: s.name || 'Supplement', time: 'PM' })
         }
         
         // Handle legacy 'BOTH' format
         if (s.schedule === 'BOTH') {
-          suppItems.push({ name: s.name || 'Supplement', time: 'Morning' });
-          suppItems.push({ name: s.name || 'Supplement', time: 'Evening' });
+          suppItems.push({ name: s.name || 'Supplement', time: 'AM' });
+          suppItems.push({ name: s.name || 'Supplement', time: 'PM' });
         }
       }
       const buyItems = orders.filter(o => (o.date || '').slice(0,10) === iso).map(o => ({

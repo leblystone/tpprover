@@ -28,7 +28,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
         const newFreq = { ...(item.frequency || { type: 'daily' }), [field]: value };
         // Ensure a default time-of-day so scheduling appears on calendar
         if (!Array.isArray(newFreq.time) || newFreq.time.length === 0) {
-            newFreq.time = ['Morning'];
+            newFreq.time = ['AM'];
         }
         if (field === 'type' && value !== 'weekly') newFreq.days = [];
         if (field === 'type' && value !== 'cycle') {
@@ -318,16 +318,16 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     <div>
                         <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Time of Day</div>
                         <div className="inline-flex rounded-md bg-gray-100 p-1 shadow-inner">
-                            {['Morning','Evening'].map(t => {
-                                const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'Morning';
+                            {['AM','PM'].map(t => {
+                                const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
                                 return (
                                     <button
                                         key={t}
                                         type="button"
                                         onClick={() => {
-                                            const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['Morning'];
+                                            const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
                                             const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                            const safeNext = next.length === 0 ? ['Morning'] : next;
+                                            const safeNext = next.length === 0 ? ['AM'] : next;
                                             handleFrequencyChange('time', safeNext);
                                         }}
                                         className={`px-4 py-1.5 text-xs font-semibold rounded ${active ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}

@@ -146,7 +146,7 @@ export default function Calendar() {
               const key = toKey(d)
               const bySlot = { ...(next[key]?.bySlot || {}) }
               for (const s of daySupps) {
-                const slots = Array.isArray(s.schedule) ? s.schedule : (s.schedule === 'PM' ? ['Evening'] : s.schedule === 'AM' ? ['Morning'] : ['Morning','Evening'])
+                const slots = Array.isArray(s.schedule) ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM','PM'])
                 for (const slot of slots) {
                   bySlot[slot] = {
                     peptides: bySlot[slot]?.peptides || [],
@@ -232,7 +232,7 @@ export default function Calendar() {
             return basePeptides.map(pep => {
               const f = pep?.frequency || {}
               const type = f.type || 'daily'
-              const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['Morning']
+              const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['AM']
               return { ...pep, frequency: { ...f, type, time } }
             })
           }
@@ -361,7 +361,7 @@ export default function Calendar() {
                     }
 
                     getNormalizedPeptides(p).forEach(pep => { 
-                        (pep.frequency?.time || ['Morning']).forEach(t => times.add(t));
+                        (pep.frequency?.time || ['AM']).forEach(t => times.add(t));
                     })
                     
                     Array.from(times).forEach(t => {

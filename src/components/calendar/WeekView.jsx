@@ -88,14 +88,14 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 {/* AM Slot */}
                 <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
                     <div className="text-xs font-semibold mb-1" style={{ color: theme.textLight }}>AM</div>
-                    <SlotContent scheduled={dayScheduled?.bySlot?.Morning} theme={theme} />
+                    <SlotContent scheduled={dayScheduled?.bySlot?.AM || dayScheduled?.bySlot?.Morning} theme={theme} />
                 </div>
 
                 {/* Separator and PM Slot */}
                 <div className="mt-2 border-t pt-2 sm:mt-0 sm:border-t-0 sm:border-l sm:pl-2" style={{ borderColor: theme.border }}>
                     <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
                         <div className="text-xs font-semibold mb-1" style={{ color: theme.textLight }}>PM</div>
-                        <SlotContent scheduled={dayScheduled?.bySlot?.Evening} theme={theme} />
+                        <SlotContent scheduled={dayScheduled?.bySlot?.PM || dayScheduled?.bySlot?.Evening} theme={theme} />
                     </div>
                 </div>
             </div>
