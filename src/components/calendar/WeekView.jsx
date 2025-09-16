@@ -1,6 +1,6 @@
 import React from 'react'
 import { toKey } from './MonthGrid'
-import { Droplet, Pill, Edit, Syringe, PenTool, Beaker } from 'lucide-react'
+import { Droplet, Pill, Edit, Syringe, PenTool, Beaker, Target, CheckCircle } from 'lucide-react'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 
 const penColors = [
@@ -99,6 +99,27 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                     </div>
                 </div>
             </div>
+
+            {/* Goals Section */}
+            {dayScheduled?.goals && dayScheduled.goals.length > 0 && (
+                <div className="mt-2 p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.secondary + '40' }}>
+                    <div className="text-xs font-semibold mb-1" style={{ color: theme.text }}>Goals</div>
+                    <div className="space-y-1">
+                        {dayScheduled.goals.map((g, i) => (
+                            <div key={`goal-${i}`} className="flex items-center gap-2 text-xs">
+                                {g.completed ? 
+                                    <CheckCircle size={12} style={{ color: theme.success }} /> :
+                                    <Target size={12} style={{ color: theme.warning }} />
+                                }
+                                <span className={`flex-1 truncate ${g.completed ? 'line-through' : ''}`} 
+                                      style={{ color: g.completed ? theme.textLight : theme.text }}>
+                                    {g.text}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
           <div className="mt-1">
             <div className="flex justify-end items-center text-xs font-semibold">

@@ -1,6 +1,6 @@
 import React from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker } from 'lucide-react'
+import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker, Target, CheckCircle } from 'lucide-react'
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
@@ -77,6 +77,9 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const deliveryMethods = [...new Set(allSupplements.map(s => typeof s === 'object' ? s.delivery : 'oral'))];
                     const primaryDelivery = deliveryMethods[0] || 'oral';
                     const buyCount = (sched.buys || 0) + (sched.groupBuys?.length || 0)
+                    const dayGoals = sched.goals || []
+                    const completedGoals = dayGoals.filter(g => g.completed).length
+                    const totalGoals = dayGoals.length
                     
                     // Icons are now working correctly!
                     
@@ -90,6 +93,12 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     {d && (
                                         <div className="flex items-center gap-0.5">
                                             {buyCount > 0 && <ShoppingCart size={16} style={{ color: theme.primary }} />}
+                                            {/* Show goal indicators */}
+                                            {totalGoals > 0 && (
+                                                completedGoals === totalGoals ? 
+                                                    <CheckCircle size={16} style={{ color: theme.success }} title={`${completedGoals}/${totalGoals} goals completed`} /> :
+                                                    <Target size={16} style={{ color: completedGoals > 0 ? theme.warning : theme.error }} title={`${completedGoals}/${totalGoals} goals completed`} />
+                                            )}
                                             {/* Show supplement delivery method icons */}
                                             {deliveryMethods.map((delivery, idx) => (
                                                 <span key={idx}>{getSupplementIcon(delivery, "h-4 w-4")}</span>

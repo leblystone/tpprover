@@ -95,6 +95,19 @@ function getWindows(p) {
 export default function Calendar() {
   const { theme } = useOutletContext()
   const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys } = useAppContext();
+  const [goals, setGoals] = useState([]);
+  
+  // Load goals from localStorage
+  useEffect(() => {
+    try {
+      const savedGoals = localStorage.getItem('tpprover_goals');
+      if (savedGoals) {
+        setGoals(JSON.parse(savedGoals));
+      }
+    } catch (error) {
+      console.error('Error loading goals:', error);
+    }
+  }, []);
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState('month') // 'month' | 'week'
   const [entries, setEntries] = useState({})
@@ -535,6 +548,25 @@ export default function Calendar() {
             }
           }
 
+          // Add goals to calendar data
+          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const key = toKey(d);
+            const dayGoals = goals.filter(goal => {
+              if (!goal.dueDate) return false;
+              const goalDate = new Date(goal.dueDate);
+              return goalDate.getFullYear() === d.getFullYear() && 
+                     goalDate.getMonth() === d.getMonth() && 
+                     goalDate.getDate() === d.getDate();
+            });
+            
+            if (dayGoals.length > 0) {
+              next[key] = {
+                ...(next[key] || {}),
+                goals: dayGoals
+              };
+            }
+          }
+
           setScheduled(prev => ({ ...prev, ...next }))
         } catch (e) {
           console.error('[Calendar Debug] Error in loadData:', e);
@@ -542,7 +574,7 @@ export default function Calendar() {
     };
 
     loadData(); // Initial load
-  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump]);
+  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals]);
 
   // Listen for calendar bump events from other components
   useEffect(() => {
