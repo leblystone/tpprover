@@ -218,6 +218,10 @@ export default function Orders() {
 				order={editingOrder}
 				vendors={vendors}
 				onSave={(data) => {
+					console.log('📋 Orders page received data:', data);
+					console.log('📋 Current activeTab:', activeTab);
+					console.log('📋 Editing order:', editingOrder);
+					
 					// Auto-create new vendor if it doesn't exist (same logic as stockpile)
 					if (data.vendor && !vendors.some(v => v.name.toLowerCase() === data.vendor.toLowerCase())) {
 						addVendor({ name: data.vendor, isStub: true });
@@ -226,14 +230,19 @@ export default function Orders() {
 					const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
 					if (editingOrder) {
 						const updatedOrder = { ...editingOrder, ...data, vendorId };
+						console.log('📋 Updating existing order:', updatedOrder);
 						handleStockpileUpdate(editingOrder, updatedOrder);
 						setOrders(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
 					} else {
 						// Use 'category' field for consistency, fallback to activeTab for new orders
 						const category = data.category || activeTab;
 						const newOrder = { id: generateId(), ...data, vendorId, category, type: category };
+						console.log('📋 Creating new order:', newOrder);
 						handleStockpileUpdate(null, newOrder);
-						setOrders(prev => [newOrder, ...prev]);
+						setOrders(prev => {
+							console.log('📋 Adding to orders list, current length:', prev.length);
+							return [newOrder, ...prev];
+						});
 					}
 					setShowAddModal(false)
 					setEditingOrder(null)

@@ -23,6 +23,10 @@ import {
 } from '../services/firebase';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { 
+  getFunctions, 
+  httpsCallable 
+} from 'firebase/functions';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -238,6 +242,7 @@ function Admin() {
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
+  const [stripeSubscriptions, setStripeSubscriptions] = useState([]);
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
     featureUsage: {},
@@ -309,7 +314,19 @@ function Admin() {
     loadUserData();
     loadFeatureFlags();
     loadFeedbackAnalysis();
+    loadStripeData();
   }, []);
+
+  const loadStripeData = async () => {
+    try {
+      const functions = getFunctions();
+      const getStripeSubscriptions = httpsCallable(functions, 'stripe-getStripeSubscriptions');
+      const result = await getStripeSubscriptions();
+      setStripeSubscriptions(result.data.data);
+    } catch (error) {
+      console.error('Error fetching Stripe data:', error);
+    }
+  };
 
   const loadAnnouncements = async () => {
     setLoading(prev => ({ ...prev, announcements: true }));
@@ -2037,41 +2054,8 @@ function Admin() {
         {activeTab === 'billing' && (
           <div className="space-y-6">
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
-                  <Briefcase size={24} style={{ color: theme.warning }} />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Stripe Billing Management</h2>
-                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                    This section will integrate with Stripe to provide a comprehensive overview of your subscriptions and revenue.
-                    A backend (e.g., Firebase Cloud Functions) is required to securely interact with the Stripe API.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-sm" style={{ color: theme.success }}>Planned Features:</h3>
-                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
-                        <li>• Real-time MRR, Churn, and LTV metrics</li>
-                        <li>• Searchable list of all subscriptions</li>
-                        <li>• View detailed subscription and payment history for each user</li>
-                        <li>• Issue refunds directly from the admin panel</li>
-                        <li>• Cancel or modify user subscriptions</li>
-                      </ul>
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-sm" style={{ color: theme.info }}>Implementation Steps:</h3>
-                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
-                        <li>1. Set up a Firebase Cloud Function endpoint.</li>
-                        <li>2. Use the Stripe Node.js library in the function.</li>
-                        <li>3. Secure the endpoint to only allow admin access.</li>
-                        <li>4. Fetch data from the Stripe API (customers, subscriptions, etc.).</li>
-                        <li>5. Build UI components to display the data.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Stripe Subscriptions</h2>
+              <SubscriptionTable subscriptions={stripeSubscriptions} theme={theme} />
             </div>
           </div>
         )}
@@ -2230,6 +2214,45 @@ function UserDetailModal({ user, onClose, theme }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SubscriptionTable({ subscriptions, theme }) {
+  if (subscriptions.length === 0) {
+    return <p style={{ color: theme.textLight }}>No subscriptions to display.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
+        <thead style={{ backgroundColor: theme.background }}>
+          <tr>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Customer</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Status</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Plan</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Current Period</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          {subscriptions.map(sub => (
+            <tr key={sub.id}>
+              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.text }}>{sub.customer}</td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${sub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {sub.status}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
+                {sub.items.data[0]?.price.nickname || 'N/A'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
+                {new Date(sub.current_period_start * 1000).toLocaleDateString()} - {new Date(sub.current_period_end * 1000).toLocaleDateString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

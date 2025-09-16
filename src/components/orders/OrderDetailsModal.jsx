@@ -109,7 +109,10 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           </div>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-            <button onClick={() => onSave?.({ ...form, attachments })} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
+            <button onClick={() => {
+              console.log('💾 Saving order:', { ...form, attachments });
+              onSave?.({ ...form, attachments });
+            }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
           </div>
         </div>
       )}
