@@ -87,11 +87,26 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     
                     // Icons are now working correctly!
                     
+                    const hasActivity = peptideCount > 0 || suppCount > 0 || buyCount > 0 || totalGoals > 0;
+                    const isToday = d && new Date().toDateString() === d.toDateString();
+                    
                     return (
-                        <button key={i} className={`p-1 sm:p-2 rounded border text-left hover:bg-gray-50 flex flex-col justify-between relative ${sched.doneAll ? 'bg-green-50' : ''}`} style={{ borderColor: theme.border }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
+                        <button key={i} className={`p-2 sm:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[80px] sm:min-h-[100px] ${sched.doneAll ? 'ring-2 ring-green-200' : ''}`} style={{ 
+                            borderColor: hasActivity ? theme.primary : theme.border,
+                            borderWidth: hasActivity ? '2px' : '1px',
+                            backgroundColor: d ? (
+                                isToday ? theme.primary + '15' :
+                                sched.doneAll ? theme.success + '10' : 
+                                hasActivity ? theme.primary + '05' :
+                                theme.cardBackground
+                            ) : 'transparent'
+                        }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             <div>
-                                <div className="text-xs font-semibold mb-1 flex items-center justify-between" style={{ color: theme.text }}>
-                                    <span className="flex items-center gap-1">
+                                <div className="text-sm sm:text-base font-bold mb-1 flex items-center justify-between" style={{ color: d ? (isToday ? theme.primary : theme.primaryDark) : theme.textLight }}>
+                                    <span className={`flex items-center gap-1 text-lg sm:text-xl ${isToday ? 'bg-white rounded-full w-8 h-8 sm:w-10 sm:h-10 justify-center items-center shadow-sm' : ''}`} style={{ 
+                                        backgroundColor: isToday ? theme.primary : 'transparent',
+                                        color: isToday ? theme.textOnPrimary : 'inherit'
+                                    }}>
                                         {d ? d.getDate() : ''}
                                     </span>
                                     {d && (
