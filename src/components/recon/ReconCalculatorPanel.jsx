@@ -214,8 +214,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                   />
                 </div>
                 
-                {/* mg/vial and Dose - Side by side on larger screens, stacked on mobile */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Single column layout for better mobile experience */}
+                <div className="space-y-4">
                   <div>
                     <TextInput 
                       label="mg/vial" 
@@ -228,46 +228,44 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     />
                   </div>
                   
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose Amount</div>
-                      {p.doseUnit === 'sprays' && (
-                        <div className="text-xs text-blue-600 mb-2 p-2 bg-blue-50 rounded border border-blue-200">
-                          💡 Assumes 100 mcg per spray (typical nasal spray)
-                        </div>
-                      )}
-                      <input 
-                        className="w-full border rounded-lg px-4 py-3 text-base font-medium text-center" 
-                        style={{ 
-                          borderColor: theme?.border || '#d1d5db',
-                          backgroundColor: theme?.cardBackground || 'white',
-                          color: theme?.text || 'black'
-                        }}
-                        value={p.dose || ''} 
-                        onChange={e => updatePeptide(p.id, 'dose', e.target.value)} 
-                        placeholder="250" 
-                        type="number" 
-                      />
-                    </div>
-                    
-                    <div>
-                      <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Unit</div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {['mcg','mg','mL','sprays'].map(unit => (
-                          <button 
-                            key={unit} 
-                            type="button" 
-                            onClick={() => updatePeptide(p.id, 'doseUnit', unit)}
-                            className={`px-3 py-2 text-sm font-semibold rounded-lg border-2 transition-all ${
-                              p.doseUnit === unit 
-                                ? 'text-white border-transparent shadow-md' 
-                                : 'text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                            }`}
-                            style={p.doseUnit === unit ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}}>
-                            {unit}
-                          </button>
-                        ))}
+                  <div>
+                    <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose Amount</div>
+                    {p.doseUnit === 'sprays' && (
+                      <div className="text-xs text-blue-600 mb-2 p-2 bg-blue-50 rounded border border-blue-200">
+                        💡 Assumes 100 mcg per spray (typical nasal spray)
                       </div>
+                    )}
+                    <input 
+                      className="w-full border rounded-lg px-4 py-3 text-base font-medium text-center" 
+                      style={{ 
+                        borderColor: theme?.border || '#d1d5db',
+                        backgroundColor: theme?.cardBackground || 'white',
+                        color: theme?.text || 'black'
+                      }}
+                      value={p.dose || ''} 
+                      onChange={e => updatePeptide(p.id, 'dose', e.target.value)} 
+                      placeholder="250" 
+                      type="number" 
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Unit</div>
+                    <div className="flex flex-wrap gap-2">
+                      {['mcg','mg','mL','sprays'].map(unit => (
+                        <button 
+                          key={unit} 
+                          type="button" 
+                          onClick={() => updatePeptide(p.id, 'doseUnit', unit)}
+                          className={`flex-1 min-w-0 px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-all ${
+                            p.doseUnit === unit 
+                              ? 'text-white border-transparent shadow-md' 
+                              : 'text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                          style={p.doseUnit === unit ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}}>
+                          {unit}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
