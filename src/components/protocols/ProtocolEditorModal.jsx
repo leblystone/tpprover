@@ -356,16 +356,42 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     <div className="grid gap-4">
                         {form.peptides?.map((p, index) => (
                             <div key={p.id || index} 
-                                 className="rounded-xl border-2 overflow-hidden transition-all hover:shadow-lg"
+                                 className="rounded-xl border overflow-hidden transition-all hover:shadow-lg"
                                  style={{ 
-                                     borderColor: theme.border, 
+                                     borderColor: theme.border,
                                      backgroundColor: index % 2 === 0 
                                          ? theme.cardBackground 
-                                         : theme.primary + '08',
-                                     borderLeftWidth: index % 2 === 0 ? '2px' : '4px',
-                                     borderLeftColor: index % 2 === 0 ? theme.border : theme.primary + '40'
+                                         : theme.secondary + '80'
                                  }}>
-                                <div className="p-1">
+                                {/* Peptide Header with Number */}
+                                <div className="px-4 py-2 border-b flex items-center justify-between"
+                                     style={{ 
+                                         backgroundColor: index % 2 === 0 
+                                             ? theme.primary + '15' 
+                                             : theme.primary + '25',
+                                         borderColor: theme.border
+                                     }}>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                                             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                                            {index + 1}
+                                        </div>
+                                        <span className="font-semibold text-sm" style={{ color: theme.text }}>
+                                            Peptide {index + 1}
+                                        </span>
+                                    </div>
+                                    {form.peptides.length > 1 && (
+                                        <button 
+                                            onClick={() => removePeptide(index)}
+                                            className="text-red-500 hover:text-red-700 text-xs font-medium"
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {/* Peptide Content */}
+                                <div className="p-4">
                                     <PeptideSubForm
                                         item={p}
                                         onChange={(updated) => handlePeptideChange(index, updated)}
@@ -380,6 +406,49 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         ))}
                     </div>
 
+                    {/* Global Titration for Blended Protocols */}
+                    {form.protocolType === 'blended' && form.peptides?.length > 0 && (
+                        <div className="p-6 rounded-xl border-2" 
+                             style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <h4 className="font-semibold mb-4" style={{ color: theme.text }}>
+                                Titration Schedule (Blended Protocol)
+                            </h4>
+                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                                This titration schedule applies to the entire blended protocol
+                            </p>
+                            
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={!!form.sharedTitrationEnabled} 
+                                            onChange={e => {
+                                                const isEnabled = e.target.checked;
+                                                handleChange('sharedTitrationEnabled', isEnabled);
+                                                // If enabling and no steps exist, add the first one automatically
+                                                if (isEnabled && (!form.sharedTitration || form.sharedTitration.length === 0)) {
+                                                    handleChange('sharedTitration', [{ dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'weeks' }]);
+                                                }
+                                            }} 
+                                            className="sr-only peer" 
+                                        />
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" 
+                                             style={{backgroundColor: form.sharedTitrationEnabled ? theme.primary : theme.secondary}}></div>
+                                    </label>
+                                    <span className="text-sm font-medium" style={{ color: theme.text }}>Enable Dosing Schedule (Titration)</span>
+                                </div>
+
+                                {form.sharedTitrationEnabled && (
+                                    <DosingScheduleEditor 
+                                        titration={form.sharedTitration || []}
+                                        onChange={t => handleChange('sharedTitration', t)}
+                                        theme={theme}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                         {/* Add Peptide Button */}
                         <button

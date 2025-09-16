@@ -47,14 +47,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     };
 
     return (
-        <div className="p-4 rounded-lg border relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            {!isOnlyItem && (
-                <button type="button" onClick={onRemove} className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600" aria-label="Remove peptide">
-                    <X size={14} />
-                </button>
-            )}
-
-            <div className="space-y-6">
+        <div className="space-y-6">
                 {/* Peptide Information */}
                 <div className="space-y-4">
                     <TextInput 
@@ -350,8 +343,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                 </div>
                 )}
 
-                {/* Titration Section - Only show for separate protocols or first peptide in blended */}
-                {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
+                {/* Titration Section - Only show for separate protocols, hidden for blended (handled globally) */}
+                {protocolType === 'separate' && (
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
