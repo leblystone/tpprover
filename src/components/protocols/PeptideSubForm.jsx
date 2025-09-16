@@ -94,6 +94,12 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     </button>
                                 ))}
                             </div>
+                            {/* Nasal spray disclaimer */}
+                            {item.deliveryMethod === 'nasal' && (item.dosage?.unit || 'mcg') === 'sprays' && (
+                                <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                    💡 Assumes 100 mcg per spray (typical nasal spray)
+                                </div>
+                            )}
                         </div>
                         
                         {/* Delivery Method - Only show for separate protocols or first peptide in blended */}
