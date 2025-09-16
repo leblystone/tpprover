@@ -375,7 +375,6 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     )}
                 </div>
                 )}
-            </div>
         </div>
     );
 }
