@@ -44,6 +44,7 @@ function getDefaultSettings() {
 }
 
 export default function Settings() {
+  // Settings page component
   const { theme } = useOutletContext()
   const { refreshDataAfterClear } = useAppContext()
   const [pwaPrompted, setPWAPrompted] = useState(false)
