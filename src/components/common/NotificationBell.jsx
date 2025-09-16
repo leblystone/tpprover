@@ -139,7 +139,7 @@ export default function NotificationBell({ theme }) {
       </button>
 
       {showNotifications && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border shadow-lg z-50"
+        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border shadow-lg z-[9999]"
              style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
             <div className="p-4 border-b" style={{ borderColor: theme.border }}>
               <div className="flex items-center justify-between">

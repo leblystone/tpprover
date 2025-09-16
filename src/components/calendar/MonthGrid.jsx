@@ -92,8 +92,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     
                     return (
                         <button key={i} className={`p-2 sm:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[80px] sm:min-h-[100px] ${sched.doneAll ? 'ring-2 ring-green-200' : ''}`} style={{ 
-                            borderColor: hasActivity ? theme.primary : theme.border,
-                            borderWidth: hasActivity ? '2px' : '1px',
+                            borderColor: theme.border,
                             backgroundColor: d ? (
                                 isToday ? theme.primary + '15' :
                                 sched.doneAll ? theme.success + '10' : 

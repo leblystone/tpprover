@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, FileUp } from 'lucide-react'
+import { PlusCircle } from 'lucide-react'
 import ProtocolCard from '../components/protocols/ProtocolCard'
 import ProtocolHistoryModal from '../components/protocols/ProtocolHistoryModal';
 import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
@@ -21,7 +21,6 @@ export default function Protocols() {
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10))
-  const [showImportHint, setShowImportHint] = useState(() => { try { return localStorage.getItem('tpprover_protocols_import_hint') !== 'dismissed' } catch { return true } })
   const [stockpile, setStockpile] = useState([]);
   const [manageConfirm, setManageConfirm] = useState(null);
 
@@ -134,18 +133,12 @@ export default function Protocols() {
       if (rawStockpile) setStockpile(JSON.parse(rawStockpile));
     } catch {}
   }, []);
-  useEffect(() => {
-    if (!showImportHint) return
-    const t = setTimeout(() => setShowImportHint(false), 15000)
-    return () => clearTimeout(t)
-  }, [showImportHint])
   React.useEffect(() => {
     const onOpenNew = () => setOpenAdd(true)
     window.addEventListener('tpp:open_protocol_new', onOpenNew)
     return () => window.removeEventListener('tpp:open_protocol_new', onOpenNew)
   }, [])
 
-  const fileInputRef = React.useRef(null)
   const onImportFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
