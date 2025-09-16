@@ -22,6 +22,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     if (open) {
       const initialData = order ? { ...order } : { date: new Date().toISOString() };
       
+      // Ensure category defaults to 'domestic' if not set
+      if (!initialData.category && !initialData.type) {
+        initialData.category = 'domestic';
+      } else if (initialData.type && !initialData.category) {
+        // Migration: use 'type' as 'category' for consistency
+        initialData.category = initialData.type;
+      }
+      
       // Migration for old single-item orders
       if (initialData.peptide && !initialData.items) {
         initialData.items = [{

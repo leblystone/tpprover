@@ -48,7 +48,10 @@ export default function Orders() {
 	}, [location.state, orders])
 
 	const filteredOrders = useMemo(() => {
-		return orders.filter(o => (o.type || 'domestic') === activeTab)
+		return orders.filter(o => {
+			const orderCategory = o.category || o.type || 'domestic';
+			return orderCategory === activeTab;
+		})
 	}, [orders, activeTab]);
 
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
@@ -226,7 +229,9 @@ export default function Orders() {
 						handleStockpileUpdate(editingOrder, updatedOrder);
 						setOrders(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
 					} else {
-						const newOrder = { id: generateId(), ...data, vendorId, type: activeTab };
+						// Use 'category' field for consistency, fallback to activeTab for new orders
+						const category = data.category || activeTab;
+						const newOrder = { id: generateId(), ...data, vendorId, category, type: category };
 						handleStockpileUpdate(null, newOrder);
 						setOrders(prev => [newOrder, ...prev]);
 					}

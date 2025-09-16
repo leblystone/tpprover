@@ -13,7 +13,12 @@ export default function Tabs({ value, onChange, options = [], theme, compact = f
   `.trim()
 
   return (
-    <div className={containerClass} style={{ backgroundColor: theme.secondary }}>
+    <div 
+      className={containerClass} 
+      style={{ backgroundColor: theme.secondary }}
+      role="tablist"
+      aria-label="Navigation tabs"
+    >
       {options.map(opt => (
         <button
           key={opt.value}
@@ -23,6 +28,10 @@ export default function Tabs({ value, onChange, options = [], theme, compact = f
             backgroundColor: value === opt.value ? theme.primary : theme.cardBackground, 
             color: value === opt.value ? theme.textOnPrimary : theme.textLight 
           }}
+          role="tab"
+          aria-selected={value === opt.value}
+          aria-controls={`tabpanel-${opt.value}`}
+          tabIndex={value === opt.value ? 0 : -1}
         >
           {opt.label}
         </button>

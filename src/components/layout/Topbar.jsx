@@ -38,7 +38,13 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
     <>
       <header className="backdrop-blur border-b h-16 flex items-center px-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="flex items-center gap-3">
-          <button onClick={onMenuClick} className="md:hidden no-shadow" style={{ color: theme.text }}>
+          <button 
+            onClick={onMenuClick} 
+            className="md:hidden no-shadow" 
+            style={{ color: theme.text }}
+            aria-label="Open navigation menu"
+            aria-expanded="false"
+          >
             <Menu size={24} />
           </button>
           <h1 className="text-xl font-bold tracking-tight" style={{ color: theme?.primaryDark }}>{title}</h1>
@@ -49,15 +55,41 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
               <GlobalSearchInline theme={theme} onClose={() => setShowSearch(false)} onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} />
             </div>
           )}
-          <button className="p-2 rounded-full no-shadow" title="Global Search" onClick={() => setShowSearch(s => !s)} style={{ color: theme.text }}><Search className="h-5 w-5" /></button>
-          <button data-tour="topbar-glossary" className="p-2 rounded-full no-shadow" title="Research" onClick={onGlossaryClick} style={{ color: theme.text }}><BookText className="h-5 w-5" /></button>
+          <button 
+            className="p-2 rounded-full no-shadow" 
+            title="Global Search" 
+            onClick={() => setShowSearch(s => !s)} 
+            style={{ color: theme.text }}
+            aria-label="Toggle global search"
+            aria-expanded={showSearch}
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <button 
+            data-tour="topbar-glossary" 
+            className="p-2 rounded-full no-shadow" 
+            title="Research" 
+            onClick={onGlossaryClick} 
+            style={{ color: theme.text }}
+            aria-label="Open research glossary"
+          >
+            <BookText className="h-5 w-5" />
+          </button>
           {/* Import feature temporarily hidden - uncomment to re-enable
           {onDashboard && (
             <button data-tour="topbar-import" className="p-2 rounded-full no-shadow" title="Import (OCR)" onClick={() => window.dispatchEvent(new CustomEvent('tpp:openImport'))} style={{ color: theme.text }}><Upload className="h-5 w-5" /></button>
           )}
           */}
           <NotificationBell theme={theme} />
-          <button className="p-2 rounded-full no-shadow" title="Help" onClick={() => setShowHelp(true)} style={{ color: theme.text }}><HelpCircle className="h-5 w-5" /></button>
+          <button 
+            className="p-2 rounded-full no-shadow" 
+            title="Help" 
+            onClick={() => setShowHelp(true)} 
+            style={{ color: theme.text }}
+            aria-label="Open help and tips"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </button>
         </div>
       </header>
       <HelpTipsModal open={showHelp} onClose={() => setShowHelp(false)} seg={seg} theme={theme} />

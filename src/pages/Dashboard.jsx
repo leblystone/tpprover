@@ -763,7 +763,9 @@ export default function Dashboard() {
         theme={theme}
         vendorList={vendorNames}
         onSave={(o) => {
-          const newOrder = { ...o, id: o.id || Date.now() };
+          // Ensure category is set, default to 'domestic' if not specified
+          const category = o.category || 'domestic';
+          const newOrder = { ...o, id: o.id || Date.now(), category, type: category };
           setOrders(prev => [newOrder, ...prev]);
           if (o.vendor) {
             setVendors(prev => {
