@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import TextInput from '../common/inputs/TextInput'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
-import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Spray } from 'lucide-react'
+import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets } from 'lucide-react'
 
 export const penColors = [
     { name: 'Gold', hex: '#DAA520' },
@@ -144,7 +144,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border
                     }}
                 >
-                    <Spray size={16} /> Nasal
+                    <Droplets size={16} /> Nasal
                 </button>
             </div>
             {deliveryMethod === 'pen' && (

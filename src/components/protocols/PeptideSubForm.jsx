@@ -1,6 +1,6 @@
 import React from 'react';
 import TextInput from '../common/inputs/TextInput';
-import { X, Syringe, Pen, Spray } from 'lucide-react';
+import { X, Syringe, Pen, Droplets } from 'lucide-react';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import { getChromeGradient } from '../../utils/recon';
 
@@ -137,7 +137,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                         borderColor: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.primary : theme.border
                                     }}
                                 >
-                                    <Spray size={16} /> Nasal
+                                    <Droplets size={16} /> Nasal
                                 </button>
                             </div>
                             
