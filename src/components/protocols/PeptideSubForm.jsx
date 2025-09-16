@@ -118,7 +118,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                         borderColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.border
                                     }}
                                 >
-                                    <Activity size={16} /> Syringe
+                                    <Syringe size={16} /> Syringe
                                 </button>
                                 <button 
                                     type="button"
