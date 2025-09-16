@@ -129,6 +129,7 @@ export default function Calendar() {
     const loadData = () => {
         try {
           const supps = supplements
+          console.log('📊 Calendar: Processing supplements', supps.map(s => ({ name: s.name, delivery: s.delivery, schedule: s.schedule })));
           // For the current month, mark days with supplement counts
           const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
           const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
@@ -567,7 +568,9 @@ export default function Calendar() {
             }
           }
 
-          setScheduled(prev => ({ ...prev, ...next }))
+          // Force complete refresh instead of merging to prevent stale data
+          console.log('🔄 Calendar: Refreshing with new data', { supplements: supps.length, goals: goals.length });
+          setScheduled(next)
         } catch (e) {
           console.error('[Calendar Debug] Error in loadData:', e);
         }
@@ -575,6 +578,18 @@ export default function Calendar() {
 
     loadData(); // Initial load
   }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals]);
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    console.log('🔄 Manual calendar refresh triggered');
+    setCalendarBump(Date.now());
+  };
+
+  // Expose refresh function globally for debugging
+  useEffect(() => {
+    window.refreshCalendar = handleRefresh;
+    return () => { delete window.refreshCalendar; };
+  }, []);
 
   // Listen for calendar bump events from other components
   useEffect(() => {
@@ -671,6 +686,7 @@ export default function Calendar() {
         onPrev={handlePrev}
         onNext={handleNext}
         onToday={() => setCurrentDate(new Date())}
+        onRefresh={handleRefresh}
         viewMode={viewMode}
         onChangeView={setViewMode}
         theme={theme}

@@ -1,5 +1,5 @@
  import React from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 const getWeekOfMonth = (date) => {
     const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -8,7 +8,7 @@ const getWeekOfMonth = (date) => {
     return Math.ceil((dayOfMonth + dayOfWeek) / 7);
 };
 
-export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext, onToday, viewMode, onChangeView, theme }) {
+export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext, onToday, viewMode, onChangeView, onRefresh, theme }) {
   const monthName = currentDate.toLocaleString('default', { month: 'long' });
   const year = currentDate.getFullYear();
   
@@ -20,6 +20,9 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           <button onClick={onPrev} className="p-2 rounded-full hover:bg-gray-100"><ChevronLeft className="h-5 w-5" /></button>
           <button onClick={onNext} className="p-2 rounded-full hover:bg-gray-100"><ChevronRight className="h-5 w-5" /></button>
         </div>
+        <button onClick={onRefresh} className="p-2 rounded-full hover:bg-gray-100" title="Refresh calendar data">
+          <RefreshCw className="h-5 w-5" style={{ color: theme.primary }} />
+        </button>
         <h2 className="text-xl font-bold ml-2" style={{ color: theme.primaryDark }}>{monthName} {year}</h2>
       </div>
       
