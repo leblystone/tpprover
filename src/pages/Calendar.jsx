@@ -137,6 +137,11 @@ export default function Calendar() {
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dayKey = d.toLocaleDateString('en-US', { weekday: 'short' })
             const daySupps = supps.filter(s => !s.days || s.days.length === 0 || s.days.includes(dayKey))
+            console.log(`📅 Day ${d.getDate()} (${dayKey}):`, {
+              totalSupps: supps.length,
+              daySupps: daySupps.length,
+              supplements: daySupps.map(s => ({ name: s.name, delivery: s.delivery, days: s.days }))
+            });
             if (daySupps.length > 0) {
               const key = toKey(d)
               const bySlot = { ...(next[key]?.bySlot || {}) }
