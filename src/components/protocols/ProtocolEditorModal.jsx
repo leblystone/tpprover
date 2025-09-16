@@ -357,7 +357,14 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         {form.peptides?.map((p, index) => (
                             <div key={p.id || index} 
                                  className="rounded-xl border-2 overflow-hidden transition-all hover:shadow-lg"
-                                 style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                                 style={{ 
+                                     borderColor: theme.border, 
+                                     backgroundColor: index % 2 === 0 
+                                         ? theme.cardBackground 
+                                         : theme.primary + '08',
+                                     borderLeftWidth: index % 2 === 0 ? '2px' : '4px',
+                                     borderLeftColor: index % 2 === 0 ? theme.border : theme.primary + '40'
+                                 }}>
                                 <div className="p-1">
                                     <PeptideSubForm
                                         item={p}
