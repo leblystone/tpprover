@@ -8,6 +8,7 @@ import WeekView from '../components/calendar/WeekView'
 // Removed notes-only modal to avoid overlap; using DayView for all edits
 import DayView from '../components/calendar/DayView'
 import NotesModal from '../components/calendar/NotesModal'
+import CalendarIconKey from '../components/calendar/CalendarIconKey'
 import { calculateRecon } from '../utils/recon'
 import { useAppContext } from '../context/AppContext'
 
@@ -717,6 +718,7 @@ export default function Calendar() {
         onRefresh={handleRefresh}
         viewMode={viewMode}
         onChangeView={setViewMode}
+        onShowIconKey={() => setShowIconKey(true)}
         theme={theme}
       />
       <div className="rounded border p-4 content-card flex-1" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -748,6 +750,12 @@ export default function Calendar() {
       />
 
       {/* Inline day edit could be implemented here in future. Modal temporarily disabled per request. */}
+      
+      <CalendarIconKey 
+        theme={theme}
+        isVisible={showIconKey}
+        onClose={() => setShowIconKey(false)}
+      />
     </section>
   )
 }
