@@ -100,12 +100,22 @@ export function seedInitialData() {
         if (ordersRaw && JSON.parse(ordersRaw).some(o => !o.isMock)) return;
 
         const hasSeeded = localStorage.getItem('tpprover_has_seeded');
-        // Seed if not seeded or if stores are empty (e.g., user cleared demo data only)
+        // CRITICAL FIX: Always check if user has real data first, regardless of seeding status
         const protocolsRaw = localStorage.getItem('tpprover_protocols');
-        const alreadyHasData = [vendorsRaw, ordersRaw, protocolsRaw].some(r => {
-            try { return Array.isArray(JSON.parse(r)) && JSON.parse(r).length > 0 } catch { return false }
+        const alreadyHasRealData = [vendorsRaw, ordersRaw, protocolsRaw].some(r => {
+            try { 
+                const data = JSON.parse(r);
+                return Array.isArray(data) && data.some(item => !item.isMock);
+            } catch { 
+                return false 
+            }
         });
-        if (hasSeeded === 'true' && alreadyHasData) return;
+        
+        // If user has any real data, never seed
+        if (alreadyHasRealData) return;
+        
+        // If already seeded and user hasn't explicitly cleared demo data, don't re-seed
+        if (hasSeeded === 'true') return;
 
         localStorage.setItem(DATA_KEYS.vendors, JSON.stringify(MOCK_VENDORS));
         localStorage.setItem(DATA_KEYS.orders, JSON.stringify(MOCK_ORDERS));

@@ -142,7 +142,14 @@ export function AppProvider({ children }) {
                     if (hasPassword || hasEmptyLocalStorage) {
                         try {
                             console.log('🔄 Attempting Firebase data recovery...', { hasPassword, hasEmptyLocalStorage });
-                            const firebaseData = await loadFromFirebase();
+                            
+                            // CRITICAL FIX: Add timeout to prevent infinite loading
+                            const firebaseDataPromise = loadFromFirebase();
+                            const timeoutPromise = new Promise((_, reject) => 
+                                setTimeout(() => reject(new Error('Firebase sync timeout')), 10000)
+                            );
+                            
+                            const firebaseData = await Promise.race([firebaseDataPromise, timeoutPromise]);
                             if (firebaseData) {
                                 // Load Firebase data if available, especially when localStorage is empty
                                 console.log('✅ User data loaded from Firebase');
@@ -223,6 +230,42 @@ export function AppProvider({ children }) {
                                     }
                                 };
                                 
+                                // CRITICAL: Add emergency recovery for stuck loading
+                                window.emergencyRecovery = () => {
+                                    console.log('🚨 EMERGENCY RECOVERY: Clearing stuck authentication state...');
+                                    
+                                    // Clear potentially corrupted auth state
+                                    localStorage.removeItem('tpprover_auth_token');
+                                    
+                                    // Force reload to reset app state
+                                    console.log('🔄 Forcing app reload...');
+                                    window.location.href = '/login';
+                                };
+                                
+                                // Add data backup recovery
+                                window.restoreDataBackup = () => {
+                                    try {
+                                        const backup = localStorage.getItem('tpprover_data_backup');
+                                        if (backup) {
+                                            const backupData = JSON.parse(backup);
+                                            console.log('💾 Restoring data from backup...');
+                                            
+                                            Object.keys(backupData).forEach(key => {
+                                                if (backupData[key]) {
+                                                    localStorage.setItem(key, JSON.stringify(backupData[key]));
+                                                }
+                                            });
+                                            
+                                            console.log('✅ Data restored from backup! Reloading...');
+                                            window.location.reload();
+                                        } else {
+                                            console.log('❌ No backup found');
+                                        }
+                                    } catch (err) {
+                                        console.error('❌ Backup restore failed:', err);
+                                    }
+                                };
+                                
                                 // Make supplement cleanup function globally available
                                 window.cleanupContaminatedSupplements = () => {
                                     try {
@@ -273,7 +316,13 @@ export function AppProvider({ children }) {
                 localStorage.removeItem('tpprover_auth_token');
                 localStorage.removeItem('tpprover_user');
             }
+        } catch (error) {
+            console.error("Critical error in auth change handler:", error);
+        } finally {
+            // CRITICAL FIX: Always set loading to false in finally block
             setIsLoading(false);
+            setIsInitialLoad(false);
+        }
         });
 
         // Add beforeunload handler to sync data when user closes browser/tab

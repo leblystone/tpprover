@@ -91,7 +91,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const isToday = d && new Date().toDateString() === d.toDateString();
                     
                     return (
-                        <button key={i} className={`p-2 sm:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[80px] sm:min-h-[100px] ${sched.doneAll ? 'ring-2 ring-green-200' : ''}`} style={{ 
+                        <button key={i} className={`p-1 sm:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[60px] sm:min-h-[100px] ${sched.doneAll ? 'ring-2 ring-green-200' : ''}`} style={{ 
                             borderColor: theme.border,
                             backgroundColor: d ? (
                                 isToday ? theme.primary + '15' :
@@ -100,74 +100,111 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                 theme.cardBackground
                             ) : 'transparent'
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
-                            <div>
-                                <div className="text-sm sm:text-base font-bold mb-1 flex items-center justify-between" style={{ color: d ? (isToday ? theme.primary : theme.primaryDark) : theme.textLight }}>
-                                    <span className={`flex items-center gap-1 text-lg sm:text-xl ${isToday ? 'bg-white rounded-full w-8 h-8 sm:w-10 sm:h-10 justify-center items-center shadow-sm' : ''}`} style={{ 
+                            {/* Mobile-first layout */}
+                            <div className="flex flex-col h-full">
+                                {/* Date and primary icons row */}
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className={`text-sm sm:text-xl font-bold ${isToday ? 'bg-white rounded-full w-6 h-6 sm:w-10 sm:h-10 flex justify-center items-center shadow-sm text-xs sm:text-xl' : ''}`} style={{ 
                                         backgroundColor: isToday ? theme.primary : 'transparent',
-                                        color: isToday ? theme.textOnPrimary : 'inherit'
+                                        color: isToday ? theme.textOnPrimary : (d ? theme.primaryDark : theme.textLight)
                                     }}>
                                         {d ? d.getDate() : ''}
                                     </span>
+                                    
+                                    {/* Mobile: Show only essential icons in a compact row */}
                                     {d && (
-                                        <div className="flex items-center gap-0.5">
-                                            {buyCount > 0 && <ShoppingCart size={16} style={{ color: theme.primary }} />}
-                                            {/* Show goal indicators */}
+                                        <div className="flex items-center gap-0.5 sm:gap-1">
+                                            {sched.doneAll && <CheckCircle size={12} className="sm:hidden" style={{ color: theme.success }} />}
+                                            {buyCount > 0 && <ShoppingCart size={12} className="sm:size-4" style={{ color: theme.primary }} />}
                                             {totalGoals > 0 && (
                                                 completedGoals === totalGoals ? 
-                                                    <CheckCircle size={16} style={{ color: theme.success }} title={`${completedGoals}/${totalGoals} goals completed`} /> :
-                                                    <Target size={16} style={{ color: completedGoals > 0 ? theme.warning : theme.error }} title={`${completedGoals}/${totalGoals} goals completed`} />
+                                                    <CheckCircle size={12} className="hidden sm:inline sm:size-4" style={{ color: theme.success }} /> :
+                                                    <Target size={12} className="sm:size-4" style={{ color: completedGoals > 0 ? theme.warning : theme.error }} />
                                             )}
-                                            {/* Show supplement delivery method icons */}
-                                            {deliveryMethods.map((delivery, idx) => (
-                                                <span key={idx}>{getSupplementIcon(delivery, "h-4 w-4")}</span>
+                                            {/* Mobile: Show only first delivery method */}
+                                            {deliveryMethods.slice(0, 1).map((delivery, idx) => (
+                                                <span key={idx} className="sm:hidden">{getSupplementIcon(delivery, "h-3 w-3")}</span>
                                             ))}
+                                            {/* Desktop: Show all delivery methods */}
+                                            <div className="hidden sm:flex sm:gap-0.5">
+                                                {deliveryMethods.map((delivery, idx) => (
+                                                    <span key={idx}>{getSupplementIcon(delivery, "h-4 w-4")}</span>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
-                                {d && (<div className="flex items-center gap-1">
+
+                                {/* Mobile: Compact activity indicators */}
+                                <div className="sm:hidden">
+                                    {d && (
+                                        <div className="flex items-center justify-between text-[9px]" style={{ color: theme.textLight }}>
+                                            {peptideCount > 0 && (
+                                                <div className="flex items-center gap-0.5">
+                                                    <Droplet className="h-2.5 w-2.5" />
+                                                    <span>{peptideCount}</span>
+                                                </div>
+                                            )}
+                                            {suppCount > 0 && (
+                                                <div className="flex items-center gap-0.5">
+                                                    {getSupplementIcon(primaryDelivery, "h-2.5 w-2.5")}
+                                                    <span>{suppCount}</span>
+                                                </div>
+                                            )}
+                                            {totalGoals > 0 && (
+                                                <div className="flex items-center gap-0.5">
+                                                    <Target className="h-2.5 w-2.5" />
+                                                    <span>{completedGoals}/{totalGoals}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Desktop: Full layout */}
+                                <div className="hidden sm:block">
+                                    {d && (
+                                        <div className="flex items-center gap-1 mb-2">
                                             {sched.doneAll && <span title="All tasks done" className="text-green-500 text-base">✓</span>}
                                             <span className="flex items-center gap-1 text-[10px]" style={{ color: theme.textLight }}>
                                                 {peptideCount > 0 && (
                                                     <span className="inline-flex items-center gap-0.5">
-                                                    <span className="inline-flex relative">
-                                                        <Droplet className="h-4 w-4" />
-                                                        <Droplet className="h-4 w-4 -ml-1.5" />
-                                                    </span>
-                                                    {peptideCount}
+                                                        <span className="inline-flex relative">
+                                                            <Droplet className="h-4 w-4" />
+                                                            <Droplet className="h-4 w-4 -ml-1.5" />
+                                                        </span>
+                                                        {peptideCount}
                                                     </span>
                                                 )}
                                             </span>
                                         </div>
                                     )}
-                                <div className="space-y-1">
-                                    <div className="sm:hidden space-y-1">
-                                        {peptides.slice(0, 2).map((p, idx) => (
-                                            <div key={idx} className="px-1.5 py-0.5 rounded text-[10px] leading-tight truncate" style={{ backgroundColor: theme.accent, color: theme.accentText }}>{p.name}</div>
-                                        ))}
-                                        {peptides.length > 2 && (
-                                            <div className="px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: theme.secondary, color: theme.text }} title={`+${peptides.length - 2} more`}>+</div>
-                                        )}
-                                    </div>
-                                    <div className="hidden sm:block space-y-1">
+                                    
+                                    {/* Desktop peptide list */}
+                                    <div className="space-y-1">
                                         {peptides.slice(0, 3).map((p, idx) => (
                                             <div key={idx} className="px-1.5 py-0.5 rounded text-[10px] leading-tight truncate" style={{ backgroundColor: theme.accent, color: theme.accentText }}>{p.name}</div>
                                         ))}
                                         {peptides.length > 3 && (
-                                            <div className="px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: theme.secondary, color: theme.text }} title={`+${peptides.length - 3} more`}>+</div>
+                                            <div className="px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: theme.secondary, color: theme.text }} title={`+${peptides.length - 3} more`}>+{peptides.length - 3}</div>
                                         )}
                                     </div>
                                 </div>
-                            </div>
-                            <div className="text-[10px] leading-tight mt-auto" style={{ color: theme.textLight, wordBreak: 'break-word' }}>
-                                {entryText}
-                            </div>
-                            {sched.washout && sched.washout.length > 0 && (
-                                <div className="mt-1">
-                                    <span className="px-1.5 py-0.5 text-[9px] rounded" style={{backgroundColor: theme.secondary, color: theme.textLight}} title={`Washout: ${sched.washout.join(', ')}`}>
-                                        Washout
-                                    </span>
+
+                                {/* Notes - simplified for mobile */}
+                                <div className="text-[9px] sm:text-[10px] leading-tight mt-auto truncate sm:whitespace-normal" style={{ color: theme.textLight }}>
+                                    {entryText}
                                 </div>
-                            )}
+
+                                {/* Washout indicator */}
+                                {sched.washout && sched.washout.length > 0 && (
+                                    <div className="mt-1">
+                                        <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded" style={{backgroundColor: theme.secondary, color: theme.textLight}} title={`Washout: ${sched.washout.join(', ')}`}>
+                                            W
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
                         </button>
                     )
                 })}

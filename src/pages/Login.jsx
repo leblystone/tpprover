@@ -90,6 +90,34 @@ export default function Login() {
 
     const doLogin = async () => {
       try {
+        // CRITICAL FIX: Backup existing localStorage data before login
+        const existingData = {};
+        const dataKeys = [
+          'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+          'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+          'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+          'tpprover_scheduled_buys'
+        ];
+        
+        dataKeys.forEach(key => {
+          const data = localStorage.getItem(key);
+          if (data) {
+            try {
+              existingData[key] = JSON.parse(data);
+            } catch (e) {
+              console.warn(`Failed to backup ${key}:`, e);
+            }
+          }
+        });
+        
+        const hasExistingData = Object.keys(existingData).some(key => 
+          Array.isArray(existingData[key]) && existingData[key].length > 0
+        );
+        
+        if (hasExistingData) {
+          console.log('🔄 Backing up existing user data before login...');
+        }
+        
         const firebaseUser = await loginUser(email, password);
         
         // Store password for encryption
@@ -140,6 +168,23 @@ export default function Login() {
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
         try { localStorage.setItem('tpprover_has_onboarded', 'true') } catch {}
+        
+        // CRITICAL FIX: Restore existing data if it was backed up and Firebase sync might overwrite it
+        if (hasExistingData) {
+          console.log('💾 Restoring backed up data to prevent data loss...');
+          
+          // Store backup for potential recovery
+          localStorage.setItem('tpprover_data_backup', JSON.stringify(existingData));
+          
+          // Restore the existing data immediately to prevent loss
+          Object.keys(existingData).forEach(key => {
+            if (existingData[key]) {
+              localStorage.setItem(key, JSON.stringify(existingData[key]));
+            }
+          });
+          
+          console.log('✅ User data restored after login');
+        }
         
         setUser(user);
         navigate('/dashboard');
