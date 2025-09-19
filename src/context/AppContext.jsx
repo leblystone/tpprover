@@ -105,6 +105,7 @@ export function AppProvider({ children }) {
         
         // Listen to Firebase auth changes instead of just localStorage
         const unsubscribe = onAuthChange(async (firebaseUser) => {
+            try {
             if (firebaseUser) {
                 // User is authenticated, load their profile from localStorage
                 try {

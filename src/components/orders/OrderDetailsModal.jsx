@@ -138,11 +138,11 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     Category <span className="text-red-500">*</span>
                   </div>
                   <div className="flex flex-wrap sm:inline-flex rounded-md bg-gray-100 p-1 shadow-inner gap-1">
-                    {['domestic','international','group'].map(k => (
+                    {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
                         className={`flex-1 px-2 py-1.5 text-xs sm:text-sm font-semibold rounded-md ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                         style={form.category === k ? { backgroundColor: theme?.primary } : {}}>
-                        {k.charAt(0).toUpperCase() + k.slice(1)}
+                        {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
                       </button>
                     ))}
                   </div>

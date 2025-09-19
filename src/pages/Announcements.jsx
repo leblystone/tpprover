@@ -137,7 +137,7 @@ export default function Announcements() {
                   <div className="text-xs" style={{ color: theme.textLight }}>{formatMMDDYYYY(p.date)}</div>
                 </div>
                 <h3 className="font-semibold text-lg" style={{ color: theme.text }}>{p.title}</h3>
-                <p className="text-sm mt-1" style={{ color: theme.textLight }}>{p.body}</p>
+                <div className="text-sm mt-1 whitespace-pre-wrap" style={{ color: theme.textLight }}>{p.body}</div>
               </div>
               <div className="px-5 py-3 border-t" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
                 <div className="flex items-center gap-2">

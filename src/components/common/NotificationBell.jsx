@@ -5,10 +5,27 @@ import { useFirebase } from '../../context/FirebaseContext';
 
 export default function NotificationBell({ theme }) {
   const { firebaseUser } = useFirebase();
-  const [notifications, setNotifications] = useState([]);
+  // CRITICAL FIX: Persist notifications in localStorage to prevent count reset on refresh
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tpprover_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(false);
   const notificationRef = useRef(null);
+
+  // Save notifications to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('tpprover_notifications', JSON.stringify(notifications));
+    } catch (error) {
+      console.warn('Failed to save notifications to localStorage:', error);
+    }
+  }, [notifications]);
 
   useEffect(() => {
     if (firebaseUser?.email) {
@@ -18,6 +35,45 @@ export default function NotificationBell({ theme }) {
       return () => clearInterval(interval);
     }
   }, [firebaseUser?.email]);
+
+  // CRITICAL FIX: Clean up expired notifications from localStorage on app start
+  useEffect(() => {
+    const cleanupExpiredNotifications = () => {
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      setNotifications(prev => {
+        const validNotifications = prev.filter(notification => {
+          // Keep unread notifications
+          if (!notification.isRead) return true;
+          
+          // For read notifications, check if they're within 24 hours
+          const readAt = notification.readAt;
+          if (!readAt) return true; // Keep if no readAt timestamp
+          
+          // Convert timestamp if needed
+          const readDate = new Date(readAt);
+          const isWithin24Hours = readDate > twentyFourHoursAgo;
+          
+          if (!isWithin24Hours) {
+            console.log('🔔 Cleaning up expired localStorage notification:', notification.id);
+          }
+          
+          return isWithin24Hours;
+        });
+        
+        return validNotifications;
+      });
+    };
+
+    // Run cleanup on component mount
+    cleanupExpiredNotifications();
+    
+    // Also run cleanup every hour to keep localStorage clean
+    const cleanupInterval = setInterval(cleanupExpiredNotifications, 60 * 60 * 1000); // 1 hour
+    
+    return () => clearInterval(cleanupInterval);
+  }, []);
 
   // Handle click outside to close notifications panel
   useEffect(() => {
@@ -49,7 +105,31 @@ export default function NotificationBell({ theme }) {
       console.log('🔔 NotificationBell: Loading notifications for:', firebaseUser.email);
       const userNotifications = await getUserNotifications(firebaseUser.email);
       console.log('🔔 NotificationBell: Received notifications:', userNotifications);
-      setNotifications(userNotifications);
+      
+      // CRITICAL FIX: Filter out notifications that should be auto-dismissed (24h after read)
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      const validNotifications = userNotifications.filter(notification => {
+        // Keep unread notifications
+        if (!notification.isRead) return true;
+        
+        // For read notifications, check if they're within 24 hours
+        const readAt = notification.readAt;
+        if (!readAt) return true; // Keep if no readAt timestamp
+        
+        // Convert Firebase timestamp if needed
+        const readDate = readAt.toDate ? readAt.toDate() : new Date(readAt);
+        const isWithin24Hours = readDate > twentyFourHoursAgo;
+        
+        if (!isWithin24Hours) {
+          console.log('🔔 Auto-filtering expired notification:', notification.id);
+        }
+        
+        return isWithin24Hours;
+      });
+      
+      setNotifications(validNotifications);
     } catch (error) {
       console.error('🔔 NotificationBell: Failed to load notifications:', error);
     } finally {
@@ -62,9 +142,10 @@ export default function NotificationBell({ theme }) {
       // Opening notifications panel - mark all as read immediately for instant UI feedback
       const unreadNotifications = notifications.filter(n => !n.isRead);
       if (unreadNotifications.length > 0) {
-        // Update UI immediately (optimistic update)
+        // Update UI immediately (optimistic update) with current timestamp
+        const readTimestamp = new Date();
         setNotifications(prev => 
-          prev.map(n => ({ ...n, isRead: true, readAt: new Date() }))
+          prev.map(n => ({ ...n, isRead: true, readAt: readTimestamp }))
         );
         
         // Try to sync with Firebase in background (optional)

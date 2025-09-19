@@ -105,7 +105,7 @@ export function useBadgeStats() {
         
         const delivered = orders.filter(o => o.status === 'Delivered').length
         const internationalOrders = orders.filter(o => o.category === 'international').length
-        const groupBuys = orders.filter(o => o.category === 'group').length
+        const groupBuys = orders.filter(o => (o.category === 'group' || o.category === 'groupbuy' || o.type === 'group' || o.type === 'groupbuy')).length
         const activeProtocols = protocols.filter(p => p.active !== false).length
         const lowStock = stockpile.filter(s => Number(s.quantity) <= 1).length
         const supplementCount = supplements.length

@@ -840,6 +840,53 @@ function Admin() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: '#f8fafc' }}>
+      {/* Mobile Header Navigation */}
+      <div className="lg:hidden bg-white border-b" style={{ borderColor: theme.border }}>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
+                <Wrench size={16} style={{ color: theme.primary }} />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
+                <p className="text-xs" style={{ color: theme.textLight }}>The Pep Planner</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Mobile Tab Navigation */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-2">
+            {[
+              { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+              { id: 'subscriptions', label: 'Users', icon: Users },
+              { id: 'announcements', label: 'Posts', icon: Megaphone },
+              { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+              { id: 'whitelist', label: 'Access', icon: Shield }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                    isActive ? 'text-white' : 'hover:opacity-70'
+                  }`}
+                  style={{ 
+                    backgroundColor: isActive ? theme.primary : 'transparent',
+                    color: isActive ? theme.textOnPrimary : theme.text
+                  }}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Desktop Sidebar Navigation */}
       <div className="hidden lg:flex lg:w-64 bg-white border-r flex-col lg:min-h-screen" style={{ borderColor: theme.border }}>
         {/* Header */}
