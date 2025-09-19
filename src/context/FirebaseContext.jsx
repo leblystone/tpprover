@@ -42,7 +42,15 @@ export function FirebaseProvider({ children }) {
 
         try {
             setSyncStatus('syncing');
-            await saveUserData(firebaseUser.uid, userData, userPassword);
+            
+            // CRITICAL FIX: Add timeout for sync operations to prevent hanging on WiFi issues
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Firebase sync timeout - possibly blocked by firewall/VPN')), 15000)
+            );
+            
+            const syncPromise = saveUserData(firebaseUser.uid, userData, userPassword);
+            await Promise.race([syncPromise, timeoutPromise]);
+            
             setSyncStatus('success');
             
             // Clear success status after 2 seconds
@@ -50,6 +58,13 @@ export function FirebaseProvider({ children }) {
             return true;
         } catch (error) {
             console.error('Sync to Firebase failed:', error);
+            
+            // Provide specific guidance for WiFi/VPN issues
+            if (error.message.includes('timeout') || error.message.includes('network')) {
+                console.warn('🌐 Sync failed - may be WiFi/VPN related');
+                console.log('💡 Data is still saved locally. Try switching to mobile data to sync.');
+            }
+            
             setSyncStatus('error');
             setTimeout(() => setSyncStatus('idle'), 5000);
             return false;
@@ -70,12 +85,27 @@ export function FirebaseProvider({ children }) {
 
         try {
             setSyncStatus('syncing');
-            const userData = await loadUserData(firebaseUser.uid, userPassword);
+            
+            // CRITICAL FIX: Add timeout and better error handling for WiFi/VPN issues
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Firebase timeout - possibly blocked by firewall/VPN')), 15000)
+            );
+            
+            const loadPromise = loadUserData(firebaseUser.uid, userPassword);
+            const userData = await Promise.race([loadPromise, timeoutPromise]);
+            
             setSyncStatus('success');
             setTimeout(() => setSyncStatus('idle'), 2000);
             return userData;
         } catch (error) {
             console.error('Load from Firebase failed:', error);
+            
+            // Provide specific error messages for common WiFi/VPN issues
+            if (error.message.includes('timeout') || error.message.includes('network')) {
+                console.warn('🌐 Network issue detected - may be WiFi/VPN related');
+                console.log('💡 Try: 1) Switch to mobile data, 2) Disable VPN, 3) Use window.clearAppCache()');
+            }
+            
             setSyncStatus('error');
             setTimeout(() => setSyncStatus('idle'), 5000);
             return null;
