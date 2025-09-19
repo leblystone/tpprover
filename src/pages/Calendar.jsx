@@ -119,6 +119,7 @@ export default function Calendar() {
   const [done, setDone] = useState({})
   const [protocolTimelines, setProtocolTimelines] = useState([]);
   const [calendarBump, setCalendarBump] = useState(0);
+  const [showIconKey, setShowIconKey] = useState(false);
   // Load persisted notes (entries) and done slots
   useEffect(() => {
     try { const raw = localStorage.getItem('tpprover_calendar_notes'); if (raw) setEntries(JSON.parse(raw)) } catch {}

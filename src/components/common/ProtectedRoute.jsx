@@ -35,9 +35,9 @@ const ProtectedRoute = () => {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
         <div className="text-center p-8 rounded-lg shadow-lg" style={{ backgroundColor: theme.cardBackground }}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: theme.primary }}></div>
-          <h2 className="text-xl font-semibold mb-2" style={{ color: theme.primaryDark }}>
-            Loading **The Pep Planner**...
-          </h2>
+                <h2 className="text-xl font-semibold mb-2" style={{ color: theme.primaryDark }}>
+                  Loading The Pep Planner...
+                </h2>
           <p className="text-sm mb-4" style={{ color: theme.textLight }}>
             {loadingTime < 5000 ? 'Initializing app...' : 
              loadingTime < 10000 ? 'Syncing your data...' : 
