@@ -41,18 +41,18 @@ const SupplementsWidget = ({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Supplements
           </h3>
           <button
             onClick={onAddSupplement}
-            className="px-3 py-2 rounded-lg font-semibold transition-colors text-sm"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
+            style={{ borderColor: theme.primary, color: theme.primary }}
+            title="Add Supplement"
           >
-            <Plus size={16} className="inline mr-1" />
-            Add
+            <Plus size={12} strokeWidth={3} />
           </button>
         </div>
       </div>

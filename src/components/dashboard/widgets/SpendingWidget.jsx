@@ -52,13 +52,13 @@ const SpendingWidget = ({ widget, theme }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
           Spending
         </h3>
       </div>
       
-      <div className="flex-1 p-6 flex flex-col items-center justify-center">
+      <div className="flex-1 p-4 flex flex-col items-center justify-center">
         <div className="text-center mb-4">
           <div className="flex items-center justify-center mb-2">
             <DollarSign size={24} style={{ color: theme.primary }} />

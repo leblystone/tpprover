@@ -36,13 +36,13 @@ const InventoryWidget = ({ widget, theme }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
           Inventory
         </h3>
       </div>
       
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4">
         {inventoryData.totalItems === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Package size={24} style={{ color: theme.textLight }} className="mb-2" />

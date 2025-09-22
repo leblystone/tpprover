@@ -6,7 +6,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder }) => {
   if (!order) {
     return (
       <div className="h-full flex flex-col">
-        <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+        <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Incoming Peptides
           </h3>
@@ -21,7 +21,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder }) => {
             className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            Place Order
+            Add Order
           </button>
         </div>
       </div>

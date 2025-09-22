@@ -11,7 +11,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd }) => {
   if (!limitedBuys || limitedBuys.length === 0) {
     return (
       <div className="h-full flex flex-col">
-        <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+        <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Upcoming Buys
           </h3>

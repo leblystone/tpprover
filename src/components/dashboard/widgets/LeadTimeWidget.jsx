@@ -47,13 +47,13 @@ const LeadTimeWidget = ({ widget, theme }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
           Lead Times
         </h3>
       </div>
       
-      <div className="flex-1 p-6 flex flex-col items-center justify-center">
+      <div className="flex-1 p-4 flex flex-col items-center justify-center">
         {leadTimeData.avgLeadTime ? (
           <>
             <div className="text-center mb-4">

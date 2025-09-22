@@ -14,7 +14,7 @@ const MetricsWidget = ({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Body Metrics
@@ -30,7 +30,7 @@ const MetricsWidget = ({
         </div>
       </div>
       
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-4 overflow-y-auto">
         {recentMetrics.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm mb-4" style={{ color: theme.textLight }}>
@@ -38,7 +38,7 @@ const MetricsWidget = ({
             </p>
             <button
               onClick={onAddMetric}
-              className="px-4 py-2 rounded-lg font-medium transition-colors"
+              className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               <Plus size={16} className="inline mr-2" />
