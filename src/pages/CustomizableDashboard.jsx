@@ -389,7 +389,7 @@ export default function CustomizableDashboard() {
                   minHeight = '200px';
                   break;
                 case 'badges':
-                  gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4';
+                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
                   minHeight = '120px';
                   break;
                 case 'supplements':
