@@ -44,12 +44,9 @@ const DashboardWidget = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const { w, h } = getSizeConfig(widget.size);
-  
   const widgetStyle = {
-    gridColumn: `span ${w}`,
-    gridRow: `span ${h}`,
-    minHeight: h === 1 ? '200px' : '400px',
+    width: '100%',
+    height: '100%',
     ...style
   };
 

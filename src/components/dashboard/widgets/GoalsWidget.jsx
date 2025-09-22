@@ -19,12 +19,14 @@ const GoalsWidget = ({
   const recentMetrics = showMetrics ? metrics.slice(0, 3) : [];
 
   return (
-    <div className="p-6 h-full overflow-y-auto">
-      <div className="flex items-center justify-between mb-4">
+    <div className="h-full flex flex-col">
+      <div className="p-6 border-b" style={{ borderColor: theme.border }}>
         <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
           {widget.title}
         </h3>
       </div>
+      
+      <div className="flex-1 p-6 overflow-y-auto">
 
       {showGoals && (
         <div className="mb-6">
@@ -160,6 +162,7 @@ const GoalsWidget = ({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };

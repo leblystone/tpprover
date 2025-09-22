@@ -11,14 +11,14 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   }
 
   return (
-    <div className="p-6 h-full">
-      <div className="flex items-center justify-between mb-4">
+    <div className="h-full flex flex-col">
+      <div className="p-6 border-b" style={{ borderColor: theme.border }}>
         <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
           {widget.title}
         </h3>
       </div>
       
-      <div className="h-[calc(100%-4rem)] overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto">
         <TasksList 
           tasks={filteredTasks} 
           theme={theme} 
