@@ -14,6 +14,7 @@ import {
   saveDashboardLayout, 
   validateWidgetPosition,
   findEmptyPosition,
+  resetDashboardLayout,
   WIDGET_TYPES
 } from '../utils/dashboardCustomization';
 
