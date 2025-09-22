@@ -54,13 +54,13 @@ const DashboardWidget = ({
 
   return (
     <div
-      className={`relative rounded-lg border content-card shadow-sm transition-all duration-200 ${
+      className={`relative rounded-xl border content-card shadow-lg transition-all duration-200 ${
         isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : ''
-      } ${isDragging ? 'z-50 shadow-xl' : ''}`}
+      } ${isDragging ? 'z-50 shadow-2xl' : 'hover:shadow-xl'}`}
       style={{
         ...widgetStyle,
         borderColor: theme.border,
-        backgroundColor: theme.cardBackground,
+        backgroundColor: theme.white || '#ffffff',
         ringColor: isCustomizing ? theme.primary : 'transparent'
       }}
       onMouseDown={handleMouseDown}

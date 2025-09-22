@@ -240,27 +240,19 @@ export default function CustomizableDashboard() {
   return (
     <ViewContainer>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
-              **The Pep Planner** Dashboard
-            </h1>
-            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-              Your personalized research command center
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
+        {/* Header with floating buttons */}
+        <div className="relative">
+          <div className="absolute top-0 right-0 z-10 flex items-center gap-2">
             <button
               onClick={() => setIsCustomizing(!isCustomizing)}
-              className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg ${
                 isCustomizing ? 'ring-2 ring-opacity-50' : ''
               }`}
               style={{
-                backgroundColor: isCustomizing ? theme.primary : theme.secondary,
+                backgroundColor: isCustomizing ? theme.primary : theme.cardBackground,
                 color: isCustomizing ? theme.textOnPrimary : theme.text,
-                ringColor: isCustomizing ? theme.primary : 'transparent'
+                ringColor: isCustomizing ? theme.primary : 'transparent',
+                border: `1px solid ${theme.border}`
               }}
             >
               <Edit size={16} className="inline mr-1" />
@@ -269,10 +261,11 @@ export default function CustomizableDashboard() {
             
             <button
               onClick={() => setShowCustomizer(true)}
-              className="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
               style={{
-                backgroundColor: theme.accent,
-                color: theme.text
+                backgroundColor: theme.cardBackground,
+                color: theme.text,
+                border: `1px solid ${theme.border}`
               }}
             >
               <Settings size={16} className="inline mr-1" />
@@ -282,7 +275,7 @@ export default function CustomizableDashboard() {
         </div>
 
         {/* Dashboard Layout */}
-        <div className="space-y-6">
+        <div className="space-y-6 pt-16">
           {/* Top Row - Tasks and Orders */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {enabledWidgets
