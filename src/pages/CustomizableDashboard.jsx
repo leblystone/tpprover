@@ -46,7 +46,11 @@ export default function CustomizableDashboard() {
   } = useAppContext();
 
   // Dashboard customization state
-  const [widgets, setWidgets] = useState(() => loadDashboardLayout());
+  const [widgets, setWidgets] = useState(() => {
+    // For now, always load fresh defaults to show new widgets
+    // TODO: Remove this and use loadDashboardLayout() after testing
+    return resetDashboardLayout();
+  });
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
 
@@ -358,6 +362,13 @@ export default function CustomizableDashboard() {
                 case 'analytics':
                   gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-6';
                   minHeight = '400px';
+                  break;
+                case 'compliance':
+                case 'spending':
+                case 'lead_time':
+                case 'inventory':
+                  gridClasses = 'col-span-1 sm:col-span-1 lg:col-span-1';
+                  minHeight = '200px';
                   break;
                 case 'badges':
                   gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4';

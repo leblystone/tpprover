@@ -5,7 +5,13 @@ import UpcomingOrderWidget from './widgets/UpcomingOrderWidget';
 import UpcomingBuysWidget from './widgets/UpcomingBuysWidget';
 import PendingVendorsWidget from './widgets/PendingVendorsWidget';
 import AnalyticsWidget from './widgets/AnalyticsWidget';
+import ComplianceWidget from './widgets/ComplianceWidget';
+import SpendingWidget from './widgets/SpendingWidget';
+import LeadTimeWidget from './widgets/LeadTimeWidget';
+import InventoryWidget from './widgets/InventoryWidget';
 import BadgesWidget from './widgets/BadgesWidget';
+import GoalsOnlyWidget from './widgets/GoalsOnlyWidget';
+import MetricsWidget from './widgets/MetricsWidget';
 import GoalsWidget from './widgets/GoalsWidget';
 
 const WidgetFactory = ({ widget, theme, ...props }) => {
@@ -61,6 +67,38 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
           theme={theme} 
         />
       );
+
+    case WIDGET_TYPES.COMPLIANCE:
+      return (
+        <ComplianceWidget 
+          widget={widget} 
+          theme={theme} 
+        />
+      );
+
+    case WIDGET_TYPES.SPENDING:
+      return (
+        <SpendingWidget 
+          widget={widget} 
+          theme={theme} 
+        />
+      );
+
+    case WIDGET_TYPES.LEAD_TIME:
+      return (
+        <LeadTimeWidget 
+          widget={widget} 
+          theme={theme} 
+        />
+      );
+
+    case WIDGET_TYPES.INVENTORY:
+      return (
+        <InventoryWidget 
+          widget={widget} 
+          theme={theme} 
+        />
+      );
       
     case WIDGET_TYPES.BADGES:
       return (
@@ -72,15 +110,35 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
       
     case WIDGET_TYPES.GOALS:
       return (
-        <GoalsWidget 
+        <GoalsOnlyWidget 
           widget={widget} 
           theme={theme} 
           goals={props.goals}
-          metrics={props.metrics}
           onGoalToggle={props.onGoalToggle}
           onAddGoal={props.onAddGoal}
-          onAddMetric={props.onAddMetric}
           onEditGoal={props.onEditGoal}
+        />
+      );
+
+    case 'goals_only':
+      return (
+        <GoalsOnlyWidget 
+          widget={widget} 
+          theme={theme} 
+          goals={props.goals}
+          onGoalToggle={props.onGoalToggle}
+          onAddGoal={props.onAddGoal}
+          onEditGoal={props.onEditGoal}
+        />
+      );
+
+    case 'metrics_only':
+      return (
+        <MetricsWidget 
+          widget={widget} 
+          theme={theme} 
+          metrics={props.metrics}
+          onAddMetric={props.onAddMetric}
           onEditMetric={props.onEditMetric}
         />
       );

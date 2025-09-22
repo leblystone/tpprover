@@ -5,6 +5,10 @@ export const WIDGET_TYPES = {
   UPCOMING_BUYS: 'upcoming_buys',
   PENDING_VENDORS: 'pending_vendors',
   ANALYTICS: 'analytics',
+  COMPLIANCE: 'compliance',
+  SPENDING: 'spending',
+  LEAD_TIME: 'lead_time',
+  INVENTORY: 'inventory',
   BADGES: 'badges',
   GOALS: 'goals_only',
   METRICS: 'metrics_only',
@@ -45,15 +49,13 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
-    id: 'goals',
-    type: WIDGET_TYPES.GOALS,
-    title: 'Goals & Metrics',
+    id: 'goals_only',
+    type: 'goals_only',
+    title: 'Goals',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 0, y: 1 },
     enabled: true,
     settings: {
-      showMetrics: true,
-      showGoals: true,
       maxItems: 5
     }
   },
@@ -69,26 +71,71 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
-    id: 'analytics',
-    type: WIDGET_TYPES.ANALYTICS,
-    title: 'Analytics Dashboard',
-    size: WIDGET_SIZES.FULL,
+    id: 'metrics_only',
+    type: 'metrics_only',
+    title: 'Body Metrics',
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 0, y: 2 },
     enabled: true,
     settings: {
-      defaultTab: 'compliance'
+      maxItems: 3
     }
+  },
+  {
+    id: 'compliance',
+    type: WIDGET_TYPES.COMPLIANCE,
+    title: 'Compliance',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 2, y: 2 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'spending',
+    type: WIDGET_TYPES.SPENDING,
+    title: 'Spending',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 3, y: 2 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'lead_time',
+    type: WIDGET_TYPES.LEAD_TIME,
+    title: 'Lead Times',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 0, y: 3 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'inventory',
+    type: WIDGET_TYPES.INVENTORY,
+    title: 'Inventory',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 1, y: 3 },
+    enabled: true,
+    settings: {}
   },
   {
     id: 'badges',
     type: WIDGET_TYPES.BADGES,
     title: 'Your Badges',
     size: WIDGET_SIZES.WIDE,
-    position: { x: 0, y: 3 },
+    position: { x: 2, y: 3 },
     enabled: true,
     settings: {
       showProgress: true
     }
+  },
+  {
+    id: 'pending_vendors',
+    type: WIDGET_TYPES.PENDING_VENDORS,
+    title: 'Pending Vendors',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 4 },
+    enabled: false, // Only show when there are pending vendors
+    settings: {}
   }
 ];
 
@@ -160,6 +207,52 @@ export const WIDGET_METADATA = {
       { key: 'showMetrics', label: 'Show body metrics', type: 'boolean', default: true },
       { key: 'showGoals', label: 'Show goals', type: 'boolean', default: true },
       { key: 'maxItems', label: 'Max items to show', type: 'number', default: 5, min: 1, max: 10 }
+    ]
+  },
+  [WIDGET_TYPES.COMPLIANCE]: {
+    title: 'Compliance',
+    description: 'Track your supplement compliance and streaks',
+    icon: 'CheckCircle',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
+  },
+  [WIDGET_TYPES.SPENDING]: {
+    title: 'Spending',
+    description: 'Monitor your monthly and total spending',
+    icon: 'DollarSign',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
+  },
+  [WIDGET_TYPES.LEAD_TIME]: {
+    title: 'Lead Times',
+    description: 'Track delivery times and vendor performance',
+    icon: 'Truck',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
+  },
+  [WIDGET_TYPES.INVENTORY]: {
+    title: 'Inventory',
+    description: 'Monitor stock levels and low inventory alerts',
+    icon: 'Archive',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
+  },
+  ['goals_only']: {
+    title: 'Goals',
+    description: 'Track and manage your research goals',
+    icon: 'Target',
+    availableSizes: [WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    settings: [
+      { key: 'maxItems', label: 'Max items to show', type: 'number', default: 5, min: 1, max: 10 }
+    ]
+  },
+  ['metrics_only']: {
+    title: 'Body Metrics',
+    description: 'Record and track your body metrics',
+    icon: 'Activity',
+    availableSizes: [WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    settings: [
+      { key: 'maxItems', label: 'Max items to show', type: 'number', default: 3, min: 1, max: 10 }
     ]
   },
   [WIDGET_TYPES.SUPPLEMENTS]: {
