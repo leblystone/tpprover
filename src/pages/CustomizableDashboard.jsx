@@ -240,42 +240,38 @@ export default function CustomizableDashboard() {
   return (
     <ViewContainer>
       <div className="space-y-6">
-        {/* Header with floating buttons */}
-        <div className="relative">
-          <div className="absolute top-0 right-0 z-10 flex items-center gap-2">
-            <button
-              onClick={() => setIsCustomizing(!isCustomizing)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg ${
-                isCustomizing ? 'ring-2 ring-opacity-50' : ''
-              }`}
-              style={{
-                backgroundColor: isCustomizing ? theme.primary : theme.cardBackground,
-                color: isCustomizing ? theme.textOnPrimary : theme.text,
-                ringColor: isCustomizing ? theme.primary : 'transparent',
-                border: `1px solid ${theme.border}`
-              }}
-            >
-              <Edit size={16} className="inline mr-1" />
-              {isCustomizing ? 'Done Editing' : 'Customize'}
-            </button>
-            
-            <button
-              onClick={() => setShowCustomizer(true)}
-              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-              style={{
-                backgroundColor: theme.cardBackground,
-                color: theme.text,
-                border: `1px solid ${theme.border}`
-              }}
-            >
-              <Settings size={16} className="inline mr-1" />
-              Settings
-            </button>
-          </div>
+        {/* Header with buttons */}
+        <div className="flex items-center justify-end mb-6 gap-2">
+          <button
+            onClick={() => setIsCustomizing(!isCustomizing)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              isCustomizing ? 'ring-2 ring-opacity-50' : ''
+            }`}
+            style={{
+              backgroundColor: isCustomizing ? theme.primary : theme.secondary,
+              color: isCustomizing ? theme.textOnPrimary : theme.text,
+              ringColor: isCustomizing ? theme.primary : 'transparent'
+            }}
+          >
+            <Edit size={16} className="inline mr-1" />
+            {isCustomizing ? 'Done Editing' : 'Customize'}
+          </button>
+          
+          <button
+            onClick={() => setShowCustomizer(true)}
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
+            style={{
+              backgroundColor: theme.secondary,
+              color: theme.text
+            }}
+          >
+            <Settings size={16} className="inline mr-1" />
+            Settings
+          </button>
         </div>
 
         {/* Dashboard Layout - Flexible Grid */}
-        <div className="pt-16">
+        <div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
             {enabledWidgets.map(widget => {
               // Determine widget size based on type and content
