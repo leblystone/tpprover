@@ -60,7 +60,7 @@ const DashboardWidget = ({
       style={{
         ...widgetStyle,
         borderColor: theme.border,
-        backgroundColor: theme.background,
+        backgroundColor: theme.white || '#ffffff',
         ringColor: isCustomizing ? theme.primary : 'transparent'
       }}
       onMouseDown={handleMouseDown}

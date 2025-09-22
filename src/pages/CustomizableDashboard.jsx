@@ -238,7 +238,7 @@ export default function CustomizableDashboard() {
     });
 
   return (
-    <ViewContainer>
+    <ViewContainer theme={theme}>
       <div className="space-y-6">
         {/* Header with buttons */}
         <div className="flex items-center justify-end mb-6 gap-2">
