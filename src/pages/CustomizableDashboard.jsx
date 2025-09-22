@@ -244,28 +244,28 @@ export default function CustomizableDashboard() {
         <div className="flex items-center justify-end mb-6 gap-2">
           <button
             onClick={() => setIsCustomizing(!isCustomizing)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
               isCustomizing ? 'ring-2 ring-opacity-50' : ''
             }`}
             style={{
-              backgroundColor: isCustomizing ? theme.primary : theme.secondary,
-              color: isCustomizing ? theme.textOnPrimary : theme.text,
+              backgroundColor: isCustomizing ? theme.primary : theme.primaryDark,
+              color: theme.textOnPrimary,
               ringColor: isCustomizing ? theme.primary : 'transparent'
             }}
           >
-            <Edit size={16} className="inline mr-1" />
+            <Edit size={14} className="inline mr-1" />
             {isCustomizing ? 'Done Editing' : 'Customize'}
           </button>
           
           <button
             onClick={() => setShowCustomizer(true)}
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
             style={{
-              backgroundColor: theme.secondary,
-              color: theme.text
+              backgroundColor: theme.primaryDark,
+              color: theme.textOnPrimary
             }}
           >
-            <Settings size={16} className="inline mr-1" />
+            <Settings size={14} className="inline mr-1" />
             Settings
           </button>
         </div>
@@ -280,24 +280,80 @@ export default function CustomizableDashboard() {
               
               switch (widget.type) {
                 case 'tasks':
-                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                  minHeight = '300px';
+                  // Dynamic sizing based on task count
+                  const taskCount = todaysTasks ? todaysTasks.length : 0;
+                  if (taskCount === 0) {
+                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
+                    minHeight = '180px';
+                  } else if (taskCount <= 3) {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '250px';
+                  } else {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '350px';
+                  }
                   break;
                 case 'upcoming_order':
-                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                  minHeight = '350px';
+                  // Dynamic sizing based on whether there are active orders
+                  if (incomingOrder) {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '350px';
+                  } else {
+                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
+                    minHeight = '150px';
+                  }
+                  break;
+                case 'goals_only':
+                  // Dynamic sizing based on goal count
+                  const goalCount = goals ? goals.length : 0;
+                  if (goalCount === 0) {
+                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
+                    minHeight = '180px';
+                  } else if (goalCount <= 2) {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '220px';
+                  } else {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '300px';
+                  }
+                  break;
+                case 'metrics_only':
+                  // Dynamic sizing based on metrics count
+                  const metricsCount = metrics ? metrics.length : 0;
+                  if (metricsCount === 0) {
+                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
+                    minHeight = '180px';
+                  } else if (metricsCount <= 2) {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '250px';
+                  } else {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '320px';
+                  }
                   break;
                 case 'goals':
                   gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
                   minHeight = '280px';
                   break;
                 case 'upcoming_buys':
-                  gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
-                  minHeight = '200px';
+                  // Dynamic sizing based on whether there are upcoming buys
+                  if (upcomingBuys && upcomingBuys.length > 0) {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '200px';
+                  } else {
+                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-1';
+                    minHeight = '140px';
+                  }
                   break;
                 case 'pending_vendors':
-                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                  minHeight = '180px';
+                  // Dynamic sizing based on whether there are pending vendors
+                  if (pendingVendors && pendingVendors.length > 0) {
+                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                    minHeight = '180px';
+                  } else {
+                    // Don't show this widget if no pending vendors
+                    return null;
+                  }
                   break;
                 case 'analytics':
                   gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-6';

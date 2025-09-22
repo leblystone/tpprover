@@ -6,8 +6,8 @@ export const WIDGET_TYPES = {
   PENDING_VENDORS: 'pending_vendors',
   ANALYTICS: 'analytics',
   BADGES: 'badges',
-  GOALS: 'goals',
-  METRICS: 'metrics',
+  GOALS: 'goals_only',
+  METRICS: 'metrics_only',
   SUPPLEMENTS: 'supplements'
 };
 
