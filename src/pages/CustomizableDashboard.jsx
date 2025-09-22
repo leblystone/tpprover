@@ -205,17 +205,10 @@ export default function CustomizableDashboard() {
     
     // Handle widget reordering for drag and drop
     setWidgets(prev => {
-      console.log('🔄 DRAG AND DROP - Starting move operation');
-      console.log('📦 Previous widgets order:', prev.map(w => ({ id: w.id, type: w.type })));
-      
       const draggedIndex = prev.findIndex(w => w.id === draggedWidgetId);
       const targetIndex = prev.findIndex(w => w.id === targetWidgetId);
       
-      console.log('🎯 Dragged widget:', draggedWidgetId, 'at index:', draggedIndex);
-      console.log('🎯 Target widget:', targetWidgetId, 'at index:', targetIndex);
-      
       if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
-        console.log('❌ Move cancelled - invalid indices or same position');
         return prev;
       }
       
@@ -224,11 +217,8 @@ export default function CustomizableDashboard() {
       const [draggedWidget] = newWidgets.splice(draggedIndex, 1);
       newWidgets.splice(targetIndex, 0, draggedWidget);
       
-      console.log('✅ New widgets order:', newWidgets.map(w => ({ id: w.id, type: w.type })));
-      
       // Save the new layout
       saveDashboardLayout(newWidgets);
-      console.log('💾 Layout saved to localStorage');
       
       return newWidgets;
     });

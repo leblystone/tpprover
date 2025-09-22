@@ -179,13 +179,13 @@ const DashboardCustomizer = ({
                             backgroundColor: theme.secondary + '10'
                           }}
                         >
-                          <InlineWidgetSettings
-                            widget={selectedWidget}
-                            metadata={WIDGET_METADATA[selectedWidget.type]}
-                            theme={theme}
-                            onChange={handleWidgetSettingChange}
-                            onClose={() => setSelectedWidget(null)}
-                          />
+                        <InlineWidgetSettings
+                          widget={selectedWidget}
+                          metadata={WIDGET_METADATA[selectedWidget?.type] || {}}
+                          theme={theme}
+                          onChange={handleWidgetSettingChange}
+                          onClose={() => setSelectedWidget(null)}
+                        />
                         </div>
                       )}
                     </div>
