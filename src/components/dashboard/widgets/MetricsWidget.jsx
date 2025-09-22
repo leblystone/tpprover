@@ -21,11 +21,11 @@ const MetricsWidget = ({
           </h3>
           <button
             onClick={onAddMetric}
-            className="px-3 py-2 rounded-lg font-semibold transition-colors text-sm"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            title="Add Entry"
           >
-            <Plus size={16} className="inline mr-1" />
-            Add Entry
+            <Plus size={16} />
           </button>
         </div>
       </div>

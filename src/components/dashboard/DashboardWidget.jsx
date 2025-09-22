@@ -25,7 +25,9 @@ const DashboardWidget = ({
     e.dataTransfer.setData('text/plain', widget.id);
     
     // Add visual feedback
-    e.target.style.opacity = '0.5';
+    e.currentTarget.style.opacity = '0.5';
+    e.currentTarget.style.transform = 'rotate(5deg)';
+    e.currentTarget.style.zIndex = '1000';
   };
 
   const handleDragEnd = (e) => {

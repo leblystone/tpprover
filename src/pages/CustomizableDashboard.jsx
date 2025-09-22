@@ -187,16 +187,45 @@ export default function CustomizableDashboard() {
     setWidgets(prev => prev.filter(w => w.id !== widgetId));
   };
 
-  const handleMoveWidget = (widgetId, newPosition) => {
-    setWidgets(prev => prev.map(w => {
-      if (w.id === widgetId) {
-        const updatedWidget = { ...w, position: newPosition };
-        if (validateWidgetPosition(updatedWidget, prev, widgetId)) {
-          return updatedWidget;
+  const handleMoveWidget = (draggedWidgetId, targetWidgetId) => {
+    // If it's the old position-based system, handle it differently
+    if (typeof targetWidgetId === 'object') {
+      const newPosition = targetWidgetId;
+      setWidgets(prev => prev.map(w => {
+        if (w.id === draggedWidgetId) {
+          const updatedWidget = { ...w, position: newPosition };
+          if (validateWidgetPosition(updatedWidget, prev, draggedWidgetId)) {
+            return updatedWidget;
+          }
         }
+        return w;
+      }));
+      return;
+    }
+    
+    // Handle widget swapping for drag and drop
+    setWidgets(prev => {
+      const draggedIndex = prev.findIndex(w => w.id === draggedWidgetId);
+      const targetIndex = prev.findIndex(w => w.id === targetWidgetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
+        return prev;
       }
-      return w;
-    }));
+      
+      // Create a new array and swap the widgets
+      const newWidgets = [...prev];
+      const draggedWidget = newWidgets[draggedIndex];
+      const targetWidget = newWidgets[targetIndex];
+      
+      // Swap the widgets in the array
+      newWidgets[draggedIndex] = targetWidget;
+      newWidgets[targetIndex] = draggedWidget;
+      
+      // Save the new layout
+      saveDashboardLayout(newWidgets);
+      
+      return newWidgets;
+    });
   };
 
   const handleResizeWidget = (widgetId, newSize) => {
@@ -277,7 +306,7 @@ export default function CustomizableDashboard() {
 
         {/* Dashboard Layout - Flexible Grid */}
         <div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
+          <div className="dashboard-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
             {enabledWidgets.map(widget => {
               // Determine widget size based on type and content
               let gridClasses = '';
