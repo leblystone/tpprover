@@ -22,11 +22,11 @@ const GoalsOnlyWidget = ({
           </h3>
           <button
             onClick={onAddGoal}
-            className="w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
+            className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
             style={{ borderColor: theme.primary, color: theme.primary }}
             title="Add Goal"
           >
-            <Plus size={16} />
+            <Plus size={12} strokeWidth={3} />
           </button>
         </div>
       </div>
