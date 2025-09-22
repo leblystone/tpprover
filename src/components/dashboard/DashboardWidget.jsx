@@ -21,6 +21,7 @@ const DashboardWidget = ({
     if (!isCustomizing) return;
     
     setIsDragging(true);
+    console.log('🎬 DRAG START:', widget.id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', widget.id);
     
@@ -59,6 +60,13 @@ const DashboardWidget = ({
     if (!isCustomizing) return;
     e.preventDefault();
     
+    console.log('🎯 DROP EVENT:', {
+      isCustomizing,
+      draggedWidgetId: e.dataTransfer.getData('text/plain'),
+      dropTargetId: widget.id,
+      onMoveExists: !!onMove
+    });
+    
     // Reset border styling
     e.currentTarget.style.borderColor = theme.border;
     e.currentTarget.style.borderWidth = '1px';
@@ -67,8 +75,11 @@ const DashboardWidget = ({
     const dropTargetId = widget.id;
     
     if (draggedWidgetId && draggedWidgetId !== dropTargetId) {
+      console.log('🚀 CALLING onMove:', draggedWidgetId, 'to', dropTargetId);
       // Call the move handler to reorder widgets
       onMove?.(draggedWidgetId, dropTargetId);
+    } else {
+      console.log('❌ DROP IGNORED:', { draggedWidgetId, dropTargetId, same: draggedWidgetId === dropTargetId });
     }
   };
 
