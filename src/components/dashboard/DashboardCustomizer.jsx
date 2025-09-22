@@ -232,21 +232,37 @@ const DashboardCustomizer = ({
                     Select a Widget to Configure
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {widgets.map(widget => (
-                      <button
-                        key={widget.id}
-                        onClick={() => setSelectedWidget(widget)}
-                        className="p-4 border rounded-lg text-left hover:shadow-md transition-shadow"
-                        style={{ borderColor: theme.border }}
-                      >
-                        <div className="font-medium" style={{ color: theme.text }}>
-                          {widget.title}
-                        </div>
-                        <div className="text-sm mt-1" style={{ color: theme.textLight }}>
-                          {WIDGET_METADATA[widget.type]?.description}
-                        </div>
-                      </button>
-                    ))}
+                    {widgets.map(widget => {
+                      const metadata = WIDGET_METADATA[widget.type];
+                      const hasSettings = metadata?.settings && metadata.settings.length > 0;
+                      
+                      return (
+                        <button
+                          key={widget.id}
+                          onClick={() => setSelectedWidget(widget)}
+                          className="p-4 border rounded-lg text-left hover:shadow-md transition-shadow"
+                          style={{ borderColor: theme.border }}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium" style={{ color: theme.text }}>
+                              {widget.title}
+                            </div>
+                            {hasSettings ? (
+                              <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                Configurable
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                                No Settings
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm" style={{ color: theme.textLight }}>
+                            {metadata?.description}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
