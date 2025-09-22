@@ -188,8 +188,11 @@ export default function CustomizableDashboard() {
   };
 
   const handleMoveWidget = (draggedWidgetId, targetWidgetId) => {
+    console.log('🔥 handleMoveWidget called:', { draggedWidgetId, targetWidgetId });
+    
     // If it's the old position-based system, handle it differently
     if (typeof targetWidgetId === 'object') {
+      console.log('📍 Position-based move (old system)');
       const newPosition = targetWidgetId;
       setWidgets(prev => prev.map(w => {
         if (w.id === draggedWidgetId) {
@@ -204,11 +207,17 @@ export default function CustomizableDashboard() {
     }
     
     // Handle widget reordering for drag and drop
+    console.log('🔄 Starting widget reorder...');
     setWidgets(prev => {
+      console.log('📦 Current widgets before move:', prev.map(w => ({ id: w.id, type: w.type })));
+      
       const draggedIndex = prev.findIndex(w => w.id === draggedWidgetId);
       const targetIndex = prev.findIndex(w => w.id === targetWidgetId);
       
+      console.log('📍 Indices:', { draggedIndex, targetIndex });
+      
       if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
+        console.log('❌ Move cancelled:', { draggedIndex, targetIndex, same: draggedIndex === targetIndex });
         return prev;
       }
       
@@ -217,8 +226,11 @@ export default function CustomizableDashboard() {
       const [draggedWidget] = newWidgets.splice(draggedIndex, 1);
       newWidgets.splice(targetIndex, 0, draggedWidget);
       
+      console.log('✅ New widgets after move:', newWidgets.map(w => ({ id: w.id, type: w.type })));
+      
       // Save the new layout
       saveDashboardLayout(newWidgets);
+      console.log('💾 Layout saved');
       
       return newWidgets;
     });
