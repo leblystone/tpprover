@@ -32,24 +32,42 @@ const DashboardWidget = ({
 
   const handleDragEnd = (e) => {
     setIsDragging(false);
-    e.target.style.opacity = '1';
+    // Reset all visual changes
+    e.currentTarget.style.opacity = '1';
+    e.currentTarget.style.transform = '';
+    e.currentTarget.style.zIndex = '';
   };
 
   const handleDragOver = (e) => {
     if (!isCustomizing) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    
+    // Add visual feedback for drop target
+    e.currentTarget.style.borderColor = theme.primary;
+    e.currentTarget.style.borderWidth = '2px';
+  };
+
+  const handleDragLeave = (e) => {
+    if (!isCustomizing) return;
+    // Reset border when drag leaves
+    e.currentTarget.style.borderColor = theme.border;
+    e.currentTarget.style.borderWidth = '1px';
   };
 
   const handleDrop = (e) => {
     if (!isCustomizing) return;
     e.preventDefault();
     
+    // Reset border styling
+    e.currentTarget.style.borderColor = theme.border;
+    e.currentTarget.style.borderWidth = '1px';
+    
     const draggedWidgetId = e.dataTransfer.getData('text/plain');
     const dropTargetId = widget.id;
     
-    if (draggedWidgetId !== dropTargetId) {
-      // Swap positions with the dropped widget
+    if (draggedWidgetId && draggedWidgetId !== dropTargetId) {
+      // Call the move handler to reorder widgets
       onMove?.(draggedWidgetId, dropTargetId);
     }
   };
@@ -76,6 +94,7 @@ const DashboardWidget = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       ref={widgetRef}
       draggable={isCustomizing}

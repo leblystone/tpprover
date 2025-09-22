@@ -203,7 +203,7 @@ export default function CustomizableDashboard() {
       return;
     }
     
-    // Handle widget swapping for drag and drop
+    // Handle widget reordering for drag and drop
     setWidgets(prev => {
       const draggedIndex = prev.findIndex(w => w.id === draggedWidgetId);
       const targetIndex = prev.findIndex(w => w.id === targetWidgetId);
@@ -212,17 +212,15 @@ export default function CustomizableDashboard() {
         return prev;
       }
       
-      // Create a new array and swap the widgets
+      // Create a new array and move the dragged widget to the target position
       const newWidgets = [...prev];
-      const draggedWidget = newWidgets[draggedIndex];
-      const targetWidget = newWidgets[targetIndex];
-      
-      // Swap the widgets in the array
-      newWidgets[draggedIndex] = targetWidget;
-      newWidgets[targetIndex] = draggedWidget;
+      const [draggedWidget] = newWidgets.splice(draggedIndex, 1);
+      newWidgets.splice(targetIndex, 0, draggedWidget);
       
       // Save the new layout
       saveDashboardLayout(newWidgets);
+      
+      console.log('Widget moved:', draggedWidgetId, 'to position of:', targetWidgetId);
       
       return newWidgets;
     });
