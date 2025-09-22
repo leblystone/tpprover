@@ -285,18 +285,8 @@ export default function CustomizableDashboard() {
               
               switch (widget.type) {
                 case 'tasks':
-                  // Dynamic sizing based on task count
-                  const taskCount = todaysTasks ? todaysTasks.length : 0;
-                  if (taskCount === 0) {
-                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
-                    minHeight = '180px';
-                  } else if (taskCount <= 3) {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '250px';
-                  } else {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '350px';
-                  }
+                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                  minHeight = '280px';
                   break;
                 case 'upcoming_order':
                   // Dynamic sizing based on whether there are active orders

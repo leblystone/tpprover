@@ -124,96 +124,96 @@ const DashboardCustomizer = ({
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           {activeTab === 'layout' && (
             <div className="space-y-6">
-              {/* Add Widgets */}
+              {/* All Widgets */}
               <div>
                 <h3 className="text-lg font-medium mb-4" style={{ color: theme.text }}>
-                  Add Widgets
+                  Dashboard Widgets
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(WIDGET_METADATA).map(([type, meta]) => {
-                    const hasWidget = widgets.some(w => w.type === type);
+                    const existingWidget = widgets.find(w => w.type === type);
+                    const isActive = existingWidget?.enabled;
+                    const hasWidget = !!existingWidget;
+                    
                     return (
                       <div
                         key={type}
-                        className="p-4 border rounded-lg hover:shadow-md transition-shadow"
-                        style={{ borderColor: theme.border }}
+                        className={`p-4 border rounded-lg hover:shadow-md transition-all ${
+                          isActive ? 'ring-2 ring-opacity-50' : ''
+                        }`}
+                        style={{ 
+                          borderColor: theme.border,
+                          ringColor: isActive ? theme.primary : 'transparent',
+                          backgroundColor: isActive ? theme.secondary + '20' : 'transparent'
+                        }}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="font-medium" style={{ color: theme.text }}>
                             {meta.title}
                           </h4>
-                          {hasWidget && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                              Added
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {hasWidget && (
+                              <input
+                                type="checkbox"
+                                checked={isActive}
+                                onChange={() => handleToggleWidget(existingWidget.id)}
+                                className="rounded"
+                                title={isActive ? 'Hide widget' : 'Show widget'}
+                              />
+                            )}
+                            {hasWidget && (
+                              <button
+                                onClick={() => setSelectedWidget(existingWidget)}
+                                className="p-1 rounded hover:bg-gray-100 transition-colors"
+                                style={{ color: theme.text }}
+                                title="Widget settings"
+                              >
+                                <Settings size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm mb-3" style={{ color: theme.textLight }}>
                           {meta.description}
                         </p>
-                        <button
-                          onClick={() => handleAddWidget(type)}
-                          disabled={hasWidget}
-                          className="w-full px-3 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{
-                            backgroundColor: hasWidget ? theme.secondary : theme.primary,
-                            color: hasWidget ? theme.textLight : theme.textOnPrimary
-                          }}
-                        >
-                          <Plus size={16} className="inline mr-1" />
-                          {hasWidget ? 'Already Added' : 'Add Widget'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {!hasWidget ? (
+                            <button
+                              onClick={() => handleAddWidget(type)}
+                              className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                              style={{
+                                backgroundColor: theme.primary,
+                                color: theme.textOnPrimary
+                              }}
+                            >
+                              <Plus size={16} className="inline mr-1" />
+                              Add Widget
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRemoveWidget(existingWidget.id)}
+                              className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors border hover:bg-red-50"
+                              style={{
+                                borderColor: theme.border,
+                                color: '#dc2626'
+                              }}
+                            >
+                              <X size={16} className="inline mr-1" />
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        {hasWidget && (
+                          <div className="text-xs mt-2 pt-2 border-t" style={{ 
+                            borderColor: theme.border,
+                            color: theme.textLight 
+                          }}>
+                            Status: {isActive ? 'Active' : 'Hidden'}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                </div>
-              </div>
-
-              {/* Current Widgets */}
-              <div>
-                <h3 className="text-lg font-medium mb-4" style={{ color: theme.text }}>
-                  Current Widgets
-                </h3>
-                <div className="space-y-2">
-                  {widgets.map(widget => (
-                    <div
-                      key={widget.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                      style={{ borderColor: theme.border }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={widget.enabled}
-                          onChange={() => handleToggleWidget(widget.id)}
-                          className="rounded"
-                        />
-                        <div>
-                          <div className="font-medium" style={{ color: theme.text }}>
-                            {widget.title}
-                          </div>
-                          <div className="text-sm" style={{ color: theme.textLight }}>
-                            Size: {widget.size} • Position: ({widget.position.x}, {widget.position.y})
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedWidget(widget)}
-                          className="p-2 rounded hover:bg-gray-100 transition-colors"
-                          style={{ color: theme.text }}
-                        >
-                          <Settings size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleRemoveWidget(widget.id)}
-                          className="p-2 rounded hover:bg-red-50 transition-colors text-red-600"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
 
