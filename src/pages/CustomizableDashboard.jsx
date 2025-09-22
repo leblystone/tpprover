@@ -274,199 +274,94 @@ export default function CustomizableDashboard() {
           </div>
         </div>
 
-        {/* Dashboard Layout */}
-        <div className="space-y-6 pt-16">
-          {/* Top Row - Tasks and Orders */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {enabledWidgets
-              .filter(w => ['tasks', 'upcoming_order'].includes(w.type))
-              .map(widget => (
-                <DashboardWidget
-                  key={widget.id}
-                  widget={widget}
-                  theme={theme}
-                  isCustomizing={isCustomizing}
-                  onRemove={handleRemoveWidget}
-                  onSettings={handleWidgetSettings}
-                  onResize={handleResizeWidget}
-                  onMove={handleMoveWidget}
-                  style={{ minHeight: '300px' }}
-                >
-                  <WidgetFactory
+        {/* Dashboard Layout - Flexible Grid */}
+        <div className="pt-16">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
+            {enabledWidgets.map(widget => {
+              // Determine widget size based on type and content
+              let gridClasses = '';
+              let minHeight = '';
+              
+              switch (widget.type) {
+                case 'tasks':
+                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                  minHeight = '300px';
+                  break;
+                case 'upcoming_order':
+                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                  minHeight = '350px';
+                  break;
+                case 'goals':
+                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                  minHeight = '280px';
+                  break;
+                case 'upcoming_buys':
+                  gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
+                  minHeight = '200px';
+                  break;
+                case 'pending_vendors':
+                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                  minHeight = '180px';
+                  break;
+                case 'analytics':
+                  gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-6';
+                  minHeight = '400px';
+                  break;
+                case 'badges':
+                  gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4';
+                  minHeight = '120px';
+                  break;
+                default:
+                  gridClasses = 'col-span-1';
+                  minHeight = '200px';
+              }
+
+              return (
+                <div key={widget.id} className={gridClasses}>
+                  <DashboardWidget
                     widget={widget}
                     theme={theme}
-                    tasks={todaysTasks}
-                    incomingOrder={incomingOrder}
-                    upcomingBuys={upcomingBuys}
-                    pendingVendors={pendingVendors}
-                    goals={goals}
-                    metrics={metrics}
-                    onTaskToggle={handleTaskToggle}
-                    onNewOrder={() => setShowNewOrder(true)}
-                    onAddBuy={() => setShowAddBuyModal(true)}
-                    onViewAllVendors={() => navigate('/vendors')}
-                    onCompleteVendor={(vendor) => {
-                      setEditingVendor(vendor);
-                      setShowNewVendor(true);
-                    }}
-                    onGoalToggle={handleGoalToggle}
-                    onAddGoal={() => setShowGoal(true)}
-                    onAddMetric={() => setShowMetrics(true)}
-                    onEditGoal={(goal) => {
-                      setEditingGoal(goal);
-                      setShowGoal(true);
-                    }}
-                    onEditMetric={(metric) => {
-                      setEditingMetric(metric);
-                      setShowMetrics(true);
-                    }}
-                  />
-                </DashboardWidget>
-              ))}
+                    isCustomizing={isCustomizing}
+                    onRemove={handleRemoveWidget}
+                    onSettings={handleWidgetSettings}
+                    onResize={handleResizeWidget}
+                    onMove={handleMoveWidget}
+                    style={{ minHeight }}
+                  >
+                    <WidgetFactory
+                      widget={widget}
+                      theme={theme}
+                      tasks={todaysTasks}
+                      incomingOrder={incomingOrder}
+                      upcomingBuys={upcomingBuys}
+                      pendingVendors={pendingVendors}
+                      goals={goals}
+                      metrics={metrics}
+                      onTaskToggle={handleTaskToggle}
+                      onNewOrder={() => setShowNewOrder(true)}
+                      onAddBuy={() => setShowAddBuyModal(true)}
+                      onViewAllVendors={() => navigate('/vendors')}
+                      onCompleteVendor={(vendor) => {
+                        setEditingVendor(vendor);
+                        setShowNewVendor(true);
+                      }}
+                      onGoalToggle={handleGoalToggle}
+                      onAddGoal={() => setShowGoal(true)}
+                      onAddMetric={() => setShowMetrics(true)}
+                      onEditGoal={(goal) => {
+                        setEditingGoal(goal);
+                        setShowGoal(true);
+                      }}
+                      onEditMetric={(metric) => {
+                        setEditingMetric(metric);
+                        setShowMetrics(true);
+                      }}
+                    />
+                  </DashboardWidget>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Middle Row - Goals and Buys */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {enabledWidgets
-              .filter(w => ['goals', 'upcoming_buys', 'pending_vendors'].includes(w.type))
-              .map(widget => (
-                <DashboardWidget
-                  key={widget.id}
-                  widget={widget}
-                  theme={theme}
-                  isCustomizing={isCustomizing}
-                  onRemove={handleRemoveWidget}
-                  onSettings={handleWidgetSettings}
-                  onResize={handleResizeWidget}
-                  onMove={handleMoveWidget}
-                  style={{ minHeight: '250px' }}
-                >
-                  <WidgetFactory
-                    widget={widget}
-                    theme={theme}
-                    tasks={todaysTasks}
-                    incomingOrder={incomingOrder}
-                    upcomingBuys={upcomingBuys}
-                    pendingVendors={pendingVendors}
-                    goals={goals}
-                    metrics={metrics}
-                    onTaskToggle={handleTaskToggle}
-                    onNewOrder={() => setShowNewOrder(true)}
-                    onAddBuy={() => setShowAddBuyModal(true)}
-                    onViewAllVendors={() => navigate('/vendors')}
-                    onCompleteVendor={(vendor) => {
-                      setEditingVendor(vendor);
-                      setShowNewVendor(true);
-                    }}
-                    onGoalToggle={handleGoalToggle}
-                    onAddGoal={() => setShowGoal(true)}
-                    onAddMetric={() => setShowMetrics(true)}
-                    onEditGoal={(goal) => {
-                      setEditingGoal(goal);
-                      setShowGoal(true);
-                    }}
-                    onEditMetric={(metric) => {
-                      setEditingMetric(metric);
-                      setShowMetrics(true);
-                    }}
-                  />
-                </DashboardWidget>
-              ))}
-          </div>
-
-          {/* Analytics Section - Full Width */}
-          {enabledWidgets
-            .filter(w => w.type === 'analytics')
-            .map(widget => (
-              <DashboardWidget
-                key={widget.id}
-                widget={widget}
-                theme={theme}
-                isCustomizing={isCustomizing}
-                onRemove={handleRemoveWidget}
-                onSettings={handleWidgetSettings}
-                onResize={handleResizeWidget}
-                onMove={handleMoveWidget}
-                style={{ minHeight: '400px' }}
-              >
-                <WidgetFactory
-                  widget={widget}
-                  theme={theme}
-                  tasks={todaysTasks}
-                  incomingOrder={incomingOrder}
-                  upcomingBuys={upcomingBuys}
-                  pendingVendors={pendingVendors}
-                  goals={goals}
-                  metrics={metrics}
-                  onTaskToggle={handleTaskToggle}
-                  onNewOrder={() => setShowNewOrder(true)}
-                  onAddBuy={() => setShowAddBuyModal(true)}
-                  onViewAllVendors={() => navigate('/vendors')}
-                  onCompleteVendor={(vendor) => {
-                    setEditingVendor(vendor);
-                    setShowNewVendor(true);
-                  }}
-                  onGoalToggle={handleGoalToggle}
-                  onAddGoal={() => setShowGoal(true)}
-                  onAddMetric={() => setShowMetrics(true)}
-                  onEditGoal={(goal) => {
-                    setEditingGoal(goal);
-                    setShowGoal(true);
-                  }}
-                  onEditMetric={(metric) => {
-                    setEditingMetric(metric);
-                    setShowMetrics(true);
-                  }}
-                />
-              </DashboardWidget>
-            ))}
-
-          {/* Badges Section */}
-          {enabledWidgets
-            .filter(w => w.type === 'badges')
-            .map(widget => (
-              <DashboardWidget
-                key={widget.id}
-                widget={widget}
-                theme={theme}
-                isCustomizing={isCustomizing}
-                onRemove={handleRemoveWidget}
-                onSettings={handleWidgetSettings}
-                onResize={handleResizeWidget}
-                onMove={handleMoveWidget}
-                style={{ minHeight: '150px' }}
-              >
-                <WidgetFactory
-                  widget={widget}
-                  theme={theme}
-                  tasks={todaysTasks}
-                  incomingOrder={incomingOrder}
-                  upcomingBuys={upcomingBuys}
-                  pendingVendors={pendingVendors}
-                  goals={goals}
-                  metrics={metrics}
-                  onTaskToggle={handleTaskToggle}
-                  onNewOrder={() => setShowNewOrder(true)}
-                  onAddBuy={() => setShowAddBuyModal(true)}
-                  onViewAllVendors={() => navigate('/vendors')}
-                  onCompleteVendor={(vendor) => {
-                    setEditingVendor(vendor);
-                    setShowNewVendor(true);
-                  }}
-                  onGoalToggle={handleGoalToggle}
-                  onAddGoal={() => setShowGoal(true)}
-                  onAddMetric={() => setShowMetrics(true)}
-                  onEditGoal={(goal) => {
-                    setEditingGoal(goal);
-                    setShowGoal(true);
-                  }}
-                  onEditMetric={(metric) => {
-                    setEditingMetric(metric);
-                    setShowMetrics(true);
-                  }}
-                />
-              </DashboardWidget>
-            ))}
         </div>
 
         {enabledWidgets.length === 0 && (
