@@ -124,18 +124,8 @@ const DashboardWidget = ({
         </div>
       )}
       
-      {isCustomizing && (
-        <div className="absolute top-2 left-2 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 rounded bg-white shadow-sm">
-            <Move size={12} style={{ color: theme.textLight }} />
-            <span className="text-xs font-medium" style={{ color: theme.textLight }}>
-              {widget.title}
-            </span>
-          </div>
-        </div>
-      )}
       
-      <div className={`h-full ${isCustomizing ? 'pt-8' : ''}`}>
+      <div className="h-full">
         {children}
       </div>
     </div>
