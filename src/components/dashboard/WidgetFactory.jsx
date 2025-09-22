@@ -12,6 +12,7 @@ import InventoryWidget from './widgets/InventoryWidget';
 import BadgesWidget from './widgets/BadgesWidget';
 import GoalsOnlyWidget from './widgets/GoalsOnlyWidget';
 import MetricsWidget from './widgets/MetricsWidget';
+import SupplementsWidget from './widgets/SupplementsWidget';
 import GoalsWidget from './widgets/GoalsWidget';
 
 const WidgetFactory = ({ widget, theme, ...props }) => {
@@ -145,14 +146,14 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
       
     case WIDGET_TYPES.SUPPLEMENTS:
       return (
-        <div className="p-6 h-full">
-          <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
-            Supplements
-          </h3>
-          <p style={{ color: theme.textLight }}>
-            Supplement management widget - coming soon!
-          </p>
-        </div>
+        <SupplementsWidget 
+          widget={widget} 
+          theme={theme} 
+          supplements={props.supplements || []}
+          onAddSupplement={props.onAddSupplement}
+          onEditSupplement={props.onEditSupplement}
+          onDeleteSupplement={props.onDeleteSupplement}
+        />
       );
       
     default:

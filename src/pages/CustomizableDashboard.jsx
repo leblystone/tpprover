@@ -375,6 +375,10 @@ export default function CustomizableDashboard() {
                   gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4';
                   minHeight = '120px';
                   break;
+                case 'supplements':
+                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
+                  minHeight = '280px';
+                  break;
                 default:
                   gridClasses = 'col-span-1';
                   minHeight = '200px';
@@ -401,6 +405,7 @@ export default function CustomizableDashboard() {
                       pendingVendors={pendingVendors}
                       goals={goals}
                       metrics={metrics}
+                      supplements={supplements}
                       onTaskToggle={handleTaskToggle}
                       onNewOrder={() => setShowNewOrder(true)}
                       onAddBuy={() => setShowAddBuyModal(true)}
@@ -419,6 +424,16 @@ export default function CustomizableDashboard() {
                       onEditMetric={(metric) => {
                         setEditingMetric(metric);
                         setShowMetrics(true);
+                      }}
+                      onAddSupplement={() => setShowAddSupplement(true)}
+                      onEditSupplement={(supplement) => {
+                        setEditingSupplement(supplement);
+                        setShowAddSupplement(true);
+                      }}
+                      onDeleteSupplement={(supplementId) => {
+                        if (deleteSupplement) {
+                          deleteSupplement(supplementId);
+                        }
                       }}
                     />
                   </DashboardWidget>
@@ -550,6 +565,23 @@ export default function CustomizableDashboard() {
           setScheduledBuys(prev => [...prev, { ...buy, id: Date.now() }]);
           setShowAddBuyModal(false);
           addToast('Scheduled buy added', 'success');
+        }}
+      />
+
+      <SupplementEditorModal
+        open={showAddSupplement}
+        onClose={() => { setShowAddSupplement(false); setEditingSupplement(null); }}
+        theme={theme}
+        supplement={editingSupplement}
+        onSave={(supplement) => {
+          if (editingSupplement) {
+            updateSupplement(editingSupplement.id, supplement);
+          } else {
+            addSupplement(supplement);
+          }
+          setShowAddSupplement(false);
+          setEditingSupplement(null);
+          addToast('Supplement saved', 'success');
         }}
       />
 

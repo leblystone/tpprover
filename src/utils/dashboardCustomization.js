@@ -134,8 +134,19 @@ export const DEFAULT_WIDGETS = [
     title: 'Pending Vendors',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 0, y: 4 },
-    enabled: false, // Only show when there are pending vendors
+    enabled: true, // Show by default, will hide automatically when empty
     settings: {}
+  },
+  {
+    id: 'supplements',
+    type: WIDGET_TYPES.SUPPLEMENTS,
+    title: 'Supplements',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 2, y: 4 },
+    enabled: true,
+    settings: {
+      showSchedule: true
+    }
   }
 ];
 
