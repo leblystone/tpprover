@@ -91,58 +91,29 @@ const DashboardCustomizer = ({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b" style={{ borderColor: theme.border }}>
-          <button
-            onClick={() => setActiveTab('layout')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'layout' 
-                ? 'border-current' 
-                : 'border-transparent hover:bg-gray-50'
-            }`}
-            style={{ 
-              color: activeTab === 'layout' ? theme.primary : theme.textLight 
-            }}
-          >
-            Layout & Widgets
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'settings' 
-                ? 'border-current' 
-                : 'border-transparent hover:bg-gray-50'
-            }`}
-            style={{ 
-              color: activeTab === 'settings' ? theme.primary : theme.textLight 
-            }}
-          >
-            Widget Settings
-          </button>
-        </div>
 
         <div className="p-6 overflow-y-auto max-h-[60vh]">
-          {activeTab === 'layout' && (
-            <div className="space-y-6">
-              {/* All Widgets */}
-              <div>
-                <h3 className="text-lg font-medium mb-4" style={{ color: theme.text }}>
-                  Dashboard Widgets
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(WIDGET_METADATA).map(([type, meta]) => {
-                    const existingWidget = widgets.find(w => w.type === type);
-                    const isActive = existingWidget?.enabled;
-                    const hasWidget = !!existingWidget;
-                    
-                    return (
+          <div className="space-y-6">
+            {/* All Widgets */}
+            <div>
+              <h3 className="text-lg font-medium mb-4" style={{ color: theme.text }}>
+                Dashboard Widgets
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(WIDGET_METADATA).map(([type, meta]) => {
+                  const existingWidget = widgets.find(w => w.type === type);
+                  const isActive = existingWidget?.enabled;
+                  const hasWidget = !!existingWidget;
+                  const isSettingsOpen = selectedWidget?.id === existingWidget?.id;
+                  
+                  return (
+                    <div key={type} className="space-y-2">
                       <div
-                        key={type}
                         className={`p-4 border rounded-lg hover:shadow-md transition-all ${
                           isActive ? 'ring-2 ring-opacity-50' : ''
-                        }`}
+                        } ${isSettingsOpen ? 'shadow-md' : ''}`}
                         style={{ 
-                          borderColor: theme.border,
+                          borderColor: isSettingsOpen ? theme.primary : theme.border,
                           ringColor: isActive ? theme.primary : 'transparent',
                           backgroundColor: isActive ? theme.secondary + '20' : 'transparent'
                         }}
@@ -153,10 +124,15 @@ const DashboardCustomizer = ({
                           </h4>
                           {hasWidget && (
                             <button
-                              onClick={() => setSelectedWidget(existingWidget)}
-                              className="p-1 rounded hover:bg-gray-100 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedWidget(isSettingsOpen ? null : existingWidget);
+                              }}
+                              className={`p-1 rounded transition-colors ${
+                                isSettingsOpen ? 'bg-gray-200' : 'hover:bg-gray-100'
+                              }`}
                               style={{ color: theme.text }}
-                              title="Widget settings"
+                              title={isSettingsOpen ? 'Close settings' : 'Widget settings'}
                             >
                               <Settings size={14} />
                             </button>
@@ -193,10 +169,30 @@ const DashboardCustomizer = ({
                           )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      
+                      {/* Inline Settings Panel */}
+                      {isSettingsOpen && (
+                        <div 
+                          className="border rounded-lg p-4 animate-in slide-in-from-top-2 duration-200"
+                          style={{ 
+                            borderColor: theme.primary,
+                            backgroundColor: theme.secondary + '10'
+                          }}
+                        >
+                          <InlineWidgetSettings
+                            widget={selectedWidget}
+                            metadata={WIDGET_METADATA[selectedWidget.type]}
+                            theme={theme}
+                            onChange={handleWidgetSettingChange}
+                            onClose={() => setSelectedWidget(null)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+            </div>
 
               {/* Reset Layout */}
               <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
@@ -212,62 +208,8 @@ const DashboardCustomizer = ({
                   <RotateCcw size={16} className="inline mr-2" />
                   Reset to Default Layout
                 </button>
-              </div>
             </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div className="space-y-6">
-              {selectedWidget ? (
-                <WidgetSettings
-                  widget={selectedWidget}
-                  metadata={WIDGET_METADATA[selectedWidget.type]}
-                  theme={theme}
-                  onChange={handleWidgetSettingChange}
-                  onBack={() => setSelectedWidget(null)}
-                />
-              ) : (
-                <div>
-                  <h3 className="text-lg font-medium mb-4" style={{ color: theme.text }}>
-                    Select a Widget to Configure
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {widgets.map(widget => {
-                      const metadata = WIDGET_METADATA[widget.type];
-                      const hasSettings = metadata?.settings && metadata.settings.length > 0;
-                      
-                      return (
-                        <button
-                          key={widget.id}
-                          onClick={() => setSelectedWidget(widget)}
-                          className="p-4 border rounded-lg text-left hover:shadow-md transition-shadow"
-                          style={{ borderColor: theme.border }}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="font-medium" style={{ color: theme.text }}>
-                              {widget.title}
-                            </div>
-                            {hasSettings ? (
-                              <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                                Configurable
-                              </span>
-                            ) : (
-                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
-                                No Settings
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm" style={{ color: theme.textLight }}>
-                            {metadata?.description}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
@@ -280,6 +222,81 @@ const DashboardCustomizer = ({
             Close
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const InlineWidgetSettings = ({ widget, metadata, theme, onChange, onClose }) => {
+  if (!metadata.settings || metadata.settings.length === 0) {
+    return (
+      <div className="text-center py-3">
+        <p className="text-sm" style={{ color: theme.textLight }}>
+          This widget has no configurable settings.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-sm" style={{ color: theme.text }}>
+          {widget.title} Settings
+        </h4>
+        <button
+          onClick={onClose}
+          className="p-1 rounded hover:bg-gray-100 transition-colors"
+          style={{ color: theme.textLight }}
+        >
+          <X size={12} />
+        </button>
+      </div>
+      
+      <div className="space-y-3">
+        {metadata.settings.map(setting => (
+          <div key={setting.key} className="flex items-center justify-between">
+            <label className="text-sm font-medium" style={{ color: theme.text }}>
+              {setting.label}
+            </label>
+            
+            {setting.type === 'boolean' && (
+              <input
+                type="checkbox"
+                checked={widget.settings[setting.key] ?? setting.default}
+                onChange={(e) => onChange(widget.id, setting.key, e.target.checked)}
+                className="rounded"
+              />
+            )}
+            
+            {setting.type === 'number' && (
+              <input
+                type="number"
+                value={widget.settings[setting.key] ?? setting.default}
+                min={setting.min}
+                max={setting.max}
+                onChange={(e) => onChange(widget.id, setting.key, parseInt(e.target.value))}
+                className="w-16 px-2 py-1 border rounded text-sm"
+                style={{ borderColor: theme.border }}
+              />
+            )}
+            
+            {setting.type === 'select' && (
+              <select
+                value={widget.settings[setting.key] ?? setting.default}
+                onChange={(e) => onChange(widget.id, setting.key, e.target.value)}
+                className="px-2 py-1 border rounded text-sm"
+                style={{ borderColor: theme.border }}
+              >
+                {setting.options.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
