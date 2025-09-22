@@ -1,0 +1,20 @@
+{
+  "appId": "com.thepepplanner.app",
+  "appName": "The Pep Planner",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#E8EAE3",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK"
+    }
+  }
+}

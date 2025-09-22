@@ -9,9 +9,18 @@
     "preview": "vite preview --port 5173",
     "deploy": "git add . && git commit -m \"$npm_config_message\" && git push origin tpprover && npm run build && firebase deploy --project tpp-splendide",
     "deploy:hosting": "npm run build && firebase deploy --only hosting --project tpp-splendide",
-    "deploy:rules": "firebase deploy --only firestore:rules --project tpp-splendide"
+    "deploy:rules": "firebase deploy --only firestore:rules --project tpp-splendide",
+    "mobile:build": "npm run build && npx cap sync",
+    "mobile:android": "npm run mobile:build && npx cap run android",
+    "mobile:ios": "npm run mobile:build && npx cap run ios",
+    "mobile:open:android": "npx cap open android",
+    "mobile:open:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "@stripe/stripe-js": "^7.9.0",
     "crypto-js": "^4.2.0",
     "firebase": "^12.2.1",

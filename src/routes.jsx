@@ -6,7 +6,7 @@ import Rover from './pages/Rover.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 
 const Home = lazy(() => import('./pages/Home.jsx'))
-const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
+const Dashboard = lazy(() => import('./pages/CustomizableDashboard.jsx'))
 const Orders = lazy(() => import('./pages/Orders.jsx'))
 const Protocols = lazy(() => import('./pages/Protocols.jsx'))
 const Vendors = lazy(() => import('./pages/Vendors.jsx'))

@@ -1,0 +1,133 @@
+import React, { useState } from 'react';
+import { Settings, X, Move, Maximize2, Minimize2 } from 'lucide-react';
+import { WIDGET_SIZES, getSizeConfig } from '../../utils/dashboardCustomization';
+
+const DashboardWidget = ({ 
+  widget, 
+  children, 
+  theme, 
+  isCustomizing = false,
+  onRemove,
+  onSettings,
+  onResize,
+  onMove,
+  style = {}
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e) => {
+    if (!isCustomizing) return;
+    
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - (widget.position.x * 100),
+      y: e.clientY - (widget.position.y * 100)
+    });
+    
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      
+      const newX = Math.round((e.clientX - dragStart.x) / 100);
+      const newY = Math.round((e.clientY - dragStart.y) / 100);
+      
+      onMove?.(widget.id, { x: Math.max(0, newX), y: Math.max(0, newY) });
+    };
+    
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const { w, h } = getSizeConfig(widget.size);
+  
+  const widgetStyle = {
+    gridColumn: `span ${w}`,
+    gridRow: `span ${h}`,
+    minHeight: h === 1 ? '200px' : '400px',
+    ...style
+  };
+
+  const canResize = widget.type !== 'analytics' || widget.size !== WIDGET_SIZES.FULL;
+
+  return (
+    <div
+      className={`relative rounded-lg border content-card shadow-sm transition-all duration-200 ${
+        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : ''
+      } ${isDragging ? 'z-50 shadow-xl' : ''}`}
+      style={{
+        ...widgetStyle,
+        borderColor: theme.border,
+        backgroundColor: theme.cardBackground,
+        ringColor: isCustomizing ? theme.primary : 'transparent'
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      {isCustomizing && (
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+          {canResize && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const currentSizes = [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE, WIDGET_SIZES.WIDE, WIDGET_SIZES.FULL];
+                const currentIndex = currentSizes.indexOf(widget.size);
+                const nextSize = currentSizes[(currentIndex + 1) % currentSizes.length];
+                onResize?.(widget.id, nextSize);
+              }}
+              className="p-1 rounded bg-white shadow-sm hover:bg-gray-50 transition-colors"
+              style={{ color: theme.text }}
+              title="Resize widget"
+            >
+              {widget.size === WIDGET_SIZES.SMALL ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+            </button>
+          )}
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSettings?.(widget.id);
+            }}
+            className="p-1 rounded bg-white shadow-sm hover:bg-gray-50 transition-colors"
+            style={{ color: theme.text }}
+            title="Widget settings"
+          >
+            <Settings size={14} />
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove?.(widget.id);
+            }}
+            className="p-1 rounded bg-white shadow-sm hover:bg-red-50 transition-colors text-red-600"
+            title="Remove widget"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+      
+      {isCustomizing && (
+        <div className="absolute top-2 left-2 z-10">
+          <div className="flex items-center gap-1 px-2 py-1 rounded bg-white shadow-sm">
+            <Move size={12} style={{ color: theme.textLight }} />
+            <span className="text-xs font-medium" style={{ color: theme.textLight }}>
+              {widget.title}
+            </span>
+          </div>
+        </div>
+      )}
+      
+      <div className={`h-full ${isCustomizing ? 'pt-8' : ''}`}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+export default DashboardWidget;

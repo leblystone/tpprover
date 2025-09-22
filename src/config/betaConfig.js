@@ -4,7 +4,8 @@
  */
 
 // Beta end date: September 21st, 2025 at midnight (local time)
-export const BETA_END_DATE = new Date('2025-09-21T00:00:00');
+// TEMP: Extended for development/testing
+export const BETA_END_DATE = new Date('2025-12-31T00:00:00');
 
 // App reopen date: September 28th, 2025 (7 days after beta ends)
 export const REOPEN_DATE = new Date('2025-09-28T00:00:00');
@@ -18,6 +19,11 @@ export const REOPEN_DATE = new Date('2025-09-28T00:00:00');
  * @returns {boolean} True if beta has ended
  */
 export function isBetaEnded() {
+  // Developer override for testing
+  if (localStorage.getItem('dev_bypass_beta_lock') === 'true') {
+    return false;
+  }
+  
   return new Date() >= BETA_END_DATE;
 }
 
