@@ -151,27 +151,16 @@ const DashboardCustomizer = ({
                           <h4 className="font-medium" style={{ color: theme.text }}>
                             {meta.title}
                           </h4>
-                          <div className="flex items-center gap-2">
-                            {hasWidget && (
-                              <input
-                                type="checkbox"
-                                checked={isActive}
-                                onChange={() => handleToggleWidget(existingWidget.id)}
-                                className="rounded"
-                                title={isActive ? 'Hide widget' : 'Show widget'}
-                              />
-                            )}
-                            {hasWidget && (
-                              <button
-                                onClick={() => setSelectedWidget(existingWidget)}
-                                className="p-1 rounded hover:bg-gray-100 transition-colors"
-                                style={{ color: theme.text }}
-                                title="Widget settings"
-                              >
-                                <Settings size={14} />
-                              </button>
-                            )}
-                          </div>
+                          {hasWidget && (
+                            <button
+                              onClick={() => setSelectedWidget(existingWidget)}
+                              className="p-1 rounded hover:bg-gray-100 transition-colors"
+                              style={{ color: theme.text }}
+                              title="Widget settings"
+                            >
+                              <Settings size={14} />
+                            </button>
+                          )}
                         </div>
                         <p className="text-sm mb-3" style={{ color: theme.textLight }}>
                           {meta.description}
@@ -203,14 +192,6 @@ const DashboardCustomizer = ({
                             </button>
                           )}
                         </div>
-                        {hasWidget && (
-                          <div className="text-xs mt-2 pt-2 border-t" style={{ 
-                            borderColor: theme.border,
-                            color: theme.textLight 
-                          }}>
-                            Status: {isActive ? 'Active' : 'Hidden'}
-                          </div>
-                        )}
                       </div>
                     );
                   })}

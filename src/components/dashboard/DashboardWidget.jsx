@@ -19,42 +19,37 @@ const DashboardWidget = ({
 
   const handleDragStart = (e) => {
     if (!isCustomizing) return;
-    e.preventDefault();
     
-    const rect = widgetRef.current.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
     setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', widget.id);
+    
+    // Add visual feedback
+    e.target.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    setIsDragging(false);
+    e.target.style.opacity = '1';
   };
 
   const handleDragOver = (e) => {
+    if (!isCustomizing) return;
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (e) => {
+    if (!isCustomizing) return;
     e.preventDefault();
-    if (!isDragging) return;
     
-    // Find the grid container
-    const gridContainer = widgetRef.current?.closest('.dashboard-grid');
-    if (!gridContainer) return;
+    const draggedWidgetId = e.dataTransfer.getData('text/plain');
+    const dropTargetId = widget.id;
     
-    const gridRect = gridContainer.getBoundingClientRect();
-    const dropX = e.clientX - gridRect.left - dragOffset.x;
-    const dropY = e.clientY - gridRect.top - dragOffset.y;
-    
-    // Calculate approximate grid position based on drop coordinates
-    // This is a simplified approach - in a real implementation you'd want more precise grid detection
-    const cellWidth = gridRect.width / 6; // 6 columns
-    const cellHeight = 200; // approximate cell height
-    
-    const newGridX = Math.max(0, Math.min(5, Math.floor(dropX / cellWidth)));
-    const newGridY = Math.max(0, Math.floor(dropY / cellHeight));
-    
-    onMove?.(widget.id, { x: newGridX, y: newGridY });
-    setIsDragging(false);
+    if (draggedWidgetId !== dropTargetId) {
+      // Swap positions with the dropped widget
+      onMove?.(draggedWidgetId, dropTargetId);
+    }
   };
 
   const widgetStyle = {
@@ -76,7 +71,8 @@ const DashboardWidget = ({
         backgroundColor: theme.white || '#ffffff',
         ringColor: isCustomizing ? theme.primary : 'transparent'
       }}
-      onMouseDown={handleDragStart}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       ref={widgetRef}
