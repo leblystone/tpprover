@@ -1,6 +1,6 @@
 import React from 'react'
-import Dashboard from './Dashboard'
+import CustomizableDashboard from './CustomizableDashboard'
 
 export default function Home() {
-  return <Dashboard />
+  return <CustomizableDashboard />
 }
