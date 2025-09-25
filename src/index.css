@@ -23,6 +23,11 @@ html, body, #root {
   position: fixed !important;
 }
 
+.tooltip-overlay {
+  z-index: 2147483646 !important;
+  position: absolute !important;
+}
+
 /* Typography scale (reverted to original app defaults) */
 .h1 { font-size: 2rem; line-height: 1.15; font-weight: 600; letter-spacing: normal; text-transform: none; font-family: inherit; }
 .h2 { font-size: 1.5rem; line-height: 1.2; font-weight: 600; letter-spacing: normal; text-transform: none; font-family: inherit; }

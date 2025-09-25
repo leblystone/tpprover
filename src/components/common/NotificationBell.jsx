@@ -449,7 +449,6 @@ export default function NotificationBell({ theme }) {
         
         {/* Content area */}
         <div className="max-h-80 overflow-y-auto">
-          {console.log('🔍 Rendering content for activeTab:', activeTab)}
           {activeTab === 'notifications' ? (
             notifications.length === 0 ? (
               <div className="p-4 text-center">

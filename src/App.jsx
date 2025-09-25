@@ -9,7 +9,6 @@ import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
 import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
 import DemoDataBanner from './components/ui/DemoDataBanner';
-import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
 import SuccessModal from './components/ui/SuccessModal';
 // Beta pages no longer needed - app is live
 // import BetaEnded from './pages/BetaEnded';
@@ -34,7 +33,6 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [showDemoBanner, setShowDemoBanner] = useState(false);
-  const [showGlossary, setShowGlossary] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isPwaSupported, setIsPwaSupported] = useState(false);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
@@ -83,19 +81,6 @@ function App() {
     return () => window.removeEventListener('demo-data-cleared', handleDemoSuccess);
   }, []);
 
-  // Listen for glossary open events from widgets
-  useEffect(() => {
-    const handleOpenGlossary = (event) => {
-      const detail = event.detail || {};
-      setShowGlossary({ 
-        open: true, 
-        searchTerm: detail.searchTerm || '',
-        tab: detail.tab || 'search'
-      });
-    };
-    window.addEventListener('tpp:open_glossary', handleOpenGlossary);
-    return () => window.removeEventListener('tpp:open_glossary', handleOpenGlossary);
-  }, []);
 
   // App is now live - no beta restrictions
   // Beta testers maintain their lifetime access
@@ -133,7 +118,7 @@ function App() {
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
       <div className="flex-1 flex flex-col md:ml-24 min-w-0">
-        <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} onGlossaryClick={() => setShowGlossary(true)} />
+        <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} onGlossaryClick={() => window.dispatchEvent(new CustomEvent('tpp:open_glossary', { detail: { tab: 'search' } }))} />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
         <main className="flex-1 overflow-y-auto main-content p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
@@ -151,13 +136,6 @@ function App() {
         onClose={handleCloseWelcome}
         onStartTour={startTour}
         theme={theme}
-      />
-      <GlossaryQuickModal 
-        open={typeof showGlossary === 'object' ? showGlossary.open : showGlossary} 
-        onClose={() => setShowGlossary(false)} 
-        theme={theme}
-        initialSearchTerm={typeof showGlossary === 'object' ? showGlossary.searchTerm : ''}
-        initialTab={typeof showGlossary === 'object' ? showGlossary.tab : 'search'}
       />
       <TourController theme={theme} installPrompt={installPrompt} />
       <SuccessModal

@@ -1446,12 +1446,32 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
     return iconMap[category] || <BookOpen size={16} />;
   };
 
-  const renderPeptideCard = (peptideName, showCategory = false) => {
+  const getCategoryColors = (category) => {
+    const colorMap = {
+      'Popular': { bg: '#FFE4B5', border: '#F4A460', text: '#8B4513', icon: '#D2691E' }, // Sandy brown
+      'Growth Hormone': { bg: '#E6F3FF', border: '#4A90E2', text: '#1E3A8A', icon: '#3B82F6' }, // Blue
+      'Healing & Recovery': { bg: '#FFF0F5', border: '#FF69B4', text: '#8B1538', icon: '#DC2626' }, // Pink/Red
+      'Weight Loss': { bg: '#F0FDF4', border: '#22C55E', text: '#15803D', icon: '#16A34A' }, // Green
+      'Cognitive & Brain': { bg: '#F3E8FF', border: '#A855F7', text: '#6B21A8', icon: '#9333EA' }, // Purple
+      'Anti-Aging': { bg: '#FEF3C7', border: '#F59E0B', text: '#92400E', icon: '#D97706' }, // Amber
+      'Nasal Sprays': { bg: '#E0F2FE', border: '#0891B2', text: '#164E63', icon: '#0E7490' }, // Cyan
+      'Blends & Combos': { bg: '#F1F5F9', border: '#64748B', text: '#334155', icon: '#475569' }, // Slate
+      'Tanning & Libido': { bg: '#FDF2F8', border: '#EC4899', text: '#9D174D', icon: '#DB2777' }, // Rose
+      'Liver & Detox': { bg: '#ECFDF5', border: '#10B981', text: '#047857', icon: '#059669' } // Emerald
+    };
+    return colorMap[category] || { bg: '#F8FAFC', border: '#CBD5E1', text: '#475569', icon: '#64748B' };
+  };
+
+  const renderPeptideCard = (peptideName, showCategory = false, categoryColors = null) => {
     const isFavorite = favorites.includes(peptideName);
+    const cardColors = categoryColors || { bg: theme?.cardBackground, border: theme?.border, text: theme?.text };
     
     return (
-      <div key={peptideName} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow" 
-           style={{ borderColor: theme?.border, backgroundColor: theme?.cardBackground }}>
+      <div key={peptideName} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-all duration-200" 
+           style={{ 
+             borderColor: cardColors.border || theme?.border, 
+             backgroundColor: cardColors.bg || theme?.cardBackground 
+           }}>
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <button
@@ -1460,14 +1480,18 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                 setActiveTab('search');
                 handleAIResearch();
               }}
-              className="font-medium text-left hover:underline"
-              style={{ color: theme?.text }}
+              className="font-medium text-left hover:underline transition-colors"
+              style={{ color: cardColors.text || theme?.text }}
             >
               {peptideName}
             </button>
             {showCategory && (
-              <span className="text-xs px-2 py-1 rounded-full" 
-                    style={{ backgroundColor: theme?.accent, color: theme?.text }}>
+              <span className="text-xs px-2 py-1 rounded-full font-medium" 
+                    style={{ 
+                      backgroundColor: (cardColors.border || theme?.accent) + '20',
+                      color: cardColors.text || theme?.text,
+                      border: `1px solid ${(cardColors.border || theme?.accent)}40`
+                    }}>
                 {Object.entries(peptideCategories).find(([_, peptides]) => 
                   peptides.includes(peptideName))?.[0] || 'Other'}
               </span>
@@ -1476,13 +1500,13 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
         </div>
         <button
           onClick={() => toggleFavorite(peptideName)}
-          className="p-1 rounded hover:bg-opacity-10 hover:bg-gray-500 transition-colors"
+          className="p-1.5 rounded-full hover:bg-opacity-20 hover:bg-gray-500 transition-all duration-200"
           title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           {isFavorite ? (
-            <Star size={16} className="fill-current" style={{ color: theme?.warning }} />
+            <Star size={16} className="fill-current" style={{ color: theme?.warning || '#F59E0B' }} />
           ) : (
-            <StarOff size={16} style={{ color: theme?.textLight }} />
+            <StarOff size={16} style={{ color: cardColors.icon || theme?.textLight }} />
           )}
         </button>
       </div>
@@ -1862,36 +1886,52 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
               Browse our comprehensive database organized by research applications and benefits.
             </div>
             
-            <div className="space-y-2">
-              {Object.entries(peptideCategories).map(([category, peptides]) => (
-                <div key={category} className="border rounded-lg" style={{ borderColor: theme?.border }}>
-                  <button
-                    onClick={() => toggleCategory(category)}
-                    className="w-full flex items-center justify-between p-3 hover:bg-opacity-5 hover:bg-gray-500 transition-colors"
-                    style={{ color: theme?.text }}
-                  >
-                    <div className="flex items-center gap-3">
-                      {getCategoryIcon(category)}
-                      <span className="font-medium">{category}</span>
-                      <span className="text-xs px-2 py-1 rounded-full" 
-                            style={{ backgroundColor: theme?.accent, color: theme?.text }}>
-                        {peptides.length}
-                      </span>
-                    </div>
-                    {expandedCategories.has(category) ? (
-                      <ChevronDown size={16} />
-                    ) : (
-                      <ChevronRight size={16} />
-                    )}
-                  </button>
+            <div className="space-y-3">
+              {Object.entries(peptideCategories).map(([category, peptides]) => {
+                const colors = getCategoryColors(category);
+                return (
+                  <div key={category} className="border-2 rounded-xl overflow-hidden" style={{ borderColor: colors.border }}>
+                    <button
+                      onClick={() => toggleCategory(category)}
+                      className="w-full flex items-center justify-between p-4 hover:opacity-90 transition-all duration-200"
+                      style={{ 
+                        backgroundColor: colors.bg,
+                        color: colors.text
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div style={{ color: colors.icon }}>
+                          {getCategoryIcon(category)}
+                        </div>
+                        <span className="font-semibold">{category}</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium" 
+                              style={{ 
+                                backgroundColor: colors.border + '30',
+                                color: colors.text,
+                                border: `1px solid ${colors.border}50`
+                              }}>
+                          {peptides.length}
+                        </span>
+                      </div>
+                      <div style={{ color: colors.icon }}>
+                        {expandedCategories.has(category) ? (
+                          <ChevronDown size={18} />
+                        ) : (
+                          <ChevronRight size={18} />
+                        )}
+                      </div>
+                    </button>
                   
-                  {expandedCategories.has(category) && (
-                    <div className="border-t p-3 space-y-2" style={{ borderColor: theme?.border }}>
-                      {peptides.map(peptide => renderPeptideCard(peptide))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                    {expandedCategories.has(category) && (
+                      <div className="border-t p-4 space-y-2" style={{ 
+                        borderColor: colors.border,
+                        backgroundColor: colors.bg + '30'
+                      }}>
+                        {peptides.map(peptide => renderPeptideCard(peptide, true, colors))}
+                      </div>
+                    )}
+                );
+              })}
             </div>
           </div>
         )}
@@ -1925,6 +1965,185 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                   </span>
                 </div>
                 {favorites.map(peptide => renderPeptideCard(peptide, true))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notes Tab - Google Keep Style */}
+        {activeTab === 'notes' && (
+          <div className="space-y-4">
+            {/* Quick Add Note - Always Visible at Top */}
+            <div 
+              className="p-4 rounded-lg border-2 border-dashed cursor-pointer hover:border-solid transition-all duration-200 group"
+              style={{ 
+                borderColor: showAddNoteForm ? theme?.primary : theme?.border,
+                backgroundColor: showAddNoteForm ? theme?.cardBackground : 'transparent'
+              }}
+              onClick={() => !showAddNoteForm && setShowAddNoteForm(true)}
+            >
+              {!showAddNoteForm ? (
+                <div className="flex items-center gap-3 py-2">
+                  <Plus size={18} style={{ color: theme?.textLight }} className="group-hover:scale-110 transition-transform" />
+                  <span 
+                    className="text-sm font-medium group-hover:text-opacity-80 transition-colors" 
+                    style={{ color: theme?.textLight }}
+                  >
+                    Take a note...
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Title"
+                    className="w-full text-lg font-medium bg-transparent border-none focus:outline-none placeholder-opacity-60"
+                    style={{ color: theme?.text }}
+                    id="note-title"
+                    autoFocus
+                  />
+                  <textarea
+                    placeholder="Take a note..."
+                    rows={3}
+                    className="w-full bg-transparent border-none focus:outline-none resize-none placeholder-opacity-60"
+                    style={{ color: theme?.text }}
+                    id="note-content"
+                  />
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const title = document.getElementById('note-title').value.trim();
+                          const content = document.getElementById('note-content').value.trim();
+                          
+                          if (title || content) {
+                            const newNote = {
+                              id: Date.now().toString(),
+                              title: title || 'Untitled',
+                              content: content || '',
+                              createdAt: new Date().toISOString(),
+                              updatedAt: new Date().toISOString(),
+                              color: '#ffffff'
+                            };
+                            
+                            const updatedNotes = [newNote, ...userNotes];
+                            setUserNotes(updatedNotes);
+                            localStorage.setItem('tpprover_user_notes', JSON.stringify(updatedNotes));
+                            
+                            // Clear form
+                            document.getElementById('note-title').value = '';
+                            document.getElementById('note-content').value = '';
+                            setShowAddNoteForm(false);
+                          }
+                        }}
+                        className="px-4 py-1.5 rounded-full text-sm font-medium hover:shadow-md transition-all"
+                        style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
+                      >
+                        Done
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          document.getElementById('note-title').value = '';
+                          document.getElementById('note-content').value = '';
+                          setShowAddNoteForm(false);
+                        }}
+                        className="px-4 py-1.5 rounded-full text-sm hover:bg-gray-100 transition-colors"
+                        style={{ color: theme?.text }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Notes Grid - Google Keep Style */}
+            {userNotes.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center" style={{ backgroundColor: theme?.primary + '15' }}>
+                    <FileText size={32} style={{ color: theme?.primary }} />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme?.accent }}>
+                    <Plus size={16} style={{ color: theme?.text }} />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold mb-2" style={{ color: theme?.text }}>
+                  Notes you add appear here
+                </h3>
+                <p className="text-sm" style={{ color: theme?.textLight }}>
+                  Create your first research note using the box above
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {userNotes.map((note) => (
+                  <div 
+                    key={note.id} 
+                    className="group relative rounded-xl border hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden"
+                    style={{ 
+                      borderColor: theme?.border,
+                      backgroundColor: note.color || theme?.cardBackground
+                    }}
+                  >
+                    {/* Note Content */}
+                    <div className="p-4">
+                      {note.title && note.title !== 'Untitled' && (
+                        <h4 className="font-semibold mb-2 line-clamp-2" style={{ color: theme?.text }}>
+                          {note.title}
+                        </h4>
+                      )}
+                      <p className="text-sm leading-relaxed line-clamp-4" style={{ color: theme?.text }}>
+                        {note.content}
+                      </p>
+                    </div>
+
+                    {/* Hover Actions */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="flex items-center gap-1 bg-white rounded-lg shadow-lg p-1" style={{ backgroundColor: theme?.cardBackground }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Add edit functionality
+                          }}
+                          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+                          style={{ color: theme?.textLight }}
+                          title="Edit note"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const updatedNotes = userNotes.filter(n => n.id !== note.id);
+                            setUserNotes(updatedNotes);
+                            localStorage.setItem('tpprover_user_notes', JSON.stringify(updatedNotes));
+                          }}
+                          className="p-1.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+                          style={{ color: theme?.textLight }}
+                          title="Delete note"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Footer with timestamp */}
+                    <div className="px-4 pb-3">
+                      <div className="text-xs opacity-60" style={{ color: theme?.textLight }}>
+                        {new Date(note.createdAt).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
