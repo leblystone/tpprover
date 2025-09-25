@@ -399,99 +399,44 @@ export default function CustomizableDashboard() {
         <div>
           <div className="dashboard-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
             {enabledWidgets.map((widget, index) => {
-              // Determine widget size based on type and content
-              let gridClasses = '';
-              let minHeight = '';
+              // Use consistent widget sizing based on configuration
+              const sizeConfig = getSizeConfig(widget.size);
               
-              switch (widget.type) {
-                case 'tasks':
-                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                  minHeight = '280px';
+              // Map grid width to CSS classes
+              let gridClasses = '';
+              switch (sizeConfig.w) {
+                case 1:
+                  gridClasses = 'col-span-1';
                   break;
-                case 'upcoming_order':
-                  // Dynamic sizing based on whether there are active orders
-                  if (incomingOrder) {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '350px';
-                  } else {
-                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
-                    minHeight = '150px';
-                  }
+                case 2:
+                  gridClasses = 'col-span-2';
                   break;
-                case 'goals_only':
-                  // Dynamic sizing based on goal count - made smaller
-                  const goalCount = goals ? goals.length : 0;
-                  if (goalCount === 0) {
-                    gridClasses = 'col-span-1 sm:col-span-1 lg:col-span-1';
-                    minHeight = '160px';
-                  } else if (goalCount <= 2) {
-                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
-                    minHeight = '200px';
-                  } else {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '280px';
-                  }
+                case 3:
+                  gridClasses = 'col-span-3';
                   break;
-                case 'metrics_only':
-                  // Dynamic sizing based on metrics count
-                  const metricsCount = metrics ? metrics.length : 0;
-                  if (metricsCount === 0) {
-                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
-                    minHeight = '180px';
-                  } else if (metricsCount <= 2) {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '250px';
-                  } else {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '320px';
-                  }
-                  break;
-                case 'goals':
-                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                  minHeight = '280px';
-                  break;
-                case 'upcoming_buys':
-                  // Dynamic sizing based on whether there are upcoming buys
-                  if (upcomingBuys && upcomingBuys.length > 0) {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '200px';
-                  } else {
-                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-1';
-                    minHeight = '140px';
-                  }
-                  break;
-                case 'pending_vendors':
-                  // Dynamic sizing based on whether there are pending vendors
-                  if (pendingVendors && pendingVendors.length > 0) {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '180px';
-                  } else {
-                    // Don't show this widget if no pending vendors
-                    return null;
-                  }
-                  break;
-                case 'analytics':
-                  gridClasses = 'col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-6';
-                  minHeight = '400px';
-                  break;
-                case 'compliance':
-                case 'spending':
-                case 'lead_time':
-                case 'inventory':
-                  gridClasses = 'col-span-1 sm:col-span-1 lg:col-span-1';
-                  minHeight = '200px';
-                  break;
-                case 'badges':
-                  gridClasses = 'col-span-1 sm:col-span-1 lg:col-span-1';
-                  minHeight = '100px';
-                  break;
-                case 'supplements':
-                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                  minHeight = '280px';
+                case 4:
+                  gridClasses = 'col-span-4';
                   break;
                 default:
-                  gridClasses = 'col-span-1';
-                  minHeight = '200px';
+                  gridClasses = 'col-span-2';
+              }
+              
+              // Set consistent min height based on grid height
+              let minHeight = '';
+              switch (sizeConfig.h) {
+                case 1:
+                  minHeight = '240px';
+                  break;
+                case 2:
+                  minHeight = '400px';
+                  break;
+                default:
+                  minHeight = '240px';
+              }
+              
+              // Special case: hide widgets that should be conditionally shown
+              if (widget.type === 'pending_vendors' && (!pendingVendors || pendingVendors.length === 0)) {
+                return null;
               }
 
               return (
