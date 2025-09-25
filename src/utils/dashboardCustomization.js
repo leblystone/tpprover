@@ -350,7 +350,7 @@ export const WIDGET_METADATA = {
     title: 'Research Glossary',
     description: 'Comprehensive inline peptide research tool with search, browse, and notes',
     icon: 'BookOpen',
-    availableSizes: [WIDGET_SIZES.LARGE, WIDGET_SIZES.WIDE, WIDGET_SIZES.FULL],
+    availableSizes: [WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE, WIDGET_SIZES.WIDE, WIDGET_SIZES.FULL],
     settings: [
       { key: 'showRecent', label: 'Show recent searches', type: 'boolean', default: true },
       { key: 'showFavorites', label: 'Show favorite entries', type: 'boolean', default: true }
@@ -400,12 +400,16 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '1.5'; // Force glossary widget size update to MEDIUM (2x1) to match Today's Research
+    const currentVersion = '1.6'; // Force glossary widget size update to MEDIUM (2x1) with proper availableSizes
+    
+    console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
     if (layoutVersion !== currentVersion) {
       console.log('🔄 Dashboard layout version mismatch - forcing reset to apply new widget sizes (Research Glossary: MEDIUM 2x1 to match Today\'s Research)');
+      console.log('🗑️ Clearing dashboard layout from localStorage');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
+      console.log('✅ Returning DEFAULT_WIDGETS with Research Glossary as MEDIUM (2x1)');
       return DEFAULT_WIDGETS;
     }
     
