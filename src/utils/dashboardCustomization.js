@@ -177,7 +177,7 @@ export const DEFAULT_WIDGETS = [
     id: 'glossary',
     type: WIDGET_TYPES.GLOSSARY,
     title: 'Research Glossary',
-    size: WIDGET_SIZES.WIDE,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 0, y: 4 },
     enabled: true,
     settings: {
@@ -400,10 +400,10 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '1.4'; // Force glossary widget size update to WIDE (3x1)
+    const currentVersion = '1.5'; // Force glossary widget size update to MEDIUM (2x1) to match Today's Research
     
     if (layoutVersion !== currentVersion) {
-      console.log('🔄 Dashboard layout version mismatch - forcing reset to apply new widget sizes (Research Glossary: WIDE 3x1)');
+      console.log('🔄 Dashboard layout version mismatch - forcing reset to apply new widget sizes (Research Glossary: MEDIUM 2x1 to match Today\'s Research)');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
       return DEFAULT_WIDGETS;
