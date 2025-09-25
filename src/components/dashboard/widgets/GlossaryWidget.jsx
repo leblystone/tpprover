@@ -833,6 +833,171 @@ const PEPTIDE_DATABASE = {
       considerations: 'Very limited human data. Novel neuroprotective mechanism.',
       researchStatus: 'Early-stage investigational compound.',
       disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'AA-031': {
+      aliases: ['AA WATER', 'AA-031 WATER'],
+      classification: 'Amino Acid Complex',
+      mechanism: 'Amino acid formulation that may support cellular processes and recovery.',
+      commonUses: ['Recovery research', 'Cellular support studies', 'Amino acid research', 'Nutritional research'],
+      dosageRanges: 'Research protocols vary based on study design.',
+      researchFindings: 'May provide amino acid supplementation for various research applications.',
+      considerations: 'Generally well-tolerated. Composition may vary by manufacturer.',
+      researchStatus: 'Nutritional research compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'BPC-157+TB-500': {
+      aliases: ['BPC157/TB500 BLEND', 'HEALING BLEND', 'RECOVERY STACK'],
+      classification: 'Peptide Combination',
+      mechanism: 'Combines BPC-157 tissue repair properties with TB-500 regenerative effects for enhanced healing.',
+      commonUses: ['Enhanced tissue repair research', 'Combined healing studies', 'Accelerated recovery research', 'Multi-pathway repair research'],
+      dosageRanges: 'Research protocols typically combine standard dosages of each peptide.',
+      researchFindings: 'May provide synergistic tissue repair and regenerative effects.',
+      considerations: 'Combines effects and considerations of both individual peptides.',
+      researchStatus: 'Combination research compound with established individual components.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'CJC-1295 DAC': {
+      aliases: ['CJC1295 WITH DAC', 'CJC-1295+DAC', 'MODIFIED GRF 1-29 DAC'],
+      classification: 'Growth Hormone Releasing Hormone Analog',
+      mechanism: 'Extended half-life GHRH analog with Drug Affinity Complex for prolonged GH stimulation.',
+      commonUses: ['Extended GH research', 'Long-acting growth studies', 'Anti-aging research', 'Body composition research'],
+      dosageRanges: 'Research protocols typically use 1-2mg weekly due to extended half-life.',
+      researchFindings: 'Provides sustained GH elevation with less frequent dosing compared to standard CJC-1295.',
+      considerations: 'Longer duration of action. May cause injection site reactions.',
+      researchStatus: 'Well-established research compound with extended activity profile.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'IGF-DES': {
+      aliases: ['IGF-1 DES', 'DES(1-3)IGF-1', 'TRUNCATED IGF-1'],
+      classification: 'Growth Factor Analog',
+      mechanism: 'Truncated IGF-1 variant with higher potency and reduced binding protein affinity.',
+      commonUses: ['Localized growth research', 'Muscle research', 'Tissue-specific studies', 'Enhanced IGF research'],
+      dosageRanges: 'Research protocols typically use lower doses due to increased potency.',
+      researchFindings: 'More potent than regular IGF-1 with enhanced local tissue effects.',
+      considerations: 'Higher potency requires careful dosing. Risk of hypoglycemia.',
+      researchStatus: 'Specialized research compound with enhanced activity profile.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'MELANOTAN': {
+      aliases: ['MELANOTAN I', 'MT-I', 'AFAMELANOTIDE'],
+      classification: 'Melanocortin Receptor Agonist',
+      mechanism: 'Selective melanocortin-1 receptor agonist that stimulates melanogenesis for photoprotection.',
+      commonUses: ['Photoprotection research', 'Melanogenesis studies', 'Skin pigmentation research', 'UV protection research'],
+      dosageRanges: 'Research protocols typically use 0.25-1mg daily with controlled UV exposure.',
+      researchFindings: 'Effective for photoprotection and skin darkening with less systemic effects than MT-II.',
+      considerations: 'Requires UV exposure for effect. May cause nausea and appetite changes.',
+      researchStatus: 'FDA-approved as Scenesse for erythropoietic protoporphyria.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'MGF': {
+      aliases: ['MECHANO GROWTH FACTOR', 'IGF-1EC', 'MECHANICAL GROWTH FACTOR'],
+      classification: 'Growth Factor Splice Variant',
+      mechanism: 'Splice variant of IGF-1 that responds to mechanical stress and promotes muscle repair.',
+      commonUses: ['Muscle repair research', 'Mechanical stress studies', 'Exercise response research', 'Tissue regeneration research'],
+      dosageRanges: 'Research protocols vary based on study design and administration route.',
+      researchFindings: 'May enhance muscle repair and adaptation to mechanical stress.',
+      considerations: 'Short half-life. Limited human safety data.',
+      researchStatus: 'Investigational compound with specialized muscle research applications.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'NICOTINAMIDE': {
+      aliases: ['NIACINAMIDE', 'VITAMIN B3', 'NICOTINIC ACID AMIDE'],
+      classification: 'B-Vitamin',
+      mechanism: 'Precursor to NAD+ that supports cellular energy metabolism and DNA repair.',
+      commonUses: ['NAD+ research', 'Cellular energy studies', 'Skin research', 'Metabolic research'],
+      dosageRanges: 'Research protocols typically use 500-2000mg daily.',
+      researchFindings: 'May support NAD+ levels and provide various cellular benefits.',
+      considerations: 'Generally well-tolerated. High doses may cause flushing.',
+      researchStatus: 'Well-established vitamin with extensive research applications.',
+      disclaimer: 'Vitamin supplement - research applications continue.'
+    },
+    'GLUTATHIONE': {
+      aliases: ['GSH', 'L-GLUTATHIONE', 'REDUCED GLUTATHIONE'],
+      classification: 'Antioxidant Tripeptide',
+      mechanism: 'Master antioxidant that protects cells from oxidative stress and supports detoxification.',
+      commonUses: ['Antioxidant research', 'Detoxification studies', 'Liver research', 'Aging research'],
+      dosageRanges: 'Research protocols vary widely based on administration route.',
+      researchFindings: 'Critical for cellular antioxidant defense and detoxification processes.',
+      considerations: 'Poor oral bioavailability. IV administration more effective.',
+      researchStatus: 'Well-established antioxidant with extensive research.',
+      disclaimer: 'Research compound - IV administration requires medical supervision.'
+    },
+    'CARNOSINE': {
+      aliases: ['L-CARNOSINE', 'BETA-ALANYL-L-HISTIDINE'],
+      classification: 'Dipeptide Antioxidant',
+      mechanism: 'Dipeptide with antioxidant and anti-glycation properties that may support cellular health.',
+      commonUses: ['Anti-aging research', 'Antioxidant studies', 'Neuroprotection research', 'Muscle research'],
+      dosageRanges: 'Research protocols typically use 500-1500mg daily.',
+      researchFindings: 'May provide antioxidant benefits and support healthy aging processes.',
+      considerations: 'Generally well-tolerated. May have metallic taste.',
+      researchStatus: 'Established research compound with anti-aging applications.',
+      disclaimer: 'Research compound - dietary supplement applications under investigation.'
+    },
+    'TAURINE': {
+      aliases: ['2-AMINOETHANESULFONIC ACID', 'L-TAURINE'],
+      classification: 'Amino Sulfonic Acid',
+      mechanism: 'Semi-essential amino acid that supports cardiovascular, neurological, and cellular functions.',
+      commonUses: ['Cardiovascular research', 'Neurological studies', 'Exercise research', 'Cellular research'],
+      dosageRanges: 'Research protocols typically use 1-3g daily.',
+      researchFindings: 'May support cardiovascular health, exercise performance, and cellular function.',
+      considerations: 'Generally well-tolerated with minimal side effects.',
+      researchStatus: 'Well-established amino acid with extensive research.',
+      disclaimer: 'Amino acid supplement - research applications continue.'
+    },
+    'L-CARNITINE': {
+      aliases: ['ACETYL-L-CARNITINE', 'ALCAR', 'L-CARNITINE TARTRATE'],
+      classification: 'Amino Acid Derivative',
+      mechanism: 'Facilitates fatty acid transport into mitochondria for energy production.',
+      commonUses: ['Metabolic research', 'Exercise studies', 'Cognitive research', 'Cardiovascular research'],
+      dosageRanges: 'Research protocols typically use 1-3g daily depending on form.',
+      researchFindings: 'May support fat metabolism, exercise performance, and cognitive function.',
+      considerations: 'Generally well-tolerated. May cause mild gastrointestinal effects.',
+      researchStatus: 'Well-established supplement with extensive research.',
+      disclaimer: 'Dietary supplement - research applications continue.'
+    },
+    'SUPER SHIELD': {
+      aliases: ['ANTIOXIDANT BLEND', 'PROTECTIVE COMPLEX'],
+      classification: 'Antioxidant Combination',
+      mechanism: 'Multi-component antioxidant formula designed to provide comprehensive cellular protection.',
+      commonUses: ['Antioxidant research', 'Cellular protection studies', 'Anti-aging research', 'Oxidative stress research'],
+      dosageRanges: 'Research protocols vary based on specific formulation.',
+      researchFindings: 'May provide enhanced antioxidant protection through multiple pathways.',
+      considerations: 'Effects depend on specific ingredients and concentrations.',
+      researchStatus: 'Proprietary research formulation.',
+      disclaimer: 'Research compound - specific formulation may vary by manufacturer.'
+    },
+    'HEALTHY HAIR SKIN NAILS BLEND': {
+      aliases: ['BEAUTY BLEND', 'HSN COMPLEX', 'COSMETIC SUPPORT'],
+      classification: 'Nutritional Complex',
+      mechanism: 'Combination of nutrients that may support hair, skin, and nail health.',
+      commonUses: ['Cosmetic research', 'Dermatological studies', 'Hair research', 'Nail health research'],
+      dosageRanges: 'Research protocols vary based on specific formulation.',
+      researchFindings: 'May support structural protein synthesis and cellular health.',
+      considerations: 'Effects depend on specific ingredients and individual response.',
+      researchStatus: 'Nutritional research formulation.',
+      disclaimer: 'Nutritional supplement - research applications under investigation.'
+    },
+    'LIPO MINUS MEALS': {
+      aliases: ['LIPOTROPIC BLEND', 'FAT METABOLISM SUPPORT'],
+      classification: 'Metabolic Support Complex',
+      mechanism: 'Combination designed to support fat metabolism and weight management.',
+      commonUses: ['Weight management research', 'Metabolic studies', 'Fat oxidation research', 'Body composition research'],
+      dosageRanges: 'Research protocols vary based on specific formulation.',
+      researchFindings: 'May support metabolic processes related to fat utilization.',
+      considerations: 'Effects depend on specific ingredients and lifestyle factors.',
+      researchStatus: 'Metabolic research formulation.',
+      disclaimer: 'Research compound - not approved for weight loss claims.'
+    },
+    'IMMUNOLOGICAL ENHANCEMENT': {
+      aliases: ['IMMUNE SUPPORT', 'IMMUNE BOOSTER', 'IMMUNITY COMPLEX'],
+      classification: 'Immune Support Complex',
+      mechanism: 'Multi-component formula designed to support immune system function.',
+      commonUses: ['Immune research', 'Immunology studies', 'Health support research', 'Wellness research'],
+      dosageRanges: 'Research protocols vary based on specific formulation.',
+      researchFindings: 'May support various aspects of immune system function.',
+      considerations: 'Effects depend on specific ingredients and individual immune status.',
+      researchStatus: 'Immune research formulation.',
+      disclaimer: 'Research compound - not approved for medical claims.'
     }
   };
 
