@@ -32,14 +32,28 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder }) => {
     );
   }
 
-  // If there's an order, show the full card
+  // If there's an order, show with consistent header
   return (
-    <div className="h-full">
-      <UpcomingOrderCard 
-        theme={theme}
-        order={order}
-        onNewOrder={onNewOrder}
-      />
+    <div className="h-full flex flex-col">
+      {/* Consistent Header */}
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Incoming Peptides
+          </h3>
+          <Truck size={20} style={{ color: theme.primary }} />
+        </div>
+      </div>
+      
+      {/* Order Content */}
+      <div className="flex-1">
+        <UpcomingOrderCard 
+          theme={theme}
+          order={order}
+          onNewOrder={onNewOrder}
+          hideHeader={true}
+        />
+      </div>
     </div>
   );
 };
