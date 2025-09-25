@@ -1893,12 +1893,12 @@ export default function GlossaryWidget({ widget, theme }) {
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
       {/* Work in Progress Badge */}
-      <div className="absolute top-3 right-3 z-10">
-        <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border" 
+      <div className="absolute top-16 right-3 z-10">
+        <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border shadow-sm" 
              style={{ 
-               backgroundColor: theme.warning + '15', 
-               borderColor: theme.warning + '40',
-               color: theme.warning 
+               backgroundColor: theme.warning + '25', 
+               borderColor: theme.warning,
+               color: theme.text 
              }}>
           <div className="w-1.5 h-1.5 rounded-full animate-pulse" 
                style={{ backgroundColor: theme.warning }}></div>
