@@ -1,4 +1,5 @@
 import React from 'react';
+import { Calendar } from 'lucide-react';
 import UpcomingBuys from '../UpcomingBuys';
 
 const UpcomingBuysWidget = ({ widget, theme, buys, onAdd }) => {
@@ -12,9 +13,12 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd }) => {
     return (
       <div className="h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Upcoming Buys
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+              Upcoming Buys
+            </h3>
+            <Calendar size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
         
         <div className="flex-1 p-4 flex flex-col items-center justify-center">

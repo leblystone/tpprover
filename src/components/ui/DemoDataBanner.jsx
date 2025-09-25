@@ -1,9 +1,9 @@
-import React from 'react';
-import { Info, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { AlertTriangle, Trash2, X } from 'lucide-react';
+import { clearMockData } from '../../utils/seed';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
-    const navigate = useNavigate();
+    const [isRemoving, setIsRemoving] = useState(false);
 
     const handleDismiss = () => {
         // Only allow dismissing when not sticky
@@ -11,28 +11,96 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         try { localStorage.setItem('tpprover_demo_banner_dismissed', 'true'); } catch {}
     };
 
+    const handleRemoveDemoData = async () => {
+        if (isRemoving) return;
+        
+        const confirmed = window.confirm(
+            'Are you sure you want to remove all demo data? This will clear all sample protocols, orders, vendors, and other demo content. This action cannot be undone.'
+        );
+        
+        if (!confirmed) return;
+        
+        setIsRemoving(true);
+        try {
+            clearMockData();
+            // Reload the page to refresh the app state
+            window.location.reload();
+        } catch (error) {
+            console.error('Error removing demo data:', error);
+            alert('Failed to remove demo data. Please try again or use the Settings page.');
+            setIsRemoving(false);
+        }
+    };
 
-    const handleNavigate = () => {
-        navigate('/settings');
+    // Warm botanical colors inspired by the research planner aesthetic
+    const bannerStyle = {
+        backgroundColor: '#F5F1EB', // Warm cream background
+        color: '#8B5A3C', // Rich brown text (from the vials/labels)
+        borderBottom: '2px solid #A67B5B', // Warm brown border
+        borderTop: '1px solid #A67B5B',
+    };
+
+    // Dark mode adjustments with warm tones
+    if (theme.mode === 'dark' || theme.background === '#1a1a1a') {
+        bannerStyle.backgroundColor = '#3D2F26'; // Dark warm brown
+        bannerStyle.color = '#E8DDD4'; // Warm light cream
+        bannerStyle.borderBottom = '2px solid #A67B5B';
+        bannerStyle.borderTop = '1px solid #A67B5B';
     }
 
     return (
         <div 
-            className="p-3 text-sm flex items-center justify-center gap-4 relative"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="p-4 text-sm flex items-center justify-between gap-4 relative shadow-sm"
+            style={bannerStyle}
         >
-            <Info size={20} />
-            <p>
-                You are viewing <strong>demo data</strong>. 
-                <button onClick={handleNavigate} className="font-semibold underline hover:opacity-80 ml-2">
-                    Manage in Settings
+            <div className="flex items-center gap-3">
+                <AlertTriangle size={20} className="flex-shrink-0" />
+                <div>
+                    <p className="font-medium">
+                        You are viewing <strong>demo data</strong> to explore the app's features.
+                    </p>
+                    <p className="text-xs opacity-90 mt-1">
+                        Remove demo content when you're ready to add your own data.
+                    </p>
+                </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+                <button 
+                    onClick={handleRemoveDemoData}
+                    disabled={isRemoving}
+                    className="px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                        backgroundColor: '#8B5A3C',
+                        color: '#F5F1EB',
+                        border: '1px solid #A67B5B'
+                    }}
+                    onMouseEnter={(e) => {
+                        if (!isRemoving) {
+                            e.target.style.backgroundColor = '#6D4428';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (!isRemoving) {
+                            e.target.style.backgroundColor = '#8B5A3C';
+                        }
+                    }}
+                    title="Remove all demo data"
+                >
+                    <Trash2 size={14} />
+                    {isRemoving ? 'Removing...' : 'Remove Demo Data'}
                 </button>
-            </p>
-            {!sticky && (
-                <button onClick={handleDismiss} className="absolute right-4 top-1/2 -translate-y-1/2 hover:opacity-80">
-                    <X size={18} />
-                </button>
-            )}
+                
+                {!sticky && (
+                    <button 
+                        onClick={handleDismiss} 
+                        className="p-1 hover:bg-white hover:bg-opacity-20 rounded transition-all duration-200"
+                        title="Dismiss banner"
+                    >
+                        <X size={16} />
+                    </button>
+                )}
+            </div>
         </div>
     )
 }

@@ -3,26 +3,13 @@ import { useOutletContext, useLocation } from 'react-router-dom'
 import { PlusCircle } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
+import OrdersHelpPanel from '../components/orders/OrdersHelpPanel'
 import Tabs from '../components/common/Tabs'
 import ScheduledBuysPanel from '../components/orders/ScheduledBuysPanel'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
-
-// Local lightweight useLocalStorage helper
-function useLocalStorage(key, initialValue) {
-	const [value, setValue] = React.useState(() => {
-		try {
-			const item = localStorage.getItem(key)
-			return item ? JSON.parse(item) : initialValue
-		} catch {
-			return initialValue
-		}
-	})
-	React.useEffect(() => {
-		try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
-	}, [key, value])
-	return [value, setValue]
-}
+import { syncOrderDocumentationToStockpile, updateSyncedDocumentation, removeSyncedDocumentation } from '../utils/documentationSync'
+import useLocalStorage from '../utils/hooks'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
@@ -119,7 +106,10 @@ export default function Orders() {
 					orderId: newOrder.id
 				};
 			});
-			setStockpile(prev => [...prev, ...newStockItems]);
+
+			// Sync documentation from order to stockpile items
+			const stockItemsWithDocs = syncOrderDocumentationToStockpile(newOrder, newStockItems);
+			setStockpile(prev => [...prev, ...stockItemsWithDocs]);
 		} 
 		// Status changed FROM Delivered: Remove items from stockpile.
 		else if (wasDelivered && !isDelivered) {
@@ -153,6 +143,8 @@ export default function Orders() {
 			<div className="flex items-center justify-between mb-4">
 				<h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Orders</h1>
 			</div>
+			
+			<OrdersHelpPanel theme={theme} />
 
 			<div className="flex items-center justify-between mb-6">
 				<Tabs

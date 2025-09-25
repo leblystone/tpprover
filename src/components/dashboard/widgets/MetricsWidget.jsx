@@ -1,5 +1,6 @@
 import React from 'react';
-import { Plus, Edit, Bed, Zap, Smile, ShieldAlert } from 'lucide-react';
+import { Plus, Edit, Bed, Zap, Smile, ShieldAlert, Activity } from 'lucide-react';
+import ModernTooltip from '../../ui/ModernTooltip';
 import { formatMMDDYYYY } from '../../../utils/date';
 
 const MetricsWidget = ({ 
@@ -17,16 +18,20 @@ const MetricsWidget = ({
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Body Metrics
+            Bio-Metrics
           </h3>
-          <button
-            onClick={onAddMetric}
-            className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
-            style={{ borderColor: theme.primary, color: theme.primary }}
-            title="Add Entry"
-          >
-            <Plus size={12} strokeWidth={3} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Activity size={20} style={{ color: theme.primary }} />
+            <ModernTooltip text="Add" position="top">
+              <button
+                onClick={onAddMetric}
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
+                style={{ borderColor: theme.primary, color: theme.primary }}
+              >
+                <Plus size={12} strokeWidth={3} />
+              </button>
+            </ModernTooltip>
+          </div>
         </div>
       </div>
       

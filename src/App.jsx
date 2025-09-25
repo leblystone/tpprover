@@ -7,16 +7,18 @@ import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
-import { isBetaTester, hasBetaLifetimeAccess, isBetaPeriodEnded } from './utils/betaAccess';
+import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
 import DemoDataBanner from './components/ui/DemoDataBanner';
 import GlossaryQuickModal from './components/glossary/GlossaryQuickModal';
 import SuccessModal from './components/ui/SuccessModal';
-import BetaEnded from './pages/BetaEnded';
-import BetaClosed from './pages/BetaClosed';
+// Beta pages no longer needed - app is live
+// import BetaEnded from './pages/BetaEnded';
+// import BetaClosed from './pages/BetaClosed';
 import TourController from './components/onboarding/TourController';
 import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
+import './utils/debugUtils'; // Load debug utilities globally
 
 function App() {
   const [themeName] = useState(() => {
@@ -41,10 +43,7 @@ function App() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
 
-  // Check if beta has ended and redirect to closed page
-  if (isBetaPeriodEnded()) {
-    return <BetaClosed />;
-  }
+  // App is now live - no beta restrictions
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
@@ -84,22 +83,22 @@ function App() {
     return () => window.removeEventListener('demo-data-cleared', handleDemoSuccess);
   }, []);
 
-  // Beta access control
-  const isBetaActive = () => {
-    // Always allow access in development/testing to avoid local lockout
-    if (import.meta && import.meta.env && import.meta.env.DEV) {
-      return true;
-    }
+  // Listen for glossary open events from widgets
+  useEffect(() => {
+    const handleOpenGlossary = (event) => {
+      const detail = event.detail || {};
+      setShowGlossary({ 
+        open: true, 
+        searchTerm: detail.searchTerm || '',
+        tab: detail.tab || 'search'
+      });
+    };
+    window.addEventListener('tpp:open_glossary', handleOpenGlossary);
+    return () => window.removeEventListener('tpp:open_glossary', handleOpenGlossary);
+  }, []);
 
-    const phase1EndDate = new Date('2024-09-11T00:00:00Z'); // Sept 10th midnight UTC
-    const phase2EndDate = new Date('2024-09-18T00:00:00Z'); // Sept 17th midnight UTC
-    const now = new Date();
-    return now <= phase2EndDate;
-  };
-
-  if (!isBetaActive()) {
-    return <BetaEnded />;
-  }
+  // App is now live - no beta restrictions
+  // Beta testers maintain their lifetime access
 
   // Capture PWA install prompt for later use
   useEffect(() => {
@@ -146,12 +145,6 @@ function App() {
         theme={theme} 
         open={mobileMenuOpen} 
         onClose={() => setMobileMenuOpen(false)} 
-        installPrompt={installPrompt} 
-        isPwaSupported={isPwaSupported} 
-        isPwaInstalled={isPwaInstalled} 
-        onShowFeedback={() => setShowFeedbackModal(true)}
-        onShowInstall={() => setShowInstallModal(true)}
-        onShowUnsupported={() => setShowUnsupportedModal(true)}
       />
       <WelcomeModal
         open={showWelcome}
@@ -159,7 +152,13 @@ function App() {
         onStartTour={startTour}
         theme={theme}
       />
-      <GlossaryQuickModal open={showGlossary} onClose={() => setShowGlossary(false)} theme={theme} />
+      <GlossaryQuickModal 
+        open={typeof showGlossary === 'object' ? showGlossary.open : showGlossary} 
+        onClose={() => setShowGlossary(false)} 
+        theme={theme}
+        initialSearchTerm={typeof showGlossary === 'object' ? showGlossary.searchTerm : ''}
+        initialTab={typeof showGlossary === 'object' ? showGlossary.tab : 'search'}
+      />
       <TourController theme={theme} installPrompt={installPrompt} />
       <SuccessModal
         open={showDemoSuccessModal}

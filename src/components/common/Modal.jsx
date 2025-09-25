@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
 
-export default function Modal({ open, onClose, onBack, title, theme, children, footer, maxWidth }) {
+export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth }) {
   // Add keyboard shortcuts and prevent body scroll on mobile
   useEffect(() => {
     if (!open) return;
@@ -46,13 +46,14 @@ export default function Modal({ open, onClose, onBack, title, theme, children, f
         onTouchStart={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {onBack && (
               <button onClick={onBack} className="p-1 rounded-full -ml-2" style={{ color: theme.textLight }}>
                 <ChevronLeft size={20} />
               </button>
             )}
             <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{title}</h3>
+            {titleExtra && titleExtra}
           </div>
           <button onClick={onClose} className="p-1 rounded-full" style={{ color: theme.textLight }}>
             <X size={20} />

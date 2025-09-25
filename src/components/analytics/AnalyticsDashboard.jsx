@@ -65,9 +65,9 @@ export default function AnalyticsDashboard({ theme }) {
       {/* Key Metrics */}
       <section>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard theme={theme} icon={<CheckCircle className="h-6 w-6 text-green-500" />} title="7d Compliance" value={`${stats.compliancePct}%`} />
+          <StatCard theme={theme} icon={<CheckCircle className="h-6 w-6 text-green-500" />} title="7d Research Consistency" value={`${stats.compliancePct}%`} />
           <StatCard theme={theme} icon={<DollarSign className="h-6 w-6 text-blue-500" />} title="Last Month Spend" value={`$${stats.lastMonthSpend?.toFixed ? stats.lastMonthSpend.toFixed(2) : '0.00'}`} />
-          <StatCard theme={theme} icon={<Truck className="h-6 w-6 text-purple-500" />} title="Avg. Lead Time" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} />
+          <StatCard theme={theme} icon={<Truck className="h-6 w-6 text-purple-500" />} title="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} />
           <StatCard theme={theme} icon={<Archive className="h-6 w-6 text-red-500" />} title="Low Stock Items" value={stats.lowStock} />
         </div>
       </section>
@@ -78,7 +78,7 @@ export default function AnalyticsDashboard({ theme }) {
         theme={theme}
         stretch
         options={[
-            { label: 'Compliance', value: 'compliance' },
+            { label: 'Research Consistency', value: 'compliance' },
             { label: 'Spending', value: 'spending' },
             { label: 'Inventory', value: 'inventory' },
         ]}
@@ -87,7 +87,7 @@ export default function AnalyticsDashboard({ theme }) {
       {activeTab === 'compliance' && (
       <section>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <AnalyticsCard theme={theme} title="Supplement Compliance (last 30 days)" className="md:col-span-2">
+          <AnalyticsCard theme={theme} title="Research Consistency (last 30 days)" className="md:col-span-2">
             <ComplianceTrend supplements={supplements} suppDone={suppDone} theme={theme} />
           </AnalyticsCard>
           <AnalyticsCard theme={theme} title="Current Streak" className="flex flex-col items-center justify-center text-center">

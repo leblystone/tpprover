@@ -4,6 +4,9 @@ import TextInput from '../common/inputs/TextInput';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 import DosingScheduleEditor from './DosingScheduleEditor';
+import SchedulingPreview from './SchedulingPreview';
+import AutoSaveIndicator from '../common/AutoSaveIndicator';
+import useAutoSave from '../../utils/useAutoSave';
 
 export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol }) {
 
@@ -18,6 +21,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     });
 
     const [form, setForm] = useState(createEmpty);
+    
+    // Auto-save functionality
+    const storageKey = `tpprover_protocol_draft_${protocol?.id || 'new'}`;
+    const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
+        storageKey, 
+        form, 
+        setForm, 
+        2000 // 2 second delay
+    );
 
     useEffect(() => {
         if (!open) return;
@@ -98,6 +110,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     newState.peptides = newPeptides;
                 }
             }
+            
+            // Update auto-save data
+            updateFormData(newState);
+            
             return newState;
         });
     };
@@ -106,22 +122,41 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         setForm(prev => {
             const newPeptides = [...(prev.peptides || [])];
             newPeptides[index] = updatedPeptide;
-            return { ...prev, peptides: newPeptides };
+            const newState = { ...prev, peptides: newPeptides };
+            
+            // Update auto-save data
+            updateFormData(newState);
+            
+            return newState;
         });
     };
 
     const addPeptide = () => {
-        setForm(prev => ({
-            ...prev,
-            peptides: [...(prev.peptides || []), { id: Date.now(), frequency: { type: 'daily', time: ['Morning'] } }]
-        }));
+        setForm(prev => {
+            const newState = {
+                ...prev,
+                peptides: [...(prev.peptides || []), { id: Date.now(), frequency: { type: 'daily', time: ['Morning'] } }]
+            };
+            
+            // Update auto-save data
+            updateFormData(newState);
+            
+            return newState;
+        });
     };
 
     const removePeptide = (index) => {
-        setForm(prev => ({
-            ...prev,
-            peptides: prev.peptides.filter((_, i) => i !== index)
-        }));
+        setForm(prev => {
+            const newState = {
+                ...prev,
+                peptides: prev.peptides.filter((_, i) => i !== index)
+            };
+            
+            // Update auto-save data
+            updateFormData(newState);
+            
+            return newState;
+        });
     };
 
     const handleDurationChange = (field, value) => {
@@ -136,16 +171,26 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 duration: { ...prev.duration, [field]: processedValue }
             };
             
+            // Update auto-save data
+            updateFormData(newForm);
+            
             console.log('🔢 New duration:', newForm.duration);
             return newForm;
         });
     };
 
     const handleWashoutChange = (field, value) => {
-        setForm(prev => ({
-            ...prev,
-            washout: { ...prev.washout, [field]: value }
-        }))
+        setForm(prev => {
+            const newState = {
+                ...prev,
+                washout: { ...prev.washout, [field]: value }
+            };
+            
+            // Update auto-save data
+            updateFormData(newState);
+            
+            return newState;
+        });
     };
 
     const handleFinalSave = () => {
@@ -196,6 +241,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 unit: fromEditorUnit(finalForm.washout.unit)
             };
         }
+        markAsSubmitted(); // Clear auto-saved data after successful save
         onSave?.(finalForm);
     };
 
@@ -225,6 +271,14 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             )}
         >
             <div className="space-y-8">
+                
+                {/* Auto-save Indicator */}
+                <AutoSaveIndicator 
+                    isSaving={isSaving}
+                    lastSaved={lastSaved}
+                    onClearForm={clearSavedData}
+                    theme={theme}
+                />
 
                 {/* Protocol Basics - Visual Cards */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -406,6 +460,23 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         ))}
                     </div>
 
+                    {/* Add Peptide Button */}
+                    <button
+                        onClick={addPeptide}
+                        className="p-6 border-2 border-dashed rounded-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.01] hover:shadow-md"
+                        style={{ 
+                            borderColor: theme.border, 
+                            color: theme.textLight,
+                            backgroundColor: theme.cardBackground + '50'
+                        }}
+                    >
+                        <PlusCircle size={24} />
+                        <div className="text-left">
+                            <div className="font-semibold" style={{ color: theme.text }}>Add Another Peptide</div>
+                            <div className="text-sm">Click to add more compounds to this protocol</div>
+                        </div>
+                    </button>
+
                     {/* Global Titration for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 0 && (
                         <div className="p-6 rounded-xl border-2" 
@@ -449,23 +520,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             </div>
                         </div>
                     )}
-
-                        {/* Add Peptide Button */}
-                        <button
-                            onClick={addPeptide}
-                            className="p-6 border-2 border-dashed rounded-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.01] hover:shadow-md"
-                            style={{ 
-                                borderColor: theme.border, 
-                                color: theme.textLight,
-                                backgroundColor: theme.cardBackground + '50'
-                            }}
-                        >
-                            <PlusCircle size={24} />
-                            <div className="text-left">
-                                <div className="font-semibold" style={{ color: theme.text }}>Add Another Peptide</div>
-                                <div className="text-sm">Click to add more compounds to this protocol</div>
-                            </div>
-                        </button>
                 </div>
 
                 {/* Separator */}
@@ -559,6 +613,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </div>
                     </div>
                 </div>
+
+                {/* Separator */}
+                <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+                {/* Scheduling Preview */}
+                {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
+                    <div className="space-y-3">
+                        <SchedulingPreview protocol={form} theme={theme} />
+                    </div>
+                )}
 
                 {/* Separator */}
                 <div className="border-t" style={{ borderColor: theme.border }}></div>

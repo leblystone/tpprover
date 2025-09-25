@@ -14,33 +14,42 @@ const SpendingWidget = ({ widget, theme }) => {
   const orders = useLocal('tpprover_orders', []);
 
   const spendingData = useMemo(() => {
-    const monthlySpend = orders.reduce((acc, o) => {
-      const month = (o.date || '').slice(0, 7);
-      const cost = Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0;
-      acc[month] = (acc[month] || 0) + cost;
-      return acc;
-    }, {});
-
-    const sortedMonths = Object.keys(monthlySpend).sort();
-    const lastMonth = sortedMonths.slice(-1)[0];
-    const previousMonth = sortedMonths.slice(-2, -1)[0];
+    const now = new Date();
+    const last90Days = new Date();
+    last90Days.setDate(last90Days.getDate() - 90);
     
-    const lastMonthSpend = lastMonth ? monthlySpend[lastMonth] : 0;
-    const previousMonthSpend = previousMonth ? monthlySpend[previousMonth] : 0;
-    
-    const trend = previousMonthSpend > 0 
-      ? ((lastMonthSpend - previousMonthSpend) / previousMonthSpend) * 100 
-      : 0;
+    // Get last month's date range
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    // Calculate total spend
-    const totalSpend = Object.values(monthlySpend).reduce((sum, amount) => sum + amount, 0);
+    let lastMonthSpend = 0;
+    let last90DaysSpend = 0;
+    let totalSpend = 0;
+
+    orders.forEach(order => {
+      if (order.status === 'delivered' && order.deliveredDate) {
+        const deliveryDate = new Date(order.deliveredDate);
+        const totalCost = order.items?.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0) || 0;
+        
+        // Total spend (all time)
+        totalSpend += totalCost;
+        
+        // Last 90 days spend
+        if (deliveryDate >= last90Days) {
+          last90DaysSpend += totalCost;
+        }
+        
+        // Last month spend
+        if (deliveryDate >= lastMonth && deliveryDate <= lastMonthEnd) {
+          lastMonthSpend += totalCost;
+        }
+      }
+    });
 
     return { 
       lastMonthSpend, 
-      previousMonthSpend, 
-      trend, 
-      totalSpend,
-      monthCount: sortedMonths.length 
+      last90DaysSpend, 
+      totalSpend
     };
   }, [orders]);
 
@@ -53,51 +62,44 @@ const SpendingWidget = ({ widget, theme }) => {
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-          Spending
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Spending
+          </h3>
+          <DollarSign size={20} style={{ color: theme.primary }} />
+        </div>
       </div>
       
-      <div className="flex-1 p-4 flex flex-col items-center justify-center">
+      <div className="flex-1 p-4 flex flex-col justify-center">
+        {/* Primary Metric - Last Month */}
         <div className="text-center mb-4">
           <div className="flex items-center justify-center mb-2">
             <DollarSign size={24} style={{ color: theme.primary }} />
           </div>
           
-          <div className="text-3xl font-bold mb-1" style={{ color: theme.text }}>
+          <div className="text-2xl font-bold mb-1" style={{ color: theme.text }}>
             ${spendingData.lastMonthSpend.toFixed(2)}
           </div>
           
           <div className="text-sm" style={{ color: theme.textLight }}>
-            Last month
+            Last Month
           </div>
         </div>
-
-        {spendingData.previousMonthSpend > 0 && (
-          <div className="flex items-center gap-2 mb-4">
-            {spendingData.trend > 0 ? (
-              <TrendingUp size={16} style={{ color: getTrendColor(spendingData.trend) }} />
-            ) : (
-              <TrendingDown size={16} style={{ color: theme.success }} />
-            )}
-            <span 
-              className="text-sm font-medium" 
-              style={{ color: getTrendColor(spendingData.trend) }}
-            >
-              {Math.abs(spendingData.trend).toFixed(1)}%
-            </span>
-            <span className="text-xs" style={{ color: theme.textLight }}>
-              vs previous month
+        
+        {/* Secondary Metrics */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center p-2 rounded" style={{ backgroundColor: theme.secondary }}>
+            <span className="text-sm" style={{ color: theme.text }}>Last 90 Days:</span>
+            <span className="text-sm font-semibold" style={{ color: theme.text }}>
+              ${spendingData.last90DaysSpend.toFixed(2)}
             </span>
           </div>
-        )}
-
-        <div className="text-center">
-          <div className="text-lg font-semibold" style={{ color: theme.textLight }}>
-            ${spendingData.totalSpend.toFixed(2)}
-          </div>
-          <div className="text-xs" style={{ color: theme.textLight }}>
-            Total spent
+          
+          <div className="flex justify-between items-center p-2 rounded" style={{ backgroundColor: theme.secondary }}>
+            <span className="text-sm" style={{ color: theme.text }}>Total Overall:</span>
+            <span className="text-sm font-semibold" style={{ color: theme.primary }}>
+              ${spendingData.totalSpend.toFixed(2)}
+            </span>
           </div>
         </div>
       </div>

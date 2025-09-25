@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
+import useAutoSave from '../../utils/useAutoSave'
+import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
 function todayISO() {
   const d = new Date()
@@ -12,6 +14,13 @@ function todayISO() {
 
 export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal }) {
   const [form, setForm] = useState({ id: undefined, text: '', dueDate: todayISO(), completed: false })
+  
+  // Auto-save functionality
+  const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
+    `goal_form_${goal?.id || 'new'}`,
+    form,
+    setForm
+  )
   useEffect(() => {
     if (!open) return
     if (goal) setForm({ id: goal.id, text: goal.text || '', dueDate: goal.dueDate || todayISO(), completed: !!goal.completed })
@@ -29,12 +38,23 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
           {goal && <button onClick={() => onDelete?.(form)} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border, color: '#b91c1c' }}>Delete</button>}
           <div className="ml-auto flex items-center gap-2">
             <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-            <button onClick={() => onSave?.(form)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
+            <button onClick={() => {
+              markAsSubmitted();
+              onSave?.(form);
+            }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
           </div>
         </div>
       )}
     >
       <div className="space-y-3">
+        {/* Auto-save indicator */}
+        <AutoSaveIndicator 
+          isSaving={isSaving} 
+          lastSaved={lastSaved} 
+          onClearForm={clearSavedData} 
+          theme={theme} 
+        />
+        
         <TextInput label="Goal" value={form.text} onChange={v => setForm(prev => ({ ...prev, text: v }))} placeholder="Describe your goal" theme={theme} />
         <label className="block text-sm font-medium" style={{ color: theme?.text }}>Goal Date
           <input type="date" className="w-full p-2 rounded border" value={form.dueDate} onChange={e => setForm(prev => ({ ...prev, dueDate: e.target.value }))} style={{ borderColor: theme?.border }} />

@@ -98,7 +98,14 @@ export default function UpcomingOrderCard({ order, theme }) {
   
   if (!order) return (
     <div className="p-8 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground }}>
-      <h3 className="h3 mb-6 border-b pb-3" style={{ color: theme.primaryDark, borderColor: theme.border }}>Incoming Peptides</h3>
+      <div className="px-4 py-3 border-b mb-6" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Incoming Peptides
+          </h3>
+          <Truck size={20} style={{ color: theme.primary }} />
+        </div>
+      </div>
       <p>No active orders.</p>
     </div>
   )
@@ -131,7 +138,14 @@ export default function UpcomingOrderCard({ order, theme }) {
 
   return (
     <div className="p-8 rounded-xl content-card w-full h-full flex flex-col items-center transition-opacity" style={{ backgroundColor: theme.cardBackground }}>
-      <h3 className="h3 mb-4 border-b pb-2 text-center" style={{ color: theme.primaryDark, borderColor: theme.border }}>Incoming Peptides</h3>
+      <div className="px-4 py-3 border-b mb-4" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Incoming Peptides
+          </h3>
+          <Truck size={20} style={{ color: theme.primary }} />
+        </div>
+      </div>
       <div className="w-full flex flex-col items-center mb-6">
         <div className="text-xl font-bold mb-0" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
         <div className="text-base mb-2" style={{ color: theme.textLight }}>

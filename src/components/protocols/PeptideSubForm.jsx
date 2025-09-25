@@ -238,10 +238,16 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     </div>
                 </div>
 
-                {/* Frequency & Schedule - Always show for all protocols */}
+                {/* Frequency & Schedule - Show for separate protocols OR first peptide in blended protocols */}
+                {(protocolType === 'separate' || isFirstPeptide) && (
                 <div className="space-y-4">
                     <div>
-                        <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Frequency</div>
+                        <div className="mb-2">
+                            <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Frequency</div>
+                            <div className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 inline-block" style={{ backgroundColor: theme.info + '20', color: theme.info }}>
+                                📅 Schedules peptide research on your dashboard & calendar
+                            </div>
+                        </div>
                         <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
                             {['daily', 'weekly', 'custom', 'cycle'].map(type => (
                                 <button 
@@ -250,10 +256,25 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     onClick={() => handleFrequencyChange('type', type)}
                                     className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded ${(item.frequency?.type || 'daily') === type ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                                     style={(item.frequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
+                                    title={
+                                        type === 'daily' ? 'Every day of the week' :
+                                        type === 'weekly' ? 'Select specific days of the week' :
+                                        type === 'custom' ? 'Every X number of days' :
+                                        type === 'cycle' ? 'X days on, Y days off pattern' : ''
+                                    }
                                 >
                                     {type === 'custom' ? 'Every X Days' : type.charAt(0).toUpperCase() + type.slice(1)}
                                 </button>
                             ))}
+                        </div>
+                        
+                        {/* Frequency explanations */}
+                        <div className="mt-2 text-xs" style={{ color: theme.textLight }}>
+                            {((item.frequency?.type || 'daily') === 'daily' && '✅ Task appears every day') ||
+                             (item.frequency?.type === 'weekly' && '📅 Task appears on selected days only') ||
+                             (item.frequency?.type === 'custom' && '🔄 Task repeats every X days') ||
+                             (item.frequency?.type === 'cycle' && '⚡ On/off cycling pattern (e.g., 5 days on, 2 days off)') ||
+                             ''}
                         </div>
                     </div>
 
@@ -340,6 +361,25 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         </div>
                     </div>
                 </div>
+                )}
+
+                {/* Info note for blended protocols (non-first peptides) */}
+                {protocolType === 'blended' && !isFirstPeptide && (
+                    <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.info + '10' }}>
+                        <div className="flex items-start gap-3">
+                            <div className="w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: theme.info + '20' }}>
+                                <span className="text-xs font-bold" style={{ color: theme.info }}>ℹ</span>
+                            </div>
+                            <div className="text-sm" style={{ color: theme.text }}>
+                                <p className="font-medium mb-1">Blended Protocol</p>
+                                <p style={{ color: theme.textLight }}>
+                                    This peptide will be administered together with other peptides in the blend. 
+                                    The frequency and timing are set by the first peptide in the protocol.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Titration Section - Only show for separate protocols, hidden for blended (handled globally) */}
                 {protocolType === 'separate' && (

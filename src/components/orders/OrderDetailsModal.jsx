@@ -5,10 +5,20 @@ import { CheckCircle, Clock, Truck, Paperclip, Upload, FileText, PlusCircle } fr
 import { formatMMDDYYYY } from '../../utils/date';
 import OrderItemSubForm from './OrderItemSubForm'; // Import the new sub-form
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
+import DocumentationUpload from '../common/DocumentationUpload';
+import useAutoSave from '../../utils/useAutoSave';
+import AutoSaveIndicator from '../common/AutoSaveIndicator';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl" }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
+  
+  // Auto-save functionality
+  const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
+    `order_form_${order?.id || 'new'}`,
+    form,
+    setForm
+  );
 
   const totalCost = useMemo(() => {
     return (form.items || []).reduce((sum, item) => {
@@ -61,15 +71,6 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 
   const markShipped = () => setForm(prev => ({ ...prev, status: 'Shipped', shipDate: new Date().toISOString().slice(0, 10) }))
   const markDelivered = () => setForm(prev => ({ ...prev, status: 'Delivered', deliveryDate: new Date().toISOString().slice(0, 10) }))
-  const onUpload = async (file) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const att = { id: Date.now(), name: file.name, type: file.type, dataUrl: reader.result }
-      setAttachments(prev => [att, ...prev])
-    }
-    reader.readAsDataURL(file)
-  }
 
   const handleItemChange = (index, updatedItem) => {
     setForm(prev => {
@@ -98,6 +99,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       open={open}
       onClose={onClose}
       title={`Order${form?.id ? ` #${form.id}` : ''}`}
+      titleExtra={
+        <AutoSaveIndicator 
+          isSaving={isSaving} 
+          lastSaved={lastSaved} 
+          onClearForm={clearSavedData} 
+          theme={theme} 
+        />
+      }
       theme={theme}
       maxWidth={maxWidth}
       footer={(
@@ -111,6 +120,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
             <button onClick={() => {
               console.log('💾 Saving order:', { ...form, attachments });
+              markAsSubmitted();
               onSave?.({ ...form, attachments });
             }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
           </div>
@@ -118,6 +128,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       )}
     >
       <div className="space-y-4">
+        
         {/* Header card: Vendor & Category */}
         <div className="rounded border p-4 bg-white content-card" style={{ borderColor: theme?.border }}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -137,10 +148,10 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>
                     Category <span className="text-red-500">*</span>
                   </div>
-                  <div className="flex flex-wrap sm:inline-flex rounded-md bg-gray-100 p-1 shadow-inner gap-1">
+                  <div className="grid grid-cols-3 rounded-md bg-gray-100 p-1 shadow-inner gap-1">
                     {['domestic','international','group'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
-                        className={`flex-1 px-2 py-1.5 text-xs sm:text-sm font-semibold rounded-md ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                        className={`px-2 py-1.5 text-xs sm:text-sm font-semibold rounded-md text-center ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                         style={form.category === k ? { backgroundColor: theme?.primary } : {}}>
                         {k === 'group' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
                       </button>
@@ -207,38 +218,20 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           </div>
         </div>
 
-        {/* Notes & Attachments card */}
+        {/* Notes & Documentation card */}
         <div className="rounded border p-4 bg-white content-card" style={{ borderColor: theme?.border }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-            <TextInput label="Notes" value={form.notes || ''} onChange={v => setForm({ ...form, notes: v })} placeholder="Notes" theme={theme} />
-            <div>
-                <h4 className="text-sm font-semibold mb-2" style={{ color: theme?.text }}>Attachments</h4>
-                <div className="flex items-center gap-2 mb-2">
-                    <label className="px-3 py-2 rounded-md text-sm font-semibold cursor-pointer" style={{ backgroundColor: theme?.accent, color: theme?.accentText }}>
-                    <Upload className="h-4 w-4 inline mr-1" /> Upload
-                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => e.target.files && onUpload(e.target.files[0])} />
-                    </label>
-                </div>
-                {attachments.length === 0 ? (
-                    <div className="text-xs text-gray-500">No attachments yet.</div>
-                ) : (
-                    <ul className="space-y-2">
-                    {attachments.map(a => (
-                        <li key={a.id} className="flex items-center justify-between p-2 rounded border" style={{ borderColor: theme?.border }}>
-                        <div className="flex items-center gap-2">
-                            <Paperclip className="h-4 w-4" />
-                            <span className="text-sm">{a.name}</span>
-                        </div>
-                        {a.type?.includes('image') ? (
-                            <a href={a.dataUrl} target="_blank" rel="noreferrer" className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme?.white, border: `1px solid ${theme?.border}` }}>View</a>
-                        ) : (
-                            <a href={a.dataUrl} download={a.name} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme?.white, border: `1px solid ${theme?.border}` }}>Download</a>
-                        )}
-                        </li>
-                    ))}
-                    </ul>
-                )}
-            </div>
+          <div className="space-y-4">
+            <TextInput label="Notes" value={form.notes || ''} onChange={v => setForm({ ...form, notes: v })} placeholder="Order notes..." theme={theme} />
+            
+            <DocumentationUpload
+              documentation={attachments}
+              onChange={setAttachments}
+              theme={theme}
+              title="Pre-Delivery Documentation"
+              placeholder="Add COA links, vendor photos, or other documentation..."
+              allowImages={true}
+              allowLinks={true}
+            />
           </div>
         </div>
       </div>

@@ -110,8 +110,8 @@ export const themes = {
     accent: '#E6C575',         // Light honey accent
 
     // Text - High contrast on dark background
-    text: '#FFFFFF',           // Pure white for primary text
-    textLight: '#B5B5B5',      // Light gray for secondary text
+    text: '#F5F5F5',           // Off-white for primary text (less harsh than pure white)
+    textLight: '#C0C0C0',      // Lighter gray for better secondary text readability
     textOnPrimary: '#1A1A1A',  // Dark text on golden backgrounds
     
     // Backgrounds - Sophisticated dark grays like the image

@@ -37,9 +37,12 @@ const InventoryWidget = ({ widget, theme }) => {
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-          Inventory
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Inventory
+          </h3>
+          <Package size={20} style={{ color: theme.primary }} />
+        </div>
       </div>
       
       <div className="flex-1 p-4">

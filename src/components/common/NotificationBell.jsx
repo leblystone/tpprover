@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, X, MessageSquare } from 'lucide-react';
-import { getUserNotifications, markNotificationAsRead } from '../../services/firebase';
+import { createPortal } from 'react-dom';
+import { Bell, X, MessageSquare, Megaphone, Sparkles, Wrench, Users, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import ModernTooltip from '../ui/ModernTooltip';
+import { getUserNotifications, markNotificationAsRead, getAnnouncements } from '../../services/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
 
 export default function NotificationBell({ theme }) {
   const { firebaseUser } = useFirebase();
+  const [panelPosition, setPanelPosition] = useState({ top: 0, right: 0 });
   // CRITICAL FIX: Persist notifications in localStorage to prevent count reset on refresh
   const [notifications, setNotifications] = useState(() => {
     try {
@@ -14,9 +17,22 @@ export default function NotificationBell({ theme }) {
       return [];
     }
   });
+  const [announcements, setAnnouncements] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tpprover_announcements');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activeTab, setActiveTab] = useState('announcements'); // 'announcements' or 'notifications'
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [expandedAnnouncement, setExpandedAnnouncement] = useState(null);
+  const [expandedNotification, setExpandedNotification] = useState(null);
+  const [buttonPosition, setButtonPosition] = useState({ top: 0, right: 0 });
   const notificationRef = useRef(null);
+  const buttonRef = useRef(null);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {
@@ -27,11 +43,24 @@ export default function NotificationBell({ theme }) {
     }
   }, [notifications]);
 
+  // Save announcements to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('tpprover_announcements', JSON.stringify(announcements));
+    } catch (error) {
+      console.warn('Failed to save announcements to localStorage:', error);
+    }
+  }, [announcements]);
+
   useEffect(() => {
     if (firebaseUser?.email) {
       loadNotifications();
+      loadAnnouncements();
       // Poll for new notifications every 30 seconds
-      const interval = setInterval(loadNotifications, 30000);
+      const interval = setInterval(() => {
+        loadNotifications();
+        loadAnnouncements();
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [firebaseUser?.email]);
@@ -128,8 +157,19 @@ export default function NotificationBell({ theme }) {
         
         return isWithin24Hours;
       });
-      
-      setNotifications(validNotifications);
+
+      // CRITICAL FIX: Preserve local read state - don't override notifications that were marked as read locally
+      setNotifications(prev => {
+        const merged = validNotifications.map(newNotification => {
+          const existingNotification = prev.find(existing => existing.id === newNotification.id);
+          // If notification was marked as read locally, keep the local state
+          if (existingNotification && existingNotification.isRead && !newNotification.isRead) {
+            return existingNotification;
+          }
+          return newNotification;
+        });
+        return merged;
+      });
     } catch (error) {
       console.error('🔔 NotificationBell: Failed to load notifications:', error);
     } finally {
@@ -137,8 +177,66 @@ export default function NotificationBell({ theme }) {
     }
   };
 
+  const loadAnnouncements = async () => {
+    try {
+      console.log('📢 NotificationBell: Loading announcements');
+      const firebaseAnnouncements = await getAnnouncements();
+      console.log('📢 NotificationBell: Received announcements:', firebaseAnnouncements);
+      
+      if (firebaseAnnouncements && firebaseAnnouncements.length > 0) {
+        setAnnouncements(firebaseAnnouncements);
+      }
+    } catch (error) {
+      console.error('📢 NotificationBell: Failed to load announcements:', error);
+      // Fall back to localStorage only
+      try {
+        const saved = localStorage.getItem('tpprover_announcements');
+        if (saved) {
+          setAnnouncements(JSON.parse(saved));
+        }
+      } catch (fallbackError) {
+        console.error('📢 NotificationBell: Error loading from localStorage fallback:', fallbackError);
+      }
+    }
+  };
+
+  const handleClearAllNotifications = async () => {
+    const unreadNotifications = notifications.filter(n => !n.isRead);
+    if (unreadNotifications.length === 0) return;
+
+    // Update UI immediately (optimistic update) with current timestamp
+    const readTimestamp = new Date();
+    setNotifications(prev =>
+      prev.map(n => n.isRead ? n : { ...n, isRead: true, readAt: readTimestamp })
+    );
+
+    // Sync to Firebase in background (non-blocking)
+    setTimeout(async () => {
+      try {
+        for (const notification of unreadNotifications) {
+          await markNotificationAsRead(notification.id);
+        }
+        console.log('✅ Successfully cleared all notifications and synced to Firebase');
+      } catch (error) {
+        console.warn('⚠️ Firebase sync failed (UI already updated, no impact on UX):', error.message);
+      }
+    }, 100);
+  };
+
+  // Calculate button position for portal positioning
+  const updateButtonPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setButtonPosition({
+        top: rect.bottom + 8, // 8px gap below button
+        right: window.innerWidth - rect.right // Align right edge
+      });
+    }
+  };
+
   const handleBellClick = async () => {
     if (!showNotifications) {
+      updateButtonPosition(); // Update position before showing
       // Opening notifications panel - mark all as read immediately for instant UI feedback
       const unreadNotifications = notifications.filter(n => !n.isRead);
       if (unreadNotifications.length > 0) {
@@ -167,6 +265,20 @@ export default function NotificationBell({ theme }) {
     setShowNotifications(!showNotifications);
   };
 
+  // Helper function to get announcement category icon
+  const getAnnouncementIcon = (category) => {
+    const categoryStyles = {
+      'New Feature': { icon: Sparkles, color: theme.info },
+      'Improvement': { icon: Wrench, color: theme.success },
+      'Community': { icon: Users, color: theme.warning },
+      'General': { icon: Megaphone, color: theme.textLight },
+    };
+    
+    const style = categoryStyles[category] || categoryStyles['General'];
+    const IconComponent = style.icon;
+    return <IconComponent size={16} style={{ color: style.color }} />;
+  };
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   if (!firebaseUser?.email) {
@@ -174,7 +286,7 @@ export default function NotificationBell({ theme }) {
   }
 
   // DEBUG: Always show bell for debugging
-  console.log('🔔 NotificationBell: Rendering with', notifications.length, 'notifications');
+  console.log('🔔 NotificationBell: Rendering with', notifications.length, 'notifications, activeTab:', activeTab);
   
   // Make debugging functions available globally
   React.useEffect(() => {
@@ -205,83 +317,329 @@ export default function NotificationBell({ theme }) {
 
   return (
     <div className="relative" ref={notificationRef}>
-      <button
-        onClick={handleBellClick}
-        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
-        title="Notifications"
-      >
-        <Bell size={20} style={{ color: theme.text }} />
-        {unreadCount > 0 && (
-          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-               style={{ backgroundColor: theme.error }}>
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </div>
-        )}
-      </button>
+      <ModernTooltip text="Updates" position="bottom">
+        <button
+          ref={buttonRef}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔔 Bell clicked!', { showNotifications });
+            handleBellClick();
+          }}
+          className="relative p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+          style={{ 
+            cursor: 'pointer',
+            pointerEvents: 'auto'
+          }}
+        >
+          <Bell size={20} style={{ color: theme.text }} />
+          {unreadCount > 0 && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                 style={{ backgroundColor: theme.error }}>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </div>
+          )}
+        </button>
+      </ModernTooltip>
 
-      {showNotifications && (
+      {showNotifications && createPortal(
         <>
-          {/* Backdrop to prevent blending */}
-          <div className="fixed inset-0 z-[99998]" onClick={() => setShowNotifications(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border shadow-xl z-[99999] ring-1 ring-black/10"
-               style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-            <div className="p-4 border-b" style={{ borderColor: theme.border }}>
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold" style={{ color: theme.text }}>Notifications</h3>
-                <button
-                  onClick={() => setShowNotifications(false)}
-                  className="p-1 rounded hover:bg-gray-100"
-                >
-                  <X size={16} style={{ color: theme.textLight }} />
-                </button>
+          {/* Backdrop */}
+          <div className="fixed inset-0" style={{ zIndex: 2147483646 }} onClick={() => setShowNotifications(false)} />
+          <div 
+            className="notification-overlay w-80 max-h-96 rounded-lg border shadow-xl ring-1 ring-black/10"
+            style={{ 
+              backgroundColor: theme.cardBackground, 
+              borderColor: theme.border,
+              top: `${buttonPosition.top}px`,
+              right: `${buttonPosition.right}px`
+            }}
+            onClick={(e) => {
+              // Only stop propagation to prevent closing, but allow internal clicks
+              e.stopPropagation();
+            }}
+          >
+        {/* Header with tabs */}
+        <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold" style={{ color: theme.text }}>Updates</h3>
+            <button
+              onClick={() => setShowNotifications(false)}
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+              style={{ color: theme.textLight }}
+            >
+              <X size={16} style={{ color: theme.textLight }} />
+            </button>
+          </div>
+          
+          {/* Tab buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔔 Announcements tab clicked! Current tab:', activeTab);
+                setActiveTab('announcements');
+                console.log('🔔 Tab should now be: announcements');
+              }}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                activeTab === 'announcements' 
+                  ? 'text-white' 
+                  : 'hover:bg-gray-100'
+              }`}
+              style={{
+                backgroundColor: activeTab === 'announcements' ? theme.primary : 'transparent',
+                color: activeTab === 'announcements' ? theme.white : theme.text,
+                cursor: 'pointer',
+                pointerEvents: 'auto'
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Megaphone size={14} />
+                <span>Announcements</span>
               </div>
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔔 Notifications tab clicked! Current tab:', activeTab);
+                setActiveTab('notifications');
+                console.log('🔔 Tab should now be: notifications');
+              }}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                activeTab === 'notifications' 
+                  ? 'text-white' 
+                  : 'hover:bg-gray-100'
+              }`}
+              style={{
+                backgroundColor: activeTab === 'notifications' ? theme.primary : 'transparent',
+                color: activeTab === 'notifications' ? theme.white : theme.text,
+                cursor: 'pointer',
+                pointerEvents: 'auto'
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <MessageSquare size={14} />
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="text-xs bg-red-500 text-white rounded-full px-1 min-w-[16px] h-4 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
+            </button>
             </div>
             
-            <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="p-4 text-center">
-                  <Bell size={32} className="mx-auto mb-2" style={{ color: theme.textLight }} />
-                  <p className="text-sm" style={{ color: theme.textLight }}>No notifications</p>
-                </div>
-              ) : (
-                notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`p-4 border-b hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-blue-50' : ''}`}
-                    style={{ borderColor: theme.border }}
+            {/* Clear All Button for Notifications */}
+            {activeTab === 'notifications' && notifications.some(n => !n.isRead) && (
+                <ModernTooltip text="Clear all" position="left">
+                  <button
+                    onClick={handleClearAllNotifications}
+                    className="px-2 py-1 text-xs rounded transition-colors hover:bg-gray-100"
+                    style={{ color: theme.textLight }}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-1">
-                        <MessageSquare size={16} style={{ color: theme.primary }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-sm font-medium" style={{ color: theme.text }}>
-                            {notification.title}
-                          </h4>
-                          {!notification.isRead && (
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                          )}
-                        </div>
-                        <p className="text-sm break-words" style={{ color: theme.text }}>
-                          {notification.message}
-                        </p>
-                        {notification.createdAt && (
-                          <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            {notification.createdAt.toDate ? 
-                              notification.createdAt.toDate().toLocaleDateString() : 
-                              'Recently'
-                            }
-                          </p>
+                    <Trash2 size={14} />
+                  </button>
+                </ModernTooltip>
+            )}
+          </div>
+        </div>
+        
+        {/* Content area */}
+        <div className="max-h-80 overflow-y-auto">
+          {console.log('🔍 Rendering content for activeTab:', activeTab)}
+          {activeTab === 'notifications' ? (
+            notifications.length === 0 ? (
+              <div className="p-4 text-center">
+                <MessageSquare size={32} className="mx-auto mb-2" style={{ color: theme.textLight }} />
+                <p className="text-sm" style={{ color: theme.textLight }}>No notifications</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-4 border-b hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                  style={{ borderColor: theme.border }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <MessageSquare size={16} style={{ color: theme.primary }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-sm font-medium" style={{ color: theme.text }}>
+                          {notification.title}
+                        </h4>
+                        {!notification.isRead && (
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                         )}
                       </div>
+                      <div className="text-sm break-words" style={{ color: theme.text }}>
+                        {expandedNotification === notification.id ? (
+                          <div>
+                            <p>{notification.message}</p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                console.log('🔼 Collapse notification clicked');
+                                setExpandedNotification(null);
+                              }}
+                              className="mt-2 text-xs flex items-center gap-1 hover:underline"
+                              style={{ 
+                                color: theme.primary,
+                                cursor: 'pointer',
+                                pointerEvents: 'auto'
+                              }}
+                            >
+                              <ChevronUp size={12} />
+                              Show less
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <p>
+                              {(notification.message || '').length > 150 
+                                ? (notification.message || '').substring(0, 150) + '...'
+                                : (notification.message || '')
+                              }
+                            </p>
+                            {(notification.message || '').length > 150 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  console.log('🔽 Expand notification clicked:', notification.id);
+                                  setExpandedNotification(notification.id);
+                                }}
+                                className="mt-1 text-xs flex items-center gap-1 hover:underline"
+                                style={{ 
+                                  color: theme.primary,
+                                  cursor: 'pointer',
+                                  pointerEvents: 'auto'
+                                }}
+                              >
+                                <ChevronDown size={12} />
+                                Read more
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {notification.createdAt && (
+                        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                          {notification.createdAt.toDate ? 
+                            notification.createdAt.toDate().toLocaleDateString() : 
+                            'Recently'
+                          }
+                        </p>
+                      )}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        </>
+                </div>
+              ))
+            )
+          ) : (
+            announcements.length === 0 ? (
+              <div className="p-4 text-center">
+                <Megaphone size={32} className="mx-auto mb-2" style={{ color: theme.textLight }} />
+                <p className="text-sm" style={{ color: theme.textLight }}>No announcements</p>
+              </div>
+            ) : (
+              announcements.map((announcement) => (
+                <div
+                  key={announcement.id}
+                  className="p-4 border-b hover:bg-gray-50 transition-colors"
+                  style={{ borderColor: theme.border }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      {getAnnouncementIcon(announcement.category)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-sm font-medium" style={{ color: theme.text }}>
+                          {announcement.title}
+                        </h4>
+                        <span 
+                          className="text-xs px-2 py-1 rounded"
+                          style={{ 
+                            backgroundColor: theme.accent + '20',
+                            color: theme.text 
+                          }}
+                        >
+                          {announcement.category}
+                        </span>
+                      </div>
+                      <div className="text-sm break-words" style={{ color: theme.text }}>
+                        {expandedAnnouncement === announcement.id ? (
+                          <div>
+                            <p>{announcement.content}</p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                console.log('🔼 Collapse announcement clicked');
+                                setExpandedAnnouncement(null);
+                              }}
+                              className="mt-2 text-xs flex items-center gap-1 hover:underline"
+                              style={{ 
+                                color: theme.primary,
+                                cursor: 'pointer',
+                                pointerEvents: 'auto'
+                              }}
+                            >
+                              <ChevronUp size={12} />
+                              Show less
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <p>
+                              {(announcement.content || '').length > 150 
+                                ? (announcement.content || '').substring(0, 150) + '...'
+                                : (announcement.content || '')
+                              }
+                            </p>
+                            {(announcement.content || '').length > 150 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  console.log('🔽 Expand announcement clicked:', announcement.id);
+                  setExpandedAnnouncement(announcement.id);
+                }}
+                className="mt-1 text-xs flex items-center gap-1 hover:underline"
+                style={{ 
+                  color: theme.primary,
+                  cursor: 'pointer',
+                  pointerEvents: 'auto'
+                }}
+              >
+                <ChevronDown size={12} />
+                Read more
+              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {announcement.date && (
+                        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                          {new Date(announcement.date).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )
+          )}
+        </div>
+      </div>
+        </>,
+        document.body
       )}
     </div>
   );

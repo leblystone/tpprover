@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, Pill, Syringe, Beaker, Edit, Trash2 } from 'lucide-react';
+import ModernTooltip from '../../ui/ModernTooltip';
 
 const SupplementsWidget = ({ 
   widget, 
@@ -46,14 +47,18 @@ const SupplementsWidget = ({
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Supplements
           </h3>
-          <button
-            onClick={onAddSupplement}
-            className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
-            style={{ borderColor: theme.primary, color: theme.primary }}
-            title="Add Supplement"
-          >
-            <Plus size={12} strokeWidth={3} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Pill size={20} style={{ color: theme.primary }} />
+            <ModernTooltip text="Add" position="top">
+              <button
+                onClick={onAddSupplement}
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
+                style={{ borderColor: theme.primary, color: theme.primary }}
+              >
+                <Plus size={12} strokeWidth={3} />
+              </button>
+            </ModernTooltip>
+          </div>
         </div>
       </div>
       
@@ -105,20 +110,15 @@ const SupplementsWidget = ({
                   </div>
                   
                   <div className="flex items-center gap-1 ml-2">
-                    <button
-                      onClick={() => onEditSupplement?.(supplement)}
-                      className="p-1 rounded hover:bg-gray-100 transition-colors"
-                      style={{ color: theme.textLight }}
-                    >
-                      <Edit size={14} />
-                    </button>
-                    
-                    <button
-                      onClick={() => onDeleteSupplement?.(supplement.id)}
-                      className="p-1 rounded hover:bg-red-50 transition-colors text-red-600"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <ModernTooltip text="Edit" position="top">
+                      <button
+                        onClick={() => onEditSupplement?.(supplement)}
+                        className="p-1 rounded hover:bg-gray-100 transition-colors"
+                        style={{ color: theme.textLight }}
+                      >
+                        <Edit size={14} />
+                      </button>
+                    </ModernTooltip>
                   </div>
                 </div>
               </div>

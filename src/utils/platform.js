@@ -47,4 +47,48 @@ export const getPlatformDisplayName = () => {
   }
 };
 
+/**
+ * Payment and billing utilities
+ */
+export const getPWAUrl = () => {
+  return 'https://thepepplanner.web.app'; // Your Firebase hosting URL
+};
+
+export const getPaymentUrl = (plan = 'monthly') => {
+  const baseUrl = getPWAUrl();
+  return `${baseUrl}/account?upgrade=${plan}&source=${getPlatform()}`;
+};
+
+export const getBillingUrl = () => {
+  const baseUrl = getPWAUrl();
+  return `${baseUrl}/account?tab=billing&source=${getPlatform()}`;
+};
+
+/**
+ * Navigate to PWA for payments (mobile apps only)
+ */
+export const navigateToPayment = (plan = 'monthly') => {
+  if (isNative()) {
+    const paymentUrl = getPaymentUrl(plan);
+    window.open(paymentUrl, '_system'); // Opens in external browser
+  } else {
+    // Already on PWA, navigate internally
+    window.location.href = `/account?upgrade=${plan}`;
+  }
+};
+
+/**
+ * Navigate to PWA for billing management
+ */
+export const navigateToBilling = () => {
+  if (isNative()) {
+    const billingUrl = getBillingUrl();
+    window.open(billingUrl, '_system'); // Opens in external browser
+  } else {
+    // Already on PWA, navigate internally
+    window.location.href = '/account?tab=billing';
+  }
+};
+
+
 

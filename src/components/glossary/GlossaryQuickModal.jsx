@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput.jsx'
-import { Search, Brain, AlertTriangle, Loader, Filter, Star, StarOff, BookOpen, Zap, Heart, Target, Shield, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, Brain, AlertTriangle, Loader, Filter, Star, StarOff, BookOpen, Zap, Heart, Target, Shield, Sparkles, ChevronDown, ChevronRight, FileText, Plus, Edit3, Trash2, Upload, Link } from 'lucide-react';
 
 // Levenshtein distance function for fuzzy string matching
 function levenshteinDistance(str1, str2) {
@@ -106,6 +106,180 @@ async function compilePeptideResearch(peptideName) {
       researchStatus: 'Preclinical and early clinical research ongoing.'
     },
     
+    // === POPULAR RESEARCH BLENDS ===
+    'WOLVERINE STACK': {
+      aliases: ['WOLVERINE', 'HEALING STACK', 'RECOVERY BLEND'],
+      classification: 'Multi-Peptide Research Blend',
+      mechanism: 'Synergistic combination targeting tissue repair, recovery, and regeneration through multiple pathways including angiogenesis, anti-inflammatory, and growth factor modulation.',
+      composition: 'Typically contains BPC-157 (500-1000mcg), TB-500 (2-5mg), and sometimes additional peptides like GHK-Cu or Ipamorelin',
+      commonUses: ['Comprehensive tissue repair research', 'Athletic recovery studies', 'Wound healing research', 'Multi-modal regenerative research'],
+      dosageRanges: 'Varies by composition. Common protocols: BPC-157 500mcg + TB-500 2mg weekly for 4-8 weeks.',
+      safetyNotes: 'Combination therapy requires careful monitoring. Individual peptide safety profiles apply.',
+      researchStatus: 'Popular research combination with anecdotal support. Individual components well-studied.',
+      synergies: 'BPC-157 enhances TB-500 tissue repair effects. Complementary mechanisms for optimal recovery research.'
+    },
+
+    'FOUNTAIN OF YOUTH STACK': {
+      aliases: ['YOUTH STACK', 'ANTI-AGING BLEND', 'LONGEVITY STACK'],
+      classification: 'Anti-Aging Research Blend',
+      mechanism: 'Targets multiple aging pathways including growth hormone optimization, cellular repair, and metabolic enhancement.',
+      composition: 'Typically contains Ipamorelin (200-300mcg), CJC-1295 (100-200mcg), and sometimes NAD+ precursors or other longevity compounds',
+      commonUses: ['Aging research', 'Growth hormone studies', 'Longevity research', 'Metabolic optimization studies'],
+      dosageRanges: 'Common protocol: Ipamorelin 200mcg + CJC-1295 100mcg, 2-3x daily, 5 days on/2 days off.',
+      safetyNotes: 'Long-term effects of combination therapy not fully established. Monitor for GH-related side effects.',
+      researchStatus: 'Popular research combination. Individual peptides have established research profiles.',
+      synergies: 'CJC-1295 extends Ipamorelin half-life, creating sustained GH release patterns.'
+    },
+
+    'METABOLIC STACK': {
+      aliases: ['WEIGHT LOSS STACK', 'GLP-1 STACK', 'METABOLIC BLEND'],
+      classification: 'Metabolic Research Blend',
+      mechanism: 'Multi-target approach to metabolic research including appetite regulation, glucose control, and energy expenditure.',
+      composition: 'May include Semaglutide (0.25-2.4mg), Tirzepatide (2.5-15mg), or combination with other metabolic compounds',
+      commonUses: ['Obesity research', 'Diabetes research', 'Metabolic syndrome studies', 'Weight management research'],
+      dosageRanges: 'Highly variable based on composition. Requires gradual titration and medical supervision.',
+      safetyNotes: 'Requires medical supervision. GI side effects common. Not for recreational use.',
+      researchStatus: 'Based on FDA-approved medications with extensive clinical data.',
+      synergies: 'Dual GLP-1/GIP activation provides enhanced metabolic effects compared to single-target approaches.'
+    },
+
+    // === AMINO ACIDS & BUILDING BLOCKS ===
+    'L-ARGININE': {
+      aliases: ['ARGININE', 'ARG', 'L-ARG'],
+      classification: 'Semi-Essential Amino Acid',
+      mechanism: 'Precursor to nitric oxide (NO), supports vascular function, protein synthesis, and immune function through multiple enzymatic pathways.',
+      commonUses: ['Cardiovascular research', 'Exercise performance studies', 'Wound healing research', 'Immune function studies'],
+      dosageRanges: 'Research dosages range from 3-20g daily, typically divided into multiple doses.',
+      safetyNotes: 'Generally well-tolerated. May interact with blood pressure medications. Avoid with herpes infections.',
+      researchStatus: 'Extensively studied with established cardiovascular and performance benefits.',
+      interactions: 'May enhance effects of nitrates and blood pressure medications. Monitor cardiovascular parameters.'
+    },
+
+    'L-CITRULLINE': {
+      aliases: ['CITRULLINE', 'CIT', 'L-CIT'],
+      classification: 'Non-Essential Amino Acid',
+      mechanism: 'Converts to L-arginine in the kidneys, providing sustained nitric oxide production with better bioavailability than direct arginine supplementation.',
+      commonUses: ['Exercise performance research', 'Cardiovascular studies', 'Fatigue research', 'Muscle recovery studies'],
+      dosageRanges: 'Research protocols typically use 3-8g daily, often 30-60 minutes pre-exercise.',
+      safetyNotes: 'Excellent safety profile with minimal side effects. Well-tolerated at research dosages.',
+      researchStatus: 'Strong research support for exercise performance and cardiovascular benefits.',
+      advantages: 'Superior bioavailability compared to L-arginine. Less GI distress. Sustained NO production.'
+    },
+
+    'L-ORNITHINE': {
+      aliases: ['ORNITHINE', 'ORN', 'L-ORN'],
+      classification: 'Non-Proteinogenic Amino Acid',
+      mechanism: 'Key component of urea cycle, supports ammonia detoxification, may enhance growth hormone release and sleep quality.',
+      commonUses: ['Sleep quality research', 'Recovery studies', 'Liver function research', 'Growth hormone studies'],
+      dosageRanges: 'Research dosages typically range from 2-10g daily, often taken before bed.',
+      safetyNotes: 'Generally safe with minimal side effects. May cause mild GI upset at high doses.',
+      researchStatus: 'Moderate research support for sleep and recovery benefits. Part of established metabolic pathways.',
+      timing: 'Most effective when taken on empty stomach, preferably before bed for sleep benefits.'
+    },
+
+    'BETA-ALANINE': {
+      aliases: ['β-ALANINE', 'BA', 'BETA ALANINE'],
+      classification: 'Non-Essential Amino Acid',
+      mechanism: 'Precursor to carnosine synthesis, acts as intracellular pH buffer, reducing muscle fatigue during high-intensity exercise.',
+      commonUses: ['Exercise performance research', 'Muscle fatigue studies', 'High-intensity training research', 'Endurance studies'],
+      dosageRanges: 'Research protocols use 3-5g daily, typically divided into 800mg doses to minimize paresthesia.',
+      safetyNotes: 'Safe with characteristic tingling sensation (paresthesia). Reduce dose if uncomfortable.',
+      researchStatus: 'Extensively researched with strong evidence for high-intensity exercise performance.',
+      loading: 'Benefits appear after 2-4 weeks of consistent supplementation due to carnosine accumulation.'
+    },
+
+    'TAURINE': {
+      aliases: ['TAU', '2-AMINOETHANESULFONIC ACID'],
+      classification: 'Sulfur-Containing Amino Acid',
+      mechanism: 'Osmoregulation, membrane stabilization, antioxidant effects, and modulation of calcium signaling in multiple tissues.',
+      commonUses: ['Cardiovascular research', 'Neurological studies', 'Exercise research', 'Antioxidant studies'],
+      dosageRanges: 'Research dosages range from 1-6g daily, typically divided into 2-3 doses.',
+      safetyNotes: 'Excellent safety profile. No significant adverse effects reported at research dosages.',
+      researchStatus: 'Extensive research supporting cardiovascular, neurological, and performance benefits.',
+      distribution: 'Highly concentrated in heart, brain, retina, and skeletal muscle tissues.'
+    },
+
+    'CREATINE': {
+      aliases: ['CREATINE MONOHYDRATE', 'CR', 'CREATINE HCL', 'BUFFERED CREATINE'],
+      classification: 'Phosphocreatine System Substrate',
+      mechanism: 'Regenerates ATP through phosphocreatine system, enhances cellular energy availability, supports muscle volumization through increased water retention.',
+      commonUses: ['Exercise performance research', 'Power output studies', 'Muscle mass research', 'Cognitive function studies'],
+      dosageRanges: 'Loading: 20g/day x 5 days, then 3-5g daily. Alternative: 3-5g daily without loading.',
+      safetyNotes: 'Extensively studied with excellent safety profile. May cause initial water weight gain.',
+      researchStatus: 'Most researched supplement with overwhelming evidence for efficacy and safety.',
+      forms: 'Monohydrate most studied. HCl and buffered forms may reduce GI distress but lack comparative research.'
+    },
+
+    'HMB': {
+      aliases: ['β-HYDROXY β-METHYLBUTYRATE', 'BETA-HYDROXY BETA-METHYLBUTYRATE', 'CALCIUM HMB'],
+      classification: 'Leucine Metabolite',
+      mechanism: 'Anti-catabolic compound that reduces protein breakdown, supports muscle recovery, and may enhance protein synthesis.',
+      commonUses: ['Muscle preservation research', 'Recovery studies', 'Catabolic state research', 'Athletic performance studies'],
+      dosageRanges: 'Research protocols use 1.5-3g daily, typically divided into 3 doses with meals.',
+      safetyNotes: 'Excellent safety profile with minimal side effects reported in research.',
+      researchStatus: 'Well-researched with moderate evidence for anti-catabolic effects, particularly during caloric restriction.',
+      timing: 'Most effective when taken with meals to enhance absorption and minimize GI upset.'
+    },
+
+    'GLUTAMINE': {
+      aliases: ['L-GLUTAMINE', 'GLN', 'Q'],
+      classification: 'Conditionally Essential Amino Acid',
+      mechanism: 'Primary fuel for immune cells and enterocytes, supports gut barrier function, protein synthesis, and nitrogen transport.',
+      commonUses: ['Immune function research', 'Gut health studies', 'Recovery research', 'Critical care studies'],
+      dosageRanges: 'Research dosages range from 10-30g daily, often divided into multiple doses.',
+      safetyNotes: 'Generally safe with excellent tolerability. May cause mild GI upset at very high doses.',
+      researchStatus: 'Extensive research in clinical settings. Mixed results for healthy populations.',
+      conditions: 'Most beneficial during periods of physiological stress, illness, or intense training.'
+    },
+
+    // === ADVANCED PEPTIDE BLENDS ===
+    'ULTIMATE RECOVERY STACK': {
+      aliases: ['RECOVERY STACK', 'HEALING BLEND ADVANCED', 'REGEN STACK'],
+      classification: 'Multi-Modal Recovery Blend',
+      mechanism: 'Comprehensive approach targeting inflammation, tissue repair, growth factor optimization, and cellular regeneration.',
+      composition: 'BPC-157 (500mcg), TB-500 (2mg), GHK-Cu (2mg), Ipamorelin (200mcg), sometimes includes PEG-MGF or other growth factors',
+      commonUses: ['Comprehensive recovery research', 'Multi-tissue repair studies', 'Athletic performance research', 'Regenerative medicine research'],
+      dosageRanges: 'Complex protocols requiring careful timing. Typically administered over 8-12 week cycles.',
+      safetyNotes: 'Multi-compound therapy requires expert supervision. Individual safety profiles apply.',
+      researchStatus: 'Popular advanced research combination. Limited studies on combination effects.',
+      protocols: 'Often includes cycling protocols with rest periods to optimize receptor sensitivity.'
+    },
+
+    'COGNITIVE ENHANCEMENT STACK': {
+      aliases: ['NOOTROPIC STACK', 'BRAIN STACK', 'COGNITIVE BLEND'],
+      classification: 'Cognitive Research Blend',
+      mechanism: 'Multi-target approach to cognitive enhancement including neuroprotection, neurotransmitter optimization, and cerebral blood flow.',
+      composition: 'May include Semax (300mcg), Selank (200mcg), Noopept (10-30mg), or other nootropic compounds',
+      commonUses: ['Cognitive research', 'Neuroprotection studies', 'Memory research', 'Focus and attention studies'],
+      dosageRanges: 'Highly variable based on composition. Requires individual titration and monitoring.',
+      safetyNotes: 'Research compounds with limited long-term safety data. Requires careful monitoring.',
+      researchStatus: 'Emerging area with promising individual compound research. Limited combination studies.',
+      considerations: 'Individual response highly variable. Start with single compounds before combining.'
+    },
+
+    // === POPULAR RESEARCH PEPTIDES ===
+    'MELANOTAN II': {
+      aliases: ['MT-II', 'MT2', 'MELANOTAN-2'],
+      classification: 'Melanocortin Receptor Agonist',
+      mechanism: 'Non-selective melanocortin receptor agonist affecting pigmentation, appetite, and sexual function through multiple MC receptor subtypes.',
+      commonUses: ['Pigmentation research', 'Photoprotection studies', 'Appetite research', 'Sexual behavior research'],
+      dosageRanges: 'Research protocols typically use 0.25-1mg daily, often with loading and maintenance phases.',
+      safetyNotes: 'Research compound with known side effects including nausea, flushing, and darkening of moles/freckles.',
+      researchStatus: 'Well-characterized research compound with established effects on multiple systems.',
+      monitoring: 'Requires monitoring of pigmentation changes, cardiovascular parameters, and sexual side effects.'
+    },
+
+    'HEXARELIN': {
+      aliases: ['HEX', 'EXAMORELIN'],
+      classification: 'Growth Hormone Secretagogue',
+      mechanism: 'Potent GHRP with strong GH-releasing activity and potential cardioprotective effects through ghrelin receptor activation.',
+      commonUses: ['Growth hormone research', 'Cardiovascular research', 'Body composition studies', 'Aging research'],
+      dosageRanges: 'Research protocols typically use 100-200 mcg 2-3 times daily.',
+      safetyNotes: 'Research compound with known GH-related effects. May cause cortisol and prolactin elevation.',
+      researchStatus: 'Well-studied GHRP with established GH-releasing properties and cardiovascular research potential.',
+      desensitization: 'May cause receptor desensitization with continuous use. Cycling protocols recommended.'
+    },
+
     // === ADDITIONAL RESEARCH COMPOUNDS ===
     'ADAMAX': {
       aliases: ['ADAMAX'],
@@ -167,16 +341,6 @@ async function compilePeptideResearch(peptideName) {
       researchStatus: 'FDA-approved medication for specific medical conditions.'
     },
     
-    'HEXARELIN': {
-      aliases: ['HEXARELIN'],
-      classification: 'Growth Hormone Secretagogue',
-      mechanism: 'Potent synthetic GHRP that stimulates GH release and may have cardioprotective properties.',
-      commonUses: ['Growth hormone research', 'Cardiovascular studies', 'Metabolic research'],
-      dosageRanges: 'Research protocols typically use 100-200 mcg 2-3 times daily.',
-      safetyNotes: 'Research compound with established effects but limited long-term safety data.',
-      researchStatus: 'Research compound with established GH-releasing and cardioprotective effects.'
-    },
-    
     'HGH': {
       aliases: ['HUMAN GROWTH HORMONE', 'SOMATROPIN', 'GROWTH HORMONE'],
       classification: 'Protein Hormone',
@@ -205,6 +369,37 @@ async function compilePeptideResearch(peptideName) {
       dosageRanges: 'Clinical research protocols vary. Typically administered as infusion or injection.',
       safetyNotes: 'Clinical research compound with ongoing safety evaluation.',
       researchStatus: 'Active clinical research for reproductive disorders.'
+    },
+    
+    'KLOW': {
+      aliases: ['KLOW BLEND', 'K-LOW', 'KLOW PEPTIDE BLEND'],
+      classification: 'Multi-Peptide Healing Blend',
+      mechanism: 'Synergistic blend of four research peptides (BPC-157, TB-500, KPV, GHK-Cu) designed to work together for comprehensive healing and regeneration support.',
+      commonUses: ['Tissue healing research', 'Regeneration studies', 'Anti-inflammatory research', 'Wound healing studies', 'Anti-aging research'],
+      dosageRanges: 'Research protocols vary. Typically administered as reconstituted blend with individual component dosing considerations.',
+      safetyNotes: 'Combination peptide blend. Safety profile based on individual components. For research purposes only.',
+      researchStatus: 'Research blend combining well-studied individual peptides for synergistic effects.',
+      category: 'blend',
+      composition: [
+        'BPC-157: Accelerated tissue healing and blood vessel growth',
+        'TB-500: Tissue repair and regeneration through actin regulation', 
+        'KPV: Anti-inflammatory and antimicrobial properties',
+        'GHK-Cu: Collagen production and cellular repair stimulation'
+      ],
+      synergies: [
+        'BPC-157 + TB-500: Enhanced tissue repair and blood flow improvement',
+        'KPV: Reduces inflammation to optimize healing environment',
+        'GHK-Cu: Drives tissue remodeling and renewal processes'
+      ],
+      forms: ['Injectable blend'],
+      timing: ['Variable based on research protocol and healing objectives'],
+      protocols: ['Healing and regeneration research protocols', 'Anti-aging studies', 'Tissue repair investigations'],
+      considerations: [
+        'Multi-component blend requiring careful reconstitution',
+        'Individual peptide interactions should be considered',
+        'Synergistic effects may enhance overall healing response',
+        'Research applications in wellness and regenerative studies'
+      ]
     },
     
     'KPV': {
@@ -935,15 +1130,18 @@ async function compilePeptideResearch(peptideName) {
   };
 }
 
-export default function GlossaryQuickModal({ open, onClose, theme }) {
+export default function GlossaryQuickModal({ open, onClose, theme, initialSearchTerm = '', initialTab = 'search' }) {
   const [q, setQ] = useState('')
   const [items, setItems] = useState([])
   const [aiResearch, setAiResearch] = useState({ loading: false, data: null, error: null, query: '' })
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [activeTab, setActiveTab] = useState('search') // 'search', 'browse', 'favorites'
+  const [activeTab, setActiveTab] = useState('search') // 'search', 'browse', 'favorites', 'notes'
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
   const [favorites, setFavorites] = useState([])
   const [expandedCategories, setExpandedCategories] = useState(new Set(['Popular']))
+  const [userNotes, setUserNotes] = useState([])
+  const [showAddNoteForm, setShowAddNoteForm] = useState(false)
+  const [noteForm, setNoteForm] = useState({ name: '', category: 'Custom', content: '', attachments: [] })
   
   // Load favorites from localStorage
   useEffect(() => {
@@ -956,6 +1154,41 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
       console.error('Error loading favorites:', error);
     }
   }, [open])
+
+  // Set initial search term and tab when modal opens
+  useEffect(() => {
+    if (open) {
+      if (initialSearchTerm) {
+        setQ(initialSearchTerm);
+        // Automatically trigger search when initial search term is provided
+        setTimeout(() => {
+          handleAIResearch();
+        }, 200);
+      }
+      setActiveTab(initialTab);
+    }
+  }, [open, initialSearchTerm, initialTab]);
+
+  // Load user notes from localStorage
+  useEffect(() => {
+    try {
+      const savedNotes = localStorage.getItem('tpprover_user_notes');
+      if (savedNotes) {
+        setUserNotes(JSON.parse(savedNotes));
+      }
+    } catch (error) {
+      console.error('Error loading user notes:', error);
+    }
+  }, [open]);
+
+  // Save user notes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('tpprover_user_notes', JSON.stringify(userNotes));
+    } catch (error) {
+      console.error('Error saving user notes:', error);
+    }
+  }, [userNotes]);
   
   // Save favorites to localStorage
   const saveFavorites = (newFavorites) => {
@@ -965,7 +1198,58 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
     } catch (error) {
       console.error('Error saving favorites:', error);
     }
+  }
+
+  // User notes functions
+  const handleAddNote = () => {
+    if (!noteForm.name.trim() || !noteForm.content.trim()) return;
+    
+    const newNote = {
+      id: Date.now(),
+      name: noteForm.name.trim(),
+      category: noteForm.category,
+      content: noteForm.content.trim(),
+      attachments: noteForm.attachments,
+      dateCreated: new Date().toISOString(),
+      dateModified: new Date().toISOString()
+    };
+    
+    setUserNotes(prev => [...prev, newNote]);
+    setNoteForm({ name: '', category: 'Custom', content: '', attachments: [] });
+    setShowAddNoteForm(false);
   };
+
+  const handleEditNote = (noteId, updatedNote) => {
+    setUserNotes(prev => prev.map(note => 
+      note.id === noteId 
+        ? { ...updatedNote, dateModified: new Date().toISOString() }
+        : note
+    ));
+  };
+
+  const handleDeleteNote = (noteId) => {
+    setUserNotes(prev => prev.filter(note => note.id !== noteId));
+  };
+
+  const handleAttachmentAdd = (type, value) => {
+    const newAttachment = {
+      id: Date.now(),
+      type, // 'link' or 'file'
+      value,
+      name: type === 'link' ? value : value.name
+    };
+    setNoteForm(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, newAttachment]
+    }));
+  };
+
+  const handleAttachmentRemove = (attachmentId) => {
+    setNoteForm(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter(att => att.id !== attachmentId)
+    }));
+  };;
   
   const toggleFavorite = (peptideName) => {
     const newFavorites = favorites.includes(peptideName) 
@@ -1000,7 +1284,7 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
       'GHRP-2', 'GHRP-6', 'Sermorelin', 'Tesamorelin', 'Hexarelin', 'AOD-9604', 'IGF-1 LR3',
       'Melanotan II', 'PT-141', 'GHK-Cu', 'Epitalon', 'Selank', 'Semax', 'HGH', 'HCG',
       'Adamax', 'Adipotide', 'AICAR', 'Cagrilintide', 'DSIP', 'FOX04 DRI', 'Kisspeptin',
-      'KPV', 'LL-37', 'Mazdutide', 'Melanotan 1', 'MOTS-C', 'NA Selank Amidate', 'NA Semax Amidate',
+      'KLOW', 'KPV', 'LL-37', 'Mazdutide', 'Melanotan 1', 'MOTS-C', 'NA Selank Amidate', 'NA Semax Amidate',
       'Oxytocin', 'PEG MGF', 'SNAP-8', 'SS31', 'Survodutide', 'Thymosin Alpha 1', 'Thymulin',
       'Tesofensine', 'Metformin', 'NMN', 'NAD+', 'Glutathione', 'TUDCA', 'NAC', 'Berberine',
       '5-Amino-1MQ', 'Dihexa', 'Cerebrolysin', 'BPC-157 + TB-500 Blend', 'GHRP-2 + Mod GRF Blend',
@@ -1036,7 +1320,7 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
         // Additional peptides from user list
         'adamax', 'adipotide', 'ftpp', 'aicar', 'aod-9604', 'aod9604', 'ara-290', 'ara290',
         'cagrilintide', 'dsip', 'delta sleep', 'epitalon', 'epithalon', 'fox04', 'foxo4',
-        'ghk', 'ghk-cu', 'copper peptide', 'kisspeptin', 'kiss1', 'kpv', 'll-37', 'cathelicidin',
+        'ghk', 'ghk-cu', 'copper peptide', 'kisspeptin', 'kiss1', 'klow', 'k-low', 'kpv', 'll-37', 'cathelicidin',
         'mazdutide', 'ibi-362', 'melanotan', 'mt-1', 'mt-2', 'mt2', 'afamelanotide',
         'mots-c', 'mitochondrial peptide', 'selank', 'semax', 'na selank', 'na semax',
         'oxytocin', 'p21', 'pe-22-28', 'peg mgf', 'pt-141', 'pt141', 'bremelanotide',
@@ -1053,7 +1337,7 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
         
         // Amino blends and combinations
         'amino blend', 'peptide blend', 'stack', 'combination', 'blend', 'mix',
-        'bpc tb500 blend', 'ghrp cjc blend', 'healing blend', 'growth blend',
+        'bpc tb500 blend', 'ghrp cjc blend', 'healing blend', 'growth blend', 'klow blend',
         
         // Growth factors
         'igf', 'igf-1', 'igf1', 'lr3', 'mgf', 'mechano', 'growth hormone', 'gh', 'hgh',
@@ -1250,6 +1534,18 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
               Favorites ({favorites.length})
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('notes')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'notes' ? 'border-current' : 'border-transparent hover:border-gray-300'
+            }`}
+            style={{ color: activeTab === 'notes' ? theme?.primary : theme?.textLight }}
+          >
+            <div className="flex items-center gap-2">
+              <FileText size={16} />
+              My Notes ({userNotes.length})
+            </div>
+          </button>
         </div>
 
         {/* Search Tab */}
@@ -1269,6 +1565,12 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
                     className="flex-grow"
                     onFocus={() => setShowSuggestions(q.length >= 2)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && q.trim()) {
+                        setShowSuggestions(false);
+                        handleAIResearch();
+                      }
+                    }}
                   />
                   
                   {/* Suggestion dropdown */}
@@ -1334,7 +1636,7 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2" style={{ color: theme.success }}>
                     <Brain size={18} />
-                    <span className="font-semibold">AI Research: {aiResearch.data.name}</span>
+                    <span className="font-semibold">{aiResearch.data.name}</span>
                     {aiResearch.data.originalQuery && aiResearch.data.originalQuery.toLowerCase() !== aiResearch.data.name.toLowerCase() && (
                       <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
                         Found match for "{aiResearch.data.originalQuery}"
@@ -1354,42 +1656,194 @@ export default function GlossaryQuickModal({ open, onClose, theme }) {
                   </button>
                 </div>
                 
-                <div className="space-y-3 text-sm" style={{ color: theme.text }}>
-                  <div>
-                    <span className="font-semibold">Classification:</span> {aiResearch.data.classification}
-                  </div>
-                  
-                  <div>
-                    <span className="font-semibold">Mechanism:</span> {aiResearch.data.mechanism}
-                  </div>
-                  
-                  <div>
-                    <span className="font-semibold">Common Research Uses:</span>
-                    <ul className="list-disc list-inside mt-1 ml-2">
-                      {aiResearch.data.commonUses.map((use, index) => (
-                        <li key={index}>{use}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div className="p-3 rounded-lg border-2 border-yellow-200 bg-yellow-50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle size={16} className="text-yellow-600" />
-                      <span className="font-semibold text-yellow-800">Research Dosage Information</span>
+                <div className="space-y-4 text-sm" style={{ color: theme.text }}>
+                  {/* Basic Information Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target size={14} style={{ color: theme.primary }} />
+                        <span className="font-semibold">Classification</span>
+                      </div>
+                      <p>{aiResearch.data.classification}</p>
                     </div>
-                    <p className="text-sm text-yellow-700 mb-2">{aiResearch.data.dosageRanges}</p>
-                    <p className="text-xs text-yellow-600 font-medium">
-                      ⚠️ This information is for research purposes only and is NOT medical advice. 
-                      Always consult with qualified healthcare professionals before considering any compounds.
-                    </p>
+                    
+                    {aiResearch.data.aliases && (
+                      <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen size={14} style={{ color: theme.primary }} />
+                          <span className="font-semibold">Also Known As</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {aiResearch.data.aliases.map((alias, index) => (
+                            <span key={index} className="text-xs px-2 py-1 rounded-full border" 
+                                  style={{ borderColor: theme.border, backgroundColor: theme.accent }}>
+                              {alias}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mechanism of Action */}
+                  <div className="p-4 rounded-lg border-2" style={{ borderColor: theme.primary + '40', backgroundColor: theme.primary + '10' }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap size={16} style={{ color: theme.primary }} />
+                      <span className="font-semibold text-lg">How It Works</span>
+                    </div>
+                    <p className="leading-relaxed">{aiResearch.data.mechanism}</p>
+                  </div>
+
+                  {/* Composition for Blends */}
+                  {aiResearch.data.composition && (
+                    <div className="p-3 rounded-lg border-2" style={{ borderColor: theme.accent, backgroundColor: theme.cardBackground }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield size={14} style={{ color: theme.primary }} />
+                        <span className="font-semibold">Typical Composition</span>
+                      </div>
+                      <p>{aiResearch.data.composition}</p>
+                    </div>
+                  )}
+
+                  {/* Research Applications */}
+                  <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Brain size={16} style={{ color: theme.primary }} />
+                      <span className="font-semibold">Research Applications</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {aiResearch.data.commonUses.map((use, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 rounded border" 
+                             style={{ borderColor: theme.border }}>
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.success }}></div>
+                          <span className="text-sm">{use}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   
-                  <div>
-                    <span className="font-semibold">Safety Notes:</span> {aiResearch.data.safetyNotes}
+                  {/* Dosage Information */}
+                  <div className="p-4 rounded-lg border-2 border-yellow-200 bg-yellow-50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle size={18} className="text-yellow-600" />
+                      <span className="font-semibold text-lg text-yellow-800">Research Protocols</span>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-yellow-700 font-medium">{aiResearch.data.dosageRanges}</p>
+                      
+                      {/* Additional Protocol Information */}
+                      {aiResearch.data.timing && (
+                        <div className="text-yellow-700">
+                          <span className="font-medium">Timing:</span> {aiResearch.data.timing}
+                        </div>
+                      )}
+                      {aiResearch.data.loading && (
+                        <div className="text-yellow-700">
+                          <span className="font-medium">Loading Protocol:</span> {aiResearch.data.loading}
+                        </div>
+                      )}
+                      {aiResearch.data.protocols && (
+                        <div className="text-yellow-700">
+                          <span className="font-medium">Protocol Notes:</span> {aiResearch.data.protocols}
+                        </div>
+                      )}
+                      {aiResearch.data.desensitization && (
+                        <div className="text-yellow-700">
+                          <span className="font-medium">Cycling:</span> {aiResearch.data.desensitization}
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-3 p-2 rounded bg-yellow-100">
+                      <p className="text-xs text-yellow-800 font-medium">
+                        ⚠️ This information is for research purposes only and is NOT medical advice. 
+                        Always consult with qualified healthcare professionals before considering any compounds.
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Advanced Information Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Safety Profile */}
+                    <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield size={14} style={{ color: theme.warning }} />
+                        <span className="font-semibold">Safety Profile</span>
+                      </div>
+                      <p className="text-sm">{aiResearch.data.safetyNotes}</p>
+                    </div>
+
+                    {/* Research Status */}
+                    <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <BookOpen size={14} style={{ color: theme.success }} />
+                        <span className="font-semibold">Research Status</span>
+                      </div>
+                      <p className="text-sm">{aiResearch.data.researchStatus}</p>
+                    </div>
+                  </div>
+
+                  {/* Additional Information */}
+                  {(aiResearch.data.interactions || aiResearch.data.advantages || aiResearch.data.synergies || 
+                    aiResearch.data.forms || aiResearch.data.distribution || aiResearch.data.monitoring || 
+                    aiResearch.data.considerations || aiResearch.data.conditions) && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-base border-b pb-2" style={{ borderColor: theme.border }}>
+                        Additional Research Information
+                      </h4>
+                      
+                      {aiResearch.data.interactions && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Drug Interactions:</span> {aiResearch.data.interactions}
+                        </div>
+                      )}
+                      
+                      {aiResearch.data.advantages && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Research Advantages:</span> {aiResearch.data.advantages}
+                        </div>
+                      )}
+                      
+                      {aiResearch.data.synergies && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Synergistic Effects:</span> {aiResearch.data.synergies}
+                        </div>
+                      )}
+                      
+                      {aiResearch.data.forms && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Available Forms:</span> {aiResearch.data.forms}
+                        </div>
+                      )}
+                      
+                      {aiResearch.data.distribution && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Tissue Distribution:</span> {aiResearch.data.distribution}
+                        </div>
+                      )}
+                      
+                      {aiResearch.data.monitoring && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Monitoring Requirements:</span> {aiResearch.data.monitoring}
+                        </div>
+                      )}
+                      
+                      {aiResearch.data.considerations && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Special Considerations:</span> {aiResearch.data.considerations}
+                        </div>
+                      )}
+                      
+                      {aiResearch.data.conditions && (
+                        <div className="p-3 rounded border" style={{ borderColor: theme.border }}>
+                          <span className="font-medium">Optimal Conditions:</span> {aiResearch.data.conditions}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
-                  <div className="text-xs italic pt-2 border-t" style={{ borderColor: theme.border }}>
-                    {aiResearch.data.disclaimer}
+                  {/* Research Disclaimer */}
+                  <div className="text-xs italic pt-3 border-t" style={{ borderColor: theme.border, color: theme.textLight }}>
+                    {aiResearch.data.disclaimer || "This information is compiled from research literature and is intended for educational purposes only. Individual results may vary. Not intended as medical advice."}
                   </div>
                 </div>
               </div>

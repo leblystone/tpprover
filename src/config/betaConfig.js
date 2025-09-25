@@ -3,12 +3,11 @@
  * Centralized configuration for beta period and transitions
  */
 
-// Beta end date: September 21st, 2025 at midnight (local time)
-// TEMP: Extended for development/testing
-export const BETA_END_DATE = new Date('2025-12-31T00:00:00');
+// Beta end date: Beta testing has ended - app is now live
+export const BETA_END_DATE = new Date('2024-09-21T00:00:00'); // Beta officially ended
 
-// App reopen date: September 28th, 2025 (7 days after beta ends)
-export const REOPEN_DATE = new Date('2025-09-28T00:00:00');
+// App reopen date: App is now live and available to all users
+export const REOPEN_DATE = new Date('2024-10-01T00:00:00'); // App went live
 
 // Alternative: Use a specific timezone if needed
 // export const BETA_END_DATE = new Date('2024-09-21T00:00:00-07:00'); // PDT

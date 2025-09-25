@@ -102,7 +102,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
           <div className="space-y-3">
             <VendorSuggestInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor Name" theme={theme} />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <TextInput icon={<Droplet size={16} />} label="Amount of Water (mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
                 <TextInput icon={<Info size={16} />} label="Vial Cost ($)" type="number" value={cost} onChange={v => setCost(v)} placeholder="e.g., 45.00" theme={theme} />
             </div>
@@ -112,9 +112,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         {/* Delivery Method */}
         <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button 
-                    onClick={() => setDeliveryMethod('syringe')}
+                    onClick={() => {
+                        setDeliveryMethod('syringe');
+                        // Reset to mcg when syringe is selected (default unit)
+                        setForm(prev => ({
+                            ...prev,
+                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: p.doseUnit === 'sprays' ? 'mcg' : p.doseUnit }))
+                        }));
+                    }}
                     className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'syringe' ? theme.primary : theme.secondary,
@@ -122,10 +129,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         borderColor: deliveryMethod === 'syringe' ? theme.primary : theme.border
                     }}
                 >
-                    <Syringe size={16} /> Syringe
+                    <Syringe size={18} className="sm:size-4" /> Syringe
                 </button>
                 <button 
-                    onClick={() => setDeliveryMethod('pen')}
+                    onClick={() => {
+                        setDeliveryMethod('pen');
+                        // Reset to mcg when pen is selected (default unit)
+                        setForm(prev => ({
+                            ...prev,
+                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: p.doseUnit === 'sprays' ? 'mcg' : p.doseUnit }))
+                        }));
+                    }}
                     className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'pen' ? theme.primary : theme.secondary,
@@ -133,7 +147,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border
                     }}
                 >
-                    <Pen size={16} /> Pen
+                    <Pen size={18} className="sm:size-4" /> Pen
                 </button>
                 <button 
                     onClick={() => {
@@ -151,7 +165,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border
                     }}
                 >
-                    <Droplets size={16} /> Nasal
+                    <Droplets size={18} className="sm:size-4" /> Nasal
                 </button>
             </div>
             {deliveryMethod === 'pen' && (
@@ -267,15 +281,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     />
                   </div>
                   
-                  <div>
+                  <div className="mt-4">
                     <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Unit</div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {['mcg','mg','mL','sprays'].map(unit => (
                         <button 
                           key={unit} 
                           type="button" 
                           onClick={() => updatePeptide(p.id, 'doseUnit', unit)}
-                          className={`flex-1 min-w-0 px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-all ${
+                          className={`px-3 py-2 text-sm font-semibold rounded-lg border-2 transition-all text-center ${
                             p.doseUnit === unit 
                               ? 'text-white border-transparent shadow-md' 
                               : 'text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'

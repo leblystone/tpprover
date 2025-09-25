@@ -2,11 +2,20 @@ import React, { useEffect, useState } from 'react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
 import { formatMMDDYYYY } from '../../utils/date'
+import useAutoSave from '../../utils/useAutoSave'
+import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
 const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Vetted', 'Puck Problem']
 
 export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, activeTab }) {
   const [form, setForm] = useState(createEmptyVendor())
+  
+  // Auto-save functionality
+  const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
+    `vendor_form_${vendor?.id || 'new'}`,
+    form,
+    setForm
+  )
   useEffect(() => {
     if (open) {
       const base = vendor ? { ...createEmptyVendor(), ...vendor } : createEmptyVendor()
@@ -49,12 +58,21 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                 delete dataToSave.isStub; // Remove the stub flag
             }
             console.log('💾 Saving vendor data:', dataToSave); // Debug log
+            markAsSubmitted();
             onSave?.(dataToSave);
             onClose(); // Close modal after save
         }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
       </div>
     )}>
       <div className="space-y-4">
+        {/* Auto-save indicator */}
+        <AutoSaveIndicator 
+          isSaving={isSaving} 
+          lastSaved={lastSaved} 
+          onClearForm={clearSavedData} 
+          theme={theme} 
+        />
+        
         {/* Header card: Name, Rating, Category */}
         <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">

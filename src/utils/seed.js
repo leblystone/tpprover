@@ -1,4 +1,4 @@
-import { generateId } from './string';
+import { generateId } from './string.js';
 
 // Use numeric IDs and isMock flag to distinguish from user-created data
 export const MOCK_VENDORS = [

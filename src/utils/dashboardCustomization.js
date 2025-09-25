@@ -12,7 +12,11 @@ export const WIDGET_TYPES = {
   BADGES: 'badges',
   GOALS: 'goals_only',
   METRICS: 'metrics_only',
-  SUPPLEMENTS: 'supplements'
+  SUPPLEMENTS: 'supplements',
+  QUICK_ACTIONS: 'quick_actions',
+  WATER_TRACKER: 'water_tracker',
+  GLOSSARY: 'glossary',
+  FEEDBACK: 'feedback'
 };
 
 export const WIDGET_SIZES = {
@@ -49,6 +53,24 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
+    id: 'quick_actions',
+    type: WIDGET_TYPES.QUICK_ACTIONS,
+    title: 'Quick Actions',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 4, y: 0 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'compliance',
+    type: WIDGET_TYPES.COMPLIANCE,
+    title: 'Research Consistency',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 5, y: 0 },
+    enabled: true,
+    settings: {}
+  },
+  {
     id: 'goals_only',
     type: 'goals_only',
     title: 'Goals',
@@ -60,20 +82,38 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
-    id: 'upcoming_buys',
-    type: WIDGET_TYPES.UPCOMING_BUYS,
-    title: 'Upcoming Buys',
+    id: 'supplements',
+    type: WIDGET_TYPES.SUPPLEMENTS,
+    title: 'Supplements',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 2, y: 1 },
     enabled: true,
     settings: {
-      maxItems: 3
+      showSchedule: true
     }
   },
   {
-    id: 'metrics_only',
-    type: 'metrics_only',
-    title: 'Body Metrics',
+    id: 'spending',
+    type: WIDGET_TYPES.SPENDING,
+    title: 'Spending',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 4, y: 1 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'lead_time',
+    type: WIDGET_TYPES.LEAD_TIME,
+    title: 'Average Delivery',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 5, y: 1 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'upcoming_buys',
+    type: WIDGET_TYPES.UPCOMING_BUYS,
+    title: 'Upcoming Buys',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 0, y: 2 },
     enabled: true,
@@ -82,38 +122,22 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
-    id: 'compliance',
-    type: WIDGET_TYPES.COMPLIANCE,
-    title: 'Compliance',
-    size: WIDGET_SIZES.SMALL,
+    id: 'metrics_only',
+    type: 'metrics_only',
+    title: 'Bio-Metrics',
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 2, y: 2 },
     enabled: true,
-    settings: {}
-  },
-  {
-    id: 'spending',
-    type: WIDGET_TYPES.SPENDING,
-    title: 'Spending',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 3, y: 2 },
-    enabled: true,
-    settings: {}
-  },
-  {
-    id: 'lead_time',
-    type: WIDGET_TYPES.LEAD_TIME,
-    title: 'Lead Times',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 0, y: 3 },
-    enabled: true,
-    settings: {}
+    settings: {
+      maxItems: 3
+    }
   },
   {
     id: 'inventory',
     type: WIDGET_TYPES.INVENTORY,
     title: 'Inventory',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 1, y: 3 },
+    position: { x: 4, y: 2 },
     enabled: true,
     settings: {}
   },
@@ -122,7 +146,7 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.BADGES,
     title: 'Your Badges',
     size: WIDGET_SIZES.WIDE,
-    position: { x: 2, y: 3 },
+    position: { x: 0, y: 3 },
     enabled: true,
     settings: {
       showProgress: true
@@ -133,20 +157,41 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.PENDING_VENDORS,
     title: 'Pending Vendors',
     size: WIDGET_SIZES.MEDIUM,
-    position: { x: 0, y: 4 },
+    position: { x: 3, y: 3 },
     enabled: true, // Show by default, will hide automatically when empty
     settings: {}
   },
   {
-    id: 'supplements',
-    type: WIDGET_TYPES.SUPPLEMENTS,
-    title: 'Supplements',
-    size: WIDGET_SIZES.MEDIUM,
-    position: { x: 2, y: 4 },
+    id: 'water_tracker',
+    type: WIDGET_TYPES.WATER_TRACKER,
+    title: 'Water Intake',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 5, y: 3 },
     enabled: true,
     settings: {
-      showSchedule: true
+      defaultGoal: 8
     }
+  },
+  {
+    id: 'glossary',
+    type: WIDGET_TYPES.GLOSSARY,
+    title: 'Research Glossary',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 4 },
+    enabled: true,
+    settings: {
+      showRecent: true,
+      showFavorites: true
+    }
+  },
+  {
+    id: 'feedback',
+    type: WIDGET_TYPES.FEEDBACK,
+    title: 'Feedback',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 2, y: 4 },
+    enabled: true,
+    settings: {}
   }
 ];
 
@@ -221,7 +266,7 @@ export const WIDGET_METADATA = {
     ]
   },
   [WIDGET_TYPES.COMPLIANCE]: {
-    title: 'Compliance',
+    title: 'Research Consistency',
     description: 'Track your supplement compliance and streaks',
     icon: 'CheckCircle',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
@@ -235,7 +280,7 @@ export const WIDGET_METADATA = {
     settings: []
   },
   [WIDGET_TYPES.LEAD_TIME]: {
-    title: 'Lead Times',
+    title: 'Average Delivery',
     description: 'Track delivery times and vendor performance',
     icon: 'Truck',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
@@ -258,7 +303,7 @@ export const WIDGET_METADATA = {
     ]
   },
   ['metrics_only']: {
-    title: 'Body Metrics',
+    title: 'Bio-Metrics',
     description: 'Record and track your body metrics',
     icon: 'Activity',
     availableSizes: [WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
@@ -274,6 +319,39 @@ export const WIDGET_METADATA = {
     settings: [
       { key: 'showSchedule', label: 'Show schedule', type: 'boolean', default: true }
     ]
+  },
+  [WIDGET_TYPES.QUICK_ACTIONS]: {
+    title: 'Quick Actions',
+    description: 'Essential actions: reconstitute, add to stockpile, add vendor, add protocol',
+    icon: 'Zap',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
+  },
+  [WIDGET_TYPES.WATER_TRACKER]: {
+    title: 'Water Intake',
+    description: 'Track daily water intake with customizable goals',
+    icon: 'Droplets',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: [
+      { key: 'defaultGoal', label: 'Default daily goal (glasses)', type: 'number', default: 8, min: 1, max: 20 }
+    ]
+  },
+  [WIDGET_TYPES.GLOSSARY]: {
+    title: 'Research Glossary',
+    description: 'Quick access to peptide research database and personal notes',
+    icon: 'BookOpen',
+    availableSizes: [WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    settings: [
+      { key: 'showRecent', label: 'Show recent searches', type: 'boolean', default: true },
+      { key: 'showFavorites', label: 'Show favorite entries', type: 'boolean', default: true }
+    ]
+  },
+  [WIDGET_TYPES.FEEDBACK]: {
+    title: 'Feedback',
+    description: 'Share feedback, suggestions, and report issues',
+    icon: 'MessageSquare',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
   }
 };
 
@@ -303,11 +381,26 @@ export const STORAGE_KEY = 'tpprover_dashboard_layout';
 
 export const loadDashboardLayout = () => {
   try {
+    // Check if we need to force a reset due to duplicate widget cleanup
+    const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
+    const currentVersion = '1.3'; // Force duplicate cleanup
+    
+    if (layoutVersion !== currentVersion) {
+      console.log('🔄 Dashboard layout version mismatch - forcing reset to remove duplicates');
+      localStorage.setItem('tpprover_dashboard_version', currentVersion);
+      localStorage.removeItem(STORAGE_KEY);
+      return DEFAULT_WIDGETS;
+    }
+    
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
+      
+      // CRITICAL FIX: Remove duplicate widgets from saved layouts
+      const cleanedParsed = removeDuplicateWidgets(parsed);
+      
       // Merge with defaults for any missing widgets
-      return mergeDashboardLayouts(DEFAULT_WIDGETS, parsed);
+      return mergeDashboardLayouts(DEFAULT_WIDGETS, cleanedParsed);
     }
   } catch (error) {
     console.warn('Failed to load dashboard layout:', error);
@@ -323,10 +416,38 @@ export const saveDashboardLayout = (widgets) => {
   }
 };
 
+// Remove duplicate widgets from saved layouts (cleanup function)
+export const removeDuplicateWidgets = (widgets) => {
+  const seenIds = new Set();
+  const seenTypes = new Set();
+  const duplicateTypes = new Set(['compliance', 'spending', 'lead_time']); // Known duplicates
+  
+  return widgets.filter(widget => {
+    // Remove duplicates by ID (primary check)
+    if (seenIds.has(widget.id)) {
+      console.log(`🧹 Removing duplicate widget by ID: ${widget.id}`);
+      return false;
+    }
+    seenIds.add(widget.id);
+    
+    // For known problematic types, also check by type
+    if (duplicateTypes.has(widget.id) || duplicateTypes.has(widget.type)) {
+      const key = widget.id || widget.type;
+      if (seenTypes.has(key)) {
+        console.log(`🧹 Removing duplicate widget by type: ${key}`);
+        return false;
+      }
+      seenTypes.add(key);
+    }
+    
+    return true; // Keep widget
+  });
+};
+
 export const mergeDashboardLayouts = (defaultWidgets, savedWidgets) => {
   const savedMap = new Map(savedWidgets.map(w => [w.id, w]));
   
-  return defaultWidgets.map(defaultWidget => {
+  const mergedWidgets = defaultWidgets.map(defaultWidget => {
     const savedWidget = savedMap.get(defaultWidget.id);
     if (savedWidget) {
       // Merge settings, keeping defaults for missing settings
@@ -335,6 +456,84 @@ export const mergeDashboardLayouts = (defaultWidgets, savedWidgets) => {
     }
     return defaultWidget;
   });
+
+  // Apply grid compaction to remove empty spaces
+  return compactGrid(mergedWidgets);
+};
+
+// Grid compaction function to eliminate empty spaces
+export const compactGrid = (widgets) => {
+  if (!widgets || widgets.length === 0) return widgets;
+
+  // Filter only enabled widgets
+  const enabledWidgets = widgets.filter(w => w.enabled);
+  const disabledWidgets = widgets.filter(w => !w.enabled);
+
+  // Sort by current position (y first, then x) to maintain relative order
+  enabledWidgets.sort((a, b) => {
+    const aY = a.position?.y || 0;
+    const bY = b.position?.y || 0;
+    if (aY !== bY) return aY - bY;
+    const aX = a.position?.x || 0;
+    const bX = b.position?.x || 0;
+    return aX - bX;
+  });
+
+  // Create a grid to track occupied spaces
+  const grid = [];
+  const GRID_COLS = 6; // 6-column grid
+
+  // Get widget dimensions based on size
+  const getWidgetDimensions = (size) => {
+    switch (size) {
+      case WIDGET_SIZES.SMALL: return { width: 1, height: 1 };
+      case WIDGET_SIZES.MEDIUM: return { width: 2, height: 1 };
+      case WIDGET_SIZES.LARGE: return { width: 3, height: 2 };
+      case WIDGET_SIZES.WIDE: return { width: 4, height: 1 };
+      case WIDGET_SIZES.FULL: return { width: 6, height: 2 };
+      default: return { width: 2, height: 1 };
+    }
+  };
+
+  // Helper functions for grid management
+  const isPositionAvailable = (x, y, width, height) => {
+    for (let row = y; row < y + height; row++) {
+      for (let col = x; col < x + width; col++) {
+        if (grid[row] && grid[row][col]) return false;
+      }
+    }
+    return true;
+  };
+
+  const markPositionOccupied = (x, y, width, height) => {
+    for (let row = y; row < y + height; row++) {
+      if (!grid[row]) grid[row] = [];
+      for (let col = x; col < x + width; col++) {
+        grid[row][col] = true;
+      }
+    }
+  };
+
+  // Reposition widgets to eliminate gaps
+  const compactedWidgets = enabledWidgets.map(widget => {
+    const { width, height } = getWidgetDimensions(widget.size);
+    
+    // Find the first available position starting from top-left
+    let bestY = 0, bestX = 0, found = false;
+
+    for (let y = 0; y < 50 && !found; y++) { // Max 50 rows
+      for (let x = 0; x <= GRID_COLS - width && !found; x++) {
+        if (isPositionAvailable(x, y, width, height)) {
+          bestX = x; bestY = y; found = true;
+        }
+      }
+    }
+
+    markPositionOccupied(bestX, bestY, width, height);
+    return { ...widget, position: { x: bestX, y: bestY } };
+  });
+
+  return [...compactedWidgets, ...disabledWidgets];
 };
 
 export const resetDashboardLayout = () => {

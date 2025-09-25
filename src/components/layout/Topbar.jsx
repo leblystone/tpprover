@@ -1,5 +1,6 @@
 import React from 'react';
 import { Menu, Search, Upload, BookText, HelpCircle } from 'lucide-react';
+import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlobalSearchInline from '../search/GlobalSearchInline';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -47,7 +48,10 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
           >
             <Menu size={24} />
           </button>
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: theme?.primaryDark }}>{title}</h1>
+          <h1 className="text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
+            <span className="hidden sm:inline">{title}</span>
+            <span className="sm:hidden">{title.includes('Welcome') ? 'The Pep Planner' : title}</span>
+          </h1>
         </div>
         <div className="flex items-center gap-2 flex-1 justify-end">
           {showSearch && (
@@ -55,41 +59,48 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
               <GlobalSearchInline theme={theme} onClose={() => setShowSearch(false)} onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} />
             </div>
           )}
-          <button 
-            className="p-2 rounded-full no-shadow" 
-            title="Global Search" 
-            onClick={() => setShowSearch(s => !s)} 
-            style={{ color: theme.text }}
-            aria-label="Toggle global search"
-            aria-expanded={showSearch}
-          >
-            <Search className="h-5 w-5" />
-          </button>
-          <button 
-            data-tour="topbar-glossary" 
-            className="p-2 rounded-full no-shadow" 
-            title="Research" 
-            onClick={onGlossaryClick} 
-            style={{ color: theme.text }}
-            aria-label="Open research glossary"
-          >
-            <BookText className="h-5 w-5" />
-          </button>
+          <ModernTooltip text="Search" position="bottom">
+            <button 
+              className="p-2 rounded-full no-shadow" 
+              onClick={() => setShowSearch(s => !s)} 
+              style={{ color: theme.text }}
+              aria-label="Toggle global search"
+              aria-expanded={showSearch}
+            >
+              <Search className="h-5 w-5" />
+            </button>
+          </ModernTooltip>
+          <ModernTooltip text="Glossary" position="bottom">
+            <button 
+              data-tour="topbar-glossary" 
+              className="p-2 rounded-lg no-shadow hover:scale-105 transition-all duration-200" 
+              onClick={onGlossaryClick} 
+              style={{ 
+                color: theme.primary, 
+                backgroundColor: theme.primary + '15',
+                border: `1px solid ${theme.primary + '30'}`
+              }}
+              aria-label="Open research glossary"
+            >
+              <BookText className="h-5 w-5" />
+            </button>
+          </ModernTooltip>
           {/* Import feature temporarily hidden - uncomment to re-enable
           {onDashboard && (
             <button data-tour="topbar-import" className="p-2 rounded-full no-shadow" title="Import (OCR)" onClick={() => window.dispatchEvent(new CustomEvent('tpp:openImport'))} style={{ color: theme.text }}><Upload className="h-5 w-5" /></button>
           )}
           */}
           <NotificationBell theme={theme} />
-          <button 
-            className="p-2 rounded-full no-shadow" 
-            title="Help" 
-            onClick={() => setShowHelp(true)} 
-            style={{ color: theme.text }}
-            aria-label="Open help and tips"
-          >
-            <HelpCircle className="h-5 w-5" />
-          </button>
+          <ModernTooltip text="Help" position="bottom">
+            <button 
+              className="p-2 rounded-full no-shadow" 
+              onClick={() => setShowHelp(true)} 
+              style={{ color: theme.text }}
+              aria-label="Open help and tips"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </button>
+          </ModernTooltip>
         </div>
       </header>
       <HelpTipsModal open={showHelp} onClose={() => setShowHelp(false)} seg={seg} theme={theme} />

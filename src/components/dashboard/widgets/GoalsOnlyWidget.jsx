@@ -1,5 +1,6 @@
 import React from 'react';
-import { Check, Plus, Edit } from 'lucide-react';
+import { Check, Plus, Edit, Target } from 'lucide-react';
+import ModernTooltip from '../../ui/ModernTooltip';
 import { formatMMDDYYYY } from '../../../utils/date';
 
 const GoalsOnlyWidget = ({ 
@@ -20,14 +21,18 @@ const GoalsOnlyWidget = ({
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Goals
           </h3>
-          <button
-            onClick={onAddGoal}
-            className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
-            style={{ borderColor: theme.primary, color: theme.primary }}
-            title="Add Goal"
-          >
-            <Plus size={12} strokeWidth={3} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Target size={20} style={{ color: theme.primary }} />
+            <ModernTooltip text="Add" position="top">
+              <button
+                onClick={onAddGoal}
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
+                style={{ borderColor: theme.primary, color: theme.primary }}
+              >
+                <Plus size={12} strokeWidth={3} />
+              </button>
+            </ModernTooltip>
+          </div>
         </div>
       </div>
       

@@ -1,5 +1,6 @@
- import React from 'react'
-import { ChevronLeft, ChevronRight, RefreshCw, HelpCircle } from 'lucide-react';
+import React from 'react';
+import { ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
+import ModernTooltip from '../ui/ModernTooltip';
 
 const getWeekOfMonth = (date) => {
     const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -8,7 +9,7 @@ const getWeekOfMonth = (date) => {
     return Math.ceil((dayOfMonth + dayOfWeek) / 7);
 };
 
-export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext, onToday, viewMode, onChangeView, onRefresh, onShowIconKey, theme }) {
+export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext, onToday, viewMode, onChangeView, onShowIconKey, theme }) {
   const monthName = currentDate.toLocaleString('default', { month: 'long' });
   const year = currentDate.getFullYear();
   
@@ -20,22 +21,21 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
           <button onClick={onPrev} className="p-2 rounded-full hover:bg-gray-100"><ChevronLeft className="h-5 w-5" /></button>
           <button onClick={onNext} className="p-2 rounded-full hover:bg-gray-100"><ChevronRight className="h-5 w-5" /></button>
         </div>
-        <button onClick={onRefresh} className="p-2 rounded-full hover:bg-gray-100" title="Refresh calendar data">
-          <RefreshCw className="h-5 w-5" style={{ color: theme.primary }} />
-        </button>
-        {viewMode === 'month' && onShowIconKey && (
-          <button onClick={onShowIconKey} className="p-2 rounded-full hover:bg-gray-100" title="Show icon guide">
-            <HelpCircle className="h-5 w-5" style={{ color: theme.accent }} />
-          </button>
-        )}
         <h2 className="text-xl font-bold ml-2" style={{ color: theme.primaryDark }}>{monthName} {year}</h2>
       </div>
       
-      <div className="hidden sm:block">
+      <div className="hidden sm:flex items-center gap-2">
         <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
             <button onClick={() => onChangeView('month')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'month' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'month' ? { backgroundColor: theme.primary } : {}}>Month</button>
             <button onClick={() => onChangeView('week')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'week' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'week' ? { backgroundColor: theme.primary } : {}}>Week</button>
         </div>
+        {viewMode === 'month' && onShowIconKey && (
+          <ModernTooltip text="Icon guide" position="bottom">
+            <button onClick={onShowIconKey} className="p-2 rounded-full hover:bg-gray-100">
+              <HelpCircle className="h-5 w-5" style={{ color: theme.accent }} />
+            </button>
+          </ModernTooltip>
+        )}
       </div>
         
         {/* Mobile-only controls */}
@@ -49,15 +49,19 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         <div className="flex sm:hidden items-center justify-between w-full order-3 mt-2">
              <div className="flex items-center gap-2">
                <button onClick={onToday} className="px-4 py-1.5 text-sm font-semibold rounded-lg border" style={{ borderColor: theme.border }}>Today</button>
-               {viewMode === 'month' && onShowIconKey && (
-                 <button onClick={onShowIconKey} className="p-1.5 rounded-full border" style={{ borderColor: theme.border }} title="Icon guide">
-                   <HelpCircle className="h-4 w-4" style={{ color: theme.accent }} />
-                 </button>
-               )}
              </div>
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl shadow-inner">
-                <button onClick={() => onChangeView('month')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'month' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'month' ? { backgroundColor: theme.primary } : {}}>Month</button>
-                <button onClick={() => onChangeView('week')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'week' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'week' ? { backgroundColor: theme.primary } : {}}>Week</button>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1 bg-gray-100 p-1 rounded-xl shadow-inner">
+                  <button onClick={() => onChangeView('month')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'month' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'month' ? { backgroundColor: theme.primary } : {}}>Month</button>
+                  <button onClick={() => onChangeView('week')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'week' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'week' ? { backgroundColor: theme.primary } : {}}>Week</button>
+              </div>
+              {viewMode === 'month' && onShowIconKey && (
+                <ModernTooltip text="Icon guide" position="bottom">
+                  <button onClick={onShowIconKey} className="p-1.5 rounded-full border" style={{ borderColor: theme.border }}>
+                    <HelpCircle className="h-4 w-4" style={{ color: theme.accent }} />
+                  </button>
+                </ModernTooltip>
+              )}
             </div>
         </div>
     </div>

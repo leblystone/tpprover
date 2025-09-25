@@ -1,4 +1,5 @@
 import React from 'react';
+import { Truck } from 'lucide-react';
 import UpcomingOrderCard from '../UpcomingOrderCard';
 
 const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder }) => {
@@ -7,9 +8,12 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder }) => {
     return (
       <div className="h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Incoming Peptides
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+              Incoming Peptides
+            </h3>
+            <Truck size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
         
         <div className="flex-1 p-4 flex flex-col items-center justify-center">

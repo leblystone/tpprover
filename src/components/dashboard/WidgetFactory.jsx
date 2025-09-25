@@ -14,6 +14,10 @@ import GoalsOnlyWidget from './widgets/GoalsOnlyWidget';
 import MetricsWidget from './widgets/MetricsWidget';
 import SupplementsWidget from './widgets/SupplementsWidget';
 import GoalsWidget from './widgets/GoalsWidget';
+import QuickActionsWidget from './widgets/QuickActionsWidget';
+import WaterTrackerWidget from './widgets/WaterTrackerWidget';
+import GlossaryWidget from './widgets/GlossaryWidget';
+import FeedbackWidget from './widgets/FeedbackWidget';
 
 const WidgetFactory = ({ widget, theme, ...props }) => {
   switch (widget.type) {
@@ -153,6 +157,38 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
           onAddSupplement={props.onAddSupplement}
           onEditSupplement={props.onEditSupplement}
           onDeleteSupplement={props.onDeleteSupplement}
+        />
+      );
+
+    case WIDGET_TYPES.QUICK_ACTIONS:
+      return (
+        <QuickActionsWidget 
+          widget={widget} 
+          theme={theme}
+        />
+      );
+
+    case WIDGET_TYPES.WATER_TRACKER:
+      return (
+        <WaterTrackerWidget 
+          widget={widget} 
+          theme={theme}
+        />
+      );
+
+    case WIDGET_TYPES.GLOSSARY:
+      return (
+        <GlossaryWidget 
+          widget={widget} 
+          theme={theme}
+        />
+      );
+
+    case WIDGET_TYPES.FEEDBACK:
+      return (
+        <FeedbackWidget 
+          widget={widget} 
+          theme={theme}
         />
       );
       

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Award, Trophy } from 'lucide-react';
 import { useBadgeStats } from '../../../utils/badges';
 
 const BadgesWidget = ({ widget, theme }) => {
@@ -8,42 +9,60 @@ const BadgesWidget = ({ widget, theme }) => {
   const { showProgress = true } = widget.settings;
 
   return (
-    <div className="p-6 h-full">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-xl font-semibold" style={{ color: theme.text }}>
-            Your Badges
-          </h2>
-          <p className="text-sm text-gray-500">
-            You've earned {earnedCount} of {totalBadges} badges.
-          </p>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Badges
+          </h3>
+          <Award size={20} style={{ color: theme.primary }} />
         </div>
-        <button 
-          onClick={() => navigate('/badges')}
-          className="px-4 py-2 rounded-md text-sm font-semibold" 
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-        >
-          View Badges
-        </button>
       </div>
       
-      {showProgress && (
-        <div className="mt-4">
-          <div className="h-2 w-full bg-gray-200 rounded-full">
-            <div 
-              className="h-2 rounded-full transition-all duration-300" 
-              style={{ 
-                width: `${progressPercentage}%`, 
-                backgroundColor: theme.primary 
-              }}
-            />
+      {/* Content */}
+      <div className="flex-1 p-4 flex flex-col">
+        <div className="flex-1 flex flex-col justify-center items-center">
+          <div className="text-center mb-3">
+            <div className="flex items-center justify-center mb-2">
+              <Trophy size={32} style={{ color: theme.primary }} />
+            </div>
+            <div className="text-2xl font-bold" style={{ color: theme.text }}>
+              {earnedCount}/{totalBadges}
+            </div>
+            <div className="text-xs" style={{ color: theme.textLight }}>
+              badges earned
+            </div>
           </div>
-          <div className="flex justify-between text-sm mt-2" style={{ color: theme.textLight }}>
-            <span>{earnedCount} earned</span>
-            <span>{progressPercentage}% complete</span>
-          </div>
+          
+          {showProgress && (
+            <div className="w-full">
+              <div className="h-2 w-full bg-gray-200 rounded-full mb-2">
+                <div 
+                  className="h-2 rounded-full transition-all duration-300" 
+                  style={{ 
+                    width: `${progressPercentage}%`, 
+                    backgroundColor: theme.primary 
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
-      )}
+        
+        {/* Bottom aligned button */}
+        {showProgress && (
+          <div className="text-center mt-auto">
+            <button 
+              onClick={() => navigate('/badges')}
+              className="text-xs px-3 py-1 rounded-full border transition-colors hover:bg-gray-50" 
+              style={{ borderColor: theme.primary, color: theme.primary }}
+            >
+              View All
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

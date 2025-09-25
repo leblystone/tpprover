@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Megaphone, User, Settings, LogOut, MessageSquare, DownloadCloud } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import { useAppContext } from '../../context/AppContext'
 
-export default function MobileSidebar({ open, onClose, theme, installPrompt, isPwaSupported, isPwaInstalled, onShowFeedback, onShowInstall, onShowUnsupported }) {
+export default function MobileSidebar({ open, onClose, theme }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { logout } = useAppContext();
 
   useEffect(() => {
     const durationMs = 240
@@ -22,19 +20,6 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
     }
   }, [open])
 
-  const handleInstallClick = () => {
-    onClose();
-    // Small delay to let sidebar close before opening modal
-    setTimeout(() => {
-      if (installPrompt) {
-        installPrompt.prompt();
-      } else if (isPwaSupported) {
-        onShowInstall && onShowInstall();
-      } else {
-        onShowUnsupported && onShowUnsupported();
-      }
-    }, 100);
-  };
 
   if (!mounted) return null
   const links = [
@@ -47,7 +32,6 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
     { to: '/vendors', label: 'Vendors', icon: Store },
   ]
   const bottomLinks = [
-    { to: '/announcements', label: 'Announcements', icon: Megaphone },
     { to: '/account', label: 'Account', icon: User },
     { to: '/settings', label: 'Settings', icon: Settings },
   ]
@@ -82,33 +66,6 @@ export default function MobileSidebar({ open, onClose, theme, installPrompt, isP
                 <span className="text-lg font-medium truncate">{label}</span>
               </NavLink>
             ))}
-            <button
-              onClick={() => { 
-                onClose(); 
-                // Small delay to let sidebar close before opening modal
-                setTimeout(() => onShowFeedback && onShowFeedback(), 100);
-              }}
-              className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
-            >
-              <MessageSquare className="h-6 w-6" />
-              <span className="text-lg font-medium truncate">Feedback</span>
-            </button>
-            <button
-                onClick={handleInstallClick}
-                className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
-                style={{ cursor: isPwaInstalled ? 'default' : 'pointer', opacity: isPwaInstalled ? 0.6 : 1 }}
-                disabled={isPwaInstalled}
-            >
-                <DownloadCloud className="h-6 w-6" />
-                <span className="text-lg font-medium truncate">{isPwaInstalled ? 'Installed' : 'Install App'}</span>
-            </button>
-            <button
-              onClick={() => { logout(); onClose(); }}
-              className="flex items-center gap-3 h-14 w-full px-4 text-gray-700"
-            >
-              <LogOut className="h-6 w-6" />
-              <span className="text-lg font-medium truncate">Log Out</span>
-            </button>
           </div>
         </nav>
       </div>

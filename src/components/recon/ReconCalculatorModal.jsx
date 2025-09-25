@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Modal from '../common/Modal'
-import TextInput from '../common/inputs/TextInput'
-import VendorSuggestInput from '../vendors/VendorSuggestInput'
-import { calculateRecon, getChromeGradient } from '../../utils/recon'
-import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen } from 'lucide-react'
+import { ReconCalculatorPanel } from './ReconCalculatorPanel'
 import { useAppContext } from '../../context/AppContext'
-import { generateId } from '../../utils/string'
+import VendorSuggestInput from '../vendors/VendorSuggestInput'
+import TextInput from '../common/inputs/TextInput'
+import { Droplet, Info, Plus, Trash2, FilePlus, Pen } from 'lucide-react'
+import { Syringe } from 'lucide-react'
 
 export const penColors = [
     { name: 'Gold', hex: '#DAA520' },

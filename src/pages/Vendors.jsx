@@ -9,22 +9,7 @@ import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
 import ViewContainer from '../components/ui/ViewContainer'
 import { useAppContext } from '../context/AppContext'
-
-// Local lightweight useLocalStorage helper
-function useLocalStorage(key, initialValue) {
-  const [value, setValue] = React.useState(() => {
-    try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : initialValue
-    } catch {
-      return initialValue
-    }
-  })
-  React.useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
-  }, [key, value])
-  return [value, setValue]
-}
+import useLocalStorage from '../utils/hooks'
 
 export default function Vendors() {
 	const { theme } = useOutletContext()

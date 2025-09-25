@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// CRITICAL FIX: Enhanced service worker registration for WiFi compatibility
+// Re-enabled: Service worker for offline functionality
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {

@@ -8,19 +8,33 @@ import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
+import DocumentationUpload from '../components/common/DocumentationUpload'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate();
   const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems } = useAppContext();
   const [openAdd, setOpenAdd] = useState(false)
-  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '' })
+  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] })
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   
   const vendorMap = useMemo(() => (vendors || []).reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
+  
+  // Helper function to check use by date status
+  const getUseByStatus = (useByDate) => {
+    if (!useByDate) return null;
+    const today = new Date();
+    const useBy = new Date(useByDate);
+    const daysDiff = Math.ceil((useBy - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff < 0) return { status: 'expired', color: 'text-red-600', bgColor: 'bg-red-50' };
+    if (daysDiff <= 7) return { status: 'expiring', color: 'text-orange-600', bgColor: 'bg-orange-50' };
+    if (daysDiff <= 30) return { status: 'warning', color: 'text-yellow-600', bgColor: 'bg-yellow-50' };
+    return null;
+  };
   
   const filtered = useMemo(() => {
     return (items || []).filter(i => {
@@ -278,8 +292,42 @@ export default function Stockpile() {
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    {item.date && <div className="text-xs text-gray-400 pl-5">{new Date(item.date).toLocaleDateString()}</div>}
+                                                    {item.date && <div className="text-xs text-gray-400 pl-5">Acquired: {new Date(item.date).toLocaleDateString()}</div>}
+                                                    {item.useByDate && (
+                                                        (() => {
+                                                            const useByStatus = getUseByStatus(item.useByDate);
+                                                            return (
+                                                                <div className={`text-xs pl-5 px-2 py-1 rounded-md inline-block ${useByStatus ? `${useByStatus.color} ${useByStatus.bgColor}` : 'text-gray-400'}`}>
+                                                                    Use By: {new Date(item.useByDate).toLocaleDateString()}
+                                                                    {useByStatus?.status === 'expired' && ' (EXPIRED)'}
+                                                                    {useByStatus?.status === 'expiring' && ' (Expiring Soon)'}
+                                                                </div>
+                                                            );
+                                                        })()
+                                                    )}
                                                     {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
+                                                    {item.documentation && item.documentation.length > 0 && (
+                                                        <div className="text-xs text-gray-400 pl-5 mt-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <FileText size={12} />
+                                                                <span>Documentation: {item.documentation.length} item{item.documentation.length !== 1 ? 's' : ''}</span>
+                                                                <div className="flex gap-1">
+                                                                    {item.documentation.map((doc, index) => (
+                                                                        <a 
+                                                                            key={index}
+                                                                            href={doc.url} 
+                                                                            target="_blank" 
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-blue-500 hover:text-blue-700 underline text-xs"
+                                                                            title={doc.name}
+                                                                        >
+                                                                            {doc.type === 'image' ? '📸' : '🔗'}
+                                                                        </a>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <div className="flex items-center gap-2 pl-5">
                                                         <Hash size={12} />
                                                         <span>{item.quantity} {Number(item.quantity) === 1 ? 'vial' : 'vials'} {Number(item.quantity) <= 2 && <span className="text-red-500 font-semibold ml-1">Low</span>}</span>
@@ -392,7 +440,7 @@ export default function Stockpile() {
 
               setItems(prev => [itemToAdd, ...prev]); 
               setOpenAdd(false); 
-              setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '' }) 
+              setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] }) 
             }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
         </>
       )}>
@@ -441,11 +489,26 @@ export default function Stockpile() {
             </div>
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
           <TextInput label="Purity %" value={form.purity} onChange={v => setForm({ ...form, purity: v })} placeholder="e.g., 98" theme={theme} />
-          <TextInput label="Cap Color" value={form.capColor} onChange={v => setForm({ ...form, capColor: v })} placeholder="Blue" theme={theme} />
+          <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => setForm({ ...form, capColor: v })} placeholder="Blue" theme={theme} />
           <TextInput label="Batch #" value={form.batchNumber} onChange={v => setForm({ ...form, batchNumber: v })} placeholder="#" theme={theme} />
         </div>
-        <div className="mt-3">
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => setForm({ ...form, date: v })} theme={theme} />
+            <TextInput label="Use By (Optional)" type="date" value={form.useByDate} onChange={v => setForm({ ...form, useByDate: v })} theme={theme} />
+        </div>
+        
+        {/* Documentation Upload */}
+        <div className="mt-4">
+          <DocumentationUpload
+            documentation={form.documentation}
+            onChange={(documentation) => setForm({ ...form, documentation })}
+            theme={theme}
+            title="Post-Delivery Documentation"
+            description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
+            placeholder="Add photos of received vials, condition notes, quality check results, or other post-delivery documentation..."
+            allowImages={true}
+            allowLinks={true}
+          />
         </div>
       </Modal>
 

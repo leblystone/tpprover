@@ -9,8 +9,10 @@ import WeekView from '../components/calendar/WeekView'
 import DayView from '../components/calendar/DayView'
 import NotesModal from '../components/calendar/NotesModal'
 import CalendarIconKey from '../components/calendar/CalendarIconKey'
+import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
 import { calculateRecon } from '../utils/recon'
 import { useAppContext } from '../context/AppContext'
+import { getCalendarDone } from '../utils/taskCompletion'
 
 const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
 let colorIndex = 0;
@@ -120,15 +122,17 @@ export default function Calendar() {
   const [protocolTimelines, setProtocolTimelines] = useState([]);
   const [calendarBump, setCalendarBump] = useState(0);
   const [showIconKey, setShowIconKey] = useState(false);
+  const [quickEditDate, setQuickEditDate] = useState(null);
+  const [quickEditData, setQuickEditData] = useState(null);
   // Load persisted notes (entries) and done slots
   useEffect(() => {
     try { const raw = localStorage.getItem('tpprover_calendar_notes'); if (raw) setEntries(JSON.parse(raw)) } catch {}
-    try { const rawDone = localStorage.getItem('tpprover_calendar_done'); if (rawDone) setDone(JSON.parse(rawDone)) } catch {}
+    // Load done data from unified completion system
+    setDone(getCalendarDone());
   }, [])
 
-  useEffect(() => {
-    // This effect will now handle reloading protocol and supplement data when the calendar bump event occurs.
-    const loadData = () => {
+  // Define loadData function outside useEffect so it can be referenced elsewhere
+  const loadData = React.useCallback(() => {
         try {
           const supps = supplements
           console.log('📊 Calendar: Processing supplements', supps.map(s => ({ name: s.name, delivery: s.delivery, schedule: s.schedule })));
@@ -382,9 +386,15 @@ export default function Calendar() {
                       const peptideData = {
                           name: `${p.protocolName || 'Blended Protocol'}${doseDisplay}`,
                           deliveryMethod: reconItem?.deliveryMethod,
-                          penColor: reconItem?.penColor
+                          penColor: reconItem?.penColor,
+                          protocolId: p.id,
+                          peptideId: `${p.id}-blended`
                       };
-                      if (!currentSlot.peptides.some(item => item.name === peptideData.name)) {
+                      if (!currentSlot.peptides.some(item => 
+                          item.name === peptideData.name && 
+                          item.protocolId === peptideData.protocolId &&
+                          item.peptideId === peptideData.peptideId
+                      )) {
                         obj[t] = {
                           ...currentSlot,
                           peptides: [...currentSlot.peptides, peptideData],
@@ -461,10 +471,16 @@ export default function Calendar() {
                               const peptideData = {
                                   name: `${pep.name || 'Peptide'} - ${doseInfo}`,
                                   deliveryMethod: reconItem?.deliveryMethod,
-                                  penColor: reconItem?.penColor
+                                  penColor: reconItem?.penColor,
+                                  protocolId: p.id,
+                                  peptideId: pep.id || `${p.id}-${pep.name}`
                               };
                               
-                              if (!currentSlot.peptides.some(item => item.name === peptideData.name)) {
+                              if (!currentSlot.peptides.some(item => 
+                                  item.name === peptideData.name && 
+                                  item.protocolId === peptideData.protocolId &&
+                                  item.peptideId === peptideData.peptideId
+                              )) {
                                 obj[t] = {
                                     ...currentSlot,
                                     peptides: [...currentSlot.peptides, peptideData],
@@ -594,20 +610,16 @@ export default function Calendar() {
         } catch (e) {
           console.error('[Calendar Debug] Error in loadData:', e);
         }
-    };
-
-    loadData(); // Initial load
   }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals]);
 
-  // Manual refresh function
-  const handleRefresh = () => {
-    console.log('🔄 Manual calendar refresh triggered');
-    setCalendarBump(Date.now());
-  };
+  useEffect(() => {
+    loadData(); // Initial load
+  }, [loadData]);
+
 
   // Expose refresh function globally for debugging
   useEffect(() => {
-    window.refreshCalendar = handleRefresh;
+    window.refreshCalendar = loadData;
     window.debugSupplements = () => {
       const supps = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]');
       console.log('🔍 DEBUG: Supplements in localStorage:', supps);
@@ -716,7 +728,6 @@ export default function Calendar() {
         onPrev={handlePrev}
         onNext={handleNext}
         onToday={() => setCurrentDate(new Date())}
-        onRefresh={handleRefresh}
         viewMode={viewMode}
         onChangeView={setViewMode}
         onShowIconKey={() => setShowIconKey(true)}
@@ -731,13 +742,39 @@ export default function Calendar() {
             theme={theme}
             onDayClick={(d) => {
               if (!d) return
-              setCurrentDate(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
-              setViewMode('week')
+              // Check if the day has scheduled tasks - if so, open quick edit
+              const dayKey = toKey(d);
+              const dayScheduled = scheduled[dayKey];
+              if (dayScheduled && dayScheduled.bySlot && Object.keys(dayScheduled.bySlot).length > 0) {
+                setQuickEditDate(dayKey);
+                setQuickEditData(dayScheduled);
+              } else {
+                // No tasks, just navigate to week view
+                setCurrentDate(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
+                setViewMode('week')
+              }
             }}
           />
         ) : (
           <div className="space-y-2">
-            <WeekView startDate={weekStart} entries={entries} scheduled={scheduled} theme={theme} onDayClick={setActiveDay} onNotesClick={setEditingNotesFor} />
+            <WeekView 
+              startDate={weekStart} 
+              entries={entries} 
+              scheduled={scheduled} 
+              theme={theme} 
+              onDayClick={(date) => {
+                // Check if the day has scheduled tasks - if so, open quick edit
+                const dayKey = toKey(date);
+                const dayScheduled = scheduled[dayKey];
+                if (dayScheduled && dayScheduled.bySlot && Object.keys(dayScheduled.bySlot).length > 0) {
+                  setQuickEditDate(dayKey);
+                  setQuickEditData(dayScheduled);
+                } else {
+                  setActiveDay(date);
+                }
+              }} 
+              onNotesClick={setEditingNotesFor} 
+            />
           </div>
         )}
       </div>
@@ -750,7 +787,23 @@ export default function Calendar() {
           onSave={handleSaveNotes}
       />
 
-      {/* Inline day edit could be implemented here in future. Modal temporarily disabled per request. */}
+      {/* Calendar Quick Edit Modal */}
+      {quickEditDate && quickEditData && (
+        <CalendarQuickEdit
+          date={quickEditDate}
+          scheduledData={quickEditData}
+          theme={theme}
+          onClose={() => {
+            setQuickEditDate(null);
+            setQuickEditData(null);
+          }}
+          onTasksUpdated={() => {
+            // Refresh calendar data when tasks are updated
+            setDone(getCalendarDone());
+            setCalendarBump(Date.now());
+          }}
+        />
+      )}
       
       <CalendarIconKey 
         theme={theme}

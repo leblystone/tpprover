@@ -17,6 +17,8 @@ import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import { calculateRecon } from '../utils/recon'
 import useLocalStorage from '../utils/hooks'
 import { formatMMDDYYYY } from '../utils/date'
+import { generateTaskId, toggleTaskCompletion, isTaskCompleted } from '../utils/taskCompletion'
+import { debugTaskCompletion } from '../utils/taskPersistence'
 import GoalModal from '../components/research/GoalModal'
 import BodyMetricsModal from '../components/research/BodyMetricsModal'
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal'
@@ -302,17 +304,24 @@ export default function Dashboard() {
                 }
 
                 times.forEach(t => {
-                    peptideTasks.push({
+                    const timeSlot = t === 'Morning' ? 'AM' : 'PM';
+                    const task = {
                         id: `${p.id}-${blendName}-${t}`,
                         type: 'peptide',
                         name: blendName,
                         dose: doseDisplay,
                         unit: '', // Unit is part of the doseDisplay string
-                        time: t === 'Morning' ? 'AM' : 'PM',
+                        time: timeSlot,
                         completed: false,
                         deliveryMethod: reconItem?.deliveryMethod,
                         penColor: reconItem?.penColor
-                    });
+                    };
+                    // Generate stable task ID and check completion status
+                    const taskId = generateTaskId(task);
+                    const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+                    task.completed = wasCompleted;
+                    task.stableTaskId = taskId; // Store for debugging
+                    peptideTasks.push(task);
                 });
             }
         } else {
@@ -361,17 +370,24 @@ export default function Dashboard() {
               }
 
               pep.frequency.time.forEach(t => {
-                peptideTasks.push({
+                const timeSlot = t === 'Morning' ? 'AM' : 'PM';
+                const task = {
                   id: `${p.id}-${pep.name || 'Peptide'}-${t}`,
                   type: 'peptide',
                   name: pep.name || 'Peptide',
                   dose: dose,
                   unit: unit,
-                  time: t === 'Morning' ? 'AM' : 'PM',
+                  time: timeSlot,
                   completed: false,
                   deliveryMethod: reconItem?.deliveryMethod,
                   penColor: reconItem?.penColor
-                })
+                };
+                // Generate stable task ID and check completion status
+                const taskId = generateTaskId(task);
+                const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
+                task.completed = wasCompleted;
+                task.stableTaskId = taskId; // Store for debugging
+                peptideTasks.push(task);
               })
             })
         }
@@ -420,7 +436,7 @@ export default function Dashboard() {
         const tasks = [];
         const slots = Array.isArray(s.schedule) ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM','PM'])
         if (slots.includes('AM')) {
-          tasks.push({
+          const task = {
             id: `${s.id}-AM`,
             type: 'supplement',
             name: s.name,
@@ -429,10 +445,16 @@ export default function Dashboard() {
             delivery: s.delivery,
             time: 'AM',
             completed: false,
-          });
+          };
+          // Generate stable task ID and check completion status
+          const taskId = generateTaskId(task);
+          const wasCompleted = isTaskCompleted(taskId, undefined, 'AM');
+          task.completed = wasCompleted;
+          task.stableTaskId = taskId; // Store for debugging
+          tasks.push(task);
         }
         if (slots.includes('PM')) {
-          tasks.push({
+          const task = {
             id: `${s.id}-PM`,
             type: 'supplement',
             name: s.name,
@@ -441,7 +463,13 @@ export default function Dashboard() {
             delivery: s.delivery,
             time: 'PM',
             completed: false,
-          });
+          };
+          // Generate stable task ID and check completion status
+          const taskId = generateTaskId(task);
+          const wasCompleted = isTaskCompleted(taskId, undefined, 'PM');
+          task.completed = wasCompleted;
+          task.stableTaskId = taskId; // Store for debugging
+          tasks.push(task);
         }
         return tasks;
       });
@@ -453,8 +481,18 @@ export default function Dashboard() {
       return a.name.localeCompare(b.name)
     })
 
+    console.log('📋 Generated tasks:', combined.map(t => ({
+      id: t.id,
+      taskId: generateTaskId(t),
+      name: t.name,
+      completed: t.completed
+    })));
+    
     setTodaysTasks(combined)
     setWashoutReminders(reminders);
+    
+    // Debug task completion data
+    debugTaskCompletion();
   }, [peptideLog, supplements, calendarBump])
 
   useEffect(() => {
@@ -463,7 +501,24 @@ export default function Dashboard() {
     return () => window.removeEventListener('tpp:openImport', handler)
   }, [])
 
-  const toggleTask = (id) => setTodaysTasks(ts => ts.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
+  const toggleTask = (id) => {
+    setTodaysTasks(ts => ts.map(t => {
+      if (t.id === id) {
+        const newCompleted = !t.completed;
+        // Use the stable task ID that was generated during task creation
+        const taskId = t.stableTaskId || generateTaskId(t);
+        console.log('🔄 Dashboard: Toggling task', {
+          taskName: t.name,
+          originalId: id,
+          stableTaskId: taskId,
+          newCompleted
+        });
+        toggleTaskCompletion(taskId, newCompleted, undefined, t.time);
+        return { ...t, completed: newCompleted };
+      }
+      return t;
+    }));
+  }
 
   React.useEffect(() => {
     const onOpenRecon = (e) => {
@@ -634,10 +689,10 @@ export default function Dashboard() {
                 <ActionButton onClick={() => { setShowRecon(true) }} icon={<Droplet />} label="Recon Calculator" theme={theme} />
                 <ActionButton onClick={() => { setShowNewProtocol(true) }} icon={<Plus />} label="New Protocol" theme={theme} />
             </div>
-            {/* Body Metrics Panel */}
+            {/* Bio-Metrics Panel */}
             <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="body-metrics">
                 <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold">Body Metrics</div>
+                    <div className="font-semibold">Bio-Metrics</div>
                     <button onClick={() => { setEditingMetric(null); setShowMetrics(true) }} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}><PlusCircle className="h-4 w-4 inline mr-1"/>Add</button>
                 </div>
                 <hr className="mb-3" style={{ borderColor: theme.border }} />

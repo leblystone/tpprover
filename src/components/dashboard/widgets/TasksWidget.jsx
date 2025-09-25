@@ -1,4 +1,5 @@
 import React from 'react';
+import { CheckSquare } from 'lucide-react';
 import TasksList from '../TasksList';
 
 const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
@@ -15,9 +16,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     return (
       <div className="h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Today's Research
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+              Today's Research
+            </h3>
+            <CheckSquare size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
         
         <div className="flex-1 p-4 flex flex-col items-center justify-center">
@@ -34,9 +38,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     return (
       <div className="h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Today's Research
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+              Today's Research
+            </h3>
+            <CheckSquare size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
         
         <div className="flex-1 p-4">
@@ -72,9 +79,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-          {widget.title}
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            {widget.title}
+          </h3>
+          <CheckSquare size={20} style={{ color: theme.primary }} />
+        </div>
       </div>
       
       <div className="flex-1 p-4 overflow-y-auto">

@@ -256,13 +256,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 const vialId = linkedData[p.id].vialId;
                 const vial = stockpile.find(item => item.id === vialId);
                 if (!vial) return { id: p.id, name: p.name, mg: '', dose: '' };
-                const cost = Number(vial.cost) || 0;
+                const totalCost = Number(vial.cost) || 0;
                 const quantity = Number(vial.quantity) || 1;
-                const costPerVial = quantity > 0 ? cost / quantity : 0;
+                // For recon calculations, we need the cost of ONE vial being reconstituted
+                // If user entered total cost for multiple vials, divide by quantity to get per-vial cost
+                const singleVialCost = quantity > 0 ? totalCost / quantity : 0;
                 return {
                     id: p.id, name: p.name, mg: vial.mg,
                     dose: p.dosage?.amount || '', doseUnit: p.dosage?.unit || 'mcg',
-                    cost: costPerVial, vendor: vial.vendor,
+                    cost: singleVialCost, vendor: vial.vendor,
                 };
             }),
             protocolName: protocol.protocolName,
@@ -324,8 +326,19 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         Start Date
                         <input type="date" className="mt-1 p-2 rounded border w-full bg-gray-50" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ borderColor: theme.border }} />
                     </label>
-                    <div className="text-xs text-gray-500">
-                        This will schedule <span className="font-semibold">{protocol.protocolName}</span> on your calendar.
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm" style={{ backgroundColor: theme.info + '10', borderColor: theme.info + '40' }}>
+                        <div className="font-medium mb-2" style={{ color: theme.info }}>
+                            🎯 What happens when you start this protocol:
+                        </div>
+                        <ul className="list-disc list-inside space-y-1 text-xs" style={{ color: theme.textLight }}>
+                            <li><strong>Daily tasks</strong> will appear on your Dashboard under "Today's Research"</li>
+                            <li><strong>Schedule</strong> will be visible in your Calendar view</li>
+                            <li><strong>Reminders</strong> will help you stay consistent with your protocol</li>
+                            <li><strong>Progress tracking</strong> lets you mark tasks complete as you go</li>
+                        </ul>
+                        <div className="mt-2 text-xs font-medium" style={{ color: theme.info }}>
+                            Protocol: <span className="font-bold">{protocol.protocolName}</span>
+                        </div>
                     </div>
                 </div>
                 <div className="mt-6 flex justify-end gap-2">

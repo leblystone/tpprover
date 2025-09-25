@@ -36,9 +36,9 @@ function getDefaultSettings() {
       weekStartsOn: 'monday', // 'sunday' | 'monday'
     },
     privacy: {
-      analytics: false,
+      analytics: true,
       functional: true,
-      dataSharing: false,
+      dataSharing: true,
     },
   }
 }

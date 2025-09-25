@@ -71,9 +71,11 @@ self.addEventListener('fetch', (event) => {
         // CRITICAL FIX: Network-first strategy for better WiFi compatibility
         // Try network first, fall back to cache if network fails
         
-        // For API calls and Firebase, always try network first
-        if (url.hostname.includes('firebase') || url.pathname.includes('/api/')) {
-          console.log('🌐 Service Worker: Network-first for API:', url.pathname);
+        // For API calls, Firebase, and dynamic imports, always try network first
+        if (url.hostname.includes('firebase') || 
+            url.pathname.includes('/api/') ||
+            url.pathname.includes('src/pages/')) {
+          console.log('🌐 Service Worker: Network-first for:', url.pathname);
           try {
             const networkResponse = await fetch(request);
             if (networkResponse.ok) {
@@ -125,10 +127,15 @@ self.addEventListener('fetch', (event) => {
         });
         
         if (networkResponse.ok) {
-          // Cache successful responses
-          const cache = await caches.open(DYNAMIC_CACHE);
-          cache.put(request, networkResponse.clone());
-          console.log('💾 Service Worker: Cached new resource:', url.pathname);
+          // Cache successful responses (skip Firebase/external APIs)
+          try {
+            const cache = await caches.open(DYNAMIC_CACHE);
+            await cache.put(request, networkResponse.clone());
+            console.log('💾 Service Worker: Cached new resource:', url.pathname);
+          } catch (cacheError) {
+            console.warn('⚠️ Service Worker: Cache put failed (non-critical):', cacheError.message);
+            // Continue without caching - this is non-critical
+          }
         }
         
         return networkResponse;

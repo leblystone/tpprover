@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, Plus, RotateCcw, Save, X } from 'lucide-react';
+import ModernTooltip from '../ui/ModernTooltip';
 import { 
   WIDGET_TYPES, 
   WIDGET_METADATA, 
@@ -104,39 +105,23 @@ const DashboardCustomizer = ({
                   const existingWidget = widgets.find(w => w.type === type);
                   const isActive = existingWidget?.enabled;
                   const hasWidget = !!existingWidget;
-                  const isSettingsOpen = selectedWidget?.id === existingWidget?.id;
                   
                   return (
-                    <div key={type} className="space-y-2">
+                    <div key={type}>
                       <div
                         className={`p-4 border rounded-lg hover:shadow-md transition-all ${
                           isActive ? 'ring-2 ring-opacity-50' : ''
-                        } ${isSettingsOpen ? 'shadow-md' : ''}`}
+                        }`}
                         style={{ 
-                          borderColor: isSettingsOpen ? theme.primary : theme.border,
+                          borderColor: theme.border,
                           ringColor: isActive ? theme.primary : 'transparent',
                           backgroundColor: isActive ? theme.secondary + '20' : 'transparent'
                         }}
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="mb-2">
                           <h4 className="font-medium" style={{ color: theme.text }}>
                             {meta.title}
                           </h4>
-                          {hasWidget && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedWidget(isSettingsOpen ? null : existingWidget);
-                              }}
-                              className={`p-1 rounded transition-colors ${
-                                isSettingsOpen ? 'bg-gray-200' : 'hover:bg-gray-100'
-                              }`}
-                              style={{ color: theme.text }}
-                              title={isSettingsOpen ? 'Close settings' : 'Widget settings'}
-                            >
-                              <Settings size={14} />
-                            </button>
-                          )}
                         </div>
                         <p className="text-sm mb-3" style={{ color: theme.textLight }}>
                           {meta.description}
@@ -169,25 +154,6 @@ const DashboardCustomizer = ({
                           )}
                         </div>
                       </div>
-                      
-                      {/* Inline Settings Panel */}
-                      {isSettingsOpen && (
-                        <div 
-                          className="border rounded-lg p-4 animate-in slide-in-from-top-2 duration-200"
-                          style={{ 
-                            borderColor: theme.primary,
-                            backgroundColor: theme.secondary + '10'
-                          }}
-                        >
-                        <InlineWidgetSettings
-                          widget={selectedWidget}
-                          metadata={WIDGET_METADATA[selectedWidget?.type] || {}}
-                          theme={theme}
-                          onChange={handleWidgetSettingChange}
-                          onClose={() => setSelectedWidget(null)}
-                        />
-                        </div>
-                      )}
                     </div>
                   );
                 })}

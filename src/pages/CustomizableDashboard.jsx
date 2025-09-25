@@ -15,8 +15,11 @@ import {
   validateWidgetPosition,
   findEmptyPosition,
   resetDashboardLayout,
+  getSizeConfig,
   WIDGET_TYPES
 } from '../utils/dashboardCustomization';
+import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
+import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
 
 // Import modals that might be needed
 import ReconCalculatorModal from '../components/recon/ReconCalculatorModal';
@@ -29,6 +32,7 @@ import BodyMetricsModal from '../components/research/BodyMetricsModal';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
 import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
+import GlossaryQuickModal from '../components/glossary/GlossaryQuickModal';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -39,6 +43,7 @@ export default function CustomizableDashboard() {
     setOrders, 
     vendors, 
     setVendors, 
+    protocols,
     setProtocols, 
     supplements, 
     addSupplement, 
@@ -78,6 +83,8 @@ export default function CustomizableDashboard() {
   const [editingSupplement, setEditingSupplement] = useState(null);
   const [showBadges, setShowBadges] = useState(false);
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
+  const [showGlossary, setShowGlossary] = useState(false);
+  const [glossaryConfig, setGlossaryConfig] = useState({});
 
   const [vendorNames] = useState(() => {
     try { 
@@ -140,17 +147,55 @@ export default function CustomizableDashboard() {
     } catch (error) {
       console.error('Error loading upcoming buys:', error);
     }
+
+    // Debug functions are now loaded globally via App.jsx -> debugUtils.js
+  }, []);
+
+  // Quick Actions event listeners
+  useEffect(() => {
+    const handleOpenRecon = () => setShowRecon(true);
+    const handleOpenOrder = () => {
+      setShowNewOrder(true);
+    };
+    const handleOpenVendor = () => {
+      setEditingVendor(null);
+      setShowNewVendor(true);
+    };
+    const handleOpenProtocol = () => {
+      setShowNewProtocol(true);
+    };
+    const handleOpenGlossary = (e) => {
+      const config = e.detail || {};
+      setGlossaryConfig(config);
+      setShowGlossary(true);
+    };
+
+    window.addEventListener('tpp:openRecon', handleOpenRecon);
+    window.addEventListener('tpp:openOrder', handleOpenOrder);
+    window.addEventListener('tpp:openVendor', handleOpenVendor);
+    window.addEventListener('tpp:openProtocol', handleOpenProtocol);
+    window.addEventListener('tpp:open_glossary', handleOpenGlossary);
+
+    return () => {
+      window.removeEventListener('tpp:openRecon', handleOpenRecon);
+      window.removeEventListener('tpp:openOrder', handleOpenOrder);
+      window.removeEventListener('tpp:openVendor', handleOpenVendor);
+      window.removeEventListener('tpp:openProtocol', handleOpenProtocol);
+      window.removeEventListener('tpp:open_glossary', handleOpenGlossary);
+    };
   }, []);
 
   // Generate today's tasks from supplements and protocols
   useEffect(() => {
     const tasks = [];
+    const today = new Date();
+    const todayKey = today.toISOString().split('T')[0];
     
     // Add supplement tasks
     supplements.forEach(supplement => {
       const schedule = Array.isArray(supplement.schedule) ? supplement.schedule : [];
       schedule.forEach(time => {
-        tasks.push({
+        const task = {
           id: `supplement_${supplement.id}_${time}`,
           name: supplement.name,
           dose: supplement.dose,
@@ -159,12 +204,59 @@ export default function CustomizableDashboard() {
           type: 'supplement',
           delivery: supplement.delivery,
           completed: false
+        };
+        
+        // Generate stable task ID and check completion status
+        const taskId = generateTaskId(task);
+        task.stableTaskId = taskId;
+        task.completed = isTaskCompleted(taskId);
+        
+        tasks.push(task);
+      });
+    });
+
+    // Add protocol/peptide tasks
+    protocols.forEach(protocol => {
+      if (protocol.active === false) return;
+      
+      const startDate = protocol.startDate ? new Date(protocol.startDate) : null;
+      const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+      
+      // Check if protocol is active today
+      if (startDate && today < startDate) return;
+      if (endDate && today > endDate) return;
+      
+      const peptides = Array.isArray(protocol.peptides) ? protocol.peptides : [];
+      
+      peptides.forEach((peptide, peptideIndex) => {
+        const frequency = peptide.frequency || {};
+        const times = Array.isArray(frequency.time) ? frequency.time : ['AM'];
+        
+        times.forEach(time => {
+          const task = {
+            id: `protocol_${protocol.id}_${peptideIndex}_${time}`,
+            name: peptide.name || 'Unknown Peptide',
+            dose: peptide.dosage?.amount || '',
+            unit: peptide.dosage?.unit || 'mcg',
+            time: time,
+            type: 'peptide',
+            protocolId: protocol.id,
+            protocolName: protocol.protocolName,
+            completed: false
+          };
+          
+          // Generate stable task ID and check completion status
+          const taskId = generateTaskId(task);
+          task.stableTaskId = taskId;
+          task.completed = isTaskCompleted(taskId);
+          
+          tasks.push(task);
         });
       });
     });
 
     setTodaysTasks(tasks);
-  }, [supplements]);
+  }, [supplements, protocols]);
 
   // Save layout when widgets change
   useEffect(() => {
@@ -255,10 +347,18 @@ export default function CustomizableDashboard() {
     // Focus on the specific widget in the customizer
   };
 
-  // Task management
-  const handleTaskToggle = (taskId) => {
-    setTodaysTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, completed: !task.completed } : task
+  // Task management - using unified completion system
+  const handleTaskToggle = (task) => {
+    const taskId = task.stableTaskId || generateTaskId(task);
+    const currentlyCompleted = isTaskCompleted(taskId);
+    const newCompletedState = !currentlyCompleted;
+    
+    // Toggle in the unified system
+    toggleTaskCompletion(taskId, newCompletedState);
+    
+    // Update local state to reflect the change immediately
+    setTodaysTasks(prev => prev.map(t => 
+      t.id === task.id ? { ...t, completed: newCompletedState } : t
     ));
   };
 
@@ -269,15 +369,8 @@ export default function CustomizableDashboard() {
     ));
   };
 
-  // Filter enabled widgets and sort by position
-  const enabledWidgets = widgets
-    .filter(w => w.enabled)
-    .sort((a, b) => {
-      if (a.position.y !== b.position.y) {
-        return a.position.y - b.position.y;
-      }
-      return a.position.x - b.position.x;
-    });
+  // Filter enabled widgets - use array order for drag-and-drop, not position sorting
+  const enabledWidgets = widgets.filter(w => w.enabled);
 
   return (
     <ViewContainer theme={theme}>
@@ -315,7 +408,7 @@ export default function CustomizableDashboard() {
         {/* Dashboard Layout - Flexible Grid */}
         <div>
           <div className="dashboard-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
-            {enabledWidgets.map(widget => {
+            {enabledWidgets.map((widget, index) => {
               // Determine widget size based on type and content
               let gridClasses = '';
               let minHeight = '';
@@ -336,17 +429,17 @@ export default function CustomizableDashboard() {
                   }
                   break;
                 case 'goals_only':
-                  // Dynamic sizing based on goal count
+                  // Dynamic sizing based on goal count - made smaller
                   const goalCount = goals ? goals.length : 0;
                   if (goalCount === 0) {
-                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
-                    minHeight = '180px';
+                    gridClasses = 'col-span-1 sm:col-span-1 lg:col-span-1';
+                    minHeight = '160px';
                   } else if (goalCount <= 2) {
-                    gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '220px';
+                    gridClasses = 'col-span-2 sm:col-span-1 lg:col-span-2';
+                    minHeight = '200px';
                   } else {
                     gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                    minHeight = '300px';
+                    minHeight = '280px';
                   }
                   break;
                 case 'metrics_only':
@@ -399,8 +492,8 @@ export default function CustomizableDashboard() {
                   minHeight = '200px';
                   break;
                 case 'badges':
-                  gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
-                  minHeight = '120px';
+                  gridClasses = 'col-span-1 sm:col-span-1 lg:col-span-1';
+                  minHeight = '100px';
                   break;
                 case 'supplements':
                   gridClasses = 'col-span-2 sm:col-span-2 lg:col-span-2';
@@ -412,7 +505,7 @@ export default function CustomizableDashboard() {
               }
 
               return (
-                <div key={widget.id} className={gridClasses}>
+                <div key={`${widget.id}-${index}`} className={gridClasses}>
                   <DashboardWidget
                     widget={widget}
                     theme={theme}
@@ -609,6 +702,25 @@ export default function CustomizableDashboard() {
           setShowAddSupplement(false);
           setEditingSupplement(null);
           addToast('Supplement saved', 'success');
+        }}
+      />
+
+      <GlossaryQuickModal
+        open={showGlossary}
+        onClose={() => setShowGlossary(false)}
+        theme={theme}
+        initialTab={glossaryConfig.tab}
+        initialSearchTerm={glossaryConfig.searchTerm}
+      />
+
+      <ProtocolEditorModal
+        open={showNewProtocol}
+        onClose={() => setShowNewProtocol(false)}
+        theme={theme}
+        onSave={(protocol) => {
+          setProtocols(prev => [...prev, { ...protocol, id: Date.now() }]);
+          setShowNewProtocol(false);
+          addToast('Protocol created', 'success');
         }}
       />
 

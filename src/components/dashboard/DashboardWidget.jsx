@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Settings, X, Move, Maximize2, Minimize2 } from 'lucide-react';
-import { WIDGET_SIZES, getSizeConfig } from '../../utils/dashboardCustomization';
+import { X, Move } from 'lucide-react';
+import { getSizeConfig } from '../../utils/dashboardCustomization';
 
 const DashboardWidget = ({ 
   widget, 
@@ -8,8 +8,6 @@ const DashboardWidget = ({
   theme, 
   isCustomizing = false,
   onRemove,
-  onSettings,
-  onResize,
   onMove,
   style = {}
 }) => {
@@ -21,14 +19,14 @@ const DashboardWidget = ({
     if (!isCustomizing) return;
     
     setIsDragging(true);
-    console.log('🎬 DRAG START:', widget.id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', widget.id);
     
-    // Add visual feedback
-    e.currentTarget.style.opacity = '0.5';
-    e.currentTarget.style.transform = 'rotate(5deg)';
+    // Add subtle visual feedback without rotation
+    e.currentTarget.style.opacity = '0.7';
+    e.currentTarget.style.transform = 'scale(0.98)';
     e.currentTarget.style.zIndex = '1000';
+    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
   };
 
   const handleDragEnd = (e) => {
@@ -37,6 +35,7 @@ const DashboardWidget = ({
     e.currentTarget.style.opacity = '1';
     e.currentTarget.style.transform = '';
     e.currentTarget.style.zIndex = '';
+    e.currentTarget.style.boxShadow = '';
   };
 
   const handleDragOver = (e) => {
@@ -60,13 +59,6 @@ const DashboardWidget = ({
     if (!isCustomizing) return;
     e.preventDefault();
     
-    console.log('🎯 DROP EVENT:', {
-      isCustomizing,
-      draggedWidgetId: e.dataTransfer.getData('text/plain'),
-      dropTargetId: widget.id,
-      onMoveExists: !!onMove
-    });
-    
     // Reset border styling
     e.currentTarget.style.borderColor = theme.border;
     e.currentTarget.style.borderWidth = '1px';
@@ -75,11 +67,8 @@ const DashboardWidget = ({
     const dropTargetId = widget.id;
     
     if (draggedWidgetId && draggedWidgetId !== dropTargetId) {
-      console.log('🚀 CALLING onMove:', draggedWidgetId, 'to', dropTargetId);
       // Call the move handler to reorder widgets
       onMove?.(draggedWidgetId, dropTargetId);
-    } else {
-      console.log('❌ DROP IGNORED:', { draggedWidgetId, dropTargetId, same: draggedWidgetId === dropTargetId });
     }
   };
 
@@ -89,18 +78,18 @@ const DashboardWidget = ({
     ...style
   };
 
-  const canResize = widget.type !== 'analytics' || widget.size !== WIDGET_SIZES.FULL;
+  // Resize functionality disabled - widgets use dynamic sizing based on content
 
   return (
     <div
       className={`relative rounded-xl border content-card shadow-lg transition-all duration-200 ${
-        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : ''
+        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : 'hover:ring-2 hover:ring-opacity-30'
       } ${isDragging ? 'z-50 shadow-2xl' : 'hover:shadow-xl'}`}
       style={{
         ...widgetStyle,
         borderColor: theme.border,
         backgroundColor: theme.white || '#ffffff',
-        ringColor: isCustomizing ? theme.primary : 'transparent'
+        '--tw-ring-color': isCustomizing ? theme.primary : theme.primary + '4D' // 30% opacity for hover
       }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -111,42 +100,13 @@ const DashboardWidget = ({
       draggable={isCustomizing}
     >
       {isCustomizing && (
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-          {canResize && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const currentSizes = [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE, WIDGET_SIZES.WIDE, WIDGET_SIZES.FULL];
-                const currentIndex = currentSizes.indexOf(widget.size);
-                const nextSize = currentSizes[(currentIndex + 1) % currentSizes.length];
-                onResize?.(widget.id, nextSize);
-              }}
-              className="p-1 rounded bg-white shadow-sm hover:bg-gray-50 transition-colors"
-              style={{ color: theme.text }}
-              title="Resize widget"
-            >
-              {widget.size === WIDGET_SIZES.SMALL ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
-            </button>
-          )}
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onSettings?.(widget.id);
-            }}
-            className="p-1 rounded bg-white shadow-sm hover:bg-gray-50 transition-colors"
-            style={{ color: theme.text }}
-            title="Widget settings"
-          >
-            <Settings size={14} />
-          </button>
-          
+        <div className="absolute top-1 right-1 z-20 flex items-center gap-1 bg-white rounded-md shadow-lg p-1 border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onRemove?.(widget.id);
             }}
-            className="p-1 rounded bg-white shadow-sm hover:bg-red-50 transition-colors text-red-600"
+            className="p-1 rounded hover:bg-red-50 transition-colors text-red-600"
             title="Remove widget"
           >
             <X size={14} />
