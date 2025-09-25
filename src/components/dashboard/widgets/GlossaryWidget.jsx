@@ -334,8 +334,8 @@ function findPeptideMatch(searchTerm, peptideDatabase) {
       classification: 'Naturally Occurring Hormone',
       mechanism: 'Neuropeptide hormone that acts on oxytocin receptors to influence social bonding and reproductive behaviors.',
       commonUses: ['Social behavior research', 'Autism studies', 'Labor induction research', 'Bonding research'],
-      dosageRanges: 'Research dosages vary widely based on application and route of administration.',
-      researchFindings: 'Significant effects on social cognition, empathy, and pair bonding behaviors.',
+      dosageRanges: 'Intranasal research: 24-40 IU per dose. IV labor induction: 0.5-2 mU/min, max 20 mU/min. Social research: 20-40 IU intranasal single dose.',
+      researchFindings: 'Significant effects on social cognition, empathy, and pair bonding behaviors. Effective for labor induction.',
       considerations: 'May cause uterine contractions. Contraindicated in pregnancy unless medically supervised.',
       researchStatus: 'FDA-approved for labor induction and postpartum bleeding.',
       disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
@@ -781,15 +781,15 @@ function findPeptideMatch(searchTerm, peptideDatabase) {
       disclaimer: 'Research compound - not approved for therapeutic use.'
     },
     'CAGRILINTIDE': {
-      aliases: ['AMYLIN/CALCITONIN DUAL AGONIST'],
+      aliases: ['AMYLIN/CALCITONIN DUAL AGONIST', 'CAG', 'AM833'],
       classification: 'Dual Hormone Agonist',
-      mechanism: 'Dual agonist of amylin and calcitonin receptors for enhanced metabolic effects.',
+      mechanism: 'Dual agonist of amylin and calcitonin receptors for enhanced metabolic effects and appetite suppression.',
       commonUses: ['Obesity research', 'Diabetes research', 'Weight management studies', 'Metabolic research'],
-      dosageRanges: 'Research protocols vary based on study design.',
-      researchFindings: 'Potential for significant weight loss and metabolic improvements.',
-      considerations: 'Novel mechanism. Limited human safety data.',
-      researchStatus: 'Clinical-stage investigational compound.',
-      disclaimer: 'Research compound - not approved for therapeutic use.'
+      dosageRanges: 'Clinical trials: 0.3-2.4mg weekly subcutaneous injection. Phase 2 studies used 1.2mg and 2.4mg weekly. Titration typically starts at 0.3mg weekly, increasing by 0.3mg weekly to target dose.',
+      researchFindings: 'Phase 2 trials showed 15.6% weight loss at 2.4mg weekly dose. Superior efficacy when combined with semaglutide.',
+      considerations: 'GI side effects common during titration. Novel dual mechanism. Requires slow dose escalation.',
+      researchStatus: 'Phase 3 clinical trials ongoing (Novo Nordisk).',
+      disclaimer: 'Investigational compound - not approved for therapeutic use.'
     },
     'FOX04-DRI': {
       aliases: ['FOXO4-DRI', 'SENOLYTIC PEPTIDE'],
@@ -1891,7 +1891,15 @@ export default function GlossaryWidget({ widget, theme }) {
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative overflow-hidden">
+      {/* Modern In Progress Banner */}
+      <div className="absolute top-0 right-0 z-10">
+        <div className="bg-gradient-to-l from-blue-500 to-blue-600 text-white text-xs font-medium px-3 py-1 rounded-bl-lg shadow-lg flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+          In Progress
+        </div>
+      </div>
+      
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
