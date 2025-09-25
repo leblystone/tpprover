@@ -2,13 +2,81 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Search, Star, StarOff, ChevronDown, ChevronRight, Brain, AlertTriangle, Loader, Filter, FileText, Plus, Edit3, Trash2, Zap, Heart, Target, Shield, Sparkles } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 
+// Levenshtein distance function for fuzzy string matching
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
+// Validate and find peptide matches
+function findPeptideMatch(searchTerm, peptideDatabase) {
+  const name = searchTerm.toUpperCase().trim();
+  
+  // Must be at least 3 characters and contain letters
+  if (name.length < 3 || !/[A-Z]/.test(name)) {
+    return null;
+  }
+  
+  // Direct exact match (including aliases)
+  for (const [key, data] of Object.entries(peptideDatabase)) {
+    if (key === name || data.aliases.some(alias => alias === name)) {
+      return { key, data, matchType: 'exact' };
+    }
+  }
+  
+  // Fuzzy matching for misspellings (max distance of 2)
+  const fuzzyMatches = [];
+  for (const [key, data] of Object.entries(peptideDatabase)) {
+    const distance = levenshteinDistance(name, key);
+    if (distance <= 2 && distance > 0) {
+      fuzzyMatches.push({ key, data, distance, matchType: 'fuzzy' });
+    }
+    
+    // Check aliases too
+    for (const alias of data.aliases) {
+      const aliasDistance = levenshteinDistance(name, alias);
+      if (aliasDistance <= 2 && aliasDistance > 0) {
+        fuzzyMatches.push({ key, data, distance: aliasDistance, matchType: 'fuzzy', matchedAlias: alias });
+      }
+    }
+  }
+  
+  // Return best fuzzy match if found
+  if (fuzzyMatches.length > 0) {
+    fuzzyMatches.sort((a, b) => a.distance - b.distance);
+    return fuzzyMatches[0];
+  }
+  
+  return null;
+}
+
 // Import the research compilation function from the modal
 async function compilePeptideResearch(peptideName) {
   // Simulate comprehensive research compilation
   await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // Create detailed research profile based on peptide name
-  const name = peptideName.toUpperCase();
   
   // Enhanced peptide database with common variations and aliases
   const peptideDatabase = {
@@ -44,41 +112,64 @@ async function compilePeptideResearch(peptideName) {
       considerations: 'Enhanced potency requires careful monitoring. May have increased gastrointestinal effects.',
       researchStatus: 'Recently approved, extensive ongoing research into optimal applications.',
       disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'TB-500': {
+      aliases: ['TB500', 'TB 500', 'THYMOSIN BETA-4'],
+      classification: 'Synthetic Peptide Fragment',
+      mechanism: 'Promotes cell migration, angiogenesis, and wound healing through actin regulation and anti-inflammatory pathways.',
+      commonUses: ['Tissue repair research', 'Athletic recovery studies', 'Wound healing research', 'Anti-inflammatory research'],
+      dosageRanges: 'Research protocols typically use 2-5mg weekly, administered subcutaneously.',
+      researchFindings: 'Demonstrates significant tissue repair and anti-inflammatory effects in preclinical studies.',
+      considerations: 'Generally well-tolerated in research settings. Long-term effects under investigation.',
+      researchStatus: 'Investigational compound with growing research interest.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'IPAMORELIN': {
+      aliases: ['IPA', 'IPAM'],
+      classification: 'Growth Hormone Releasing Peptide',
+      mechanism: 'Selective growth hormone secretagogue that stimulates GH release without affecting cortisol or prolactin levels.',
+      commonUses: ['Growth hormone research', 'Anti-aging studies', 'Body composition research', 'Sleep quality research'],
+      dosageRanges: 'Research dosages typically range from 100-300mcg daily, often administered before sleep.',
+      researchFindings: 'Selective GH stimulation with minimal side effects compared to other GHRPs.',
+      considerations: 'Well-tolerated with minimal impact on other hormone systems.',
+      researchStatus: 'Extensively studied GHRP with established research protocols.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'CJC-1295': {
+      aliases: ['CJC1295', 'CJC 1295', 'MODIFIED GRF 1-29'],
+      classification: 'Growth Hormone Releasing Hormone Analog',
+      mechanism: 'Extended half-life GHRH analog that stimulates growth hormone release through cAMP pathways.',
+      commonUses: ['Growth hormone research', 'Anti-aging studies', 'Muscle growth research', 'Fat loss research'],
+      dosageRanges: 'Research protocols use 1-2mg weekly, often combined with GHRPs.',
+      researchFindings: 'Sustained GH elevation with extended duration compared to natural GHRH.',
+      considerations: 'May cause injection site reactions. Long-term studies ongoing.',
+      researchStatus: 'Well-established research compound with extensive clinical data.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
     }
   };
 
-  // Find matching peptide (case-insensitive, includes aliases)
-  let matchedPeptide = null;
-  let matchedKey = null;
+  // Use validation function to find matches
+  const match = findPeptideMatch(peptideName, peptideDatabase);
   
-  for (const [key, data] of Object.entries(peptideDatabase)) {
-    if (key === name || data.aliases.some(alias => alias === name)) {
-      matchedPeptide = data;
-      matchedKey = key;
-      break;
-    }
+  // If no valid match found, return error
+  if (!match) {
+    throw new Error(`No research data found for "${peptideName}". Please check spelling or try a different search term.`);
   }
   
-  // If no exact match, create a generic research profile
-  if (!matchedPeptide) {
-    return {
-      name: peptideName,
-      classification: 'Research Compound',
-      mechanism: `${peptideName} is currently under investigation for its potential therapeutic applications. Research is ongoing to fully characterize its mechanism of action and optimal use parameters.`,
-      commonUses: ['Experimental research', 'Preclinical studies', 'Mechanism investigation'],
-      dosageRanges: 'Dosage protocols vary based on research objectives and are typically established through preliminary studies.',
-      researchFindings: 'Research is in progress. Current findings are being compiled from ongoing studies.',
-      considerations: 'As with all research compounds, careful monitoring and adherence to research protocols is essential.',
-      researchStatus: 'Investigational compound - research and development ongoing.',
-      disclaimer: 'This information is compiled from available research and is for educational purposes only.'
-    };
+  let displayName = match.key;
+  let resultData = match.data;
+  
+  // Handle fuzzy matches
+  if (match.matchType === 'fuzzy') {
+    const suggestion = match.matchedAlias || match.key;
+    displayName = `${suggestion} (did you mean "${suggestion}"?)`;
   }
   
   return {
-    name: matchedKey,
-    ...matchedPeptide,
-    researchStatus: matchedPeptide.researchStatus || 'Investigational compound - research and development ongoing. Not approved for therapeutic use.',
-    disclaimer: matchedPeptide.disclaimer || 'This information is compiled from available research and is for educational purposes only. Always consult current scientific literature and follow proper research protocols.'
+    name: displayName,
+    ...resultData,
+    researchStatus: resultData.researchStatus || 'Investigational compound - research and development ongoing. Not approved for therapeutic use.',
+    disclaimer: resultData.disclaimer || 'This information is compiled from available research and is for educational purposes only. Always consult current scientific literature and follow proper research protocols.'
   };
 }
 
@@ -122,7 +213,8 @@ export default function GlossaryWidget({ widget, theme }) {
       setAiResearch({ loading: false, data, error: null, query: term });
       setActiveTab('search'); // Switch to search tab to show results
     } catch (error) {
-      setAiResearch({ loading: false, data: null, error: 'Failed to compile research', query: term });
+      console.log('Research error:', error.message);
+      setAiResearch({ loading: false, data: null, error: error.message || 'Failed to compile research', query: term });
     }
   };
 
@@ -159,6 +251,8 @@ export default function GlossaryWidget({ widget, theme }) {
   };
 
   const handleAddNote = () => {
+    console.log('handleAddNote called', { noteForm, titleLength: noteForm.title.trim().length, contentLength: noteForm.content.trim().length });
+    
     if (noteForm.title.trim() || noteForm.content.trim()) {
       const newNote = {
         id: Date.now().toString(),
@@ -173,6 +267,9 @@ export default function GlossaryWidget({ widget, theme }) {
       localStorage.setItem('tpprover_user_notes', JSON.stringify(updatedNotes));
       setNoteForm({ title: '', content: '' });
       setShowAddNoteForm(false);
+      console.log('Note added successfully', newNote);
+    } else {
+      console.log('Note validation failed - both title and content are empty');
     }
   };
 

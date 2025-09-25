@@ -177,7 +177,7 @@ export const DEFAULT_WIDGETS = [
     id: 'glossary',
     type: WIDGET_TYPES.GLOSSARY,
     title: 'Research Glossary',
-    size: WIDGET_SIZES.LARGE,
+    size: WIDGET_SIZES.WIDE,
     position: { x: 0, y: 4 },
     enabled: true,
     settings: {
