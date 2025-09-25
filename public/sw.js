@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tpp-cache-v3-' + Date.now(); // Force cache bust with timestamp
-const STATIC_CACHE = 'tpp-static-v3-' + Date.now();
-const DYNAMIC_CACHE = 'tpp-dynamic-v3-' + Date.now();
+const CACHE_NAME = 'tpp-cache-v4'; // Updated version for cache management  
+const STATIC_CACHE = 'tpp-static-v4';
+const DYNAMIC_CACHE = 'tpp-dynamic-v4';
 
 // Essential assets to cache
 const STATIC_ASSETS = [
