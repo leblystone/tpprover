@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Search, Upload, BookText, HelpCircle } from 'lucide-react';
+import { Menu, Search, Upload, HelpCircle } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlobalSearchInline from '../search/GlobalSearchInline';
@@ -7,7 +7,7 @@ import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import HelpTipsModal from '../ui/HelpTipsModal';
 import NotificationBell from '../common/NotificationBell';
 
-export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
+export default function Topbar({ onMenuClick, theme }) {
   const location = useLocation();
   const seg = (location.pathname.split('/')[1] || 'dashboard');
   const onDashboard = seg === 'dashboard';
@@ -68,21 +68,6 @@ export default function Topbar({ onMenuClick, theme, onGlossaryClick }) {
               aria-expanded={showSearch}
             >
               <Search className="h-5 w-5" />
-            </button>
-          </ModernTooltip>
-          <ModernTooltip text="Glossary" position="bottom">
-            <button 
-              data-tour="topbar-glossary" 
-              className="p-2 rounded-lg no-shadow hover:scale-105 transition-all duration-200" 
-              onClick={onGlossaryClick} 
-              style={{ 
-                color: theme.primary, 
-                backgroundColor: theme.primary + '15',
-                border: `1px solid ${theme.primary + '30'}`
-              }}
-              aria-label="Open research glossary"
-            >
-              <BookText className="h-5 w-5" />
             </button>
           </ModernTooltip>
           {/* Import feature temporarily hidden - uncomment to re-enable

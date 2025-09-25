@@ -711,6 +711,7 @@ export default function CustomizableDashboard() {
         theme={theme}
         initialTab={glossaryConfig.tab}
         initialSearchTerm={glossaryConfig.searchTerm}
+        autoSearch={glossaryConfig.autoSearch}
       />
 
       <ProtocolEditorModal

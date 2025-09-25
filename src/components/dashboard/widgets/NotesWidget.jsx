@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Trash2 } from 'lucide-react';
+import { FileText, Plus, Trash2, Eye, Save, X } from 'lucide-react';
+import NotesModal from '../../notes/NotesModal';
 
 const NotesWidget = ({ widget, theme }) => {
   const [userNotes, setUserNotes] = useState([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [newNote, setNewNote] = useState({ title: '', content: '' });
 
   useEffect(() => {
+    loadNotes();
+  }, []);
+
+  const loadNotes = () => {
     try {
       const savedNotes = localStorage.getItem('tpprover_user_notes');
       if (savedNotes) {
@@ -13,20 +21,55 @@ const NotesWidget = ({ widget, theme }) => {
     } catch (error) {
       console.error('Failed to load user notes from localStorage:', error);
     }
-  }, []);
+  };
+
+  const saveNotes = (notes) => {
+    try {
+      localStorage.setItem('tpprover_user_notes', JSON.stringify(notes));
+      setUserNotes(notes);
+    } catch (error) {
+      console.error('Failed to save notes:', error);
+    }
+  };
 
   const handleAddNote = () => {
-    window.dispatchEvent(new CustomEvent('tpp:open_glossary', { detail: { tab: 'notes' } }));
+    if (newNote.title.trim() || newNote.content.trim()) {
+      const note = {
+        id: Date.now().toString(),
+        title: newNote.title.trim() || 'Quick Note',
+        content: newNote.content.trim(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const updatedNotes = [note, ...userNotes];
+      saveNotes(updatedNotes);
+      setNewNote({ title: '', content: '' });
+      setShowAddForm(false);
+    }
   };
 
   const handleDeleteNote = (e, id) => {
     e.stopPropagation();
     const updatedNotes = userNotes.filter(n => n.id !== id);
-    setUserNotes(updatedNotes);
-    localStorage.setItem('tpprover_user_notes', JSON.stringify(updatedNotes));
+    saveNotes(updatedNotes);
   };
 
-  const recentNotes = userNotes.slice(0, 4); // Show up to 4 recent notes
+  const handleCancelAdd = () => {
+    setNewNote({ title: '', content: '' });
+    setShowAddForm(false);
+  };
+
+  const handleViewAll = () => {
+    setShowNotesModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowNotesModal(false);
+    loadNotes(); // Refresh notes when modal closes
+  };
+
+  const recentNotes = userNotes.slice(0, 3); // Show up to 3 recent notes to make room for add form
 
   return (
     <div className="h-full flex flex-col">

@@ -118,7 +118,7 @@ function App() {
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
       <div className="flex-1 flex flex-col md:ml-24 min-w-0">
-        <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} onGlossaryClick={() => window.dispatchEvent(new CustomEvent('tpp:open_glossary', { detail: { tab: 'search' } }))} />
+        <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
         <main className="flex-1 overflow-y-auto main-content p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>

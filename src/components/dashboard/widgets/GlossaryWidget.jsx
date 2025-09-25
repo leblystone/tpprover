@@ -19,9 +19,28 @@ export default function GlossaryWidget({ widget, theme }) {
   const handleQuickSearch = (term = searchTerm) => {
     if (!term.trim()) return;
     
-    // Open glossary modal with search term (no recent search storage)
-    window.dispatchEvent(new CustomEvent('tpp:open_glossary', { detail: { searchTerm: term } }));
+    // Open glossary modal with search term and immediately trigger search
+    window.dispatchEvent(new CustomEvent('tpp:open_glossary', { 
+      detail: { 
+        searchTerm: term,
+        autoSearch: true // This will trigger immediate search
+      } 
+    }));
     setSearchTerm('');
+  };
+
+  // Handle instant search as user types
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // Auto-search after 2 characters with debouncing
+    if (value.length >= 2) {
+      clearTimeout(window.glossarySearchTimeout);
+      window.glossarySearchTimeout = setTimeout(() => {
+        handleQuickSearch(value);
+      }, 800); // 800ms delay for debouncing
+    }
   };
 
   const handleOpenGlossary = (tab = 'search') => {
@@ -55,9 +74,9 @@ export default function GlossaryWidget({ widget, theme }) {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleInputChange}
                 onKeyPress={(e) => e.key === 'Enter' && handleQuickSearch()}
-                placeholder="Search peptides..."
+                placeholder="Start typing to search..."
                 className="flex-1 px-2 py-1.5 text-sm border rounded-md min-w-0"
                 style={{ borderColor: theme.border }}
               />

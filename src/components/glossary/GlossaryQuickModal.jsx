@@ -1130,7 +1130,7 @@ async function compilePeptideResearch(peptideName) {
   };
 }
 
-export default function GlossaryQuickModal({ open, onClose, theme, initialSearchTerm = '', initialTab = 'search' }) {
+export default function GlossaryQuickModal({ open, onClose, theme, initialSearchTerm = '', initialTab = 'search', autoSearch = false }) {
   const [q, setQ] = useState('')
   const [items, setItems] = useState([])
   const [aiResearch, setAiResearch] = useState({ loading: false, data: null, error: null, query: '' })
@@ -1160,14 +1160,16 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
     if (open) {
       if (initialSearchTerm) {
         setQ(initialSearchTerm);
-        // Automatically trigger search when initial search term is provided
-        setTimeout(() => {
-          handleAIResearch();
-        }, 200);
+        // Automatically trigger search when autoSearch is enabled or initial search term is provided
+        if (autoSearch || initialSearchTerm) {
+          setTimeout(() => {
+            handleAIResearch();
+          }, 200);
+        }
       }
       setActiveTab(initialTab);
     }
-  }, [open, initialSearchTerm, initialTab]);
+  }, [open, initialSearchTerm, initialTab, autoSearch]);
 
   // Load user notes from localStorage
   useEffect(() => {
