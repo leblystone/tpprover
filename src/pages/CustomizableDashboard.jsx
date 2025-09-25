@@ -32,7 +32,6 @@ import BodyMetricsModal from '../components/research/BodyMetricsModal';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
 import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
-import GlossaryQuickModal from '../components/glossary/GlossaryQuickModal';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -83,8 +82,6 @@ export default function CustomizableDashboard() {
   const [editingSupplement, setEditingSupplement] = useState(null);
   const [showBadges, setShowBadges] = useState(false);
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
-  const [showGlossary, setShowGlossary] = useState(false);
-  const [glossaryConfig, setGlossaryConfig] = useState({});
 
   const [vendorNames] = useState(() => {
     try { 
@@ -164,24 +161,17 @@ export default function CustomizableDashboard() {
     const handleOpenProtocol = () => {
       setShowNewProtocol(true);
     };
-    const handleOpenGlossary = (e) => {
-      const config = e.detail || {};
-      setGlossaryConfig(config);
-      setShowGlossary(true);
-    };
 
     window.addEventListener('tpp:openRecon', handleOpenRecon);
     window.addEventListener('tpp:openOrder', handleOpenOrder);
     window.addEventListener('tpp:openVendor', handleOpenVendor);
     window.addEventListener('tpp:openProtocol', handleOpenProtocol);
-    window.addEventListener('tpp:open_glossary', handleOpenGlossary);
 
     return () => {
       window.removeEventListener('tpp:openRecon', handleOpenRecon);
       window.removeEventListener('tpp:openOrder', handleOpenOrder);
       window.removeEventListener('tpp:openVendor', handleOpenVendor);
       window.removeEventListener('tpp:openProtocol', handleOpenProtocol);
-      window.removeEventListener('tpp:open_glossary', handleOpenGlossary);
     };
   }, []);
 
@@ -705,14 +695,6 @@ export default function CustomizableDashboard() {
         }}
       />
 
-      <GlossaryQuickModal
-        open={showGlossary}
-        onClose={() => setShowGlossary(false)}
-        theme={theme}
-        initialTab={glossaryConfig.tab}
-        initialSearchTerm={glossaryConfig.searchTerm}
-        autoSearch={glossaryConfig.autoSearch}
-      />
 
       <ProtocolEditorModal
         open={showNewProtocol}

@@ -177,7 +177,7 @@ export const DEFAULT_WIDGETS = [
     id: 'glossary',
     type: WIDGET_TYPES.GLOSSARY,
     title: 'Research Glossary',
-    size: WIDGET_SIZES.MEDIUM,
+    size: WIDGET_SIZES.LARGE,
     position: { x: 0, y: 4 },
     enabled: true,
     settings: {
@@ -348,9 +348,9 @@ export const WIDGET_METADATA = {
   },
   [WIDGET_TYPES.GLOSSARY]: {
     title: 'Research Glossary',
-    description: 'Quick access to peptide research database and personal notes',
+    description: 'Comprehensive inline peptide research tool with search, browse, and notes',
     icon: 'BookOpen',
-    availableSizes: [WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    availableSizes: [WIDGET_SIZES.LARGE, WIDGET_SIZES.WIDE, WIDGET_SIZES.FULL],
     settings: [
       { key: 'showRecent', label: 'Show recent searches', type: 'boolean', default: true },
       { key: 'showFavorites', label: 'Show favorite entries', type: 'boolean', default: true }
