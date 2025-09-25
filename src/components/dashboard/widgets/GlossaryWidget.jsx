@@ -998,6 +998,17 @@ const PEPTIDE_DATABASE = {
       considerations: 'Effects depend on specific ingredients and individual immune status.',
       researchStatus: 'Immune research formulation.',
       disclaimer: 'Research compound - not approved for medical claims.'
+    },
+    'SUPER SHRED': {
+      aliases: ['SHRED BLEND', 'FAT BURNER COMPLEX', 'CUTTING BLEND'],
+      classification: 'Thermogenic Complex',
+      mechanism: 'Multi-component formula designed to support thermogenesis and fat oxidation.',
+      commonUses: ['Fat oxidation research', 'Thermogenesis studies', 'Metabolic enhancement research', 'Body composition research'],
+      dosageRanges: 'Research protocols vary based on specific formulation and study design.',
+      researchFindings: 'May support metabolic processes related to fat oxidation and energy expenditure.',
+      considerations: 'Effects depend on specific ingredients. May contain stimulants.',
+      researchStatus: 'Thermogenic research formulation.',
+      disclaimer: 'Research compound - not approved for weight loss claims.'
     }
   };
 
@@ -1370,39 +1381,27 @@ export default function GlossaryWidget({ widget, theme }) {
               <h3 className="font-semibold text-sm" style={{ color: theme.text }}>"{aiResearch.query}" not found</h3>
             </div>
             
-            <div className="space-y-2 text-xs">
-              <p style={{ color: theme.textLight }}>
-                This peptide is not in our curated database yet. Our database contains verified research data for {Object.keys(PEPTIDE_DATABASE).length} peptides.
-              </p>
-              
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => handleRequestResearch(aiResearch.query)}
-                  className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
-                  style={{ 
-                    backgroundColor: theme.primary,
-                    color: 'white'
-                  }}
-                >
-                  Request Research
-                </button>
-                <button
-                  onClick={() => setAiResearch({ loading: false, data: null, error: null, query: '' })}
-                  className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
-                  style={{ 
-                    backgroundColor: theme.secondary,
-                    color: theme.text
-                  }}
-                >
-                  Clear Search
-                </button>
-              </div>
-              
-              <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
-                <p className="text-xs" style={{ color: theme.textLight }}>
-                  <strong>Tip:</strong> Check the Browse tab for similar peptides, or try searching for common aliases.
-                </p>
-              </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => handleRequestResearch(aiResearch.query)}
+                className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                style={{ 
+                  backgroundColor: theme.primary,
+                  color: 'white'
+                }}
+              >
+                Request Research
+              </button>
+              <button
+                onClick={() => setAiResearch({ loading: false, data: null, error: null, query: '' })}
+                className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                style={{ 
+                  backgroundColor: theme.secondary,
+                  color: theme.text
+                }}
+              >
+                Clear Search
+              </button>
             </div>
           </div>
         </div>
