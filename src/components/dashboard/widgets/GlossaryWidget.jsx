@@ -176,30 +176,24 @@ async function compilePeptideResearch(peptideName) {
 export default function GlossaryWidget({ widget, theme }) {
   const [favoriteEntries, setFavoriteEntries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('search'); // 'search', 'browse', 'favorites', 'notes'
+  const [activeTab, setActiveTab] = useState('search'); // 'search', 'browse'
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [expandedCategories, setExpandedCategories] = useState(new Set(['Popular']));
-  const [userNotes, setUserNotes] = useState([]);
-  const [showAddNoteForm, setShowAddNoteForm] = useState(false);
-  const [noteForm, setNoteForm] = useState({ title: '', content: '' });
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
   
   // AI Research state
   const [aiResearch, setAiResearch] = useState({ loading: false, data: null, error: null, query: '' });
 
-  // Load favorites and notes from localStorage
+  // Load favorites from localStorage
   useEffect(() => {
     try {
       const savedFavorites = localStorage.getItem('tpprover_research_favorites');
       if (savedFavorites) {
         setFavoriteEntries(JSON.parse(savedFavorites));
       }
-      
-      const savedNotes = localStorage.getItem('tpprover_user_notes');
-      if (savedNotes) {
-        setUserNotes(JSON.parse(savedNotes));
-      }
     } catch (error) {
-      console.error('Error loading glossary data:', error);
+      console.error('Error loading favorites:', error);
     }
   }, []);
 
@@ -250,34 +244,6 @@ export default function GlossaryWidget({ widget, theme }) {
     setExpandedCategories(newExpanded);
   };
 
-  const handleAddNote = () => {
-    console.log('handleAddNote called', { noteForm, titleLength: noteForm.title.trim().length, contentLength: noteForm.content.trim().length });
-    
-    if (noteForm.title.trim() || noteForm.content.trim()) {
-      const newNote = {
-        id: Date.now().toString(),
-        title: noteForm.title.trim() || 'Research Note',
-        content: noteForm.content.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      const updatedNotes = [newNote, ...userNotes];
-      setUserNotes(updatedNotes);
-      localStorage.setItem('tpprover_user_notes', JSON.stringify(updatedNotes));
-      setNoteForm({ title: '', content: '' });
-      setShowAddNoteForm(false);
-      console.log('Note added successfully', newNote);
-    } else {
-      console.log('Note validation failed - both title and content are empty');
-    }
-  };
-
-  const handleDeleteNote = (id) => {
-    const updatedNotes = userNotes.filter(note => note.id !== id);
-    setUserNotes(updatedNotes);
-    localStorage.setItem('tpprover_user_notes', JSON.stringify(updatedNotes));
-  };
 
   const popularPeptides = [
     'Semaglutide',
@@ -630,8 +596,7 @@ export default function GlossaryWidget({ widget, theme }) {
         <div className="flex gap-1">
           {[
             { id: 'search', label: 'Search', icon: Search },
-            { id: 'browse', label: 'Browse', icon: Filter },
-            { id: 'notes', label: 'Notes', icon: FileText }
+            { id: 'browse', label: 'Browse', icon: Filter }
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -655,7 +620,6 @@ export default function GlossaryWidget({ widget, theme }) {
       <div className="flex-1 p-4 overflow-y-auto">
         {activeTab === 'search' && renderSearchTab()}
         {activeTab === 'browse' && renderBrowseTab()}
-        {activeTab === 'notes' && renderNotesTab()}
       </div>
     </div>
   );
