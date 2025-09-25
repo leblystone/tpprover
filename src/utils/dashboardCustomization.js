@@ -16,7 +16,8 @@ export const WIDGET_TYPES = {
   QUICK_ACTIONS: 'quick_actions',
   WATER_TRACKER: 'water_tracker',
   GLOSSARY: 'glossary',
-  FEEDBACK: 'feedback'
+  FEEDBACK: 'feedback',
+  NOTES: 'notes'
 };
 
 export const WIDGET_SIZES = {
@@ -192,6 +193,15 @@ export const DEFAULT_WIDGETS = [
     position: { x: 2, y: 4 },
     enabled: true,
     settings: {}
+  },
+  {
+    id: 'notes',
+    type: WIDGET_TYPES.NOTES,
+    title: 'Research Notes',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 3, y: 4 },
+    enabled: true,
+    settings: {}
   }
 ];
 
@@ -351,6 +361,13 @@ export const WIDGET_METADATA = {
     description: 'Share feedback, suggestions, and report issues',
     icon: 'MessageSquare',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: []
+  },
+  [WIDGET_TYPES.NOTES]: {
+    title: 'Research Notes',
+    description: 'Quick note-taking for research observations and ideas',
+    icon: 'FileText',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: []
   }
 };

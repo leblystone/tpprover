@@ -1930,6 +1930,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                         {peptides.map(peptide => renderPeptideCard(peptide, true, colors))}
                       </div>
                     )}
+                  </div>
                 );
               })}
             </div>

@@ -18,6 +18,7 @@ import QuickActionsWidget from './widgets/QuickActionsWidget';
 import WaterTrackerWidget from './widgets/WaterTrackerWidget';
 import GlossaryWidget from './widgets/GlossaryWidget';
 import FeedbackWidget from './widgets/FeedbackWidget';
+import NotesWidget from './widgets/NotesWidget';
 
 const WidgetFactory = ({ widget, theme, ...props }) => {
   switch (widget.type) {
@@ -187,6 +188,14 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
     case WIDGET_TYPES.FEEDBACK:
       return (
         <FeedbackWidget 
+          widget={widget} 
+          theme={theme}
+        />
+      );
+
+    case WIDGET_TYPES.NOTES:
+      return (
+        <NotesWidget 
           widget={widget} 
           theme={theme}
         />
