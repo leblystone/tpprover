@@ -1555,7 +1555,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
           >
             <div className="flex items-center gap-2">
               <Star size={16} />
-              Favorites ({favorites.length})
+              Favorites
             </div>
           </button>
           <button
@@ -1567,7 +1567,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
           >
             <div className="flex items-center gap-2">
               <FileText size={16} />
-              My Notes ({userNotes.length})
+              Notes
             </div>
           </button>
         </div>
@@ -2063,13 +2063,8 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
             {/* Notes Grid - Google Keep Style */}
             {userNotes.length === 0 ? (
               <div className="text-center py-12">
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center" style={{ backgroundColor: theme?.primary + '15' }}>
-                    <FileText size={32} style={{ color: theme?.primary }} />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme?.accent }}>
-                    <Plus size={16} style={{ color: theme?.text }} />
-                  </div>
+                <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: theme?.primary + '15' }}>
+                  <FileText size={32} style={{ color: theme?.primary }} />
                 </div>
                 <h3 className="text-xl font-semibold mb-2" style={{ color: theme?.text }}>
                   Notes you add appear here
@@ -2079,7 +2074,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {userNotes.map((note) => (
                   <div 
                     key={note.id} 
@@ -2090,30 +2085,30 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                     }}
                   >
                     {/* Note Content */}
-                    <div className="p-4">
+                    <div className="p-3 md:p-4">
                       {note.title && note.title !== 'Untitled' && (
-                        <h4 className="font-semibold mb-2 line-clamp-2" style={{ color: theme?.text }}>
+                        <h4 className="font-semibold mb-1.5 text-sm md:text-base line-clamp-1 md:line-clamp-2" style={{ color: theme?.text }}>
                           {note.title}
                         </h4>
                       )}
-                      <p className="text-sm leading-relaxed line-clamp-4" style={{ color: theme?.text }}>
+                      <p className="text-xs md:text-sm leading-relaxed line-clamp-2 md:line-clamp-4" style={{ color: theme?.text }}>
                         {note.content}
                       </p>
                     </div>
 
-                    {/* Hover Actions */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div className="flex items-center gap-1 bg-white rounded-lg shadow-lg p-1" style={{ backgroundColor: theme?.cardBackground }}>
+                    {/* Hover Actions - Always visible on mobile, hover on desktop */}
+                    <div className="absolute top-1 md:top-2 right-1 md:right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="flex items-center gap-0.5 md:gap-1 bg-white rounded-md md:rounded-lg shadow-md md:shadow-lg p-0.5 md:p-1" style={{ backgroundColor: theme?.cardBackground }}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             // TODO: Add edit functionality
                           }}
-                          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+                          className="p-1 md:p-1.5 rounded hover:bg-gray-100 transition-colors"
                           style={{ color: theme?.textLight }}
                           title="Edit note"
                         >
-                          <Edit3 size={14} />
+                          <Edit3 size={12} className="md:w-3.5 md:h-3.5" />
                         </button>
                         <button
                           onClick={(e) => {
@@ -2122,23 +2117,25 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                             setUserNotes(updatedNotes);
                             localStorage.setItem('tpprover_user_notes', JSON.stringify(updatedNotes));
                           }}
-                          className="p-1.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+                          className="p-1 md:p-1.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
                           style={{ color: theme?.textLight }}
                           title="Delete note"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={12} className="md:w-3.5 md:h-3.5" />
                         </button>
                       </div>
                     </div>
 
                     {/* Footer with timestamp */}
-                    <div className="px-4 pb-3">
+                    <div className="px-3 md:px-4 pb-2 md:pb-3">
                       <div className="text-xs opacity-60" style={{ color: theme?.textLight }}>
                         {new Date(note.createdAt).toLocaleDateString('en-US', { 
                           month: 'short', 
                           day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                          ...(window.innerWidth >= 768 && {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
                         })}
                       </div>
                     </div>
