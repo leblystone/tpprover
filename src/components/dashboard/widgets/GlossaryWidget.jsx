@@ -35,7 +35,18 @@ function levenshteinDistance(str1, str2) {
 function findPeptideMatch(searchTerm, peptideDatabase) {
   const name = searchTerm.toUpperCase().trim();
   
-  // Must be at least 3 characters and contain letters
+  // SPECIAL CASE: Basic vitamins and minerals - allow shorter searches and no fuzzy matching
+  const basicCompounds = ['B12', 'VITAMIN C', 'VITAMIN D3', 'MAGNESIUM', 'ZINC', 'IRON', 'CALCIUM'];
+  for (const compound of basicCompounds) {
+    if (name === compound || name === compound.replace(/\s/g, '') || 
+        (compound.includes('VITAMIN') && name === compound.split(' ')[1])) {
+      if (peptideDatabase[compound]) {
+        return { key: compound, data: peptideDatabase[compound], matchType: 'exact' };
+      }
+    }
+  }
+  
+  // Standard validation for complex compounds
   if (name.length < 3 || !/[A-Z]/.test(name)) {
     return null;
   }
@@ -47,9 +58,20 @@ function findPeptideMatch(searchTerm, peptideDatabase) {
     }
   }
   
-  // Fuzzy matching for misspellings (max distance of 2)
+  // PREVENT fuzzy matching for basic compounds that might be misspelled
+  for (const compound of basicCompounds) {
+    const distance = levenshteinDistance(name, compound);
+    if (distance <= 2) {
+      return null; // Don't suggest corrections for basic compounds
+    }
+  }
+  
+  // Fuzzy matching for complex peptides only (max distance of 2)
   const fuzzyMatches = [];
   for (const [key, data] of Object.entries(peptideDatabase)) {
+    // Skip basic compounds from fuzzy matching
+    if (basicCompounds.includes(key)) continue;
+    
     const distance = levenshteinDistance(name, key);
     if (distance <= 2 && distance > 0) {
       fuzzyMatches.push({ key, data, distance, matchType: 'fuzzy' });
@@ -74,7 +96,52 @@ function findPeptideMatch(searchTerm, peptideDatabase) {
 }
 
 // Enhanced peptide database - curated, verified research data
-const PEPTIDE_DATABASE = {
+  const PEPTIDE_DATABASE = {
+    // BASIC VITAMINS - Should never be "corrected"
+    'B12': {
+      aliases: ['CYANOCOBALAMIN', 'METHYLCOBALAMIN', 'HYDROXOCOBALAMIN', 'VITAMIN B12'],
+      classification: 'Essential Vitamin',
+      mechanism: 'Essential vitamin for DNA synthesis, red blood cell formation, and neurological function.',
+      commonUses: ['B12 deficiency research', 'Neurological studies', 'Energy metabolism research', 'Anemia research'],
+      dosageRanges: 'Typical supplementation: 1000-5000mcg daily oral, or 1000mcg weekly injection for deficiency.',
+      researchFindings: 'Essential for proper nervous system function and red blood cell formation.',
+      considerations: 'Generally safe with no upper limit established. Water-soluble vitamin.',
+      researchStatus: 'Essential nutrient with established RDA.',
+      disclaimer: 'Dietary supplement - consult healthcare provider for deficiency treatment.'
+    },
+    'VITAMIN C': {
+      aliases: ['ASCORBIC ACID', 'VIT C', 'L-ASCORBIC ACID'],
+      classification: 'Essential Vitamin',
+      mechanism: 'Essential water-soluble vitamin and powerful antioxidant for collagen synthesis and immune function.',
+      commonUses: ['Immune system research', 'Collagen studies', 'Antioxidant research', 'Wound healing research'],
+      dosageRanges: 'RDA: 65-90mg daily. Research doses: 500-2000mg daily. IV protocols up to 25-100g for research.',
+      researchFindings: 'Critical for immune function, collagen synthesis, and antioxidant protection.',
+      considerations: 'High doses may cause GI upset. Generally safe water-soluble vitamin.',
+      researchStatus: 'Essential nutrient with established safety profile.',
+      disclaimer: 'Dietary supplement - high-dose IV administration requires medical supervision.'
+    },
+    'VITAMIN D3': {
+      aliases: ['CHOLECALCIFEROL', 'VIT D3', 'VITAMIN D'],
+      classification: 'Essential Vitamin Hormone',
+      mechanism: 'Fat-soluble vitamin that functions as a hormone, regulating calcium absorption and immune function.',
+      commonUses: ['Bone health research', 'Immune function studies', 'Hormone research', 'Deficiency research'],
+      dosageRanges: 'RDA: 600-800 IU daily. Research doses: 2000-5000 IU daily. Deficiency treatment: 50,000 IU weekly.',
+      researchFindings: 'Essential for bone health, immune function, and may support cardiovascular health.',
+      considerations: 'Fat-soluble - monitor levels with high-dose supplementation. Can be toxic in excess.',
+      researchStatus: 'Essential nutrient with established therapeutic uses.',
+      disclaimer: 'Dietary supplement - high doses require monitoring of blood levels.'
+    },
+    'MAGNESIUM': {
+      aliases: ['MG', 'MAGNESIUM GLYCINATE', 'MAGNESIUM CITRATE', 'MAGNESIUM OXIDE'],
+      classification: 'Essential Mineral',
+      mechanism: 'Essential mineral cofactor for over 300 enzymatic reactions, muscle function, and energy production.',
+      commonUses: ['Muscle function research', 'Sleep studies', 'Cardiovascular research', 'Metabolic research'],
+      dosageRanges: 'RDA: 310-420mg daily. Research doses: 200-800mg daily depending on form and study.',
+      researchFindings: 'Critical for muscle function, energy metabolism, and cardiovascular health.',
+      considerations: 'Different forms have varying absorption and GI tolerance. May cause loose stools.',
+      researchStatus: 'Essential nutrient with established safety profile.',
+      disclaimer: 'Dietary supplement - consult healthcare provider for high doses.'
+    },
     'BPC-157': {
       aliases: ['BPC157', 'BPC 157', 'BODY PROTECTION COMPOUND'],
       classification: 'Gastric Pentadecapeptide',
@@ -1001,14 +1068,47 @@ const PEPTIDE_DATABASE = {
     },
     'SUPER SHRED': {
       aliases: ['SHRED BLEND', 'FAT BURNER COMPLEX', 'CUTTING BLEND'],
-      classification: 'Thermogenic Complex',
-      mechanism: 'Multi-component formula designed to support thermogenesis and fat oxidation.',
-      commonUses: ['Fat oxidation research', 'Thermogenesis studies', 'Metabolic enhancement research', 'Body composition research'],
-      dosageRanges: 'Research protocols vary based on specific formulation and study design.',
-      researchFindings: 'May support metabolic processes related to fat oxidation and energy expenditure.',
-      considerations: 'Effects depend on specific ingredients. May contain stimulants.',
-      researchStatus: 'Thermogenic research formulation.',
-      disclaimer: 'Research compound - not approved for weight loss claims.'
+      classification: 'Thermogenic Peptide Blend',
+      mechanism: 'Combination of CJC-1295 (2mg), Ipamorelin (2mg), and L-Carnitine (500mg) for enhanced fat oxidation and growth hormone release.',
+      commonUses: ['Fat oxidation research', 'Growth hormone studies', 'Body composition research', 'Metabolic enhancement research'],
+      dosageRanges: 'Typical research protocol: 0.25-0.5ml (250-500mcg total peptides) subcutaneous injection before bed, 5 days on/2 days off.',
+      researchFindings: 'Synergistic effects of growth hormone releasing peptides with L-Carnitine for enhanced fat metabolism.',
+      considerations: 'Contains growth hormone releasing peptides. Monitor for typical GHRP side effects.',
+      researchStatus: 'Peptide blend for metabolic research.',
+      disclaimer: 'Research peptide blend - not approved for weight loss claims.'
+    },
+    'WOLVERINE': {
+      aliases: ['HEALING BLEND', 'RECOVERY BLEND', 'REPAIR COMPLEX'],
+      classification: 'Healing Peptide Blend',
+      mechanism: 'Combination of BPC-157 (500mcg), TB-500 (2mg), and IGF-1 LR3 (100mcg) for enhanced tissue repair and recovery.',
+      commonUses: ['Tissue repair research', 'Wound healing studies', 'Recovery research', 'Injury rehabilitation research'],
+      dosageRanges: 'Research protocol: 0.5ml subcutaneous injection daily for acute injuries, or 3x weekly for maintenance research.',
+      researchFindings: 'Synergistic healing effects combining gastric peptide repair, thymosin healing, and growth factor activity.',
+      considerations: 'Powerful healing blend. Monitor injection sites for reactions.',
+      researchStatus: 'Multi-peptide healing research formulation.',
+      disclaimer: 'Research peptide blend - not approved for medical treatment.'
+    },
+    'GLOW': {
+      aliases: ['BEAUTY BLEND', 'SKIN COMPLEX', 'ANTI-AGING BLEND'],
+      classification: 'Cosmetic Peptide Blend',
+      mechanism: 'Combination of GHK-Cu (2mg), Epitalon (10mg), and Melanotan II (2mg) for skin health and anti-aging research.',
+      commonUses: ['Skin health research', 'Anti-aging studies', 'Collagen research', 'Pigmentation research'],
+      dosageRanges: 'Research protocol: 0.25ml subcutaneous injection 2-3x weekly. Start with lower doses due to MT-II content.',
+      researchFindings: 'Combines copper peptide skin repair, telomere research, and controlled pigmentation effects.',
+      considerations: 'Contains Melanotan II - monitor for nausea, flushing, and pigmentation changes.',
+      researchStatus: 'Cosmetic peptide research blend.',
+      disclaimer: 'Research peptide blend - not approved for cosmetic use.'
+    },
+    'KLOW': {
+      aliases: ['SLEEP BLEND', 'RECOVERY SLEEP', 'NIGHT COMPLEX'],
+      classification: 'Sleep/Recovery Peptide Blend',
+      mechanism: 'Combination of DSIP (2mg), Ipamorelin (2mg), and GABA (100mg) for enhanced sleep quality and recovery.',
+      commonUses: ['Sleep research', 'Recovery studies', 'Growth hormone research', 'Circadian rhythm research'],
+      dosageRanges: 'Research protocol: 0.25-0.5ml subcutaneous injection 30 minutes before desired sleep time.',
+      researchFindings: 'Synergistic effects on sleep quality and growth hormone release during sleep cycles.',
+      considerations: 'Take only when ready for 7-8 hours of uninterrupted sleep. May cause drowsiness.',
+      researchStatus: 'Sleep enhancement research blend.',
+      disclaimer: 'Research peptide blend - not approved for sleep disorders.'
     },
     'LIPO-C': {
       aliases: ['LIPOTROPIC-C', 'LIPO C', 'MIC INJECTION', 'LIPOTROPIC COMPLEX'],
