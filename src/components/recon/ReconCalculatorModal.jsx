@@ -4,8 +4,7 @@ import { ReconCalculatorPanel } from './ReconCalculatorPanel'
 import { useAppContext } from '../../context/AppContext'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import TextInput from '../common/inputs/TextInput'
-import { Droplet, Info, Plus, Trash2, FilePlus, Pen } from 'lucide-react'
-import { Syringe } from 'lucide-react'
+import { Droplet, Info, Plus, Trash2, FilePlus, Pen, Syringe } from 'lucide-react'
 
 export const penColors = [
     { name: 'Gold', hex: '#DAA520' },
