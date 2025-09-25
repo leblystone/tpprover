@@ -1892,11 +1892,17 @@ export default function GlossaryWidget({ widget, theme }) {
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
-      {/* Modern In Progress Banner */}
-      <div className="absolute top-0 right-0 z-10">
-        <div className="bg-gradient-to-l from-blue-500 to-blue-600 text-white text-xs font-medium px-3 py-1 rounded-bl-lg shadow-lg flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-          In Progress
+      {/* Work in Progress Badge */}
+      <div className="absolute top-3 right-3 z-10">
+        <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border" 
+             style={{ 
+               backgroundColor: theme.warning + '15', 
+               borderColor: theme.warning + '40',
+               color: theme.warning 
+             }}>
+          <div className="w-1.5 h-1.5 rounded-full animate-pulse" 
+               style={{ backgroundColor: theme.warning }}></div>
+          Work in Progress
         </div>
       </div>
       
