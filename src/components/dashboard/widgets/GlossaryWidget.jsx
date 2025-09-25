@@ -35,8 +35,8 @@ function levenshteinDistance(str1, str2) {
 function findPeptideMatch(searchTerm, peptideDatabase) {
   const name = searchTerm.toUpperCase().trim();
   
-  // SPECIAL CASE: Basic vitamins and minerals - allow shorter searches and no fuzzy matching
-  const basicCompounds = ['B12', 'VITAMIN C', 'VITAMIN D3', 'MAGNESIUM', 'ZINC', 'IRON', 'CALCIUM'];
+  // SPECIAL CASE: Basic vitamins, minerals, and peptide supplies - allow shorter searches and no fuzzy matching
+  const basicCompounds = ['B12', 'VITAMIN C', 'VITAMIN D3', 'MAGNESIUM', 'ZINC', 'IRON', 'CALCIUM', 'BAC WATER', 'BAC'];
   for (const compound of basicCompounds) {
     if (name === compound || name === compound.replace(/\s/g, '') || 
         (compound.includes('VITAMIN') && name === compound.split(' ')[1])) {
@@ -141,6 +141,17 @@ function findPeptideMatch(searchTerm, peptideDatabase) {
       considerations: 'Different forms have varying absorption and GI tolerance. May cause loose stools.',
       researchStatus: 'Essential nutrient with established safety profile.',
       disclaimer: 'Dietary supplement - consult healthcare provider for high doses.'
+    },
+    'BAC WATER': {
+      aliases: ['BACTERIOSTATIC WATER', 'BAC', 'BACT WATER', 'STERILE WATER'],
+      classification: 'Pharmaceutical Diluent',
+      mechanism: 'Sterile water containing 0.9% benzyl alcohol as a bacteriostatic agent, used for reconstituting lyophilized peptides and medications.',
+      commonUses: ['Peptide reconstitution', 'Injectable preparation', 'Research compound dilution', 'Pharmaceutical compounding'],
+      dosageRanges: 'Reconstitution: Typically 1-3ml per vial depending on desired concentration. Common ratios: 1ml = 1mg/ml, 2ml = 0.5mg/ml, 3ml = 0.33mg/ml.',
+      researchFindings: 'Gold standard for peptide reconstitution due to bacteriostatic properties allowing multiple withdrawals from single vial.',
+      considerations: 'Contains benzyl alcohol - do not use for neonatal applications. Store refrigerated after opening. Multi-dose vial stable for 28 days.',
+      researchStatus: 'USP pharmaceutical grade diluent.',
+      disclaimer: 'Pharmaceutical diluent - for research use only. Follow proper sterile technique.'
     },
     'BPC-157': {
       aliases: ['BPC157', 'BPC 157', 'BODY PROTECTION COMPOUND'],
