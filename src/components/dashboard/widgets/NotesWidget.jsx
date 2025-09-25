@@ -127,18 +127,87 @@ const NotesWidget = ({ widget, theme }) => {
           )}
         </div>
 
-        {/* Bottom Action Button - matching other widgets */}
-        <div className="pt-3 border-t" style={{ borderColor: theme.border }}>
-          <button
-            onClick={handleAddNote}
-            className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          >
-            <Plus size={16} />
-            Add Note
-          </button>
-        </div>
+        {/* Add Note Form - appears when showAddForm is true */}
+        {showAddForm && (
+          <div className="pt-3 border-t space-y-2" style={{ borderColor: theme.border }}>
+            <input
+              type="text"
+              placeholder="Note title (optional)"
+              value={newNote.title}
+              onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+              className="w-full px-2 py-1 text-sm border rounded"
+              style={{ 
+                borderColor: theme.border, 
+                backgroundColor: theme.background,
+                color: theme.text
+              }}
+            />
+            <textarea
+              placeholder="Write your note..."
+              value={newNote.content}
+              onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+              className="w-full px-2 py-1 text-sm border rounded resize-none"
+              rows="3"
+              style={{ 
+                borderColor: theme.border, 
+                backgroundColor: theme.background,
+                color: theme.text
+              }}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddNote}
+                className="flex-1 px-2 py-1 rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <Save size={14} />
+                Save
+              </button>
+              <button
+                onClick={handleCancelAdd}
+                className="px-2 py-1 rounded text-sm font-medium transition-colors"
+                style={{ backgroundColor: theme.secondary, color: theme.text }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Action Buttons */}
+        {!showAddForm && (
+          <div className="pt-3 border-t space-y-2" style={{ borderColor: theme.border }}>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              <Plus size={16} />
+              Add Note
+            </button>
+            
+            {userNotes.length > 0 && (
+              <button
+                onClick={handleViewAll}
+                className="w-full px-2 py-1 rounded text-xs font-medium transition-colors opacity-75 hover:opacity-100"
+                style={{ color: theme.textLight }}
+              >
+                <Eye size={12} className="inline mr-1" />
+                View All ({userNotes.length})
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Notes Modal */}
+      {showNotesModal && (
+        <NotesModal 
+          isOpen={showNotesModal}
+          onClose={handleModalClose}
+          theme={theme}
+        />
+      )}
     </div>
   );
 };
