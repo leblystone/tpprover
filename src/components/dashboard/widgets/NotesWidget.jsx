@@ -1,16 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Trash2, Eye, Save, X } from 'lucide-react';
+import { FileText, Plus, Trash2, Eye, Save, X, Clock, Check } from 'lucide-react';
 import NotesModal from '../../notes/NotesModal';
+import useAutoSave from '../../../utils/useAutoSave';
 
 const NotesWidget = ({ widget, theme }) => {
   const [userNotes, setUserNotes] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [newNote, setNewNote] = useState({ title: '', content: '' });
+  
+  // Auto-save functionality for the note form
+  const { saveStatus, triggerSave } = useAutoSave(
+    newNote,
+    (data) => {
+      // Only auto-save if there's actual content
+      if (data.title.trim() || data.content.trim()) {
+        localStorage.setItem('tpprover_note_draft', JSON.stringify(data));
+      }
+    },
+    800 // 800ms delay
+  );
 
   useEffect(() => {
     loadNotes();
+    loadDraft();
   }, []);
+
+  const loadDraft = () => {
+    try {
+      const savedDraft = localStorage.getItem('tpprover_note_draft');
+      if (savedDraft) {
+        setNewNote(JSON.parse(savedDraft));
+      }
+    } catch (error) {
+      console.error('Failed to load note draft:', error);
+    }
+  };
+
+  const clearDraft = () => {
+    localStorage.removeItem('tpprover_note_draft');
+  };
 
   const loadNotes = () => {
     try {
@@ -45,6 +74,7 @@ const NotesWidget = ({ widget, theme }) => {
       const updatedNotes = [note, ...userNotes];
       saveNotes(updatedNotes);
       setNewNote({ title: '', content: '' });
+      clearDraft();
       setShowAddForm(false);
     }
   };
@@ -86,31 +116,36 @@ const NotesWidget = ({ widget, theme }) => {
       <div className="flex-1 p-3 flex flex-col overflow-hidden">
         {/* Content Area - grows to fill available space */}
         <div className="flex-1 space-y-3 min-h-0">
-          {/* Recent Notes List */}
+          {/* Recent Notes List - Matching Modal Style */}
           {recentNotes.length > 0 ? (
-            <div className="flex-1 overflow-y-auto space-y-2">
+            <div className="flex-1 overflow-y-auto space-y-3">
               {recentNotes.map((note) => (
-                <div key={note.id} className="p-2 rounded border hover:shadow-sm transition-all duration-200" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                  <div className="flex items-start justify-between mb-1">
+                <div key={note.id} className="group p-3 rounded-lg border hover:shadow-md transition-all duration-200" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                  <div className="flex items-start justify-between mb-2">
                     {note.title && note.title !== 'Untitled' && note.title !== 'Quick Note' && (
-                      <h4 className="font-medium text-sm line-clamp-1" style={{ color: theme.text }}>
+                      <h4 className="font-semibold text-sm line-clamp-1" style={{ color: theme.text }}>
                         {note.title}
                       </h4>
                     )}
                     <button
                       onClick={(e) => handleDeleteNote(e, note.id)}
-                      className="p-1 rounded hover:bg-red-50 hover:text-red-600 transition-colors flex-shrink-0"
+                      className="p-1 rounded hover:bg-red-50 hover:text-red-600 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
                       style={{ color: theme.textLight }}
                       title="Delete note"
                     >
                       <Trash2 size={12} />
                     </button>
                   </div>
-                  <p className="text-xs line-clamp-2 mb-1" style={{ color: theme.textLight }}>
+                  <p className="text-sm mb-2 whitespace-pre-wrap line-clamp-3" style={{ color: theme.text }}>
                     {note.content}
                   </p>
-                  <div className="text-xs opacity-60" style={{ color: theme.textLight }}>
-                    {new Date(note.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  <div className="text-xs" style={{ color: theme.textLight }}>
+                    {new Date(note.createdAt).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </div>
                 </div>
               ))}

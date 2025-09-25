@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Edit, Bed, Zap, Smile, ShieldAlert, Activity } from 'lucide-react';
+import { Plus, Edit, Bed, Zap, Smile, ShieldAlert, Activity, Weight, Percent, TrendingUp, Calendar } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import { formatMMDDYYYY } from '../../../utils/date';
 
@@ -35,71 +35,102 @@ const MetricsWidget = ({
         </div>
       </div>
       
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-3 overflow-y-auto">
         {recentMetrics.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-              No metrics recorded yet.
-            </p>
-            <button
-              onClick={onAddMetric}
-              className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              <Plus size={16} className="inline mr-2" />
-              Record First Entry
-            </button>
+          <div className="flex-1 flex items-center justify-center text-center">
+            <div>
+              <Activity size={32} className="mx-auto mb-3 opacity-50" style={{ color: theme.textLight }} />
+              <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                No metrics recorded yet
+              </p>
+              <button
+                onClick={onAddMetric}
+                className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <Plus size={16} className="inline mr-2" />
+                Record First Entry
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
             {recentMetrics.map(metric => (
               <div 
                 key={metric.id} 
-                className="p-4 rounded-lg border" 
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+                className="group p-3 rounded-lg border hover:shadow-md transition-all duration-200" 
+                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
               >
+                {/* Header with Date and Edit Button */}
                 <div className="flex items-center justify-between mb-3">
-                  <div className="font-medium text-sm">
-                    {formatMMDDYYYY(new Date(metric.date))}
-                  </div>
                   <div className="flex items-center gap-2">
-                    <span 
-                      className="text-xs px-2 py-1 rounded-full font-semibold" 
-                      style={{ backgroundColor: theme.infoBg, color: theme.info }}
-                    >
-                      {metric.weight || '-'} lbs
+                    <Calendar size={14} style={{ color: theme.primary }} />
+                    <span className="font-semibold text-sm" style={{ color: theme.text }}>
+                      {formatMMDDYYYY(new Date(metric.date))}
                     </span>
-                    <span 
-                      className="text-xs px-2 py-1 rounded-full font-semibold" 
-                      style={{ backgroundColor: theme.successBg, color: theme.success }}
-                    >
-                      {metric.bodyfat || '-'}%
-                    </span>
-                    <button 
-                      onClick={() => onEditMetric?.(metric)}
-                      className="p-1 rounded hover:opacity-80"
-                    >
-                      <Edit size={12} />
-                    </button>
+                  </div>
+                  <button 
+                    onClick={() => onEditMetric?.(metric)}
+                    className="p-1.5 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100"
+                    style={{ color: theme.textLight }}
+                    title="Edit metrics"
+                  >
+                    <Edit size={14} />
+                  </button>
+                </div>
+
+                {/* Key Metrics - Weight and Body Fat */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="flex items-center gap-2 p-2 rounded" style={{ backgroundColor: theme.primary + '10' }}>
+                    <Weight size={16} style={{ color: theme.primary }} />
+                    <div>
+                      <div className="text-xs font-medium" style={{ color: theme.textLight }}>Weight</div>
+                      <div className="font-bold text-sm" style={{ color: theme.text }}>
+                        {metric.weight ? `${metric.weight} lbs` : 'Not recorded'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded" style={{ backgroundColor: theme.success + '10' }}>
+                    <Percent size={16} style={{ color: theme.success }} />
+                    <div>
+                      <div className="text-xs font-medium" style={{ color: theme.textLight }}>Body Fat</div>
+                      <div className="font-bold text-sm" style={{ color: theme.text }}>
+                        {metric.bodyfat ? `${metric.bodyfat}%` : 'Not recorded'}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
-                <div 
-                  className="flex items-center justify-between text-xs border-t pt-2" 
-                  style={{ borderColor: theme.border, color: theme.textLight }}
-                >
-                  <span className="flex items-center gap-1">
-                    <Bed size={12}/> {metric.sleep || '-'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Zap size={12}/> {metric.energy || '-'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Smile size={12}/> {metric.mood || '-'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <ShieldAlert size={12}/> {metric.pain || '-'}
-                  </span>
+                {/* Wellness Metrics */}
+                <div className="grid grid-cols-4 gap-2 pt-2 border-t" style={{ borderColor: theme.border }}>
+                  <div className="text-center">
+                    <Bed size={12} className="mx-auto mb-1" style={{ color: theme.textLight }} />
+                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Sleep</div>
+                    <div className="text-xs font-semibold" style={{ color: theme.text }}>
+                      {metric.sleep || '-'}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <Zap size={12} className="mx-auto mb-1" style={{ color: theme.warning }} />
+                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Energy</div>
+                    <div className="text-xs font-semibold" style={{ color: theme.text }}>
+                      {metric.energy || '-'}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <Smile size={12} className="mx-auto mb-1" style={{ color: theme.success }} />
+                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Mood</div>
+                    <div className="text-xs font-semibold" style={{ color: theme.text }}>
+                      {metric.mood || '-'}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <ShieldAlert size={12} className="mx-auto mb-1" style={{ color: theme.error }} />
+                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Pain</div>
+                    <div className="text-xs font-semibold" style={{ color: theme.text }}>
+                      {metric.pain || '-'}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
