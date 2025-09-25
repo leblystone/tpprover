@@ -1127,39 +1127,52 @@ export default function GlossaryWidget({ widget, theme }) {
               </button>
             </div>
             
-            <div className="space-y-2 text-xs">
-              <div>
-                <span className="font-medium" style={{ color: theme.text }}>Classification: </span>
-                <span style={{ color: theme.textLight }}>{aiResearch.data.classification}</span>
+            <div className="space-y-3 text-xs">
+              {/* PRIMARY FOCUS: Research Applications & Effects */}
+              <div className="p-2 rounded" style={{ backgroundColor: theme.primary + '08', border: `1px solid ${theme.primary}30` }}>
+                <div className="font-semibold mb-1" style={{ color: theme.primary }}>🎯 Research Applications & Effects:</div>
+                <div style={{ color: theme.text }}>{aiResearch.data.commonUses?.join(', ')}</div>
+                {aiResearch.data.researchFindings && (
+                  <div className="mt-1" style={{ color: theme.textLight }}>{aiResearch.data.researchFindings}</div>
+                )}
+              </div>
+
+              {/* PRIMARY FOCUS: Research Dosages with Warning */}
+              <div className="p-2 rounded" style={{ backgroundColor: theme.warning + '08', border: `1px solid ${theme.warning}30` }}>
+                <div className="font-semibold mb-1" style={{ color: theme.warning }}>⚗️ Research Dosages:</div>
+                <div style={{ color: theme.text }}>{aiResearch.data.dosageRanges}</div>
+                <div className="mt-1 px-2 py-1 rounded text-xs font-medium" style={{ 
+                  backgroundColor: theme.error + '15', 
+                  color: theme.error,
+                  border: `1px solid ${theme.error}40`
+                }}>
+                  ⚠️ RESEARCH DATA ONLY - NOT FOR HUMAN USE
+                </div>
+              </div>
+
+              {/* SECONDARY INFO: Mechanism & Classification */}
+              <div className="space-y-1 pt-1 border-t" style={{ borderColor: theme.border }}>
+                <div>
+                  <span className="font-medium" style={{ color: theme.text }}>Classification: </span>
+                  <span style={{ color: theme.textLight }}>{aiResearch.data.classification}</span>
+                </div>
+                
+                <div>
+                  <span className="font-medium" style={{ color: theme.text }}>Mechanism: </span>
+                  <span style={{ color: theme.textLight }}>{aiResearch.data.mechanism}</span>
+                </div>
+                
+                {aiResearch.data.considerations && (
+                  <div>
+                    <span className="font-medium" style={{ color: theme.text }}>Safety Considerations: </span>
+                    <span style={{ color: theme.textLight }}>{aiResearch.data.considerations}</span>
+                  </div>
+                )}
               </div>
               
-              <div>
-                <span className="font-medium" style={{ color: theme.text }}>Mechanism: </span>
-                <span style={{ color: theme.textLight }}>{aiResearch.data.mechanism}</span>
-              </div>
-              
-              <div>
-                <span className="font-medium" style={{ color: theme.text }}>Research Applications: </span>
-                <span style={{ color: theme.textLight }}>{aiResearch.data.commonUses?.join(', ')}</span>
-              </div>
-              
-              <div>
-                <span className="font-medium" style={{ color: theme.text }}>Research Dosages: </span>
-                <span style={{ color: theme.textLight }}>{aiResearch.data.dosageRanges}</span>
-              </div>
-              
-              <div>
-                <span className="font-medium" style={{ color: theme.text }}>Key Findings: </span>
-                <span style={{ color: theme.textLight }}>{aiResearch.data.researchFindings}</span>
-              </div>
-              
-              <div>
-                <span className="font-medium" style={{ color: theme.text }}>Considerations: </span>
-                <span style={{ color: theme.textLight }}>{aiResearch.data.considerations}</span>
-              </div>
-              
-              <div className="pt-2 mt-2 border-t" style={{ borderColor: theme.border }}>
-                <span className="text-xs" style={{ color: theme.textLight }}>{aiResearch.data.disclaimer}</span>
+              {/* FOOTER: Legal Disclaimer */}
+              <div className="pt-2 mt-2 border-t text-xs" style={{ borderColor: theme.border, color: theme.textLight }}>
+                {aiResearch.data.disclaimer}
               </div>
             </div>
           </div>
