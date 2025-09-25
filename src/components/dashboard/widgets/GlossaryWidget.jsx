@@ -1920,8 +1920,8 @@ export default function GlossaryWidget({ widget, theme }) {
       <div className="px-4 py-2 border-b" style={{ borderColor: theme.border }}>
         <div className="flex gap-1">
           {[
-            { id: 'search', label: 'Search', icon: Search },
-            { id: 'browse', label: 'Browse', icon: Filter }
+            { id: 'search', label: 'Search', icon: Search }
+            // { id: 'browse', label: 'Browse', icon: Filter } // Hidden for launch
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1944,7 +1944,7 @@ export default function GlossaryWidget({ widget, theme }) {
       {/* Content */}
       <div className="flex-1 p-4 overflow-y-auto">
         {activeTab === 'search' && renderSearchTab()}
-        {activeTab === 'browse' && renderBrowseTab()}
+        {/* {activeTab === 'browse' && renderBrowseTab()} */} {/* Hidden for launch */}
       </div>
     </div>
   );
