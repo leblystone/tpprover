@@ -398,12 +398,12 @@ export const STORAGE_KEY = 'tpprover_dashboard_layout';
 
 export const loadDashboardLayout = () => {
   try {
-    // Check if we need to force a reset due to duplicate widget cleanup
+    // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '1.3'; // Force duplicate cleanup
+    const currentVersion = '1.4'; // Force glossary widget size update to WIDE (3x1)
     
     if (layoutVersion !== currentVersion) {
-      console.log('🔄 Dashboard layout version mismatch - forcing reset to remove duplicates');
+      console.log('🔄 Dashboard layout version mismatch - forcing reset to apply new widget sizes (Research Glossary: WIDE 3x1)');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
       return DEFAULT_WIDGETS;
