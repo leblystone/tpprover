@@ -75,7 +75,7 @@ export const DEFAULT_WIDGETS = [
     id: 'goals_only',
     type: 'goals_only',
     title: 'Goals',
-    size: WIDGET_SIZES.MEDIUM,
+    size: WIDGET_SIZES.SMALL,
     position: { x: 0, y: 1 },
     enabled: true,
     settings: {
@@ -115,7 +115,7 @@ export const DEFAULT_WIDGETS = [
     id: 'upcoming_buys',
     type: WIDGET_TYPES.UPCOMING_BUYS,
     title: 'Upcoming Buys',
-    size: WIDGET_SIZES.MEDIUM,
+    size: WIDGET_SIZES.SMALL,
     position: { x: 0, y: 2 },
     enabled: true,
     settings: {
@@ -146,7 +146,7 @@ export const DEFAULT_WIDGETS = [
     id: 'badges',
     type: WIDGET_TYPES.BADGES,
     title: 'Your Badges',
-    size: WIDGET_SIZES.WIDE,
+    size: WIDGET_SIZES.SMALL,
     position: { x: 0, y: 3 },
     enabled: true,
     settings: {
@@ -198,7 +198,7 @@ export const DEFAULT_WIDGETS = [
     id: 'notes',
     type: WIDGET_TYPES.NOTES,
     title: 'Research Notes',
-    size: WIDGET_SIZES.MEDIUM,
+    size: WIDGET_SIZES.SMALL,
     position: { x: 3, y: 4 },
     enabled: true,
     settings: {}
@@ -400,12 +400,12 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '2.0'; // Force complete layout reset to include all latest widgets (Feedback, Notes, consistent sizing)
+    const currentVersion = '2.1'; // Force layout reset for compact widget sizes (Badges, Notes, Upcoming Buys, Goals all 1x1)
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
     if (layoutVersion !== currentVersion) {
-      console.log('🔄 Dashboard layout version mismatch - forcing reset to include all latest widgets (Feedback, Notes, consistent sizing)');
+      console.log('🔄 Dashboard layout version mismatch - forcing reset for compact widget sizes (Badges, Notes, Upcoming Buys, Goals all 1x1)');
       console.log('🗑️ Clearing dashboard layout from localStorage');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
