@@ -1891,60 +1891,32 @@ export default function GlossaryWidget({ widget, theme }) {
   );
 
   return (
-    <div className="h-full flex flex-col relative overflow-hidden">
-      {/* Work in Progress Badge */}
-      <div className="absolute top-16 right-3 z-10">
-        <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border shadow-sm" 
-             style={{ 
-               backgroundColor: theme.warning + '25', 
-               borderColor: theme.warning,
-               color: theme.text 
-             }}>
-          <div className="w-1.5 h-1.5 rounded-full animate-pulse" 
-               style={{ backgroundColor: theme.warning }}></div>
-          Work in Progress
-        </div>
-      </div>
-      
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Research Glossary
           </h3>
-          <BookOpen size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            {/* Work in Progress Badge */}
+            <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border shadow-sm" 
+                 style={{ 
+                   backgroundColor: theme.warning + '25', 
+                   borderColor: theme.warning,
+                   color: theme.text 
+                 }}>
+              <div className="w-1.5 h-1.5 rounded-full animate-pulse" 
+                   style={{ backgroundColor: theme.warning }}></div>
+              Work in Progress
+            </div>
+            <BookOpen size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
-      
-      {/* Tabs */}
-      <div className="px-4 py-2 border-b" style={{ borderColor: theme.border }}>
-        <div className="flex gap-1">
-          {[
-            { id: 'search', label: 'Search', icon: Search }
-            // { id: 'browse', label: 'Browse', icon: Filter } // Hidden for launch
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                activeTab === id ? 'shadow-sm' : ''
-              }`}
-              style={{
-                backgroundColor: activeTab === id ? theme.primary : 'transparent',
-                color: activeTab === id ? theme.textOnPrimary : theme.textLight
-              }}
-            >
-              <Icon size={12} />
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
+      {/* Content - Direct Search */}
       <div className="flex-1 p-4 overflow-y-auto">
-        {activeTab === 'search' && renderSearchTab()}
-        {/* {activeTab === 'browse' && renderBrowseTab()} */} {/* Hidden for launch */}
+        {renderSearchTab()}
       </div>
     </div>
   );
