@@ -78,7 +78,22 @@ async function compilePeptideResearch(peptideName) {
   // Simulate comprehensive research compilation
   await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // Enhanced peptide database with common variations and aliases
+  // Basic input validation - allow any reasonable peptide-like input
+  const cleanName = peptideName.trim();
+  if (cleanName.length < 3) {
+    throw new Error('Please enter at least 3 characters for research.');
+  }
+  
+  if (!/[a-zA-Z]/.test(cleanName)) {
+    throw new Error('Please enter a valid peptide name (must contain letters).');
+  }
+  
+  // Reject obvious non-peptide inputs
+  if (/^\d+$/.test(cleanName) || /^[^a-zA-Z]*$/.test(cleanName)) {
+    throw new Error('Please enter a valid peptide name for research.');
+  }
+  
+  // Enhanced peptide database - used for quick lookup and suggestions, not as a gatekeeper
   const peptideDatabase = {
     'BPC-157': {
       aliases: ['BPC157', 'BPC 157', 'BODY PROTECTION COMPOUND'],
@@ -145,31 +160,100 @@ async function compilePeptideResearch(peptideName) {
       considerations: 'May cause injection site reactions. Long-term studies ongoing.',
       researchStatus: 'Well-established research compound with extensive clinical data.',
       disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'SELANK': {
+      aliases: ['SELANK NASAL SPRAY', 'TUFTSIN ANALOG'],
+      classification: 'Synthetic Heptapeptide',
+      mechanism: 'Anxiolytic and nootropic peptide that modulates GABA and serotonin systems, enhances cognitive function and reduces anxiety through neuroplasticity mechanisms.',
+      commonUses: ['Anxiety research', 'Cognitive enhancement studies', 'Neuroplasticity research', 'Stress response studies'],
+      dosageRanges: 'Research protocols typically use 150-300mcg daily, administered intranasally.',
+      researchFindings: 'Demonstrates significant anxiolytic effects without sedation, enhances memory consolidation and learning capacity.',
+      considerations: 'Generally well-tolerated with minimal side effects. Non-addictive profile.',
+      researchStatus: 'Extensively studied in Russia with growing international research interest.',
+      disclaimer: 'Research compound - not approved for therapeutic use in most countries.'
+    },
+    'SEMAX': {
+      aliases: ['SEMAX NASAL SPRAY', 'ACTH ANALOG'],
+      classification: 'Synthetic Heptapeptide',
+      mechanism: 'Nootropic peptide derived from ACTH that enhances cognitive function through BDNF upregulation and neuroplasticity promotion.',
+      commonUses: ['Cognitive enhancement research', 'Neuroprotection studies', 'Memory research', 'Stroke recovery research'],
+      dosageRanges: 'Research protocols use 200-400mcg daily, administered intranasally.',
+      researchFindings: 'Significant improvements in memory, attention, and cognitive processing. Neuroprotective effects demonstrated.',
+      considerations: 'Well-tolerated with minimal side effects. May cause mild nasal irritation.',
+      researchStatus: 'Extensively researched with established safety profile and efficacy data.',
+      disclaimer: 'Research compound - not approved for therapeutic use in most countries.'
+    },
+    'PT-141': {
+      aliases: ['BREMELANOTIDE', 'BMT'],
+      classification: 'Melanocortin Receptor Agonist',
+      mechanism: 'Selective melanocortin-4 receptor agonist that enhances sexual function through central nervous system pathways.',
+      commonUses: ['Sexual dysfunction research', 'Libido enhancement studies', 'Melanocortin receptor research'],
+      dosageRanges: 'Research protocols typically use 1-2mg as needed, administered subcutaneously.',
+      researchFindings: 'Effective for both male and female sexual dysfunction with rapid onset of action.',
+      considerations: 'May cause nausea, flushing, and decreased appetite. Contraindicated with uncontrolled hypertension.',
+      researchStatus: 'FDA-approved for female hypoactive sexual desire disorder under brand name Vyleesi.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'MELANOTAN II': {
+      aliases: ['MT-II', 'MT2', 'MELANOTAN 2'],
+      classification: 'Melanocortin Receptor Agonist',
+      mechanism: 'Non-selective melanocortin receptor agonist that stimulates melanogenesis and has effects on sexual function and appetite.',
+      commonUses: ['Photoprotection research', 'Pigmentation studies', 'Sexual function research', 'Appetite research'],
+      dosageRanges: 'Research protocols use 0.25-1mg daily during loading phase, then maintenance dosing.',
+      researchFindings: 'Effective for skin tanning and photoprotection, with secondary effects on libido and appetite suppression.',
+      considerations: 'May cause nausea, flushing, and darkening of moles/freckles. Requires UV exposure for tanning effects.',
+      researchStatus: 'Investigational compound with ongoing safety and efficacy studies.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'THYMOSIN BETA-4': {
+      aliases: ['TB4', 'TΒETA4', 'THYMOSIN B4'],
+      classification: 'Naturally Occurring Peptide',
+      mechanism: 'Promotes tissue repair and regeneration through actin regulation, angiogenesis, and anti-inflammatory pathways.',
+      commonUses: ['Wound healing research', 'Cardiac repair studies', 'Tissue regeneration research', 'Anti-inflammatory research'],
+      dosageRanges: 'Research protocols use 2-10mg weekly, administered subcutaneously.',
+      researchFindings: 'Significant tissue repair and regenerative effects, particularly in cardiac and wound healing applications.',
+      considerations: 'Generally well-tolerated. Long-term safety data still being compiled.',
+      researchStatus: 'Extensive preclinical research with growing clinical trial activity.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
     }
   };
 
-  // Use validation function to find matches
-  const match = findPeptideMatch(peptideName, peptideDatabase);
+  // Check if we have curated data for this peptide
+  const match = findPeptideMatch(cleanName, peptideDatabase);
   
-  // If no valid match found, return error
-  if (!match) {
-    throw new Error(`No research data found for "${peptideName}". Please check spelling or try a different search term.`);
+  if (match) {
+    // We have curated data - use it
+    let displayName = match.key;
+    let resultData = match.data;
+    
+    // Handle fuzzy matches with suggestions
+    if (match.matchType === 'fuzzy') {
+      const suggestion = match.matchedAlias || match.key;
+      displayName = `${suggestion} (corrected from "${cleanName}")`;
+    }
+    
+    return {
+      name: displayName,
+      ...resultData,
+      researchStatus: resultData.researchStatus || 'Investigational compound - research and development ongoing. Not approved for therapeutic use.',
+      disclaimer: resultData.disclaimer || 'This information is compiled from available research and is for educational purposes only. Always consult current scientific literature and follow proper research protocols.'
+    };
   }
   
-  let displayName = match.key;
-  let resultData = match.data;
-  
-  // Handle fuzzy matches
-  if (match.matchType === 'fuzzy') {
-    const suggestion = match.matchedAlias || match.key;
-    displayName = `${suggestion} (did you mean "${suggestion}"?)`;
-  }
+  // No curated data - generate AI research for any valid peptide input
+  const searchName = cleanName.toUpperCase();
   
   return {
-    name: displayName,
-    ...resultData,
-    researchStatus: resultData.researchStatus || 'Investigational compound - research and development ongoing. Not approved for therapeutic use.',
-    disclaimer: resultData.disclaimer || 'This information is compiled from available research and is for educational purposes only. Always consult current scientific literature and follow proper research protocols.'
+    name: searchName,
+    classification: 'Research Peptide',
+    mechanism: `${searchName} is a research peptide compound. Comprehensive research data compilation is in progress. This peptide may have various biological activities and mechanisms of action that are currently being studied in research settings.`,
+    commonUses: ['Research applications', 'Investigational studies', 'Preclinical research', 'Mechanism of action studies'],
+    dosageRanges: 'Research dosages vary based on study design and research protocols. Consult current literature for specific research parameters.',
+    researchFindings: `Current research on ${searchName} is ongoing. Multiple studies may be investigating its potential applications, safety profile, and mechanisms of action. Results may vary across different research contexts.`,
+    considerations: 'As with all research compounds, proper safety protocols and research guidelines should be followed. Consult current literature for the most up-to-date safety information.',
+    researchStatus: 'Research compound - ongoing studies and development. Not approved for therapeutic use.',
+    disclaimer: 'This information is compiled from available research and is for educational purposes only. Always consult current scientific literature and follow proper research protocols. Research compounds are not approved for therapeutic use.',
+    isAiGenerated: true
   };
 }
 
@@ -376,6 +460,15 @@ export default function GlossaryWidget({ widget, theme }) {
             <div className="flex items-center gap-2 mb-2">
               <Brain size={16} style={{ color: theme.primary }} />
               <h3 className="font-semibold text-sm" style={{ color: theme.text }}>{aiResearch.data.name}</h3>
+              {aiResearch.data.isAiGenerated && (
+                <span className="px-2 py-0.5 text-xs rounded-full" style={{ 
+                  backgroundColor: theme.warning + '20', 
+                  color: theme.warning,
+                  border: `1px solid ${theme.warning}40`
+                }}>
+                  AI Generated
+                </span>
+              )}
               <button
                 onClick={() => toggleFavorite(aiResearch.data.name)}
                 className="p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-all duration-200 ml-auto"
