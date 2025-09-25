@@ -83,11 +83,11 @@ const NotesModal = ({ isOpen, onClose, theme }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
+      open={isOpen}
       onClose={onClose}
       title="Research Notes"
       theme={theme}
-      size="large"
+      maxWidth="4xl"
     >
       <div className="p-6 max-h-96 overflow-y-auto">
         {/* Add New Note Section */}
