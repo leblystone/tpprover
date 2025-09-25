@@ -1009,6 +1009,226 @@ const PEPTIDE_DATABASE = {
       considerations: 'Effects depend on specific ingredients. May contain stimulants.',
       researchStatus: 'Thermogenic research formulation.',
       disclaimer: 'Research compound - not approved for weight loss claims.'
+    },
+    'LIPO-C': {
+      aliases: ['LIPOTROPIC-C', 'LIPO C', 'MIC INJECTION', 'LIPOTROPIC COMPLEX'],
+      classification: 'Lipotropic Amino Acid Complex',
+      mechanism: 'Combination of methionine, inositol, choline, and cyanocobalamin (B12) that may support fat metabolism and liver function.',
+      commonUses: ['Fat metabolism research', 'Liver function studies', 'Weight management research', 'Metabolic support research'],
+      dosageRanges: 'Research protocols typically use 1-2ml intramuscular injections, 1-3 times weekly. Oral formulations vary by composition.',
+      researchFindings: 'May support lipid metabolism and liver detoxification processes through methyl donor pathways.',
+      considerations: 'Generally well-tolerated. May cause injection site reactions with IM administration.',
+      researchStatus: 'Established lipotropic formulation used in metabolic research.',
+      disclaimer: 'Research compound - not approved for weight loss claims.'
+    },
+    'TREN A': {
+      aliases: ['TRENBOLONE ACETATE', 'TREN ACETATE', 'TREN-A'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'Potent synthetic anabolic steroid with strong androgenic properties.',
+      commonUses: ['Anabolic research', 'Muscle growth studies', 'Performance research', 'Veterinary research'],
+      dosageRanges: 'Research protocols vary widely. Veterinary studies typically use 200-400mg weekly.',
+      researchFindings: 'Extremely potent anabolic effects with significant androgenic activity.',
+      considerations: 'Highly potent with significant side effects. Controlled substance in many jurisdictions.',
+      researchStatus: 'Controlled anabolic steroid - research restricted.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'TREN E': {
+      aliases: ['TRENBOLONE ENANTHATE', 'TREN ENANTHATE', 'TREN-E'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'Long-acting ester of trenbolone with extended release profile.',
+      commonUses: ['Extended anabolic research', 'Long-term studies', 'Veterinary research', 'Pharmacokinetic research'],
+      dosageRanges: 'Research protocols typically use longer dosing intervals due to extended half-life.',
+      researchFindings: 'Similar anabolic potency to acetate ester with longer duration of action.',
+      considerations: 'Extended half-life requires careful study design. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid - research restricted.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'TREN H': {
+      aliases: ['TRENBOLONE HEXAHYDROBENZYLCARBONATE', 'PARABOLAN', 'TREN-H'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'Long-acting trenbolone ester with unique pharmacokinetic profile.',
+      commonUses: ['Pharmacokinetic research', 'Extended anabolic studies', 'Veterinary research', 'Ester comparison studies'],
+      dosageRanges: 'Research protocols account for extended half-life and unique release pattern.',
+      researchFindings: 'Longest-acting trenbolone ester with sustained anabolic activity.',
+      considerations: 'Longest half-life of trenbolone esters. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid - research restricted.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'TEST P': {
+      aliases: ['TESTOSTERONE PROPIONATE', 'TEST PROP', 'TESTOSTERONE-P'],
+      classification: 'Anabolic Steroid Hormone',
+      mechanism: 'Short-acting testosterone ester for hormone replacement and anabolic research.',
+      commonUses: ['Hormone research', 'Anabolic studies', 'TRT research', 'Endocrine research'],
+      dosageRanges: 'Research protocols typically use 25-100mg every other day due to short half-life.',
+      researchFindings: 'Rapid onset testosterone replacement with frequent dosing requirements.',
+      considerations: 'Requires frequent administration. Standard testosterone side effect profile.',
+      researchStatus: 'Controlled anabolic steroid - medical and research applications.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'MASTERON': {
+      aliases: ['DROSTANOLONE PROPIONATE', 'MAST P', 'DROSTANOLONE'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'DHT-derived anabolic steroid with anti-estrogenic properties.',
+      commonUses: ['Anti-estrogenic research', 'Body composition studies', 'DHT research', 'Cutting research'],
+      dosageRanges: 'Research protocols typically use 200-400mg weekly.',
+      researchFindings: 'Moderate anabolic effects with strong anti-estrogenic activity.',
+      considerations: 'DHT-derived compound with associated androgenic effects. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid - research restricted.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'WINSTROL': {
+      aliases: ['STANOZOLOL', 'WINNY', 'STROMBA'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'Modified DHT with enhanced anabolic properties and reduced androgenic effects.',
+      commonUses: ['Performance research', 'Lean mass studies', 'Strength research', 'Athletic research'],
+      dosageRanges: 'Research protocols typically use 25-50mg daily (oral) or 50mg every other day (injectable).',
+      researchFindings: 'Enhanced protein synthesis with favorable anabolic to androgenic ratio.',
+      considerations: 'Hepatotoxic in oral form. May affect lipid profiles. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid - research restricted.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'ANAVAR': {
+      aliases: ['OXANDROLONE', 'VAR', 'OXANDRIN'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'Mild anabolic steroid with low androgenic activity and favorable safety profile.',
+      commonUses: ['Muscle wasting research', 'Burn recovery studies', 'Pediatric research', 'Women\'s health research'],
+      dosageRanges: 'Research protocols typically use 5-20mg daily, with higher doses in specific clinical studies.',
+      researchFindings: 'Mild anabolic effects with relatively low side effect profile.',
+      considerations: 'Generally well-tolerated but may affect liver function. Controlled substance.',
+      researchStatus: 'FDA-approved for specific medical conditions, controlled substance.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'PRIMO': {
+      aliases: ['PRIMOBOLAN', 'METHENOLONE', 'PRIMO E', 'METHENOLONE ENANTHATE'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'Mild DHT-derived anabolic steroid with low androgenic activity.',
+      commonUses: ['Lean mass research', 'Cutting studies', 'Mild anabolic research', 'Women\'s research'],
+      dosageRanges: 'Research protocols typically use 200-600mg weekly (injectable) or 50-100mg daily (oral).',
+      researchFindings: 'Mild anabolic effects with minimal side effects and low hepatotoxicity.',
+      considerations: 'Generally well-tolerated with minimal side effects. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid - research restricted.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'RIPPED TEST P': {
+      aliases: ['RIPPED TEST PROP', 'TEST P BLEND', 'CUTTING TEST'],
+      classification: 'Anabolic Steroid Blend',
+      mechanism: 'Testosterone propionate blend designed for cutting and lean mass research.',
+      commonUses: ['Cutting research', 'Body composition studies', 'Lean mass research', 'Performance research'],
+      dosageRanges: 'Research protocols vary based on specific blend composition and study objectives.',
+      researchFindings: 'Combines testosterone effects with cutting-specific additives.',
+      considerations: 'Blend effects depend on additional components. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid blend - research restricted.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'DECA': {
+      aliases: ['NANDROLONE DECANOATE', 'NPP', 'DECA-DURABOLIN', 'NANDROLONE'],
+      classification: 'Anabolic Steroid',
+      mechanism: '19-nortestosterone derivative with strong anabolic and moderate androgenic effects.',
+      commonUses: ['Joint research', 'Muscle wasting studies', 'Bone density research', 'Anabolic research'],
+      dosageRanges: 'Research protocols typically use 200-600mg weekly due to long half-life.',
+      researchFindings: 'Strong anabolic effects with joint-protective properties and collagen synthesis.',
+      considerations: 'Long half-life requires extended study periods. May suppress natural testosterone.',
+      researchStatus: 'Controlled anabolic steroid - medical and research applications.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'EQ': {
+      aliases: ['EQUIPOISE', 'BOLDENONE UNDECYLENATE', 'BOLD'],
+      classification: 'Anabolic Steroid',
+      mechanism: 'Testosterone derivative with enhanced anabolic properties and appetite stimulation.',
+      commonUses: ['Appetite research', 'Lean mass studies', 'Endurance research', 'Veterinary research'],
+      dosageRanges: 'Research protocols typically use 200-800mg weekly due to long half-life.',
+      researchFindings: 'Moderate anabolic effects with significant appetite stimulation and endurance enhancement.',
+      considerations: 'Very long half-life. May increase red blood cell production. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid - primarily veterinary use.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'SUSTANON': {
+      aliases: ['SUST', 'TESTOSTERONE BLEND', 'TEST BLEND', 'OMNADREN'],
+      classification: 'Testosterone Ester Blend',
+      mechanism: 'Blend of four testosterone esters providing both immediate and sustained release.',
+      commonUses: ['TRT research', 'Hormone research', 'Pharmacokinetic studies', 'Sustained release research'],
+      dosageRanges: 'Research protocols typically use 250-500mg weekly with extended dosing intervals.',
+      researchFindings: 'Provides both rapid onset and sustained testosterone levels.',
+      considerations: 'Complex pharmacokinetics due to multiple esters. Controlled substance.',
+      researchStatus: 'Controlled anabolic steroid - medical and research applications.',
+      disclaimer: 'Controlled substance - research use must comply with applicable regulations and licensing.'
+    },
+    'CYTOMEL': {
+      aliases: ['T3', 'LIOTHYRONINE', 'TRIIODOTHYRONINE'],
+      classification: 'Thyroid Hormone',
+      mechanism: 'Active thyroid hormone that regulates metabolic rate and protein synthesis.',
+      commonUses: ['Metabolic research', 'Thyroid studies', 'Weight management research', 'Endocrine research'],
+      dosageRanges: 'Research protocols typically use 25-100mcg daily with careful titration.',
+      researchFindings: 'Potent metabolic effects with rapid onset and short half-life.',
+      considerations: 'Requires careful monitoring. May cause hyperthyroid symptoms. Prescription medication.',
+      researchStatus: 'FDA-approved thyroid medication.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'CLENBUTEROL': {
+      aliases: ['CLEN', 'SPIROPENT', 'VENTIPULMIN'],
+      classification: 'Beta-2 Agonist',
+      mechanism: 'Selective beta-2 adrenergic agonist with bronchodilator and thermogenic properties.',
+      commonUses: ['Thermogenesis research', 'Bronchodilator studies', 'Fat loss research', 'Performance research'],
+      dosageRanges: 'Research protocols typically use 20-120mcg daily with cycling protocols.',
+      researchFindings: 'Significant thermogenic and anti-catabolic effects with bronchodilation.',
+      considerations: 'May cause cardiovascular side effects. Banned in many sports. Prescription medication.',
+      researchStatus: 'Prescription bronchodilator - research applications.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'CARDARINE': {
+      aliases: ['GW-501516', 'GW501516', 'ENDUROBOL'],
+      classification: 'PPAR Delta Agonist',
+      mechanism: 'Selective PPAR delta receptor agonist that enhances fat oxidation and endurance.',
+      commonUses: ['Endurance research', 'Fat oxidation studies', 'Metabolic research', 'PPAR research'],
+      dosageRanges: 'Research protocols typically use 10-20mg daily.',
+      researchFindings: 'Significant enhancement of fat oxidation and endurance capacity.',
+      considerations: 'Discontinued clinical development due to cancer concerns in animal studies.',
+      researchStatus: 'Investigational compound - development discontinued.',
+      disclaimer: 'Research compound - not approved for human use. Potential safety concerns.'
+    },
+    'OSTARINE': {
+      aliases: ['MK-2866', 'ENOBOSARM', 'GTX-024'],
+      classification: 'Selective Androgen Receptor Modulator',
+      mechanism: 'Selective androgen receptor modulator with tissue-selective anabolic effects.',
+      commonUses: ['Muscle wasting research', 'Bone density studies', 'SARM research', 'Selective anabolic research'],
+      dosageRanges: 'Research protocols typically use 10-25mg daily.',
+      researchFindings: 'Moderate anabolic effects with reduced androgenic side effects.',
+      considerations: 'May suppress natural testosterone production. Not approved for human use.',
+      researchStatus: 'Investigational SARM - clinical trials discontinued.',
+      disclaimer: 'Research compound - not approved for human use.'
+    },
+    'RAD-140': {
+      aliases: ['TESTOLONE', 'RAD140'],
+      classification: 'Selective Androgen Receptor Modulator',
+      mechanism: 'Potent SARM with strong anabolic activity and neuroprotective properties.',
+      commonUses: ['Anabolic research', 'Neuroprotection studies', 'SARM research', 'Muscle research'],
+      dosageRanges: 'Research protocols typically use 10-30mg daily.',
+      researchFindings: 'Strong anabolic effects with potential neuroprotective benefits.',
+      considerations: 'May suppress testosterone production. Limited human safety data.',
+      researchStatus: 'Investigational SARM - early clinical development.',
+      disclaimer: 'Research compound - not approved for human use.'
+    },
+    'LGD-4033': {
+      aliases: ['LIGANDROL', 'VK5211'],
+      classification: 'Selective Androgen Receptor Modulator',
+      mechanism: 'Selective androgen receptor modulator with strong anabolic activity.',
+      commonUses: ['Muscle wasting research', 'Anabolic studies', 'SARM research', 'Cachexia research'],
+      dosageRanges: 'Research protocols typically use 1-10mg daily.',
+      researchFindings: 'Potent anabolic effects with dose-dependent muscle mass increases.',
+      considerations: 'May suppress testosterone production. Potential liver effects.',
+      researchStatus: 'Investigational SARM - clinical trials ongoing.',
+      disclaimer: 'Research compound - not approved for human use.'
+    },
+    'YK-11': {
+      aliases: ['YK11', 'MYOSTATIN INHIBITOR'],
+      classification: 'Myostatin Inhibitor/SARM Hybrid',
+      mechanism: 'Selective androgen receptor modulator with myostatin inhibition properties.',
+      commonUses: ['Myostatin research', 'Muscle growth studies', 'SARM research', 'Follistatin research'],
+      dosageRanges: 'Research protocols typically use 5-15mg daily.',
+      researchFindings: 'Unique mechanism combining SARM activity with myostatin inhibition.',
+      considerations: 'Limited research data. Potential for significant muscle growth.',
+      researchStatus: 'Investigational compound - very limited clinical data.',
+      disclaimer: 'Research compound - not approved for human use.'
     }
   };
 
