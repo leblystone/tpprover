@@ -400,12 +400,12 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '1.6'; // Force glossary widget size update to MEDIUM (2x1) with proper availableSizes
+    const currentVersion = '2.0'; // Force complete layout reset to include all latest widgets (Feedback, Notes, consistent sizing)
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
     if (layoutVersion !== currentVersion) {
-      console.log('🔄 Dashboard layout version mismatch - forcing reset to apply new widget sizes (Research Glossary: MEDIUM 2x1 to match Today\'s Research)');
+      console.log('🔄 Dashboard layout version mismatch - forcing reset to include all latest widgets (Feedback, Notes, consistent sizing)');
       console.log('🗑️ Clearing dashboard layout from localStorage');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
