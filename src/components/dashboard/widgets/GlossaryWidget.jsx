@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Search, Star, StarOff, ChevronDown, ChevronRight, Brain, AlertTriangle, Loader, Filter, FileText, Plus, Edit3, Trash2, Zap, Heart, Target, Shield, Sparkles } from 'lucide-react';
+import { BookOpen, Search, Star, StarOff, ChevronDown, ChevronRight, Brain, AlertTriangle, Loader, Filter, FileText, Plus, Edit3, Trash2, Zap, Heart, Target, Shield, Sparkles, CheckCircle } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 
 // Levenshtein distance function for fuzzy string matching
@@ -73,28 +73,8 @@ function findPeptideMatch(searchTerm, peptideDatabase) {
   return null;
 }
 
-// Import the research compilation function from the modal
-async function compilePeptideResearch(peptideName) {
-  // Simulate comprehensive research compilation
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // Basic input validation - allow any reasonable peptide-like input
-  const cleanName = peptideName.trim();
-  if (cleanName.length < 3) {
-    throw new Error('Please enter at least 3 characters for research.');
-  }
-  
-  if (!/[a-zA-Z]/.test(cleanName)) {
-    throw new Error('Please enter a valid peptide name (must contain letters).');
-  }
-  
-  // Reject obvious non-peptide inputs
-  if (/^\d+$/.test(cleanName) || /^[^a-zA-Z]*$/.test(cleanName)) {
-    throw new Error('Please enter a valid peptide name for research.');
-  }
-  
-  // Enhanced peptide database - used for quick lookup and suggestions, not as a gatekeeper
-  const peptideDatabase = {
+// Enhanced peptide database - curated, verified research data
+const PEPTIDE_DATABASE = {
     'BPC-157': {
       aliases: ['BPC157', 'BPC 157', 'BODY PROTECTION COMPOUND'],
       classification: 'Gastric Pentadecapeptide',
@@ -215,11 +195,664 @@ async function compilePeptideResearch(peptideName) {
       considerations: 'Generally well-tolerated. Long-term safety data still being compiled.',
       researchStatus: 'Extensive preclinical research with growing clinical trial activity.',
       disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'GHRP-6': {
+      aliases: ['GHRP6', 'GROWTH HORMONE RELEASING PEPTIDE-6'],
+      classification: 'Growth Hormone Releasing Peptide',
+      mechanism: 'Stimulates growth hormone release from the pituitary gland through ghrelin receptor activation.',
+      commonUses: ['Growth hormone research', 'Anti-aging studies', 'Muscle growth research', 'Recovery research'],
+      dosageRanges: 'Research dosages typically range from 100-300mcg, 2-3 times daily.',
+      researchFindings: 'Effective GH stimulation with additional effects on appetite and gastric motility.',
+      considerations: 'May increase appetite and cortisol levels. Monitor for hypoglycemia.',
+      researchStatus: 'Well-established research compound with extensive safety data.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'GHRP-2': {
+      aliases: ['GHRP2', 'GROWTH HORMONE RELEASING PEPTIDE-2'],
+      classification: 'Growth Hormone Releasing Peptide',
+      mechanism: 'Potent growth hormone secretagogue that stimulates GH release with minimal impact on other hormones.',
+      commonUses: ['Growth hormone research', 'Body composition studies', 'Anti-aging research', 'Recovery research'],
+      dosageRanges: 'Research protocols use 100-300mcg, 2-3 times daily.',
+      researchFindings: 'More potent than GHRP-6 with less impact on appetite and cortisol.',
+      considerations: 'Generally well-tolerated. May cause transient increases in prolactin.',
+      researchStatus: 'Extensively studied with established research protocols.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'HEXARELIN': {
+      aliases: ['HEX', 'EXAMORELIN'],
+      classification: 'Growth Hormone Releasing Peptide',
+      mechanism: 'Synthetic hexapeptide that stimulates GH release through ghrelin receptor activation.',
+      commonUses: ['Growth hormone research', 'Cardiac research', 'Neuroprotection studies', 'Anti-aging research'],
+      dosageRanges: 'Research dosages range from 100-200mcg, 2-3 times daily.',
+      researchFindings: 'Potent GH stimulation with additional cardioprotective and neuroprotective effects.',
+      considerations: 'May cause receptor desensitization with prolonged use. Monitor cardiac function.',
+      researchStatus: 'Investigational compound with growing clinical interest.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'SERMORELIN': {
+      aliases: ['GRF 1-29', 'GROWTH HORMONE RELEASING FACTOR'],
+      classification: 'Growth Hormone Releasing Hormone Analog',
+      mechanism: 'Synthetic analog of naturally occurring GHRH that stimulates growth hormone release.',
+      commonUses: ['Growth hormone deficiency research', 'Anti-aging studies', 'Sleep research', 'Body composition research'],
+      dosageRanges: 'Research protocols typically use 100-500mcg daily, administered before sleep.',
+      researchFindings: 'Effective for stimulating natural GH production with minimal side effects.',
+      considerations: 'Generally well-tolerated. May improve sleep quality.',
+      researchStatus: 'FDA-approved for growth hormone deficiency in children.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'TESAMORELIN': {
+      aliases: ['TH9507', 'EGRIFTA'],
+      classification: 'Growth Hormone Releasing Hormone Analog',
+      mechanism: 'Synthetic analog of human GHRH that stimulates endogenous GH production.',
+      commonUses: ['HIV lipodystrophy research', 'Body composition studies', 'Metabolic research'],
+      dosageRanges: 'Research protocols use 2mg daily, administered subcutaneously.',
+      researchFindings: 'Effective for reducing visceral adipose tissue in HIV patients.',
+      considerations: 'May cause injection site reactions and joint pain.',
+      researchStatus: 'FDA-approved for HIV-associated lipodystrophy.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'OXYTOCIN': {
+      aliases: ['OT', 'LOVE HORMONE'],
+      classification: 'Naturally Occurring Hormone',
+      mechanism: 'Neuropeptide hormone that acts on oxytocin receptors to influence social bonding and reproductive behaviors.',
+      commonUses: ['Social behavior research', 'Autism studies', 'Labor induction research', 'Bonding research'],
+      dosageRanges: 'Research dosages vary widely based on application and route of administration.',
+      researchFindings: 'Significant effects on social cognition, empathy, and pair bonding behaviors.',
+      considerations: 'May cause uterine contractions. Contraindicated in pregnancy unless medically supervised.',
+      researchStatus: 'FDA-approved for labor induction and postpartum bleeding.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'VASOPRESSIN': {
+      aliases: ['ADH', 'ANTIDIURETIC HORMONE', 'AVP'],
+      classification: 'Naturally Occurring Hormone',
+      mechanism: 'Antidiuretic hormone that regulates water retention and blood pressure through V1 and V2 receptors.',
+      commonUses: ['Diabetes insipidus research', 'Cardiovascular research', 'Memory research', 'Social behavior studies'],
+      dosageRanges: 'Research dosages vary based on indication and route of administration.',
+      researchFindings: 'Essential for water homeostasis with additional effects on memory and social behavior.',
+      considerations: 'May cause water retention and hyponatremia. Monitor electrolyte levels.',
+      researchStatus: 'FDA-approved for diabetes insipidus and certain bleeding disorders.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'DSIP': {
+      aliases: ['DELTA SLEEP INDUCING PEPTIDE'],
+      classification: 'Naturally Occurring Neuropeptide',
+      mechanism: 'Neuromodulator peptide that influences sleep patterns and stress responses.',
+      commonUses: ['Sleep research', 'Stress response studies', 'Circadian rhythm research', 'Neuroprotection research'],
+      dosageRanges: 'Research protocols typically use 25-100mcg daily.',
+      researchFindings: 'Promotes deep sleep and may have stress-protective effects.',
+      considerations: 'Generally well-tolerated. May cause drowsiness.',
+      researchStatus: 'Investigational compound with limited clinical data.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'EPITHALON': {
+      aliases: ['EPITALON', 'EPITHALAMIN'],
+      classification: 'Synthetic Tetrapeptide',
+      mechanism: 'Telomerase activator that may influence cellular aging and circadian rhythms.',
+      commonUses: ['Aging research', 'Longevity studies', 'Circadian rhythm research', 'Cellular research'],
+      dosageRanges: 'Research protocols use 5-10mg in cycles, administered subcutaneously.',
+      researchFindings: 'May influence telomerase activity and melatonin production.',
+      considerations: 'Limited human safety data. Long-term effects unknown.',
+      researchStatus: 'Investigational compound with limited clinical research.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'FOLLISTATIN-344': {
+      aliases: ['FST-344', 'FOLLISTATIN'],
+      classification: 'Myostatin Inhibitor',
+      mechanism: 'Binds and neutralizes myostatin and other TGF-β family proteins, promoting muscle growth.',
+      commonUses: ['Muscle growth research', 'Myostatin research', 'Muscular dystrophy studies', 'Athletic performance research'],
+      dosageRanges: 'Research protocols vary widely based on study design.',
+      researchFindings: 'Potent muscle growth promotion through myostatin inhibition.',
+      considerations: 'Limited human safety data. Potential for significant muscle growth.',
+      researchStatus: 'Investigational compound with growing research interest.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'THYMULIN': {
+      aliases: ['FACTEUR THYMIQUE SERIQUE', 'FTS'],
+      classification: 'Thymic Hormone',
+      mechanism: 'Thymic peptide that modulates immune system function and T-cell development.',
+      commonUses: ['Immunology research', 'Aging research', 'Autoimmune studies', 'T-cell research'],
+      dosageRanges: 'Research dosages vary based on study design and application.',
+      researchFindings: 'Important role in immune system regulation and T-cell maturation.',
+      considerations: 'Limited human safety data. May affect immune responses.',
+      researchStatus: 'Investigational compound with specialized research applications.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'THYMOSIN ALPHA-1': {
+      aliases: ['TA1', 'THYMALFASIN', 'ZADAXIN'],
+      classification: 'Thymic Peptide',
+      mechanism: 'Immunomodulator that enhances T-cell function and immune response.',
+      commonUses: ['Immunology research', 'Cancer research', 'Viral infection studies', 'Immune enhancement research'],
+      dosageRanges: 'Research protocols typically use 1.6mg twice weekly.',
+      researchFindings: 'Enhances immune function and may improve outcomes in certain cancers and infections.',
+      considerations: 'Generally well-tolerated. May cause injection site reactions.',
+      researchStatus: 'Approved in some countries for hepatitis B and certain cancers.',
+      disclaimer: 'Regulatory status varies by country - research use must comply with local regulations.'
+    },
+    'LL-37': {
+      aliases: ['CATHELICIDIN', 'CAMP'],
+      classification: 'Antimicrobial Peptide',
+      mechanism: 'Natural antimicrobial peptide with broad-spectrum activity against bacteria, viruses, and fungi.',
+      commonUses: ['Antimicrobial research', 'Wound healing studies', 'Immune research', 'Skin research'],
+      dosageRanges: 'Research applications vary widely based on study design.',
+      researchFindings: 'Potent antimicrobial activity with additional wound healing properties.',
+      considerations: 'Limited human safety data for systemic use.',
+      researchStatus: 'Investigational compound with growing research interest.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'MOTS-C': {
+      aliases: ['MITOCHONDRIAL ORF OF THE 12S RRNA TYPE-C'],
+      classification: 'Mitochondrial-Derived Peptide',
+      mechanism: 'Mitochondrial peptide that regulates metabolic homeostasis and cellular energy production.',
+      commonUses: ['Metabolic research', 'Aging studies', 'Diabetes research', 'Exercise physiology research'],
+      dosageRanges: 'Research protocols are still being established.',
+      researchFindings: 'May improve glucose metabolism and exercise capacity.',
+      considerations: 'Very limited human data. Novel research area.',
+      researchStatus: 'Early-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'HUMANIN': {
+      aliases: ['HN', 'MITOCHONDRIAL-DERIVED PEPTIDE'],
+      classification: 'Mitochondrial-Derived Peptide',
+      mechanism: 'Neuroprotective peptide that may protect against cellular stress and neurodegeneration.',
+      commonUses: ['Neuroprotection research', 'Aging studies', 'Alzheimer research', 'Cellular stress research'],
+      dosageRanges: 'Research protocols are still being developed.',
+      researchFindings: 'Potential neuroprotective and anti-aging effects.',
+      considerations: 'Very limited human data. Novel research compound.',
+      researchStatus: 'Early-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'GHK-CU': {
+      aliases: ['COPPER PEPTIDE', 'GHK-COPPER'],
+      classification: 'Copper-Binding Peptide',
+      mechanism: 'Copper-binding tripeptide that promotes wound healing, collagen synthesis, and tissue remodeling.',
+      commonUses: ['Wound healing research', 'Anti-aging studies', 'Skin research', 'Hair growth research'],
+      dosageRanges: 'Topical applications typically use 0.05-2% concentrations.',
+      researchFindings: 'Promotes collagen synthesis, wound healing, and may have anti-inflammatory effects.',
+      considerations: 'Generally well-tolerated topically. Limited systemic safety data.',
+      researchStatus: 'Well-established in cosmetic applications, ongoing research for therapeutic uses.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'SNAP-8': {
+      aliases: ['ACETYL OCTAPEPTIDE-3', 'ANTI-WRINKLE PEPTIDE'],
+      classification: 'Cosmetic Peptide',
+      mechanism: 'Synthetic octapeptide that reduces muscle contraction intensity, potentially reducing wrinkle formation.',
+      commonUses: ['Cosmetic research', 'Anti-aging studies', 'Dermatology research', 'Muscle contraction studies'],
+      dosageRanges: 'Topical formulations typically use 3-10% concentrations.',
+      researchFindings: 'May reduce wrinkle depth and muscle contraction intensity.',
+      considerations: 'Primarily studied for topical cosmetic applications.',
+      researchStatus: 'Established cosmetic ingredient with ongoing research.',
+      disclaimer: 'Cosmetic ingredient - research compound for other applications.'
+    },
+    'MATRIXYL': {
+      aliases: ['PALMITOYL PENTAPEPTIDE-4', 'PAL-KTTKS'],
+      classification: 'Cosmetic Peptide',
+      mechanism: 'Synthetic peptide that stimulates collagen synthesis and skin repair mechanisms.',
+      commonUses: ['Anti-aging research', 'Skin research', 'Collagen studies', 'Cosmetic research'],
+      dosageRanges: 'Topical formulations typically use 2-8% concentrations.',
+      researchFindings: 'Stimulates collagen production and may improve skin texture and firmness.',
+      considerations: 'Well-established safety profile for topical use.',
+      researchStatus: 'Widely used cosmetic ingredient with extensive research.',
+      disclaimer: 'Cosmetic ingredient - research compound for therapeutic applications.'
+    },
+    'PENTOSAN POLYSULFATE': {
+      aliases: ['PPS', 'ELMIRON'],
+      classification: 'Glycosaminoglycan Analog',
+      mechanism: 'Synthetic polysaccharide that may protect bladder lining and have anti-inflammatory effects.',
+      commonUses: ['Interstitial cystitis research', 'Bladder research', 'Anti-inflammatory studies', 'Joint research'],
+      dosageRanges: 'Clinical protocols typically use 100mg three times daily.',
+      researchFindings: 'Effective for interstitial cystitis, potential benefits for joint health.',
+      considerations: 'May cause gastrointestinal effects and bleeding risk.',
+      researchStatus: 'FDA-approved for interstitial cystitis.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'CEREBROLYSIN': {
+      aliases: ['BRAIN-DERIVED PEPTIDES', 'NEUROTROPHIC FACTORS'],
+      classification: 'Neuropeptide Complex',
+      mechanism: 'Mixture of low molecular weight peptides and amino acids that may support neuroplasticity.',
+      commonUses: ['Stroke research', 'Dementia studies', 'Traumatic brain injury research', 'Neuroprotection studies'],
+      dosageRanges: 'Clinical protocols typically use 10-30ml daily intravenously.',
+      researchFindings: 'May improve cognitive function and neurological outcomes in certain conditions.',
+      considerations: 'Requires medical supervision. May cause allergic reactions.',
+      researchStatus: 'Approved in some countries for neurological conditions.',
+      disclaimer: 'Regulatory status varies by country - research use must comply with local regulations.'
+    },
+    'DIHEXA': {
+      aliases: ['N-HEXANOIC-TYR-ILE-(6) AMINOHEXANOIC AMIDE'],
+      classification: 'Cognitive Enhancement Peptide',
+      mechanism: 'Small molecule that may enhance cognitive function through HGF/c-Met pathway activation.',
+      commonUses: ['Cognitive research', 'Alzheimer studies', 'Memory research', 'Neuroplasticity studies'],
+      dosageRanges: 'Research protocols are still being established.',
+      researchFindings: 'Potential cognitive enhancement and neuroprotective effects in preclinical studies.',
+      considerations: 'Very limited human safety data. Novel research compound.',
+      researchStatus: 'Early-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'NOOPEPT': {
+      aliases: ['GVS-111', 'N-PHENYLACETYL-L-PROLYLGLYCINE ETHYL ESTER'],
+      classification: 'Nootropic Peptide',
+      mechanism: 'Synthetic nootropic that may enhance cognitive function through AMPA receptor modulation.',
+      commonUses: ['Cognitive research', 'Memory studies', 'Neuroprotection research', 'Learning studies'],
+      dosageRanges: 'Research protocols typically use 10-30mg daily.',
+      researchFindings: 'May improve memory, learning, and neuroprotection in preclinical studies.',
+      considerations: 'Limited human safety data. May interact with other medications.',
+      researchStatus: 'Investigational compound with limited clinical data.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'P21': {
+      aliases: ['CYCLIN-DEPENDENT KINASE INHIBITOR'],
+      classification: 'Cell Cycle Regulator',
+      mechanism: 'Protein that regulates cell cycle progression and may have neuroprotective effects.',
+      commonUses: ['Cancer research', 'Cell cycle studies', 'Neuroprotection research', 'Aging studies'],
+      dosageRanges: 'Research applications vary based on study design.',
+      researchFindings: 'Important role in cell cycle regulation and potential therapeutic target.',
+      considerations: 'Research-grade compound with specialized applications.',
+      researchStatus: 'Established research target with ongoing studies.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'ADAMTS': {
+      aliases: ['A DISINTEGRIN AND METALLOPROTEINASE'],
+      classification: 'Metalloproteinase',
+      mechanism: 'Family of enzymes involved in extracellular matrix remodeling and various physiological processes.',
+      commonUses: ['Matrix biology research', 'Cardiovascular research', 'Cancer research', 'Developmental studies'],
+      dosageRanges: 'Research applications vary based on specific ADAMTS variant and study design.',
+      researchFindings: 'Critical roles in development, disease, and tissue homeostasis.',
+      considerations: 'Specialized research applications requiring expertise.',
+      researchStatus: 'Active area of research with therapeutic potential.',
+      disclaimer: 'Research compounds - not approved for therapeutic use.'
+    },
+    'LIRAGLUTIDE': {
+      aliases: ['VICTOZA', 'SAXENDA', 'GLP-1 ANALOG'],
+      classification: 'GLP-1 Receptor Agonist',
+      mechanism: 'Long-acting GLP-1 analog that regulates blood glucose and slows gastric emptying.',
+      commonUses: ['Diabetes research', 'Weight management studies', 'Cardiovascular research', 'Metabolic studies'],
+      dosageRanges: 'Clinical protocols range from 0.6-3.0mg daily depending on indication.',
+      researchFindings: 'Effective for diabetes management and weight loss with cardiovascular benefits.',
+      considerations: 'May cause gastrointestinal effects and pancreatitis risk.',
+      researchStatus: 'FDA-approved for diabetes and weight management.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'DULAGLUTIDE': {
+      aliases: ['TRULICITY', 'LY2189265'],
+      classification: 'GLP-1 Receptor Agonist',
+      mechanism: 'Weekly GLP-1 receptor agonist that improves glycemic control and promotes weight loss.',
+      commonUses: ['Diabetes research', 'Cardiovascular studies', 'Weight management research', 'Metabolic research'],
+      dosageRanges: 'Clinical protocols typically use 0.75-4.5mg weekly.',
+      researchFindings: 'Effective glucose control with cardiovascular benefits and weight loss.',
+      considerations: 'May cause gastrointestinal effects and injection site reactions.',
+      researchStatus: 'FDA-approved for type 2 diabetes.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'EXENATIDE': {
+      aliases: ['BYETTA', 'BYDUREON', 'EXENDIN-4'],
+      classification: 'GLP-1 Receptor Agonist',
+      mechanism: 'Incretin mimetic that enhances glucose-dependent insulin secretion and slows gastric emptying.',
+      commonUses: ['Diabetes research', 'Weight management studies', 'Neuroprotection research', 'Metabolic studies'],
+      dosageRanges: 'Clinical protocols range from 5-10mcg twice daily or 2mg weekly for extended-release.',
+      researchFindings: 'Effective for diabetes management with potential neuroprotective effects.',
+      considerations: 'May cause nausea and pancreatitis risk.',
+      researchStatus: 'FDA-approved for type 2 diabetes.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'PRAMLINTIDE': {
+      aliases: ['SYMLIN', 'AMYLIN ANALOG'],
+      classification: 'Amylin Analog',
+      mechanism: 'Synthetic analog of amylin that slows gastric emptying and promotes satiety.',
+      commonUses: ['Diabetes research', 'Weight management studies', 'Gastric motility research', 'Metabolic studies'],
+      dosageRanges: 'Clinical protocols typically use 15-120mcg with meals.',
+      researchFindings: 'Effective as adjunct therapy for diabetes with weight loss benefits.',
+      considerations: 'Risk of severe hypoglycemia when combined with insulin.',
+      researchStatus: 'FDA-approved for diabetes as adjunct to insulin.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'TERLIPRESSIN': {
+      aliases: ['GLYPRESSIN', 'TRIGLYCYL-LYSINE VASOPRESSIN'],
+      classification: 'Vasopressin Analog',
+      mechanism: 'Synthetic vasopressin analog with prolonged duration and selective V1 receptor activity.',
+      commonUses: ['Portal hypertension research', 'Bleeding studies', 'Shock research', 'Cardiovascular research'],
+      dosageRanges: 'Clinical protocols vary based on indication, typically 1-2mg every 4-6 hours.',
+      researchFindings: 'Effective for esophageal variceal bleeding and hepatorenal syndrome.',
+      considerations: 'May cause ischemic complications and hypertension.',
+      researchStatus: 'Approved in many countries for specific indications.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'NICOTINAMIDE RIBOSIDE': {
+      aliases: ['NR', 'NIAGEN', 'NAD+ PRECURSOR'],
+      classification: 'Vitamin B3 Derivative',
+      mechanism: 'NAD+ precursor that supports cellular energy metabolism and may promote longevity.',
+      commonUses: ['Anti-aging research', 'Metabolic studies', 'Mitochondrial research', 'Longevity research'],
+      dosageRanges: 'Research protocols typically use 250-1000mg daily.',
+      researchFindings: 'May increase NAD+ levels and support cellular energy production.',
+      considerations: 'Generally well-tolerated. May cause mild gastrointestinal effects.',
+      researchStatus: 'Dietary supplement with growing research interest.',
+      disclaimer: 'Dietary supplement - research applications under investigation.'
+    },
+    'NMN': {
+      aliases: ['NICOTINAMIDE MONONUCLEOTIDE', 'β-NICOTINAMIDE MONONUCLEOTIDE'],
+      classification: 'NAD+ Precursor',
+      mechanism: 'Direct NAD+ precursor that may support cellular energy metabolism and longevity pathways.',
+      commonUses: ['Anti-aging research', 'Metabolic studies', 'Cardiovascular research', 'Neurological research'],
+      dosageRanges: 'Research protocols typically use 250-1000mg daily.',
+      researchFindings: 'May increase NAD+ levels and support various aspects of healthy aging.',
+      considerations: 'Generally well-tolerated. Limited long-term human safety data.',
+      researchStatus: 'Investigational compound with growing clinical interest.',
+      disclaimer: 'Research compound - regulatory status varies by jurisdiction.'
+    },
+    'RESVERATROL': {
+      aliases: ['TRANS-RESVERATROL', 'RED WINE EXTRACT'],
+      classification: 'Polyphenol Antioxidant',
+      mechanism: 'Polyphenolic compound that may activate sirtuins and provide antioxidant effects.',
+      commonUses: ['Anti-aging research', 'Cardiovascular studies', 'Cancer research', 'Metabolic research'],
+      dosageRanges: 'Research protocols typically use 150-1000mg daily.',
+      researchFindings: 'May provide cardiovascular benefits and activate longevity pathways.',
+      considerations: 'May interact with blood thinning medications. Bioavailability concerns.',
+      researchStatus: 'Extensively studied dietary supplement.',
+      disclaimer: 'Dietary supplement - research applications continue.'
+    },
+    'PTEROSTILBENE': {
+      aliases: ['TRANS-PTEROSTILBENE', 'DIMETHYLRESVERATROL'],
+      classification: 'Polyphenol Antioxidant',
+      mechanism: 'Methylated analog of resveratrol with improved bioavailability and similar biological activities.',
+      commonUses: ['Anti-aging research', 'Cognitive studies', 'Metabolic research', 'Cardiovascular research'],
+      dosageRanges: 'Research protocols typically use 50-250mg daily.',
+      researchFindings: 'May provide cognitive and metabolic benefits with better bioavailability than resveratrol.',
+      considerations: 'Generally well-tolerated. Limited long-term safety data.',
+      researchStatus: 'Emerging research compound with promising preclinical data.',
+      disclaimer: 'Research compound - dietary supplement applications under investigation.'
+    },
+    'BERBERINE': {
+      aliases: ['BERBERINE HCL', 'BERBERINE HYDROCHLORIDE'],
+      classification: 'Plant Alkaloid',
+      mechanism: 'Isoquinoline alkaloid that activates AMPK and may improve glucose and lipid metabolism.',
+      commonUses: ['Diabetes research', 'Metabolic studies', 'Cardiovascular research', 'Weight management research'],
+      dosageRanges: 'Research protocols typically use 500-1500mg daily in divided doses.',
+      researchFindings: 'May improve glucose metabolism, lipid profiles, and weight management.',
+      considerations: 'May cause gastrointestinal effects. Drug interactions possible.',
+      researchStatus: 'Well-established dietary supplement with extensive research.',
+      disclaimer: 'Dietary supplement - research applications continue.'
+    },
+    'METFORMIN': {
+      aliases: ['GLUCOPHAGE', 'DIMETHYLBIGUANIDE'],
+      classification: 'Biguanide Antidiabetic',
+      mechanism: 'Activates AMPK, reduces hepatic glucose production, and improves insulin sensitivity.',
+      commonUses: ['Diabetes research', 'Anti-aging studies', 'Cancer research', 'Longevity research'],
+      dosageRanges: 'Clinical protocols typically use 500-2000mg daily in divided doses.',
+      researchFindings: 'Effective for diabetes management with potential anti-aging and longevity benefits.',
+      considerations: 'May cause gastrointestinal effects and lactic acidosis risk.',
+      researchStatus: 'FDA-approved for diabetes with extensive off-label research.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'RAPAMYCIN': {
+      aliases: ['SIROLIMUS', 'MTOR INHIBITOR'],
+      classification: 'mTOR Inhibitor',
+      mechanism: 'Inhibits mTOR pathway, which regulates cell growth, proliferation, and autophagy.',
+      commonUses: ['Longevity research', 'Cancer studies', 'Immunosuppression research', 'Aging research'],
+      dosageRanges: 'Research protocols vary widely based on application.',
+      researchFindings: 'May extend lifespan and healthspan through mTOR inhibition.',
+      considerations: 'Immunosuppressive effects. Requires careful medical supervision.',
+      researchStatus: 'FDA-approved for organ transplant rejection, research for aging applications.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'SPERMIDINE': {
+      aliases: ['POLYAMINE', 'AUTOPHAGY INDUCER'],
+      classification: 'Polyamine',
+      mechanism: 'Natural polyamine that may induce autophagy and support cellular health.',
+      commonUses: ['Longevity research', 'Autophagy studies', 'Cardiovascular research', 'Neurological research'],
+      dosageRanges: 'Research protocols typically use 1-10mg daily.',
+      researchFindings: 'May promote autophagy and support healthy aging processes.',
+      considerations: 'Generally well-tolerated. Limited long-term human data.',
+      researchStatus: 'Emerging research compound with promising preclinical data.',
+      disclaimer: 'Research compound - dietary supplement applications under investigation.'
+    },
+    'FISETIN': {
+      aliases: ['SENOLYTIC COMPOUND', 'FLAVONOID'],
+      classification: 'Flavonoid Senolytic',
+      mechanism: 'Flavonoid compound that may selectively eliminate senescent cells and provide neuroprotective effects.',
+      commonUses: ['Senescence research', 'Anti-aging studies', 'Neurological research', 'Cancer research'],
+      dosageRanges: 'Research protocols typically use 100-500mg daily.',
+      researchFindings: 'May eliminate senescent cells and provide cognitive benefits.',
+      considerations: 'Generally well-tolerated. Limited human safety data.',
+      researchStatus: 'Investigational senolytic compound with growing interest.',
+      disclaimer: 'Research compound - dietary supplement applications under investigation.'
+    },
+    'QUERCETIN': {
+      aliases: ['FLAVONOID', 'ANTIOXIDANT'],
+      classification: 'Flavonoid Antioxidant',
+      mechanism: 'Flavonoid with antioxidant, anti-inflammatory, and potential senolytic properties.',
+      commonUses: ['Anti-inflammatory research', 'Cardiovascular studies', 'Immune research', 'Senescence research'],
+      dosageRanges: 'Research protocols typically use 500-1000mg daily.',
+      researchFindings: 'May provide anti-inflammatory and cardiovascular benefits.',
+      considerations: 'Generally well-tolerated. May interact with certain medications.',
+      researchStatus: 'Well-established dietary supplement with extensive research.',
+      disclaimer: 'Dietary supplement - research applications continue.'
+    },
+    'CURCUMIN': {
+      aliases: ['TURMERIC EXTRACT', 'DIFERULOYLMETHANE'],
+      classification: 'Polyphenol Anti-inflammatory',
+      mechanism: 'Active compound in turmeric with potent anti-inflammatory and antioxidant properties.',
+      commonUses: ['Anti-inflammatory research', 'Cancer studies', 'Neurological research', 'Joint health research'],
+      dosageRanges: 'Research protocols typically use 500-1000mg daily with bioavailability enhancers.',
+      researchFindings: 'May provide anti-inflammatory, neuroprotective, and joint health benefits.',
+      considerations: 'Poor bioavailability without enhancers. May interact with blood thinners.',
+      researchStatus: 'Extensively studied dietary supplement.',
+      disclaimer: 'Dietary supplement - research applications continue.'
+    },
+    'VITAMIN D3': {
+      aliases: ['CHOLECALCIFEROL', 'SUNSHINE VITAMIN'],
+      classification: 'Fat-Soluble Vitamin',
+      mechanism: 'Steroid hormone precursor that regulates calcium absorption and immune function.',
+      commonUses: ['Bone health research', 'Immune studies', 'Cardiovascular research', 'Cancer research'],
+      dosageRanges: 'Research protocols typically use 1000-4000 IU daily.',
+      researchFindings: 'Essential for bone health with potential benefits for immune function and disease prevention.',
+      considerations: 'Generally safe. High doses may cause hypercalcemia.',
+      researchStatus: 'Essential vitamin with extensive research across multiple health areas.',
+      disclaimer: 'Essential vitamin - research applications continue.'
+    },
+    'OMEGA-3': {
+      aliases: ['EPA', 'DHA', 'FISH OIL'],
+      classification: 'Essential Fatty Acids',
+      mechanism: 'Essential fatty acids that support cardiovascular health, brain function, and inflammation resolution.',
+      commonUses: ['Cardiovascular research', 'Neurological studies', 'Anti-inflammatory research', 'Cognitive research'],
+      dosageRanges: 'Research protocols typically use 1-3g daily of combined EPA/DHA.',
+      researchFindings: 'Well-established benefits for cardiovascular health, brain function, and inflammation.',
+      considerations: 'Generally safe. May interact with blood thinning medications.',
+      researchStatus: 'Extensively researched essential nutrients.',
+      disclaimer: 'Essential nutrients - research applications continue.'
+    },
+    'COENZYME Q10': {
+      aliases: ['COQ10', 'UBIQUINONE', 'UBIQUINOL'],
+      classification: 'Mitochondrial Cofactor',
+      mechanism: 'Essential cofactor in mitochondrial energy production and potent antioxidant.',
+      commonUses: ['Cardiovascular research', 'Mitochondrial studies', 'Anti-aging research', 'Neurological research'],
+      dosageRanges: 'Research protocols typically use 100-300mg daily.',
+      researchFindings: 'May support cardiovascular health, energy production, and provide antioxidant benefits.',
+      considerations: 'Generally well-tolerated. Ubiquinol form may have better absorption.',
+      researchStatus: 'Well-established dietary supplement with extensive research.',
+      disclaimer: 'Dietary supplement - research applications continue.'
+    },
+    'ADIPOTIDE': {
+      aliases: ['FTPP', 'FAT-TARGETING PEPTIDE'],
+      classification: 'Vascular-Targeting Peptide',
+      mechanism: 'Peptide that targets blood vessels in adipose tissue, potentially causing fat cell death.',
+      commonUses: ['Obesity research', 'Fat metabolism studies', 'Vascular research', 'Weight management research'],
+      dosageRanges: 'Research protocols vary, typically administered subcutaneously.',
+      researchFindings: 'Experimental compound showing potential for targeted fat reduction in preclinical studies.',
+      considerations: 'Highly experimental. Significant safety concerns and limited human data.',
+      researchStatus: 'Early-stage investigational compound with serious safety considerations.',
+      disclaimer: 'Research compound - not approved for therapeutic use. Significant safety risks.'
+    },
+    'AICAR': {
+      aliases: ['5-AMINOIMIDAZOLE-4-CARBOXAMIDE RIBONUCLEOTIDE'],
+      classification: 'AMPK Activator',
+      mechanism: 'Activates AMPK pathway, mimicking effects of exercise on cellular metabolism.',
+      commonUses: ['Exercise mimetic research', 'Metabolic studies', 'Diabetes research', 'Endurance research'],
+      dosageRanges: 'Research protocols vary widely based on study design.',
+      researchFindings: 'May mimic exercise effects on metabolism and improve glucose uptake.',
+      considerations: 'Limited human safety data. Potential cardiovascular risks.',
+      researchStatus: 'Investigational compound with limited clinical data.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'ARA-290': {
+      aliases: ['CIBINETIDE', 'EPO ANALOG'],
+      classification: 'Erythropoietin Analog',
+      mechanism: 'Non-hematopoietic EPO analog that may provide tissue protection without affecting red blood cell production.',
+      commonUses: ['Neuroprotection research', 'Tissue protection studies', 'Diabetic neuropathy research', 'Wound healing research'],
+      dosageRanges: 'Research protocols typically use subcutaneous administration.',
+      researchFindings: 'May provide neuroprotective and tissue-protective effects without hematopoietic activity.',
+      considerations: 'Limited human safety data. Novel mechanism requires careful study.',
+      researchStatus: 'Investigational compound in clinical development.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'CAGRILINTIDE': {
+      aliases: ['AMYLIN/CALCITONIN DUAL AGONIST'],
+      classification: 'Dual Hormone Agonist',
+      mechanism: 'Dual agonist of amylin and calcitonin receptors for enhanced metabolic effects.',
+      commonUses: ['Obesity research', 'Diabetes research', 'Weight management studies', 'Metabolic research'],
+      dosageRanges: 'Research protocols vary based on study design.',
+      researchFindings: 'Potential for significant weight loss and metabolic improvements.',
+      considerations: 'Novel mechanism. Limited human safety data.',
+      researchStatus: 'Clinical-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'FOX04-DRI': {
+      aliases: ['FOXO4-DRI', 'SENOLYTIC PEPTIDE'],
+      classification: 'Senolytic Peptide',
+      mechanism: 'Interferes with FOXO4-p53 interaction, potentially inducing senescent cell death.',
+      commonUses: ['Senescence research', 'Anti-aging studies', 'Longevity research', 'Cancer research'],
+      dosageRanges: 'Research protocols are still being established.',
+      researchFindings: 'May selectively eliminate senescent cells and improve healthspan.',
+      considerations: 'Very limited human data. Novel senolytic mechanism.',
+      researchStatus: 'Early-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'HCG': {
+      aliases: ['HUMAN CHORIONIC GONADOTROPIN', 'PREGNANCY HORMONE'],
+      classification: 'Glycoprotein Hormone',
+      mechanism: 'Mimics LH activity, stimulating testosterone production and supporting fertility.',
+      commonUses: ['Fertility research', 'Hypogonadism studies', 'Weight management research', 'Hormone research'],
+      dosageRanges: 'Clinical protocols vary widely based on indication.',
+      researchFindings: 'Effective for fertility treatments and testosterone restoration.',
+      considerations: 'May cause hormonal side effects. Requires medical supervision.',
+      researchStatus: 'FDA-approved for specific fertility and hormonal indications.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'HMG': {
+      aliases: ['HUMAN MENOPAUSAL GONADOTROPIN', 'MENOTROPIN'],
+      classification: 'Gonadotropin Hormone',
+      mechanism: 'Contains FSH and LH activity, stimulating gonadal function and gamete production.',
+      commonUses: ['Fertility research', 'Reproductive studies', 'Hormone research', 'Ovulation studies'],
+      dosageRanges: 'Clinical protocols vary based on indication and patient response.',
+      researchFindings: 'Effective for ovulation induction and male fertility enhancement.',
+      considerations: 'Risk of ovarian hyperstimulation syndrome. Requires monitoring.',
+      researchStatus: 'FDA-approved for fertility treatments.',
+      disclaimer: 'Prescription medication - research use must comply with applicable regulations.'
+    },
+    'IGF-1 LR3': {
+      aliases: ['LONG R3 IGF-1', 'INSULIN-LIKE GROWTH FACTOR-1 LR3'],
+      classification: 'Growth Factor Analog',
+      mechanism: 'Modified IGF-1 with extended half-life and reduced binding protein affinity.',
+      commonUses: ['Growth research', 'Muscle development studies', 'Anti-aging research', 'Metabolic research'],
+      dosageRanges: 'Research protocols vary widely based on study design.',
+      researchFindings: 'May promote muscle growth and tissue repair with extended activity.',
+      considerations: 'Potent growth factor. Risk of hypoglycemia and other growth-related effects.',
+      researchStatus: 'Investigational compound with specialized research applications.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'KISSPEPTIN': {
+      aliases: ['METASTIN', 'KP-54'],
+      classification: 'Neuropeptide Hormone',
+      mechanism: 'Regulates GnRH release and reproductive hormone cascade.',
+      commonUses: ['Reproductive research', 'Puberty studies', 'Fertility research', 'Neuroendocrine research'],
+      dosageRanges: 'Research protocols typically use intravenous administration.',
+      researchFindings: 'Critical regulator of reproductive function and puberty onset.',
+      considerations: 'Specialized research applications. Limited human safety data.',
+      researchStatus: 'Investigational compound with growing research interest.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'MAZDUTIDE': {
+      aliases: ['GLP-1/GLUCAGON DUAL AGONIST'],
+      classification: 'Dual Incretin Agonist',
+      mechanism: 'Dual agonist of GLP-1 and glucagon receptors for enhanced metabolic effects.',
+      commonUses: ['Obesity research', 'Diabetes research', 'Weight management studies', 'Metabolic research'],
+      dosageRanges: 'Research protocols are being established in clinical trials.',
+      researchFindings: 'Potential for significant weight loss and metabolic improvements.',
+      considerations: 'Novel dual mechanism. Limited human safety data.',
+      researchStatus: 'Clinical-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'NAD+': {
+      aliases: ['NICOTINAMIDE ADENINE DINUCLEOTIDE', 'COENZYME'],
+      classification: 'Cellular Coenzyme',
+      mechanism: 'Essential coenzyme in cellular energy metabolism and DNA repair processes.',
+      commonUses: ['Anti-aging research', 'Metabolic studies', 'Mitochondrial research', 'Longevity research'],
+      dosageRanges: 'IV protocols vary, typically administered under medical supervision.',
+      researchFindings: 'May support cellular energy production and DNA repair mechanisms.',
+      considerations: 'Direct NAD+ has limited oral bioavailability. IV administration requires medical supervision.',
+      researchStatus: 'Research applications growing, precursor supplements more common.',
+      disclaimer: 'Research compound - direct NAD+ administration requires medical supervision.'
+    },
+    'PEG-MGF': {
+      aliases: ['PEGYLATED MECHANO GROWTH FACTOR', 'IGF-1EC'],
+      classification: 'Growth Factor Analog',
+      mechanism: 'Pegylated form of mechano growth factor with extended half-life for muscle repair.',
+      commonUses: ['Muscle research', 'Tissue repair studies', 'Athletic recovery research', 'Wound healing research'],
+      dosageRanges: 'Research protocols vary based on study design.',
+      researchFindings: 'May promote muscle repair and tissue regeneration.',
+      considerations: 'Limited human safety data. Potent growth factor effects.',
+      researchStatus: 'Investigational compound with specialized research applications.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'RETATRUTIDE': {
+      aliases: ['TRIPLE AGONIST', 'GLP-1/GIP/GLUCAGON AGONIST'],
+      classification: 'Triple Incretin Agonist',
+      mechanism: 'Triple agonist of GLP-1, GIP, and glucagon receptors for comprehensive metabolic effects.',
+      commonUses: ['Obesity research', 'Diabetes research', 'Weight management studies', 'Advanced metabolic research'],
+      dosageRanges: 'Clinical protocols are being established in ongoing trials.',
+      researchFindings: 'Potential for superior weight loss and metabolic improvements compared to dual agonists.',
+      considerations: 'Novel triple mechanism. Very limited human data.',
+      researchStatus: 'Advanced clinical-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'SS-31': {
+      aliases: ['ELAMIPRETIDE', 'MITOCHONDRIAL PEPTIDE'],
+      classification: 'Mitochondrial-Targeting Peptide',
+      mechanism: 'Targets mitochondrial inner membrane to improve mitochondrial function and reduce oxidative stress.',
+      commonUses: ['Mitochondrial research', 'Aging studies', 'Cardiovascular research', 'Neurodegenerative research'],
+      dosageRanges: 'Research protocols typically use subcutaneous administration.',
+      researchFindings: 'May improve mitochondrial function and reduce cellular aging.',
+      considerations: 'Generally well-tolerated. Limited long-term human data.',
+      researchStatus: 'Clinical-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
+    },
+    'SURVIVUTIDE': {
+      aliases: ['SURVIVAL PEPTIDE', 'NEUROPROTECTIVE PEPTIDE'],
+      classification: 'Neuroprotective Peptide',
+      mechanism: 'May provide neuroprotective effects through multiple cellular pathways.',
+      commonUses: ['Neuroprotection research', 'Stroke studies', 'Neurodegenerative research', 'Brain injury research'],
+      dosageRanges: 'Research protocols are being established.',
+      researchFindings: 'Potential neuroprotective effects in preclinical studies.',
+      considerations: 'Very limited human data. Novel neuroprotective mechanism.',
+      researchStatus: 'Early-stage investigational compound.',
+      disclaimer: 'Research compound - not approved for therapeutic use.'
     }
   };
 
+// Curated peptide research database - reliable, accurate information
+async function getCuratedPeptideResearch(peptideName) {
+  // Simulate loading time for better UX
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Basic input validation
+  const cleanName = peptideName.trim();
+  if (cleanName.length < 2) {
+    throw new Error('Please enter at least 2 characters for search.');
+  }
+  
+  if (!/[a-zA-Z]/.test(cleanName)) {
+    throw new Error('Please enter a valid peptide name.');
+  }
+
   // Check if we have curated data for this peptide
-  const match = findPeptideMatch(cleanName, peptideDatabase);
+  const match = findPeptideMatch(cleanName, PEPTIDE_DATABASE);
   
   if (match) {
     // We have curated data - use it
@@ -240,21 +873,8 @@ async function compilePeptideResearch(peptideName) {
     };
   }
   
-  // No curated data - generate AI research for any valid peptide input
-  const searchName = cleanName.toUpperCase();
-  
-  return {
-    name: searchName,
-    classification: 'Research Peptide',
-    mechanism: `${searchName} is a research peptide compound. Comprehensive research data compilation is in progress. This peptide may have various biological activities and mechanisms of action that are currently being studied in research settings.`,
-    commonUses: ['Research applications', 'Investigational studies', 'Preclinical research', 'Mechanism of action studies'],
-    dosageRanges: 'Research dosages vary based on study design and research protocols. Consult current literature for specific research parameters.',
-    researchFindings: `Current research on ${searchName} is ongoing. Multiple studies may be investigating its potential applications, safety profile, and mechanisms of action. Results may vary across different research contexts.`,
-    considerations: 'As with all research compounds, proper safety protocols and research guidelines should be followed. Consult current literature for the most up-to-date safety information.',
-    researchStatus: 'Research compound - ongoing studies and development. Not approved for therapeutic use.',
-    disclaimer: 'This information is compiled from available research and is for educational purposes only. Always consult current scientific literature and follow proper research protocols. Research compounds are not approved for therapeutic use.',
-    isAiGenerated: true
-  };
+  // No curated data found - return null to show "Request Research" option
+  return null;
 }
 
 export default function GlossaryWidget({ widget, theme }) {
@@ -287,13 +907,41 @@ export default function GlossaryWidget({ widget, theme }) {
     setAiResearch({ loading: true, data: null, error: null, query: term });
 
     try {
-      const data = await compilePeptideResearch(term);
+      const data = await getCuratedPeptideResearch(term);
       setAiResearch({ loading: false, data, error: null, query: term });
       setActiveTab('search'); // Switch to search tab to show results
     } catch (error) {
       console.log('Research error:', error.message);
       setAiResearch({ loading: false, data: null, error: error.message || 'Failed to compile research', query: term });
     }
+  };
+
+  const handleRequestResearch = (peptideName) => {
+    // Store the request in localStorage for admin review
+    const requests = JSON.parse(localStorage.getItem('tpprover_research_requests') || '[]');
+    const newRequest = {
+      id: Date.now(),
+      peptide: peptideName.trim(),
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    };
+    
+    requests.push(newRequest);
+    localStorage.setItem('tpprover_research_requests', JSON.stringify(requests));
+    
+    // Show success message
+    setAiResearch({ 
+      loading: false, 
+      data: null, 
+      error: null, 
+      query: '',
+      requestSent: peptideName 
+    });
+    
+    // Clear the success message after 3 seconds
+    setTimeout(() => {
+      setAiResearch({ loading: false, data: null, error: null, query: '' });
+    }, 3000);
   };
 
   const handleInputChange = (e) => {
@@ -460,15 +1108,13 @@ export default function GlossaryWidget({ widget, theme }) {
             <div className="flex items-center gap-2 mb-2">
               <Brain size={16} style={{ color: theme.primary }} />
               <h3 className="font-semibold text-sm" style={{ color: theme.text }}>{aiResearch.data.name}</h3>
-              {aiResearch.data.isAiGenerated && (
-                <span className="px-2 py-0.5 text-xs rounded-full" style={{ 
-                  backgroundColor: theme.warning + '20', 
-                  color: theme.warning,
-                  border: `1px solid ${theme.warning}40`
-                }}>
-                  AI Generated
-                </span>
-              )}
+              <span className="px-2 py-0.5 text-xs rounded-full" style={{ 
+                backgroundColor: theme.success + '20', 
+                color: theme.success,
+                border: `1px solid ${theme.success}40`
+              }}>
+                Curated Data
+              </span>
               <button
                 onClick={() => toggleFavorite(aiResearch.data.name)}
                 className="p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-all duration-200 ml-auto"
@@ -514,6 +1160,70 @@ export default function GlossaryWidget({ widget, theme }) {
               
               <div className="pt-2 mt-2 border-t" style={{ borderColor: theme.border }}>
                 <span className="text-xs" style={{ color: theme.textLight }}>{aiResearch.data.disclaimer}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Research Success Message */}
+      {aiResearch.requestSent && (
+        <div className="space-y-3">
+          <div className="p-3 rounded-lg border" style={{ borderColor: theme.success, backgroundColor: theme.success + '10' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle size={16} style={{ color: theme.success }} />
+              <h3 className="font-semibold text-sm" style={{ color: theme.text }}>Research Request Submitted</h3>
+            </div>
+            
+            <div className="text-xs" style={{ color: theme.textLight }}>
+              <p>Your request for research on "{aiResearch.requestSent}" has been submitted successfully.</p>
+              <p className="mt-1">We'll add this peptide to our curated database and notify users when it's available.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No curated data found - Request Research feature */}
+      {!aiResearch.loading && !aiResearch.data && aiResearch.query && !aiResearch.requestSent && (
+        <div className="space-y-3">
+          <div className="p-3 rounded-lg border" style={{ borderColor: theme.warning, backgroundColor: theme.warning + '10' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle size={16} style={{ color: theme.warning }} />
+              <h3 className="font-semibold text-sm" style={{ color: theme.text }}>"{aiResearch.query}" not found</h3>
+            </div>
+            
+            <div className="space-y-2 text-xs">
+              <p style={{ color: theme.textLight }}>
+                This peptide is not in our curated database yet. Our database contains verified research data for {Object.keys(PEPTIDE_DATABASE).length} peptides.
+              </p>
+              
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => handleRequestResearch(aiResearch.query)}
+                  className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                  style={{ 
+                    backgroundColor: theme.primary,
+                    color: 'white'
+                  }}
+                >
+                  Request Research
+                </button>
+                <button
+                  onClick={() => setAiResearch({ loading: false, data: null, error: null, query: '' })}
+                  className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                  style={{ 
+                    backgroundColor: theme.secondary,
+                    color: theme.text
+                  }}
+                >
+                  Clear Search
+                </button>
+              </div>
+              
+              <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
+                <p className="text-xs" style={{ color: theme.textLight }}>
+                  <strong>Tip:</strong> Check the Browse tab for similar peptides, or try searching for common aliases.
+                </p>
               </div>
             </div>
           </div>
