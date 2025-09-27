@@ -37,6 +37,7 @@ export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
   const navigate = useNavigate();
   const { 
+    scheduledBuys,
     setScheduledBuys, 
     orders, 
     setOrders, 
@@ -61,7 +62,6 @@ export default function CustomizableDashboard() {
 
   // Dashboard data state
   const [todaysTasks, setTodaysTasks] = useState([]);
-  const [upcomingBuys, setUpcomingBuys] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [goals, setGoals] = useLocalStorage('tpprover_goals', []);
   const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', []);
@@ -460,7 +460,7 @@ export default function CustomizableDashboard() {
                       theme={theme}
                       tasks={todaysTasks}
                       incomingOrder={incomingOrder}
-                      upcomingBuys={upcomingBuys}
+                      upcomingBuys={scheduledBuys}
                       pendingVendors={pendingVendors}
                       goals={goals}
                       metrics={metrics}
