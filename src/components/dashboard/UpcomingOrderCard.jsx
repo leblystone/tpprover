@@ -139,9 +139,9 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
   }
 
   return (
-    <div className={`${hideHeader ? 'p-4' : 'p-8'} rounded-xl content-card w-full h-full flex flex-col items-center transition-opacity`} style={{ backgroundColor: theme.cardBackground }}>
+    <div className={`${hideHeader ? 'p-4' : 'p-8'} rounded-xl content-card w-full h-full flex flex-col items-center transition-opacity overflow-y-auto min-h-0`} style={{ backgroundColor: theme.cardBackground }}>
       {!hideHeader && (
-        <div className="px-4 py-3 border-b mb-4" style={{ borderColor: theme.border }}>
+        <div className="px-4 py-3 border-b mb-4 flex-shrink-0" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
               Incoming Peptides
@@ -150,7 +150,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
           </div>
         </div>
       )}
-      <div className="w-full flex flex-col items-center mb-6">
+      <div className="w-full flex flex-col items-center mb-6 flex-shrink-0">
         <div className="text-xl font-bold mb-0" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
         <div className="text-base mb-2" style={{ color: theme.textLight }}>
           <span style={{ fontWeight: 500, color: theme.text }}>From:</span> {order.vendor}
@@ -191,7 +191,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
           </div>
         )}
       </div>
-      <div className="w-full flex items-center justify-between relative mb-8 px-4">
+      <div className="w-full flex items-center justify-between relative mb-8 px-4 flex-shrink-0">
           <div 
             className="absolute top-1/2 -translate-y-1/2 left-0 h-1" 
             style={{ 
@@ -222,7 +222,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
           ))}
       </div>
 
-      <div className="w-full flex justify-between px-4">
+      <div className="w-full flex justify-between px-4 flex-shrink-0">
         {steps.map((s, idx) => (
             <span
               key={s.status}
@@ -234,7 +234,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
         ))}
       </div>
       
-      <div className="mt-8 w-full space-y-2">
+      <div className="mt-8 w-full space-y-2 flex-shrink-0">
         {order.tracking && (
           <button
             className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 w-full flex items-center justify-center gap-2"
