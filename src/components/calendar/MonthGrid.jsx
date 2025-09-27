@@ -114,7 +114,16 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     {/* Mobile: Show only essential icons in a compact row */}
                                     {d && (
                                         <div className="flex items-center gap-0.5 sm:gap-1">
-                                            {sched.doneAll && <CheckCircle size={12} className="md:hidden" style={{ color: theme.success }} />}
+                                            {/* Task completion indicator - grey when partial, filled when complete */}
+                                            {hasActivity && (
+                                                <div className="w-3 h-3 rounded-full border flex items-center justify-center">
+                                                    {sched.doneAll ? (
+                                                        <CheckCircle size={8} style={{ color: theme.success }} />
+                                                    ) : (
+                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.textLight }} />
+                                                    )}
+                                                </div>
+                                            )}
                                             {buyCount > 0 && <ShoppingCart size={12} className="sm:size-3 md:size-4" style={{ color: theme.primary }} />}
                                             {totalGoals > 0 && (
                                                 completedGoals === totalGoals ? 
@@ -165,7 +174,16 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                 <div className="hidden md:block">
                                     {d && (
                                         <div className="flex items-center gap-1 mb-2">
-                                            {sched.doneAll && <span title="All tasks done" className="text-green-500 text-base">✓</span>}
+                                            {/* Task completion indicator - grey when partial, filled when complete */}
+                                            {hasActivity && (
+                                                <div className="w-4 h-4 rounded-full border flex items-center justify-center">
+                                                    {sched.doneAll ? (
+                                                        <CheckCircle size={10} style={{ color: theme.success }} />
+                                                    ) : (
+                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.textLight }} />
+                                                    )}
+                                                </div>
+                                            )}
                                             <span className="flex items-center gap-1 text-[10px]" style={{ color: theme.textLight }}>
                                                 {peptideCount > 0 && (
                                                     <span className="inline-flex items-center gap-0.5">

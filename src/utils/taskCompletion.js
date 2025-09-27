@@ -109,6 +109,12 @@ export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), ti
   syncToCalendarDone();
   console.log('🔄 Synced to calendar');
   
+  // CRITICAL: Dispatch global event to notify all views of task completion change
+  window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
+    detail: { taskId, completed, date, timeSlot, completionData }
+  }));
+  console.log('📡 Dispatched global task completion event');
+  
   return completionData;
 }
 

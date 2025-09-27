@@ -631,12 +631,27 @@ export default function Calendar() {
       newCompletedState
     });
     
-    // Toggle in the unified system
+    // Toggle in the unified system (this will dispatch the global event)
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
     
     // Refresh calendar data to reflect changes
     setDone(getCalendarDone());
     setCalendarBump(Date.now());
+  }, []);
+
+  // Listen for task completion changes from other views
+  useEffect(() => {
+    const handleTaskCompletionChange = (event) => {
+      const { taskId, completed, date, timeSlot } = event.detail;
+      console.log('📡 Calendar: Received task completion change', { taskId, completed, date, timeSlot });
+      
+      // Refresh calendar data to reflect changes from other views
+      setDone(getCalendarDone());
+      setCalendarBump(Date.now());
+    };
+
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
   }, []);
 
   // Expose refresh function globally for debugging

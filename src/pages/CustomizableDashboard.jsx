@@ -352,7 +352,7 @@ export default function CustomizableDashboard() {
       newCompletedState
     });
     
-    // Toggle in the unified system
+    // Toggle in the unified system (this will dispatch the global event)
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
     
     // Update local state to reflect the change immediately
@@ -360,6 +360,21 @@ export default function CustomizableDashboard() {
       t.id === task.id ? { ...t, completed: newCompletedState } : t
     ));
   };
+
+  // Listen for task completion changes from other views
+  useEffect(() => {
+    const handleTaskCompletionChange = (event) => {
+      const { taskId, completed, date, timeSlot } = event.detail;
+      console.log('📡 Dashboard: Received task completion change', { taskId, completed, date, timeSlot });
+      
+      // Refresh today's tasks to reflect changes from other views
+      // This will trigger the useEffect that generates todaysTasks
+      setCalendarBump(Date.now());
+    };
+
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+  }, []);
 
   // Goal management
   const handleGoalToggle = (goalId) => {
