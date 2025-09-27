@@ -12,7 +12,7 @@ import CalendarIconKey from '../components/calendar/CalendarIconKey'
 import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
 import { calculateRecon } from '../utils/recon'
 import { useAppContext } from '../context/AppContext'
-import { getCalendarDone } from '../utils/taskCompletion'
+import { getCalendarDone, toggleTaskCompletion, generateTaskId } from '../utils/taskCompletion'
 
 const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
 let colorIndex = 0;
@@ -616,6 +616,28 @@ export default function Calendar() {
     loadData(); // Initial load
   }, [loadData]);
 
+  // Task completion handler - unified with Dashboard
+  const handleTaskToggle = React.useCallback((task, date = new Date()) => {
+    const dateKey = toKey(date);
+    const taskId = task.stableTaskId || generateTaskId(task);
+    const currentlyCompleted = task.completed || false; // Get from task state if available
+    const newCompletedState = !currentlyCompleted;
+    
+    console.log('🔄 Calendar: Toggling task', {
+      taskName: task.name,
+      taskId,
+      dateKey,
+      date: date.toDateString(),
+      newCompletedState
+    });
+    
+    // Toggle in the unified system
+    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
+    
+    // Refresh calendar data to reflect changes
+    setDone(getCalendarDone());
+    setCalendarBump(Date.now());
+  }, []);
 
   // Expose refresh function globally for debugging
   useEffect(() => {
@@ -773,7 +795,8 @@ export default function Calendar() {
                   setActiveDay(date);
                 }
               }} 
-              onNotesClick={setEditingNotesFor} 
+              onNotesClick={setEditingNotesFor}
+              onTaskToggle={handleTaskToggle}
             />
           </div>
         )}

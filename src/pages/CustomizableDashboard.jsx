@@ -20,6 +20,7 @@ import {
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
+import { toKey } from '../components/calendar/MonthGrid';
 
 // Import modals that might be needed
 import ReconCalculatorModal from '../components/recon/ReconCalculatorModal';
@@ -338,13 +339,21 @@ export default function CustomizableDashboard() {
   };
 
   // Task management - using unified completion system
-  const handleTaskToggle = (task) => {
+  const handleTaskToggle = (task, date = new Date()) => {
+    const dateKey = toKey(date);
     const taskId = task.stableTaskId || generateTaskId(task);
-    const currentlyCompleted = isTaskCompleted(taskId);
+    const currentlyCompleted = isTaskCompleted(taskId, dateKey, task.time);
     const newCompletedState = !currentlyCompleted;
     
+    console.log('🔄 Dashboard: Toggling task', {
+      taskName: task.name,
+      taskId,
+      dateKey,
+      newCompletedState
+    });
+    
     // Toggle in the unified system
-    toggleTaskCompletion(taskId, newCompletedState);
+    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
     
     // Update local state to reflect the change immediately
     setTodaysTasks(prev => prev.map(t => 
