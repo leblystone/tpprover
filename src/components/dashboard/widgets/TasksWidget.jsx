@@ -51,7 +51,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             {filteredTasks.map(task => (
               <div key={task.id} className="flex items-center gap-3 p-2 rounded" style={{ backgroundColor: theme.secondary }}>
                 <button
-                  onClick={() => onToggle(task.id)}
+                  onClick={() => onToggle(task)}
                   className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
                   style={{
                     borderColor: task.completed ? theme.primary : theme.border,
