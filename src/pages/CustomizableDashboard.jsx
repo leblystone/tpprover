@@ -421,17 +421,21 @@ export default function CustomizableDashboard() {
                   gridClasses = 'col-span-2';
               }
               
-              // Set consistent min height based on grid height
+              // Set consistent min and max height based on grid height
               let minHeight = '';
+              let maxHeight = '';
               switch (sizeConfig.h) {
                 case 1:
                   minHeight = '240px';
+                  maxHeight = '320px';
                   break;
                 case 2:
                   minHeight = '400px';
+                  maxHeight = '500px';
                   break;
                 default:
                   minHeight = '240px';
+                  maxHeight = '320px';
               }
               
               // Special case: hide widgets that should be conditionally shown
@@ -449,7 +453,7 @@ export default function CustomizableDashboard() {
                     onSettings={handleWidgetSettings}
                     onResize={handleResizeWidget}
                     onMove={handleMoveWidget}
-                    style={{ minHeight }}
+                    style={{ minHeight, maxHeight }}
                   >
                     <WidgetFactory
                       widget={widget}

@@ -714,17 +714,6 @@ function findPeptideMatch(searchTerm, peptideDatabase) {
       researchStatus: 'Extensively studied dietary supplement.',
       disclaimer: 'Dietary supplement - research applications continue.'
     },
-    'VITAMIN D3': {
-      aliases: ['CHOLECALCIFEROL', 'SUNSHINE VITAMIN'],
-      classification: 'Fat-Soluble Vitamin',
-      mechanism: 'Steroid hormone precursor that regulates calcium absorption and immune function.',
-      commonUses: ['Bone health research', 'Immune studies', 'Cardiovascular research', 'Cancer research'],
-      dosageRanges: 'Research protocols typically use 1000-4000 IU daily.',
-      researchFindings: 'Essential for bone health with potential benefits for immune function and disease prevention.',
-      considerations: 'Generally safe. High doses may cause hypercalcemia.',
-      researchStatus: 'Essential vitamin with extensive research across multiple health areas.',
-      disclaimer: 'Essential vitamin - research applications continue.'
-    },
     'OMEGA-3': {
       aliases: ['EPA', 'DHA', 'FISH OIL'],
       classification: 'Essential Fatty Acids',

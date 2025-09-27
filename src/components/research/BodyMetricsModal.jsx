@@ -5,58 +5,93 @@ import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
 import { Weight, Percent, Bed, Zap, Smile, ShieldAlert, Calendar, Activity } from 'lucide-react'
 
-const RatingInput = ({ label, value, onChange, theme, icon: Icon, color }) => (
-    <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-2 mb-3">
-            <Icon size={16} style={{ color: color || theme.primary }} />
-            <label className="text-sm font-semibold" style={{ color: theme.text }}>{label}</label>
-        </div>
-        <div className="flex justify-between items-center gap-1 mb-2">
-            {[...Array(10)].map((_, i) => {
-                const ratingValue = i + 1;
-                const isSelected = value === ratingValue;
-                const isInRange = value && ratingValue <= value;
-                return (
-                    <button
-                        key={ratingValue}
-                        type="button"
-                        onClick={() => onChange(ratingValue)}
-                        className={`h-8 w-8 text-xs rounded-full border-2 transition-all duration-200 font-medium ${
-                            isSelected 
-                                ? 'text-white scale-110 shadow-lg' 
-                                : isInRange 
-                                    ? 'text-white' 
-                                    : 'hover:scale-105'
-                        }`}
-                        style={
-                            isSelected 
-                                ? { backgroundColor: color || theme.primary, borderColor: color || theme.primary }
-                                : isInRange
-                                    ? { backgroundColor: (color || theme.primary) + '80', borderColor: color || theme.primary }
-                                    : { borderColor: theme.border, color: theme.textLight, backgroundColor: theme.background }
-                        }
-                    >
-                        {ratingValue}
-                    </button>
-                );
-            })}
-        </div>
-        {value && (
-            <div className="text-center">
-                <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ backgroundColor: (color || theme.primary) + '20', color: color || theme.primary }}>
-                    {value}/10 {getRatingText(value)}
-                </span>
-            </div>
-        )}
-    </div>
-);
+const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type }) => {
+    const getRatingOptions = (type) => {
+        switch (type) {
+            case 'sleep':
+                return [
+                    { emoji: '😴', label: 'Poor', value: 1 },
+                    { emoji: '😪', label: 'Tired', value: 2 },
+                    { emoji: '😐', label: 'Okay', value: 3 },
+                    { emoji: '😌', label: 'Good', value: 4 },
+                    { emoji: '😊', label: 'Great', value: 5 }
+                ];
+            case 'energy':
+                return [
+                    { emoji: '🔋', label: 'Drained', value: 1 },
+                    { emoji: '😮', label: 'Low', value: 2 },
+                    { emoji: '😐', label: 'Okay', value: 3 },
+                    { emoji: '⚡', label: 'High', value: 4 },
+                    { emoji: '🔥', label: 'Energized', value: 5 }
+                ];
+            case 'mood':
+                return [
+                    { emoji: '😢', label: 'Sad', value: 1 },
+                    { emoji: '😔', label: 'Down', value: 2 },
+                    { emoji: '😐', label: 'Neutral', value: 3 },
+                    { emoji: '🙂', label: 'Happy', value: 4 },
+                    { emoji: '😊', label: 'Joyful', value: 5 }
+                ];
+            case 'pain':
+                return [
+                    { emoji: '😊', label: 'None', value: 1 },
+                    { emoji: '😐', label: 'Mild', value: 2 },
+                    { emoji: '😬', label: 'Moderate', value: 3 },
+                    { emoji: '😣', label: 'High', value: 4 },
+                    { emoji: '😖', label: 'Severe', value: 5 }
+                ];
+            default:
+                return [
+                    { emoji: '1️⃣', label: 'Very Low', value: 1 },
+                    { emoji: '2️⃣', label: 'Low', value: 2 },
+                    { emoji: '3️⃣', label: 'Medium', value: 3 },
+                    { emoji: '4️⃣', label: 'High', value: 4 },
+                    { emoji: '5️⃣', label: 'Very High', value: 5 }
+                ];
+        }
+    };
 
-const getRatingText = (value) => {
-    if (value <= 3) return "Poor";
-    if (value <= 5) return "Fair";
-    if (value <= 7) return "Good";
-    if (value <= 9) return "Great";
-    return "Excellent";
+    const options = getRatingOptions(type);
+    const selectedOption = options.find(opt => opt.value === value);
+
+    return (
+        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="flex items-center gap-2 mb-3">
+                <Icon size={16} style={{ color: color || theme.primary }} />
+                <label className="text-sm font-semibold" style={{ color: theme.text }}>{label}</label>
+            </div>
+            <div className="grid grid-cols-5 gap-2 mb-3">
+                {options.map((option) => {
+                    const isSelected = value === option.value;
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => onChange(option.value)}
+                            className={`flex flex-col items-center justify-center min-h-[70px] min-w-[60px] p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                                isSelected ? 'scale-105 shadow-lg' : ''
+                            }`}
+                            style={{
+                                borderColor: isSelected ? (color || theme.primary) : theme.border,
+                                backgroundColor: isSelected ? (color || theme.primary) + '15' : theme.background,
+                                color: theme.text
+                            }}
+                        >
+                            <div className="text-xl mb-1 leading-none">{option.emoji}</div>
+                            <div className="text-xs font-medium leading-tight text-center">{option.label}</div>
+                        </button>
+                    );
+                })}
+            </div>
+            {selectedOption && (
+                <div className="text-center">
+                    <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: (color || theme.primary) + '20', color: color || theme.primary }}>
+                        {selectedOption.emoji} {selectedOption.label}
+                    </span>
+                </div>
+            )}
+        </div>
+    );
 };
 
 export default function BodyMetricsModal({ open, onClose, onSave, theme, metric }) {
@@ -97,7 +132,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, theme, metric 
         />
       }
       theme={theme} 
-      maxWidth="3xl"
+      maxWidth="max-w-4xl"
       footer={(
         <>
           <button 
@@ -181,6 +216,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, theme, metric 
               theme={theme}
               icon={Bed}
               color={theme.info}
+              type="sleep"
             />
             <RatingInput 
               label="Energy Level" 
@@ -189,6 +225,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, theme, metric 
               theme={theme}
               icon={Zap}
               color={theme.warning}
+              type="energy"
             />
             <RatingInput 
               label="Mood" 
@@ -197,6 +234,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, theme, metric 
               theme={theme}
               icon={Smile}
               color={theme.success}
+              type="mood"
             />
             <RatingInput 
               label="Pain Level" 
@@ -205,6 +243,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, theme, metric 
               theme={theme}
               icon={ShieldAlert}
               color={theme.error}
+              type="pain"
             />
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Droplets, Plus, Minus, RotateCcw } from 'lucide-react';
+import { Droplets, Plus, Minus, RotateCcw, Settings } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
+import Modal from '../../common/Modal';
 
 const WaterTrackerWidget = ({ widget, theme }) => {
   const [waterData, setWaterData] = useState(() => {
@@ -12,8 +13,24 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     }
   });
 
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  // Water units configuration
+  const waterUnits = {
+    glasses: { label: 'Glasses', abbrev: 'glasses', defaultGoal: 8, increment: 1 },
+    oz: { label: 'Fluid Ounces', abbrev: 'fl oz', defaultGoal: 64, increment: 8 },
+    ml: { label: 'Milliliters', abbrev: 'ml', defaultGoal: 2000, increment: 250 },
+    cups: { label: 'Cups', abbrev: 'cups', defaultGoal: 8, increment: 1 },
+    liters: { label: 'Liters', abbrev: 'L', defaultGoal: 2, increment: 0.25 }
+  };
+
   const today = new Date().toISOString().split('T')[0];
-  const todayData = waterData[today] || { glasses: 0, goal: 8, lastUpdated: null };
+  const todayData = waterData[today] || { 
+    glasses: 0, 
+    goal: 8, 
+    unit: 'glasses',
+    lastUpdated: null 
+  };
 
   // Save water data whenever it changes
   useEffect(() => {
@@ -24,24 +41,17 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     }
   }, [waterData]);
 
-  const updateWaterIntake = (change) => {
-    const newGlasses = Math.max(0, todayData.glasses + change);
-    setWaterData(prev => ({
-      ...prev,
-      [today]: {
-        ...todayData,
-        glasses: newGlasses,
-        lastUpdated: new Date().toISOString()
-      }
-    }));
-  };
+  const currentUnit = waterUnits[todayData.unit] || waterUnits.glasses;
+  const progress = Math.min(todayData.glasses / todayData.goal, 1);
 
-  const resetToday = () => {
+  const updateWaterIntake = (change) => {
+    const increment = change * currentUnit.increment;
+    const newAmount = Math.max(0, todayData.glasses + increment);
     setWaterData(prev => ({
       ...prev,
       [today]: {
         ...todayData,
-        glasses: 0,
+        glasses: newAmount,
         lastUpdated: new Date().toISOString()
       }
     }));
@@ -57,8 +67,30 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     }));
   };
 
-  const progressPercentage = Math.min((todayData.glasses / todayData.goal) * 100, 100);
-  const isGoalReached = todayData.glasses >= todayData.goal;
+  const changeUnit = (unitKey) => {
+    const newUnit = waterUnits[unitKey];
+    setWaterData(prev => ({
+      ...prev,
+      [today]: {
+        ...todayData,
+        unit: unitKey,
+        goal: newUnit.defaultGoal,
+        glasses: 0 // Reset intake when changing units
+      }
+    }));
+    setShowSettingsModal(false);
+  };
+
+  const resetToday = () => {
+    setWaterData(prev => ({
+      ...prev,
+      [today]: {
+        ...todayData,
+        glasses: 0,
+        lastUpdated: new Date().toISOString()
+      }
+    }));
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -67,132 +99,150 @@ const WaterTrackerWidget = ({ widget, theme }) => {
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Water Intake
           </h3>
-          <Droplets size={20} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ModernTooltip text="Settings" position="top">
+              <button 
+                onClick={() => setShowSettingsModal(true)}
+                className="p-1 rounded hover:bg-gray-100 transition-colors"
+                style={{ color: theme.textLight }}
+              >
+                <Settings size={16} />
+              </button>
+            </ModernTooltip>
+            <Droplets size={20} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
       
-      <div className="flex-1 p-4 space-y-4">
-        {/* Progress Circle */}
+      <div className="flex-1 p-4 flex flex-col justify-center space-y-4">
+        {/* Progress Circle - Compact */}
         <div className="flex items-center justify-center">
-          <div className="relative w-24 h-24">
-            <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-              {/* Background circle */}
+          <div className="relative w-16 h-16">
+            <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 100 100">
               <circle
                 cx="50"
                 cy="50"
-                r="40"
+                r="35"
                 stroke={theme.border}
-                strokeWidth="8"
+                strokeWidth="6"
                 fill="none"
+                opacity="0.3"
               />
-              {/* Progress circle */}
               <circle
                 cx="50"
                 cy="50"
-                r="40"
-                stroke={isGoalReached ? theme.success : theme.primary}
-                strokeWidth="8"
+                r="35"
+                stroke={theme.primary}
+                strokeWidth="6"
                 fill="none"
-                strokeDasharray={`${progressPercentage * 2.51} 251`}
+                strokeDasharray={`${2 * Math.PI * 35}`}
+                strokeDashoffset={`${2 * Math.PI * 35 * (1 - progress)}`}
                 strokeLinecap="round"
-                className="transition-all duration-500"
+                className="transition-all duration-300 ease-in-out"
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-lg font-bold" style={{ color: theme.text }}>
-                  {todayData.glasses}
-                </div>
-                <div className="text-xs" style={{ color: theme.textLight }}>
-                  of {todayData.goal}
-                </div>
-              </div>
+              <span className="text-xs font-bold" style={{ color: theme.text }}>
+                {Math.round(progress * 100)}%
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Status */}
+        {/* Current Intake */}
         <div className="text-center">
-          {isGoalReached ? (
-            <p className="text-sm font-medium" style={{ color: theme.success }}>
-              🎉 Goal reached!
-            </p>
-          ) : (
-            <p className="text-sm" style={{ color: theme.textLight }}>
-              {todayData.goal - todayData.glasses} glasses to go
-            </p>
-          )}
+          <div className="text-xl font-bold" style={{ color: theme.text }}>
+            {currentUnit.abbrev === 'liters' ? todayData.glasses.toFixed(1) : Math.round(todayData.glasses)}
+          </div>
+          <div className="text-sm" style={{ color: theme.textLight }}>
+            {currentUnit.abbrev} of {todayData.goal}
+          </div>
         </div>
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-3">
-          <ModernTooltip text="Remove" position="top">
-            <button
-              onClick={() => updateWaterIntake(-1)}
-              disabled={todayData.glasses === 0}
-              className="p-2 rounded-full border transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              style={{ borderColor: theme.border }}
-            >
-              <Minus size={16} style={{ color: theme.text }} />
-            </button>
-          </ModernTooltip>
+          <button
+            onClick={() => updateWaterIntake(-1)}
+            disabled={todayData.glasses === 0}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-50"
+            style={{ 
+              backgroundColor: theme.error + '15', 
+              color: theme.error 
+            }}
+          >
+            <Minus size={14} />
+          </button>
           
-          <div className="px-4 py-2 rounded-lg border text-center min-w-[80px]" style={{ borderColor: theme.border }}>
-            <span className="font-medium" style={{ color: theme.text }}>
-              {todayData.glasses} glasses
-            </span>
-          </div>
-          
-          <ModernTooltip text="Add" position="top">
-            <button
-              onClick={() => updateWaterIntake(1)}
-              className="p-2 rounded-full border transition-colors hover:bg-gray-50"
-              style={{ borderColor: theme.border }}
-            >
-              <Plus size={16} style={{ color: theme.text }} />
-            </button>
-          </ModernTooltip>
+          <button
+            onClick={() => updateWaterIntake(1)}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+            style={{ 
+              backgroundColor: theme.primary + '15', 
+              color: theme.primary 
+            }}
+          >
+            <Plus size={18} />
+          </button>
         </div>
 
-        {/* Goal Setting */}
-        <div className="flex items-center justify-between text-sm">
-          <span style={{ color: theme.textLight }}>Daily Goal:</span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => updateGoal(todayData.goal - 1)}
-              disabled={todayData.goal <= 1}
-              className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Minus size={12} style={{ color: theme.textLight }} />
-            </button>
-            <span className="font-medium min-w-[30px] text-center" style={{ color: theme.text }}>
-              {todayData.goal}
-            </span>
-            <button
-              onClick={() => updateGoal(todayData.goal + 1)}
-              className="p-1 rounded hover:bg-gray-100"
-            >
-              <Plus size={12} style={{ color: theme.textLight }} />
-            </button>
-          </div>
-        </div>
-
-        {/* Reset Button */}
+        {/* Reset Button - Only show if has intake */}
         {todayData.glasses > 0 && (
-          <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
+          <div className="flex justify-center">
             <button
               onClick={resetToday}
-              className="w-full p-2 text-sm rounded border transition-colors hover:bg-gray-50"
+              className="px-3 py-1 text-xs rounded-full border transition-colors hover:bg-gray-50"
               style={{ borderColor: theme.border, color: theme.textLight }}
             >
-              <div className="flex items-center justify-center gap-2">
-                <RotateCcw size={14} />
-                <span>Reset Today</span>
-              </div>
+              <RotateCcw size={10} className="inline mr-1" />
+              Reset
             </button>
           </div>
         )}
       </div>
+
+      {/* Settings Modal */}
+      <Modal 
+        open={showSettingsModal} 
+        onClose={() => setShowSettingsModal(false)}
+        title="Water Intake Settings"
+        theme={theme}
+        maxWidth="sm"
+      >
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>
+              Choose Unit
+            </h4>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(waterUnits).map(([key, unit]) => (
+                <button
+                  key={key}
+                  onClick={() => changeUnit(key)}
+                  className={`p-3 text-sm rounded-lg border transition-colors ${
+                    todayData.unit === key ? 'font-semibold' : ''
+                  }`}
+                  style={{
+                    borderColor: todayData.unit === key ? theme.primary : theme.border,
+                    backgroundColor: todayData.unit === key ? theme.primary + '15' : 'transparent',
+                    color: todayData.unit === key ? theme.primary : theme.text
+                  }}
+                >
+                  {unit.label}
+                  <div className="text-xs opacity-75">
+                    Goal: {unit.defaultGoal} {unit.abbrev}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
+            <p className="text-xs" style={{ color: theme.textLight }}>
+              Note: Changing units will reset your daily intake to start fresh.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -115,7 +115,7 @@ const DashboardWidget = ({
       )}
       
       
-      <div className="h-full">
+      <div className="h-full overflow-hidden flex flex-col relative">
         {children}
       </div>
     </div>

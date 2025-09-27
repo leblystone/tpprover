@@ -32,7 +32,7 @@ const ModernTooltip = ({
     <div className="relative group inline-block">
       {children}
       <div
-        className={`tooltip-overlay absolute ${positionClasses[position]} px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out pointer-events-none whitespace-nowrap`}
+        className={`tooltip-overlay absolute ${positionClasses[position]} px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out pointer-events-none whitespace-nowrap z-[2147483646]`}
         style={{ 
           maxWidth: '250px',
           filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))'
