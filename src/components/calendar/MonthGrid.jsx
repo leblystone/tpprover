@@ -126,15 +126,42 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         {d ? d.getDate() : ''}
                                     </span>
                                     
-                                    {/* Mobile: Show only essential icons in a compact row */}
+                                    {/* Mobile: Show all icons in upper right corner */}
                                     {d && (
                                         <div className="flex items-center gap-0.5 sm:gap-1">
-                                            {buyCount > 0 && <ShoppingCart size={12} className="sm:size-3 md:size-4" style={{ color: theme.primary }} />}
-                                            {totalGoals > 0 && (
-                                                completedGoals === totalGoals ? 
-                                                    <CheckCircle size={12} className="hidden md:inline md:size-4" style={{ color: theme.success }} /> :
-                                                    <Target size={12} className="sm:size-3 md:size-4" style={{ color: completedGoals > 0 ? theme.warning : theme.error }} />
+                                            {/* Task completion indicator - grey when partial, filled when complete */}
+                                            {hasActivity && (
+                                                <div className="w-3 h-3 rounded-full border flex items-center justify-center">
+                                                    {sched.doneAll ? (
+                                                        <CheckCircle size={8} style={{ color: theme.success }} />
+                                                    ) : (
+                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.textLight }} />
+                                                    )}
+                                                </div>
                                             )}
+                                            {/* Peptide count */}
+                                            {peptideCount > 0 && (
+                                                <div className="flex items-center gap-0.5">
+                                                    <Droplet className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                                    <span className="text-xs">{peptideCount}</span>
+                                                </div>
+                                            )}
+                                            {/* Supplement count */}
+                                            {suppCount > 0 && (
+                                                <div className="flex items-center gap-0.5">
+                                                    {getSupplementIcon(primaryDelivery, "h-2.5 w-2.5 sm:h-3 sm:w-3")}
+                                                    <span className="text-xs">{suppCount}</span>
+                                                </div>
+                                            )}
+                                            {/* Goals count */}
+                                            {totalGoals > 0 && (
+                                                <div className="flex items-center gap-0.5">
+                                                    <Target className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                                    <span className="text-xs">{completedGoals}/{totalGoals}</span>
+                                                </div>
+                                            )}
+                                            {/* Shopping cart */}
+                                            {buyCount > 0 && <ShoppingCart size={12} className="sm:size-3 md:size-4" style={{ color: theme.primary }} />}
                                             {/* Mobile & Medium: Show only first delivery method */}
                                             {deliveryMethods.slice(0, 1).map((delivery, idx) => (
                                                 <span key={idx} className="md:hidden">{getSupplementIcon(delivery, "h-3 w-3")}</span>
@@ -149,36 +176,11 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     )}
                                 </div>
 
-                                {/* Mobile & Medium: Compact activity indicators */}
-                                <div className="md:hidden">
-                                    {d && (
-                                        <div className="flex items-center justify-between text-[9px] sm:text-[10px]" style={{ color: theme.textLight }}>
-                                            {peptideCount > 0 && (
-                                                <div className="flex items-center gap-0.5">
-                                                    <Droplet className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                                    <span>{peptideCount}</span>
-                                                </div>
-                                            )}
-                                            {suppCount > 0 && (
-                                                <div className="flex items-center gap-0.5">
-                                                    {getSupplementIcon(primaryDelivery, "h-2.5 w-2.5 sm:h-3 sm:w-3")}
-                                                    <span>{suppCount}</span>
-                                                </div>
-                                            )}
-                                            {totalGoals > 0 && (
-                                                <div className="flex items-center gap-0.5">
-                                                    <Target className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                                    <span>{completedGoals}/{totalGoals}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
 
                                 {/* Desktop: Full layout */}
                                 <div className="hidden md:block">
                                     {d && (
-                                        <div className="flex items-center gap-1 mb-2">
+                                        <div className="flex items-center justify-end gap-1 mb-2">
                                             {/* Task completion indicator - grey when partial, filled when complete */}
                                             {hasActivity && (
                                                 <div className="w-4 h-4 rounded-full border flex items-center justify-center">
@@ -189,17 +191,29 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                                     )}
                                                 </div>
                                             )}
-                                            <span className="flex items-center gap-1 text-[10px]" style={{ color: theme.textLight }}>
-                                                {peptideCount > 0 && (
-                                                    <span className="inline-flex items-center gap-0.5">
-                                                        <span className="inline-flex relative">
-                                                            <Droplet className="h-4 w-4" />
-                                                            <Droplet className="h-4 w-4 -ml-1.5" />
-                                                        </span>
-                                                        {peptideCount}
-                                                    </span>
-                                                )}
-                                            </span>
+                                            {/* Peptide count */}
+                                            {peptideCount > 0 && (
+                                                <div className="flex items-center gap-0.5 text-[10px]" style={{ color: theme.textLight }}>
+                                                    <Droplet className="h-3 w-3" />
+                                                    <span>{peptideCount}</span>
+                                                </div>
+                                            )}
+                                            {/* Supplement count */}
+                                            {suppCount > 0 && (
+                                                <div className="flex items-center gap-0.5 text-[10px]" style={{ color: theme.textLight }}>
+                                                    {getSupplementIcon(primaryDelivery, "h-3 w-3")}
+                                                    <span>{suppCount}</span>
+                                                </div>
+                                            )}
+                                            {/* Goals count */}
+                                            {totalGoals > 0 && (
+                                                <div className="flex items-center gap-0.5 text-[10px]" style={{ color: theme.textLight }}>
+                                                    <Target className="h-3 w-3" />
+                                                    <span>{completedGoals}/{totalGoals}</span>
+                                                </div>
+                                            )}
+                                            {/* Shopping cart */}
+                                            {buyCount > 0 && <ShoppingCart size={14} style={{ color: theme.primary }} />}
                                         </div>
                                     )}
                                     
