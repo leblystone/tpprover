@@ -66,6 +66,7 @@ export default function CustomizableDashboard() {
   const [toasts, setToasts] = useState([]);
   const [goals, setGoals] = useLocalStorage('tpprover_goals', []);
   const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', []);
+  const [calendarBump, setCalendarBump] = useState(0);
 
   // Modal states
   const [showRecon, setShowRecon] = useState(false);
