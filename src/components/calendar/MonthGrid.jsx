@@ -1,6 +1,7 @@
 import React from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
 import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker, Target, CheckCircle } from 'lucide-react'
+import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
@@ -21,6 +22,20 @@ function getMonthDays(date) {
   for (let i = 0; i < firstWeekday; i++) days.push(null)
   for (let d = 1; d <= end.getDate(); d++) days.push(new Date(date.getFullYear(), date.getMonth(), d))
   return days
+}
+
+// Helper function to check if a peptide is completed
+function isPeptideCompleted(peptide, date, timeSlot) {
+  const task = {
+    name: typeof peptide === 'object' ? peptide.name : peptide,
+    dose: typeof peptide === 'object' ? peptide.dose : '',
+    unit: typeof peptide === 'object' ? peptide.unit : '',
+    type: 'peptide',
+    time: timeSlot
+  };
+  const taskId = generateTaskId(task);
+  const dateKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  return isTaskCompleted(taskId, dateKey, timeSlot);
 }
 
 function MetricIndicator({ metric, theme }) {
@@ -114,16 +129,6 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     {/* Mobile: Show only essential icons in a compact row */}
                                     {d && (
                                         <div className="flex items-center gap-0.5 sm:gap-1">
-                                            {/* Task completion indicator - grey when partial, filled when complete */}
-                                            {hasActivity && (
-                                                <div className="w-3 h-3 rounded-full border flex items-center justify-center">
-                                                    {sched.doneAll ? (
-                                                        <CheckCircle size={8} style={{ color: theme.success }} />
-                                                    ) : (
-                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.textLight }} />
-                                                    )}
-                                                </div>
-                                            )}
                                             {buyCount > 0 && <ShoppingCart size={12} className="sm:size-3 md:size-4" style={{ color: theme.primary }} />}
                                             {totalGoals > 0 && (
                                                 completedGoals === totalGoals ? 
@@ -200,9 +205,19 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     
                                     {/* Desktop peptide list */}
                                     <div className="space-y-1">
-                                        {peptides.slice(0, 3).map((p, idx) => (
-                                            <div key={idx} className="px-1.5 py-0.5 rounded text-[10px] md:text-[11px] leading-tight truncate" style={{ backgroundColor: theme.accent, color: theme.accentText }}>{p.name}</div>
-                                        ))}
+                                        {peptides.slice(0, 3).map((p, idx) => {
+                                            const peptideName = typeof p === 'object' ? p.name : p;
+                                            const isCompleted = isPeptideCompleted(p, d, 'AM') || isPeptideCompleted(p, d, 'PM') || isPeptideCompleted(p, d, 'Morning') || isPeptideCompleted(p, d, 'Evening');
+                                            return (
+                                                <div 
+                                                    key={idx} 
+                                                    className={`px-1.5 py-0.5 rounded text-[10px] md:text-[11px] leading-tight truncate ${isCompleted ? 'line-through opacity-60' : ''}`} 
+                                                    style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                                                >
+                                                    {peptideName}
+                                                </div>
+                                            );
+                                        })}
                                         {peptides.length > 3 && (
                                             <div className="px-1.5 py-0.5 rounded text-[10px] md:text-[11px]" style={{ backgroundColor: theme.secondary, color: theme.text }} title={`+${peptides.length - 3} more`}>+{peptides.length - 3}</div>
                                         )}
