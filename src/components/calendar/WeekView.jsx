@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
 import { Droplet, Pill, Edit, Syringe, PenTool, Beaker, Target, CheckCircle, Check } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
@@ -56,7 +56,14 @@ function DeliveryIndicator({ item, theme }) {
     return <Droplet size={12} style={{ color: theme.primary }} />;
 }
 
-export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle }) {
+export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump }) {
+  const [forceRender, setForceRender] = useState(0);
+  
+  // Force re-render when calendarBump changes (task completion sync)
+  useEffect(() => {
+    setForceRender(prev => prev + 1);
+  }, [calendarBump]);
+
   const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(startDate)
     d.setDate(d.getDate() + i)

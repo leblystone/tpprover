@@ -799,6 +799,7 @@ export default function Calendar() {
               entries={entries} 
               scheduled={scheduled} 
               theme={theme} 
+              calendarBump={calendarBump}
               onDayClick={(date) => {
                 // Check if the day has scheduled tasks - if so, open quick edit
                 const dayKey = toKey(date);

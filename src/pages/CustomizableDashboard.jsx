@@ -247,7 +247,7 @@ export default function CustomizableDashboard() {
     });
 
     setTodaysTasks(tasks);
-  }, [supplements, protocols]);
+  }, [supplements, protocols, calendarBump]);
 
   // Save layout when widgets change
   useEffect(() => {
