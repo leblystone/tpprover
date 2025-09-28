@@ -368,14 +368,23 @@ export default function CustomizableDashboard() {
       const { taskId, completed, date, timeSlot } = event.detail;
       console.log('📡 Dashboard: Received task completion change', { taskId, completed, date, timeSlot });
       
-      // Refresh today's tasks to reflect changes from other views
-      // This will trigger the useEffect that generates todaysTasks
-      setCalendarBump(Date.now());
+      // Only refresh if this event came from another view (not from this Dashboard)
+      // We can detect this by checking if the task is in our current todaysTasks
+      const isFromThisView = todaysTasks.some(task => {
+        const taskIdFromTask = task.stableTaskId || generateTaskId(task);
+        return taskIdFromTask === taskId;
+      });
+      
+      if (!isFromThisView) {
+        // Refresh today's tasks to reflect changes from other views
+        // This will trigger the useEffect that generates todaysTasks
+        setCalendarBump(Date.now());
+      }
     };
 
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
     return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
-  }, []);
+  }, [todaysTasks]);
 
   // Goal management
   const handleGoalToggle = (goalId) => {
