@@ -754,18 +754,17 @@
                   {/* Proration notice for upgrades */}
                   {confirmData.isSwitching && confirmData.currentPlan && 
                    confirmData.currentPlan === 'Monthly' && confirmData.plan.interval === 'year' && (
-                    <div className="p-4 rounded-lg mb-3" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '1px solid #A3B18A' }}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: '#5C7659' }}>
-                          <span className="text-white text-xs font-bold">$</span>
+                    <div className="p-3 rounded-lg mb-3" style={{ backgroundColor: 'rgba(156, 163, 175, 0.1)', border: '1px solid rgba(156, 163, 175, 0.3)' }}>
+                      <div className="flex items-start gap-2">
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center mt-1" style={{ backgroundColor: '#9CA3AF' }}>
+                          <span className="text-white text-xs">$</span>
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-semibold mb-1" style={{ color: '#344E41' }}>
-                            Proration (The Industry Standard)
+                          <p className="text-xs font-medium mb-1" style={{ color: '#6B7280' }}>
+                            Fair billing
                           </p>
-                          <p className="text-xs leading-relaxed" style={{ color: '#5C7659' }}>
-                            When you upgrade, you get a credit for the unused portion of your current subscription, 
-                            which is then applied to the cost of the new, more expensive subscription.
+                          <p className="text-xs leading-relaxed" style={{ color: '#9CA3AF' }}>
+                            We'll credit your unused time and apply it to your new plan.
                           </p>
                         </div>
                       </div>
@@ -775,18 +774,17 @@
                   {/* Special Annual to Lifetime terms */}
                   {confirmData.isSwitching && confirmData.currentPlan && 
                    confirmData.currentPlan === 'Annual' && confirmData.plan.interval === 'lifetime' && (
-                    <div className="p-4 rounded-lg mb-3" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: '#344E41' }}>
-                          <span className="text-white text-xs font-bold">∞</span>
+                    <div className="p-3 rounded-lg mb-3" style={{ backgroundColor: 'rgba(156, 163, 175, 0.1)', border: '1px solid rgba(156, 163, 175, 0.3)' }}>
+                      <div className="flex items-start gap-2">
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center mt-1" style={{ backgroundColor: '#9CA3AF' }}>
+                          <span className="text-white text-xs">∞</span>
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-semibold mb-1" style={{ color: '#344E41' }}>
-                            Annual to Lifetime Upgrade
+                          <p className="text-xs font-medium mb-1" style={{ color: '#6B7280' }}>
+                            Going lifetime
                           </p>
-                          <p className="text-xs leading-relaxed" style={{ color: '#5C7659' }}>
-                            You'll receive a credit for the unused portion of your annual subscription, 
-                            which will be applied to your one-time lifetime payment. No more recurring charges!
+                          <p className="text-xs leading-relaxed" style={{ color: '#9CA3AF' }}>
+                            We'll credit your unused time and you'll never be charged again.
                           </p>
                         </div>
                       </div>
@@ -796,18 +794,17 @@
                   {/* Monthly to Lifetime terms */}
                   {confirmData.isSwitching && confirmData.currentPlan && 
                    confirmData.currentPlan === 'Monthly' && confirmData.plan.interval === 'lifetime' && (
-                    <div className="p-4 rounded-lg mb-3" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: '#344E41' }}>
-                          <span className="text-white text-xs font-bold">∞</span>
+                    <div className="p-3 rounded-lg mb-3" style={{ backgroundColor: 'rgba(156, 163, 175, 0.1)', border: '1px solid rgba(156, 163, 175, 0.3)' }}>
+                      <div className="flex items-start gap-2">
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center mt-1" style={{ backgroundColor: '#9CA3AF' }}>
+                          <span className="text-white text-xs">∞</span>
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-semibold mb-1" style={{ color: '#344E41' }}>
-                            Monthly to Lifetime Upgrade
+                          <p className="text-xs font-medium mb-1" style={{ color: '#6B7280' }}>
+                            Going lifetime
                           </p>
-                          <p className="text-xs leading-relaxed" style={{ color: '#5C7659' }}>
-                            You'll receive a credit for the unused portion of your monthly subscription, 
-                            which will be applied to your one-time lifetime payment. No more recurring charges!
+                          <p className="text-xs leading-relaxed" style={{ color: '#9CA3AF' }}>
+                            We'll credit your unused time and you'll never be charged again.
                           </p>
                         </div>
                       </div>
