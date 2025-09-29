@@ -16,8 +16,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Re-enabled: Service worker for offline functionality
-if ('serviceWorker' in navigator) {
+// TEMPORARILY DISABLED: Service worker for debugging caching issues
+if (false && 'serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
         console.log('🔧 Registering service worker...');
