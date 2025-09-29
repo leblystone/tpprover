@@ -127,6 +127,9 @@
 
     const [manageOpen, setManageOpen] = React.useState(false)
     const [selectedPlan, setSelectedPlan] = React.useState('month')
+    const [confirmModalOpen, setConfirmModalOpen] = React.useState(false)
+    const [confirmAction, setConfirmAction] = React.useState(null)
+    const [confirmData, setConfirmData] = React.useState(null)
 
     // Get creation date from Firebase user data (stored in localStorage after login)
     const createdAt = React.useMemo(() => {
@@ -217,87 +220,98 @@
         return
       }
 
-      // Show confirmation dialog
+      // Show custom confirmation modal
       const isSwitching = sub && sub.status === 'active';
       const currentPlan = sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : sub?.interval === 'lifetime' ? 'Lifetime' : null;
       
-      let confirmMessage = '';
-      if (isSwitching && currentPlan) {
-        confirmMessage = `Are you sure you want to switch from ${currentPlan} to ${plan.name}?\n\n`;
-        if (plan.interval === 'lifetime') {
-          confirmMessage += 'This is a one-time payment for lifetime access.';
-        } else {
-          confirmMessage += `This will change your billing to ${plan.price}/${plan.interval === 'month' ? 'month' : 'year'}.`;
-        }
-      } else {
-        confirmMessage = `Are you sure you want to subscribe to ${plan.name} for ${plan.price}/${plan.interval === 'month' ? 'month' : plan.interval === 'year' ? 'year' : 'one-time'}?`;
-      }
-      
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-
-      // Show processing message
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: '🔄 Processing your subscription...', type: 'info' } 
-      }));
-
-      // Handle paid subscription with Stripe
-      try {
-        let priceId = '';
-        if (plan.interval === 'month') {
-          priceId = STRIPE_CONFIG.prices.monthly;
-        } else if (plan.interval === 'year') {
-          priceId = STRIPE_CONFIG.prices.annual;
-        } else if (plan.interval === 'lifetime') {
-          priceId = STRIPE_CONFIG.prices.lifetime;
-        }
-
-        await createCheckoutSession(priceId, user?.email, user?.uid);
-        
-      } catch (error) {
-        console.error('Subscription creation error:', error);
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
-        }));
-      }
+      setConfirmAction('switchPlan');
+      setConfirmData({
+        plan,
+        isSwitching,
+        currentPlan
+      });
+      setConfirmModalOpen(true);
     }
 
     const cancelSubscription = async () => {
       if (!sub) return
       
-      // Show confirmation dialog
-      const confirmMessage = `Are you sure you want to cancel your subscription?\n\nYour access will continue until the end of your current billing period (${sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : 'N/A'}), and you will not be charged again.\n\nYou can resubscribe at any time.`;
-      
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-
-      // Show processing message
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: '🔄 Cancelling your subscription...', type: 'info' } 
-      }));
-      
-      try {
-        // If it's a Stripe subscription, cancel through Stripe
-        if (sub.subscriptionId) {
-          await stripeCancel(sub.subscriptionId);
-        } else {
-          // Local cancellation for trials/demo
-          const next = { ...sub, status: 'canceled', endedAt: new Date().toISOString() }
-          saveSubscription(next)
-          setSub(next)
-          window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Subscription canceled successfully. You will retain access until the end of your billing period.', type: 'success' } }))
-        }
-      } catch (error) {
-        console.error('Cancellation error:', error);
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Failed to cancel subscription. Please try again.', type: 'error' } 
-        }));
-      }
+      // Show custom confirmation modal
+      setConfirmAction('cancelSubscription');
+      setConfirmData({
+        subscription: sub
+      });
+      setConfirmModalOpen(true);
     }
 
+    // Handle confirmation modal actions
+    const handleConfirmAction = async () => {
+      setConfirmModalOpen(false);
+      
+      if (confirmAction === 'switchPlan') {
+        const { plan } = confirmData;
+        
+        // Show processing message
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: '🔄 Processing your subscription...', type: 'info' } 
+        }));
 
+        // Handle paid subscription with Stripe
+        try {
+          let priceId = '';
+          if (plan.interval === 'month') {
+            priceId = STRIPE_CONFIG.prices.monthly;
+          } else if (plan.interval === 'year') {
+            priceId = STRIPE_CONFIG.prices.annual;
+          } else if (plan.interval === 'lifetime') {
+            priceId = STRIPE_CONFIG.prices.lifetime;
+          }
+
+          await createCheckoutSession(priceId, user?.email, user?.uid);
+          
+        } catch (error) {
+          console.error('Subscription creation error:', error);
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
+          }));
+        }
+      } else if (confirmAction === 'cancelSubscription') {
+        const { subscription } = confirmData;
+        
+        // Show processing message
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: '🔄 Cancelling your subscription...', type: 'info' } 
+        }));
+        
+        try {
+          // If it's a Stripe subscription, cancel through Stripe
+          if (subscription.subscriptionId) {
+            await stripeCancel(subscription.subscriptionId);
+          } else {
+            // Local cancellation for trials/demo
+            const next = { ...subscription, status: 'canceled', endedAt: new Date().toISOString() }
+            saveSubscription(next)
+            setSub(next)
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Subscription canceled successfully. You will retain access until the end of your billing period.', type: 'success' } }))
+          }
+        } catch (error) {
+          console.error('Cancellation error:', error);
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: 'Failed to cancel subscription. Please try again.', type: 'error' } 
+          }));
+        }
+      }
+      
+      // Reset confirmation state
+      setConfirmAction(null);
+      setConfirmData(null);
+    };
+
+    const handleCancelAction = () => {
+      setConfirmModalOpen(false);
+      setConfirmAction(null);
+      setConfirmData(null);
+    };
 
     const [pmDraft, setPmDraft] = React.useState({ brand: sub?.paymentMethod?.brand || 'Visa', last4: sub?.paymentMethod?.last4 || '' })
     const updatePaymentMethod = () => { /* integrated into Manage modal */ }
@@ -676,6 +690,104 @@
           </>
         }>
           <input value={emailDraft} onChange={e => setEmailDraft(e.target.value)} className="w-full p-2 rounded border text-sm" style={{ borderColor: theme.border }} placeholder="you@example.com" />
+        </Modal>
+
+        {/* Confirmation Modal */}
+        <Modal 
+          open={confirmModalOpen} 
+          onClose={handleCancelAction} 
+          title={confirmAction === 'switchPlan' ? 'Confirm Plan Change' : 'Confirm Cancellation'} 
+          theme={theme} 
+          maxWidth="max-w-md" 
+          footer={(
+            <div className="w-full flex justify-end gap-3">
+              <button 
+                className="px-4 py-2 rounded-md text-sm font-medium transition-all" 
+                onClick={handleCancelAction}
+                style={{ backgroundColor: theme.border, color: theme.text }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 rounded-md text-sm font-medium text-white transition-all" 
+                onClick={handleConfirmAction}
+                style={{ 
+                  backgroundColor: confirmAction === 'cancelSubscription' ? '#344E41' : '#5C7659'
+                }}
+              >
+                {confirmAction === 'switchPlan' ? 'Confirm Change' : 'Confirm Cancellation'}
+              </button>
+            </div>
+          )}
+        >
+          <div className="space-y-4">
+            {confirmAction === 'switchPlan' && confirmData && (
+              <>
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#D4D7CD' }}>
+                    <Crown size={24} style={{ color: '#5C7659' }} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: '#344E41' }}>
+                    Switch to {confirmData.plan.name}?
+                  </h3>
+                </div>
+                
+                {confirmData.isSwitching && confirmData.currentPlan && (
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 215, 205, 0.5)', border: '1px solid #A3B18A' }}>
+                    <p className="text-sm" style={{ color: '#344E41' }}>
+                      <strong>Current Plan:</strong> {confirmData.currentPlan}
+                    </p>
+                    <p className="text-sm" style={{ color: '#344E41' }}>
+                      <strong>New Plan:</strong> {confirmData.plan.name} - ${confirmData.plan.price}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="text-center">
+                  <p className="text-sm mb-3" style={{ color: '#5C7659' }}>
+                    {confirmData.plan.interval === 'lifetime' 
+                      ? 'This is a one-time payment for lifetime access to The Pep Planner.'
+                      : `This will change your billing to $${confirmData.plan.price}/${confirmData.plan.interval === 'month' ? 'month' : 'year'}.`
+                    }
+                  </p>
+                  
+                  {confirmData.plan.interval === 'lifetime' && (
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
+                      <p className="text-xs font-medium" style={{ color: '#344E41' }}>
+                        ⚠️ Limited Time: This lifetime option will be phased out soon!
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            
+            {confirmAction === 'cancelSubscription' && confirmData && (
+              <>
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)' }}>
+                    <span className="text-2xl">⚠️</span>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: '#344E41' }}>
+                    Cancel Subscription?
+                  </h3>
+                </div>
+                
+                <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 215, 205, 0.5)', border: '1px solid #A3B18A' }}>
+                  <p className="text-sm mb-2" style={{ color: '#344E41' }}>
+                    <strong>Your access will continue until:</strong><br />
+                    {confirmData.subscription?.currentPeriodEnd 
+                      ? new Date(confirmData.subscription.currentPeriodEnd).toLocaleDateString()
+                      : 'End of billing period'
+                    }
+                  </p>
+                  <p className="text-sm" style={{ color: '#5C7659' }}>
+                    You will not be charged again, and you can resubscribe at any time.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         </Modal>
 
       </section>
