@@ -541,7 +541,7 @@
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Monthly Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
                         style={{ borderColor: sub?.interval === 'month' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={() => {
                           setConfirmAction('switchPlan');
@@ -570,7 +570,7 @@
                         </div>
 
                         {/* Features */}
-                        <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                        <ul className="space-y-2 mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
                           <li className="flex items-center">
                             <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
                             All Pro features
@@ -587,7 +587,7 @@
 
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 mt-auto"
                           style={{ backgroundColor: sub?.interval === 'month' ? '#5C7659' : '#344E41' }}
                         >
                           {sub?.interval === 'month' ? 'Current Plan' : 'Choose Monthly'}
@@ -596,7 +596,7 @@
 
                       {/* Annual Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
                         style={{ borderColor: sub?.interval === 'year' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={() => {
                           setConfirmAction('switchPlan');
@@ -641,7 +641,7 @@
                         </div>
 
                         {/* Features */}
-                        <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                        <ul className="space-y-2 mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
                           <li className="flex items-center">
                             <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
                             All Pro features
@@ -658,7 +658,7 @@
 
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 mt-auto"
                           style={{ backgroundColor: sub?.interval === 'year' ? '#5C7659' : '#3A5A40' }}
                         >
                           {sub?.interval === 'year' ? 'Current Plan' : 'Choose Annual'}
@@ -667,7 +667,7 @@
 
                       {/* Lifetime Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
                         style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={() => {
                           setConfirmAction('switchPlan');
@@ -712,7 +712,7 @@
                         </div>
 
                         {/* Features */}
-                        <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                        <ul className="space-y-2 mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
                           <li className="flex items-center">
                             <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
                             All Pro features forever
@@ -729,7 +729,7 @@
 
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 mt-auto"
                           style={{ backgroundColor: sub?.interval === 'lifetime' ? '#5C7659' : '#344E41' }}
                         >
                           {sub?.interval === 'lifetime' ? 'Current Plan' : 'Choose Lifetime'}
