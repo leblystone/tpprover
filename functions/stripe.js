@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 // For Firebase Functions v2, use environment variables
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder");
 
 // Create Stripe Checkout Session
 exports.createCheckoutSession = functions.https.onCall(
@@ -120,6 +120,44 @@ exports.updatePaymentMethod = functions.https.onCall(
         throw new functions.https.HttpsError(
             "internal",
             "Unable to create payment method update session.",
+        );
+      }
+    });
+
+// Generate and download invoice receipt
+exports.generateInvoiceReceipt = functions.https.onCall(
+    async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "The function must be called while authenticated.",
+        );
+      }
+      try {
+        const {invoiceId, customerId} = data;
+        
+        // Get invoice from Stripe
+        const invoice = await stripe.invoices.retrieve(invoiceId);
+        
+        // Create a cute digital receipt
+        const receiptData = {
+          invoiceId: invoice.id,
+          customerEmail: invoice.customer_email,
+          amount: invoice.amount_paid,
+          currency: invoice.currency.toUpperCase(),
+          date: new Date(invoice.created * 1000).toLocaleDateString(),
+          status: invoice.status,
+          description: (invoice.lines.data[0] && invoice.lines.data[0].description) || 'The Pep Planner Subscription',
+          receiptNumber: `TPP-${invoice.number || invoice.id.slice(-8).toUpperCase()}`,
+          message: "Thank you for being a valued researcher! 🧬"
+        };
+        
+        return receiptData;
+      } catch (error) {
+        console.error("Generate invoice receipt error:", error);
+        throw new functions.https.HttpsError(
+            "internal",
+            "Unable to generate invoice receipt.",
         );
       }
     });

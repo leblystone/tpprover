@@ -6,7 +6,7 @@
   import { useAppContext } from '../context/AppContext'
   import { useBadgeStats } from '../utils/badges'
   import BadgeImage from '../components/badges/BadgeImage'
-  import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel, updatePaymentMethod } from '../services/stripe'
+  import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel, updatePaymentMethod, downloadInvoiceReceipt } from '../services/stripe'
   import { STRIPE_CONFIG } from '../config/stripe'
   import { verifyStripeConfig } from '../utils/stripe-verify'
   // Beta imports removed - beta phase concluded
@@ -569,7 +569,7 @@
                         <button 
                           className="px-2 py-1 rounded text-xs hover:opacity-90 transition-all" 
                           style={{ backgroundColor: '#A3B18A', color: '#344E41' }}
-                          onClick={() => {/* TODO: Implement invoice download */}}
+                          onClick={() => downloadInvoiceReceipt(invoice.invoice, sub?.customerId)}
                         >
                           Download
                         </button>
