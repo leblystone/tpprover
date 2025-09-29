@@ -751,6 +751,28 @@
                     }
                   </p>
                   
+                  {/* Proration notice for upgrades */}
+                  {confirmData.isSwitching && confirmData.currentPlan && 
+                   (confirmData.currentPlan === 'Monthly' || confirmData.currentPlan === 'Annual') && 
+                   (confirmData.plan.interval === 'year' || confirmData.plan.interval === 'lifetime') && (
+                    <div className="p-4 rounded-lg mb-3" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '1px solid #A3B18A' }}>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: '#5C7659' }}>
+                          <span className="text-white text-xs font-bold">$</span>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold mb-1" style={{ color: '#344E41' }}>
+                            Proration (The Industry Standard)
+                          </p>
+                          <p className="text-xs leading-relaxed" style={{ color: '#5C7659' }}>
+                            When you upgrade, you get a credit for the unused portion of your current subscription, 
+                            which is then applied to the cost of the new, more expensive subscription.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {confirmData.plan.interval === 'lifetime' && (
                     <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
                       <p className="text-xs font-medium" style={{ color: '#344E41' }}>
