@@ -80,57 +80,57 @@ if (typeof window !== 'undefined') {
     }
   };
 
-  // Trial testing utilities
-  window.createTrialSubscription = (days = 7) => {
+  // Lab Access testing utilities
+  window.createLabAccessSubscription = (days = 7) => {
     const now = new Date();
     const end = new Date(now);
     end.setDate(end.getDate() + days);
     
-    const trialSubscription = {
-      id: `trial_${Date.now()}`,
-      plan: 'Pro Monthly (7-Day Trial)',
+    const labAccessSubscription = {
+      id: `lab_access_${Date.now()}`,
+      plan: 'Pro Monthly (7-Day Lab Access)',
       price: 6.00,
       interval: 'month',
       currency: 'USD',
-      status: 'trialing',
+      status: 'lab_access',
       startedAt: now.toISOString(),
       currentPeriodEnd: end.toISOString(),
       paymentMethod: null,
-      subscriptionId: `trial_${Date.now()}`
+      subscriptionId: `lab_access_${Date.now()}`
     };
     
-    localStorage.setItem('tpprover_subscription', JSON.stringify(trialSubscription));
-    console.log(`🎭 Created ${days}-day trial subscription:`, trialSubscription);
-    console.log('🔄 Refresh the page to see the trial in action');
+    localStorage.setItem('tpprover_subscription', JSON.stringify(labAccessSubscription));
+    console.log(`🧪 Created ${days}-day lab access subscription:`, labAccessSubscription);
+    console.log('🔄 Refresh the page to see the lab access in action');
     
-    return trialSubscription;
+    return labAccessSubscription;
   };
 
-  window.createExpiredTrial = () => {
+  window.createExpiredLabAccess = () => {
     const now = new Date();
     const start = new Date(now);
     start.setDate(start.getDate() - 8); // Started 8 days ago
     const end = new Date(start);
     end.setDate(end.getDate() + 7); // Ended 1 day ago
     
-    const expiredTrial = {
-      id: `expired_trial_${Date.now()}`,
-      plan: 'Pro Monthly (7-Day Trial)',
+    const expiredLabAccess = {
+      id: `expired_lab_access_${Date.now()}`,
+      plan: 'Pro Monthly (7-Day Lab Access)',
       price: 6.00,
       interval: 'month',
       currency: 'USD',
-      status: 'trialing',
+      status: 'lab_access',
       startedAt: start.toISOString(),
       currentPeriodEnd: end.toISOString(),
       paymentMethod: null,
-      subscriptionId: `expired_trial_${Date.now()}`
+      subscriptionId: `expired_lab_access_${Date.now()}`
     };
     
-    localStorage.setItem('tpprover_subscription', JSON.stringify(expiredTrial));
-    console.log('⏰ Created expired trial subscription:', expiredTrial);
-    console.log('🔄 Refresh the page to see the expired trial state');
+    localStorage.setItem('tpprover_subscription', JSON.stringify(expiredLabAccess));
+    console.log('⏰ Created expired lab access subscription:', expiredLabAccess);
+    console.log('🔄 Refresh the page to see the expired lab access state');
     
-    return expiredTrial;
+    return expiredLabAccess;
   };
 
   window.clearSubscription = () => {
@@ -156,9 +156,9 @@ if (typeof window !== 'undefined') {
   console.log('   - fixDashboardData(true) - Clean up mock/demo data with auto-refresh');
   console.log('   - inspectLocalStorage() - View all stored data');
   console.log('   - clearAllTPPData() - Clear all data (with confirmation)');
-  console.log('🎭 Trial Testing Functions:');
-  console.log('   - createTrialSubscription(days) - Create a trial subscription (default 7 days)');
-  console.log('   - createExpiredTrial() - Create an expired trial for testing');
+  console.log('🧪 Lab Access Testing Functions:');
+  console.log('   - createLabAccessSubscription(days) - Create a lab access subscription (default 7 days)');
+  console.log('   - createExpiredLabAccess() - Create an expired lab access for testing');
   console.log('   - clearSubscription() - Remove current subscription');
   console.log('   - getCurrentSubscription() - View current subscription details');
 }

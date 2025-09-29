@@ -261,18 +261,18 @@ export default function Login() {
           const now = new Date()
           const end = new Date(now)
           end.setDate(end.getDate() + 7)
-          const trial = {
+          const labAccess = {
             id: String(Date.now()),
-            plan: 'Pro Monthly',
-            price: 9.99,
+            plan: 'Pro Monthly (7-Day Lab Access)',
+            price: 6.00,
             interval: 'month',
             currency: 'USD',
-            status: 'trialing',
+            status: 'lab_access',
             startedAt: now.toISOString(),
             currentPeriodEnd: end.toISOString(),
             paymentMethod: null,
           }
-          localStorage.setItem('tpprover_subscription', JSON.stringify(trial))
+          localStorage.setItem('tpprover_subscription', JSON.stringify(labAccess))
         } catch {}
         try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
         
