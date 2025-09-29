@@ -257,7 +257,51 @@
           detail: { message: '🔄 Processing your subscription...', type: 'info' } 
         }));
 
-        // Handle paid subscription with Stripe
+        // Check if in demo mode first
+        const auth = getAuth();
+        if (!auth.currentUser) {
+          console.log('🎭 Demo: Simulating successful plan change');
+          
+          // Create new subscription with the selected plan
+          const now = new Date();
+          const endDate = new Date(now);
+          
+          if (plan.interval === 'lifetime') {
+            // Lifetime plan - set far future date
+            endDate.setFullYear(endDate.getFullYear() + 100);
+          } else if (plan.interval === 'year') {
+            endDate.setFullYear(endDate.getFullYear() + 1);
+          } else {
+            endDate.setMonth(endDate.getMonth() + 1);
+          }
+          
+          const newSubscription = {
+            id: String(Date.now()),
+            plan: plan.name,
+            price: plan.price,
+            interval: plan.interval,
+            currency: 'USD',
+            status: 'active',
+            startedAt: now.toISOString(),
+            currentPeriodEnd: endDate.toISOString(),
+            paymentMethod: {
+              brand: 'Visa',
+              last4: '4242'
+            },
+            subscriptionId: `demo_${Date.now()}`
+          };
+          
+          saveSubscription(newSubscription);
+          setSub(newSubscription);
+          
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: `🎭 Demo: Successfully switched to ${plan.name}!`, type: 'success' } 
+          }));
+          
+          return;
+        }
+
+        // Handle paid subscription with Stripe (authenticated users only)
         try {
           let priceId = '';
           if (plan.interval === 'month') {
@@ -272,51 +316,6 @@
           
         } catch (error) {
           console.error('Subscription creation error:', error);
-          
-          // In demo mode, simulate successful plan change
-          const auth = getAuth();
-          if (!auth.currentUser) {
-            console.log('🎭 Demo: Simulating successful plan change');
-            
-            // Create new subscription with the selected plan
-            const now = new Date();
-            const endDate = new Date(now);
-            
-            if (plan.interval === 'lifetime') {
-              // Lifetime plan - set far future date
-              endDate.setFullYear(endDate.getFullYear() + 100);
-            } else if (plan.interval === 'year') {
-              endDate.setFullYear(endDate.getFullYear() + 1);
-            } else {
-              endDate.setMonth(endDate.getMonth() + 1);
-            }
-            
-            const newSubscription = {
-              id: String(Date.now()),
-              plan: plan.name,
-              price: plan.price,
-              interval: plan.interval,
-              currency: 'USD',
-              status: 'active',
-              startedAt: now.toISOString(),
-              currentPeriodEnd: endDate.toISOString(),
-              paymentMethod: {
-                brand: 'Visa',
-                last4: '4242'
-              },
-              subscriptionId: `demo_${Date.now()}`
-            };
-            
-            saveSubscription(newSubscription);
-            setSub(newSubscription);
-            
-            window.dispatchEvent(new CustomEvent('tpp:toast', { 
-              detail: { message: `🎭 Demo: Successfully switched to ${plan.name}!`, type: 'success' } 
-            }));
-            
-            return;
-          }
-          
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
             detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
           }));
@@ -572,6 +571,28 @@
               </div>
             </div>
             
+            {/* Current Plan Display */}
+            {sub && (
+              <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '1px solid #A3B18A' }}>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Crown size={20} style={{ color: '#5C7659' }} />
+                  <span className="font-semibold text-lg" style={{ color: '#344E41' }}>Current Plan</span>
+                </div>
+                <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
+                  {sub.plan} - ${sub.price}
+                </div>
+                <div className="text-sm" style={{ color: '#5C7659' }}>
+                  {sub.interval === 'lifetime' ? 'Lifetime Access' : 
+                   sub.interval === 'year' ? 'Billed Annually' : 'Billed Monthly'}
+                </div>
+                {sub.status === 'active' && sub.currentPeriodEnd && (
+                  <div className="text-xs mt-2" style={{ color: '#6B7280' }}>
+                    Next billing: {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Pricing Plans */}
             <div>
               <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.primaryDark }}>
