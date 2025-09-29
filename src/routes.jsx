@@ -1,5 +1,5 @@
 import React, { lazy } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import App from './App.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Rover from './pages/Rover.jsx'
@@ -25,15 +25,21 @@ const Admin = lazy(() => import('./pages/Admin.jsx'))
 const BetaEndedSurvey = lazy(() => import('./pages/BetaEndedSurvey.jsx'))
 const LaunchComingSoon = lazy(() => import('./pages/LaunchComingSoon.jsx'))
 
+// Launch Configuration
+const IS_APP_BLOCKED = true; // Set to false when ready to launch
+
+// Component to redirect blocked routes
+const LaunchRedirect = () => <Navigate to="/launch-coming-soon" replace />;
+
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Login />,
+    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Login />,
     errorElement: <NotFound />,
   },
   {
     path: '/admin',
-    element: <Admin />,
+    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Admin />,
     errorElement: <NotFound />,
   },
   {
@@ -48,7 +54,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <ProtectedRoute />,
+    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <ProtectedRoute />,
     errorElement: <NotFound />,
     children: [
       {
