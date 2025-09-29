@@ -721,59 +721,6 @@
           )}
         >
           <div className="space-y-6">
-            {/* Founder's Pricing Alert */}
-            <div className="rounded-xl p-6 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
-                  <Crown size={16} className="text-white" />
-                </div>
-                <div className="text-xl font-bold" style={{ color: '#344E41' }}>
-                  Founder's Pricing
-                </div>
-              </div>
-              
-              <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
-            <p className="text-sm leading-relaxed" style={{ color: '#3A5A40' }}>
-              As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
-              even as we add new features and increase value as we grow!
-            </p>
-              </div>
-              
-              <div className="flex items-center justify-center gap-2 text-xs" style={{ color: '#5C7659' }}>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5C7659' }}></span>
-                <span className="font-medium">Limited time founder benefits</span>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5C7659' }}></span>
-              </div>
-            </div>
-            
-            {/* Current Plan Display */}
-            {sub && (
-              <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '1px solid #A3B18A' }}>
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Crown size={20} style={{ color: '#5C7659' }} />
-                  <span className="font-semibold text-lg" style={{ color: '#344E41' }}>Current Plan</span>
-                </div>
-                <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
-                  {sub.plan} - ${sub.price}
-                </div>
-                <div className="text-sm" style={{ color: '#5C7659' }}>
-                  {sub.interval === 'lifetime' ? 'Lifetime Access' : 
-                   sub.interval === 'year' ? 'Billed Annually' : 'Billed Monthly'}
-                </div>
-                {sub.status === 'active' && sub.currentPeriodEnd && (
-                  <div className="text-xs mt-2" style={{ color: '#6B7280' }}>
-                    Next billing: {new Date(sub.currentPeriodEnd).toLocaleDateString()}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Plan Change Notice */}
-            <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.1)', border: '1px solid #A3B18A' }}>
-              <p className="text-sm" style={{ color: '#5C7659' }}>
-                💡 <strong>Want to change your plan?</strong> Use the upgrade options on the account page above for quick access.
-              </p>
-            </div>
 
             {/* Billing Management Section */}
             <div className="rounded-xl border-2 p-6 shadow-sm" style={{ backgroundColor: '#D4D7CD', borderColor: '#A3B18A' }}>
