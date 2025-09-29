@@ -467,175 +467,285 @@
                     </div>
                   </div>
 
-                  {/* Current Plan Card */}
+                  {/* Current Plan / Trial Card */}
                   <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '1px solid #A3B18A' }}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Crown size={20} style={{ color: '#5C7659' }} />
-                        <span className="font-semibold text-lg" style={{ color: '#344E41' }}>Current Plan</span>
+                        <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
+                          {sub?.status === 'trialing' ? 'Free Trial' : 'Current Plan'}
+                        </span>
                       </div>
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        sub.status === 'active' ? 'bg-green-100 text-green-800' : 
-                        sub.status === 'trialing' ? 'bg-blue-100 text-blue-800' : 
+                        sub?.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        sub?.status === 'trialing' ? 'bg-blue-100 text-blue-800' : 
                         'bg-red-100 text-red-800'
                       }`}>
-                        {sub.status === 'trialing' ? 'Trial' : sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
+                        {sub?.status === 'trialing' ? 'Trial' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
                       </div>
                     </div>
                     
-                    <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
-                      {sub.plan} - ${sub.price}
-                    </div>
-                    
-                    <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
-                      {sub.interval === 'lifetime' ? 'Lifetime Access' : 
-                       sub.interval === 'year' ? 'Billed Annually' : 'Billed Monthly'}
-                    </div>
-                    
-                    {sub.status !== 'canceled' && (
-                      <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
-                        <div>{sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
-                        {sub.paymentMethod && (
-                          <div>Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}</div>
+                    {sub?.status === 'trialing' ? (
+                      <>
+                        <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
+                          7-Day Free Trial
+                        </div>
+                        
+                        <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
+                          Full access to all Pro features
+                        </div>
+                        
+                        {sub.currentPeriodEnd && (
+                          <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
+                            <div>Trial ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                            <div className="text-xs">
+                              {(() => {
+                                const now = new Date();
+                                const end = new Date(sub.currentPeriodEnd);
+                                const diffTime = end - now;
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                return diffDays > 0 ? `${diffDays} days remaining` : 'Trial expired';
+                              })()}
+                            </div>
+                          </div>
                         )}
-                      </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
+                          {sub.plan} - ${sub.price}
+                        </div>
+                        
+                        <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
+                          {sub.interval === 'lifetime' ? 'Lifetime Access' : 
+                           sub.interval === 'year' ? 'Billed Annually' : 'Billed Monthly'}
+                        </div>
+                        
+                        {sub.status !== 'canceled' && (
+                          <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
+                            <div>{sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                            {sub.paymentMethod && (
+                              <div>Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}</div>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
 
-                  {/* Quick Upgrade Options */}
-                  {sub.interval !== 'lifetime' && (
-                    <div>
-                      <h4 className="font-semibold mb-4" style={{ color: '#344E41' }}>Upgrade Your Plan</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {sub.interval === 'month' && (
-                          <div 
-                            className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
-                            style={{ borderColor: '#A3B18A' }}
-                            onClick={() => {
-                              setConfirmAction('switchPlan');
-                              setConfirmData({
-                                plan: { name: 'Pro Annual', price: 89.99, interval: 'year' },
-                                isSwitching: true,
-                                currentPlan: 'Monthly'
-                              });
-                              setConfirmModalOpen(true);
-                            }}
-                          >
-                            {/* Popular Badge */}
-                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                              <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
-                                Most Popular
-                              </div>
+                  {/* Plan Selection Options */}
+                  <div>
+                    <h4 className="font-semibold mb-4" style={{ color: '#344E41' }}>
+                      {sub?.status === 'trialing' ? 'Choose Your Plan' : 'Upgrade Your Plan'}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Monthly Plan */}
+                      <div 
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        style={{ borderColor: sub?.interval === 'month' ? '#A3B18A' : '#D4D7CD' }}
+                        onClick={() => {
+                          setConfirmAction('switchPlan');
+                          setConfirmData({
+                            plan: { name: 'Pro Monthly', price: 8.99, interval: 'month' },
+                            isSwitching: sub?.status !== 'trialing',
+                            currentPlan: sub?.status === 'trialing' ? 'Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
+                          });
+                          setConfirmModalOpen(true);
+                        }}
+                      >
+                        {/* Current Plan Badge */}
+                        {sub?.interval === 'month' && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#5C7659' }}>
+                              Current Plan
                             </div>
-
-                            {/* Plan Title */}
-                            <div className="text-center mb-4">
-                              <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Annual</h3>
-                              <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$89.99</div>
-                              <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per year</div>
-                            </div>
-
-                            {/* Subtitle Badge */}
-                            <div className="text-center mb-4">
-                              <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
-                                Save $17.89
-                              </span>
-                            </div>
-
-                            {/* Features */}
-                            <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
-                              <li className="flex items-center">
-                                <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                                All Pro features
-                              </li>
-                              <li className="flex items-center">
-                                <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                                Priority support
-                              </li>
-                              <li className="flex items-center">
-                                <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                                Advanced analytics
-                              </li>
-                            </ul>
-
-                            {/* Action Button */}
-                            <button 
-                              className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-                              style={{ backgroundColor: '#3A5A40' }}
-                            >
-                              Upgrade to Annual
-                            </button>
                           </div>
                         )}
-                        
-                        <div 
-                          className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
-                          style={{ borderColor: '#A3B18A' }}
-                          onClick={() => {
-                            setConfirmAction('switchPlan');
-                            setConfirmData({
-                              plan: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' },
-                              isSwitching: true,
-                              currentPlan: sub.interval === 'month' ? 'Monthly' : 'Annual'
-                            });
-                            setConfirmModalOpen(true);
-                          }}
+
+                        {/* Plan Title */}
+                        <div className="text-center mb-4">
+                          <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Monthly</h3>
+                          <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$8.99</div>
+                          <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per month</div>
+                        </div>
+
+                        {/* Features */}
+                        <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            All Pro features
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            Priority support
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            Cancel anytime
+                          </li>
+                        </ul>
+
+                        {/* Action Button */}
+                        <button 
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          style={{ backgroundColor: sub?.interval === 'month' ? '#5C7659' : '#344E41' }}
                         >
-                          {/* Limited Time Badge */}
+                          {sub?.interval === 'month' ? 'Current Plan' : 'Choose Monthly'}
+                        </button>
+                      </div>
+
+                      {/* Annual Plan */}
+                      <div 
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        style={{ borderColor: sub?.interval === 'year' ? '#A3B18A' : '#D4D7CD' }}
+                        onClick={() => {
+                          setConfirmAction('switchPlan');
+                          setConfirmData({
+                            plan: { name: 'Pro Annual', price: 89.99, interval: 'year' },
+                            isSwitching: sub?.status !== 'trialing',
+                            currentPlan: sub?.status === 'trialing' ? 'Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
+                          });
+                          setConfirmModalOpen(true);
+                        }}
+                      >
+                        {/* Current Plan Badge */}
+                        {sub?.interval === 'year' && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#5C7659' }}>
+                              Current Plan
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Popular Badge */}
+                        {sub?.interval !== 'year' && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
+                              Most Popular
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Plan Title */}
+                        <div className="text-center mb-4">
+                          <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Annual</h3>
+                          <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$89.99</div>
+                          <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per year</div>
+                        </div>
+
+                        {/* Subtitle Badge */}
+                        <div className="text-center mb-4">
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                            Save $17.89
+                          </span>
+                        </div>
+
+                        {/* Features */}
+                        <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            All Pro features
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            Priority support
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            Advanced analytics
+                          </li>
+                        </ul>
+
+                        {/* Action Button */}
+                        <button 
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          style={{ backgroundColor: sub?.interval === 'year' ? '#5C7659' : '#3A5A40' }}
+                        >
+                          {sub?.interval === 'year' ? 'Current Plan' : 'Choose Annual'}
+                        </button>
+                      </div>
+
+                      {/* Lifetime Plan */}
+                      <div 
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
+                        onClick={() => {
+                          setConfirmAction('switchPlan');
+                          setConfirmData({
+                            plan: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' },
+                            isSwitching: sub?.status !== 'trialing',
+                            currentPlan: sub?.status === 'trialing' ? 'Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
+                          });
+                          setConfirmModalOpen(true);
+                        }}
+                      >
+                        {/* Current Plan Badge */}
+                        {sub?.interval === 'lifetime' && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#5C7659' }}>
+                              Current Plan
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Limited Time Badge */}
+                        {sub?.interval !== 'lifetime' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
                               Limited Time
                             </div>
                           </div>
+                        )}
 
-                          {/* Plan Title */}
-                          <div className="text-center mb-4">
-                            <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Lifetime</h3>
-                            <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$249.99</div>
-                            <div className="text-sm mt-1" style={{ color: '#5C7659' }}>one-time payment</div>
-                          </div>
+                        {/* Plan Title */}
+                        <div className="text-center mb-4">
+                          <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Lifetime</h3>
+                          <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$249.99</div>
+                          <div className="text-sm mt-1" style={{ color: '#5C7659' }}>one-time payment</div>
+                        </div>
 
-                          {/* Subtitle Badge */}
-                          <div className="text-center mb-4">
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
-                              Never pay again
-                            </span>
-                          </div>
+                        {/* Subtitle Badge */}
+                        <div className="text-center mb-4">
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                            Never pay again
+                          </span>
+                        </div>
 
-                          {/* Features */}
-                          <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
-                            <li className="flex items-center">
-                              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                              All Pro features forever
-                            </li>
-                            <li className="flex items-center">
-                              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                              Priority support
-                            </li>
-                            <li className="flex items-center">
-                              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                              Future updates included
-                            </li>
-                          </ul>
+                        {/* Features */}
+                        <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            All Pro features forever
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            Priority support
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                            Future updates included
+                          </li>
+                        </ul>
 
-                          {/* Action Button */}
-                          <button 
-                            className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-                            style={{ backgroundColor: '#344E41' }}
-                          >
-                            Go Lifetime
-                          </button>
+                        {/* Action Button */}
+                        <button 
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          style={{ backgroundColor: sub?.interval === 'lifetime' ? '#5C7659' : '#344E41' }}
+                        >
+                          {sub?.interval === 'lifetime' ? 'Current Plan' : 'Choose Lifetime'}
+                        </button>
 
-                          {/* Limited Time Notice */}
+                        {/* Limited Time Notice */}
+                        {sub?.interval !== 'lifetime' && (
                           <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
                             <p className="text-xs text-center" style={{ color: '#344E41' }}>
                               <strong>Forever a Researcher?</strong><br/>Purchase lifetime - only available for a short time
                             </p>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Billing Management */}
                   <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
