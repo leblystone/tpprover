@@ -29,6 +29,7 @@ export const WIDGET_SIZES = {
 };
 
 export const DEFAULT_WIDGETS = [
+  // Row 0
   {
     id: 'tasks',
     type: WIDGET_TYPES.TASKS,
@@ -42,55 +43,56 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
+    id: 'quick_actions',
+    type: WIDGET_TYPES.QUICK_ACTIONS,
+    title: 'Quick Actions',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 2, y: 0 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'inventory',
+    type: WIDGET_TYPES.INVENTORY,
+    title: 'Inventory',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 3, y: 0 },
+    enabled: true,
+    settings: {}
+  },
+  {
     id: 'upcoming_order',
     type: WIDGET_TYPES.UPCOMING_ORDER,
     title: 'Incoming Peptides',
     size: WIDGET_SIZES.MEDIUM,
-    position: { x: 2, y: 0 },
+    position: { x: 4, y: 0 },
     enabled: true,
     settings: {
       showTracking: true,
       autoRefresh: true
     }
   },
+  // Row 1
   {
-    id: 'quick_actions',
-    type: WIDGET_TYPES.QUICK_ACTIONS,
-    title: 'Quick Actions',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 4, y: 0 },
+    id: 'supplements',
+    type: WIDGET_TYPES.SUPPLEMENTS,
+    title: 'Supplements',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 1 },
     enabled: true,
-    settings: {}
-  },
-  {
-    id: 'compliance',
-    type: WIDGET_TYPES.COMPLIANCE,
-    title: 'Research Consistency',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 5, y: 0 },
-    enabled: true,
-    settings: {}
+    settings: {
+      showSchedule: true
+    }
   },
   {
     id: 'goals_only',
     type: 'goals_only',
     title: 'Goals',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 0, y: 1 },
-    enabled: true,
-    settings: {
-      maxItems: 5
-    }
-  },
-  {
-    id: 'supplements',
-    type: WIDGET_TYPES.SUPPLEMENTS,
-    title: 'Supplements',
-    size: WIDGET_SIZES.MEDIUM,
     position: { x: 2, y: 1 },
     enabled: true,
     settings: {
-      showSchedule: true
+      maxItems: 5
     }
   },
   {
@@ -98,16 +100,28 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.SPENDING,
     title: 'Spending',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 4, y: 1 },
+    position: { x: 3, y: 1 },
     enabled: true,
     settings: {}
   },
   {
-    id: 'lead_time',
-    type: WIDGET_TYPES.LEAD_TIME,
-    title: 'Average Delivery',
+    id: 'metrics_only',
+    type: 'metrics_only',
+    title: 'Bio-Metrics',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 4, y: 1 },
+    enabled: true,
+    settings: {
+      maxItems: 3
+    }
+  },
+  // Row 2
+  {
+    id: 'compliance',
+    type: WIDGET_TYPES.COMPLIANCE,
+    title: 'Research Consistency',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 5, y: 1 },
+    position: { x: 0, y: 2 },
     enabled: true,
     settings: {}
   },
@@ -116,50 +130,28 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.UPCOMING_BUYS,
     title: 'Upcoming Buys',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 0, y: 2 },
+    position: { x: 1, y: 2 },
     enabled: true,
     settings: {
       maxItems: 3
     }
   },
   {
-    id: 'metrics_only',
-    type: 'metrics_only',
-    title: 'Bio-Metrics',
-    size: WIDGET_SIZES.MEDIUM,
-    position: { x: 2, y: 2 },
-    enabled: true,
-    settings: {
-      maxItems: 3
-    }
-  },
-  {
-    id: 'inventory',
-    type: WIDGET_TYPES.INVENTORY,
-    title: 'Inventory',
+    id: 'lead_time',
+    type: WIDGET_TYPES.LEAD_TIME,
+    title: 'Average Delivery',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 4, y: 2 },
+    position: { x: 2, y: 2 },
     enabled: true,
     settings: {}
   },
   {
-    id: 'badges',
-    type: WIDGET_TYPES.BADGES,
-    title: 'Your Badges',
+    id: 'notes',
+    type: WIDGET_TYPES.NOTES,
+    title: 'Research Notes',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 0, y: 3 },
+    position: { x: 3, y: 2 },
     enabled: true,
-    settings: {
-      showProgress: true
-    }
-  },
-  {
-    id: 'pending_vendors',
-    type: WIDGET_TYPES.PENDING_VENDORS,
-    title: 'Pending Vendors',
-    size: WIDGET_SIZES.MEDIUM,
-    position: { x: 3, y: 3 },
-    enabled: true, // Show by default, will hide automatically when empty
     settings: {}
   },
   {
@@ -167,18 +159,30 @@ export const DEFAULT_WIDGETS = [
     type: WIDGET_TYPES.WATER_TRACKER,
     title: 'Water Intake',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 5, y: 3 },
+    position: { x: 4, y: 2 },
     enabled: true,
     settings: {
       defaultGoal: 8
     }
   },
   {
+    id: 'badges',
+    type: WIDGET_TYPES.BADGES,
+    title: 'Your Badges',
+    size: WIDGET_SIZES.SMALL,
+    position: { x: 5, y: 2 },
+    enabled: true,
+    settings: {
+      showProgress: true
+    }
+  },
+  // Row 3
+  {
     id: 'glossary',
     type: WIDGET_TYPES.GLOSSARY,
     title: 'Research Glossary',
-    size: WIDGET_SIZES.MEDIUM,
-    position: { x: 0, y: 4 },
+    size: WIDGET_SIZES.WIDE,
+    position: { x: 0, y: 3 },
     enabled: true,
     settings: {
       showRecent: true,
@@ -188,19 +192,20 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'feedback',
     type: WIDGET_TYPES.FEEDBACK,
-    title: 'Feedback',
+    title: 'Feedback & Suggestions',
     size: WIDGET_SIZES.SMALL,
-    position: { x: 2, y: 4 },
+    position: { x: 3, y: 3 },
     enabled: true,
     settings: {}
   },
+  // Optional widgets (disabled by default but available for customization)
   {
-    id: 'notes',
-    type: WIDGET_TYPES.NOTES,
-    title: 'Research Notes',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 3, y: 4 },
-    enabled: true,
+    id: 'pending_vendors',
+    type: WIDGET_TYPES.PENDING_VENDORS,
+    title: 'Pending Vendors',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 4 },
+    enabled: false, // Hidden by default as it only shows when needed
     settings: {}
   }
 ];
@@ -400,16 +405,16 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '2.1'; // Force layout reset for compact widget sizes (Badges, Notes, Upcoming Buys, Goals all 1x1)
+    const currentVersion = '3.0'; // NEW DEFAULT LAYOUT: Perfect user experience layout matching screenshot - optimal widget positioning
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
     if (layoutVersion !== currentVersion) {
-      console.log('🔄 Dashboard layout version mismatch - forcing reset for compact widget sizes (Badges, Notes, Upcoming Buys, Goals all 1x1)');
+      console.log('🔄 Dashboard layout version mismatch - applying NEW DEFAULT LAYOUT for optimal user experience');
       console.log('🗑️ Clearing dashboard layout from localStorage');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
-      console.log('✅ Returning DEFAULT_WIDGETS with Research Glossary as MEDIUM (2x1)');
+      console.log('✅ Returning DEFAULT_WIDGETS with perfect layout: 6-column grid, Research Glossary as WIDE (3x1)');
       return DEFAULT_WIDGETS;
     }
     
