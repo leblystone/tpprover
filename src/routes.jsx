@@ -23,6 +23,7 @@ const Goals = lazy(() => import('./pages/Goals.jsx'))
 const Badges = lazy(() => import('./pages/Badges.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const BetaEndedSurvey = lazy(() => import('./pages/BetaEndedSurvey.jsx'))
+const LaunchComingSoon = lazy(() => import('./pages/LaunchComingSoon.jsx'))
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,11 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: <Admin />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/launch-coming-soon',
+    element: <LaunchComingSoon />,
     errorElement: <NotFound />,
   },
   {
@@ -66,6 +72,7 @@ export const router = createBrowserRouter([
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
           { path: 'beta-survey', element: <BetaEndedSurvey /> },
+          { path: 'launch-coming-soon', element: <LaunchComingSoon /> },
         ]
       }
     ]

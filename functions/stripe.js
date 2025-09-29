@@ -1,5 +1,94 @@
 const functions = require("firebase-functions");
-const stripe = require("stripe")(functions.config().stripe.secret);
+// For Firebase Functions v2, use environment variables
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+// Create Stripe Checkout Session
+exports.createCheckoutSession = functions.https.onCall(
+    async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "The function must be called while authenticated.",
+        );
+      }
+      try {
+        const {priceId, userEmail, userId, successUrl, cancelUrl} = data;
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          line_items: [{
+            price: priceId,
+            quantity: 1,
+          }],
+          mode: priceId.includes("lifetime") ? "payment" : "subscription",
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          customer_email: userEmail,
+          metadata: {
+            userId: userId,
+          },
+        });
+        return {id: session.id};
+      } catch (error) {
+        console.error("Checkout session error:", error);
+        throw new functions.https.HttpsError(
+            "internal",
+            "Unable to create checkout session.",
+        );
+      }
+    });
+
+// Create Stripe Customer Portal Session
+exports.createPortalSession = functions.https.onCall(
+    async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "The function must be called while authenticated.",
+        );
+      }
+      try {
+        const {customerId, returnUrl} = data;
+        const session = await stripe.billingPortal.sessions.create({
+          customer: customerId,
+          return_url: returnUrl,
+        });
+        return {url: session.url};
+      } catch (error) {
+        console.error("Portal session error:", error);
+        throw new functions.https.HttpsError(
+            "internal",
+            "Unable to create portal session.",
+        );
+      }
+    });
+
+// Cancel Stripe Subscription
+exports.cancelSubscription = functions.https.onCall(
+    async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "The function must be called while authenticated.",
+        );
+      }
+      try {
+        const {subscriptionId} = data;
+        const subscription = await stripe.subscriptions.update(subscriptionId, {
+          cancel_at_period_end: true,
+        });
+        return {
+          id: subscription.id,
+          status: subscription.status,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+        };
+      } catch (error) {
+        console.error("Cancel subscription error:", error);
+        throw new functions.https.HttpsError(
+            "internal",
+            "Unable to cancel subscription.",
+        );
+      }
+    });
 
 exports.getStripeSubscriptions = functions.https.onCall(async (data, context) => {
   // Check if the user is an authenticated admin

@@ -8,9 +8,9 @@ import { markBetaFeedbackCompleted } from '../../utils/betaAccess';
 export default function BetaEndedPopup({ user, theme, onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleTakeSurvey = () => {
-    // Navigate to survey page
-    window.location.href = '/beta-survey';
+  const handleViewLaunchInfo = () => {
+    // Navigate to launch coming soon page
+    window.location.href = '/launch-coming-soon';
   };
 
   const handleRemindLater = () => {
@@ -55,7 +55,7 @@ export default function BetaEndedPopup({ user, theme, onClose }) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold mb-1">Beta Testing Complete!</h1>
-                <p className="text-red-100">Your feedback is needed to secure lifetime access</p>
+                <p className="text-red-100">Full launch coming soon - Thank you for testing!</p>
               </div>
             </div>
           </div>
@@ -70,8 +70,8 @@ export default function BetaEndedPopup({ user, theme, onClose }) {
                   Thank You for Beta Testing The Pep Planner!
                 </h2>
                 <p className="text-gray-600 leading-relaxed">
-                  You've been an essential part of our journey. Your experience and feedback 
-                  have helped shape The Pep Planner into something amazing.
+                  You've been an essential part of our journey. The beta testing phase has concluded, 
+                  and we're preparing for our full public launch.
                 </p>
               </div>
 
@@ -107,11 +107,11 @@ export default function BetaEndedPopup({ user, theme, onClose }) {
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <button
-                onClick={handleTakeSurvey}
+                onClick={handleViewLaunchInfo}
                 disabled={isSubmitting}
-                className="flex-1 px-6 py-4 rounded-xl font-semibold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg animate-pulse"
+                className="flex-1 px-6 py-4 rounded-xl font-semibold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
               >
-                🚀 Take Survey & Activate Lifetime Access
+                🚀 View Launch Information
               </button>
               
               <div className="flex gap-2">

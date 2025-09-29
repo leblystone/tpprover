@@ -5,10 +5,13 @@ import TextInput from '../components/common/inputs/TextInput'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import Modal from '../components/common/Modal'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
+import StockpileCard from '../components/stockpile/StockpileCard'
+import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
+import DuplicateDetection from '../components/stockpile/DuplicateDetection'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -20,6 +23,14 @@ export default function Stockpile() {
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  
+  // Drag & Drop Merge functionality
+  const [isDragMode, setIsDragMode] = useState(false)
+  const [showMergeModal, setShowMergeModal] = useState(false)
+  const [mergeData, setMergeData] = useState({ source: null, target: null })
+  
+  // Duplicate detection state
+  const [dismissedDuplicates, setDismissedDuplicates] = useState(new Set())
   
   const vendorMap = useMemo(() => (vendors || []).reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
   
@@ -152,6 +163,62 @@ export default function Stockpile() {
   }
   const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '' }]))
   const removeManageRow = (id) => setManageRows(prev => prev.filter(r => r.id !== id))
+  
+  // Merge functionality handlers
+  const handleMergeRequest = (duplicateGroup, mainGroup) => {
+    setMergeData({ source: duplicateGroup, target: mainGroup })
+    setShowMergeModal(true)
+  }
+
+  const handleConfirmMerge = (mergeConfig) => {
+    const { sourceItems, targetItems, mergedName, mergedUnit } = mergeConfig
+
+    try {
+      // Update all items to use the new merged name and unit
+      const updatedItems = items.map(item => {
+        // Check if this item belongs to the source group
+        const isSourceItem = sourceItems.some(sourceItem => sourceItem.id === item.id)
+        if (isSourceItem) {
+          return {
+            ...item,
+            name: mergedName,
+            mgUnit: mergedUnit
+          }
+        }
+        return item
+      })
+
+      setItems(updatedItems)
+      
+      // Log the merge event
+      appendStockEvent({
+        name: `${mergeConfig.sourceGroup.name} + ${mergeConfig.targetGroup.name} → ${mergedName}`,
+        details: `Combined ${sourceItems.length + targetItems.length} peptide entries into single inventory`
+      })
+
+      // Close modal and exit drag mode
+      setShowMergeModal(false)
+      setMergeData({ source: null, target: null })
+      setIsDragMode(false)
+      
+    } catch (error) {
+      console.error('Failed to merge groups:', error)
+    }
+  }
+
+  const handleToggleDragMode = (enabled) => {
+    setIsDragMode(enabled)
+    if (!enabled) {
+      // Reset any pending merge data when exiting drag mode
+      setMergeData({ source: null, target: null })
+    }
+  }
+
+  // Duplicate detection handlers
+  const handleDismissDuplicate = (duplicate) => {
+    const key = `${duplicate.group1.groupKey}-${duplicate.group2.groupKey}`;
+    setDismissedDuplicates(prev => new Set([...prev, key]));
+  }
   const saveManage = () => {
     // First, convert any "kit" entries in the temporary edit state back to "vial" for storage
     const convertedRows = manageRows.map(row => {
@@ -254,6 +321,15 @@ export default function Stockpile() {
           <div>
             <div className="font-semibold" style={{ color: theme.primaryDark }}>On-hand Stock</div>
             <hr className="mb-3" style={{ borderColor: theme.border }} />
+            
+            {/* Duplicate Detection */}
+            <DuplicateDetection
+              groups={groups.filter(g => g.totalMg > 0)}
+              theme={theme}
+              onMergeRequest={handleMergeRequest}
+              onDismissSuggestion={handleDismissDuplicate}
+            />
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {groups.filter(g => g.totalMg > 0).map(g => (
                     <div key={g.name} className="relative p-4 rounded-lg border content-card shadow-sm flex flex-col justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -603,6 +679,15 @@ export default function Stockpile() {
           <button className="px-3 py-2 rounded-md text-sm font-semibold border-dashed border" style={{ borderColor: theme.primary, color: theme.primary }} onClick={addManageRow}>+ Add Row</button>
         </div>
       </Modal>
+      
+      {/* Merge Confirmation Modal */}
+      <MergeConfirmationModal
+        open={showMergeModal}
+        onClose={() => setShowMergeModal(false)}
+        onConfirm={handleConfirmMerge}
+        mergeData={mergeData}
+        theme={theme}
+      />
     </section>
   )
 }
