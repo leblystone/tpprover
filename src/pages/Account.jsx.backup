@@ -1,12 +1,12 @@
   import React, { useTransition } from 'react'
   import { useOutletContext, useNavigate } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
-  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown } from 'lucide-react'
+  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink } from 'lucide-react'
   import Modal from '../components/common/Modal'
   import { useAppContext } from '../context/AppContext'
   import { useBadgeStats } from '../utils/badges'
   import BadgeImage from '../components/badges/BadgeImage'
-  import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel, updatePaymentMethod } from '../services/stripe'
+  import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
   import { STRIPE_CONFIG } from '../config/stripe'
   import { verifyStripeConfig } from '../utils/stripe-verify'
   // Beta imports removed - beta phase concluded
@@ -260,6 +260,23 @@
       }
     }
 
+    const openCustomerPortal = async () => {
+      if (!sub?.customerId) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Customer portal not available for this subscription', type: 'info' } 
+        }));
+        return;
+      }
+      
+      try {
+        await createPortalSession(sub.customerId);
+      } catch (error) {
+        console.error('Portal error:', error);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Failed to open customer portal', type: 'error' } 
+        }));
+      }
+    }
 
 
     const [pmDraft, setPmDraft] = React.useState({ brand: sub?.paymentMethod?.brand || 'Visa', last4: sub?.paymentMethod?.last4 || '' })
@@ -432,176 +449,124 @@
         </div>
 
         {/* Manage subscription modal */}
-        <Modal 
-          open={manageOpen} 
-          onClose={() => setManageOpen(false)} 
-          title="Manage Subscription" 
-          theme={theme} 
-          maxWidth="max-w-2xl" 
-          footer={(
-            <div className="w-full flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                {sub?.status === 'active' && (
-                  <button className="px-3 py-2 rounded-md text-sm" style={{ color: '#344E41' }} onClick={cancelSubscription}>Cancel Subscription</button>
-                )}
-              </div>
-              <button className="px-3 py-2 rounded-md" onClick={() => setManageOpen(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Close</button>
+        <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage Subscription" theme={theme} maxWidth="max-w-2xl" footer={(
+          <div className="w-full flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              {sub?.customerId && (
+                <button 
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:opacity-90 flex items-center gap-2" 
+                  style={{ backgroundColor: theme.secondary, color: theme.text }}
+                  onClick={openCustomerPortal}
+                >
+                  <ExternalLink size={14} />
+                  Customer Portal
+                </button>
+              )}
+              <button className="px-3 py-2 rounded-md text-sm" style={{ color: theme.error }} onClick={cancelSubscription}>Cancel Subscription</button>
             </div>
-          )}
-        >
+            <button className="px-3 py-2 rounded-md" onClick={() => setManageOpen(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Close</button>
+          </div>
+        )}>
           <div className="space-y-6">
-            {/* Founder's Pricing Alert */}
-            <div className="rounded-xl p-6 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
-                  <Crown size={16} className="text-white" />
-                </div>
-                <div className="text-xl font-bold" style={{ color: '#344E41' }}>
-                  Founder's Pricing
-                </div>
-              </div>
-              
-              <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
-            <p className="text-sm leading-relaxed" style={{ color: '#3A5A40' }}>
-              As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
-              even as we add new features and increase value as we grow!
-            </p>
-              </div>
-              
-              <div className="flex items-center justify-center gap-2 text-xs" style={{ color: '#5C7659' }}>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5C7659' }}></span>
-                <span className="font-medium">Limited time founder benefits</span>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5C7659' }}></span>
-              </div>
-            </div>
-            
-            {/* Pricing Plans */}
-            <div>
-              <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.primaryDark }}>
-                {sub?.status === 'trialing' ? `Your trial ends on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}` : 'Switch your plan'}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <PlanCard
-                  theme={theme}
-                  title="Monthly"
-                  price="$8.99"
-                  current={sub?.interval === 'month'}
-                  onSelect={() => createSubscription({ name: 'Pro Monthly', price: 8.99, interval: 'month' })}
-                />
-                <PlanCard
-                  theme={theme}
-                  title="Annual"
-                  price="$89.99"
-                  current={sub?.interval === 'year'}
-                  onSelect={() => createSubscription({ name: 'Pro Annual', price: 89.99, interval: 'year' })}
-                  popular
-                  subtitle="Save $17.89"
-                />
-                <PlanCard
-                  theme={theme}
-                  title="Lifetime"
-                  price="$249.99"
-                  current={sub?.interval === 'lifetime'}
-                  onSelect={() => createSubscription({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
-                  subtitle="Limited Time"
-                />
-              </div>
-            </div>
-
-            {/* Billing Management Section */}
-            <div className="rounded-xl border-2 p-6 shadow-sm" style={{ backgroundColor: '#D4D7CD', borderColor: '#A3B18A' }}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
-                  <CreditCard size={16} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold" style={{ color: '#344E41' }}>Billing Management</h3>
-                  <p className="text-xs" style={{ color: '#5C7659' }}>Manage your payment and billing information</p>
-                </div>
-              </div>
-              
-              {/* Current Payment Method */}
-              <div className="rounded-lg border p-4 mb-4 shadow-md bg-white" style={{ borderColor: '#A3B18A' }}>
-                <h4 className="text-sm font-medium mb-3" style={{ color: '#344E41' }}>Current Payment Method</h4>
-                <div className="flex items-center justify-between p-3 rounded-lg border shadow-sm bg-white" style={{ borderColor: '#D4D7CD' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-6 rounded flex items-center justify-center" style={{ backgroundColor: '#5C7659' }}>
-                      <CreditCard size={12} className="text-white" />
+            {/* Subscription modal content */}
+            <>
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-6 text-center shadow-sm">
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-md">
+                      <span className="text-white font-bold text-lg">👑</span>
                     </div>
-                    <div>
-                      <div className="text-sm font-medium" style={{ color: '#344E41' }}>
-                        {sub?.paymentMethod?.brand || 'Visa'} •••• {sub?.paymentMethod?.last4 || '1234'}
-                      </div>
-                      <div className="text-xs" style={{ color: '#5C7659' }}>Expires 12/25</div>
+                    <div className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                      Founder's Pricing
                     </div>
                   </div>
+                  
+                  <div className="bg-white/60 rounded-lg p-4 mb-4">
+                    <p className="text-amber-800 font-medium mb-2">
+                      🔒 <strong>Lock in these prices forever!</strong>
+                    </p>
+                    <p className="text-sm text-amber-700 leading-relaxed">
+                      As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
+                      even as we add new features and raise prices for new users.
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-center gap-2 text-xs text-amber-600 mb-3">
+                    <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                    <span className="font-medium">Limited time founder benefits</span>
+                    <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                  </div>
+                  
                   <button 
-                    className="px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-90 transition-all text-white shadow-sm" 
-                    style={{ backgroundColor: '#5C7659' }}
-                    onClick={() => updatePaymentMethod(sub?.customerId || 'demo_customer')}
+                    className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all shadow-sm border border-amber-300" 
+                    style={{ 
+                      backgroundColor: 'rgba(245, 158, 11, 0.1)', 
+                      color: '#92400e',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                    onClick={() => verifyStripeConfig()}
                   >
-                    Update
+                    🔧 Verify Setup (Dev Tool)
                   </button>
                 </div>
-              </div>
-
-              {/* Billing History */}
-              <div className="rounded-lg border p-4 mb-4 shadow-md bg-white" style={{ borderColor: '#A3B18A' }}>
-                <h4 className="text-sm font-medium mb-3" style={{ color: '#344E41' }}>Billing History</h4>
-                <div className="space-y-2">
-                  {[
-                    { date: 'Dec 1, 2024', amount: '$8.99', status: 'Paid', invoice: 'INV-001' },
-                    { date: 'Nov 1, 2024', amount: '$8.99', status: 'Paid', invoice: 'INV-002' },
-                    { date: 'Oct 1, 2024', amount: '$8.99', status: 'Paid', invoice: 'INV-003' }
-                  ].map((invoice, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 hover:opacity-80 rounded-lg transition-all border shadow-sm bg-white" style={{ borderColor: '#D4D7CD' }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#5C7659' }}>
-                          <Check size={12} className="text-white" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium" style={{ color: '#344E41' }}>{invoice.date}</div>
-                          <div className="text-xs" style={{ color: '#5C7659' }}>Invoice {invoice.invoice}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium" style={{ color: '#344E41' }}>{invoice.amount}</span>
-                        <button 
-                          className="px-2 py-1 rounded text-xs hover:opacity-90 transition-all" 
-                          style={{ backgroundColor: '#A3B18A', color: '#344E41' }}
-                          onClick={() => {/* TODO: Implement invoice download */}}
-                        >
-                          Download
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+            </>
+            
+            {/* Pricing plans */}
+            <div>
+                <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.primaryDark }}>
+                  {sub?.status === 'trialing' ? `Your trial ends on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}` : 'Switch your plan'}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Monthly Plan */}
+                  <PlanCard
+                    theme={theme}
+                    title="Monthly"
+                    price="$6"
+                    interval="/mo"
+                    current={sub?.interval === 'month'}
+                    onSelect={() => createSubscription({ name: 'Pro Monthly', price: 6.00, interval: 'month' })}
+                  />
+                  {/* Annual Plan */}
+                  <PlanCard
+                    theme={theme}
+                    title="Annual"
+                    price="$79"
+                    interval="/yr"
+                    current={sub?.interval === 'year'}
+                    onSelect={() => createSubscription({ name: 'Pro Annual', price: 79.00, interval: 'year' })}
+                    popular
+                    subtitle="Save $13"
+                  />
+                  {/* Lifetime Plan */}
+                  <PlanCard
+                    theme={theme}
+                    title="Lifetime"
+                    price="$149"
+                    interval="one-time"
+                    current={sub?.interval === 'lifetime'}
+                    onSelect={() => createSubscription({ name: 'Lifetime', price: 149.00, interval: 'lifetime' })}
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* Next Billing */}
-              {sub?.interval !== 'lifetime' && (
-                <div className="rounded-lg border p-4 shadow-md bg-white" style={{ borderColor: '#A3B18A' }}>
-                  <h4 className="text-sm font-medium mb-3" style={{ color: '#344E41' }}>Next Billing</h4>
-                  <div className="flex items-center justify-between p-3 rounded-lg border shadow-sm bg-white" style={{ borderColor: '#D4D7CD' }}>
-                    <div>
-                      <div className="text-sm font-medium" style={{ color: '#344E41' }}>
-                        {sub?.interval === 'month' ? 'Monthly' : 'Annual'} Subscription
-                      </div>
-                      <div className="text-xs" style={{ color: '#5C7659' }}>
-                        Next billing: {sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : 'N/A'}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold" style={{ color: '#344E41' }}>
-                        ${sub?.interval === 'month' ? '8.99' : '89.99'}
-                      </div>
-                      <div className="text-xs" style={{ color: '#5C7659' }}>per {sub?.interval === 'month' ? 'month' : 'year'}</div>
-                    </div>
+            {sub?.interval !== 'lifetime' && (
+              <div className="rounded-lg border p-4" style={{ borderColor: theme.border }}>
+                <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Payment Method</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                  <div>
+                    <div className="text-xs mb-1">Brand</div>
+                    <select className="w-full p-2 rounded border" value={pmDraft.brand} onChange={e => setPmDraft(d => ({ ...d, brand: e.target.value }))} style={{ borderColor: theme.border }}>
+                      {['Visa','Mastercard','Amex','Discover'].map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1">Last 4 Digits</div>
+                    <input className="w-full p-2 rounded border" maxLength={4} value={pmDraft.last4} onChange={e => setPmDraft(d => ({ ...d, last4: (e.target.value || '').replace(/\D/g,'').slice(0,4) }))} placeholder="1234" style={{ borderColor: theme.border }} />
                   </div>
                 </div>
-              )}
-            </div>
+                <div className="text-right mt-3"><button className="px-3 py-2 rounded-md text-sm hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={savePaymentMethod}>Update Payment Method</button></div>
+              </div>
+            )}
           </div>
         </Modal>
 
@@ -698,135 +663,23 @@ const TrialProgressBar = ({ theme, startDate, endDate }) => {
 const PlanCard = ({ theme, title, price, interval, onSelect, current, popular, subtitle }) => {
   const isCurrent = !!current;
   return (
-    <div className="relative group transition-all duration-300 hover:scale-105">
-      
-      {/* Popular Badge */}
-      {popular && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="text-white text-xs font-semibold px-6 py-2 rounded-full shadow-md whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
-            Most Popular
-          </div>
-        </div>
-      )}
-      
-      {/* Card Container */}
-      <div className={`relative bg-white rounded-2xl border-2 p-6 h-full transition-all duration-300 flex flex-col ${
-        isCurrent || popular ? 'shadow-lg' : 'hover:shadow-xl'
-      }`} style={{
-        borderColor: isCurrent || popular ? '#A3B18A' : '#D4D7CD'
-      }}>
-        
-        {/* Plan Header */}
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center mb-2">
-            <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>
-              {title}
-            </h3>
-            {isCurrent && (
-              <div className="ml-2 w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#5C7659' }}>
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-            )}
-          </div>
-          {subtitle && (
-            <div className="inline-block px-3 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: '#A3B18A', color: '#FFFFFF' }}>
-              {subtitle}
-            </div>
-          )}
-        </div>
-        
-        {/* Price Section */}
-        <div className="text-center mb-8">
-          <div className="flex items-baseline justify-center">
-            <span className="text-4xl font-bold" style={{ color: '#344E41' }}>
-              {price || ''}
-            </span>
-          </div>
-          
-          {/* Limited Time Notice for Lifetime */}
-          {title === 'Lifetime' && (
-            <div className="bg-stone-100 border border-stone-300 rounded-lg p-2 mt-3">
-              <p className="text-xs text-stone-700">
-                <strong>Forever a Researcher?</strong><br/>Purchase lifetime - only available for a short time
-              </p>
-            </div>
-          )}
-        </div>
-        
-        {/* Features List */}
-        <div className="flex-1 space-y-3 mb-8">
-          {title === 'Monthly' && (
-            <>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>7-day free trial</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>Full access to all features</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>Cancel anytime</span>
-              </div>
-            </>
-          )}
-          {title === 'Annual' && (
-            <>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>7-day free trial</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>Save $13 vs monthly</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>Full access to all features</span>
-              </div>
-            </>
-          )}
-          {title === 'Lifetime' && (
-            <>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>One-time payment</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>Lifetime access</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: '#5C7659' }}></div>
-                <span style={{ color: '#3A5A40' }}>All future updates</span>
-              </div>
-            </>
-          )}
-        </div>
-        
-        {/* Action Button */}
-        <button
-          className={`w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-300 ${
-            isCurrent 
-              ? 'cursor-default' 
-              : 'hover:shadow-lg transform hover:scale-105'
-          }`}
-          style={{
-            backgroundColor: isCurrent ? '#5C7659' : (popular ? '#3A5A40' : '#344E41'),
-            color: '#FFFFFF'
-          }}
-          onClick={onSelect}
-          disabled={isCurrent}
-        >
-          {isCurrent ? '✓ Current Plan' : 'Select Plan'}
-        </button>
+    <div className={`relative rounded-lg border p-4 text-center transition-shadow hover:shadow-lg ${isCurrent ? 'border-2' : ''} ${popular ? 'border-2' : ''}`} style={{ borderColor: isCurrent || popular ? theme.primary : theme.border }}>
+      {popular && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-semibold rounded-full" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Most Popular</div>}
+      <div className="font-bold text-lg">{title}</div>
+      {subtitle && <div className="text-xs text-gray-500">{subtitle}</div>}
+      <div className="text-3xl font-bold my-3">
+        {price || ''}<span className="text-base font-normal text-gray-500">{interval || ''}</span>
       </div>
+      <button
+        className="w-full px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+        onClick={onSelect}
+        disabled={isCurrent}
+      >
+        {isCurrent ? 'Current Plan' : 'Select Plan'}
+      </button>
     </div>
   )
 }
-
 
 

@@ -181,7 +181,7 @@ export const DEFAULT_WIDGETS = [
     id: 'glossary',
     type: WIDGET_TYPES.GLOSSARY,
     title: 'Research Glossary',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.MEDIUM,
     position: { x: 0, y: 3 },
     enabled: true,
     settings: {
@@ -405,16 +405,16 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.1'; // UPDATED LAYOUT: Research Glossary and Feedback widgets same size (both 1x1 SMALL)
+    const currentVersion = '3.2'; // UPDATED LAYOUT: Research Glossary widget size changed to MEDIUM to match Supplements card
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
     if (layoutVersion !== currentVersion) {
-      console.log('🔄 Dashboard layout version mismatch - updating Research Glossary and Feedback widgets to same size');
+      console.log('🔄 Dashboard layout version mismatch - updating Research Glossary widget size to MEDIUM');
       console.log('🗑️ Clearing dashboard layout from localStorage');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
-      console.log('✅ Returning DEFAULT_WIDGETS with updated layout: Research Glossary and Feedback both SMALL (1x1)');
+      console.log('✅ Returning DEFAULT_WIDGETS with updated layout: Research Glossary now MEDIUM size to match Supplements card');
       return DEFAULT_WIDGETS;
     }
     

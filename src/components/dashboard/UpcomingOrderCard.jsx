@@ -139,7 +139,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
   }
 
   return (
-    <div className={`${hideHeader ? 'p-4' : 'p-8'} rounded-xl content-card w-full h-full flex flex-col items-center transition-opacity overflow-y-auto min-h-0`} style={{ backgroundColor: theme.cardBackground }}>
+    <div className={`${hideHeader ? 'p-4' : 'p-8'} w-full h-full flex flex-col items-center transition-opacity min-h-0`}>
       {!hideHeader && (
         <div className="px-4 py-3 border-b mb-4 flex-shrink-0" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
@@ -234,7 +234,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
         ))}
       </div>
       
-      <div className="mt-6 w-full space-y-2 flex-shrink-0">
+      <div className="mt-6 w-full space-y-2 flex-shrink-0 px-4 pb-4">
         {order.tracking && (
           <button
             className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 w-full flex items-center justify-center gap-2 border"

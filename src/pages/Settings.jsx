@@ -49,7 +49,21 @@ export default function Settings() {
   const { refreshDataAfterClear } = useAppContext()
   const [pwaPrompted, setPWAPrompted] = useState(false)
     const [selectedTheme, setSelectedTheme] = useState(() => {
-        try { return localStorage.getItem('tpprover_theme') || defaultThemeName } catch { return defaultThemeName }
+        try { 
+            const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
+            // Migrate users from beekeeper theme to sage theme
+            if (savedTheme === 'beekeeper') {
+                localStorage.setItem('tpprover_theme', defaultThemeName);
+                return defaultThemeName;
+            }
+            // Ensure the theme exists in the themes object
+            if (themes[savedTheme]) {
+                return savedTheme;
+            }
+            return defaultThemeName;
+        } catch { 
+            return defaultThemeName 
+        }
     })
     const [showTerms, setShowTerms] = useState(false)
     const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false)

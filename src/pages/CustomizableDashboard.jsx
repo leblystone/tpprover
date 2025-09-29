@@ -133,7 +133,7 @@ export default function CustomizableDashboard() {
           new Date(b.openDate) >= now || 
           (new Date(b.closeDate) >= now && new Date(b.openDate) <= now)
         );
-        setUpcomingBuys(upcoming.map(b => ({
+        setScheduledBuys(upcoming.map(b => ({
           id: b.id,
           name: b.item,
           date: b.openDate,

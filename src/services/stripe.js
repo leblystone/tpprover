@@ -1,4 +1,6 @@
 import { stripePromise, STRIPE_CONFIG } from '../config/stripe.js';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
 
 /**
  * Create a Stripe Checkout session for subscription
@@ -9,39 +11,32 @@ import { stripePromise, STRIPE_CONFIG } from '../config/stripe.js';
  */
 export async function createCheckoutSession(priceId, userEmail, userId) {
   try {
-    const stripe = await stripePromise;
-    
-    // In a real app, this would call your backend API
-    // For demo purposes, we'll simulate the checkout flow
-    const response = await fetch('/api/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        priceId,
-        userEmail,
-        userId,
-        successUrl: `${window.location.origin}/account?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/account`,
-      }),
-    });
-
-    if (!response.ok) {
-      // If backend not available, fall back to demo mode
-      console.log('🎭 Backend not available - running in demo mode');
+    const auth = getAuth();
+    if (!auth.currentUser) {
+      console.log('🎭 User not authenticated - running in demo mode');
       return simulateSuccessfulCheckout(priceId);
     }
 
-    const session = await response.json();
+    const functions = getFunctions();
+    const createCheckoutSessionFn = httpsCallable(functions, 'createCheckoutSession');
     
-    // Redirect to Stripe Checkout
-    const result = await stripe.redirectToCheckout({
-      sessionId: session.id,
+    const result = await createCheckoutSessionFn({
+      priceId,
+      userEmail,
+      userId,
+      successUrl: `${window.location.origin}/account?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${window.location.origin}/account`,
     });
 
-    if (result.error) {
-      throw new Error(result.error.message);
+    const stripe = await stripePromise;
+    
+    // Redirect to Stripe Checkout
+    const checkoutResult = await stripe.redirectToCheckout({
+      sessionId: result.data.id,
+    });
+
+    if (checkoutResult.error) {
+      throw new Error(checkoutResult.error.message);
     }
   } catch (error) {
     console.error('Stripe checkout error:', error);
@@ -139,21 +134,55 @@ export async function createPortalSession(customerId) {
 }
 
 /**
+ * Update payment method
+ * @param {string} customerId - Stripe customer ID
+ * @returns {Promise<void>}
+ */
+export async function updatePaymentMethod(customerId) {
+  try {
+    const auth = getAuth();
+    if (!auth.currentUser) {
+      console.log('🎭 User not authenticated - running in demo mode');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: '🎭 Demo: Payment method update would open here', 
+          type: 'info' 
+        }
+      }));
+      return;
+    }
+
+    const functions = getFunctions();
+    const updatePaymentMethodFn = httpsCallable(functions, 'updatePaymentMethod');
+    
+    const result = await updatePaymentMethodFn({
+      customerId,
+      returnUrl: `${window.location.origin}/account`,
+    });
+
+    // Redirect to Stripe Checkout for payment method update
+    window.location.href = result.data.url;
+  } catch (error) {
+    console.error('Update payment method error:', error);
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: { 
+        message: '🎭 Demo: Payment method update would open here', 
+        type: 'info' 
+      }
+    }));
+  }
+}
+
+/**
  * Cancel subscription
  * @param {string} subscriptionId - Stripe subscription ID
  * @returns {Promise<boolean>}
  */
 export async function cancelSubscription(subscriptionId) {
   try {
-    const response = await fetch('/api/cancel-subscription', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ subscriptionId }),
-    });
-
-    if (!response.ok) {
+    const auth = getAuth();
+    if (!auth.currentUser) {
+      console.log('🎭 User not authenticated - running in demo mode');
       // For demo - simulate cancellation
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('stripe:subscription:cancelled', {
@@ -171,8 +200,14 @@ export async function cancelSubscription(subscriptionId) {
       return true;
     }
 
-    const result = await response.json();
-    return result.success;
+    const functions = getFunctions();
+    const cancelSubscriptionFn = httpsCallable(functions, 'cancelSubscription');
+    
+    const result = await cancelSubscriptionFn({
+      subscriptionId,
+    });
+
+    return result.data;
   } catch (error) {
     console.error('Cancel subscription error:', error);
     return false;

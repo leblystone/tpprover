@@ -22,7 +22,17 @@ import './utils/debugUtils'; // Load debug utilities globally
 function App() {
   const [themeName] = useState(() => {
     try {
-      return localStorage.getItem('tpprover_theme') || defaultThemeName;
+      const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
+      // Migrate users from beekeeper theme to sage theme
+      if (savedTheme === 'beekeeper') {
+        localStorage.setItem('tpprover_theme', defaultThemeName);
+        return defaultThemeName;
+      }
+      // Ensure the theme exists in the themes object
+      if (themes[savedTheme]) {
+        return savedTheme;
+      }
+      return defaultThemeName;
     } catch {
       return defaultThemeName;
     }

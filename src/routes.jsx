@@ -26,7 +26,7 @@ const BetaEndedSurvey = lazy(() => import('./pages/BetaEndedSurvey.jsx'))
 const LaunchComingSoon = lazy(() => import('./pages/LaunchComingSoon.jsx'))
 
 // Launch Configuration
-const IS_APP_BLOCKED = true; // Set to false when ready to launch
+const IS_APP_BLOCKED = false; // Set to false when ready to launch
 
 // Component to redirect blocked routes
 const LaunchRedirect = () => <Navigate to="/launch-coming-soon" replace />;

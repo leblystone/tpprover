@@ -34,9 +34,9 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder }) => {
 
   // If there's an order, show with consistent header
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }}>
       {/* Consistent Header */}
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-3 border-b rounded-t-xl" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Incoming Peptides
@@ -46,7 +46,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder }) => {
       </div>
       
       {/* Order Content */}
-      <div className="flex-1">
+      <div className="flex-1 rounded-b-xl overflow-hidden">
         <UpcomingOrderCard 
           theme={theme}
           order={order}

@@ -90,6 +90,40 @@ exports.cancelSubscription = functions.https.onCall(
       }
     });
 
+// Update Payment Method
+exports.updatePaymentMethod = functions.https.onCall(
+    async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "The function must be called while authenticated.",
+        );
+      }
+      try {
+        const {customerId, returnUrl} = data;
+        
+        // Create a Stripe Checkout session for payment method update
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          mode: "setup",
+          customer: customerId,
+          success_url: returnUrl + "?session_id={CHECKOUT_SESSION_ID}",
+          cancel_url: returnUrl,
+          metadata: {
+            userId: context.auth.uid,
+          },
+        });
+        
+        return {url: session.url};
+      } catch (error) {
+        console.error("Update payment method error:", error);
+        throw new functions.https.HttpsError(
+            "internal",
+            "Unable to create payment method update session.",
+        );
+      }
+    });
+
 exports.getStripeSubscriptions = functions.https.onCall(async (data, context) => {
   // Check if the user is an authenticated admin
   if (!context.auth) {

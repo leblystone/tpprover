@@ -98,39 +98,6 @@ export const themes = {
     warningBg: '#F7EBE0',
     infoBg: '#E8EFF2',
   },
-  beekeeper: {
-    name: 'Beekeeper (Dark)',
-    isDark: true,
-    
-    // Core Palette - Warm amber/golden accents like the image
-    primary: '#D4A853',        // Rich golden amber (like honeycomb)
-    primaryDark: '#B8942A',    // Deeper amber
-    primaryLight: '#E6C575',   // Light honey gold
-    secondary: '#3F3F3F',      // Dark gray for secondary elements
-    accent: '#E6C575',         // Light honey accent
-
-    // Text - High contrast on dark background
-    text: '#F5F5F5',           // Off-white for primary text (less harsh than pure white)
-    textLight: '#C0C0C0',      // Lighter gray for better secondary text readability
-    textOnPrimary: '#1A1A1A',  // Dark text on golden backgrounds
-    
-    // Backgrounds - Sophisticated dark grays like the image
-    background: '#2A2A2A',     // Main dark gray background (like hexagon pattern)
-    cardBackground: '#363636', // Slightly lighter for cards
-    
-    // UI Elements
-    border: '#4A4A4A',         // Subtle borders
-    buttonDisabled: '#666666', // Disabled state
-    
-    // Semantic Colors - Adjusted for dark theme
-    success: '#7FB069',        // Green that works on dark
-    warning: '#D4A853',        // Use primary amber for warnings
-    error: '#E57373',          // Soft red for errors
-    info: '#64B5F6',           // Blue for info
-    successBg: '#2D4A2D',      // Dark green backgrounds
-    warningBg: '#4A3D2D',      // Dark amber backgrounds
-    infoBg: '#2D3A4A',         // Dark blue backgrounds
-  },
 };
 
 export const defaultThemeName = 'sage';
