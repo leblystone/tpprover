@@ -35,29 +35,6 @@ export default function LaunchComingSoon() {
             </div>
           </div>
           
-          <div className="pt-4 border-t border-gray-100 space-y-3">
-            <h3 className="font-semibold text-gray-800">What to expect:</h3>
-            <ul className="text-sm text-gray-600 space-y-2 text-left">
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 font-bold">•</span>
-                Enhanced features based on beta feedback
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 font-bold">•</span>
-                Improved performance and reliability  
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 font-bold">•</span>
-                New subscription plans and pricing
-              </li>
-            </ul>
-          </div>
-          
-          <div className="pt-4">
-            <p className="text-xs text-gray-500">
-              Stay tuned for launch announcements!
-            </p>
-          </div>
         </div>
       </div>
     </div>
