@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Admin />,
+    element: <Admin />,
     errorElement: <NotFound />,
   },
   {
