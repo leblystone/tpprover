@@ -473,7 +473,7 @@
                       <div className="flex items-center gap-2">
                         <Crown size={20} style={{ color: '#5C7659' }} />
                         <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
-                          {sub?.status === 'lab_access' ? 'Lab Access' : 'Current Plan'}
+                          {sub?.status === 'lab_access' ? 'Trialing' : 'Current Plan'}
                         </span>
                       </div>
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -481,18 +481,18 @@
                         sub?.status === 'lab_access' ? 'bg-blue-100 text-blue-800' : 
                         'bg-red-100 text-red-800'
                       }`}>
-                        {sub?.status === 'lab_access' ? 'Lab Access' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
+                        {sub?.status === 'lab_access' ? 'Trialing' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
                       </div>
                     </div>
                     
                     {sub?.status === 'lab_access' ? (
                       <>
                         <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
-                          7-Day Lab Access
+                          Free Trial
                         </div>
                         
                         <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
-                          Full access to all research features
+                          Full access to all features
                         </div>
                         
                         {sub.currentPeriodEnd && (
@@ -570,20 +570,9 @@
                         </div>
 
                         {/* Features */}
-                        <ul className="space-y-2 mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            All Pro features
-                          </li>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            Priority support
-                          </li>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            Cancel anytime
-                          </li>
-                        </ul>
+                        <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
+                          <p>All Pro features • Priority support • Cancel anytime</p>
+                        </div>
 
                         {/* Action Button */}
                         <button 
@@ -641,20 +630,9 @@
                         </div>
 
                         {/* Features */}
-                        <ul className="space-y-2 mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            All Pro features
-                          </li>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            Priority support
-                          </li>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            Advanced analytics
-                          </li>
-                        </ul>
+                        <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
+                          <p>All Pro features • Priority support • Advanced analytics</p>
+                        </div>
 
                         {/* Action Button */}
                         <button 
@@ -712,20 +690,9 @@
                         </div>
 
                         {/* Features */}
-                        <ul className="space-y-2 mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            All Pro features forever
-                          </li>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            Priority support
-                          </li>
-                          <li className="flex items-center">
-                            <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
-                            Future updates included
-                          </li>
-                        </ul>
+                        <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
+                          <p>All Pro features forever • Priority support • Future updates included</p>
+                        </div>
 
                         {/* Action Button */}
                         <button 
@@ -1122,6 +1089,7 @@
 const LabAccessProgressBar = ({ theme, startDate, endDate }) => {
     const [progress, setProgress] = React.useState(0);
     const [timeLeft, setTimeLeft] = React.useState('');
+    const [isExpired, setIsExpired] = React.useState(false);
 
     React.useEffect(() => {
         const calculateProgress = () => {
@@ -1136,11 +1104,21 @@ const LabAccessProgressBar = ({ theme, startDate, endDate }) => {
 
             const remaining = end.getTime() - now.getTime();
             if (remaining <= 0) {
-                setTimeLeft('Lab access ended');
+                setTimeLeft('Trial expired');
+                setIsExpired(true);
             } else {
                 const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                setTimeLeft(`${days}d ${hours}h left`);
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                
+                if (days > 0) {
+                    setTimeLeft(`${days} day${days !== 1 ? 's' : ''} left`);
+                } else if (hours > 0) {
+                    setTimeLeft(`${hours} hour${hours !== 1 ? 's' : ''} left`);
+                } else {
+                    setTimeLeft(`${minutes} minute${minutes !== 1 ? 's' : ''} left`);
+                }
+                setIsExpired(false);
             }
         };
 
@@ -1150,21 +1128,47 @@ const LabAccessProgressBar = ({ theme, startDate, endDate }) => {
     }, [startDate, endDate]);
 
     return (
-        <div className="mb-4">
-            <div className="flex justify-between items-center text-sm mb-1">
-                <span className="font-semibold" style={{ color: theme.primaryDark }}>Lab Access Status</span>
-                <span className="text-xs font-medium" style={{ color: theme.textLight }}>{timeLeft}</span>
+        <div className="mb-6 p-4 rounded-lg border-2" style={{ 
+            backgroundColor: isExpired ? '#fef2f2' : '#f0f9ff', 
+            borderColor: isExpired ? '#fecaca' : '#bae6fd' 
+        }}>
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${isExpired ? 'bg-red-500' : 'bg-blue-500'}`}></div>
+                    <span className="font-semibold text-sm" style={{ color: theme.primaryDark }}>
+                        {isExpired ? 'Trial Expired' : 'Trial Status'}
+                    </span>
+                </div>
+                <span className={`text-sm font-bold ${isExpired ? 'text-red-600' : 'text-blue-600'}`}>
+                    {timeLeft}
+                </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                    className="h-2.5 rounded-full"
-                    style={{
-                        width: `${progress}%`,
-                        backgroundColor: theme.primary,
-                        transition: 'width 0.5s ease-in-out'
-                    }}
-                ></div>
-            </div>
+            
+            {!isExpired && (
+                <div className="space-y-2">
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                            className="h-3 rounded-full transition-all duration-500 ease-out"
+                            style={{
+                                width: `${progress}%`,
+                                background: `linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)`,
+                                boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
+                            }}
+                        ></div>
+                    </div>
+                    <div className="text-xs text-center" style={{ color: theme.textLight }}>
+                        {Math.round(progress)}% complete
+                    </div>
+                </div>
+            )}
+            
+            {isExpired && (
+                <div className="text-center">
+                    <p className="text-sm text-red-600 font-medium">
+                        Your trial has ended. Choose a plan to continue.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

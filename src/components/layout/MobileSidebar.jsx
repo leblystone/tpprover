@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import logo from '../../assets/tpp-logo.png'
 
 export default function MobileSidebar({ open, onClose, theme }) {
   const [visible, setVisible] = useState(false)
@@ -39,7 +40,14 @@ export default function MobileSidebar({ open, onClose, theme }) {
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
       <div className="absolute top-0 left-0 h-full w-full bg-white shadow-xl p-4 flex flex-col" style={{ transform: visible ? 'translateX(0%)' : 'translateX(-100%)', transition: 'transform 240ms ease-in-out' }}>
-        <div className="flex items-center justify-start mb-3">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="The Pep Planner Logo" className="h-10 w-10 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            <div>
+              <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
+              <p className="text-xs text-gray-500">Organize your research.</p>
+            </div>
+          </div>
           <button onClick={onClose} className="text-gray-500" aria-label="Close Menu"><Menu className="h-5 w-5" /></button>
         </div>
         <nav className="flex-1 bg-white overflow-y-auto flex flex-col">
