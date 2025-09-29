@@ -150,9 +150,9 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
           </div>
         </div>
       )}
-      <div className="w-full flex flex-col items-center mb-6 flex-shrink-0">
-        <div className="text-xl font-bold mb-0" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
-        <div className="text-base mb-2" style={{ color: theme.textLight }}>
+      <div className="w-full flex flex-col items-center mb-4 flex-shrink-0">
+        <div className="text-lg font-semibold mb-1" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
+        <div className="text-sm mb-3" style={{ color: theme.textLight }}>
           <span style={{ fontWeight: 500, color: theme.text }}>From:</span> {order.vendor}
         </div>
         
@@ -234,11 +234,15 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
         ))}
       </div>
       
-      <div className="mt-8 w-full space-y-2 flex-shrink-0">
+      <div className="mt-6 w-full space-y-2 flex-shrink-0">
         {order.tracking && (
           <button
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 w-full flex items-center justify-center gap-2"
-            style={{ backgroundColor: theme.secondary, color: theme.text }}
+            className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 w-full flex items-center justify-center gap-2 border"
+            style={{ 
+              backgroundColor: theme.cardBackground, 
+              color: theme.text,
+              borderColor: theme.border
+            }}
             onClick={() => {
               // Force refresh tracking data
               if (order.tracking) {
@@ -256,8 +260,12 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
         )}
         
         <button
-          className="px-6 py-3 rounded-lg font-semibold transition-all duration-200 w-full"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 w-full border"
+          style={{ 
+            backgroundColor: theme.cardBackground, 
+            color: theme.text,
+            borderColor: theme.border
+          }}
           onClick={() => navigate('/orders')}
         >
           View Orders
