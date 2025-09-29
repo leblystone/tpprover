@@ -487,7 +487,7 @@ async function compilePeptideResearch(peptideName) {
       classification: 'Neurohypophysial Hormone',
       mechanism: 'Naturally occurring hormone involved in social bonding, reproduction, and childbirth.',
       commonUses: ['Social behavior research', 'Reproductive studies', 'Neurological research'],
-      dosageRanges: 'Medical dosing: 10-40 IU as prescribed. Research protocols vary.',
+      dosageRanges: 'Research dosages typically range from 24-40 IU intranasally for social behavior studies.',
       safetyNotes: 'FDA-approved medication with established safety profile.',
       researchStatus: 'FDA-approved medication; extensive research on social effects.'
     },
@@ -1078,6 +1078,16 @@ async function compilePeptideResearch(peptideName) {
       dosageRanges: 'Medical protocols typically use 5-30ml administered intravenously.',
       safetyNotes: 'Prescription medication in many countries with established clinical safety profile.',
       researchStatus: 'Extensive clinical research with proven neuroprotective and cognitive benefits.'
+    },
+    
+    'CAGRILINTIDE': {
+      aliases: ['CAGRILINTIDE', 'CAGRILINTIDE', 'CAGRILINTIDE'],
+      classification: 'GLP-1 Receptor Agonist',
+      mechanism: 'Long-acting GLP-1 receptor agonist that regulates blood glucose, slows gastric emptying, and promotes satiety through sustained GLP-1 receptor activation.',
+      commonUses: ['Diabetes research', 'Weight management studies', 'Metabolic research', 'Appetite regulation studies'],
+      dosageRanges: 'Research dosages typically range from 0.3-2.4mg weekly, administered subcutaneously.',
+      safetyNotes: 'Research compound with established safety profile. For investigational use only.',
+      researchStatus: 'Extensively studied in clinical trials with promising efficacy data.'
     }
   };
   
