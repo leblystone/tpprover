@@ -404,16 +404,18 @@ export default function Stockpile() {
                                                             </div>
                                                         </div>
                                                     )}
-                                                    <div className="flex items-center gap-2 pl-5">
-                                                        <Hash size={12} />
-                                                        <span>{item.quantity} {Number(item.quantity) === 1 ? 'vial' : 'vials'} {Number(item.quantity) <= 2 && <span className="text-red-500 font-semibold ml-1">Low</span>}</span>
-                                                    </div>
-                                                    {(Number(item.cost) > 0 && Number(item.mg) > 0) && (
+                                                    <>
                                                         <div className="flex items-center gap-2 pl-5">
-                                                            <DollarSign size={12} />
-                                                            <span>${(Number(item.cost) / Number(item.mg)).toFixed(2)} / {item.mgUnit || 'mg'}</span>
+                                                            <Hash size={12} />
+                                                            <span>{item.quantity} {Number(item.quantity) === 1 ? 'vial' : 'vials'} {Number(item.quantity) <= 2 && <span className="text-red-500 font-semibold ml-1">Low</span>}</span>
                                                         </div>
-                                                    )}
+                                                        {(Number(item.cost) > 0 && Number(item.mg) > 0) && (
+                                                            <div className="flex items-center gap-2 pl-5">
+                                                                <DollarSign size={12} />
+                                                                <span>${(Number(item.cost) / Number(item.mg)).toFixed(2)} / {item.mgUnit || 'mg'}</span>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                     {item.notes && (
                                                         <div className="flex items-start gap-2 pl-5 mt-1 text-gray-500">
                                                             <FileText size={12} className="mt-0.5" />
