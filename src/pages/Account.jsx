@@ -442,36 +442,117 @@
                       endDate={sub.currentPeriodEnd} 
                     />
                   )}
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="text-sm" style={{ color: theme.textLight }}>Current Plan</div>
-                      <div className="font-medium">{sub.plan}</div>
-                      <div className="text-sm" style={{ color: theme.textLight }}>
-                        Status: <span className={`font-semibold ${sub.status === 'active' ? 'text-green-600' : sub.status === 'trialing' ? 'text-blue-600' : 'text-red-600'}`}>
-                          {sub.status === 'trialing' ? 'Trial' : sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
-                        </span>
+                  {/* Current Plan Card */}
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '1px solid #A3B18A' }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Crown size={20} style={{ color: '#5C7659' }} />
+                        <span className="font-semibold text-lg" style={{ color: '#344E41' }}>Current Plan</span>
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        sub.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        sub.status === 'trialing' ? 'bg-blue-100 text-blue-800' : 
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {sub.status === 'trialing' ? 'Trial' : sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}
                       </div>
                     </div>
-                    <button 
-                      className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
-                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                      onClick={() => setManageOpen(true)}
-                    >
-                      Manage
-                    </button>
-                  </div>
-                  {sub.status !== 'canceled' && (
-                    <div>
-                      <div className="text-sm" style={{ color: theme.textLight }}>
-                        {sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                    
+                    <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
+                      {sub.plan} - ${sub.price}
+                    </div>
+                    
+                    <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
+                      {sub.interval === 'lifetime' ? 'Lifetime Access' : 
+                       sub.interval === 'year' ? 'Billed Annually' : 'Billed Monthly'}
+                    </div>
+                    
+                    {sub.status !== 'canceled' && (
+                      <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
+                        <div>{sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                        {sub.paymentMethod && (
+                          <div>Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}</div>
+                        )}
                       </div>
-                      {sub.paymentMethod && (
-                        <div className="text-sm" style={{ color: theme.textLight }}>
-                          Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}
-                        </div>
-                      )}
+                    )}
+                  </div>
+
+                  {/* Quick Upgrade Options */}
+                  {sub.interval !== 'lifetime' && (
+                    <div>
+                      <h4 className="font-semibold mb-3" style={{ color: '#344E41' }}>Upgrade Your Plan</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {sub.interval === 'month' && (
+                          <button
+                            className="p-3 rounded-lg border-2 text-left hover:opacity-90 transition-all"
+                            style={{ 
+                              borderColor: '#A3B18A', 
+                              backgroundColor: 'rgba(163, 177, 138, 0.1)' 
+                            }}
+                            onClick={() => {
+                              setConfirmAction('switchPlan');
+                              setConfirmData({
+                                plan: { name: 'Pro Annual', price: 89.99, interval: 'year' },
+                                isSwitching: true,
+                                currentPlan: 'Monthly'
+                              });
+                              setConfirmModalOpen(true);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold" style={{ color: '#344E41' }}>Annual Plan</div>
+                                <div className="text-sm" style={{ color: '#5C7659' }}>$89.99/year</div>
+                                <div className="text-xs" style={{ color: '#6B7280' }}>Save $17.89</div>
+                              </div>
+                              <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#5C7659', color: 'white' }}>
+                                Popular
+                              </span>
+                            </div>
+                          </button>
+                        )}
+                        
+                        <button
+                          className="p-3 rounded-lg border-2 text-left hover:opacity-90 transition-all"
+                          style={{ 
+                            borderColor: '#A3B18A', 
+                            backgroundColor: 'rgba(163, 177, 138, 0.1)' 
+                          }}
+                          onClick={() => {
+                            setConfirmAction('switchPlan');
+                            setConfirmData({
+                              plan: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' },
+                              isSwitching: true,
+                              currentPlan: sub.interval === 'month' ? 'Monthly' : 'Annual'
+                            });
+                            setConfirmModalOpen(true);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Plan</div>
+                              <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 one-time</div>
+                              <div className="text-xs" style={{ color: '#6B7280' }}>Never pay again</div>
+                            </div>
+                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#344E41', color: 'white' }}>
+                              Limited Time
+                            </span>
+                          </div>
+                        </button>
+                      </div>
                     </div>
                   )}
+
+                  {/* Billing Management */}
+                  <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
+                    <button 
+                      className="px-3 py-2 rounded-md text-sm font-medium hover:opacity-90" 
+                      style={{ backgroundColor: theme.border, color: theme.text }} 
+                      onClick={() => setManageOpen(true)}
+                    >
+                      Manage Billing & Payment Methods
+                    </button>
+                  </div>
                 </div>
               ) : (
                 // Regular user without subscription
@@ -531,7 +612,7 @@
         <Modal 
           open={manageOpen} 
           onClose={() => setManageOpen(false)} 
-          title="Manage Subscription" 
+          title="Billing & Payment Management" 
           theme={theme} 
           maxWidth="max-w-2xl" 
           footer={(
@@ -593,37 +674,11 @@
               </div>
             )}
 
-            {/* Pricing Plans */}
-            <div>
-              <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.primaryDark }}>
-                {sub?.status === 'trialing' ? `Your trial ends on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}` : 'Switch your plan'}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <PlanCard
-                  theme={theme}
-                  title="Monthly"
-                  price="$8.99"
-                  current={sub?.interval === 'month'}
-                  onSelect={() => createSubscription({ name: 'Pro Monthly', price: 8.99, interval: 'month' })}
-                />
-                <PlanCard
-                  theme={theme}
-                  title="Annual"
-                  price="$89.99"
-                  current={sub?.interval === 'year'}
-                  onSelect={() => createSubscription({ name: 'Pro Annual', price: 89.99, interval: 'year' })}
-                  popular
-                  subtitle="Save $17.89"
-                />
-                <PlanCard
-                  theme={theme}
-                  title="Lifetime"
-                  price="$249.99"
-                  current={sub?.interval === 'lifetime'}
-                  onSelect={() => createSubscription({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
-                  subtitle="Limited Time"
-                />
-              </div>
+            {/* Plan Change Notice */}
+            <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.1)', border: '1px solid #A3B18A' }}>
+              <p className="text-sm" style={{ color: '#5C7659' }}>
+                💡 <strong>Want to change your plan?</strong> Use the upgrade options on the account page above for quick access.
+              </p>
             </div>
 
             {/* Billing Management Section */}
@@ -875,14 +930,6 @@
                           </p>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  
-                  {confirmData.plan.interval === 'lifetime' && (
-                    <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
-                      <p className="text-xs font-medium" style={{ color: '#344E41' }}>
-                        ⚠️ Limited Time: This lifetime option will be phased out soon!
-                      </p>
                     </div>
                   )}
                 </div>
