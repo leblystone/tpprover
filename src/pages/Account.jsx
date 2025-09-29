@@ -480,15 +480,12 @@
                   {/* Quick Upgrade Options */}
                   {sub.interval !== 'lifetime' && (
                     <div>
-                      <h4 className="font-semibold mb-3" style={{ color: '#344E41' }}>Upgrade Your Plan</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <h4 className="font-semibold mb-4" style={{ color: '#344E41' }}>Upgrade Your Plan</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {sub.interval === 'month' && (
-                          <button
-                            className="p-3 rounded-lg border-2 text-left hover:opacity-90 transition-all"
-                            style={{ 
-                              borderColor: '#A3B18A', 
-                              backgroundColor: 'rgba(163, 177, 138, 0.1)' 
-                            }}
+                          <div 
+                            className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                            style={{ borderColor: '#A3B18A' }}
                             onClick={() => {
                               setConfirmAction('switchPlan');
                               setConfirmData({
@@ -499,25 +496,56 @@
                               setConfirmModalOpen(true);
                             }}
                           >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-semibold" style={{ color: '#344E41' }}>Annual Plan</div>
-                                <div className="text-sm" style={{ color: '#5C7659' }}>$89.99/year</div>
-                                <div className="text-xs" style={{ color: '#6B7280' }}>Save $17.89</div>
+                            {/* Popular Badge */}
+                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                              <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
+                                Most Popular
                               </div>
-                              <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#5C7659', color: 'white' }}>
-                                Popular
+                            </div>
+
+                            {/* Plan Title */}
+                            <div className="text-center mb-4">
+                              <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Annual</h3>
+                              <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$89.99</div>
+                              <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per year</div>
+                            </div>
+
+                            {/* Subtitle Badge */}
+                            <div className="text-center mb-4">
+                              <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                                Save $17.89
                               </span>
                             </div>
-                          </button>
+
+                            {/* Features */}
+                            <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                              <li className="flex items-center">
+                                <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                                All Pro features
+                              </li>
+                              <li className="flex items-center">
+                                <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                                Priority support
+                              </li>
+                              <li className="flex items-center">
+                                <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                                Advanced analytics
+                              </li>
+                            </ul>
+
+                            {/* Action Button */}
+                            <button 
+                              className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                              style={{ backgroundColor: '#3A5A40' }}
+                            >
+                              Upgrade to Annual
+                            </button>
+                          </div>
                         )}
                         
-                        <button
-                          className="p-3 rounded-lg border-2 text-left hover:opacity-90 transition-all"
-                          style={{ 
-                            borderColor: '#A3B18A', 
-                            backgroundColor: 'rgba(163, 177, 138, 0.1)' 
-                          }}
+                        <div 
+                          className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+                          style={{ borderColor: '#A3B18A' }}
                           onClick={() => {
                             setConfirmAction('switchPlan');
                             setConfirmData({
@@ -528,17 +556,58 @@
                             setConfirmModalOpen(true);
                           }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Plan</div>
-                              <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 one-time</div>
-                              <div className="text-xs" style={{ color: '#6B7280' }}>Never pay again</div>
-                            </div>
-                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#344E41', color: 'white' }}>
+                          {/* Limited Time Badge */}
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
                               Limited Time
+                            </div>
+                          </div>
+
+                          {/* Plan Title */}
+                          <div className="text-center mb-4">
+                            <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Lifetime</h3>
+                            <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$249.99</div>
+                            <div className="text-sm mt-1" style={{ color: '#5C7659' }}>one-time payment</div>
+                          </div>
+
+                          {/* Subtitle Badge */}
+                          <div className="text-center mb-4">
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                              Never pay again
                             </span>
                           </div>
-                        </button>
+
+                          {/* Features */}
+                          <ul className="space-y-2 mb-6 text-sm" style={{ color: '#5C7659' }}>
+                            <li className="flex items-center">
+                              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                              All Pro features forever
+                            </li>
+                            <li className="flex items-center">
+                              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                              Priority support
+                            </li>
+                            <li className="flex items-center">
+                              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#5C7659' }}></div>
+                              Future updates included
+                            </li>
+                          </ul>
+
+                          {/* Action Button */}
+                          <button 
+                            className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                            style={{ backgroundColor: '#344E41' }}
+                          >
+                            Go Lifetime
+                          </button>
+
+                          {/* Limited Time Notice */}
+                          <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
+                            <p className="text-xs text-center" style={{ color: '#344E41' }}>
+                              <strong>Forever a Researcher?</strong><br/>Purchase lifetime - only available for a short time
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
