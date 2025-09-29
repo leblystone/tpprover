@@ -1034,10 +1034,10 @@
                         </div>
                         <div className="text-left">
                           <p className="text-xs font-medium mb-1" style={{ color: '#6B7280' }}>
-                            Fair billing
+                            Prorated billing
                           </p>
                           <p className="text-xs leading-relaxed" style={{ color: '#9CA3AF' }}>
-                            We'll credit your unused time and apply it to your new plan.
+                            You'll be charged a prorated amount for the remaining time in your current billing period.
                           </p>
                         </div>
                       </div>
