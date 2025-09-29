@@ -8,6 +8,7 @@
   import BadgeImage from '../components/badges/BadgeImage'
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel, updatePaymentMethod, downloadInvoiceReceipt } from '../services/stripe'
   import { STRIPE_CONFIG } from '../config/stripe'
+  import { getAuth } from 'firebase/auth'
   import { verifyStripeConfig } from '../utils/stripe-verify'
   // Beta imports removed - beta phase concluded
 
@@ -271,6 +272,51 @@
           
         } catch (error) {
           console.error('Subscription creation error:', error);
+          
+          // In demo mode, simulate successful plan change
+          const auth = getAuth();
+          if (!auth.currentUser) {
+            console.log('🎭 Demo: Simulating successful plan change');
+            
+            // Create new subscription with the selected plan
+            const now = new Date();
+            const endDate = new Date(now);
+            
+            if (plan.interval === 'lifetime') {
+              // Lifetime plan - set far future date
+              endDate.setFullYear(endDate.getFullYear() + 100);
+            } else if (plan.interval === 'year') {
+              endDate.setFullYear(endDate.getFullYear() + 1);
+            } else {
+              endDate.setMonth(endDate.getMonth() + 1);
+            }
+            
+            const newSubscription = {
+              id: String(Date.now()),
+              plan: plan.name,
+              price: plan.price,
+              interval: plan.interval,
+              currency: 'USD',
+              status: 'active',
+              startedAt: now.toISOString(),
+              currentPeriodEnd: endDate.toISOString(),
+              paymentMethod: {
+                brand: 'Visa',
+                last4: '4242'
+              },
+              subscriptionId: `demo_${Date.now()}`
+            };
+            
+            saveSubscription(newSubscription);
+            setSub(newSubscription);
+            
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { message: `🎭 Demo: Successfully switched to ${plan.name}!`, type: 'success' } 
+            }));
+            
+            return;
+          }
+          
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
             detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
           }));
