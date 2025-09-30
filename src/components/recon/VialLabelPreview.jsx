@@ -20,26 +20,37 @@ export default function VialLabelPreview({
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Vial Cap - Top flat circle */}
+          {/* Vial Cap - Top flat circle with grey fill */}
           <ellipse 
             cx="70" 
             cy="15" 
             rx="22" 
             ry="6" 
-            fill={theme.primary || '#4a5568'}
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            fill="#9ca3af"
+            stroke="#4b5563"
+            strokeWidth="3.5"
           />
           
-          {/* Cap ring detail */}
+          {/* Cap ring detail - inner circle */}
           <ellipse 
             cx="70" 
-            cy="18" 
-            rx="19" 
+            cy="15" 
+            rx="16" 
             ry="4" 
             fill="none"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="2"
+            stroke="#6b7280"
+            strokeWidth="1.5"
+          />
+          
+          {/* Cap side - cylindrical appearance */}
+          <ellipse 
+            cx="70" 
+            cy="21" 
+            rx="22" 
+            ry="6" 
+            fill="#b0b7c3"
+            stroke="#4b5563"
+            strokeWidth="3.5"
           />
           
           {/* Neck - cylindrical */}
@@ -123,16 +134,15 @@ export default function VialLabelPreview({
             strokeWidth="3"
           />
           
-          {/* Bottom ellipse - to show depth */}
+          {/* Bottom ellipse - grey depth indicator */}
           <ellipse 
             cx="70" 
-            cy="158" 
-            rx="22" 
-            ry="6" 
-            fill="none"
-            stroke={theme.border || '#2d3748'}
+            cy="155" 
+            rx="24" 
+            ry="7" 
+            fill="#d1d5db"
+            stroke="#9ca3af"
             strokeWidth="2"
-            opacity="0.5"
           />
           
           {/* Glass reflection line - left side */}
