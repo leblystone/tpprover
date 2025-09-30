@@ -129,33 +129,71 @@ export default function VialLabelPreview({
             fill="url(#highlight)"
           />
           
-          {/* Cap - Main body (theme colored) - drawn first */}
+          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - taller/more cylindrical */}
+          <rect 
+            x="64" 
+            y="24" 
+            width="72" 
+            height="14" 
+            fill="#c0c0c0"
+            stroke="#9ca3af"
+            strokeWidth="1.5"
+          />
+          
+          {/* Crimp band top ellipse */}
+          <ellipse 
+            cx="100" 
+            cy="24" 
+            rx="36" 
+            ry="6" 
+            fill="#d1d5db"
+            stroke="#9ca3af"
+            strokeWidth="1.5"
+          />
+          
+          {/* Crimp band bottom ellipse */}
+          <ellipse 
+            cx="100" 
+            cy="38" 
+            rx="36" 
+            ry="6" 
+            fill="#b0b7c3"
+            stroke="#9ca3af"
+            strokeWidth="1.5"
+          />
+          
+          {/* Crimp detail lines for texture */}
+          <line x1="64" y1="28" x2="136" y2="28" stroke="#e5e7eb" strokeWidth="0.5" opacity="0.6"/>
+          <line x1="64" y1="31" x2="136" y2="31" stroke="#e5e7eb" strokeWidth="0.5" opacity="0.6"/>
+          <line x1="64" y1="34" x2="136" y2="34" stroke="#e5e7eb" strokeWidth="0.5" opacity="0.6"/>
+          
+          {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) */}
           <ellipse 
             cx="100" 
             cy="18" 
             rx="38" 
-            ry="12" 
+            ry="8" 
             fill="url(#capGradient)"
             stroke={theme.primaryDark || '#1e40af'}
             strokeWidth="2.5"
           />
           
-          {/* Cap top surface - lighter for 3D effect */}
+          {/* Cap top surface - flatter perspective */}
           <ellipse 
             cx="100" 
-            cy="14" 
+            cy="16" 
             rx="38" 
-            ry="10" 
+            ry="7" 
             fill={theme.primary || '#3b82f6'}
-            opacity="0.8"
+            opacity="0.9"
           />
           
           {/* Cap highlight - glossy effect */}
           <ellipse 
             cx="82" 
-            cy="12" 
+            cy="14" 
             rx="22" 
-            ry="5" 
+            ry="4" 
             fill="#ffffff"
             opacity="0.5"
           />
@@ -163,34 +201,12 @@ export default function VialLabelPreview({
           {/* Cap center detail - rubber stopper appearance */}
           <ellipse 
             cx="100" 
-            cy="14" 
+            cy="16" 
             rx="8" 
-            ry="3" 
+            ry="2.5" 
             fill="#374151"
             stroke="#1f2937"
             strokeWidth="1"
-          />
-          
-          {/* Aluminum crimp band - at BOTTOM of cap (overlaying neck) */}
-          <ellipse 
-            cx="100" 
-            cy="28" 
-            rx="36" 
-            ry="6" 
-            fill="#b8bcc4"
-            stroke="#9ca3af"
-            strokeWidth="1.5"
-          />
-          
-          {/* Crimp band detail lines */}
-          <ellipse 
-            cx="100" 
-            cy="27" 
-            rx="36" 
-            ry="4" 
-            fill="none"
-            stroke="#d1d5db"
-            strokeWidth="0.8"
           />
           
           {/* White Label in the middle of vial */}
