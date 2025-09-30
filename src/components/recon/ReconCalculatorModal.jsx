@@ -237,7 +237,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
             
             {deliveryMethod === 'pen' && (
                 <div className="mt-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         {/* Pen Type Selection */}
                         <CustomDropdown
                             label="Pen Type"
