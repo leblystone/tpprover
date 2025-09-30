@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Crown, X } from 'lucide-react';
+import { Crown, X, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { createStripeCheckout } from '../../services/stripe';
 
 export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const [isDismissed, setIsDismissed] = useState(() => {
@@ -12,6 +13,8 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   });
   
   const navigate = useNavigate();
+  const [selectedPlan, setSelectedPlan] = useState('annual'); // Default to annual (most chosen)
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -21,8 +24,24 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     if (onDismiss) onDismiss();
   };
 
-  const handleUpgrade = () => {
-    navigate('/account');
+  const handleSelectPlan = async (planType) => {
+    setIsProcessing(true);
+    
+    try {
+      const plans = {
+        monthly: { name: 'Pro Monthly', price: 8.99, interval: 'month' },
+        annual: { name: 'Pro Annual', price: 89.99, interval: 'year' },
+        lifetime: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' }
+      };
+      
+      const plan = plans[planType];
+      
+      // Create Stripe checkout session
+      await createStripeCheckout(plan);
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      setIsProcessing(false);
+    }
   };
 
   // Don't show if user has active PAID subscription
@@ -81,9 +100,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
           </div>
         </div>
         
-        {isTrial ? (
-          <>
-            <div className="text-3xl font-bold mb-2" style={{ color: '#344E41' }}>
+        <div className="text-3xl font-bold mb-2" style={{ color: '#344E41' }}>
               7-Day Lab Access
             </div>
             
@@ -132,33 +149,101 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
               </div>
             )}
 
-            <button
-              onClick={handleUpgrade}
-              className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: '#5C7659' }}
-            >
-              Continue Your Research
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="text-3xl font-bold mb-2" style={{ color: '#344E41' }}>
-              Start Research
-            </div>
-            
-            <div className="text-sm mb-4" style={{ color: '#5C7659' }}>
-              Choose your research plan
-            </div>
+            {/* Pricing Plans */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm" style={{ color: theme.primaryDark }}>Continue Your Research</h4>
+              
+              {/* Monthly Plan */}
+              <div 
+                onClick={() => !isProcessing && handleSelectPlan('monthly')}
+                className="p-4 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all"
+                style={{ 
+                  borderColor: selectedPlan === 'monthly' ? theme.primary : theme.border,
+                  backgroundColor: theme.cardBackground 
+                }}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <div>
+                    <div className="font-bold" style={{ color: theme.primaryDark }}>Monthly</div>
+                    <div className="text-xs" style={{ color: theme.textLight }}>per month</div>
+                  </div>
+                  <div className="text-2xl font-bold" style={{ color: theme.primaryDark }}>$8.99</div>
+                </div>
+                <button
+                  disabled={isProcessing}
+                  className="w-full py-2 rounded text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  {isProcessing ? 'Processing...' : 'Start Monthly'}
+                </button>
+              </div>
 
-            <button
-              onClick={handleUpgrade}
-              className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: '#5C7659' }}
-            >
-              Start Research
-            </button>
-          </>
-        )}
+              {/* Annual Plan - Most Chosen */}
+              <div 
+                onClick={() => !isProcessing && handleSelectPlan('annual')}
+                className="p-4 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all relative"
+                style={{ 
+                  borderColor: selectedPlan === 'annual' ? theme.primary : theme.border,
+                  backgroundColor: theme.cardBackground 
+                }}
+              >
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primary }}>
+                    Most Chosen
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <div>
+                    <div className="font-bold" style={{ color: theme.primaryDark }}>Annual</div>
+                    <div className="text-xs" style={{ color: theme.textLight }}>per year</div>
+                  </div>
+                  <div className="text-2xl font-bold" style={{ color: theme.primaryDark }}>$89.99</div>
+                </div>
+                <div className="text-xs mb-2 font-medium" style={{ color: theme.success }}>
+                  Save $17.89
+                </div>
+                <button
+                  disabled={isProcessing}
+                  className="w-full py-2 rounded text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  {isProcessing ? 'Processing...' : 'Start Annual'}
+                </button>
+              </div>
+
+              {/* Lifetime Plan - Limited Access */}
+              <div 
+                onClick={() => !isProcessing && handleSelectPlan('lifetime')}
+                className="p-4 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all relative"
+                style={{ 
+                  borderColor: selectedPlan === 'lifetime' ? theme.primary : theme.border,
+                  backgroundColor: theme.cardBackground 
+                }}
+              >
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="px-3 py-1 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primaryDark }}>
+                    Limited Access
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <div>
+                    <div className="font-bold" style={{ color: theme.primaryDark }}>Lifetime</div>
+                    <div className="text-xs" style={{ color: theme.textLight }}>one-time payment</div>
+                  </div>
+                  <div className="text-2xl font-bold" style={{ color: theme.primaryDark }}>$249.99</div>
+                </div>
+                <div className="text-xs mb-2 font-medium" style={{ color: theme.success }}>
+                  Never pay again
+                </div>
+                <button
+                  disabled={isProcessing}
+                  className="w-full py-2 rounded text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
+                >
+                  {isProcessing ? 'Processing...' : 'Join Forever'}
+                </button>
+              </div>
+            </div>
     </div>
   );
 }
