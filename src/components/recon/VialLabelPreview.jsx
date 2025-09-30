@@ -109,12 +109,12 @@ export default function VialLabelPreview({
             strokeWidth="1.5"
           />
           
-          {/* Neck */}
+          {/* Neck - straight, no widening, connects to crimp */}
           <rect 
-            x="70" 
-            y="30" 
-            width="60" 
-            height="20" 
+            x="75" 
+            y="38" 
+            width="50" 
+            height="12" 
             fill="url(#glassBody)"
             stroke="#cbd5e1"
             strokeWidth="1.5"
@@ -122,50 +122,50 @@ export default function VialLabelPreview({
           
           {/* Neck highlight */}
           <rect 
-            x="73" 
-            y="32" 
-            width="10" 
-            height="16" 
+            x="78" 
+            y="40" 
+            width="8" 
+            height="8" 
             fill="url(#highlight)"
           />
           
-          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - taller/more cylindrical */}
+          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - solid aluminum silver */}
           <rect 
             x="64" 
             y="24" 
             width="72" 
             height="14" 
             fill="#c0c0c0"
-            stroke="#9ca3af"
+            stroke="#a8a8a8"
             strokeWidth="1.5"
           />
           
-          {/* Crimp band top ellipse */}
+          {/* Crimp band top ellipse - lighter aluminum */}
           <ellipse 
             cx="100" 
             cy="24" 
             rx="36" 
             ry="6" 
-            fill="#d1d5db"
-            stroke="#9ca3af"
+            fill="#d3d3d3"
+            stroke="#a8a8a8"
             strokeWidth="1.5"
           />
           
-          {/* Crimp band bottom ellipse */}
+          {/* Crimp band bottom ellipse - slightly darker for depth */}
           <ellipse 
             cx="100" 
             cy="38" 
             rx="36" 
             ry="6" 
-            fill="#b0b7c3"
-            stroke="#9ca3af"
+            fill="#b8b8b8"
+            stroke="#a8a8a8"
             strokeWidth="1.5"
           />
           
-          {/* Crimp detail lines for texture */}
-          <line x1="64" y1="28" x2="136" y2="28" stroke="#e5e7eb" strokeWidth="0.5" opacity="0.6"/>
-          <line x1="64" y1="31" x2="136" y2="31" stroke="#e5e7eb" strokeWidth="0.5" opacity="0.6"/>
-          <line x1="64" y1="34" x2="136" y2="34" stroke="#e5e7eb" strokeWidth="0.5" opacity="0.6"/>
+          {/* Crimp detail lines for aluminum texture - solid lines */}
+          <line x1="64" y1="28" x2="136" y2="28" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="31" x2="136" y2="31" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="34" x2="136" y2="34" stroke="#e8e8e8" strokeWidth="0.5"/>
           
           {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) */}
           <ellipse 
@@ -198,14 +198,14 @@ export default function VialLabelPreview({
             opacity="0.5"
           />
           
-          {/* Cap center detail - rubber stopper appearance */}
+          {/* Cap center detail - silver stopper */}
           <ellipse 
             cx="100" 
             cy="16" 
             rx="8" 
             ry="2.5" 
-            fill="#374151"
-            stroke="#1f2937"
+            fill="#c0c0c0"
+            stroke="#9ca3af"
             strokeWidth="1"
           />
           
