@@ -9,11 +9,15 @@ export default function CombinedDosageInput({
     onChange, 
     theme,
     deliveryMethod = 'syringe',
-    placeholder = "250, 0.5, or 2"
+    placeholder = "250, 0.5, or 2",
+    units = null // Optional: override default units
 }) {
-    const units = deliveryMethod === 'nasal' 
-        ? ['mcg', 'mg', 'iu', 'mL', 'sprays'] 
-        : ['mcg', 'mg', 'iu', 'mL'];
+    // Determine units to display
+    const displayUnits = units || (
+        deliveryMethod === 'nasal' 
+            ? ['mcg', 'mg', 'iu', 'mL', 'sprays'] 
+            : ['mcg', 'mg', 'iu', 'mL']
+    );
 
     const handleAmountChange = (newAmount) => {
         onChange({ ...value, amount: newAmount });
@@ -52,7 +56,7 @@ export default function CombinedDosageInput({
                         backgroundColor: theme.cardBackground || '#f9fafb'
                     }}
                 >
-                    {units.map(unit => (
+                    {displayUnits.map(unit => (
                         <button
                             key={unit}
                             type="button"

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import TextInput from '../common/inputs/TextInput'
+import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets } from 'lucide-react'
@@ -261,44 +262,18 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                   </div>
                   
                   <div>
-                    <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose Amount</div>
-                    {p.doseUnit === 'sprays' && (
-                      <div className="text-xs text-blue-600 mb-2 p-2 bg-blue-50 rounded border border-blue-200">
-                        💡 Assumes 100 mcg per spray (typical nasal spray)
-                      </div>
-                    )}
-                    <input 
-                      className="w-full border rounded-lg px-4 py-3 text-base font-medium text-center" 
-                      style={{ 
-                        borderColor: theme?.border || '#d1d5db',
-                        backgroundColor: theme?.cardBackground || 'white',
-                        color: theme?.text || 'black'
+                    <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose</div>
+                    <CombinedDosageInput
+                      value={{ amount: p.dose || '', unit: p.doseUnit || 'mcg' }}
+                      onChange={(newValue) => {
+                        updatePeptide(p.id, 'dose', newValue.amount);
+                        updatePeptide(p.id, 'doseUnit', newValue.unit);
                       }}
-                      value={p.dose || ''} 
-                      onChange={e => updatePeptide(p.id, 'dose', e.target.value)} 
-                      placeholder="250" 
-                      type="number" 
+                      theme={theme}
+                      units={['mcg', 'mg', 'mL', 'sprays']}
+                      placeholder="250"
+                      deliveryMethod={deliveryMethod}
                     />
-                  </div>
-                  
-                  <div className="mt-4">
-                    <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Unit</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {['mcg','mg','mL','sprays'].map(unit => (
-                        <button 
-                          key={unit} 
-                          type="button" 
-                          onClick={() => updatePeptide(p.id, 'doseUnit', unit)}
-                          className={`px-3 py-2 text-sm font-semibold rounded-lg border-2 transition-all text-center ${
-                            p.doseUnit === unit 
-                              ? 'text-white border-transparent shadow-md' 
-                              : 'text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
-                          style={p.doseUnit === unit ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}}>
-                          {unit}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 </div>
                 

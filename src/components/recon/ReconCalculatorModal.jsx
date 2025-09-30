@@ -4,6 +4,7 @@ import { ReconCalculatorPanel } from './ReconCalculatorPanel'
 import { useAppContext } from '../../context/AppContext'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import TextInput from '../common/inputs/TextInput'
+import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
 import { Droplet, Info, Plus, Trash2, FilePlus, Pen, Syringe } from 'lucide-react'
 
 export const penColors = [
@@ -264,47 +265,19 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                     />
                   </div>
                   
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose Amount</div>
-                      {p.doseUnit === 'sprays' && (
-                        <div className="text-xs text-blue-600 mb-2 p-2 bg-blue-50 rounded border border-blue-200">
-                          💡 Assumes 100 mcg per spray (typical nasal spray)
-                        </div>
-                      )}
-                      <input 
-                        className="w-full border rounded-lg px-4 py-3 text-base font-medium text-center" 
-                        style={{ 
-                          borderColor: theme?.border || '#d1d5db',
-                          backgroundColor: theme?.cardBackground || 'white',
-                          color: theme?.text || 'black'
-                        }}
-                        value={p.dose || ''} 
-                        onChange={e => updatePeptide(p.id, 'dose', e.target.value)} 
-                        placeholder="250" 
-                        type="number" 
-                      />
-                    </div>
-                    
-                    <div>
-                      <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Unit</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {['mcg','mg','mL','sprays'].map(unit => (
-                          <button 
-                            key={unit} 
-                            type="button" 
-                            onClick={() => updatePeptide(p.id, 'doseUnit', unit)}
-                            className={`px-3 py-2 text-sm font-semibold rounded-lg border-2 transition-all ${
-                              p.doseUnit === unit 
-                                ? 'text-white border-transparent shadow-md' 
-                                : 'text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                            }`}
-                            style={p.doseUnit === unit ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}}>
-                            {unit}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div>
+                    <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose</div>
+                    <CombinedDosageInput
+                      value={{ amount: p.dose || '', unit: p.doseUnit || 'mcg' }}
+                      onChange={(newValue) => {
+                        updatePeptide(p.id, 'dose', newValue.amount);
+                        updatePeptide(p.id, 'doseUnit', newValue.unit);
+                      }}
+                      theme={theme}
+                      units={['mcg', 'mg', 'mL', 'sprays']}
+                      placeholder="250"
+                      deliveryMethod={deliveryMethod}
+                    />
                   </div>
                 </div>
                 
