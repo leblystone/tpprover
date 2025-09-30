@@ -92,117 +92,94 @@ export default function VialLabelPreview({
           </defs>
           
           {/* Vial Body Shadow */}
-          <rect 
-            x="42" 
-            y="52" 
-            width="100" 
-            height="160" 
-            rx="10" 
-            ry="10"
+          <path 
+            d="M 42 52 L 42 202 Q 42 212 52 212 L 132 212 Q 142 212 142 202 L 142 52 Q 142 42 132 42 L 52 42 Q 42 42 42 52 Z"
             fill="#000000"
             opacity="0.1"
           />
           
-          {/* Vial Body - Main glass */}
-          <rect 
-            x="40" 
-            y="50" 
-            width="100" 
-            height="160" 
-            rx="10" 
-            ry="10"
+          {/* Vial Body - Main glass with rounded shoulders */}
+          <path 
+            d="M 40 50 L 40 200 Q 40 210 50 210 L 130 210 Q 140 210 140 200 L 140 50 Q 140 40 130 40 L 50 40 Q 40 40 40 50 Z"
             fill="url(#glassGradient)"
             stroke="#94a3b8"
             strokeWidth="2"
           />
           
-          {/* Glass highlight */}
-          <rect 
-            x="42" 
-            y="52" 
-            width="20" 
-            height="156" 
-            rx="8" 
-            ry="8"
+          {/* Glass highlight with rounded shoulders */}
+          <path 
+            d="M 42 52 L 42 198 Q 42 206 50 206 L 60 206 Q 68 206 68 198 L 68 52 Q 68 44 60 44 L 50 44 Q 42 44 42 52 Z"
             fill="url(#highlight)"
           />
           
           {/* Vial Neck Shadow */}
-          <rect 
-            x="72" 
-            y="27" 
-            width="40" 
-            height="25" 
+          <ellipse 
+            cx="90" 
+            cy="32" 
+            rx="22" 
+            ry="8" 
             fill="#000000"
             opacity="0.1"
           />
           
-          {/* Vial Neck */}
-          <rect 
-            x="70" 
-            y="25" 
-            width="40" 
-            height="25" 
+          {/* Vial Neck - More rounded */}
+          <ellipse 
+            cx="90" 
+            cy="30" 
+            rx="20" 
+            ry="6" 
             fill="url(#glassGradient)"
             stroke="#94a3b8"
             strokeWidth="2"
           />
           
           {/* Neck highlight */}
-          <rect 
-            x="72" 
-            y="27" 
-            width="8" 
-            height="21" 
+          <ellipse 
+            cx="85" 
+            cy="30" 
+            rx="8" 
+            ry="4" 
             fill="url(#highlight)"
           />
           
           {/* Vial Cap Shadow */}
-          <rect 
-            x="67" 
-            y="12" 
-            width="50" 
-            height="15" 
-            rx="4" 
-            ry="4"
+          <ellipse 
+            cx="92" 
+            cy="17" 
+            rx="25" 
+            ry="8" 
             fill="#000000"
             opacity="0.2"
           />
           
           {/* Silver Band - Aluminum crimp seal */}
-          <rect 
-            x="68" 
-            y="22" 
-            width="44" 
-            height="6" 
-            rx="3" 
-            ry="3"
+          <ellipse 
+            cx="90" 
+            cy="25" 
+            rx="22" 
+            ry="4" 
             fill="#c0c0c0"
             stroke="#a8a8a8"
             strokeWidth="1"
           />
           
           {/* Vial Cap - Theme colored with gradient */}
-          <rect 
-            x="65" 
-            y="10" 
-            width="50" 
-            height="15" 
-            rx="4" 
-            ry="4"
+          <ellipse 
+            cx="90" 
+            cy="15" 
+            rx="25" 
+            ry="8" 
             fill="url(#capGradient)"
             stroke={theme.primaryDark || '#1e40af'}
             strokeWidth="2"
           />
           
           {/* Cap highlight */}
-          <rect 
-            x="67" 
-            y="12" 
-            width="46" 
-            height="6" 
-            rx="2" 
-            ry="2"
+          <ellipse 
+            cx="85" 
+            cy="12" 
+            rx="20" 
+            ry="4" 
             fill="#ffffff"
             opacity="0.3"
           />
