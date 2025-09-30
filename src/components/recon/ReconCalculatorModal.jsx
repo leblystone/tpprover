@@ -5,6 +5,7 @@ import { useAppContext } from '../../context/AppContext'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import TextInput from '../common/inputs/TextInput'
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
+import CustomDropdown from '../common/inputs/CustomDropdown'
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { Droplet, Info, Plus, Trash2, FilePlus, Pen, Syringe, Droplets } from 'lucide-react'
@@ -238,31 +239,25 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                 <div className="mt-3">
                     <div className="grid grid-cols-2 gap-4">
                         {/* Pen Type Selection */}
-                        <div>
-                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Type</label>
-                            <select
-                                value={penType}
-                                onChange={e => setPenType(e.target.value)}
-                                className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.cardBackground,
-                                    color: theme.text,
-                                    focusRingColor: theme.primary
-                                }}
-                            >
-                                <option value="">Select pen type (optional)</option>
-                                <option value="savvio">Savvio</option>
-                                <option value="novo">Novo</option>
-                                <option value="v1">V1</option>
-                                <option value="v2">V2</option>
-                                <option value="v3">V3</option>
-                                <option value="bird-pen">Bird Pen</option>
-                                <option value="luxura">Luxura</option>
-                                <option value="gansulin">Gansulin</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
+                        <CustomDropdown
+                            label="Pen Type"
+                            value={penType}
+                            onChange={setPenType}
+                            options={[
+                                { value: '', label: 'Select pen type (optional)' },
+                                { value: 'savvio', label: 'Savvio' },
+                                { value: 'novo', label: 'Novo' },
+                                { value: 'v1', label: 'V1' },
+                                { value: 'v2', label: 'V2' },
+                                { value: 'v3', label: 'V3' },
+                                { value: 'bird-pen', label: 'Bird Pen' },
+                                { value: 'luxura', label: 'Luxura' },
+                                { value: 'gansulin', label: 'Gansulin' },
+                                { value: 'other', label: 'Other' }
+                            ]}
+                            placeholder="Select pen type (optional)"
+                            theme={theme}
+                        />
 
                         {/* Pen Color Selection */}
                         <ColorSwatchDropdown
