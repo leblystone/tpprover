@@ -244,7 +244,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                             value={penType}
                             onChange={setPenType}
                             options={[
-                                { value: '', label: 'Select pen type (optional)' },
+                                { value: '', label: '(Optional)' },
                                 { value: 'savvio', label: 'Savvio' },
                                 { value: 'novo', label: 'Novo' },
                                 { value: 'v1', label: 'V1' },
@@ -255,7 +255,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                                 { value: 'gansulin', label: 'Gansulin' },
                                 { value: 'other', label: 'Other' }
                             ]}
-                            placeholder="Select pen type (optional)"
+                            placeholder="(Optional)"
                             theme={theme}
                         />
 

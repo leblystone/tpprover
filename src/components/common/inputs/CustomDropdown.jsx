@@ -34,7 +34,7 @@ export default function CustomDropdown({
     }, [isOpen]);
 
     const selectedOption = options.find(opt => opt.value === value);
-    const displayText = selectedOption ? selectedOption.label : placeholder;
+    const displayText = selectedOption ? selectedOption.label : (placeholder || '(Optional)');
 
     return (
         <div ref={dropdownRef} className="relative">
