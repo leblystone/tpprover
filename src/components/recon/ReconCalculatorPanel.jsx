@@ -25,6 +25,7 @@ export const penColors = [
 export function ReconCalculatorPanel({ theme, prefill, onSave }) {
   const [form, setForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] })
   const [deliveryMethod, setDeliveryMethod] = useState('syringe');
+  const [administrationRoute, setAdministrationRoute] = useState('subq'); // SubQ, IM, IV
   const [penColor, setPenColor] = useState('#9ca3af');
   const [cost, setCost] = useState('')
 
@@ -113,7 +114,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         {/* Delivery Method */}
         <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('syringe');
@@ -169,59 +170,86 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     <Droplets size={18} className="sm:size-4" /> Nasal
                 </button>
             </div>
-            {deliveryMethod === 'pen' && (
-                <div className="mt-3 space-y-3">
-                    {/* Pen Type Selection */}
-                    <div>
-                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Type</label>
-                        <select
-                            value={form.penType || ''}
-                            onChange={e => setForm(prev => ({ ...prev, penType: e.target.value }))}
-                            className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
-                            style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
-                                color: theme.text,
-                                focusRingColor: theme.primary
-                            }}
-                        >
-                           <option value="">Select pen type (optional)</option>
-                           <option value="savvio">Savvio</option>
-                           <option value="novo">Novo</option>
-                           <option value="v1">V1</option>
-                           <option value="v2">V2</option>
-                           <option value="v3">V3</option>
-                           <option value="bird-pen">Bird Pen</option>
-                           <option value="luxura">Luxura</option>
-                           <option value="gansulin">Gansulin</option>
-                           <option value="other">Other</option>
-                        </select>
+            
+            {/* Administration Route for Syringe */}
+            {deliveryMethod === 'syringe' && (
+                <div className="mt-3">
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
+                    <div className="flex items-center gap-1 p-1 rounded-md bg-gray-100" style={{ backgroundColor: theme.cardBackground || '#f9fafb' }}>
+                        {['subq', 'im', 'iv'].map(route => (
+                            <button
+                                key={route}
+                                type="button"
+                                onClick={() => setAdministrationRoute(route)}
+                                className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${
+                                    administrationRoute === route 
+                                        ? 'text-white shadow-sm' 
+                                        : 'text-gray-600 hover:bg-gray-200'
+                                }`}
+                                style={administrationRoute === route ? { backgroundColor: theme.primary } : {}}
+                            >
+                                {route.toUpperCase()}
+                            </button>
+                        ))}
                     </div>
+                </div>
+            )}
+            
+            {deliveryMethod === 'pen' && (
+                <div className="mt-3">
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Pen Type Selection */}
+                        <div>
+                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Type</label>
+                            <select
+                                value={form.penType || ''}
+                                onChange={e => setForm(prev => ({ ...prev, penType: e.target.value }))}
+                                className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
+                                style={{
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.cardBackground,
+                                    color: theme.text,
+                                    focusRingColor: theme.primary
+                                }}
+                            >
+                               <option value="">Select pen type (optional)</option>
+                               <option value="savvio">Savvio</option>
+                               <option value="novo">Novo</option>
+                               <option value="v1">V1</option>
+                               <option value="v2">V2</option>
+                               <option value="v3">V3</option>
+                               <option value="bird-pen">Bird Pen</option>
+                               <option value="luxura">Luxura</option>
+                               <option value="gansulin">Gansulin</option>
+                               <option value="other">Other</option>
+                            </select>
+                        </div>
 
-                    {/* Pen Color Selection */}
-                    <div>
-                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Color</label>
-                        <div className="flex gap-2 flex-wrap">
-                            {penColors.map(({ name, hex }) => {
-                                const style = {
-                                    background: getChromeGradient(hex),
-                                    borderColor: hex,
-                                    ringColor: theme.primary,
-                                };
-                                if (hex === '#FFFFFF') {
-                                    style.boxShadow = 'inset 0 0 0 1px #ddd';
-                                }
-                                return (
-                                    <button 
-                                        key={name}
-                                        type="button"
-                                        title={name}
-                                        onClick={() => setPenColor(hex)}
-                                        className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${penColor === hex ? 'ring-2 ring-offset-2' : ''}`}
-                                        style={style}
-                                    />
-                                );
-                            })}
+                        {/* Pen Color Selection */}
+                        <div>
+                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Color</label>
+                            <div className="flex gap-2 flex-wrap">
+                                {penColors.map(({ name, hex }) => {
+                                    const style = {
+                                        background: getChromeGradient(hex),
+                                        borderColor: hex,
+                                        ringColor: theme.primary,
+                                    };
+                                    if (hex === '#FFFFFF') {
+                                        style.boxShadow = 'inset 0 0 0 1px #ddd';
+                                    }
+                                    return (
+                                        <button 
+                                            key={name}
+                                            type="button"
+                                            title={name}
+                                            onClick={() => setPenColor(hex)}
+                                            className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${penColor === hex ? 'ring-2 ring-offset-2' : ''}`}
+                                            style={style}
+                                        />
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -327,7 +355,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             // Convert hex color to name before saving
             const selectedPenColor = penColors.find(p => p.hex === penColor);
             const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
-            onSave?.({ ...form, deliveryMethod, penType: deliveryMethod === 'pen' ? form.penType : undefined, penColor: penColorName, cost });
+            onSave?.({ 
+              ...form, 
+              deliveryMethod, 
+              administrationRoute: deliveryMethod === 'syringe' ? administrationRoute : undefined,
+              penType: deliveryMethod === 'pen' ? form.penType : undefined, 
+              penColor: penColorName, 
+              cost 
+            });
           }}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold hover:opacity-90 transition-all"
           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
