@@ -26,6 +26,7 @@ import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard'
 import BadgesModal from '../components/badges/BadgesModal'
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal'
 import ResearchStatusWidget from '../components/dashboard/ResearchStatusWidget'
+import ConversionWidget from '../components/dashboard/ConversionWidget'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { useBadgeStats } from '../utils/badges'
@@ -681,6 +682,9 @@ export default function Dashboard() {
 
             {/* Research Status Widget - UNREMOVABLE, ALWAYS LAST */}
             <ResearchStatusWidget theme={theme} subscription={subscription} />
+            
+            {/* Conversion Widget - Pricing/Trial prompt widget */}
+            <ConversionWidget theme={theme} subscription={subscription} />
           </div>
         </div>
       </ViewContainer>

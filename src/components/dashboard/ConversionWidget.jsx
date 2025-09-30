@@ -44,15 +44,11 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const isTrial = subscription?.status === 'trialing';
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-40 max-w-md mx-auto">
-      <div 
-        className="p-6 rounded-xl shadow-sm animate-slide-up"
-        style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '2px solid #A3B18A' }}
-      >
+    <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Crown size={20} style={{ color: '#5C7659' }} />
-            <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
+            <Crown size={20} style={{ color: theme.primary }} />
+            <span className="font-semibold text-lg" style={{ color: theme.primaryDark }}>
               {isTrial ? 'Lab Access Trial' : 'Your Research Status'}
             </span>
           </div>
@@ -150,7 +146,6 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
             </button>
           </>
         )}
-      </div>
     </div>
   );
 }
