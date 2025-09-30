@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { getChromeGradient } from '../../utils/recon';
+import { getChromeGradient } from '../../../utils/recon';
 
 /**
  * Color swatch dropdown selector
