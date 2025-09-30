@@ -935,6 +935,7 @@ export default function Dashboard() {
       />
 
       {/* Conversion Widget - Floating bottom widget */}
+      {console.log('Dashboard: About to render ConversionWidget with:', { theme: !!theme, subscription: subscription })}
       <ConversionWidget theme={theme} subscription={subscription} />
     </div>
   )
