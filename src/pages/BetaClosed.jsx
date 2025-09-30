@@ -13,6 +13,20 @@ export default function BetaClosed() {
   const { user } = useAppContext();
   const [theme] = useState(themes[defaultThemeName]);
   const [timeUntilReopen, setTimeUntilReopen] = useState('');
+  const [hasCompletedSurvey, setHasCompletedSurvey] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Check lifetime access status
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (user) {
+        const hasAccess = await hasBetaLifetimeAccess(user);
+        setHasCompletedSurvey(hasAccess);
+      }
+      setChecking(false);
+    };
+    checkAccess();
+  }, [user]);
 
   // Update countdown to reopen
   useEffect(() => {
@@ -41,8 +55,6 @@ export default function BetaClosed() {
     const interval = setInterval(updateCountdown, 60000); // Update every minute
     return () => clearInterval(interval);
   }, []);
-
-  const hasCompletedSurvey = hasBetaLifetimeAccess(user);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: theme.background }}>

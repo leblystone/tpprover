@@ -76,20 +76,7 @@ const GoalsOnlyWidget = ({
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
             Goals
           </h3>
-          <div className="flex items-center gap-2">
-            {!showAddForm && (
-              <ModernTooltip text="Add Goal" position="top">
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
-                  style={{ borderColor: theme.primary, color: theme.primary }}
-                >
-                  <Plus size={12} strokeWidth={3} />
-                </button>
-              </ModernTooltip>
-            )}
-            <Target size={20} style={{ color: theme.primary }} />
-          </div>
+          <Target size={20} style={{ color: theme.primary }} />
         </div>
       </div>
       

@@ -5,6 +5,7 @@ import NotFound from './pages/NotFound.jsx'
 import Rover from './pages/Rover.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 
+const Landing = lazy(() => import('./pages/Landing.jsx'))
 const Home = lazy(() => import('./pages/Home.jsx'))
 const Dashboard = lazy(() => import('./pages/CustomizableDashboard.jsx'))
 const Orders = lazy(() => import('./pages/Orders.jsx'))
@@ -33,6 +34,11 @@ const LaunchRedirect = () => <Navigate to="/launch-coming-soon" replace />;
 
 export const router = createBrowserRouter([
   {
+    path: '/',
+    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Landing />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/login',
     element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Login />,
     errorElement: <NotFound />,
@@ -53,12 +59,12 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
-    path: '/',
+    path: '/app',
     element: IS_APP_BLOCKED ? <LaunchRedirect /> : <ProtectedRoute />,
     errorElement: <NotFound />,
     children: [
       {
-        path: '/',
+        path: '/app',
         element: <App />,
         errorElement: <NotFound />,
         children: [

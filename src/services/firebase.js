@@ -839,3 +839,179 @@ export async function markNotificationAsRead(notificationId) {
     throw error;
   }
 }
+
+// ============================================================================
+// LIFETIME ACCESS MANAGEMENT
+// ============================================================================
+
+/**
+ * Grant lifetime access to a user in Firestore
+ * @param {string} userId - User ID (UID from Firebase Auth)
+ * @param {string} email - User email
+ * @param {string} reason - Reason for granting access
+ * @param {string} grantedBy - Admin who granted access
+ * @returns {Promise<boolean>}
+ */
+export async function grantLifetimeAccessFirestore(userId, email, reason = 'Beta tester', grantedBy = 'system') {
+  try {
+    console.log('🎁 Granting lifetime access to:', email, userId);
+    
+    const lifetimeRef = doc(db, 'lifetimeAccess', userId);
+    await setDoc(lifetimeRef, {
+      userId,
+      email: email.toLowerCase(),
+      hasLifetimeAccess: true,
+      reason,
+      grantedBy,
+      grantedAt: serverTimestamp(),
+      status: 'active',
+      metadata: {
+        isBetaTester: reason.toLowerCase().includes('beta'),
+        isFounder: reason.toLowerCase().includes('founder'),
+        isManualGrant: grantedBy !== 'system'
+      }
+    }, { merge: true });
+    
+    // Also update user document
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, {
+      subscription: {
+        hasLifetimeAccess: true,
+        lifetimeReason: reason,
+        lifetimeGrantedAt: serverTimestamp(),
+        plan: 'lifetime',
+        status: 'active'
+      },
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    
+    console.log('✅ Lifetime access granted successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to grant lifetime access:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if user has lifetime access in Firestore
+ * @param {string} userId - User ID
+ * @returns {Promise<Object|null>}
+ */
+export async function checkLifetimeAccessFirestore(userId) {
+  try {
+    const lifetimeRef = doc(db, 'lifetimeAccess', userId);
+    const lifetimeDoc = await getDoc(lifetimeRef);
+    
+    if (lifetimeDoc.exists() && lifetimeDoc.data().hasLifetimeAccess) {
+      return {
+        hasAccess: true,
+        ...lifetimeDoc.data()
+      };
+    }
+    
+    // Fallback: Check user document subscription field
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists() && userDoc.data().subscription?.hasLifetimeAccess) {
+      return {
+        hasAccess: true,
+        reason: userDoc.data().subscription.lifetimeReason || 'Unknown',
+        grantedAt: userDoc.data().subscription.lifetimeGrantedAt
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Failed to check lifetime access:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all users with lifetime access
+ * @returns {Promise<Array>}
+ */
+export async function getAllLifetimeUsers() {
+  try {
+    const lifetimeRef = collection(db, 'lifetimeAccess');
+    const q = query(lifetimeRef, where('hasLifetimeAccess', '==', true));
+    const snapshot = await getDocs(q);
+    
+    const users = [];
+    snapshot.forEach(doc => {
+      users.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    console.log('📋 Found', users.length, 'lifetime users');
+    return users;
+  } catch (error) {
+    console.error('❌ Failed to get lifetime users:', error);
+    return [];
+  }
+}
+
+/**
+ * Revoke lifetime access
+ * @param {string} userId - User ID
+ * @param {string} revokedBy - Admin who revoked access
+ * @param {string} reason - Reason for revocation
+ * @returns {Promise<boolean>}
+ */
+export async function revokeLifetimeAccess(userId, revokedBy = 'admin', reason = 'Manual revocation') {
+  try {
+    const lifetimeRef = doc(db, 'lifetimeAccess', userId);
+    await updateDoc(lifetimeRef, {
+      hasLifetimeAccess: false,
+      status: 'revoked',
+      revokedAt: serverTimestamp(),
+      revokedBy,
+      revocationReason: reason
+    });
+    
+    // Update user document
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      'subscription.hasLifetimeAccess': false,
+      'subscription.status': 'revoked',
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('🚫 Lifetime access revoked for:', userId);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to revoke lifetime access:', error);
+    throw error;
+  }
+}
+
+/**
+ * Bulk import lifetime users from localStorage data
+ * @param {Array} lifetimeUsers - Array of {email, uid, reason}
+ * @returns {Promise<{success: number, failed: number}>}
+ */
+export async function bulkImportLifetimeUsers(lifetimeUsers) {
+  let success = 0;
+  let failed = 0;
+  
+  for (const user of lifetimeUsers) {
+    try {
+      await grantLifetimeAccessFirestore(
+        user.uid || user.userId,
+        user.email,
+        user.reason || 'Beta tester - migrated from localStorage',
+        'migration-script'
+      );
+      success++;
+    } catch (error) {
+      console.error('Failed to import user:', user.email, error);
+      failed++;
+    }
+  }
+  
+  return { success, failed };
+}

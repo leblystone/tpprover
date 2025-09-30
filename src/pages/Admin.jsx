@@ -3,7 +3,7 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen
+  UserPlus, Briefcase, BookOpen, Star, Award
 } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import {
@@ -19,7 +19,10 @@ import {
   getAnalytics,
   getUserList,
   getFeatureFlags,
-  updateFeatureFlag
+  updateFeatureFlag,
+  getAllLifetimeUsers,
+  grantLifetimeAccessFirestore,
+  revokeLifetimeAccess
 } from '../services/firebase';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -27,6 +30,7 @@ import {
   getFunctions, 
   httpsCallable 
 } from 'firebase/functions';
+import LifetimeMigration from '../components/admin/LifetimeMigration';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -274,13 +278,15 @@ function Admin() {
     trends: [],
     autoResponses: []
   });
+  const [lifetimeUsers, setLifetimeUsers] = useState([]);
   const [loading, setLoading] = useState({
     announcements: false,
     feedback: false,
     emailWhitelist: false,
     submitting: false,
     analytics: false,
-    subscriptions: false
+    subscriptions: false,
+    lifetimeUsers: false
   });
   const [formData, setFormData] = useState({
     title: '',
@@ -315,7 +321,21 @@ function Admin() {
     loadFeatureFlags();
     loadFeedbackAnalysis();
     loadStripeData();
+    loadLifetimeUsers();
   }, []);
+
+  const loadLifetimeUsers = async () => {
+    setLoading(prev => ({ ...prev, lifetimeUsers: true }));
+    try {
+      const users = await getAllLifetimeUsers();
+      setLifetimeUsers(users);
+      console.log('✅ Loaded', users.length, 'lifetime users');
+    } catch (error) {
+      console.error('Error loading lifetime users:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, lifetimeUsers: false }));
+    }
+  };
 
   const loadStripeData = async () => {
     try {
@@ -918,8 +938,16 @@ function Admin() {
               label: 'Users', 
               icon: Users, 
               count: subscriptions.total || 0,
-              desc: 'Beta users',
+              desc: 'User management',
               color: '#10b981' 
+            },
+            { 
+              id: 'lifetime', 
+              label: 'Lifetime Access', 
+              icon: Award, 
+              count: lifetimeUsers.length || 0,
+              desc: 'Beta testers & founders',
+              color: '#f59e0b' 
             },
             { 
               id: 'billing', 
@@ -1021,11 +1049,14 @@ function Admin() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold capitalize" style={{ color: theme.primaryDark }}>
-                {activeTab === 'subscriptions' ? 'Beta Users' : activeTab.replace(/([A-Z])/g, ' $1').trim()}
+                {activeTab === 'subscriptions' ? 'User Management' : 
+                 activeTab === 'lifetime' ? 'Lifetime Access' :
+                 activeTab.replace(/([A-Z])/g, ' $1').trim()}
               </h2>
               <p className="text-sm mt-1" style={{ color: theme.textLight }}>
                 {activeTab === 'analytics' && 'Real-time platform analytics and user insights'}
-                {activeTab === 'subscriptions' && 'Beta user management and registration tracking'}
+                {activeTab === 'subscriptions' && 'User management, subscriptions, and account status'}
+                {activeTab === 'lifetime' && 'Manage beta tester lifetime access and migration from localStorage'}
                 {activeTab === 'billing' && 'Manage Stripe subscriptions, plans, and view revenue'}
                 {activeTab === 'content' && 'Manage research topics and other in-app content'}
                 {activeTab === 'feedback' && 'User feedback management with keyword-based categorization'}
@@ -1045,13 +1076,17 @@ function Admin() {
                   New Announcement
                 </button>
               )}
-              {(activeTab === 'analytics' || activeTab === 'subscriptions') && (
+              {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
                 <button
                   onClick={() => {
-                    loadRealAnalytics();
-                    loadUserData();
+                    if (activeTab === 'lifetime') {
+                      loadLifetimeUsers();
+                    } else {
+                      loadRealAnalytics();
+                      loadUserData();
+                    }
                   }}
-                  disabled={loading.analytics || loading.subscriptions}
+                  disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
                   className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
                 >
@@ -2094,6 +2129,120 @@ function Admin() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'lifetime' && (
+          <div className="space-y-6">
+            {/* Migration Tool */}
+            <LifetimeMigration 
+              theme={theme} 
+              onComplete={(result) => {
+                loadLifetimeUsers();
+                console.log('Migration complete:', result);
+              }} 
+            />
+
+            {/* Lifetime Users List */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
+                  Lifetime Access Users ({lifetimeUsers.length})
+                </h2>
+              </div>
+
+              {loading.lifetimeUsers ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: theme.textLight }}>
+                  <Loader className="animate-spin mx-auto mb-2" size={24} />
+                  <p>Loading lifetime users...</p>
+                </div>
+              ) : lifetimeUsers.length === 0 ? (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '40px', 
+                  backgroundColor: theme.background, 
+                  borderRadius: '8px',
+                  border: `1px dashed ${theme.border}` 
+                }}>
+                  <Award size={48} style={{ color: theme.textLight, margin: '0 auto 16px' }} />
+                  <p style={{ color: theme.textLight, marginBottom: '8px' }}>No lifetime users found in Firestore</p>
+                  <p style={{ color: theme.textLight, fontSize: '14px' }}>Use the migration tool above to import from localStorage</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `2px solid ${theme.border}` }}>
+                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Email</th>
+                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Reason</th>
+                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Granted</th>
+                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Status</th>
+                        <th style={{ padding: '12px', textAlign: 'center', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lifetimeUsers.map((user, idx) => (
+                        <tr key={user.id || idx} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                          <td style={{ padding: '12px', fontSize: '14px', color: theme.text }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Award size={16} style={{ color: theme.warning }} />
+                              {user.email}
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px', fontSize: '14px', color: theme.textLight }}>
+                            {user.reason || 'N/A'}
+                          </td>
+                          <td style={{ padding: '12px', fontSize: '14px', color: theme.textLight }}>
+                            {user.grantedAt?.toDate ? 
+                              formatMMDDYYYY(user.grantedAt.toDate()) : 
+                              user.grantedAt ? new Date(user.grantedAt).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={{ padding: '12px', fontSize: '14px' }}>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: user.status === 'active' ? theme.successBg : '#fee',
+                              color: user.status === 'active' ? theme.success : '#c00'
+                            }}>
+                              {user.status || 'active'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'center' }}>
+                            <button
+                              onClick={async () => {
+                                if (window.confirm(`Revoke lifetime access for ${user.email}?`)) {
+                                  try {
+                                    await revokeLifetimeAccess(user.userId || user.id, 'admin', 'Manual revocation');
+                                    await loadLifetimeUsers();
+                                    alert('Lifetime access revoked');
+                                  } catch (error) {
+                                    console.error('Error revoking access:', error);
+                                    alert('Failed to revoke access');
+                                  }
+                                }
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: theme.error,
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Revoke
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}

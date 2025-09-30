@@ -18,6 +18,8 @@ import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
 import './utils/debugUtils'; // Load debug utilities globally
+import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
+import UpgradeBanner from './components/common/UpgradeBanner';
 
 function App() {
   const [themeName] = useState(() => {
@@ -39,6 +41,7 @@ function App() {
   });
   const theme = themes[themeName]
   const { hasMockData, user } = useAppContext();
+  const { daysRemaining, isTrialExpired, showUpgradePrompt } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -130,6 +133,12 @@ function App() {
       <div className="flex-1 flex flex-col md:ml-24 min-w-0">
         <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
+        {showUpgradePrompt && user && (
+          <UpgradeBanner 
+            daysRemaining={daysRemaining} 
+            isTrialExpired={isTrialExpired}
+          />
+        )}
         <main className="flex-1 overflow-y-auto main-content p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
             <Outlet context={{ theme, installPrompt }} />

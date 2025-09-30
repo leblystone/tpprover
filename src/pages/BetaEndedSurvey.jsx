@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import BetaEndedSurvey from '../components/beta/BetaEndedSurvey';
 import { useAppContext } from '../context/AppContext';
@@ -11,9 +11,35 @@ import { hasBetaLifetimeAccess, isBetaTester, isBetaPeriodEnded } from '../utils
 export default function BetaEndedSurveyPage() {
   const { theme } = useOutletContext();
   const { user } = useAppContext();
+  const [hasLifetimeAccess, setHasLifetimeAccess] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Check lifetime access status
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (user) {
+        const hasAccess = await hasBetaLifetimeAccess(user);
+        setHasLifetimeAccess(hasAccess);
+      }
+      setChecking(false);
+    };
+    checkAccess();
+  }, [user]);
 
   // Check if beta has ended
   const betaEnded = isBetaPeriodEnded();
+
+  // Show loading while checking
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p style={{ color: theme.textLight }}>Checking access status...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show message if beta hasn't ended yet
   if (!betaEnded) {
@@ -45,7 +71,7 @@ export default function BetaEndedSurveyPage() {
   }
 
   // Redirect if user already has lifetime access
-  if (hasBetaLifetimeAccess(user)) {
+  if (hasLifetimeAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md mx-auto text-center">

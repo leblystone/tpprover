@@ -175,11 +175,11 @@ const NotesWidget = ({ widget, theme }) => {
             <div className="space-y-2 flex-shrink-0">
               <button
                 onClick={() => setShowAddForm(true)}
-                className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-colors hover:bg-gray-50 flex items-center justify-center gap-1"
+                style={{ borderColor: theme.border, color: theme.textLight }}
               >
-                <Plus size={16} />
-                Add Note
+                <Plus size={12} />
+                <span className="text-xs">Add Note</span>
               </button>
               
               {userNotes.length > 0 && userNotes.length <= 2 && (

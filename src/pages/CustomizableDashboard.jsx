@@ -537,7 +537,7 @@ export default function CustomizableDashboard() {
             })}
             
             {/* UNMOVEABLE SYSTEM WIDGET - Always shown at the end */}
-            <div className="col-span-full">
+            <div className="col-span-2">
               <ConversionWidget theme={theme} subscription={subscription} />
             </div>
           </div>

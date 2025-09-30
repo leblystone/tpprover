@@ -1,6 +1,7 @@
- import React from 'react'
+import React from 'react'
 import { useNavigate } from 'react-router-dom';
 import { formatMMDDYYYY } from '../../utils/date'
+import { ShoppingCart, Plus } from 'lucide-react'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const navigate = useNavigate();
@@ -10,35 +11,74 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
     navigate('/orders', { state: { activeTab: 'groupbuy' } });
   }
 
+  const handleItemClick = (item) => {
+    // Navigate to the specific scheduled buy details
+    navigate('/orders', { state: { activeTab: 'groupbuy', selectedItem: item.id } });
+  }
+
   return (
-    <div className="p-6 rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }}>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="h3" style={{ color: theme.primaryDark }}>Upcoming Buys</h3>
-        <div className="flex items-center gap-2">
-            <button onClick={handleViewAll} className="px-3 py-1.5 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.primaryDark }}>View All</button>
-            <button onClick={onAdd} className="px-3 py-1.5 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Add</button>
+    <div className="rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Upcoming Buys
+          </h3>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={onAdd} 
+              className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:opacity-80 border-2" 
+              style={{ 
+                borderColor: '#8F9B75', 
+                color: '#8F9B75',
+                backgroundColor: 'transparent'
+              }}
+            >
+              <Plus size={12} strokeWidth={2} />
+            </button>
+            <ShoppingCart size={18} style={{ color: theme.primary }} />
+          </div>
         </div>
       </div>
-      <hr className="mb-4" style={{ borderColor: theme.border }} />
-      {list.length === 0 ? (
-        <p className="text-sm" style={{ color: theme.textLight }}>No planned purchases.</p>
-      ) : (
-        <ul className="space-y-2">
-          {list.map((it) => (
-            <li key={it.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border }}>
-              <div>
-                <div className="font-medium">{it.name}</div>
-                <div className="text-xs" style={{ color: theme.textLight }}>
-                  {it.openDate && it.closeDate ? `${formatMMDDYYYY(it.openDate)} - ${formatMMDDYYYY(it.closeDate)}` : (it.date ? formatMMDDYYYY(it.date) : '')}
-                  {it.vendor ? ` • ${it.vendor}` : ''}
+      
+      <div className="p-4">
+        {list.length === 0 ? (
+          <p className="text-sm" style={{ color: theme.textLight }}>No planned purchases.</p>
+        ) : (
+          <ul className="space-y-2">
+            {list.map((it) => (
+              <li 
+                key={it.id} 
+                onClick={() => handleItemClick(it)}
+                className="flex items-center justify-between p-2 rounded cursor-pointer transition-colors hover:bg-gray-50" 
+              >
+                <div>
+                  <div className="font-medium text-sm">{it.name || it.peptideName}</div>
+                  <div className="text-xs" style={{ color: theme.textLight }}>
+                    {it.vendor && `${it.vendor} • `}
+                    {it.openDate ? formatMMDDYYYY(it.openDate) : (it.date ? formatMMDDYYYY(it.date) : '')}
+                  </div>
                 </div>
-                {it.notes && <div className="text-xs" style={{ color: theme.textLight }}>{it.notes}</div>}
-              </div>
-              <div className="text-xs" style={{ color: theme.textLight }} />
-            </li>
-          ))}
-        </ul>
-      )}
+              </li>
+            ))}
+          </ul>
+        )}
+        
+        {list.length > 0 && (
+          <div className="mt-3 pt-3 border-t flex justify-center" style={{ borderColor: theme.border }}>
+            <button 
+              onClick={handleViewAll} 
+              className="px-2 py-1 rounded text-xs font-medium border transition-colors opacity-70 hover:opacity-100" 
+              style={{ 
+                borderColor: theme.border, 
+                color: theme.textLight,
+                backgroundColor: 'transparent'
+              }}
+            >
+              View All
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

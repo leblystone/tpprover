@@ -132,7 +132,7 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
     }
   };
 
-  const chartHeight = 55; // Chart area
+  const chartHeight = 100; // Increased chart area to fill space
   const chartWidth = 200;
   const labelHeight = 25; // More space for day labels
 
@@ -437,9 +437,9 @@ const MetricsWidget = ({
                 </div>
                 
                 {/* Most Recent Entry Card */}
-                <div className="p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="p-3 rounded border flex-1" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                   {/* Date */}
-                  <div className="flex items-center gap-1 mb-2">
+                  <div className="flex items-center gap-1 mb-3">
                     <Calendar size={10} style={{ color: theme.primary }} />
                     <span className="font-semibold text-xs" style={{ color: theme.text }}>
                       {formatMMDDYYYY(new Date(recentMetrics[0].date))}
@@ -447,64 +447,64 @@ const MetricsWidget = ({
                   </div>
                   
                   {/* Physical Measurements */}
-                  <div className="grid grid-cols-2 gap-1 mb-2">
-                    <div className="text-center p-1 rounded" style={{ backgroundColor: theme.primary + '10' }}>
-                      <Weight size={12} className="mx-auto mb-1" style={{ color: theme.primary }} />
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="text-center p-2 rounded" style={{ backgroundColor: theme.primary + '10' }}>
+                      <Weight size={14} className="mx-auto mb-1" style={{ color: theme.primary }} />
                       <div className="text-xs font-medium" style={{ color: theme.textLight }}>Weight</div>
-                      <div className="font-bold text-xs" style={{ color: theme.text }}>
+                      <div className="font-bold text-sm" style={{ color: theme.text }}>
                         {recentMetrics[0].weight ? `${recentMetrics[0].weight}` : '-'}
                       </div>
                     </div>
-                    <div className="text-center p-1 rounded" style={{ backgroundColor: theme.success + '10' }}>
-                      <Percent size={12} className="mx-auto mb-1" style={{ color: theme.success }} />
+                    <div className="text-center p-2 rounded" style={{ backgroundColor: theme.success + '10' }}>
+                      <Percent size={14} className="mx-auto mb-1" style={{ color: theme.success }} />
                       <div className="text-xs font-medium" style={{ color: theme.textLight }}>Body Fat</div>
-                      <div className="font-bold text-xs" style={{ color: theme.text }}>
+                      <div className="font-bold text-sm" style={{ color: theme.text }}>
                         {recentMetrics[0].bodyfat ? `${recentMetrics[0].bodyfat}%` : '-'}
                       </div>
                     </div>
                   </div>
                   
                   {/* Wellness Metrics */}
-                  <div className="grid grid-cols-4 gap-1">
-                    <div className="text-center">
-                      <Bed size={16} className="mx-auto mb-1" style={{ color: '#4682B4' }} />
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="text-center p-2 rounded" style={{ backgroundColor: '#4682B4' + '10' }}>
+                      <Bed size={18} className="mx-auto mb-1" style={{ color: '#4682B4' }} />
                       <div className="text-xs font-semibold" style={{ color: theme.text }}>
                         {recentMetrics[0].sleep || '-'}
                       </div>
                     </div>
-                    <div className="text-center">
-                      <Zap size={16} className="mx-auto mb-1" style={{ color: '#DAA520' }} />
+                    <div className="text-center p-2 rounded" style={{ backgroundColor: '#DAA520' + '10' }}>
+                      <Zap size={18} className="mx-auto mb-1" style={{ color: '#DAA520' }} />
                       <div className="text-xs font-semibold" style={{ color: theme.text }}>
                         {recentMetrics[0].energy || '-'}
                       </div>
                     </div>
-                    <div className="text-center">
-                      <Smile size={16} className="mx-auto mb-1" style={{ color: '#CD5C5C' }} />
+                    <div className="text-center p-2 rounded" style={{ backgroundColor: '#CD5C5C' + '10' }}>
+                      <Smile size={18} className="mx-auto mb-1" style={{ color: '#CD5C5C' }} />
                       <div className="text-xs font-semibold" style={{ color: theme.text }}>
                         {recentMetrics[0].mood || '-'}
                       </div>
                     </div>
-                    <div className="text-center">
-                      <ShieldAlert size={16} className="mx-auto mb-1" style={{ color: '#708090' }} />
+                    <div className="text-center p-2 rounded" style={{ backgroundColor: '#708090' + '10' }}>
+                      <ShieldAlert size={18} className="mx-auto mb-1" style={{ color: '#708090' }} />
                       <div className="text-xs font-semibold" style={{ color: theme.text }}>
                         {recentMetrics[0].pain || '-'}
                       </div>
                     </div>
                   </div>
                 </div>
+                
+                {/* View All Entries - Right under Latest Entry */}
+                <div className="flex justify-center mt-2">
+                  <button
+                    onClick={() => setShowAllEntries(true)}
+                    className="text-xs px-2 py-1 rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
+                    style={{ color: theme.textLight }}
+                  >
+                    <Eye size={12} />
+                    View All Entries ({metrics.length})
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            {/* View All Entries - Bottom Right */}
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowAllEntries(true)}
-                className="text-xs px-2 py-1 rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
-                style={{ color: theme.textLight }}
-              >
-                <Eye size={12} />
-                View All Entries ({metrics.length})
-              </button>
             </div>
           </div>
         )}

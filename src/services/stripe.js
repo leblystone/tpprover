@@ -102,6 +102,18 @@ function simulateSuccessfulCheckout(priceId) {
  */
 export async function createPortalSession(customerId) {
   try {
+    const auth = getAuth();
+    if (!auth.currentUser) {
+      console.log('🎭 Demo Mode: Opening Stripe Customer Portal...');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
+          type: 'info' 
+        }
+      }));
+      return;
+    }
+
     const response = await fetch('/api/create-portal-session', {
       method: 'POST',
       headers: {
@@ -117,7 +129,7 @@ export async function createPortalSession(customerId) {
       // For demo - just show message
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { 
-          message: '🎭 Demo: Customer portal would open here', 
+          message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
           type: 'info' 
         }
       }));
@@ -130,7 +142,7 @@ export async function createPortalSession(customerId) {
     console.error('Portal session error:', error);
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
-        message: '🎭 Demo: Customer portal would open here', 
+        message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
         type: 'info' 
       }
     }));

@@ -24,17 +24,17 @@ export default function MobileSidebar({ open, onClose, theme }) {
 
   if (!mounted) return null
   const links = [
-    { to: '/dashboard', label: 'Dashboard', icon: Home },
-    { to: '/calendar', label: 'Calendar', icon: Calendar },
-    { to: '/recon', label: 'Reconstitution', icon: Calculator },
-    { to: '/protocols', label: 'Protocols', icon: FlaskConical },
-    { to: '/stockpile', label: 'Stockpile', icon: Boxes },
-    { to: '/orders', label: 'Orders', icon: ShoppingCart },
-    { to: '/vendors', label: 'Vendors', icon: Store },
+    { to: '/app/dashboard', label: 'Dashboard', icon: Home },
+    { to: '/app/calendar', label: 'Calendar', icon: Calendar },
+    { to: '/app/recon', label: 'Reconstitution', icon: Calculator },
+    { to: '/app/protocols', label: 'Protocols', icon: FlaskConical },
+    { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
+    { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
+    { to: '/app/vendors', label: 'Vendors', icon: Store },
   ]
   const bottomLinks = [
-    { to: '/account', label: 'Account', icon: User },
-    { to: '/settings', label: 'Settings', icon: Settings },
+    { to: '/app/account', label: 'Account', icon: User },
+    { to: '/app/settings', label: 'Settings', icon: Settings },
   ]
   const overlay = (
     <div className="fixed inset-0 z-50">
@@ -42,7 +42,7 @@ export default function MobileSidebar({ open, onClose, theme }) {
       <div className="absolute top-0 left-0 h-full w-full bg-white shadow-xl p-4 flex flex-col" style={{ transform: visible ? 'translateX(0%)' : 'translateX(-100%)', transition: 'transform 240ms ease-in-out' }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="The Pep Planner Logo" className="h-10 w-10 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            <img src={logo} alt="The Pep Planner Logo" className="h-14 w-14 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
             <div>
               <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
               <p className="text-xs text-gray-500">Organize your research.</p>

@@ -29,6 +29,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   };
 
   const handleSelectPlan = async (planType) => {
+    console.log('🎯 ConversionWidget: Plan selected:', planType);
     setIsProcessing(true);
     
     try {
@@ -39,16 +40,28 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
         lifetime: STRIPE_CONFIG.prices.lifetime
       };
       
+      console.log('🎯 ConversionWidget: Price IDs:', priceIds);
+      
       const priceId = priceIds[planType];
       
       if (!priceId) {
-        throw new Error('Invalid plan type');
+        console.warn('⚠️ ConversionWidget: No price ID found for plan:', planType);
+        console.log('🎯 ConversionWidget: Running in demo mode - simulating checkout');
+        
+        // Simulate checkout in demo mode
+        setTimeout(() => {
+          alert(`Demo Mode: ${planType.toUpperCase()} plan selected!\n\nIn production, this would redirect to Stripe checkout.`);
+          setIsProcessing(false);
+        }, 1000);
+        return;
       }
+      
+      console.log('🎯 ConversionWidget: Creating checkout for price ID:', priceId);
       
       // Create Stripe checkout session
       await createCheckoutSession(priceId, user?.email, user?.uid);
     } catch (error) {
-      console.error('Error creating checkout:', error);
+      console.error('❌ ConversionWidget: Error creating checkout:', error);
       setIsProcessing(false);
     }
   };
@@ -121,16 +134,16 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const isTrial = subscription?.status === 'trialing';
 
   return (
-    <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center justify-between mb-4">
+    <div className="rounded border-2 p-3 content-card shadow-lg" style={{ borderColor: '#5C7659', backgroundColor: '#f8f9fa' }}>
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Crown size={20} style={{ color: theme.primary }} />
-                <span className="font-semibold text-lg" style={{ color: theme.primaryDark }}>
+                <Crown size={18} style={{ color: theme.primary }} />
+                <span className="font-semibold text-base" style={{ color: theme.primaryDark }}>
                   7-Day Researcher Access
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                <div className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#e6f7f0', color: '#2d7d5a', border: '1px solid #a8d5c1' }}>
                   Trialing
                 </div>
                 <button 
@@ -144,37 +157,37 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
             </div>
             
             {/* Real-time Countdown */}
-            <div className="text-center mb-4 p-4 rounded-lg" style={{ backgroundColor: '#f0f9ff', border: '2px solid #bae6fd' }}>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Clock size={16} style={{ color: '#3b82f6' }} />
-                <span className="font-semibold text-sm" style={{ color: '#344E41' }}>
+            <div className="text-center mb-3 p-3 rounded-lg" style={{ backgroundColor: '#e6f7f0', border: '2px solid #a8d5c1' }}>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Clock size={14} style={{ color: '#344E41' }} />
+                <span className="font-semibold text-xs" style={{ color: '#344E41' }}>
                   Time Remaining
                 </span>
               </div>
               
               {timeLeft.days > 0 || timeLeft.hours > 0 || timeLeft.minutes > 0 || timeLeft.seconds > 0 ? (
-                <div className="flex justify-center gap-3 text-lg font-bold" style={{ color: '#1d4ed8' }}>
+                <div className="flex justify-center gap-3 text-lg font-bold" style={{ color: '#2d7d5a' }}>
                   {timeLeft.days > 0 && (
                     <div className="flex flex-col items-center">
                       <span>{timeLeft.days}</span>
-                      <span className="text-xs font-normal" style={{ color: '#6b7280' }}>days</span>
+                      <span className="text-xs font-normal" style={{ color: '#6B7280' }}>days</span>
                     </div>
                   )}
                   <div className="flex flex-col items-center">
                     <span>{timeLeft.hours.toString().padStart(2, '0')}</span>
-                    <span className="text-xs font-normal" style={{ color: '#6b7280' }}>hrs</span>
+                    <span className="text-xs font-normal" style={{ color: '#6B7280' }}>hrs</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>
-                    <span className="text-xs font-normal" style={{ color: '#6b7280' }}>min</span>
+                    <span className="text-xs font-normal" style={{ color: '#6B7280' }}>min</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
-                    <span className="text-xs font-normal" style={{ color: '#6b7280' }}>sec</span>
+                    <span className="text-xs font-normal" style={{ color: '#6B7280' }}>sec</span>
                   </div>
                 </div>
               ) : (
-                <div className="text-lg font-bold" style={{ color: '#dc2626' }}>
+                <div className="text-lg font-bold" style={{ color: '#344E41' }}>
                   Trial Expired
                 </div>
               )}
@@ -182,50 +195,46 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
             
 
             {/* Pricing Plans */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-sm" style={{ color: theme.primaryDark }}>Continue Your Research</h4>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-xs" style={{ color: theme.primaryDark }}>Continue Your Research</h4>
               
-              {/* Annual Plan - Most Chosen (Full Width) */}
-              <button
-                onClick={() => !isProcessing && handleSelectPlan('annual')}
-                disabled={isProcessing}
-                className="w-full p-4 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-left relative disabled:opacity-50"
-                style={{ 
-                  borderColor: theme.primary,
-                  backgroundColor: theme.cardBackground 
-                }}
-              >
-                <div className="absolute -top-2 right-2">
-                  <div className="px-2 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primary }}>
-                    Most Chosen
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="font-bold text-base" style={{ color: theme.primaryDark }}>Annual</div>
-                    <div className="text-sm" style={{ color: theme.success }}>Best value • Save 17%</div>
-                  </div>
-                  <div className="text-base font-semibold" style={{ color: theme.primary }}>
-                    {isProcessing ? 'Processing...' : 'Select →'}
-                  </div>
-                </div>
-              </button>
-
-              {/* Monthly & Lifetime Plans (Two Columns) */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* All Plans in 3 Columns */}
+              <div className="grid grid-cols-3 gap-2">
                 {/* Monthly Plan */}
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('monthly')}
                   disabled={isProcessing}
-                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-left disabled:opacity-50"
+                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-center disabled:opacity-50"
                   style={{ 
                     borderColor: theme.border,
                     backgroundColor: theme.cardBackground 
                   }}
                 >
-                  <div className="flex flex-col items-center text-center">
-                    <div className="font-bold text-sm" style={{ color: theme.primaryDark }}>Monthly</div>
-                    <div className="text-xs mt-1" style={{ color: theme.textLight }}>Flexible</div>
+                  <div className="font-bold text-sm" style={{ color: theme.primaryDark }}>MONTHLY</div>
+                  <div className="text-xs mt-1" style={{ color: theme.textLight }}>Flexible</div>
+                  <div className="text-xs font-semibold mt-2" style={{ color: theme.primary }}>
+                    {isProcessing ? '...' : 'Select →'}
+                  </div>
+                </button>
+
+                {/* Annual Plan - Most Chosen */}
+                <button
+                  onClick={() => !isProcessing && handleSelectPlan('annual')}
+                  disabled={isProcessing}
+                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
+                  style={{ 
+                    borderColor: theme.primary,
+                    backgroundColor: theme.cardBackground 
+                  }}
+                >
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primary, fontSize: '10px' }}>
+                      Popular
+                    </div>
+                  </div>
+                  <div className="pt-4">
+                    <div className="font-bold text-sm" style={{ color: theme.primaryDark }}>ANNUAL</div>
+                    <div className="text-xs mt-1" style={{ color: theme.success }}>Best value</div>
                     <div className="text-xs font-semibold mt-2" style={{ color: theme.primary }}>
                       {isProcessing ? '...' : 'Select →'}
                     </div>
@@ -236,19 +245,19 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('lifetime')}
                   disabled={isProcessing}
-                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-left relative disabled:opacity-50"
+                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
                   style={{ 
                     borderColor: theme.border,
                     backgroundColor: theme.cardBackground 
                   }}
                 >
-                  <div className="absolute -top-1 -right-1">
-                    <div className="px-1.5 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primaryDark }}>
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primaryDark, fontSize: '10px' }}>
                       Limited
                     </div>
                   </div>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="font-bold text-sm" style={{ color: theme.primaryDark }}>Lifetime</div>
+                  <div className="pt-4">
+                    <div className="font-bold text-sm" style={{ color: theme.primaryDark }}>LIFETIME</div>
                     <div className="text-xs mt-1" style={{ color: theme.textLight }}>One-time</div>
                     <div className="text-xs font-semibold mt-2" style={{ color: theme.primary }}>
                       {isProcessing ? '...' : 'Select →'}
