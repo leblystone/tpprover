@@ -300,7 +300,19 @@
         }));
 
         // Check if current subscription is demo/trial (no real Stripe subscription ID)
-        const isDemo = !sub?.subscriptionId || sub?.subscriptionId?.startsWith('demo_') || sub?.subscriptionId === 'trial_demo' || sub?.status === 'trialing';
+        const isDemo = !sub?.subscriptionId || 
+                       sub?.subscriptionId?.startsWith('demo_') || 
+                       sub?.subscriptionId?.startsWith('sub_demo_') || 
+                       sub?.subscriptionId === 'trial_demo' || 
+                       sub?.status === 'trialing';
+        
+        console.log('🔍 Demo Detection:', { 
+          subscriptionId: sub?.subscriptionId, 
+          status: sub?.status, 
+          isDemo,
+          hasSubscriptionId: !!sub?.subscriptionId,
+          startsWithDemo: sub?.subscriptionId?.startsWith('demo_')
+        });
         
         if (isDemo) {
           console.log('🎭 Demo/Trial: Simulating successful plan change');
@@ -478,13 +490,105 @@
               {sub ? (
                 // Regular user with subscription
                 <div className="space-y-4">
-                  {sub.status === 'trialing' && (
-                    <TrialProgressBar 
-                      theme={theme} 
-                      startDate={sub.startedAt} 
-                      endDate={sub.currentPeriodEnd} 
-                    />
-                  )}
+                  {/* Current Plan / Trial Card with Integrated Countdown */}
+                  <div className="p-6 rounded-xl shadow-sm" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '2px solid #A3B18A' }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Crown size={20} style={{ color: '#5C7659' }} />
+                        <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
+                          {sub?.status === 'trialing' ? 'Free Trial' : 'Current Plan'}
+                        </span>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        sub?.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        sub?.status === 'trialing' ? 'bg-blue-100 text-blue-800' : 
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {sub?.status === 'trialing' ? 'Trial Active' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
+                      </div>
+                    </div>
+                    
+                    {sub?.status === 'trialing' ? (
+                      <>
+                        <div className="text-3xl font-bold mb-2" style={{ color: '#344E41' }}>
+                          7-Day Free Trial
+                        </div>
+                        
+                        <div className="text-sm mb-4" style={{ color: '#5C7659' }}>
+                          Full access to all features
+                        </div>
+                        
+                        {/* Trial Countdown Progress Bar */}
+                        {sub.currentPeriodEnd && (
+                          <div className="p-4 rounded-lg" style={{ backgroundColor: '#f0f9ff', border: '2px solid #bae6fd' }}>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <span className="font-semibold text-sm" style={{ color: '#344E41' }}>
+                                  Trial Status
+                                </span>
+                              </div>
+                              <span className="text-sm font-bold text-blue-600">
+                                {(() => {
+                                  const now = new Date();
+                                  const end = new Date(sub.currentPeriodEnd);
+                                  const start = new Date(sub.startedAt);
+                                  const diffTime = end - now;
+                                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                  return diffDays > 0 ? `${diffDays} day${diffDays !== 1 ? 's' : ''} left` : 'Trial expired';
+                                })()}
+                              </span>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="w-full bg-gray-200 rounded-full h-3">
+                                <div
+                                  className="h-3 rounded-full transition-all duration-500 ease-out"
+                                  style={{
+                                    width: `${(() => {
+                                      const start = new Date(sub.startedAt);
+                                      const end = new Date(sub.currentPeriodEnd);
+                                      const now = new Date();
+                                      const totalDuration = end.getTime() - start.getTime();
+                                      const elapsedTime = now.getTime() - start.getTime();
+                                      return Math.max(0, 100 - (elapsedTime / totalDuration * 100));
+                                    })()}%`,
+                                    background: 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)',
+                                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs" style={{ color: '#6B7280' }}>
+                                <span>Started: {new Date(sub.startedAt).toLocaleDateString()}</span>
+                                <span>Ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-3xl font-bold mb-2" style={{ color: '#344E41' }}>
+                          {sub.plan} - ${sub.price}
+                        </div>
+                        
+                        <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
+                          {sub.interval === 'lifetime' ? 'Lifetime Access' : 
+                           sub.interval === 'year' ? 'Billed Annually' : 'Billed Monthly'}
+                        </div>
+                        
+                        {sub.status !== 'canceled' && (
+                          <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
+                            <div>{sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                            {sub.paymentMethod && (
+                              <div>Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}</div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
                   {/* Founder's Pricing Alert */}
                   <div className="rounded-xl p-6 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
                     <div className="flex items-center justify-center gap-3 mb-3">
@@ -508,72 +612,6 @@
                       <span className="font-medium">Limited time founder benefits</span>
                       <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5C7659' }}></span>
                     </div>
-                  </div>
-
-                  {/* Current Plan / Trial Card */}
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '1px solid #A3B18A' }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Crown size={20} style={{ color: '#5C7659' }} />
-                        <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
-                          {sub?.status === 'trialing' ? 'Free Trial' : 'Current Plan'}
-                        </span>
-                      </div>
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        sub?.status === 'active' ? 'bg-green-100 text-green-800' : 
-                        sub?.status === 'trialing' ? 'bg-blue-100 text-blue-800' : 
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {sub?.status === 'trialing' ? 'Trial Active' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
-                      </div>
-                    </div>
-                    
-                    {sub?.status === 'trialing' ? (
-                      <>
-                        <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
-                          Free Trial
-                        </div>
-                        
-                        <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
-                          Full access to all features
-                        </div>
-                        
-                        {sub.currentPeriodEnd && (
-                          <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
-                            <div>Trial ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
-                            <div className="text-xs font-semibold" style={{ color: '#3B82F6' }}>
-                              {(() => {
-                                const now = new Date();
-                                const end = new Date(sub.currentPeriodEnd);
-                                const diffTime = end - now;
-                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                return diffDays > 0 ? `${diffDays} day${diffDays !== 1 ? 's' : ''} remaining` : 'Trial expired';
-                              })()}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
-                          {sub.plan} - ${sub.price}
-                        </div>
-                        
-                        <div className="text-sm mb-3" style={{ color: '#5C7659' }}>
-                          {sub.interval === 'lifetime' ? 'Lifetime Access' : 
-                           sub.interval === 'year' ? 'Billed Annually' : 'Billed Monthly'}
-                        </div>
-                        
-                        {sub.status !== 'canceled' && (
-                          <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
-                            <div>{sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
-                            {sub.paymentMethod && (
-                              <div>Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}</div>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
                   </div>
 
                   {/* Plan Selection Options */}
