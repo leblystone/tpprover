@@ -33,6 +33,8 @@ import BodyMetricsModal from '../components/research/BodyMetricsModal';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
 import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
+import ConversionWidget from '../components/dashboard/ConversionWidget';
+import ResearchStatusWidget from '../components/dashboard/ResearchStatusWidget';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -533,6 +535,12 @@ export default function CustomizableDashboard() {
                 </div>
               );
             })}
+            
+            {/* UNMOVEABLE SYSTEM WIDGETS - Always shown at the end */}
+            <div className="col-span-full space-y-4">
+              <ResearchStatusWidget theme={theme} subscription={subscription} />
+              <ConversionWidget theme={theme} subscription={subscription} />
+            </div>
           </div>
         </div>
 
