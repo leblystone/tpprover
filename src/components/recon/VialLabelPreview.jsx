@@ -80,9 +80,9 @@ export default function VialLabelPreview({
               <stop offset="100%" stopColor="#f1f5f9" stopOpacity="0.9"/>
             </linearGradient>
             <linearGradient id="capGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6"/>
-              <stop offset="50%" stopColor="#1d4ed8"/>
-              <stop offset="100%" stopColor="#1e40af"/>
+              <stop offset="0%" stopColor={theme.primary || '#3b82f6'}/>
+              <stop offset="50%" stopColor={theme.primaryDark || '#1d4ed8'}/>
+              <stop offset="100%" stopColor={theme.primaryDark || '#1e40af'}/>
             </linearGradient>
             <linearGradient id="highlight" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6"/>
@@ -169,7 +169,20 @@ export default function VialLabelPreview({
             opacity="0.2"
           />
           
-          {/* Vial Cap - Blue with gradient */}
+          {/* Silver Band - Aluminum crimp seal */}
+          <rect 
+            x="68" 
+            y="22" 
+            width="44" 
+            height="6" 
+            rx="3" 
+            ry="3"
+            fill="#c0c0c0"
+            stroke="#a8a8a8"
+            strokeWidth="1"
+          />
+          
+          {/* Vial Cap - Theme colored with gradient */}
           <rect 
             x="65" 
             y="10" 
@@ -178,7 +191,7 @@ export default function VialLabelPreview({
             rx="4" 
             ry="4"
             fill="url(#capGradient)"
-            stroke="#1e40af"
+            stroke={theme.primaryDark || '#1e40af'}
             strokeWidth="2"
           />
           
