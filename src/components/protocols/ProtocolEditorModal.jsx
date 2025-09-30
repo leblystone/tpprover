@@ -64,6 +64,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             initialData.peptides = [{ id: Date.now(), frequency: { type: 'daily', time: ['Morning'] } }];
         }
 
+        // Map blendMode to protocolType for form state
+        if (initialData.blendMode) {
+            initialData.protocolType = initialData.blendMode;
+        }
+
         // If it's a blended protocol, sync the frequency from the first peptide to a shared root-level frequency
         if (initialData.blendMode === 'blended' && initialData.peptides.length > 0) {
             initialData.sharedFrequency = initialData.peptides[0].frequency;
@@ -202,6 +207,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             return s || 'week';
         };
         const finalForm = { ...form };
+
+        // Map protocolType to blendMode for consistency with rest of app
+        finalForm.blendMode = finalForm.protocolType;
 
         // If blended, sync the shared frequency/titration back to all peptides
         if (finalForm.blendMode === 'blended') {
