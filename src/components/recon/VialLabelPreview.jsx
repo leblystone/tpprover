@@ -11,235 +11,222 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Photorealistic Vial SVG */}
+        {/* Photorealistic Vial SVG - Matching Reference */}
         <svg 
-          width="200" 
+          width="180" 
           height="280" 
-          viewBox="0 0 200 280" 
+          viewBox="0 0 180 280" 
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
             {/* Glass gradient for realistic transparency */}
             <linearGradient id="glassBody" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#f8fafc" stopOpacity="0.3"/>
-              <stop offset="15%" stopColor="#ffffff" stopOpacity="0.8"/>
-              <stop offset="50%" stopColor="#f1f5f9" stopOpacity="0.2"/>
+              <stop offset="0%" stopColor="#f1f5f9" stopOpacity="0.4"/>
+              <stop offset="15%" stopColor="#ffffff" stopOpacity="0.85"/>
+              <stop offset="50%" stopColor="#f8fafc" stopOpacity="0.3"/>
               <stop offset="85%" stopColor="#cbd5e1" stopOpacity="0.6"/>
-              <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.4"/>
+              <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.5"/>
             </linearGradient>
             
             {/* Highlight gradient */}
             <linearGradient id="highlight" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9"/>
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.2"/>
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95"/>
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.3"/>
             </linearGradient>
             
-            {/* Shadow gradient */}
-            <radialGradient id="shadow">
-              <stop offset="0%" stopColor="#000000" stopOpacity="0.2"/>
-              <stop offset="100%" stopColor="#000000" stopOpacity="0"/>
-            </radialGradient>
-            
-            {/* Blue cap gradient using theme colors */}
+            {/* Cap gradient using theme colors */}
             <linearGradient id="capGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={theme.primary || '#3b82f6'} stopOpacity="1"/>
-              <stop offset="50%" stopColor={theme.primaryDark || '#2563eb'} stopOpacity="1"/>
-              <stop offset="100%" stopColor={theme.primaryDark || '#1d4ed8'} stopOpacity="1"/>
+              <stop offset="0%" stopColor={theme.primary || '#3b82f6'}/>
+              <stop offset="100%" stopColor={theme.primaryDark || '#1d4ed8'}/>
             </linearGradient>
             
-            {/* Aluminum crimp gradient for realistic metallic look */}
+            {/* Aluminum gradient */}
             <linearGradient id="aluminumGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#a8a8a8"/>
-              <stop offset="20%" stopColor="#d3d3d3"/>
+              <stop offset="30%" stopColor="#d3d3d3"/>
               <stop offset="50%" stopColor="#e8e8e8"/>
-              <stop offset="80%" stopColor="#c0c0c0"/>
+              <stop offset="70%" stopColor="#c8c8c8"/>
               <stop offset="100%" stopColor="#a8a8a8"/>
             </linearGradient>
           </defs>
           
-          {/* Drop shadow at bottom */}
-          <ellipse 
-            cx="100" 
-            cy="268" 
-            rx="45" 
-            ry="8" 
-            fill="url(#shadow)"
-          />
+          {/* Drop shadow */}
+          <ellipse cx="90" cy="270" rx="50" ry="6" fill="#000000" opacity="0.15"/>
           
-          {/* Vial Body - Main glass container */}
+          {/* Vial Body - Main Container */}
           <rect 
-            x="55" 
-            y="70" 
-            width="90" 
-            height="170" 
-            rx="6"
+            x="50" 
+            y="90" 
+            width="80" 
+            height="160" 
+            rx="8"
             fill="url(#glassBody)"
             stroke="#cbd5e1"
-            strokeWidth="1.5"
+            strokeWidth="2"
           />
           
-          {/* Left highlight - bright reflection */}
+          {/* Left bright highlight */}
           <rect 
-            x="60" 
-            y="75" 
-            width="15" 
-            height="160" 
-            rx="4"
+            x="54" 
+            y="95" 
+            width="18" 
+            height="150" 
+            rx="6"
             fill="url(#highlight)"
           />
           
-          {/* Right subtle reflection */}
+          {/* Right subtle highlight */}
           <rect 
-            x="125" 
-            y="80" 
-            width="8" 
-            height="150" 
-            rx="2"
+            x="110" 
+            y="100" 
+            width="10" 
+            height="140" 
+            rx="4"
             fill="#ffffff"
-            opacity="0.3"
+            opacity="0.4"
           />
           
-          {/* Bottom curve of vial - inside the body */}
+          {/* Bottom curve indicator */}
           <ellipse 
-            cx="100" 
-            cy="225" 
-            rx="38" 
+            cx="90" 
+            cy="240" 
+            rx="36" 
             ry="8" 
             fill="#e2e8f0"
-            opacity="0.5"
+            opacity="0.6"
           />
           
-          {/* Shoulder - transition from neck to body */}
-          <path 
-            d="M 70 70 Q 68 65, 68 60 L 68 58 L 132 58 L 132 60 Q 132 65, 130 70"
+          {/* Shoulder - Rounded transition */}
+          <ellipse 
+            cx="90" 
+            cy="90" 
+            rx="40" 
+            ry="20" 
             fill="url(#glassBody)"
             stroke="#cbd5e1"
-            strokeWidth="1.5"
+            strokeWidth="2"
           />
           
-          {/* Neck - perfectly straight cylinder, no curves */}
+          {/* Shoulder highlight */}
+          <ellipse 
+            cx="70" 
+            cy="88" 
+            rx="15" 
+            ry="8" 
+            fill="url(#highlight)"
+          />
+          
+          {/* Neck - Short and straight */}
           <rect 
-            x="75" 
-            y="40" 
-            width="50" 
-            height="18" 
+            x="70" 
+            y="50" 
+            width="40" 
+            height="15" 
             fill="url(#glassBody)"
             stroke="#cbd5e1"
-            strokeWidth="1.5"
+            strokeWidth="2"
           />
           
           {/* Neck highlight */}
           <rect 
-            x="78" 
-            y="42" 
-            width="6" 
-            height="14" 
+            x="72" 
+            y="52" 
+            width="8" 
+            height="11" 
             fill="url(#highlight)"
           />
           
-          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - covering most of neck */}
+          {/* Aluminum Crimp Band - Behind cap */}
           <rect 
-            x="64" 
-            y="44" 
-            width="72" 
-            height="14" 
+            x="60" 
+            y="45" 
+            width="60" 
+            height="18" 
             fill="url(#aluminumGradient)"
-            stroke="#a8a8a8"
+            stroke="#a0a0a0"
             strokeWidth="1.5"
           />
           
-          {/* Crimp band top ellipse - lighter aluminum, straight-on view */}
+          {/* Crimp top */}
           <ellipse 
-            cx="100" 
-            cy="44" 
-            rx="36" 
-            ry="7" 
-            fill="#d3d3d3"
-            stroke="#a8a8a8"
+            cx="90" 
+            cy="45" 
+            rx="30" 
+            ry="6" 
+            fill="#d8d8d8"
+            stroke="#a0a0a0"
             strokeWidth="1.5"
           />
           
-          {/* Crimp band bottom ellipse - slightly darker for depth */}
+          {/* Crimp bottom */}
           <ellipse 
-            cx="100" 
-            cy="58" 
-            rx="36" 
-            ry="7" 
+            cx="90" 
+            cy="63" 
+            rx="30" 
+            ry="6" 
             fill="#b8b8b8"
-            stroke="#a8a8a8"
+            stroke="#a0a0a0"
             strokeWidth="1.5"
           />
           
-          {/* Crimp detail lines for aluminum texture */}
-          <line x1="64" y1="48" x2="136" y2="48" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="64" y1="51" x2="136" y2="51" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="64" y1="54" x2="136" y2="54" stroke="#e8e8e8" strokeWidth="0.5"/>
+          {/* Crimp texture lines */}
+          <line x1="60" y1="50" x2="120" y2="50" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="60" y1="54" x2="120" y2="54" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="60" y1="58" x2="120" y2="58" stroke="#e8e8e8" strokeWidth="0.5"/>
           
-          {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) - straight-on */}
+          {/* Cap - Large Flat Top (Theme colored) */}
           <ellipse 
-            cx="100" 
+            cx="90" 
             cy="38" 
-            rx="38" 
-            ry="7" 
+            rx="40" 
+            ry="16" 
             fill="url(#capGradient)"
-            stroke={theme.primaryDark || '#1e40af'}
+            stroke={theme.primaryDark || '#1d4ed8'}
             strokeWidth="2.5"
           />
           
-          {/* Cap top surface - straight-on, flatter */}
+          {/* Cap top surface */}
           <ellipse 
-            cx="100" 
-            cy="36" 
-            rx="38" 
-            ry="6" 
+            cx="90" 
+            cy="35" 
+            rx="40" 
+            ry="14" 
             fill={theme.primary || '#3b82f6'}
-            opacity="0.9"
           />
           
-          {/* Cap highlight - glossy effect */}
+          {/* Cap glossy highlight */}
           <ellipse 
-            cx="85" 
-            cy="34" 
+            cx="75" 
+            cy="32" 
             rx="20" 
-            ry="4" 
+            ry="7" 
             fill="#ffffff"
             opacity="0.5"
           />
           
-          {/* Cap center detail - darker silver stopper */}
+          {/* Center stopper - dark silver */}
           <ellipse 
-            cx="100" 
-            cy="36" 
-            rx="7" 
-            ry="2.5" 
-            fill="#909090"
-            stroke="#6b7280"
+            cx="90" 
+            cy="35" 
+            rx="6" 
+            ry="3" 
+            fill="#808080"
+            stroke="#606060"
             strokeWidth="1"
           />
           
-          {/* White Label in the middle of vial */}
+          {/* White Label in middle of vial */}
           <rect 
-            x="58" 
-            y="130" 
-            width="84" 
+            x="54" 
+            y="140" 
+            width="72" 
             height="60" 
-            rx="3"
+            rx="4"
             fill="#ffffff"
-            stroke="#e5e7eb"
-            strokeWidth="1.5"
-            opacity="0.95"
-          />
-          
-          {/* Label shadow for depth */}
-          <rect 
-            x="59" 
-            y="131" 
-            width="84" 
-            height="60" 
-            rx="3"
-            fill="#000000"
-            opacity="0.03"
+            fillOpacity="0.95"
+            stroke="#d1d5db"
+            strokeWidth="1"
           />
         </svg>
       </div>
