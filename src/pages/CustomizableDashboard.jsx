@@ -51,7 +51,8 @@ export default function CustomizableDashboard() {
     supplements, 
     addSupplement, 
     updateSupplement, 
-    deleteSupplement 
+    deleteSupplement,
+    subscription
   } = useAppContext();
 
   // Dashboard customization state
