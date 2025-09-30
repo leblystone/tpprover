@@ -240,7 +240,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Pen Type Selection */}
                         <CustomDropdown
-                            label="Pen Type (Optional)"
+                            label="Pen Type"
                             value={penType}
                             onChange={setPenType}
                             options={[
@@ -261,7 +261,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
 
                         {/* Pen Color Selection */}
                         <ColorSwatchDropdown
-                            label="Pen Color (Optional)"
+                            label="Pen Color"
                             value={penColor}
                             onChange={(hexValue) => {
                                 // Find the color name from hex and save the name

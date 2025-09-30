@@ -202,7 +202,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Pen Type Selection */}
                         <CustomDropdown
-                            label="Pen Type (Optional)"
+                            label="Pen Type"
                             value={form.penType || ''}
                             onChange={(value) => setForm(prev => ({ ...prev, penType: value }))}
                             options={[
@@ -223,7 +223,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
                         {/* Pen Color Selection */}
                         <ColorSwatchDropdown
-                            label="Pen Color (Optional)"
+                            label="Pen Color"
                             value={penColor}
                             onChange={(hex) => setPenColor(hex)}
                             colors={penColors}
