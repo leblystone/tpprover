@@ -112,18 +112,18 @@ export default function VialLabelPreview({
           
           {/* Shoulder - transition from neck to body */}
           <path 
-            d="M 65 70 Q 60 62, 60 55 L 60 50 L 140 50 L 140 55 Q 140 62, 135 70"
+            d="M 70 70 Q 67 65, 67 60 L 67 54 L 133 54 L 133 60 Q 133 65, 130 70"
             fill="url(#glassBody)"
             stroke="#cbd5e1"
             strokeWidth="1.5"
           />
           
-          {/* Neck - straight, no widening, connects to crimp */}
+          {/* Neck - straight cylinder, same width as crimp */}
           <rect 
-            x="75" 
-            y="38" 
-            width="50" 
-            height="12" 
+            x="68" 
+            y="46" 
+            width="64" 
+            height="8" 
             fill="url(#glassBody)"
             stroke="#cbd5e1"
             strokeWidth="1.5"
@@ -131,10 +131,10 @@ export default function VialLabelPreview({
           
           {/* Neck highlight */}
           <rect 
-            x="78" 
-            y="40" 
+            x="71" 
+            y="47" 
             width="8" 
-            height="8" 
+            height="6" 
             fill="url(#highlight)"
           />
           
