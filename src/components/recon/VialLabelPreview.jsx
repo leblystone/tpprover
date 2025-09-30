@@ -11,220 +11,193 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Photorealistic Vial SVG - Matching Reference */}
+        {/* Simple Clean Vial SVG - Matching Reference */}
         <svg 
-          width="180" 
-          height="280" 
-          viewBox="0 0 180 280" 
+          width="160" 
+          height="220" 
+          viewBox="0 0 160 220" 
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            {/* Glass gradient for realistic transparency */}
+            {/* Glass gradient - light blue tint */}
             <linearGradient id="glassBody" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#f1f5f9" stopOpacity="0.4"/>
-              <stop offset="15%" stopColor="#ffffff" stopOpacity="0.85"/>
-              <stop offset="50%" stopColor="#f8fafc" stopOpacity="0.3"/>
-              <stop offset="85%" stopColor="#cbd5e1" stopOpacity="0.6"/>
-              <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.5"/>
+              <stop offset="0%" stopColor="#dbeafe" stopOpacity="0.6"/>
+              <stop offset="50%" stopColor="#f0f9ff" stopOpacity="0.3"/>
+              <stop offset="100%" stopColor="#bfdbfe" stopOpacity="0.5"/>
             </linearGradient>
             
-            {/* Highlight gradient */}
-            <linearGradient id="highlight" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95"/>
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.3"/>
+            {/* White highlight */}
+            <linearGradient id="whiteHighlight" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9"/>
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.4"/>
             </linearGradient>
             
-            {/* Cap gradient using theme colors */}
-            <linearGradient id="capGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={theme.primary || '#3b82f6'}/>
-              <stop offset="100%" stopColor={theme.primaryDark || '#1d4ed8'}/>
-            </linearGradient>
-            
-            {/* Aluminum gradient */}
-            <linearGradient id="aluminumGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#a8a8a8"/>
-              <stop offset="30%" stopColor="#d3d3d3"/>
-              <stop offset="50%" stopColor="#e8e8e8"/>
-              <stop offset="70%" stopColor="#c8c8c8"/>
-              <stop offset="100%" stopColor="#a8a8a8"/>
+            {/* Theme cap gradient */}
+            <linearGradient id="capGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={theme.primary || '#93c5fd'} stopOpacity="0.7"/>
+              <stop offset="50%" stopColor={theme.primary || '#60a5fa'} stopOpacity="0.8"/>
+              <stop offset="100%" stopColor={theme.primaryDark || '#3b82f6'} stopOpacity="0.6"/>
             </linearGradient>
           </defs>
           
-          {/* Drop shadow */}
-          <ellipse cx="90" cy="270" rx="50" ry="6" fill="#000000" opacity="0.15"/>
-          
-          {/* Vial Body - Main Container */}
+          {/* Vial Body - Rounded rectangle */}
           <rect 
-            x="50" 
-            y="90" 
+            x="40" 
+            y="60" 
             width="80" 
-            height="160" 
-            rx="8"
+            height="140" 
+            rx="10"
+            ry="10"
             fill="url(#glassBody)"
-            stroke="#cbd5e1"
+            stroke="#bfdbfe"
             strokeWidth="2"
           />
           
-          {/* Left bright highlight */}
+          {/* Left white highlight panel */}
           <rect 
-            x="54" 
-            y="95" 
-            width="18" 
-            height="150" 
+            x="50" 
+            y="70" 
+            width="25" 
+            height="120" 
             rx="6"
-            fill="url(#highlight)"
+            fill="url(#whiteHighlight)"
           />
           
           {/* Right subtle highlight */}
           <rect 
-            x="110" 
-            y="100" 
-            width="10" 
-            height="140" 
+            x="100" 
+            y="75" 
+            width="12" 
+            height="110" 
             rx="4"
             fill="#ffffff"
             opacity="0.4"
           />
           
-          {/* Bottom curve indicator */}
+          {/* Bottom curve - glass depth */}
           <ellipse 
-            cx="90" 
-            cy="240" 
-            rx="36" 
+            cx="80" 
+            cy="190" 
+            rx="35" 
             ry="8" 
-            fill="#e2e8f0"
-            opacity="0.6"
+            fill="#bfdbfe"
+            opacity="0.5"
           />
           
-          {/* Shoulder - Rounded transition */}
+          {/* Shoulder/Neck transition - rounded top */}
           <ellipse 
-            cx="90" 
-            cy="90" 
+            cx="80" 
+            cy="60" 
             rx="40" 
-            ry="20" 
+            ry="18" 
             fill="url(#glassBody)"
-            stroke="#cbd5e1"
+            stroke="#bfdbfe"
             strokeWidth="2"
           />
           
           {/* Shoulder highlight */}
           <ellipse 
-            cx="70" 
-            cy="88" 
-            rx="15" 
+            cx="65" 
+            cy="58" 
+            rx="18" 
             ry="8" 
-            fill="url(#highlight)"
+            fill="url(#whiteHighlight)"
           />
           
-          {/* Neck - Short and straight */}
+          {/* Neck - Short straight section */}
           <rect 
-            x="70" 
-            y="50" 
-            width="40" 
-            height="15" 
+            x="65" 
+            y="42" 
+            width="30" 
+            height="12" 
             fill="url(#glassBody)"
-            stroke="#cbd5e1"
+            stroke="#bfdbfe"
             strokeWidth="2"
           />
           
           {/* Neck highlight */}
           <rect 
-            x="72" 
-            y="52" 
+            x="67" 
+            y="44" 
             width="8" 
-            height="11" 
-            fill="url(#highlight)"
+            height="8" 
+            fill="url(#whiteHighlight)"
           />
           
-          {/* Aluminum Crimp Band - Behind cap */}
+          {/* Aluminum Crimp - Below cap */}
           <rect 
-            x="60" 
-            y="45" 
-            width="60" 
-            height="18" 
-            fill="url(#aluminumGradient)"
-            stroke="#a0a0a0"
+            x="58" 
+            y="35" 
+            width="44" 
+            height="12" 
+            fill="#b8bcc4"
+            stroke="#9ca3af"
             strokeWidth="1.5"
           />
           
           {/* Crimp top */}
           <ellipse 
-            cx="90" 
-            cy="45" 
-            rx="30" 
-            ry="6" 
-            fill="#d8d8d8"
-            stroke="#a0a0a0"
+            cx="80" 
+            cy="35" 
+            rx="22" 
+            ry="4" 
+            fill="#d1d5db"
+            stroke="#9ca3af"
             strokeWidth="1.5"
           />
           
           {/* Crimp bottom */}
           <ellipse 
-            cx="90" 
-            cy="63" 
-            rx="30" 
-            ry="6" 
-            fill="#b8b8b8"
-            stroke="#a0a0a0"
+            cx="80" 
+            cy="47" 
+            rx="22" 
+            ry="4" 
+            fill="#a8a8a8"
+            stroke="#9ca3af"
             strokeWidth="1.5"
           />
           
-          {/* Crimp texture lines */}
-          <line x1="60" y1="50" x2="120" y2="50" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="60" y1="54" x2="120" y2="54" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="60" y1="58" x2="120" y2="58" stroke="#e8e8e8" strokeWidth="0.5"/>
-          
-          {/* Cap - Large Flat Top (Theme colored) */}
+          {/* Cap - Large flat top (Theme colored) */}
           <ellipse 
-            cx="90" 
-            cy="38" 
-            rx="40" 
-            ry="16" 
-            fill="url(#capGradient)"
-            stroke={theme.primaryDark || '#1d4ed8'}
-            strokeWidth="2.5"
-          />
-          
-          {/* Cap top surface */}
-          <ellipse 
-            cx="90" 
-            cy="35" 
-            rx="40" 
+            cx="80" 
+            cy="25" 
+            rx="35" 
             ry="14" 
-            fill={theme.primary || '#3b82f6'}
+            fill="url(#capGradient)"
+            stroke={theme.primaryDark || '#3b82f6'}
+            strokeWidth="2"
           />
           
-          {/* Cap glossy highlight */}
+          {/* Cap top surface - lighter */}
           <ellipse 
-            cx="75" 
-            cy="32" 
-            rx="20" 
-            ry="7" 
+            cx="80" 
+            cy="23" 
+            rx="35" 
+            ry="12" 
+            fill={theme.primary || '#93c5fd'}
+            opacity="0.6"
+          />
+          
+          {/* Cap highlight */}
+          <ellipse 
+            cx="65" 
+            cy="20" 
+            rx="18" 
+            ry="6" 
             fill="#ffffff"
-            opacity="0.5"
+            opacity="0.6"
           />
           
-          {/* Center stopper - dark silver */}
-          <ellipse 
-            cx="90" 
-            cy="35" 
-            rx="6" 
-            ry="3" 
-            fill="#808080"
-            stroke="#606060"
-            strokeWidth="1"
-          />
-          
-          {/* White Label in middle of vial */}
+          {/* White Label Rectangle */}
           <rect 
-            x="54" 
-            y="140" 
-            width="72" 
-            height="60" 
-            rx="4"
+            x="52" 
+            y="110" 
+            width="56" 
+            height="50" 
+            rx="3"
             fill="#ffffff"
-            fillOpacity="0.95"
+            fillOpacity="0.9"
             stroke="#d1d5db"
             strokeWidth="1"
           />
