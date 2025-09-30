@@ -129,19 +129,18 @@ export default function VialLabelPreview({
             fill="url(#highlight)"
           />
           
-          {/* Silver/White band below cap */}
-          <rect 
-            x="68" 
-            y="26" 
-            width="64" 
-            height="6" 
-            rx="1"
-            fill="#e5e7eb"
-            stroke="#d1d5db"
-            strokeWidth="1"
+          {/* Cap - Bottom part (aluminum crimp) */}
+          <ellipse 
+            cx="100" 
+            cy="32" 
+            rx="36" 
+            ry="8" 
+            fill="#c0c0c0"
+            stroke="#a8a8a8"
+            strokeWidth="1.5"
           />
           
-          {/* Cap - Blue/Theme colored */}
+          {/* Cap - Main body (theme colored) */}
           <ellipse 
             cx="100" 
             cy="20" 
@@ -149,37 +148,62 @@ export default function VialLabelPreview({
             ry="12" 
             fill="url(#capGradient)"
             stroke={theme.primaryDark || '#1e40af'}
-            strokeWidth="2"
+            strokeWidth="2.5"
           />
           
-          {/* Cap top surface */}
+          {/* Cap top surface - lighter for 3D effect */}
           <ellipse 
             cx="100" 
-            cy="18" 
+            cy="16" 
             rx="38" 
             ry="10" 
-            fill="url(#capGradient)"
-            opacity="0.9"
+            fill={theme.primary || '#3b82f6'}
+            opacity="0.8"
           />
           
-          {/* Cap highlight */}
+          {/* Cap highlight - glossy effect */}
           <ellipse 
-            cx="85" 
-            cy="16" 
-            rx="25" 
+            cx="82" 
+            cy="14" 
+            rx="22" 
             ry="5" 
             fill="#ffffff"
-            opacity="0.4"
+            opacity="0.5"
           />
           
-          {/* Cap center circle detail */}
-          <circle 
+          {/* Cap center detail - rubber stopper appearance */}
+          <ellipse 
             cx="100" 
-            cy="18" 
-            r="6" 
-            fill={theme.primaryDark || '#1e40af'}
+            cy="16" 
+            rx="8" 
+            ry="3" 
+            fill="#374151"
             stroke="#1f2937"
             strokeWidth="1"
+          />
+          
+          {/* White Label in the middle of vial */}
+          <rect 
+            x="58" 
+            y="130" 
+            width="84" 
+            height="60" 
+            rx="3"
+            fill="#ffffff"
+            stroke="#e5e7eb"
+            strokeWidth="1.5"
+            opacity="0.95"
+          />
+          
+          {/* Label shadow for depth */}
+          <rect 
+            x="59" 
+            y="131" 
+            width="84" 
+            height="60" 
+            rx="3"
+            fill="#000000"
+            opacity="0.03"
           />
         </svg>
       </div>
