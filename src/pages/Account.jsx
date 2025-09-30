@@ -481,11 +481,11 @@
                 // Regular user with subscription
                 <div className="space-y-4">
                   {/* Current Plan / Trial Card with Integrated Countdown */}
-                  <div className="p-6 rounded-xl shadow-sm" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)', border: '2px solid #A3B18A' }}>
+                  <div className="p-6 rounded-xl shadow-sm" style={{ backgroundColor: theme.accent, border: `2px solid ${theme.primary}` }}>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <Crown size={20} style={{ color: '#5C7659' }} />
-                        <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
+                        <Crown size={20} style={{ color: theme.primary }} />
+                        <span className="font-semibold text-lg" style={{ color: theme.primaryDark }}>
                           {sub?.status === 'trialing' ? 'Lab Access Trial' : 'Your Research Status'}
                         </span>
                       </div>
@@ -500,21 +500,21 @@
                     
                     {sub?.status === 'trialing' ? (
                       <>
-                        <div className="text-3xl font-bold mb-2" style={{ color: '#344E41' }}>
+                        <div className="text-3xl font-bold mb-2" style={{ color: theme.primaryDark }}>
                           7-Day Lab Access
                         </div>
                         
-                        <div className="text-sm mb-4" style={{ color: '#5C7659' }}>
+                        <div className="text-sm mb-4" style={{ color: theme.textLight }}>
                           Full protocol research access
                         </div>
                         
                         {/* Trial Countdown Progress Bar */}
                         {sub.currentPeriodEnd && (
-                          <div className="p-4 rounded-lg" style={{ backgroundColor: '#f0f9ff', border: '2px solid #bae6fd' }}>
+                          <div className="p-4 rounded-lg" style={{ backgroundColor: theme.infoBg, border: `2px solid ${theme.info}` }}>
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                                <span className="font-semibold text-sm" style={{ color: '#344E41' }}>
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.info }}></div>
+                                <span className="font-semibold text-sm" style={{ color: theme.primaryDark }}>
                                   Lab Access Status
                                 </span>
                               </div>
@@ -543,12 +543,12 @@
                                       const elapsedTime = now.getTime() - start.getTime();
                                       return Math.max(0, 100 - (elapsedTime / totalDuration * 100));
                                     })()}%`,
-                                    background: 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)',
-                                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
+                                    background: `linear-gradient(90deg, ${theme.info} 0%, ${theme.primaryDark} 100%)`,
+                                    boxShadow: `0 2px 4px ${theme.info}30`
                                   }}
                                 ></div>
                               </div>
-                              <div className="flex justify-between text-xs" style={{ color: '#6B7280' }}>
+                              <div className="flex justify-between text-xs" style={{ color: theme.textLight }}>
                                 <span>Started: {new Date(sub.startedAt).toLocaleDateString()}</span>
                                 <span>Ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</span>
                               </div>
