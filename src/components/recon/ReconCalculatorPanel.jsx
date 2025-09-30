@@ -106,8 +106,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
           <div className="space-y-3">
             <VendorSuggestInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor Name" theme={theme} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <TextInput icon={<Droplet size={16} />} label="Amount of Water (mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
+            <div className="grid grid-cols-2 gap-3">
+                <TextInput icon={<Droplet size={16} />} label="Water(mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
                 <TextInput icon={<Info size={16} />} label="Vial Cost ($)" type="number" value={cost} onChange={v => setCost(v)} placeholder="e.g., 45.00" theme={theme} />
             </div>
           </div>
