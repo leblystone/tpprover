@@ -12,48 +12,138 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Vial SVG - Clean Minimalist Style */}
+        {/* Vial SVG - Exact replica of reference image */}
         <svg 
-          width="120" 
-          height="160" 
-          viewBox="0 0 120 160" 
-          className="drop-shadow-sm"
+          width="140" 
+          height="180" 
+          viewBox="0 0 140 180" 
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Vial Body - Simple and clean */}
-          <rect 
-            x="20" 
-            y="40" 
-            width="80" 
-            height="100" 
-            rx="8" 
-            ry="8"
-            fill="white"
-            stroke={theme.border || '#374151'}
+          {/* Vial Cap - Top flat circle */}
+          <ellipse 
+            cx="70" 
+            cy="15" 
+            rx="22" 
+            ry="6" 
+            fill={theme.primary || '#4a5568'}
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Cap ring detail */}
+          <ellipse 
+            cx="70" 
+            cy="18" 
+            rx="19" 
+            ry="4" 
+            fill="none"
+            stroke={theme.border || '#2d3748'}
             strokeWidth="2"
           />
           
-          {/* Vial Neck */}
+          {/* Neck - cylindrical */}
           <rect 
-            x="45" 
-            y="20" 
+            x="55" 
+            y="18" 
             width="30" 
-            height="20" 
+            height="18" 
             fill="white"
-            stroke={theme.border || '#374151'}
-            strokeWidth="2"
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
           />
           
-          {/* Vial Cap - Theme colored */}
-          <rect 
-            x="40" 
-            y="10" 
-            width="40" 
-            height="10" 
-            rx="2" 
-            ry="2"
-            fill={theme.primary || '#3b82f6'}
-            stroke={theme.primaryDark || '#1e40af'}
+          {/* Neck bottom rim */}
+          <line 
+            x1="48" 
+            y1="36" 
+            x2="92" 
+            y2="36" 
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Shoulder curve - left side */}
+          <path 
+            d="M 48 36 Q 45 40, 45 48"
+            fill="none"
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Shoulder curve - right side */}
+          <path 
+            d="M 92 36 Q 95 40, 95 48"
+            fill="none"
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Vial Body - left side */}
+          <line 
+            x1="45" 
+            y1="48" 
+            x2="45" 
+            y2="150" 
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Vial Body - right side */}
+          <line 
+            x1="95" 
+            y1="48" 
+            x2="95" 
+            y2="150" 
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Bottom curve - left */}
+          <path 
+            d="M 45 150 Q 45 160, 55 165"
+            fill="none"
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Bottom curve - right */}
+          <path 
+            d="M 95 150 Q 95 160, 85 165"
+            fill="none"
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Bottom - curved base */}
+          <path 
+            d="M 55 165 Q 70 168, 85 165"
+            fill="none"
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="3"
+          />
+          
+          {/* Bottom ellipse - to show depth */}
+          <ellipse 
+            cx="70" 
+            cy="158" 
+            rx="22" 
+            ry="6" 
+            fill="none"
+            stroke={theme.border || '#2d3748'}
             strokeWidth="2"
+            opacity="0.5"
+          />
+          
+          {/* Glass reflection line - left side */}
+          <line 
+            x1="50" 
+            y1="50" 
+            x2="50" 
+            y2="140" 
+            stroke="#e2e8f0"
+            strokeWidth="2"
+            opacity="0.6"
           />
         </svg>
       </div>

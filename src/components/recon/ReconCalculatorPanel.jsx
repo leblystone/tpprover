@@ -252,8 +252,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           </div>
         </div>
 
-        {/* Step 2: Peptides & Doses */}
-        <div>
+        <div className="space-y-6">
+          {/* Step 2: Peptides & Doses */}
+          <div>
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>3. Peptides & Doses</h4>
           <div className="space-y-3">
             {form.peptides.map((p, index) => (
@@ -341,9 +342,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             </p>
           </div>
         </div>
-      </div>
-      
-      <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+        
+        <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
         <button
           onClick={() => {
             // Convert hex color to name before saving
@@ -368,9 +368,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           <Info size={14} className="inline mr-1" />
           For research purposes only. Always verify calculations with alternative methods.
         </div>
+        </div>
       </div>
     </div>
-  )
+  );
 }
 
 
