@@ -64,14 +64,12 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
           <div className="flex items-center gap-2">
             <Crown size={20} style={{ color: theme.primary }} />
             <span className="font-semibold text-lg" style={{ color: theme.primaryDark }}>
-              {isTrial ? 'Lab Access Trial' : 'Your Research Status'}
+              {isTrial ? 'Lab Access Trial' : 'Researcher Access'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              isTrial ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-            }`}>
-              {isTrial ? 'Researching' : 'Active'}
+            <div className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+              Trialing
             </div>
             <button 
               onClick={handleDismiss}

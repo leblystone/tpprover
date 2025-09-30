@@ -682,9 +682,6 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Research Status Widget - UNREMOVABLE, ALWAYS LAST */}
-            <ResearchStatusWidget theme={theme} subscription={subscription} />
-            
             {/* Conversion Widget - UNREMOVABLE, UNMOVEABLE, HIDDEN FROM SETTINGS - Shows only for trial/inactive users */}
             <ConversionWidget theme={theme} subscription={subscription} />
           </div>
