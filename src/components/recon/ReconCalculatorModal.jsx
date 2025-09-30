@@ -266,12 +266,11 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                         {/* Pen Color Selection */}
                         <div>
                             <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Color</label>
-                            <div className="flex gap-2 flex-wrap">
+                            <div className="grid grid-cols-4 gap-3">
                                 {penColors.map(({ name, hex }) => {
+                                    const isSelected = penColor === name;
                                     const style = {
                                         background: getChromeGradient(hex),
-                                        borderColor: hex,
-                                        ringColor: theme.primary,
                                     };
                                     if (hex === '#FFFFFF') {
                                         style.boxShadow = 'inset 0 0 0 1px #ddd';
@@ -282,9 +281,19 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                                             type="button"
                                             title={name}
                                             onClick={() => setPenColor(name)}
-                                            className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${penColor === name ? 'ring-2 ring-offset-2' : ''}`}
-                                            style={style}
-                                        />
+                                            className={`relative w-full aspect-square rounded-lg transition-all duration-200 hover:scale-105 ${
+                                                isSelected 
+                                                    ? 'ring-2 ring-offset-2 shadow-lg' 
+                                                    : 'hover:shadow-md border-2 border-gray-300'
+                                            }`}
+                                            style={isSelected ? { ...style, ringColor: theme.primary } : style}
+                                        >
+                                            {isSelected && (
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-3 h-3 bg-white rounded-full border-2" style={{ borderColor: hex === '#FFFFFF' ? '#333' : '#fff' }}></div>
+                                                </div>
+                                            )}
+                                        </button>
                                     );
                                 })}
                             </div>
