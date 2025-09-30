@@ -12,147 +12,147 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Vial SVG - Exact replica of reference image */}
+        {/* Vial SVG - Larger and wider */}
         <svg 
-          width="140" 
-          height="180" 
-          viewBox="0 0 140 180" 
+          width="200" 
+          height="260" 
+          viewBox="0 0 200 260" 
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Vial Cap - Top flat circle with grey fill */}
+          {/* Neck - cylindrical (drawn first so cap overlays it) */}
+          <rect 
+            x="75" 
+            y="25" 
+            width="50" 
+            height="25" 
+            fill="white"
+            stroke={theme.border || '#2d3748'}
+            strokeWidth="4"
+          />
+          
+          {/* Vial Cap - Top flat circle with grey fill (drawn last to be on top) */}
           <ellipse 
-            cx="70" 
-            cy="15" 
-            rx="22" 
-            ry="6" 
+            cx="100" 
+            cy="20" 
+            rx="35" 
+            ry="10" 
             fill="#9ca3af"
             stroke="#4b5563"
-            strokeWidth="3.5"
+            strokeWidth="4.5"
           />
           
           {/* Cap ring detail - inner circle */}
           <ellipse 
-            cx="70" 
-            cy="15" 
-            rx="16" 
-            ry="4" 
+            cx="100" 
+            cy="20" 
+            rx="26" 
+            ry="6" 
             fill="none"
             stroke="#6b7280"
-            strokeWidth="1.5"
+            strokeWidth="2"
           />
           
           {/* Cap side - cylindrical appearance */}
           <ellipse 
-            cx="70" 
-            cy="21" 
-            rx="22" 
-            ry="6" 
+            cx="100" 
+            cy="30" 
+            rx="35" 
+            ry="10" 
             fill="#b0b7c3"
             stroke="#4b5563"
-            strokeWidth="3.5"
-          />
-          
-          {/* Neck - cylindrical */}
-          <rect 
-            x="55" 
-            y="18" 
-            width="30" 
-            height="18" 
-            fill="white"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4.5"
           />
           
           {/* Neck bottom rim */}
           <line 
-            x1="48" 
-            y1="36" 
-            x2="92" 
-            y2="36" 
+            x1="65" 
+            y1="50" 
+            x2="135" 
+            y2="50" 
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Shoulder curve - left side */}
           <path 
-            d="M 48 36 Q 45 40, 45 48"
+            d="M 65 50 Q 60 56, 60 66"
             fill="none"
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Shoulder curve - right side */}
           <path 
-            d="M 92 36 Q 95 40, 95 48"
+            d="M 135 50 Q 140 56, 140 66"
             fill="none"
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Vial Body - left side */}
           <line 
-            x1="45" 
-            y1="48" 
-            x2="45" 
-            y2="150" 
+            x1="60" 
+            y1="66" 
+            x2="60" 
+            y2="210" 
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Vial Body - right side */}
           <line 
-            x1="95" 
-            y1="48" 
-            x2="95" 
-            y2="150" 
+            x1="140" 
+            y1="66" 
+            x2="140" 
+            y2="210" 
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Bottom curve - left */}
           <path 
-            d="M 45 150 Q 45 160, 55 165"
+            d="M 60 210 Q 60 225, 75 232"
             fill="none"
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Bottom curve - right */}
           <path 
-            d="M 95 150 Q 95 160, 85 165"
+            d="M 140 210 Q 140 225, 125 232"
             fill="none"
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Bottom - curved base */}
           <path 
-            d="M 55 165 Q 70 168, 85 165"
+            d="M 75 232 Q 100 236, 125 232"
             fill="none"
             stroke={theme.border || '#2d3748'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Bottom ellipse - grey depth indicator */}
           <ellipse 
-            cx="70" 
-            cy="155" 
-            rx="24" 
-            ry="7" 
+            cx="100" 
+            cy="216" 
+            rx="36" 
+            ry="10" 
             fill="#d1d5db"
             stroke="#9ca3af"
-            strokeWidth="2"
+            strokeWidth="2.5"
           />
           
           {/* Glass reflection line - left side */}
           <line 
-            x1="50" 
-            y1="50" 
-            x2="50" 
-            y2="140" 
+            x1="68" 
+            y1="70" 
+            x2="68" 
+            y2="200" 
             stroke="#e2e8f0"
-            strokeWidth="2"
+            strokeWidth="2.5"
             opacity="0.6"
           />
         </svg>
