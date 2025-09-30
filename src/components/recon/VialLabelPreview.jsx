@@ -64,72 +64,116 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Vial Container */}
+        {/* Vial SVG - Clean Line Art Style */}
+        <svg 
+          width="120" 
+          height="160" 
+          viewBox="0 0 120 160" 
+          className="drop-shadow-sm"
+        >
+          {/* Vial Body */}
+          <rect 
+            x="20" 
+            y="40" 
+            width="80" 
+            height="100" 
+            rx="8" 
+            ry="8"
+            fill="none"
+            stroke={theme.border || '#e2e8f0'}
+            strokeWidth="3"
+          />
+          
+          {/* Vial Neck */}
+          <rect 
+            x="45" 
+            y="20" 
+            width="30" 
+            height="20" 
+            fill="none"
+            stroke={theme.border || '#e2e8f0'}
+            strokeWidth="3"
+          />
+          
+          {/* Vial Cap */}
+          <rect 
+            x="40" 
+            y="10" 
+            width="40" 
+            height="10" 
+            rx="2" 
+            ry="2"
+            fill="none"
+            stroke={theme.border || '#e2e8f0'}
+            strokeWidth="3"
+          />
+          
+          {/* Label Area Background */}
+          <rect 
+            x="25" 
+            y="50" 
+            width="70" 
+            height="80" 
+            rx="4" 
+            ry="4"
+            fill="white"
+            stroke={theme.border || '#e2e8f0'}
+            strokeWidth="1"
+          />
+        </svg>
+        
+        {/* Label Content Overlay */}
         <div 
-          className="w-32 h-48 rounded-t-full rounded-b-lg border-4 shadow-lg"
+          className="absolute inset-0 flex flex-col justify-center items-center p-2 text-xs"
           style={{ 
-            backgroundColor: '#f8fafc',
-            borderColor: theme.border || '#e2e8f0'
+            top: '50px',
+            left: '25px',
+            right: '25px',
+            bottom: '30px'
           }}
         >
-          {/* Vial Label Area */}
-          <div 
-            className="absolute inset-2 rounded-lg p-2 text-xs"
-            style={{ 
-              backgroundColor: 'white',
-              border: `1px solid ${theme.border || '#e2e8f0'}`,
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
-            }}
-          >
-            {/* Vendor Name */}
-            <div className="text-center font-bold mb-1" style={{ color: theme.primary }}>
-              {form.vendor || 'VENDOR'}
-            </div>
-            
-            {/* Peptide Info */}
-            <div className="text-center text-xs mb-2 leading-tight" style={{ color: theme.text }}>
-              {getPeptideInfo()}
-            </div>
-            
-            {/* Water Amount */}
-            <div className="flex items-center justify-center gap-1 mb-2">
-              <Droplet size={10} style={{ color: theme.primary }} />
-              <span className="text-xs font-medium" style={{ color: theme.text }}>
-                {form.water ? `${form.water}mL` : 'Water'}
-              </span>
-            </div>
-            
-            {/* Delivery Method */}
-            <div className="flex items-center justify-center gap-1 mb-2">
-              {deliveryInfo.icon}
-              <span className="text-xs" style={{ color: theme.text }}>
-                {deliveryInfo.text}
-              </span>
-            </div>
-            
-            {/* Pen Color Swatch (if pen delivery) */}
-            {deliveryMethod === 'pen' && penColor && (
-              <div className="flex items-center justify-center gap-1">
-                <div 
-                  className="w-3 h-3 rounded-full border"
-                  style={{ 
-                    backgroundColor: getPenColorHex(),
-                    borderColor: theme.border || '#e2e8f0'
-                  }}
-                />
-                <span className="text-xs" style={{ color: theme.text }}>
-                  {penColor}
-                </span>
-              </div>
-            )}
+          {/* Vendor Name */}
+          <div className="text-center font-bold mb-1" style={{ color: theme.primary }}>
+            {form.vendor || 'VENDOR'}
           </div>
+          
+          {/* Peptide Info */}
+          <div className="text-center text-xs mb-2 leading-tight" style={{ color: theme.text }}>
+            {getPeptideInfo()}
+          </div>
+          
+          {/* Water Amount */}
+          <div className="flex items-center justify-center gap-1 mb-2">
+            <Droplet size={8} style={{ color: theme.primary }} />
+            <span className="text-xs font-medium" style={{ color: theme.text }}>
+              {form.water ? `${form.water}mL` : 'Water'}
+            </span>
+          </div>
+          
+          {/* Delivery Method */}
+          <div className="flex items-center justify-center gap-1 mb-2">
+            {deliveryInfo.icon && React.cloneElement(deliveryInfo.icon, { size: 8 })}
+            <span className="text-xs" style={{ color: theme.text }}>
+              {deliveryInfo.text}
+            </span>
+          </div>
+          
+          {/* Pen Color Swatch (if pen delivery) */}
+          {deliveryMethod === 'pen' && penColor && (
+            <div className="flex items-center justify-center gap-1">
+              <div 
+                className="w-2 h-2 rounded-full border"
+                style={{ 
+                  backgroundColor: getPenColorHex(),
+                  borderColor: theme.border || '#e2e8f0'
+                }}
+              />
+              <span className="text-xs" style={{ color: theme.text }}>
+                {penColor}
+              </span>
+            </div>
+          )}
         </div>
-        
-        {/* Vial Cap */}
-        <div 
-          className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-8 h-4 rounded-t-full"
-          style={{ backgroundColor: theme.border || '#e2e8f0' }}
-        />
       </div>
     </div>
   );
