@@ -299,10 +299,11 @@
           detail: { message: '🔄 Processing your subscription...', type: 'info' } 
         }));
 
-        // Check if in demo mode first
-        const auth = getAuth();
-        if (!auth.currentUser) {
-          console.log('🎭 Demo: Simulating successful plan change');
+        // Check if current subscription is demo/trial (no real Stripe subscription ID)
+        const isDemo = !sub?.subscriptionId || sub?.subscriptionId?.startsWith('demo_') || sub?.subscriptionId === 'trial_demo' || sub?.status === 'trialing';
+        
+        if (isDemo) {
+          console.log('🎭 Demo/Trial: Simulating successful plan change');
           
           // Create new subscription with the selected plan
           const now = new Date();
@@ -337,13 +338,13 @@
           setSub(newSubscription);
           
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { message: `🎭 Demo: Successfully switched to ${plan.name}!`, type: 'success' } 
+            detail: { message: `✅ Successfully switched to ${plan.name}! (Demo Mode)`, type: 'success' } 
           }));
           
           return;
         }
 
-        // Handle paid subscription with Stripe (authenticated users only)
+        // Handle paid subscription with Stripe (real Stripe subscriptions only)
         try {
           let priceId = '';
           if (plan.interval === 'month') {
