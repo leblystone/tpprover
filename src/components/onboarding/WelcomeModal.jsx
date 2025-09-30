@@ -13,7 +13,7 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                 </h1>
                 
                 <p className="text-gray-600 mb-6">
-                    Thank you for joining our beta testing! The app will remain open for you from <b>September 14th - September 21st</b>. Feedback will be requested at the end of your lab access testing. Once again, I appreciate your time! I hope you enjoy The Pep Planner.✌️
+                    The Pep Planner helps you organize, track, and optimize your peptide research. Whether your a new research apprentice or a veteran bio-hacker, start organizing your research with a 7-day access trial to explore all features, then choose the plan that fits your research needs. Let's begin! 🧪
                 </p>
 
                 <div className="flex justify-center mb-6">
@@ -27,7 +27,7 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                         style={{ backgroundColor: theme.primary }}
                     >
                         <Rocket size={18} />
-                        Start Guided Tour
+                        Start Lab Tour
                     </button>
                     <button 
                         onClick={onClose}
@@ -35,7 +35,7 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                         style={{ color: theme.text, borderColor: theme.border }}
                     >
                          <X size={18} />
-                        Skip For Now
+                        Explore Dashboard
                     </button>
                 </div>
             </div>

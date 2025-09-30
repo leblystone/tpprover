@@ -7,3 +7,19 @@
 .sidebar-container:hover ~ .main-content {
     margin-left: 0; /* keep content aligned on hover */
 }
+
+/* Conversion Widget Animation */
+@keyframes slide-up {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.5s ease-out;
+}

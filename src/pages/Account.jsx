@@ -116,7 +116,7 @@
             setSub(trialSub);
             
             window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                detail: { message: '🎉 7-day free trial started! Choose a plan before it ends.', type: 'success' } 
+                detail: { message: '🎉 7-day lab access granted! Continue your research journey.', type: 'success' } 
             }));
         }
     }, [user, sub])
@@ -392,7 +392,7 @@
             const next = { ...subscription, status: 'canceled', endedAt: new Date().toISOString() }
             saveSubscription(next)
             setSub(next)
-            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Subscription canceled successfully. You will retain access until the end of your billing period.', type: 'success' } }))
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Lab access will end after your current research period.', type: 'success' } }))
           }
         } catch (error) {
           console.error('Cancellation error:', error);
@@ -467,26 +467,10 @@
           )}
         </div>
 
-        {/* Badges */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Badges Earned</h2>
-          {earnedBadges.length > 0 ? (
-            <div className="flex flex-wrap gap-4">
-              {earnedBadges.map(badge => (
-                <div key={badge.name} className="flex flex-col items-center text-center">
-                  <BadgeImage badgeName={badge.name} size="large" />
-                  <span className="text-xs mt-2 font-semibold">{badge.name}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm" style={{ color: theme.textLight }}>No badges earned yet. Keep exploring!</div>
-          )}
-        </div>
 
         {/* Subscription */}
         <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Subscription</h2>
+              <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Research Lab Access</h2>
               {sub ? (
                 // Regular user with subscription
                 <div className="space-y-4">
@@ -496,7 +480,7 @@
                       <div className="flex items-center gap-2">
                         <Crown size={20} style={{ color: '#5C7659' }} />
                         <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
-                          {sub?.status === 'trialing' ? 'Free Trial' : 'Current Plan'}
+                          {sub?.status === 'trialing' ? 'Lab Access Trial' : 'Your Research Status'}
                         </span>
                       </div>
                       <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -504,18 +488,18 @@
                         sub?.status === 'trialing' ? 'bg-blue-100 text-blue-800' : 
                         'bg-red-100 text-red-800'
                       }`}>
-                        {sub?.status === 'trialing' ? 'Trial Active' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
+                        {sub?.status === 'trialing' ? 'Researching' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
                       </div>
                     </div>
                     
                     {sub?.status === 'trialing' ? (
                       <>
                         <div className="text-3xl font-bold mb-2" style={{ color: '#344E41' }}>
-                          7-Day Free Trial
+                          7-Day Lab Access
                         </div>
                         
                         <div className="text-sm mb-4" style={{ color: '#5C7659' }}>
-                          Full access to all features
+                          Full protocol research access
                         </div>
                         
                         {/* Trial Countdown Progress Bar */}
@@ -525,7 +509,7 @@
                               <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                                 <span className="font-semibold text-sm" style={{ color: '#344E41' }}>
-                                  Trial Status
+                                  Lab Access Status
                                 </span>
                               </div>
                               <span className="text-sm font-bold text-blue-600">
@@ -535,7 +519,7 @@
                                   const start = new Date(sub.startedAt);
                                   const diffTime = end - now;
                                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                  return diffDays > 0 ? `${diffDays} day${diffDays !== 1 ? 's' : ''} left` : 'Trial expired';
+                                  return diffDays > 0 ? `${diffDays} day${diffDays !== 1 ? 's' : ''} of research` : 'Lab access expired';
                                 })()}
                               </span>
                             </div>
@@ -617,12 +601,12 @@
                   {/* Plan Selection Options */}
                   <div>
                     <h4 className="font-semibold mb-4" style={{ color: '#344E41' }}>
-                      {sub?.status === 'trialing' ? 'Choose Your Plan' : 'Upgrade Your Plan'}
+                      {sub?.status === 'trialing' ? 'Continue Your Research' : 'Expand Lab Access'}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Monthly Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col justify-center min-h-[200px]"
                         style={{ borderColor: sub?.interval === 'month' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={() => {
                           setConfirmAction('switchPlan');
@@ -638,34 +622,30 @@
                         {sub?.interval === 'month' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#5C7659' }}>
-                              Current Plan
+                              Active Research
                             </div>
                           </div>
                         )}
 
                         {/* Plan Title */}
-                        <div className="text-center mb-4">
+                        <div className="text-center mb-6">
                           <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Monthly</h3>
                           <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$8.99</div>
                           <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per month</div>
                         </div>
 
-                        {/* Features */}
-                        <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                        </div>
-
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 mt-auto"
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
                           style={{ backgroundColor: sub?.interval === 'month' ? '#5C7659' : '#344E41' }}
                         >
-                          {sub?.interval === 'month' ? 'Current Plan' : 'Choose Monthly'}
+                          {sub?.interval === 'month' ? 'Active Research' : 'Start Monthly'}
                         </button>
                       </div>
 
                       {/* Annual Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col justify-center min-h-[200px]"
                         style={{ borderColor: sub?.interval === 'year' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={() => {
                           setConfirmAction('switchPlan');
@@ -681,7 +661,7 @@
                         {sub?.interval === 'year' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#5C7659' }}>
-                              Current Plan
+                              Active Research
                             </div>
                           </div>
                         )}
@@ -690,41 +670,37 @@
                         {sub?.interval !== 'year' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
-                              Most Popular
+                              Most Chosen
                             </div>
                           </div>
                         )}
 
                         {/* Plan Title */}
-                        <div className="text-center mb-4">
+                        <div className="text-center mb-3">
                           <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Annual</h3>
                           <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$89.99</div>
                           <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per year</div>
                         </div>
 
                         {/* Subtitle Badge */}
-                        <div className="text-center mb-4">
+                        <div className="text-center mb-6">
                           <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
                             Save $17.89
                           </span>
                         </div>
 
-                        {/* Features */}
-                        <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                        </div>
-
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 mt-auto"
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
                           style={{ backgroundColor: sub?.interval === 'year' ? '#5C7659' : '#3A5A40' }}
                         >
-                          {sub?.interval === 'year' ? 'Current Plan' : 'Choose Annual'}
+                          {sub?.interval === 'year' ? 'Active Research' : 'Start Annual'}
                         </button>
                       </div>
 
                       {/* Lifetime Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col justify-center min-h-[200px]"
                         style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={() => {
                           setConfirmAction('switchPlan');
@@ -740,7 +716,7 @@
                         {sub?.interval === 'lifetime' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#5C7659' }}>
-                              Current Plan
+                              Lifetime Researcher
                             </div>
                           </div>
                         )}
@@ -749,13 +725,13 @@
                         {sub?.interval !== 'lifetime' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
-                              Limited Time
+                              Limited Access
                             </div>
                           </div>
                         )}
 
                         {/* Plan Title */}
-                        <div className="text-center mb-4">
+                        <div className="text-center mb-3">
                           <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Lifetime</h3>
                           <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$249.99</div>
                           <div className="text-sm mt-1" style={{ color: '#5C7659' }}>one-time payment</div>
@@ -766,10 +742,6 @@
                           <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
                             Never pay again
                           </span>
-                        </div>
-
-                        {/* Features */}
-                        <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
                         </div>
 
                         {/* Limited Time Notice */}
@@ -783,10 +755,10 @@
 
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 mt-auto"
+                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
                           style={{ backgroundColor: sub?.interval === 'lifetime' ? '#5C7659' : '#344E41' }}
                         >
-                          {sub?.interval === 'lifetime' ? 'Current Plan' : 'Choose Lifetime'}
+                          {sub?.interval === 'lifetime' ? 'Lifetime Researcher' : 'Join Forever'}
                         </button>
                       </div>
                     </div>
@@ -806,13 +778,13 @@
               ) : (
                 // Regular user without subscription
                 <div className="space-y-4">
-                  <div className="text-sm" style={{ color: theme.textLight }}>No active subscription</div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>No active lab access</div>
                   <button 
                     className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" 
                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
                     onClick={() => setManageOpen(true)}
                   >
-                    Choose Plan
+                    Start Research
                   </button>
                 </div>
               )}
@@ -868,7 +840,7 @@
             <div className="w-full flex justify-between items-center">
               <div className="flex items-center gap-2">
                 {sub?.status === 'active' && (
-                  <button className="px-3 py-2 rounded-md text-sm" style={{ color: '#344E41' }} onClick={cancelSubscription}>Cancel Subscription</button>
+                  <button className="px-3 py-2 rounded-md text-sm" style={{ color: '#344E41' }} onClick={cancelSubscription}>End Lab Access</button>
                 )}
               </div>
               <button className="px-3 py-2 rounded-md" onClick={() => setManageOpen(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Close</button>
@@ -1014,7 +986,7 @@
         <Modal 
           open={confirmModalOpen} 
           onClose={handleCancelAction} 
-          title={confirmAction === 'switchPlan' ? 'Confirm Plan Change' : 'Confirm Cancellation'} 
+          title={confirmAction === 'switchPlan' ? 'Confirm Lab Access Change' : 'Confirm Cancellation'} 
           theme={theme} 
           maxWidth="max-w-md" 
           footer={(
@@ -1046,17 +1018,17 @@
                     <Crown size={24} style={{ color: '#5C7659' }} />
                   </div>
                   <h3 className="text-lg font-semibold mb-2" style={{ color: '#344E41' }}>
-                    Switch to {confirmData.plan.name}?
+                    Update Lab Access to {confirmData.plan.name}?
                   </h3>
                 </div>
                 
                 {confirmData.isSwitching && confirmData.currentPlan && (
                   <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 215, 205, 0.5)', border: '1px solid #A3B18A' }}>
                     <p className="text-sm" style={{ color: '#344E41' }}>
-                      <strong>Current Plan:</strong> {confirmData.currentPlan}
+                      <strong>Current Access:</strong> {confirmData.currentPlan}
                     </p>
                     <p className="text-sm" style={{ color: '#344E41' }}>
-                      <strong>New Plan:</strong> {confirmData.plan.name} - ${confirmData.plan.price}
+                      <strong>New Access:</strong> {confirmData.plan.name} - ${confirmData.plan.price}
                     </p>
                   </div>
                 )}
@@ -1064,8 +1036,8 @@
                 <div className="text-center">
                   <p className="text-sm mb-3" style={{ color: '#5C7659' }}>
                     {confirmData.plan.interval === 'lifetime' 
-                      ? 'This is a one-time payment for lifetime access to The Pep Planner.'
-                      : `This will change your billing to $${confirmData.plan.price}/${confirmData.plan.interval === 'month' ? 'month' : 'year'}.`
+                      ? 'One-time investment for lifetime research lab access.'
+                      : `Lab access will be ${confirmData.plan.price}/${confirmData.plan.interval === 'month' ? 'month' : 'year'}.`
                     }
                   </p>
                   
@@ -1139,7 +1111,7 @@
                     <span className="text-2xl">⚠️</span>
                   </div>
                   <h3 className="text-lg font-semibold mb-2" style={{ color: '#344E41' }}>
-                    Cancel Subscription?
+                    End Lab Access?
                   </h3>
                 </div>
                 

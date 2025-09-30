@@ -25,6 +25,7 @@ import SupplementEditorModal from '../components/dashboard/SupplementEditorModal
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard'
 import BadgesModal from '../components/badges/BadgesModal'
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal'
+import ResearchStatusWidget from '../components/dashboard/ResearchStatusWidget'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { useBadgeStats } from '../utils/badges'
@@ -33,7 +34,7 @@ export default function Dashboard() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
-  const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement } = useAppContext();
+  const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription } = useAppContext();
   
   // Mock minimal data to render the dashboard without external deps
   const [vitamins, setVitamins] = useState([
@@ -677,6 +678,9 @@ export default function Dashboard() {
                     </>
                 )}
             </div>
+
+            {/* Research Status Widget - UNREMOVABLE, ALWAYS LAST */}
+            <ResearchStatusWidget theme={theme} subscription={subscription} />
           </div>
         </div>
       </ViewContainer>

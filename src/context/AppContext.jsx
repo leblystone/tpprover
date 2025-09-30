@@ -21,6 +21,7 @@ export function AppProvider({ children }) {
     const [stockpile, setStockpile] = useState([]);
     const [scheduledBuys, setScheduledBuys] = useState([]);
     const [user, setUser] = useState(null);
+    const [subscription, setSubscription] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [isClearingDemoData, setIsClearingDemoData] = useState(false);
@@ -96,6 +97,10 @@ export function AppProvider({ children }) {
 
                 const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
                 if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
+
+                // Load subscription data
+                const savedSubscription = localStorage.getItem('tpprover_subscription');
+                if (savedSubscription) setSubscription(JSON.parse(savedSubscription));
             } catch (error) {
                 console.error("Error loading data from localStorage", error);
             }
@@ -827,6 +832,8 @@ export function AppProvider({ children }) {
         stockpile,
         scheduledBuys,
         user,
+        subscription,
+        setSubscription,
         logout,
         setUser,
         setProtocols,
