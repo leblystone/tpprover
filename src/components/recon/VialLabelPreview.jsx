@@ -66,65 +66,65 @@ export default function VialLabelPreview({
       <div className="relative">
         {/* Vial SVG - Clean Line Art Style */}
         <svg 
-          width="140" 
-          height="180" 
-          viewBox="0 0 140 180" 
+          width="180" 
+          height="240" 
+          viewBox="0 0 180 240" 
           className="drop-shadow-sm"
         >
           {/* Vial Body */}
           <rect 
-            x="30" 
-            y="40" 
-            width="80" 
-            height="120" 
-            rx="8" 
-            ry="8"
+            x="40" 
+            y="50" 
+            width="100" 
+            height="160" 
+            rx="10" 
+            ry="10"
             fill="white"
             stroke={theme.border || '#374151'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Vial Neck */}
           <rect 
-            x="55" 
-            y="20" 
-            width="30" 
-            height="20" 
+            x="70" 
+            y="25" 
+            width="40" 
+            height="25" 
             fill="white"
             stroke={theme.border || '#374151'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Vial Cap - Flat and realistic */}
           <rect 
-            x="50" 
-            y="8" 
-            width="40" 
-            height="12" 
-            rx="3" 
-            ry="3"
+            x="65" 
+            y="10" 
+            width="50" 
+            height="15" 
+            rx="4" 
+            ry="4"
             fill="#9ca3af"
             stroke={theme.border || '#374151'}
-            strokeWidth="3"
+            strokeWidth="4"
           />
           
           {/* Cap Detail - Inner circle */}
           <circle 
-            cx="70" 
-            cy="14" 
-            r="4" 
+            cx="90" 
+            cy="17" 
+            r="5" 
             fill="#6b7280"
             stroke="none"
           />
           
           {/* Label Area Background */}
           <rect 
-            x="35" 
-            y="50" 
-            width="70" 
-            height="100" 
-            rx="4" 
-            ry="4"
+            x="45" 
+            y="65" 
+            width="90" 
+            height="130" 
+            rx="5" 
+            ry="5"
             fill="white"
             stroke={theme.border || '#e5e7eb'}
             strokeWidth="1"
@@ -133,12 +133,12 @@ export default function VialLabelPreview({
         
         {/* Label Content Overlay */}
         <div 
-          className="absolute inset-0 flex flex-col justify-center items-center p-2 text-xs"
+          className="absolute inset-0 flex flex-col justify-center items-center p-3 text-sm"
           style={{ 
-            top: '50px',
-            left: '35px',
-            right: '35px',
-            bottom: '30px'
+            top: '65px',
+            left: '45px',
+            right: '45px',
+            bottom: '45px'
           }}
         >
           {/* Vendor Name */}
