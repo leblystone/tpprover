@@ -112,18 +112,18 @@ export default function VialLabelPreview({
           
           {/* Shoulder - transition from neck to body */}
           <path 
-            d="M 70 70 Q 67 65, 67 60 L 67 56 L 133 56 L 133 60 Q 133 65, 130 70"
+            d="M 70 70 Q 68 65, 68 60 L 68 58 L 132 58 L 132 60 Q 132 65, 130 70"
             fill="url(#glassBody)"
             stroke="#cbd5e1"
             strokeWidth="1.5"
           />
           
-          {/* Neck - thinner straight cylinder */}
+          {/* Neck - perfectly straight cylinder, no curves */}
           <rect 
             x="75" 
-            y="48" 
+            y="40" 
             width="50" 
-            height="8" 
+            height="18" 
             fill="url(#glassBody)"
             stroke="#cbd5e1"
             strokeWidth="1.5"
@@ -132,9 +132,9 @@ export default function VialLabelPreview({
           {/* Neck highlight */}
           <rect 
             x="78" 
-            y="49" 
+            y="42" 
             width="6" 
-            height="6" 
+            height="14" 
             fill="url(#highlight)"
           />
           
