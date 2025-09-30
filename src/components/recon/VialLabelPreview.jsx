@@ -194,85 +194,8 @@ export default function VialLabelPreview({
             strokeWidth="1"
           />
           
-          {/* Label Area Background - Semi-transparent */}
-          <rect 
-            x="45" 
-            y="65" 
-            width="90" 
-            height="130" 
-            rx="5" 
-            ry="5"
-            fill="#ffffff"
-            fillOpacity="0.95"
-            stroke="#e5e7eb"
-            strokeWidth="1"
-          />
-          
-          {/* Label area shadow */}
-          <rect 
-            x="46" 
-            y="66" 
-            width="90" 
-            height="130" 
-            rx="5" 
-            ry="5"
-            fill="#000000"
-            opacity="0.05"
-          />
         </svg>
         
-        {/* Label Content Overlay */}
-        <div 
-          className="absolute inset-0 flex flex-col justify-center items-center p-3 text-sm"
-          style={{ 
-            top: '65px',
-            left: '45px',
-            right: '45px',
-            bottom: '45px'
-          }}
-        >
-          {/* Vendor Name */}
-          <div className="text-center font-bold mb-1" style={{ color: theme.primary }}>
-            {form.vendor || 'VENDOR'}
-          </div>
-          
-          {/* Peptide Info */}
-          <div className="text-center text-xs mb-2 leading-tight" style={{ color: theme.text }}>
-            {getPeptideInfo()}
-          </div>
-          
-          {/* Water Amount */}
-          <div className="flex items-center justify-center gap-1 mb-2">
-            <Droplet size={8} style={{ color: theme.primary }} />
-            <span className="text-xs font-medium" style={{ color: theme.text }}>
-              {form.water ? `${form.water}mL` : 'Water'}
-            </span>
-          </div>
-          
-          {/* Delivery Method */}
-          <div className="flex items-center justify-center gap-1 mb-2">
-            {deliveryInfo.icon && React.cloneElement(deliveryInfo.icon, { size: 8 })}
-            <span className="text-xs" style={{ color: theme.text }}>
-              {deliveryInfo.text}
-            </span>
-          </div>
-          
-          {/* Pen Color Swatch (if pen delivery) */}
-          {deliveryMethod === 'pen' && penColor && (
-            <div className="flex items-center justify-center gap-1">
-              <div 
-                className="w-2 h-2 rounded-full border"
-                style={{ 
-                  backgroundColor: getPenColorHex(),
-                  borderColor: theme.border || '#e2e8f0'
-                }}
-              />
-              <span className="text-xs" style={{ color: theme.text }}>
-                {penColor}
-              </span>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
