@@ -140,25 +140,30 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   return (
     <Modal open={open} onClose={onClose} title="Peptide Calculator" theme={theme} wide>
       <div className="space-y-6">
-        {/* Vial Label Preview */}
-        <VialLabelPreview 
-          form={form}
-          deliveryMethod={deliveryMethod}
-          administrationRoute={administrationRoute}
-          penType={penType}
-          penColor={penColor}
-          theme={theme}
-        />
-
-        {/* Step 1: Vial Details */}
-        <div>
-          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
-          <div className="space-y-3">
-            <VendorSuggestInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor Name" theme={theme} />
-            <div className="grid grid-cols-2 gap-3">
-                <TextInput icon={<Droplet size={16} />} label="Water(mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
-                <TextInput icon={<Info size={16} />} label="Vial Cost ($)" type="number" value={cost} onChange={v => setCost(v)} placeholder="e.g., 45.00" theme={theme} />
+        {/* Two Column Layout: Vial Details + Visual Preview */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column: Vial Details */}
+          <div>
+            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
+            <div className="space-y-3">
+              <VendorSuggestInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor Name" theme={theme} />
+              <div className="grid grid-cols-2 gap-3">
+                  <TextInput icon={<Droplet size={16} />} label="Water(mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
+                  <TextInput icon={<Info size={16} />} label="Vial Cost ($)" type="number" value={cost} onChange={v => setCost(v)} placeholder="e.g., 45.00" theme={theme} />
+              </div>
             </div>
+          </div>
+
+          {/* Right Column: Vial Label Preview */}
+          <div className="flex justify-center lg:justify-end">
+            <VialLabelPreview 
+              form={form}
+              deliveryMethod={deliveryMethod}
+              administrationRoute={administrationRoute}
+              penType={penType}
+              penColor={penColor}
+              theme={theme}
+            />
           </div>
         </div>
 

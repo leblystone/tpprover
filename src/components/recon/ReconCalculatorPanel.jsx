@@ -101,18 +101,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
       <h3 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Peptide Calculator</h3>
       <p className="text-sm text-gray-500 mb-4">Calculate dosages for one or more peptides.</p>
 
-      {/* Vial Label Preview */}
-      <VialLabelPreview 
-        form={form}
-        deliveryMethod={deliveryMethod}
-        administrationRoute={administrationRoute}
-        penType={form.penType}
-        penColor={penColor}
-        theme={theme}
-      />
-
-      <div className="space-y-6">
-        {/* Step 1: Vial Details */}
+      {/* Two Column Layout: Vial Details + Visual Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Left Column: Vial Details */}
         <div>
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
           <div className="space-y-3">
@@ -123,6 +114,21 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             </div>
           </div>
         </div>
+
+        {/* Right Column: Vial Label Preview */}
+        <div className="flex justify-center lg:justify-end">
+          <VialLabelPreview 
+            form={form}
+            deliveryMethod={deliveryMethod}
+            administrationRoute={administrationRoute}
+            penType={form.penType}
+            penColor={penColor}
+            theme={theme}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-6">
 
         {/* Delivery Method */}
         <div>
