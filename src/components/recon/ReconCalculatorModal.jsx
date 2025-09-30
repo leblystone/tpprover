@@ -141,7 +141,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
     <Modal open={open} onClose={onClose} title="Peptide Calculator" theme={theme} wide>
       <div className="space-y-6">
         {/* Two Column Layout: Vial Details + Visual Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Left Column: Vial Details */}
           <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
@@ -155,7 +155,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
           </div>
 
           {/* Right Column: Vial Label Preview */}
-          <div className="flex justify-center md:justify-end">
+          <div className="flex justify-center sm:justify-end">
             <VialLabelPreview 
               form={form}
               deliveryMethod={deliveryMethod}
