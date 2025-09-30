@@ -931,6 +931,38 @@ export function AppProvider({ children }) {
         
     }, [protocols, vendors, stockpile, reconItems, orders, supplements]);
 
+    // Listen for subscription changes from localStorage (e.g., from Account page)
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'tpprover_subscription') {
+                try {
+                    const newSubscription = e.newValue ? JSON.parse(e.newValue) : null;
+                    setSubscription(newSubscription);
+                    console.log('🔄 Subscription updated from localStorage:', newSubscription);
+                } catch (error) {
+                    console.error('Error parsing subscription from localStorage:', error);
+                }
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        
+        // Also listen for custom events (same-tab updates)
+        const handleSubscriptionUpdate = (e) => {
+            if (e.detail && e.detail.subscription !== undefined) {
+                setSubscription(e.detail.subscription);
+                console.log('🔄 Subscription updated from custom event:', e.detail.subscription);
+            }
+        };
+
+        window.addEventListener('subscription:updated', handleSubscriptionUpdate);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
+        };
+    }, []);
+
     return (
         <AppContext.Provider value={value}>
             {children}

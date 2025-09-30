@@ -18,7 +18,13 @@
   const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) } catch { return String(s) } }
 
   function loadSubscription() { try { return JSON.parse(localStorage.getItem('tpprover_subscription') || 'null') } catch { return null } }
-  function saveSubscription(sub) { try { localStorage.setItem('tpprover_subscription', JSON.stringify(sub)) } catch {} }
+  function saveSubscription(sub) { 
+    try { 
+      localStorage.setItem('tpprover_subscription', JSON.stringify(sub));
+      // Dispatch custom event to notify AppContext of subscription change
+      window.dispatchEvent(new CustomEvent('subscription:updated', { detail: { subscription: sub } }));
+    } catch {} 
+  }
   function loadSecurity() { try { return JSON.parse(localStorage.getItem('tpprover_security') || 'null') } catch { return null } }
   function saveSecurity(sec) { try { localStorage.setItem('tpprover_security', JSON.stringify(sec)) } catch {} }
   function genAuthSecret(len = 16) {
