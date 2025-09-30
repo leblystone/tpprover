@@ -140,37 +140,26 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   return (
     <Modal open={open} onClose={onClose} title="Peptide Calculator" theme={theme} wide>
       <div className="space-y-6">
-        {/* Two Column Layout: Vial Details + Visual Preview */}
+        {/* Two Column Layout: Left Content + Visual Preview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Left Column: Vial Details */}
-          <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
-            <div className="space-y-3">
-              <VendorSuggestInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor Name" theme={theme} />
+          {/* Left Column: 2:1 Split for Vial Details and Delivery Method */}
+          <div className="grid grid-cols-3 gap-4">
+            {/* Vial Details - Takes 2/3 width */}
+            <div className="col-span-2">
+              <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
               <div className="space-y-3">
-                  <TextInput icon={<Droplet size={16} />} label="Water(mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
-                  <TextInput icon={<Info size={16} />} label="Vial Cost ($)" type="number" value={cost} onChange={v => setCost(v)} placeholder="e.g., 45.00" theme={theme} />
+                <VendorSuggestInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor Name" theme={theme} />
+                <div className="space-y-3">
+                    <TextInput icon={<Droplet size={16} />} label="Water(mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
+                    <TextInput icon={<Info size={16} />} label="Vial Cost ($)" type="number" value={cost} onChange={v => setCost(v)} placeholder="e.g., 45.00" theme={theme} />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Column: Vial Label Preview */}
-          <div className="flex justify-center sm:justify-end">
-            <VialLabelPreview 
-              form={form}
-              deliveryMethod={deliveryMethod}
-              administrationRoute={administrationRoute}
-              penType={penType}
-              penColor={penColor}
-              theme={theme}
-            />
-          </div>
-        </div>
-
-        {/* Delivery Method */}
-        <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="grid grid-cols-3 gap-2">
+            {/* Delivery Method - Takes 1/3 width */}
+            <div className="col-span-1">
+              <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
+              <div className="space-y-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('syringe');
@@ -180,14 +169,14 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                             peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
                         }));
                     }}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'syringe' ? theme.primary : theme.secondary,
                         color: deliveryMethod === 'syringe' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'syringe' ? theme.primary : theme.border
                     }}
                 >
-                    <Syringe size={16} /> Syringe
+                    <Syringe size={14} /> Syringe
                 </button>
                 <button 
                     onClick={() => {
@@ -198,14 +187,14 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                             peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
                         }));
                     }}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'pen' ? theme.primary : theme.secondary,
                         color: deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border
                     }}
                 >
-                    <Pen size={16} /> Pen
+                    <Pen size={14} /> Pen
                 </button>
                 <button 
                     onClick={() => {
@@ -216,14 +205,14 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                             peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'sprays' }))
                         }));
                     }}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                     style={{
                         backgroundColor: deliveryMethod === 'nasal' ? theme.primary : theme.secondary,
                         color: deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border
                     }}
                 >
-                    <Droplets size={16} /> Nasal
+                    <Droplets size={14} /> Nasal
                 </button>
             </div>
             
@@ -290,6 +279,20 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                     </div>
                 </div>
             )}
+            </div>
+          </div>
+
+          {/* Right Column: Vial Label Preview */}
+          <div className="flex justify-center sm:justify-end">
+            <VialLabelPreview 
+              form={form}
+              deliveryMethod={deliveryMethod}
+              administrationRoute={administrationRoute}
+              penType={penType}
+              penColor={penColor}
+              theme={theme}
+            />
+          </div>
         </div>
 
         {/* Step 2: Peptides & Doses */}
