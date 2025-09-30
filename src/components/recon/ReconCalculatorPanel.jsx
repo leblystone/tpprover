@@ -116,7 +116,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         {/* Delivery Method */}
         <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('syringe');
@@ -133,7 +133,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         borderColor: deliveryMethod === 'syringe' ? theme.primary : theme.border
                     }}
                 >
-                    <Syringe size={18} className="sm:size-4" /> Syringe
+                    <Syringe size={18} className="sm:size-5" /> Syringe
                 </button>
                 <button 
                     onClick={() => {

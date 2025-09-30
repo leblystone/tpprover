@@ -154,7 +154,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         {/* Delivery Method */}
         <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('syringe');
