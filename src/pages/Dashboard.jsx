@@ -263,35 +263,40 @@ export default function Dashboard() {
         
         if (isBlended) {
             const blendName = p.protocolName || 'Blended Protocol';
-            const doseParts = [];
+            const peptides = normalizePeptides(p);
+            
+            // For blended protocols, all peptides share the same frequency
+            // Check schedule once using the first peptide's frequency
+            if (peptides.length === 0) return;
+            
+            const freq = peptides[0].frequency || {};
             let isScheduledToday = false;
-            const times = new Set();
-
-            normalizePeptides(p).forEach(pep => {
-                const freq = pep.frequency || {};
-                let scheduled = false;
-                switch (freq.type) {
-                    case 'daily': scheduled = true; break;
-                    case 'weekly': if (freq.days?.includes(shortDay)) scheduled = true; break;
-                    case 'cycle':
-                        const on = Number(freq.onDays) || 0;
-                        const off = Number(freq.offDays) || 0;
-                        if (on > 0) {
-                            const cycleLen = on + off;
-                            const ps = new Date(p.startDate);
-                            const dayDiff = Math.floor((today - ps) / (1000 * 60 * 60 * 24));
-                            if (dayDiff >= 0 && (dayDiff % cycleLen) < on) scheduled = true;
-                        }
-                        break;
-                }
-                if (scheduled) {
-                    isScheduledToday = true;
-                    doseParts.push(`${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`);
-                    (pep.frequency.time || ['Morning']).forEach(t => times.add(t));
-                }
-            });
+            
+            switch (freq.type) {
+                case 'daily': 
+                    isScheduledToday = true; 
+                    break;
+                case 'weekly': 
+                    if (freq.days?.includes(shortDay)) isScheduledToday = true; 
+                    break;
+                case 'cycle':
+                    const on = Number(freq.onDays) || 0;
+                    const off = Number(freq.offDays) || 0;
+                    if (on > 0) {
+                        const cycleLen = on + off;
+                        const ps = new Date(p.startDate);
+                        const dayDiff = Math.floor((today - ps) / (1000 * 60 * 60 * 24));
+                        if (dayDiff >= 0 && (dayDiff % cycleLen) < on) isScheduledToday = true;
+                    }
+                    break;
+            }
 
             if (isScheduledToday) {
+                // Build dose display from all peptides in the blend
+                const doseParts = peptides.map(pep => 
+                    `${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`
+                );
+                
                 let doseDisplay = doseParts.join(' + ');
                 if (reconItem) {
                     const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
@@ -305,6 +310,8 @@ export default function Dashboard() {
                     }
                 }
 
+                // Create one task per scheduled time
+                const times = freq.time || ['Morning'];
                 times.forEach(t => {
                     const timeSlot = t === 'Morning' ? 'AM' : 'PM';
                     const task = {

@@ -278,57 +278,113 @@ export default function Calendar() {
               if (!inRange || !active) return acc;
               if (p.protocolName) activeProtoNames.add(p.protocolName)
 
+              const isBlended = (p.blendMode || '').toLowerCase() === 'blended' && Array.isArray(p.peptides) && p.peptides.length > 1;
               let dailyDoses = 0;
 
-              getNormalizedPeptides(p).forEach(pep => {
-                  const freq = pep.frequency || {};
-                  let isScheduledToday = false;
-                  
-                  // Adjust for timezone when comparing dates
-                  const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
-                  const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+              if (isBlended) {
+                  // For blended protocols, count as one task with shared frequency
+                  const peptides = getNormalizedPeptides(p);
+                  if (peptides.length > 0) {
+                      const freq = peptides[0].frequency || {};
+                      let isScheduledToday = false;
+                      
+                      // Adjust for timezone when comparing dates
+                      const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
+                      const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
 
-                  switch (freq.type) {
-                      case 'daily':
-                          isScheduledToday = true;
-                          break;
-                      case 'weekly':
-                          const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
-                          if (freq.days?.includes(dayName)) {
+                      switch (freq.type) {
+                          case 'daily':
                               isScheduledToday = true;
-                          }
-                          break;
-                      case 'cycle':
-                          const on = Number(freq.onDays) || 0;
-                          const off = Number(freq.offDays) || 0;
-                          if (on > 0) {
-                              const cycleLen = on + off;
-                              const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                              if (dayDiff >= 0) {
-                                  const dayInCycle = dayDiff % cycleLen;
-                                  if (dayInCycle < on) {
+                              break;
+                          case 'weekly':
+                              const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+                              if (freq.days?.includes(dayName)) {
+                                  isScheduledToday = true;
+                              }
+                              break;
+                          case 'cycle':
+                              const on = Number(freq.onDays) || 0;
+                              const off = Number(freq.offDays) || 0;
+                              if (on > 0) {
+                                  const cycleLen = on + off;
+                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                                  if (dayDiff >= 0) {
+                                      const dayInCycle = dayDiff % cycleLen;
+                                      if (dayInCycle < on) {
+                                          isScheduledToday = true;
+                                      }
+                                  }
+                              }
+                              break;
+                          case 'custom':
+                              const customDays = Number(freq.customDays) || 1;
+                              if (customDays > 0) {
+                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                                  if (dayDiff >= 0 && dayDiff % customDays === 0) {
                                       isScheduledToday = true;
                                   }
                               }
-                          }
-                          break;
-                      case 'custom':
-                          const customDays = Number(freq.customDays) || 1;
-                          if (customDays > 0) {
-                              const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                              if (dayDiff >= 0 && dayDiff % customDays === 0) {
+                              break;
+                          default:
+                              break;
+                      }
+
+                      if (isScheduledToday) {
+                          dailyDoses = (freq.time?.length || 1);
+                      }
+                  }
+              } else {
+                  // For separate protocols, count each peptide individually
+                  getNormalizedPeptides(p).forEach(pep => {
+                      const freq = pep.frequency || {};
+                      let isScheduledToday = false;
+                      
+                      // Adjust for timezone when comparing dates
+                      const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
+                      const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+
+                      switch (freq.type) {
+                          case 'daily':
+                              isScheduledToday = true;
+                              break;
+                          case 'weekly':
+                              const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+                              if (freq.days?.includes(dayName)) {
                                   isScheduledToday = true;
                               }
-                          }
-                          break;
-                      default:
-                          break;
-                  }
+                              break;
+                          case 'cycle':
+                              const on = Number(freq.onDays) || 0;
+                              const off = Number(freq.offDays) || 0;
+                              if (on > 0) {
+                                  const cycleLen = on + off;
+                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                                  if (dayDiff >= 0) {
+                                      const dayInCycle = dayDiff % cycleLen;
+                                      if (dayInCycle < on) {
+                                          isScheduledToday = true;
+                                      }
+                                  }
+                              }
+                              break;
+                          case 'custom':
+                              const customDays = Number(freq.customDays) || 1;
+                              if (customDays > 0) {
+                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
+                                  if (dayDiff >= 0 && dayDiff % customDays === 0) {
+                                      isScheduledToday = true;
+                                  }
+                              }
+                              break;
+                          default:
+                              break;
+                      }
 
-                  if (isScheduledToday) {
-                      dailyDoses += (pep.frequency?.time?.length || 1);
-                  }
-              });
+                      if (isScheduledToday) {
+                          dailyDoses += (pep.frequency?.time?.length || 1);
+                      }
+                  });
+              }
 
               return acc + dailyDoses;
             }, 0)
@@ -352,7 +408,6 @@ export default function Calendar() {
                   });
 
                   if (isBlended) {
-                    const times = new Set()
                     let doseDisplay = ""
                     
                     if (reconItem) {
@@ -373,9 +428,10 @@ export default function Calendar() {
                         doseDisplay = `: ${doseParts.join(' + ')}`;
                     }
 
-                    getNormalizedPeptides(p).forEach(pep => { 
-                        (pep.frequency?.time || ['AM']).forEach(t => times.add(t));
-                    })
+                    // For blended protocols, all peptides share the same frequency
+                    // Get times from the first peptide only
+                    const peptides = getNormalizedPeptides(p);
+                    const times = peptides.length > 0 ? (peptides[0].frequency?.time || ['AM']) : ['AM'];
                     
                     Array.from(times).forEach(t => {
                       const currentSlot = obj[t] || { peptides: [], supplements: [] }
