@@ -26,9 +26,20 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   };
 
   // Don't show if user has active subscription or widget was dismissed
-  if (subscription?.status === 'active' || isDismissed) {
-    return null;
-  }
+  console.log('ConversionWidget debug:', { 
+    subscriptionStatus: subscription?.status, 
+    isDismissed, 
+    subscription: subscription 
+  });
+  
+  // TEMP: Force show for debugging
+  // if (subscription?.status === 'active' || isDismissed) {
+  //   console.log('ConversionWidget: Not showing because', {
+  //     isActive: subscription?.status === 'active',
+  //     isDismissed
+  //   });
+  //   return null;
+  // }
 
   // Calculate trial days left
   const getTrialDaysLeft = () => {
