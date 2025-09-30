@@ -47,6 +47,15 @@ export default function VialLabelPreview({
               <stop offset="50%" stopColor={theme.primaryDark || '#2563eb'} stopOpacity="1"/>
               <stop offset="100%" stopColor={theme.primaryDark || '#1d4ed8'} stopOpacity="1"/>
             </linearGradient>
+            
+            {/* Aluminum crimp gradient for realistic metallic look */}
+            <linearGradient id="aluminumGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#a8a8a8"/>
+              <stop offset="20%" stopColor="#d3d3d3"/>
+              <stop offset="50%" stopColor="#e8e8e8"/>
+              <stop offset="80%" stopColor="#c0c0c0"/>
+              <stop offset="100%" stopColor="#a8a8a8"/>
+            </linearGradient>
           </defs>
           
           {/* Drop shadow at bottom */}
@@ -129,13 +138,13 @@ export default function VialLabelPreview({
             fill="url(#highlight)"
           />
           
-          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - solid aluminum silver */}
+          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - with gradient */}
           <rect 
             x="64" 
-            y="24" 
+            y="32" 
             width="72" 
             height="14" 
-            fill="#c0c0c0"
+            fill="url(#aluminumGradient)"
             stroke="#a8a8a8"
             strokeWidth="1.5"
           />
@@ -143,7 +152,7 @@ export default function VialLabelPreview({
           {/* Crimp band top ellipse - lighter aluminum */}
           <ellipse 
             cx="100" 
-            cy="24" 
+            cy="32" 
             rx="36" 
             ry="6" 
             fill="#d3d3d3"
@@ -154,7 +163,7 @@ export default function VialLabelPreview({
           {/* Crimp band bottom ellipse - slightly darker for depth */}
           <ellipse 
             cx="100" 
-            cy="38" 
+            cy="46" 
             rx="36" 
             ry="6" 
             fill="#b8b8b8"
@@ -163,14 +172,14 @@ export default function VialLabelPreview({
           />
           
           {/* Crimp detail lines for aluminum texture - solid lines */}
-          <line x1="64" y1="28" x2="136" y2="28" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="64" y1="31" x2="136" y2="31" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="64" y1="34" x2="136" y2="34" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="36" x2="136" y2="36" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="39" x2="136" y2="39" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="42" x2="136" y2="42" stroke="#e8e8e8" strokeWidth="0.5"/>
           
-          {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) */}
+          {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) - moved down */}
           <ellipse 
             cx="100" 
-            cy="18" 
+            cy="26" 
             rx="38" 
             ry="8" 
             fill="url(#capGradient)"
@@ -181,7 +190,7 @@ export default function VialLabelPreview({
           {/* Cap top surface - flatter perspective */}
           <ellipse 
             cx="100" 
-            cy="16" 
+            cy="24" 
             rx="38" 
             ry="7" 
             fill={theme.primary || '#3b82f6'}
@@ -191,21 +200,21 @@ export default function VialLabelPreview({
           {/* Cap highlight - glossy effect */}
           <ellipse 
             cx="82" 
-            cy="14" 
+            cy="22" 
             rx="22" 
             ry="4" 
             fill="#ffffff"
             opacity="0.5"
           />
           
-          {/* Cap center detail - silver stopper */}
+          {/* Cap center detail - darker silver stopper */}
           <ellipse 
             cx="100" 
-            cy="16" 
+            cy="24" 
             rx="8" 
             ry="2.5" 
-            fill="#c0c0c0"
-            stroke="#9ca3af"
+            fill="#909090"
+            stroke="#6b7280"
             strokeWidth="1"
           />
           
