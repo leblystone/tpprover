@@ -116,7 +116,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         {/* Delivery Method */}
         <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('syringe');
@@ -183,7 +183,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                                 key={route}
                                 type="button"
                                 onClick={() => setAdministrationRoute(route)}
-                                className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${
+                                className={`flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded transition-all ${
                                     administrationRoute === route 
                                         ? 'text-white shadow-sm' 
                                         : 'text-gray-600 hover:bg-gray-200'
@@ -199,10 +199,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             
             {deliveryMethod === 'pen' && (
                 <div className="mt-3">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Pen Type Selection */}
                         <CustomDropdown
-                            label="Pen Type"
+                            label="Pen Type (Optional)"
                             value={form.penType || ''}
                             onChange={(value) => setForm(prev => ({ ...prev, penType: value }))}
                             options={[
@@ -223,7 +223,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
                         {/* Pen Color Selection */}
                         <ColorSwatchDropdown
-                            label="Pen Color"
+                            label="Pen Color (Optional)"
                             value={penColor}
                             onChange={(hex) => setPenColor(hex)}
                             colors={penColors}

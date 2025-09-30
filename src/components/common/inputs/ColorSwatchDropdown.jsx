@@ -35,7 +35,7 @@ export default function ColorSwatchDropdown({
 
     const selectedColor = colors.find(c => c.hex === value || c.name === value);
     const selectedHex = selectedColor?.hex || '#C0C0C0';
-    const selectedName = selectedColor?.name || 'Select Color';
+    const selectedName = selectedColor?.name || 'Select Color (Optional)';
 
     return (
         <div ref={dropdownRef} className="relative">

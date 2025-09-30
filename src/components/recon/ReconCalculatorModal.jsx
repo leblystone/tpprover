@@ -154,7 +154,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         {/* Delivery Method */}
         <div>
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('syringe');
@@ -237,10 +237,10 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
             
             {deliveryMethod === 'pen' && (
                 <div className="mt-3">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Pen Type Selection */}
                         <CustomDropdown
-                            label="Pen Type"
+                            label="Pen Type (Optional)"
                             value={penType}
                             onChange={setPenType}
                             options={[
@@ -261,7 +261,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
 
                         {/* Pen Color Selection */}
                         <ColorSwatchDropdown
-                            label="Pen Color"
+                            label="Pen Color (Optional)"
                             value={penColor}
                             onChange={(hexValue) => {
                                 // Find the color name from hex and save the name
