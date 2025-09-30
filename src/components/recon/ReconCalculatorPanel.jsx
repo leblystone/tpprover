@@ -123,7 +123,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         // Reset to mcg when syringe is selected (default unit)
                         setForm(prev => ({
                             ...prev,
-                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: p.doseUnit === 'sprays' ? 'mcg' : p.doseUnit }))
+                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
                         }));
                     }}
                     className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
@@ -141,7 +141,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         // Reset to mcg when pen is selected (default unit)
                         setForm(prev => ({
                             ...prev,
-                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: p.doseUnit === 'sprays' ? 'mcg' : p.doseUnit }))
+                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
                         }));
                     }}
                     className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
@@ -269,17 +269,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                   
                   <div>
                     <div className="text-sm font-medium mb-2" style={{ color: theme?.text }}>Dose</div>
-                    <CombinedDosageInput
-                      value={{ amount: p.dose || '', unit: p.doseUnit || 'mcg' }}
-                      onChange={(newValue) => {
-                        updatePeptide(p.id, 'dose', newValue.amount);
-                        updatePeptide(p.id, 'doseUnit', newValue.unit);
-                      }}
-                      theme={theme}
-                      units={['mcg', 'mg', 'mL', 'sprays']}
-                      placeholder="250"
-                      deliveryMethod={deliveryMethod}
-                    />
+                            <CombinedDosageInput
+                                value={{ amount: p.dose || '', unit: p.doseUnit || 'mcg' }}
+                                onChange={(newValue) => {
+                                    updatePeptide(p.id, 'dose', newValue.amount);
+                                    updatePeptide(p.id, 'doseUnit', newValue.unit);
+                                }}
+                                theme={theme}
+                                placeholder="250"
+                                deliveryMethod={deliveryMethod}
+                            />
                   </div>
                 </div>
                 
