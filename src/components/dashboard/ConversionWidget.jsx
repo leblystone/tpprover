@@ -25,8 +25,11 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     navigate('/account');
   };
 
-  // Don't show if user has active subscription or widget was dismissed
-  if (subscription?.status === 'active' || isDismissed) {
+  // Don't show if user has active PAID subscription
+  // Show for: trial users, expired trials, canceled subscriptions, or no subscription
+  const isActivePaidSubscription = subscription?.status === 'active' && subscription?.plan !== '7-Day Free Trial';
+  
+  if (isActivePaidSubscription || isDismissed) {
     return null;
   }
 
