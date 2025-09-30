@@ -26,7 +26,6 @@ import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard'
 import BadgesModal from '../components/badges/BadgesModal'
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal'
 import ResearchStatusWidget from '../components/dashboard/ResearchStatusWidget'
-import ConversionWidget from '../components/dashboard/ConversionWidget'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { useBadgeStats } from '../utils/badges'
@@ -934,9 +933,6 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Conversion Widget - Floating bottom widget */}
-      {console.log('Dashboard: About to render ConversionWidget with:', { theme: !!theme, subscription: subscription })}
-      <ConversionWidget theme={theme} subscription={subscription} />
     </div>
   )
 }
