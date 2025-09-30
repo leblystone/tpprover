@@ -5,6 +5,7 @@ import { useAppContext } from '../../context/AppContext'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import TextInput from '../common/inputs/TextInput'
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
+import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { Droplet, Info, Plus, Trash2, FilePlus, Pen, Syringe, Droplets } from 'lucide-react'
 
@@ -264,40 +265,17 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
                         </div>
 
                         {/* Pen Color Selection */}
-                        <div>
-                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Color</label>
-                            <div className="grid grid-cols-4 gap-3">
-                                {penColors.map(({ name, hex }) => {
-                                    const isSelected = penColor === name;
-                                    const style = {
-                                        background: getChromeGradient(hex),
-                                    };
-                                    if (hex === '#FFFFFF') {
-                                        style.boxShadow = 'inset 0 0 0 1px #ddd';
-                                    }
-                                    return (
-                                        <button 
-                                            key={name}
-                                            type="button"
-                                            title={name}
-                                            onClick={() => setPenColor(name)}
-                                            className={`relative w-full aspect-square rounded-lg transition-all duration-200 hover:scale-105 ${
-                                                isSelected 
-                                                    ? 'ring-2 ring-offset-2 shadow-lg' 
-                                                    : 'hover:shadow-md border-2 border-gray-300'
-                                            }`}
-                                            style={isSelected ? { ...style, ringColor: theme.primary } : style}
-                                        >
-                                            {isSelected && (
-                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                    <div className="w-3 h-3 bg-white rounded-full border-2" style={{ borderColor: hex === '#FFFFFF' ? '#333' : '#fff' }}></div>
-                                                </div>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <ColorSwatchDropdown
+                            label="Pen Color"
+                            value={penColor}
+                            onChange={(hexValue) => {
+                                // Find the color name from hex and save the name
+                                const colorObj = penColors.find(c => c.hex === hexValue);
+                                setPenColor(colorObj?.name || hexValue);
+                            }}
+                            colors={penColors}
+                            theme={theme}
+                        />
                     </div>
                 </div>
             )}

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import TextInput from '../common/inputs/TextInput'
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
+import CustomDropdown from '../common/inputs/CustomDropdown'
+import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets } from 'lucide-react'
@@ -226,40 +228,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                         </div>
 
                         {/* Pen Color Selection */}
-                        <div>
-                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Color</label>
-                            <div className="grid grid-cols-4 gap-3">
-                                {penColors.map(({ name, hex }) => {
-                                    const isSelected = penColor === hex;
-                                    const style = {
-                                        background: getChromeGradient(hex),
-                                    };
-                                    if (hex === '#FFFFFF') {
-                                        style.boxShadow = 'inset 0 0 0 1px #ddd';
-                                    }
-                                    return (
-                                        <button 
-                                            key={name}
-                                            type="button"
-                                            title={name}
-                                            onClick={() => setPenColor(hex)}
-                                            className={`relative w-full aspect-square rounded-lg transition-all duration-200 hover:scale-105 ${
-                                                isSelected 
-                                                    ? 'ring-2 ring-offset-2 shadow-lg' 
-                                                    : 'hover:shadow-md border-2 border-gray-300'
-                                            }`}
-                                            style={isSelected ? { ...style, ringColor: theme.primary } : style}
-                                        >
-                                            {isSelected && (
-                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                    <div className="w-3 h-3 bg-white rounded-full border-2" style={{ borderColor: hex === '#FFFFFF' ? '#333' : '#fff' }}></div>
-                                                </div>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <ColorSwatchDropdown
+                            label="Pen Color"
+                            value={penColor}
+                            onChange={(hex) => setPenColor(hex)}
+                            colors={penColors}
+                            theme={theme}
+                        />
                     </div>
                 </div>
             )}
