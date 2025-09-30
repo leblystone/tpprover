@@ -1,5 +1,6 @@
 import React from 'react';
 import TextInput from '../common/inputs/TextInput';
+import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import { X, Syringe, Pen, Droplets, Activity } from 'lucide-react';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import { getChromeGradient } from '../../utils/recon';
@@ -59,40 +60,15 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     />
                     
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage Amount</div>
-                            <TextInput 
-                                value={item.dosage?.amount || ''} 
-                                onChange={v => handleChange('dosage', { ...item.dosage, amount: v })} 
-                                theme={theme} 
-                                placeholder="250, 0.5, or 2" 
+                        <div className="sm:col-span-2">
+                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage</div>
+                            <CombinedDosageInput
+                                value={item.dosage || { amount: '', unit: 'mcg' }}
+                                onChange={(newDosage) => handleChange('dosage', newDosage)}
+                                theme={theme}
+                                deliveryMethod={item.deliveryMethod}
+                                placeholder="250, 0.5, or 2"
                             />
-                        </div>
-                        
-                        <div>
-                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage Unit</div>
-                            <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
-                                {(item.deliveryMethod === 'nasal' 
-                                    ? ['mcg', 'mg', 'iu', 'mL', 'sprays'] 
-                                    : ['mcg', 'mg', 'iu', 'mL']
-                                ).map(unit => (
-                                    <button 
-                                        key={unit} 
-                                        type="button" 
-                                        onClick={() => handleChange('dosage', { ...item.dosage, unit })}
-                                        className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded ${(item.dosage?.unit || 'mcg') === unit ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                                        style={(item.dosage?.unit || 'mcg') === unit ? { backgroundColor: theme.primary } : {}}
-                                    >
-                                        {unit}
-                                    </button>
-                                ))}
-                            </div>
-                            {/* Nasal spray disclaimer */}
-                            {item.deliveryMethod === 'nasal' && (item.dosage?.unit || 'mcg') === 'sprays' && (
-                                <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                                    💡 Assumes 100 mcg per spray (typical nasal spray)
-                                </div>
-                            )}
                         </div>
                         
                         {/* Delivery Method - Only show for separate protocols or first peptide in blended */}
