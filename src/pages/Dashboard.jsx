@@ -545,6 +545,8 @@ export default function Dashboard() {
     return () => window.removeEventListener('tpp:toast', onToast)
   }, [])
 
+  console.log('🎨 Dashboard rendering with subscription:', subscription);
+  
   return (
     <div className="space-y-8" data-tour="dashboard-welcome">
       <ViewContainer theme={theme} transparent noMinHeight>
