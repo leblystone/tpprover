@@ -129,21 +129,10 @@ export default function VialLabelPreview({
             fill="url(#highlight)"
           />
           
-          {/* Cap - Bottom part (aluminum crimp) */}
+          {/* Cap - Main body (theme colored) - drawn first */}
           <ellipse 
             cx="100" 
-            cy="32" 
-            rx="36" 
-            ry="8" 
-            fill="#c0c0c0"
-            stroke="#a8a8a8"
-            strokeWidth="1.5"
-          />
-          
-          {/* Cap - Main body (theme colored) */}
-          <ellipse 
-            cx="100" 
-            cy="20" 
+            cy="18" 
             rx="38" 
             ry="12" 
             fill="url(#capGradient)"
@@ -154,7 +143,7 @@ export default function VialLabelPreview({
           {/* Cap top surface - lighter for 3D effect */}
           <ellipse 
             cx="100" 
-            cy="16" 
+            cy="14" 
             rx="38" 
             ry="10" 
             fill={theme.primary || '#3b82f6'}
@@ -164,7 +153,7 @@ export default function VialLabelPreview({
           {/* Cap highlight - glossy effect */}
           <ellipse 
             cx="82" 
-            cy="14" 
+            cy="12" 
             rx="22" 
             ry="5" 
             fill="#ffffff"
@@ -174,12 +163,34 @@ export default function VialLabelPreview({
           {/* Cap center detail - rubber stopper appearance */}
           <ellipse 
             cx="100" 
-            cy="16" 
+            cy="14" 
             rx="8" 
             ry="3" 
             fill="#374151"
             stroke="#1f2937"
             strokeWidth="1"
+          />
+          
+          {/* Aluminum crimp band - at BOTTOM of cap (overlaying neck) */}
+          <ellipse 
+            cx="100" 
+            cy="28" 
+            rx="36" 
+            ry="6" 
+            fill="#b8bcc4"
+            stroke="#9ca3af"
+            strokeWidth="1.5"
+          />
+          
+          {/* Crimp band detail lines */}
+          <ellipse 
+            cx="100" 
+            cy="27" 
+            rx="36" 
+            ry="4" 
+            fill="none"
+            stroke="#d1d5db"
+            strokeWidth="0.8"
           />
           
           {/* White Label in the middle of vial */}
