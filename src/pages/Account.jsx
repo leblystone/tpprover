@@ -37,7 +37,27 @@
     // const [user, setUser] = React.useState(() => {
     //   try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
     // })
-    const [sub, setSub] = React.useState(() => loadSubscription())
+    const [sub, setSub] = React.useState(() => {
+        const existing = loadSubscription();
+        if (existing) return existing;
+        
+        // Default to trial for local testing
+        const now = new Date();
+        const end = new Date(now);
+        end.setDate(end.getDate() + 7);
+        
+        return {
+            id: 'trial_demo',
+            plan: '7-Day Free Trial',
+            price: 0,
+            interval: 'trial',
+            currency: 'USD',
+            status: 'trialing',
+            startedAt: now.toISOString(),
+            currentPeriodEnd: end.toISOString(),
+            paymentMethod: null,
+        };
+    })
     const [security, setSecurity] = React.useState(() => loadSecurity() || { twoFactorEnabled: false, twoFactorMethod: 'email', authSecret: '', emailVisible: true })
     const [timeLeft, setTimeLeft] = React.useState(null);
 
@@ -73,9 +93,31 @@
     }, []);
 
     React.useEffect(() => {
-        // Auto-start 7-day lab access for new users (beta phase concluded)
+        // Auto-start 7-day trial for new users (beta phase concluded)
         if (user && !sub) {
-            createSubscription({ name: 'Pro Monthly (7-Day Lab Access)', price: 6.00, interval: 'month' }, true);
+            // Create trial that's exactly 7 days from NOW
+            const now = new Date();
+            const end = new Date(now);
+            end.setDate(end.getDate() + 7); // Exactly 7 days from signup
+            
+            const trialSub = {
+                id: String(Date.now()),
+                plan: '7-Day Free Trial',
+                price: 0,
+                interval: 'trial',
+                currency: 'USD',
+                status: 'trialing',
+                startedAt: now.toISOString(),
+                currentPeriodEnd: end.toISOString(),
+                paymentMethod: null,
+            };
+            
+            saveSubscription(trialSub);
+            setSub(trialSub);
+            
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                detail: { message: '🎉 7-day free trial started! Choose a plan before it ends.', type: 'success' } 
+            }));
         }
     }, [user, sub])
 
@@ -435,8 +477,8 @@
               {sub ? (
                 // Regular user with subscription
                 <div className="space-y-4">
-                  {sub.status === 'lab_access' && (
-                    <LabAccessProgressBar 
+                  {sub.status === 'trialing' && (
+                    <TrialProgressBar 
                       theme={theme} 
                       startDate={sub.startedAt} 
                       endDate={sub.currentPeriodEnd} 
@@ -473,19 +515,19 @@
                       <div className="flex items-center gap-2">
                         <Crown size={20} style={{ color: '#5C7659' }} />
                         <span className="font-semibold text-lg" style={{ color: '#344E41' }}>
-                          {sub?.status === 'lab_access' ? 'Trialing' : 'Current Plan'}
+                          {sub?.status === 'trialing' ? 'Free Trial' : 'Current Plan'}
                         </span>
                       </div>
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                         sub?.status === 'active' ? 'bg-green-100 text-green-800' : 
-                        sub?.status === 'lab_access' ? 'bg-blue-100 text-blue-800' : 
+                        sub?.status === 'trialing' ? 'bg-blue-100 text-blue-800' : 
                         'bg-red-100 text-red-800'
                       }`}>
-                        {sub?.status === 'lab_access' ? 'Trialing' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
+                        {sub?.status === 'trialing' ? 'Trial Active' : sub?.status?.charAt(0).toUpperCase() + sub?.status?.slice(1)}
                       </div>
                     </div>
                     
-                    {sub?.status === 'lab_access' ? (
+                    {sub?.status === 'trialing' ? (
                       <>
                         <div className="text-2xl font-bold mb-1" style={{ color: '#344E41' }}>
                           Free Trial
@@ -497,14 +539,14 @@
                         
                         {sub.currentPeriodEnd && (
                           <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
-                            <div>Lab access ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
-                            <div className="text-xs">
+                            <div>Trial ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                            <div className="text-xs font-semibold" style={{ color: '#3B82F6' }}>
                               {(() => {
                                 const now = new Date();
                                 const end = new Date(sub.currentPeriodEnd);
                                 const diffTime = end - now;
                                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                return diffDays > 0 ? `${diffDays} days remaining` : 'Lab access expired';
+                                return diffDays > 0 ? `${diffDays} day${diffDays !== 1 ? 's' : ''} remaining` : 'Trial expired';
                               })()}
                             </div>
                           </div>
@@ -523,7 +565,7 @@
                         
                         {sub.status !== 'canceled' && (
                           <div className="space-y-1 text-sm" style={{ color: '#6B7280' }}>
-                            <div>{sub.status === 'lab_access' ? 'Lab access ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+                            <div>{sub.status === 'trialing' ? 'Trial ends' : 'Next billing'}: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
                             {sub.paymentMethod && (
                               <div>Payment: {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}</div>
                             )}
@@ -536,7 +578,7 @@
                   {/* Plan Selection Options */}
                   <div>
                     <h4 className="font-semibold mb-4" style={{ color: '#344E41' }}>
-                      {sub?.status === 'lab_access' ? 'Choose Your Plan' : 'Upgrade Your Plan'}
+                      {sub?.status === 'trialing' ? 'Choose Your Plan' : 'Upgrade Your Plan'}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Monthly Plan */}
@@ -547,8 +589,8 @@
                           setConfirmAction('switchPlan');
                           setConfirmData({
                             plan: { name: 'Pro Monthly', price: 8.99, interval: 'month' },
-                            isSwitching: sub?.status !== 'lab_access',
-                            currentPlan: sub?.status === 'lab_access' ? 'Lab Access' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
+                            isSwitching: sub?.status !== 'trialing',
+                            currentPlan: sub?.status === 'trialing' ? 'Free Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
                           });
                           setConfirmModalOpen(true);
                         }}
@@ -571,7 +613,6 @@
 
                         {/* Features */}
                         <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                          <p>All Pro features • Priority support • Cancel anytime</p>
                         </div>
 
                         {/* Action Button */}
@@ -591,8 +632,8 @@
                           setConfirmAction('switchPlan');
                           setConfirmData({
                             plan: { name: 'Pro Annual', price: 89.99, interval: 'year' },
-                            isSwitching: sub?.status !== 'lab_access',
-                            currentPlan: sub?.status === 'lab_access' ? 'Lab Access' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
+                            isSwitching: sub?.status !== 'trialing',
+                            currentPlan: sub?.status === 'trialing' ? 'Free Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
                           });
                           setConfirmModalOpen(true);
                         }}
@@ -631,7 +672,6 @@
 
                         {/* Features */}
                         <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                          <p>All Pro features • Priority support • Advanced analytics</p>
                         </div>
 
                         {/* Action Button */}
@@ -651,8 +691,8 @@
                           setConfirmAction('switchPlan');
                           setConfirmData({
                             plan: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' },
-                            isSwitching: sub?.status !== 'lab_access',
-                            currentPlan: sub?.status === 'lab_access' ? 'Lab Access' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
+                            isSwitching: sub?.status !== 'trialing',
+                            currentPlan: sub?.status === 'trialing' ? 'Free Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
                           });
                           setConfirmModalOpen(true);
                         }}
@@ -691,8 +731,16 @@
 
                         {/* Features */}
                         <div className="text-center mb-6 text-sm flex-grow" style={{ color: '#5C7659' }}>
-                          <p>All Pro features forever • Priority support • Future updates included</p>
                         </div>
+
+                        {/* Limited Time Notice */}
+                        {sub?.interval !== 'lifetime' && (
+                          <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
+                            <p className="text-xs text-center" style={{ color: '#344E41' }}>
+                              <strong>Forever a Researcher?</strong><br/>Purchase lifetime - only available for a short time
+                            </p>
+                          </div>
+                        )}
 
                         {/* Action Button */}
                         <button 
@@ -701,15 +749,6 @@
                         >
                           {sub?.interval === 'lifetime' ? 'Current Plan' : 'Choose Lifetime'}
                         </button>
-
-                        {/* Limited Time Notice */}
-                        {sub?.interval !== 'lifetime' && (
-                          <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
-                            <p className="text-xs text-center" style={{ color: '#344E41' }}>
-                              <strong>Forever a Researcher?</strong><br/>Purchase lifetime - only available for a short time
-                            </p>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1086,7 +1125,7 @@
     )
   }
 
-const LabAccessProgressBar = ({ theme, startDate, endDate }) => {
+const TrialProgressBar = ({ theme, startDate, endDate }) => {
     const [progress, setProgress] = React.useState(0);
     const [timeLeft, setTimeLeft] = React.useState('');
     const [isExpired, setIsExpired] = React.useState(false);

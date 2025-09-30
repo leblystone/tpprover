@@ -18,7 +18,7 @@ export default function BetaEnded() {
             <Lock size={48} className="mx-auto" style={{ color: theme.primary }} />
             <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>Beta Access Has Ended</h2>
             <p className="text-gray-600">
-                Thank you for participating in the beta trial for The Pep Planner. The trial period has now concluded.
+                Thank you for participating in the beta lab access for The Pep Planner. The lab access period has now concluded.
             </p>
             <p className="text-gray-600">
                 We are working hard to launch the official version soon. Stay tuned for updates!

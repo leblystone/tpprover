@@ -1,4 +1,4 @@
-// Trial Expired Lockout Page
+// Lab Access Expired Lockout Page
 import React from 'react';
 import { Clock, CreditCard, Zap } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
@@ -63,10 +63,10 @@ export default function TrialExpired() {
         <div className="text-center mb-8">
           <img src={logo} alt="The Pep Planner Logo" className="h-16 w-16 rounded-full shadow-lg object-cover mx-auto mb-4" />
           <h1 className="text-3xl font-bold mb-2" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
-          <p className="text-lg text-gray-600">Your 7-day trial has ended</p>
+          <p className="text-lg text-gray-600">Your 7-day lab access has ended</p>
         </div>
 
-        {/* Trial Ended Message */}
+        {/* Lab Access Ended Message */}
         <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-8 mb-8 text-center">
           <div className="flex items-center justify-center mb-4">
             <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
@@ -75,16 +75,16 @@ export default function TrialExpired() {
           </div>
           
           <h2 className="text-2xl font-bold text-orange-800 mb-3">
-            Your Free Trial Has Expired
+            Your Lab Access Has Expired
           </h2>
           
           <p className="text-orange-700 mb-4 text-lg">
-            Thank you for trying The Pep Planner! To continue organizing your research 
+            Thank you for exploring The Pep Planner! To continue organizing your research 
             and accessing all premium features, please choose a subscription plan below.
           </p>
           
           <div className="bg-white/50 rounded-lg p-4 text-sm text-orange-600">
-            <strong>What you experienced during your trial:</strong>
+            <strong>What you experienced during your lab access:</strong>
             <br />
             Full access to protocols, recon tracking, stockpile management, and all premium features
           </div>

@@ -55,7 +55,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
         style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
       >
         <div className="mb-4 mt-2 flex items-center justify-center">
-          <img src={logo} alt="Logo" className="h-16 w-16 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img src={logo} alt="Logo" className="h-20 w-20 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
         </div>
         <nav className="flex flex-col space-y-2 flex-1 overflow-y-auto overflow-x-hidden">
           {links.map(({ to, icon: Icon, label, tourId }) => (
