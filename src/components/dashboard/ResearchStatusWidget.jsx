@@ -42,10 +42,9 @@ export default function ResearchStatusWidget({ theme, subscription }) {
 
   // Hide widget only if user has active paid subscription
   // Show for trial, canceled, expired, or no subscription
-  // TEMPORARY: Always show for testing
-  // if (isActive && !isCanceled) {
-  //   return null;
-  // }
+  if (isActive && !isCanceled) {
+    return null;
+  }
 
   return (
     <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
