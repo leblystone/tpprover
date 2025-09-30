@@ -7,6 +7,7 @@ import TextInput from '../common/inputs/TextInput'
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
 import CustomDropdown from '../common/inputs/CustomDropdown'
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
+import VialLabelPreview from './VialLabelPreview'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { Droplet, Info, Plus, Trash2, FilePlus, Pen, Syringe, Droplets } from 'lucide-react'
 
@@ -139,6 +140,16 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   return (
     <Modal open={open} onClose={onClose} title="Peptide Calculator" theme={theme} wide>
       <div className="space-y-6">
+        {/* Vial Label Preview */}
+        <VialLabelPreview 
+          form={form}
+          deliveryMethod={deliveryMethod}
+          administrationRoute={administrationRoute}
+          penType={penType}
+          penColor={penColor}
+          theme={theme}
+        />
+
         {/* Step 1: Vial Details */}
         <div>
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>

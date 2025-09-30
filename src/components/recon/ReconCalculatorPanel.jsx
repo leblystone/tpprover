@@ -6,6 +6,7 @@ import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets } from 'lucide-react'
+import VialLabelPreview from './VialLabelPreview'
 
 export const penColors = [
     { name: 'Gold', hex: '#DAA520' },
@@ -99,6 +100,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
     <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
       <h3 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Peptide Calculator</h3>
       <p className="text-sm text-gray-500 mb-4">Calculate dosages for one or more peptides.</p>
+
+      {/* Vial Label Preview */}
+      <VialLabelPreview 
+        form={form}
+        deliveryMethod={deliveryMethod}
+        administrationRoute={administrationRoute}
+        penType={form.penType}
+        penColor={penColor}
+        theme={theme}
+      />
 
       <div className="space-y-6">
         {/* Step 1: Vial Details */}
