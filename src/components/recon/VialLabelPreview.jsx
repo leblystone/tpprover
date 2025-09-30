@@ -11,150 +11,115 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Clean Line Art Vial - Simple Style */}
+        {/* Flat 2D Vial */}
         <svg 
-          width="140" 
-          height="200" 
-          viewBox="0 0 140 200" 
+          width="120" 
+          height="180" 
+          viewBox="0 0 120 180" 
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Vial Body - Simple with flat color */}
+          {/* Vial Body - Simple rectangle */}
           <rect 
-            x="42" 
-            y="65" 
-            width="56" 
+            x="35" 
+            y="55" 
+            width="50" 
             height="110" 
             rx="6"
-            ry="6"
-            fill="#f8fafc"
-            stroke="#374151"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          
-          {/* Bottom curve indicator */}
-          <ellipse 
-            cx="70" 
-            cy="165" 
-            rx="24" 
-            ry="6" 
-            fill="none"
+            fill="white"
             stroke="#374151"
             strokeWidth="2.5"
-            opacity="0.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
           
-          {/* Shoulder - rounded top */}
+          {/* Shoulder - flat trapezoid */}
           <path 
-            d="M 42 65 L 42 55 Q 42 50, 46 48 L 54 48 L 54 50 L 86 50 L 86 48 L 94 48 Q 98 50, 98 55 L 98 65"
-            fill="#f8fafc"
+            d="M 35 55 L 30 45 L 30 42 L 90 42 L 90 45 L 85 55"
+            fill="white"
             stroke="#374151"
-            strokeWidth="3"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           
-          {/* Neck - short straight section */}
+          {/* Neck - thin rectangle */}
           <rect 
-            x="58" 
-            y="38" 
-            width="24" 
-            height="12" 
-            fill="#f8fafc"
-            stroke="#374151"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          
-          {/* Aluminum Crimp Band - Grey */}
-          <rect 
-            x="52" 
+            x="50" 
             y="30" 
-            width="36" 
-            height="14" 
+            width="20" 
+            height="12" 
+            fill="white"
+            stroke="#374151"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          
+          {/* Aluminum Crimp - Grey rectangle */}
+          <rect 
+            x="45" 
+            y="22" 
+            width="30" 
+            height="10" 
             fill="#c0c0c0"
             stroke="#374151"
-            strokeWidth="3"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           
-          {/* Crimp top ellipse */}
-          <ellipse 
-            cx="70" 
-            cy="30" 
-            rx="18" 
-            ry="5" 
-            fill="#d4d4d4"
+          {/* Crimp top line */}
+          <line 
+            x1="45" 
+            y1="22" 
+            x2="75" 
+            y2="22" 
             stroke="#374151"
-            strokeWidth="3"
+            strokeWidth="2.5"
           />
           
-          {/* Crimp inner ring detail */}
-          <ellipse 
-            cx="70" 
-            cy="30" 
-            rx="12" 
-            ry="3" 
-            fill="none"
+          {/* Crimp bottom line */}
+          <line 
+            x1="45" 
+            y1="32" 
+            x2="75" 
+            y2="32" 
             stroke="#374151"
-            strokeWidth="1.5"
+            strokeWidth="2.5"
           />
           
-          {/* Crimp bottom ellipse */}
-          <ellipse 
-            cx="70" 
-            cy="44" 
-            rx="18" 
-            ry="5" 
-            fill="#a8a8a8"
-            stroke="#374151"
-            strokeWidth="3"
-          />
-          
-          {/* Cap - Large flat disc (Theme colored) */}
-          <ellipse 
-            cx="70" 
-            cy="22" 
-            rx="26" 
-            ry="12" 
+          {/* Cap - Flat rectangle (Theme colored) */}
+          <rect 
+            x="38" 
+            y="12" 
+            width="44" 
+            height="12" 
+            rx="2"
             fill={theme.primary || '#6b7280'}
             stroke="#374151"
-            strokeWidth="3"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
           
-          {/* Cap top surface ring */}
-          <ellipse 
-            cx="70" 
-            cy="18" 
-            rx="26" 
-            ry="6" 
-            fill="none"
+          {/* Cap top line */}
+          <line 
+            x1="38" 
+            y1="14" 
+            x2="82" 
+            y2="14" 
             stroke="#374151"
-            strokeWidth="3"
+            strokeWidth="2"
           />
           
-          {/* Cap inner detail ring */}
-          <ellipse 
-            cx="70" 
-            cy="18" 
-            rx="18" 
-            ry="4" 
-            fill="none"
-            stroke="#374151"
-            strokeWidth="1.5"
-          />
-          
-          {/* White Label on Vial Body */}
+          {/* White Label Rectangle */}
           <rect 
-            x="46" 
-            y="95" 
-            width="48" 
+            x="40" 
+            y="85" 
+            width="40" 
             height="45" 
-            rx="3"
+            rx="2"
             fill="#ffffff"
             stroke="#cbd5e1"
             strokeWidth="1.5"
