@@ -1,5 +1,4 @@
 import React from 'react';
-import { Droplet, Syringe, Pen, Droplets } from 'lucide-react';
 
 export default function VialLabelPreview({ 
   form, 
@@ -12,148 +11,175 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Vial SVG - Larger and wider */}
+        {/* Photorealistic Vial SVG */}
         <svg 
           width="200" 
-          height="260" 
-          viewBox="0 0 200 260" 
+          height="280" 
+          viewBox="0 0 200 280" 
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Neck - cylindrical (drawn first so cap overlays it) */}
+          <defs>
+            {/* Glass gradient for realistic transparency */}
+            <linearGradient id="glassBody" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#f8fafc" stopOpacity="0.3"/>
+              <stop offset="15%" stopColor="#ffffff" stopOpacity="0.8"/>
+              <stop offset="50%" stopColor="#f1f5f9" stopOpacity="0.2"/>
+              <stop offset="85%" stopColor="#cbd5e1" stopOpacity="0.6"/>
+              <stop offset="100%" stopColor="#e2e8f0" stopOpacity="0.4"/>
+            </linearGradient>
+            
+            {/* Highlight gradient */}
+            <linearGradient id="highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9"/>
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.2"/>
+            </linearGradient>
+            
+            {/* Shadow gradient */}
+            <radialGradient id="shadow">
+              <stop offset="0%" stopColor="#000000" stopOpacity="0.2"/>
+              <stop offset="100%" stopColor="#000000" stopOpacity="0"/>
+            </radialGradient>
+            
+            {/* Blue cap gradient using theme colors */}
+            <linearGradient id="capGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={theme.primary || '#3b82f6'} stopOpacity="1"/>
+              <stop offset="50%" stopColor={theme.primaryDark || '#2563eb'} stopOpacity="1"/>
+              <stop offset="100%" stopColor={theme.primaryDark || '#1d4ed8'} stopOpacity="1"/>
+            </linearGradient>
+          </defs>
+          
+          {/* Drop shadow at bottom */}
+          <ellipse 
+            cx="100" 
+            cy="268" 
+            rx="45" 
+            ry="8" 
+            fill="url(#shadow)"
+          />
+          
+          {/* Vial Body - Main glass container */}
           <rect 
-            x="75" 
-            y="25" 
-            width="50" 
-            height="25" 
-            fill="white"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
+            x="55" 
+            y="70" 
+            width="90" 
+            height="170" 
+            rx="6"
+            fill="url(#glassBody)"
+            stroke="#cbd5e1"
+            strokeWidth="1.5"
           />
           
-          {/* Vial Cap - Top flat circle with grey fill (drawn last to be on top) */}
+          {/* Left highlight - bright reflection */}
+          <rect 
+            x="60" 
+            y="75" 
+            width="15" 
+            height="160" 
+            rx="4"
+            fill="url(#highlight)"
+          />
+          
+          {/* Right subtle reflection */}
+          <rect 
+            x="125" 
+            y="80" 
+            width="8" 
+            height="150" 
+            rx="2"
+            fill="#ffffff"
+            opacity="0.3"
+          />
+          
+          {/* Bottom curve of vial */}
           <ellipse 
             cx="100" 
-            cy="20" 
-            rx="35" 
+            cy="235" 
+            rx="42" 
             ry="10" 
-            fill="#9ca3af"
-            stroke="#4b5563"
-            strokeWidth="4.5"
+            fill="#e2e8f0"
+            opacity="0.5"
           />
           
-          {/* Cap ring detail - inner circle */}
+          {/* Shoulder - transition from neck to body */}
+          <path 
+            d="M 65 70 Q 60 62, 60 55 L 60 50 L 140 50 L 140 55 Q 140 62, 135 70"
+            fill="url(#glassBody)"
+            stroke="#cbd5e1"
+            strokeWidth="1.5"
+          />
+          
+          {/* Neck */}
+          <rect 
+            x="70" 
+            y="30" 
+            width="60" 
+            height="20" 
+            fill="url(#glassBody)"
+            stroke="#cbd5e1"
+            strokeWidth="1.5"
+          />
+          
+          {/* Neck highlight */}
+          <rect 
+            x="73" 
+            y="32" 
+            width="10" 
+            height="16" 
+            fill="url(#highlight)"
+          />
+          
+          {/* Silver/White band below cap */}
+          <rect 
+            x="68" 
+            y="26" 
+            width="64" 
+            height="6" 
+            rx="1"
+            fill="#e5e7eb"
+            stroke="#d1d5db"
+            strokeWidth="1"
+          />
+          
+          {/* Cap - Blue/Theme colored */}
           <ellipse 
             cx="100" 
             cy="20" 
-            rx="26" 
-            ry="6" 
-            fill="none"
-            stroke="#6b7280"
+            rx="38" 
+            ry="12" 
+            fill="url(#capGradient)"
+            stroke={theme.primaryDark || '#1e40af'}
             strokeWidth="2"
           />
           
-          {/* Cap side - cylindrical appearance */}
+          {/* Cap top surface */}
           <ellipse 
             cx="100" 
-            cy="30" 
-            rx="35" 
+            cy="18" 
+            rx="38" 
             ry="10" 
-            fill="#b0b7c3"
-            stroke="#4b5563"
-            strokeWidth="4.5"
+            fill="url(#capGradient)"
+            opacity="0.9"
           />
           
-          {/* Neck bottom rim */}
-          <line 
-            x1="65" 
-            y1="50" 
-            x2="135" 
-            y2="50" 
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Shoulder curve - left side */}
-          <path 
-            d="M 65 50 Q 60 56, 60 66"
-            fill="none"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Shoulder curve - right side */}
-          <path 
-            d="M 135 50 Q 140 56, 140 66"
-            fill="none"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Vial Body - left side */}
-          <line 
-            x1="60" 
-            y1="66" 
-            x2="60" 
-            y2="210" 
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Vial Body - right side */}
-          <line 
-            x1="140" 
-            y1="66" 
-            x2="140" 
-            y2="210" 
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Bottom curve - left */}
-          <path 
-            d="M 60 210 Q 60 225, 75 232"
-            fill="none"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Bottom curve - right */}
-          <path 
-            d="M 140 210 Q 140 225, 125 232"
-            fill="none"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Bottom - curved base */}
-          <path 
-            d="M 75 232 Q 100 236, 125 232"
-            fill="none"
-            stroke={theme.border || '#2d3748'}
-            strokeWidth="4"
-          />
-          
-          {/* Bottom ellipse - grey depth indicator */}
+          {/* Cap highlight */}
           <ellipse 
-            cx="100" 
-            cy="216" 
-            rx="36" 
-            ry="10" 
-            fill="#d1d5db"
-            stroke="#9ca3af"
-            strokeWidth="2.5"
+            cx="85" 
+            cy="16" 
+            rx="25" 
+            ry="5" 
+            fill="#ffffff"
+            opacity="0.4"
           />
           
-          {/* Glass reflection line - left side */}
-          <line 
-            x1="68" 
-            y1="70" 
-            x2="68" 
-            y2="200" 
-            stroke="#e2e8f0"
-            strokeWidth="2.5"
-            opacity="0.6"
+          {/* Cap center circle detail */}
+          <circle 
+            cx="100" 
+            cy="18" 
+            r="6" 
+            fill={theme.primaryDark || '#1e40af'}
+            stroke="#1f2937"
+            strokeWidth="1"
           />
         </svg>
       </div>
