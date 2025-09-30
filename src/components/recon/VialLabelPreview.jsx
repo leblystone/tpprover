@@ -64,14 +64,46 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center mb-6">
       <div className="relative">
-        {/* Vial SVG - Clean Line Art Style */}
+        {/* Vial SVG - Realistic Glass Style */}
         <svg 
           width="180" 
           height="240" 
           viewBox="0 0 180 240" 
-          className="drop-shadow-sm"
+          className="drop-shadow-lg"
         >
-          {/* Vial Body */}
+          {/* Vial Body - Glass with gradient */}
+          <defs>
+            <linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#f8fafc" stopOpacity="0.9"/>
+              <stop offset="30%" stopColor="#e2e8f0" stopOpacity="0.7"/>
+              <stop offset="70%" stopColor="#cbd5e1" stopOpacity="0.8"/>
+              <stop offset="100%" stopColor="#f1f5f9" stopOpacity="0.9"/>
+            </linearGradient>
+            <linearGradient id="capGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6"/>
+              <stop offset="50%" stopColor="#1d4ed8"/>
+              <stop offset="100%" stopColor="#1e40af"/>
+            </linearGradient>
+            <linearGradient id="highlight" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6"/>
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.2"/>
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.1"/>
+            </linearGradient>
+          </defs>
+          
+          {/* Vial Body Shadow */}
+          <rect 
+            x="42" 
+            y="52" 
+            width="100" 
+            height="160" 
+            rx="10" 
+            ry="10"
+            fill="#000000"
+            opacity="0.1"
+          />
+          
+          {/* Vial Body - Main glass */}
           <rect 
             x="40" 
             y="50" 
@@ -79,9 +111,30 @@ export default function VialLabelPreview({
             height="160" 
             rx="10" 
             ry="10"
-            fill="white"
-            stroke={theme.border || '#374151'}
-            strokeWidth="4"
+            fill="url(#glassGradient)"
+            stroke="#94a3b8"
+            strokeWidth="2"
+          />
+          
+          {/* Glass highlight */}
+          <rect 
+            x="42" 
+            y="52" 
+            width="20" 
+            height="156" 
+            rx="8" 
+            ry="8"
+            fill="url(#highlight)"
+          />
+          
+          {/* Vial Neck Shadow */}
+          <rect 
+            x="72" 
+            y="27" 
+            width="40" 
+            height="25" 
+            fill="#000000"
+            opacity="0.1"
           />
           
           {/* Vial Neck */}
@@ -90,12 +143,33 @@ export default function VialLabelPreview({
             y="25" 
             width="40" 
             height="25" 
-            fill="white"
-            stroke={theme.border || '#374151'}
-            strokeWidth="4"
+            fill="url(#glassGradient)"
+            stroke="#94a3b8"
+            strokeWidth="2"
           />
           
-          {/* Vial Cap - Flat and realistic */}
+          {/* Neck highlight */}
+          <rect 
+            x="72" 
+            y="27" 
+            width="8" 
+            height="21" 
+            fill="url(#highlight)"
+          />
+          
+          {/* Vial Cap Shadow */}
+          <rect 
+            x="67" 
+            y="12" 
+            width="50" 
+            height="15" 
+            rx="4" 
+            ry="4"
+            fill="#000000"
+            opacity="0.2"
+          />
+          
+          {/* Vial Cap - Blue with gradient */}
           <rect 
             x="65" 
             y="10" 
@@ -103,21 +177,34 @@ export default function VialLabelPreview({
             height="15" 
             rx="4" 
             ry="4"
-            fill="#9ca3af"
-            stroke={theme.border || '#374151'}
-            strokeWidth="4"
+            fill="url(#capGradient)"
+            stroke="#1e40af"
+            strokeWidth="2"
           />
           
-          {/* Cap Detail - Inner circle */}
+          {/* Cap highlight */}
+          <rect 
+            x="67" 
+            y="12" 
+            width="46" 
+            height="6" 
+            rx="2" 
+            ry="2"
+            fill="#ffffff"
+            opacity="0.3"
+          />
+          
+          {/* Cap Detail - Rubber stopper */}
           <circle 
             cx="90" 
             cy="17" 
-            r="5" 
-            fill="#6b7280"
-            stroke="none"
+            r="4" 
+            fill="#374151"
+            stroke="#1f2937"
+            strokeWidth="1"
           />
           
-          {/* Label Area Background */}
+          {/* Label Area Background - Semi-transparent */}
           <rect 
             x="45" 
             y="65" 
@@ -125,9 +212,22 @@ export default function VialLabelPreview({
             height="130" 
             rx="5" 
             ry="5"
-            fill="white"
-            stroke={theme.border || '#e5e7eb'}
+            fill="#ffffff"
+            fillOpacity="0.95"
+            stroke="#e5e7eb"
             strokeWidth="1"
+          />
+          
+          {/* Label area shadow */}
+          <rect 
+            x="46" 
+            y="66" 
+            width="90" 
+            height="130" 
+            rx="5" 
+            ry="5"
+            fill="#000000"
+            opacity="0.05"
           />
         </svg>
         
