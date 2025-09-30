@@ -100,29 +100,29 @@ export default function VialLabelPreview({
             opacity="0.3"
           />
           
-          {/* Bottom curve of vial */}
+          {/* Bottom curve of vial - inside the body */}
           <ellipse 
             cx="100" 
-            cy="235" 
-            rx="42" 
-            ry="10" 
+            cy="225" 
+            rx="38" 
+            ry="8" 
             fill="#e2e8f0"
             opacity="0.5"
           />
           
           {/* Shoulder - transition from neck to body */}
           <path 
-            d="M 70 70 Q 67 65, 67 60 L 67 54 L 133 54 L 133 60 Q 133 65, 130 70"
+            d="M 70 70 Q 67 65, 67 60 L 67 56 L 133 56 L 133 60 Q 133 65, 130 70"
             fill="url(#glassBody)"
             stroke="#cbd5e1"
             strokeWidth="1.5"
           />
           
-          {/* Neck - straight cylinder, same width as crimp */}
+          {/* Neck - thinner straight cylinder */}
           <rect 
-            x="68" 
-            y="46" 
-            width="64" 
+            x="75" 
+            y="48" 
+            width="50" 
             height="8" 
             fill="url(#glassBody)"
             stroke="#cbd5e1"
@@ -131,17 +131,17 @@ export default function VialLabelPreview({
           
           {/* Neck highlight */}
           <rect 
-            x="71" 
-            y="47" 
-            width="8" 
+            x="78" 
+            y="49" 
+            width="6" 
             height="6" 
             fill="url(#highlight)"
           />
           
-          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - with gradient */}
+          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - moved down to sit on neck */}
           <rect 
             x="64" 
-            y="32" 
+            y="38" 
             width="72" 
             height="14" 
             fill="url(#aluminumGradient)"
@@ -149,37 +149,37 @@ export default function VialLabelPreview({
             strokeWidth="1.5"
           />
           
-          {/* Crimp band top ellipse - lighter aluminum */}
+          {/* Crimp band top ellipse - lighter aluminum with more tilt */}
           <ellipse 
             cx="100" 
-            cy="32" 
+            cy="38" 
             rx="36" 
-            ry="6" 
+            ry="8" 
             fill="#d3d3d3"
             stroke="#a8a8a8"
             strokeWidth="1.5"
           />
           
-          {/* Crimp band bottom ellipse - slightly darker for depth */}
+          {/* Crimp band bottom ellipse - slightly darker for depth with more tilt */}
           <ellipse 
             cx="100" 
-            cy="46" 
+            cy="52" 
             rx="36" 
-            ry="6" 
+            ry="8" 
             fill="#b8b8b8"
             stroke="#a8a8a8"
             strokeWidth="1.5"
           />
           
           {/* Crimp detail lines for aluminum texture - solid lines */}
-          <line x1="64" y1="36" x2="136" y2="36" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="64" y1="39" x2="136" y2="39" stroke="#e8e8e8" strokeWidth="0.5"/>
           <line x1="64" y1="42" x2="136" y2="42" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="45" x2="136" y2="45" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="48" x2="136" y2="48" stroke="#e8e8e8" strokeWidth="0.5"/>
           
           {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) - moved down */}
           <ellipse 
             cx="100" 
-            cy="26" 
+            cy="32" 
             rx="38" 
             ry="8" 
             fill="url(#capGradient)"
@@ -190,7 +190,7 @@ export default function VialLabelPreview({
           {/* Cap top surface - flatter perspective */}
           <ellipse 
             cx="100" 
-            cy="24" 
+            cy="30" 
             rx="38" 
             ry="7" 
             fill={theme.primary || '#3b82f6'}
@@ -200,7 +200,7 @@ export default function VialLabelPreview({
           {/* Cap highlight - glossy effect */}
           <ellipse 
             cx="82" 
-            cy="22" 
+            cy="28" 
             rx="22" 
             ry="4" 
             fill="#ffffff"
@@ -210,7 +210,7 @@ export default function VialLabelPreview({
           {/* Cap center detail - darker silver stopper */}
           <ellipse 
             cx="100" 
-            cy="24" 
+            cy="30" 
             rx="8" 
             ry="2.5" 
             fill="#909090"
