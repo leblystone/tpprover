@@ -149,10 +149,10 @@ export default function VialLabelPreview({
             strokeWidth="1.5"
           />
           
-          {/* Crimp band top ellipse - lighter aluminum, more upward tilt */}
+          {/* Crimp band top ellipse - lighter aluminum, tilted upward */}
           <ellipse 
             cx="100" 
-            cy="44" 
+            cy="42" 
             rx="36" 
             ry="10" 
             fill="#d3d3d3"
@@ -163,7 +163,7 @@ export default function VialLabelPreview({
           {/* Crimp band bottom ellipse - slightly darker for depth */}
           <ellipse 
             cx="100" 
-            cy="58" 
+            cy="56" 
             rx="36" 
             ry="10" 
             fill="#b8b8b8"
@@ -171,15 +171,15 @@ export default function VialLabelPreview({
             strokeWidth="1.5"
           />
           
-          {/* Crimp detail lines for aluminum texture - solid lines */}
-          <line x1="64" y1="48" x2="136" y2="48" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="64" y1="51" x2="136" y2="51" stroke="#e8e8e8" strokeWidth="0.5"/>
-          <line x1="64" y1="54" x2="136" y2="54" stroke="#e8e8e8" strokeWidth="0.5"/>
+          {/* Crimp detail lines for aluminum texture - angled upward */}
+          <line x1="64" y1="46" x2="136" y2="44" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="49" x2="136" y2="47" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="52" x2="136" y2="50" stroke="#e8e8e8" strokeWidth="0.5"/>
           
-          {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) - more upward tilt */}
+          {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) - tilted upward */}
           <ellipse 
             cx="100" 
-            cy="38" 
+            cy="36" 
             rx="38" 
             ry="10" 
             fill="url(#capGradient)"
@@ -187,20 +187,20 @@ export default function VialLabelPreview({
             strokeWidth="2.5"
           />
           
-          {/* Cap top surface - more upward perspective */}
+          {/* Cap top surface - tilted upward perspective */}
           <ellipse 
             cx="100" 
-            cy="35" 
+            cy="33" 
             rx="38" 
             ry="9" 
             fill={theme.primary || '#3b82f6'}
             opacity="0.9"
           />
           
-          {/* Cap highlight - glossy effect */}
+          {/* Cap highlight - glossy effect, tilted */}
           <ellipse 
             cx="82" 
-            cy="33" 
+            cy="31" 
             rx="22" 
             ry="5" 
             fill="#ffffff"
@@ -210,7 +210,7 @@ export default function VialLabelPreview({
           {/* Cap center detail - darker silver stopper */}
           <ellipse 
             cx="100" 
-            cy="35" 
+            cy="33" 
             rx="8" 
             ry="3" 
             fill="#909090"
