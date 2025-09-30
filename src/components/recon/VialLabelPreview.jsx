@@ -138,88 +138,85 @@ export default function VialLabelPreview({
             fill="url(#highlight)"
           />
           
-          {/* Cap and Crimp Group - Tilted upward by 8 degrees */}
-          <g transform="rotate(-8 100 40)">
-            {/* Aluminum crimp band - DRAWN FIRST (behind cap) - covering most of neck */}
-            <rect 
-              x="64" 
-              y="44" 
-              width="72" 
-              height="14" 
-              fill="url(#aluminumGradient)"
-              stroke="#a8a8a8"
-              strokeWidth="1.5"
-            />
-            
-            {/* Crimp band top ellipse - lighter aluminum */}
-            <ellipse 
-              cx="100" 
-              cy="42" 
-              rx="36" 
-              ry="10" 
-              fill="#d3d3d3"
-              stroke="#a8a8a8"
-              strokeWidth="1.5"
-            />
-            
-            {/* Crimp band bottom ellipse - slightly darker for depth */}
-            <ellipse 
-              cx="100" 
-              cy="56" 
-              rx="36" 
-              ry="10" 
-              fill="#b8b8b8"
-              stroke="#a8a8a8"
-              strokeWidth="1.5"
-            />
-            
-            {/* Crimp detail lines for aluminum texture */}
-            <line x1="64" y1="46" x2="136" y2="46" stroke="#e8e8e8" strokeWidth="0.5"/>
-            <line x1="64" y1="49" x2="136" y2="49" stroke="#e8e8e8" strokeWidth="0.5"/>
-            <line x1="64" y1="52" x2="136" y2="52" stroke="#e8e8e8" strokeWidth="0.5"/>
-            
-            {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) */}
-            <ellipse 
-              cx="100" 
-              cy="36" 
-              rx="38" 
-              ry="10" 
-              fill="url(#capGradient)"
-              stroke={theme.primaryDark || '#1e40af'}
-              strokeWidth="2.5"
-            />
-            
-            {/* Cap top surface */}
-            <ellipse 
-              cx="100" 
-              cy="33" 
-              rx="38" 
-              ry="9" 
-              fill={theme.primary || '#3b82f6'}
-              opacity="0.9"
-            />
-            
-            {/* Cap highlight - glossy effect */}
-            <ellipse 
-              cx="82" 
-              cy="31" 
-              rx="22" 
-              ry="5" 
-              fill="#ffffff"
-              opacity="0.5"
-            />
-            
-            {/* Cap center detail - darker silver stopper */}
-            <ellipse 
-              cx="100" 
-              cy="33" 
-              rx="8" 
-              ry="3" 
-              fill="#909090"
-              stroke="#6b7280"
-              strokeWidth="1"
-            />
-          </g>
+          {/* Aluminum crimp band - DRAWN FIRST (behind cap) - covering most of neck */}
+          <rect 
+            x="64" 
+            y="44" 
+            width="72" 
+            height="14" 
+            fill="url(#aluminumGradient)"
+            stroke="#a8a8a8"
+            strokeWidth="1.5"
+          />
+          
+          {/* Crimp band top ellipse - lighter aluminum, straight-on view */}
+          <ellipse 
+            cx="100" 
+            cy="44" 
+            rx="36" 
+            ry="7" 
+            fill="#d3d3d3"
+            stroke="#a8a8a8"
+            strokeWidth="1.5"
+          />
+          
+          {/* Crimp band bottom ellipse - slightly darker for depth */}
+          <ellipse 
+            cx="100" 
+            cy="58" 
+            rx="36" 
+            ry="7" 
+            fill="#b8b8b8"
+            stroke="#a8a8a8"
+            strokeWidth="1.5"
+          />
+          
+          {/* Crimp detail lines for aluminum texture */}
+          <line x1="64" y1="48" x2="136" y2="48" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="51" x2="136" y2="51" stroke="#e8e8e8" strokeWidth="0.5"/>
+          <line x1="64" y1="54" x2="136" y2="54" stroke="#e8e8e8" strokeWidth="0.5"/>
+          
+          {/* Cap - Main body (theme colored) - DRAWN AFTER (in front) - straight-on */}
+          <ellipse 
+            cx="100" 
+            cy="38" 
+            rx="38" 
+            ry="7" 
+            fill="url(#capGradient)"
+            stroke={theme.primaryDark || '#1e40af'}
+            strokeWidth="2.5"
+          />
+          
+          {/* Cap top surface - straight-on, flatter */}
+          <ellipse 
+            cx="100" 
+            cy="36" 
+            rx="38" 
+            ry="6" 
+            fill={theme.primary || '#3b82f6'}
+            opacity="0.9"
+          />
+          
+          {/* Cap highlight - glossy effect */}
+          <ellipse 
+            cx="85" 
+            cy="34" 
+            rx="20" 
+            ry="4" 
+            fill="#ffffff"
+            opacity="0.5"
+          />
+          
+          {/* Cap center detail - darker silver stopper */}
+          <ellipse 
+            cx="100" 
+            cy="36" 
+            rx="7" 
+            ry="2.5" 
+            fill="#909090"
+            stroke="#6b7280"
+            strokeWidth="1"
+          />
           
           {/* White Label in the middle of vial */}
           <rect 
