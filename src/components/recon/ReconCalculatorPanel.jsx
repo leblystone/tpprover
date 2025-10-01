@@ -119,7 +119,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
           {/* Visual Vial Preview - Takes 1/3 width */}
           <div className="col-span-1">
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Your Vial</h4>
+            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Your Vial</h4>
             <VialLabelPreview 
               form={form}
               deliveryMethod={deliveryMethod}
@@ -133,7 +133,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
         {/* Right Column: Delivery Method (moved from left) */}
         <div>
-          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>3. Delivery Method</h4>
+          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
           <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
