@@ -93,7 +93,7 @@ export default function Recon() {
 			<div className="block lg:hidden -m-2 md:-m-6">
 				<div className="bg-white border-b" style={{ borderColor: theme.border }}>
 					<div className="px-4 py-1">
-						<div className="flex gap-1">
+						<div className="flex justify-between">
 							{[
 								{ value: 'reconstituted', label: 'Reconstituted' },
 								{ value: 'history', label: 'History' },
