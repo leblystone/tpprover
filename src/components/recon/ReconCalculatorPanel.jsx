@@ -183,7 +183,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               currentPeptideIndex={currentPeptideIndex}
             />
             
-            {/* Pagination Dots - Above button */}
+            {/* Logo - Above pagination dots */}
+            <img 
+              src="/src/assets/tpp-logo.png" 
+              alt="The Pep Planner" 
+              className="h-6 opacity-60 hover:opacity-100 transition-opacity"
+            />
+            
+            {/* Pagination Dots - Below logo */}
             {form.peptides.length > 1 && (
               <div className="flex justify-center gap-2.5">
                 {form.peptides.map((peptide, idx) => (
