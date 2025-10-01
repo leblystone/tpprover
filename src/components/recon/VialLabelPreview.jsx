@@ -9,22 +9,27 @@ export default function VialLabelPreview({
   penColor, 
   theme 
 }) {
-  // Get peptide info for display
-  const getPeptideInfo = () => {
-    if (!form.peptides || form.peptides.length === 0) return null;
-    
+  // Get total mg in vial for "atomic number"
+  const getTotalMg = () => {
+    if (!form.peptides || form.peptides.length === 0) return '';
+    return form.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
+  };
+
+  // Get element symbol (first 2 letters of first peptide)
+  const getElementSymbol = () => {
+    if (!form.peptides || form.peptides.length === 0) return '';
+    const firstPeptide = form.peptides.find(p => p.name);
+    if (!firstPeptide) return '';
+    return firstPeptide.name.substring(0, 2).toUpperCase();
+  };
+
+  // Get full peptide list for below the element
+  const getPeptideNames = () => {
+    if (!form.peptides || form.peptides.length === 0) return '';
     return form.peptides
       .filter(p => p.name)
-      .map((p, idx) => {
-        // Extract abbreviation (e.g., "BPC" from "BPC-157" or first 3 letters)
-        const name = p.name || '';
-        const parts = name.split('-');
-        const abbreviation = parts[0].substring(0, 3).toUpperCase();
-        const number = parts[1] || (idx + 1).toString();
-        const dosage = p.dosage ? `${p.dosage.amount}${p.dosage.unit}` : '';
-        
-        return { abbreviation, number, dosage, fullName: name };
-      });
+      .map(p => p.name)
+      .join(' + ');
   };
 
   // Get delivery method text
@@ -41,7 +46,9 @@ export default function VialLabelPreview({
     }
   };
 
-  const peptideInfo = getPeptideInfo();
+  const totalMg = getTotalMg();
+  const elementSymbol = getElementSymbol();
+  const peptideNames = getPeptideNames();
   const deliveryText = getDeliveryText();
 
   return (
@@ -65,68 +72,65 @@ export default function VialLabelPreview({
             height: '25%',
           }}
         >
+          {/* Periodic Table Style Element Logo - Top of label */}
+          {elementSymbol && (
+            <div className="flex justify-center mb-1">
+              <div 
+                className="relative border-2 rounded p-1.5 w-12"
+                style={{ 
+                  borderColor: theme.primary || '#3b82f6',
+                  backgroundColor: 'rgba(59, 130, 246, 0.08)'
+                }}
+              >
+                {/* Atomic Number (mg in vial) */}
+                <div 
+                  className="text-[0.45rem] font-bold absolute top-0.5 left-1" 
+                  style={{ color: theme.primary }}
+                >
+                  {totalMg}
+                </div>
+                
+                {/* Element Symbol (first 2 letters) */}
+                <div 
+                  className="text-[0.85rem] font-black text-center pt-1" 
+                  style={{ color: theme.primary }}
+                >
+                  {elementSymbol}
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Vendor Name */}
           {form.vendor && (
             <div 
-              className="text-[0.5rem] font-semibold mb-1 truncate w-full" 
+              className="text-[0.45rem] font-semibold mb-0.5 truncate w-full" 
               style={{ color: '#6b7280' }}
             >
               {form.vendor.toUpperCase()}
             </div>
           )}
           
-          {/* Periodic Table Style Peptide Elements */}
-          {peptideInfo && peptideInfo.length > 0 && (
-            <div className="flex flex-wrap gap-1 justify-center mb-1">
-              {peptideInfo.map((peptide, idx) => (
-                <div 
-                  key={idx}
-                  className="relative border-2 rounded p-1 min-w-[2.5rem]"
-                  style={{ 
-                    borderColor: theme.primary || '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.05)'
-                  }}
-                >
-                  {/* Number (like atomic number) */}
-                  <div 
-                    className="text-[0.4rem] font-bold absolute top-0.5 left-0.5" 
-                    style={{ color: theme.primary }}
-                  >
-                    {peptide.number}
-                  </div>
-                  
-                  {/* Abbreviation (like element symbol) */}
-                  <div 
-                    className="text-[0.65rem] font-black text-center" 
-                    style={{ color: theme.primary }}
-                  >
-                    {peptide.abbreviation}
-                  </div>
-                  
-                  {/* Dosage (like atomic mass) */}
-                  {peptide.dosage && (
-                    <div 
-                      className="text-[0.35rem] text-center font-medium" 
-                      style={{ color: '#6b7280' }}
-                    >
-                      {peptide.dosage}
-                    </div>
-                  )}
-                </div>
-              ))}
+          {/* Full Peptide Names */}
+          {peptideNames && (
+            <div 
+              className="text-[0.5rem] font-medium mb-1 leading-tight truncate w-full" 
+              style={{ color: '#374151' }}
+            >
+              {peptideNames}
             </div>
           )}
           
           {/* Water Amount */}
           {form.water && (
-            <div className="text-[0.5rem] mb-0.5" style={{ color: '#6b7280' }}>
+            <div className="text-[0.45rem] mb-0.5" style={{ color: '#6b7280' }}>
               💧 {form.water}mL
             </div>
           )}
           
           {/* Delivery Method */}
           {deliveryText && (
-            <div className="text-[0.45rem]" style={{ color: '#6b7280' }}>
+            <div className="text-[0.4rem]" style={{ color: '#6b7280' }}>
               {deliveryText}
             </div>
           )}
