@@ -215,7 +215,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               <img 
                 src="/src/assets/tpp-logo.png" 
                 alt="The Pep Planner" 
-                className="absolute bottom-2 left-1/2 transform -translate-x-1/2 h-8 opacity-50"
+                className="absolute left-1/2 transform -translate-x-1/2 h-8 z-10"
+                style={{ bottom: '-5%' }}
               />
             </div>
             
@@ -254,7 +255,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 >
                   <Plus size={14} style={{ color: theme.textOnPrimary }} />
                 </div>
-                Add Another Peptide
+                Add Peptide
               </button>
             </div>
           </div>

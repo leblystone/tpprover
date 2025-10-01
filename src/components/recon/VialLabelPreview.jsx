@@ -54,7 +54,7 @@ export default function VialLabelPreview({
 
   return (
     <div className="flex justify-center items-start h-full">
-      <div className="relative inline-block" style={{ marginLeft: '-10%' }}>
+      <div className="relative inline-block" style={{ marginLeft: '-5%' }}>
         {/* Vial Image with subtle shadow - Maximum size */}
         <img 
           src={vialImage} 
@@ -71,16 +71,16 @@ export default function VialLabelPreview({
           className="absolute flex flex-col items-center text-center px-4"
           style={{
             top: '44%',
-            left: '50%',
+            left: '52%',
             transform: 'translateX(-50%)',
             width: '80%',
             height: '32%',
           }}
         >
-          {/* Periodic Table Element Logo - Centered as "Brand Logo" */}
+          {/* Periodic Table Element Logo - Smaller, more compact */}
           {elementSymbol && (
             <div 
-              className="relative border-2 rounded p-2.5 w-16 mb-2"
+              className="relative border-2 rounded p-1.5 w-12 mb-1"
               style={{ 
                 borderColor: theme.primary || '#3b82f6',
                 backgroundColor: '#f3f4f6',
@@ -89,7 +89,7 @@ export default function VialLabelPreview({
             >
               {/* Atomic Number with mg */}
               <div 
-                className="text-[0.6rem] font-bold absolute top-1 left-1.5" 
+                className="text-[0.5rem] font-bold absolute top-0.5 left-1" 
                 style={{ color: theme.primary }}
               >
                 {currentMg}mg
@@ -97,7 +97,7 @@ export default function VialLabelPreview({
               
               {/* Element Symbol - First cap, second lowercase */}
               <div 
-                className="text-xl font-black text-center pt-1" 
+                className="text-base font-black text-center pt-0.5" 
                 style={{ 
                   color: theme.primary,
                   fontFamily: 'Helvetica, Arial, sans-serif'
