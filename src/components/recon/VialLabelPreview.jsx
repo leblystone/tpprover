@@ -109,20 +109,24 @@ export default function VialLabelPreview({
           )}
           
           {/* Vendor Name - Subtle */}
-          <div 
-            className="text-xs font-semibold mb-0.5 truncate w-full leading-tight" 
-            style={{ color: '#9ca3af' }}
-          >
-            {form.vendor ? form.vendor.toUpperCase() : 'VENDOR'}
-          </div>
+          {form.vendor && (
+            <div 
+              className="text-xs font-semibold mb-0.5 truncate w-full leading-tight" 
+              style={{ color: '#9ca3af' }}
+            >
+              {form.vendor.toUpperCase()}
+            </div>
+          )}
           
           {/* Peptide Name - LARGEST/MOST PROMINENT */}
-          <div 
-            className="text-sm font-bold mb-0.5 leading-tight truncate w-full" 
-            style={{ color: '#374151' }}
-          >
-            {peptideName || 'Add peptide name'}
-          </div>
+          {peptideName && (
+            <div 
+              className="text-sm font-bold mb-0.5 leading-tight truncate w-full" 
+              style={{ color: '#374151' }}
+            >
+              {peptideName}
+            </div>
+          )}
           
           {/* MG - Under peptide name */}
           <div 
