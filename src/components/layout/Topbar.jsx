@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Search, Upload, HelpCircle } from 'lucide-react';
+import { Menu, Search, Upload, HelpCircle, Edit, Settings } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlobalSearchInline from '../search/GlobalSearchInline';
@@ -7,17 +7,27 @@ import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import HelpTipsModal from '../ui/HelpTipsModal';
 import NotificationBell from '../common/NotificationBell';
 
-export default function Topbar({ onMenuClick, theme }) {
+export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDashboardSettings, isCustomizing = false }) {
   const location = useLocation();
   const seg = (location.pathname.split('/')[1] || 'dashboard');
-  const onDashboard = seg === 'dashboard';
+  const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
+  const [customizingState, setCustomizingState] = React.useState(false);
+
+  // Listen for customizing state changes from dashboard
+  React.useEffect(() => {
+    const handleCustomizingChange = (event) => {
+      setCustomizingState(event.detail.isCustomizing);
+    };
+    window.addEventListener('tpp:dashboard-customizing-changed', handleCustomizingChange);
+    return () => window.removeEventListener('tpp:dashboard-customizing-changed', handleCustomizingChange);
+  }, []);
 
   const titles = {
     '': 'Welcome to your Pep Planner.',
     dashboard: 'Welcome to your Pep Planner.',
     research: 'Research',
     calendar: 'Calendar',
-    recon: 'Reconstitution',
+    recon: 'Reconstitute',
     protocols: 'Protocols',
     orders: 'Orders',
     vendors: 'Vendors',
@@ -34,6 +44,7 @@ export default function Topbar({ onMenuClick, theme }) {
 
   const [showSearch, setShowSearch] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
+
 
   return (
     <>
@@ -76,6 +87,38 @@ export default function Topbar({ onMenuClick, theme }) {
           )}
           */}
           <NotificationBell theme={theme} />
+          {onDashboard && onDashboardCustomize && (
+            <ModernTooltip text={customizingState ? "Done Editing" : "Customize Dashboard"} position="bottom">
+              <button 
+                className={`p-2 rounded-full no-shadow transition-all duration-200 ${
+                  customizingState ? 'ring-2 ring-opacity-50' : ''
+                }`}
+                onClick={onDashboardCustomize}
+                style={{ 
+                  color: theme.text,
+                  backgroundColor: customizingState ? theme.primary : 'transparent',
+                  ringColor: customizingState ? theme.primary : 'transparent'
+                }}
+                aria-label={customizingState ? "Done editing dashboard" : "Customize dashboard"}
+                title="Customize Dashboard"
+              >
+                <Edit className="h-5 w-5" />
+              </button>
+            </ModernTooltip>
+          )}
+          {onDashboard && onDashboardSettings && (
+            <ModernTooltip text="Dashboard Settings" position="bottom">
+              <button 
+                className="p-2 rounded-full no-shadow transition-all duration-200" 
+                onClick={onDashboardSettings}
+                style={{ color: theme.text }}
+                aria-label="Open dashboard settings"
+                title="Dashboard Settings"
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+            </ModernTooltip>
+          )}
           <ModernTooltip text="Help" position="bottom">
             <button 
               className="p-2 rounded-full no-shadow" 
