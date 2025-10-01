@@ -61,39 +61,39 @@ export default function VialLabelPreview({
           style={{ maxWidth: '280px' }}
         />
         
-        {/* Text Overlay on White Label Area - Positioned to match the label */}
+        {/* Text Overlay on White Label Area - Better sizing for larger vial */}
         <div 
-          className="absolute flex flex-col justify-center items-center text-center px-2"
+          className="absolute flex flex-col justify-center items-center text-center px-3"
           style={{
-            top: '48%',
+            top: '46%',
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '70%',
-            height: '25%',
+            width: '75%',
+            height: '28%',
           }}
         >
           {/* Two Column Layout: Element Logo + Vendor/MG */}
-          <div className="flex gap-2 mb-1 w-full">
+          <div className="flex gap-2 mb-2 w-full">
             {/* Left: Periodic Table Element Logo */}
             {elementSymbol && (
               <div 
-                className="relative border-2 rounded p-1 w-10 flex-shrink-0"
+                className="relative border-2 rounded p-2 w-14 flex-shrink-0"
                 style={{ 
                   borderColor: theme.primary || '#3b82f6',
                   backgroundColor: 'rgba(59, 130, 246, 0.08)'
                 }}
               >
-                  {/* Atomic Number (mg in vial) */}
-                  <div 
-                    className="text-[0.4rem] font-bold absolute top-0.5 left-0.5" 
-                    style={{ color: theme.primary }}
-                  >
-                    {currentMg}
-                  </div>
+                {/* Atomic Number (mg in vial) */}
+                <div 
+                  className="text-[0.55rem] font-bold absolute top-1 left-1" 
+                  style={{ color: theme.primary }}
+                >
+                  {currentMg}
+                </div>
                 
                 {/* Element Symbol (first 2 letters) */}
                 <div 
-                  className="text-[0.75rem] font-black text-center pt-0.5" 
+                  className="text-lg font-black text-center pt-1" 
                   style={{ color: theme.primary }}
                 >
                   {elementSymbol}
@@ -102,12 +102,12 @@ export default function VialLabelPreview({
             )}
             
             {/* Right: Vendor and MG info */}
-            <div className="flex-1 text-left">
+            <div className="flex-1 text-left flex flex-col justify-center">
               {/* Vendor Name */}
               {form.vendor && (
                 <div 
-                  className="text-[0.5rem] font-bold truncate" 
-                  style={{ color: '#374151' }}
+                  className="text-xs font-bold truncate" 
+                  style={{ color: theme.primary }}
                 >
                   {form.vendor.toUpperCase()}
                 </div>
@@ -116,7 +116,7 @@ export default function VialLabelPreview({
               {/* MG per vial */}
               {currentMg && (
                 <div 
-                  className="text-[0.45rem] font-semibold" 
+                  className="text-[0.65rem] font-semibold" 
                   style={{ color: '#6b7280' }}
                 >
                   {currentMg}mg/vial
@@ -125,10 +125,10 @@ export default function VialLabelPreview({
             </div>
           </div>
           
-          {/* Current Peptide Name - One line below */}
+          {/* Current Peptide Name - Larger text */}
           {peptideName && (
             <div 
-              className="text-[0.5rem] font-medium mb-1 leading-tight truncate w-full" 
+              className="text-[0.7rem] font-semibold mb-1 leading-tight truncate w-full" 
               style={{ color: '#374151' }}
             >
               {peptideName}
@@ -137,14 +137,14 @@ export default function VialLabelPreview({
           
           {/* Water Amount */}
           {form.water && (
-            <div className="text-[0.45rem] mb-0.5" style={{ color: '#6b7280' }}>
+            <div className="text-[0.6rem] mb-0.5" style={{ color: '#6b7280' }}>
               💧 {form.water}mL
             </div>
           )}
           
           {/* Delivery Method */}
           {deliveryText && (
-            <div className="text-[0.4rem]" style={{ color: '#6b7280' }}>
+            <div className="text-[0.55rem]" style={{ color: '#6b7280' }}>
               {deliveryText}
             </div>
           )}
