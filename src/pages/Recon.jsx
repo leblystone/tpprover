@@ -105,7 +105,7 @@ export default function Recon() {
 									className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
 										activeTab === tab.value 
 											? 'shadow-sm' 
-											: 'hover:bg-gray-50'
+											: 'hover:bg-gray-100'
 									}`}
 									style={{
 										backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
