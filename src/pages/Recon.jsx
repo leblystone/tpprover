@@ -89,9 +89,6 @@ export default function Recon() {
 
 	return (
 		<section>
-			<div className="flex items-center justify-between mb-4">
-				<h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Reconstitution</h1>
-			</div>
 
 			{/* Mobile-only sub-header with pill tabs */}
 			<div className="block lg:hidden mb-6">
