@@ -104,10 +104,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
       {/* Two Column Layout: Left Content + Visual Preview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-        {/* Left Column: 2:1 Split for Vial Details and Visual Preview */}
-        <div className="grid grid-cols-3 gap-4">
-          {/* Vial Details - Takes 2/3 width */}
-          <div className="col-span-2">
+        {/* Left Column: Equal Split for Vial Details and Visual Preview */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Vial Details - Takes 1/2 width */}
+          <div className="col-span-1">
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
             <div className="space-y-2">
               {/* Current Peptide from pagination */}
@@ -172,14 +172,19 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               {/* Add Peptide Button */}
               <button
                 onClick={addPeptide}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md border-2 border-dashed text-sm font-semibold hover:bg-opacity-10 transition-all"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
                 style={{
-                  borderColor: theme.primary,
+                  backgroundColor: theme.secondary,
                   color: theme.primary,
-                  backgroundColor: 'transparent'
+                  border: `1.5px solid ${theme.primary}20`
                 }}
               >
-                <Plus size={16} />
+                <div 
+                  className="w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  <Plus size={14} style={{ color: theme.textOnPrimary }} />
+                </div>
                 Add Another Peptide
               </button>
               
