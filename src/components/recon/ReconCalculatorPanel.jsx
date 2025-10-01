@@ -110,7 +110,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
       {/* Two Column Layout: Left Content + Visual Preview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
         {/* Left Column: Equal Split for Vial Details and Visual Preview */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 items-end">
           {/* Vial Details - Takes 1/2 width */}
           <div className="col-span-1">
             <div className="space-y-2">
@@ -162,43 +162,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 theme={theme} 
               />
               
-            </div>
-            
-            {/* Bottom row - Cost and Add Peptide Button aligned */}
-            <div className="flex items-end gap-4">
               {/* Cost */}
-              <div className="flex-1">
-                <TextInput 
-                  icon={<Info size={16} />} 
-                  label="Vial Cost ($)" 
-                  type="number" 
-                  value={cost} 
-                  onChange={v => setCost(v)} 
-                  placeholder="e.g., 45.00" 
-                  theme={theme} 
-                />
-              </div>
-              
-              {/* Add Peptide Button - Aligned with cost */}
-              <div className="flex-shrink-0">
-                <button
-                  onClick={addPeptide}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: theme.secondary,
-                    color: theme.primary,
-                    border: `1.5px solid ${theme.primary}20`
-                  }}
-                >
-                  <div 
-                    className="w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: theme.primary }}
-                  >
-                    <Plus size={14} style={{ color: theme.textOnPrimary }} />
-                  </div>
-                  Add Peptide
-                </button>
-              </div>
+              <TextInput 
+                icon={<Info size={16} />} 
+                label="Vial Cost ($)" 
+                type="number" 
+                value={cost} 
+                onChange={v => setCost(v)} 
+                placeholder="e.g., 45.00" 
+                theme={theme} 
+              />
             </div>
           </div>
 
@@ -238,17 +211,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 </button>
               )}
               
-              {/* Logo - Overlaid at bottom center of vial */}
-              <img 
-                src="/src/assets/tpp-logo.png" 
-                alt="The Pep Planner" 
-                className="absolute left-1/2 transform -translate-x-1/2 h-6 z-10"
-                style={{ bottom: '-8%' }}
-              />
             </div>
             
-            {/* Bottom section - dots only */}
-            <div className="w-full">
+            {/* Bottom section - dots and add button */}
+            <div className="w-full space-y-3">
             
             {/* Pagination Dots - Always reserve space */}
             <div className="flex justify-center gap-2.5 h-3">
@@ -265,6 +231,25 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 />
               ))}
             </div>
+            
+            {/* Add Peptide Button - In second column */}
+            <button
+              onClick={addPeptide}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme.secondary,
+                color: theme.primary,
+                border: `1.5px solid ${theme.primary}20`
+              }}
+            >
+              <div 
+                className="w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: theme.primary }}
+              >
+                <Plus size={14} style={{ color: theme.textOnPrimary }} />
+              </div>
+              Add Peptide
+            </button>
             </div>
           </div>
         </div>
