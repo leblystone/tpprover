@@ -222,7 +222,29 @@ export default function Recon() {
 									Add Vial
 								</button>
 							</div>
-							{sortedItems.map(item => {
+							
+							{/* Empty State - Show when no items */}
+							{sortedItems.length === 0 ? (
+								<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+									<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+										<Beaker size={32} style={{ color: theme.primary }} />
+									</div>
+									<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Vials On Hand</h3>
+									<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+										Add your current reconstituted peptide vials to track dosages, delivery methods, and usage. 
+										This helps you manage your inventory and calculate proper dosing.
+									</p>
+									<button
+										onClick={() => setShowEditModal(true)}
+										className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+										style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+									>
+										<PlusCircle size={18} />
+										Add Your First Vial
+									</button>
+								</div>
+							) : (
+								sortedItems.map(item => {
 								const isBlend = Array.isArray(item.peptides) && item.peptides.length > 0;
                                 const totalMg = isBlend ? item.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0) : item.mg;
                                 const totalDoseInMcg = isBlend 
@@ -329,6 +351,7 @@ export default function Recon() {
 									</div>
 								)
 							})}
+							)}
 						</div>
 					)}
 
