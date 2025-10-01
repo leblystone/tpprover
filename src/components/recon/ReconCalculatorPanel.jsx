@@ -219,23 +219,21 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               className="h-6 opacity-60 hover:opacity-100 transition-opacity"
             />
             
-            {/* Pagination Dots - Below logo */}
-            {form.peptides.length > 1 && (
-              <div className="flex justify-center gap-2.5">
-                {form.peptides.map((peptide, idx) => (
-                  <button
-                    key={peptide.id}
-                    onClick={() => setCurrentPeptideIndex(idx)}
-                    className="w-3 h-3 rounded-full transition-all hover:scale-125"
-                    style={{
-                      backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
-                      opacity: idx === currentPeptideIndex ? 1 : 0.4
-                    }}
-                    aria-label={`Peptide ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Pagination Dots - Always reserve space */}
+            <div className="flex justify-center gap-2.5 h-3">
+              {form.peptides.length > 1 && form.peptides.map((peptide, idx) => (
+                <button
+                  key={peptide.id}
+                  onClick={() => setCurrentPeptideIndex(idx)}
+                  className="w-3 h-3 rounded-full transition-all hover:scale-125"
+                  style={{
+                    backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
+                    opacity: idx === currentPeptideIndex ? 1 : 0.4
+                  }}
+                  aria-label={`Peptide ${idx + 1}`}
+                />
+              ))}
+            </div>
             
             {/* Add Peptide Button - Below dots */}
             <button
