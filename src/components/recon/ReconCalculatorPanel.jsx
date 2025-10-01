@@ -162,16 +162,43 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 theme={theme} 
               />
               
+            </div>
+            
+            {/* Bottom row - Cost and Add Peptide Button aligned */}
+            <div className="flex items-end gap-4">
               {/* Cost */}
-              <TextInput 
-                icon={<Info size={16} />} 
-                label="Vial Cost ($)" 
-                type="number" 
-                value={cost} 
-                onChange={v => setCost(v)} 
-                placeholder="e.g., 45.00" 
-                theme={theme} 
-              />
+              <div className="flex-1">
+                <TextInput 
+                  icon={<Info size={16} />} 
+                  label="Vial Cost ($)" 
+                  type="number" 
+                  value={cost} 
+                  onChange={v => setCost(v)} 
+                  placeholder="e.g., 45.00" 
+                  theme={theme} 
+                />
+              </div>
+              
+              {/* Add Peptide Button - Aligned with cost */}
+              <div className="flex-shrink-0">
+                <button
+                  onClick={addPeptide}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: theme.secondary,
+                    color: theme.primary,
+                    border: `1.5px solid ${theme.primary}20`
+                  }}
+                >
+                  <div 
+                    className="w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: theme.primary }}
+                  >
+                    <Plus size={14} style={{ color: theme.textOnPrimary }} />
+                  </div>
+                  Add Peptide
+                </button>
+              </div>
             </div>
           </div>
 
@@ -215,13 +242,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               <img 
                 src="/src/assets/tpp-logo.png" 
                 alt="The Pep Planner" 
-                className="absolute left-1/2 transform -translate-x-1/2 h-8 z-10"
-                style={{ bottom: '-5%' }}
+                className="absolute left-1/2 transform -translate-x-1/2 h-6 z-10"
+                style={{ bottom: '-8%' }}
               />
             </div>
             
-            {/* Bottom section - dots, button */}
-            <div className="w-full space-y-3">
+            {/* Bottom section - dots only */}
+            <div className="w-full">
             
             {/* Pagination Dots - Always reserve space */}
             <div className="flex justify-center gap-2.5 h-3">
@@ -238,25 +265,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 />
               ))}
             </div>
-            
-              {/* Add Peptide Button - Below dots */}
-              <button
-                onClick={addPeptide}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
-                style={{
-                  backgroundColor: theme.secondary,
-                  color: theme.primary,
-                  border: `1.5px solid ${theme.primary}20`
-                }}
-              >
-                <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  <Plus size={14} style={{ color: theme.textOnPrimary }} />
-                </div>
-                Add Peptide
-              </button>
             </div>
           </div>
         </div>
