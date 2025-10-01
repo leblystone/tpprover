@@ -102,13 +102,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
       <h3 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Peptide Calculator</h3>
       <p className="text-sm text-gray-500 mb-4">Calculate dosages for one or more peptides.</p>
 
+      {/* Section Banner - Vial Details */}
+      <div className="mb-4 px-4 py-2 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+        <h4 className="font-semibold text-sm" style={{ color: theme.primary }}>Vial Details</h4>
+      </div>
+
       {/* Two Column Layout: Left Content + Visual Preview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
         {/* Left Column: Equal Split for Vial Details and Visual Preview */}
         <div className="grid grid-cols-2 gap-4">
           {/* Vial Details - Takes 1/2 width */}
           <div className="col-span-1">
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
             <div className="space-y-2">
               {/* Current Peptide from pagination */}
               {form.peptides[currentPeptideIndex] && (
@@ -256,7 +260,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
         {/* Right Column: Delivery Method (moved from left) */}
         <div>
-          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
+          {/* Section Banner - Delivery Method */}
+          <div className="mb-3 px-4 py-2 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-semibold text-sm" style={{ color: theme.primary }}>Delivery Method</h4>
+          </div>
           <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
