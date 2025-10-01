@@ -73,7 +73,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
       dose: firstPeptide.dose,
       doseUnit: firstPeptide.doseUnit || 'mcg'
     });
-  }, [totalMg, form.water, form.peptides])
+  }, [totalMg, form.water, form.peptides, form.peptides[0]?.dose, form.peptides[0]?.doseUnit])
   const costPerDose = useMemo(() => {
     if (cost && calc.dosesPerVial > 0) return `$${(Number(cost) / calc.dosesPerVial).toFixed(2)}`
     return ''
@@ -449,7 +449,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
         {/* Step 3: Results */}
         <div>
-          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>4. Results</h4>
+          {/* Section Banner - Results */}
+          <div className="mb-3 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>4. Results</h4>
+          </div>
           <div className="rounded-lg border p-4" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
               <div>
