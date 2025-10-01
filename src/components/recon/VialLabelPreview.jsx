@@ -19,10 +19,12 @@ export default function VialLabelPreview({
     return currentPeptide.mg || '';
   };
 
-  // Get element symbol (first 2 letters of current peptide)
+  // Get element symbol (first letter cap, second lowercase)
   const getElementSymbol = () => {
     if (!currentPeptide?.name) return '';
-    return currentPeptide.name.substring(0, 2).toUpperCase();
+    const firstTwo = currentPeptide.name.substring(0, 2);
+    if (firstTwo.length === 1) return firstTwo.toUpperCase();
+    return firstTwo[0].toUpperCase() + firstTwo[1].toLowerCase();
   };
 
   // Get current peptide name
@@ -53,98 +55,95 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center items-start h-full">
       <div className="relative inline-block">
-        {/* Vial Image */}
+        {/* Vial Image with bottom shadow */}
         <img 
           src={vialImage} 
           alt="Vial" 
-          className="w-full h-auto"
-          style={{ maxWidth: '280px' }}
+          className="w-full h-auto drop-shadow-lg"
+          style={{ 
+            maxWidth: '280px',
+            filter: 'drop-shadow(0 10px 15px rgba(0, 0, 0, 0.15))'
+          }}
         />
         
-        {/* Text Overlay on White Label Area - Better sizing for larger vial */}
+        {/* Text Overlay on White Label Area - Centered layout with hierarchy */}
         <div 
-          className="absolute flex flex-col justify-center items-center text-center px-3"
+          className="absolute flex flex-col items-center text-center px-4"
           style={{
             top: '46%',
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '75%',
-            height: '28%',
+            width: '80%',
+            height: '30%',
           }}
         >
-          {/* Two Column Layout: Element Logo + Vendor/MG */}
-          <div className="flex gap-2 mb-2 w-full">
-            {/* Left: Periodic Table Element Logo */}
-            {elementSymbol && (
+          {/* Periodic Table Element Logo - Centered as "Brand Logo" */}
+          {elementSymbol && (
+            <div 
+              className="relative border-2 rounded p-2.5 w-16 mb-2"
+              style={{ 
+                borderColor: theme.primary || '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                fontFamily: 'Helvetica, Arial, sans-serif'
+              }}
+            >
+              {/* Atomic Number with mg */}
               <div 
-                className="relative border-2 rounded p-2 w-14 flex-shrink-0"
+                className="text-[0.6rem] font-bold absolute top-1 left-1.5" 
+                style={{ color: theme.primary }}
+              >
+                {currentMg}mg
+              </div>
+              
+              {/* Element Symbol - First cap, second lowercase */}
+              <div 
+                className="text-xl font-black text-center pt-1" 
                 style={{ 
-                  borderColor: theme.primary || '#3b82f6',
-                  backgroundColor: 'rgba(59, 130, 246, 0.08)'
+                  color: theme.primary,
+                  fontFamily: 'Helvetica, Arial, sans-serif'
                 }}
               >
-                {/* Atomic Number (mg in vial) */}
-                <div 
-                  className="text-[0.55rem] font-bold absolute top-1 left-1" 
-                  style={{ color: theme.primary }}
-                >
-                  {currentMg}
-                </div>
-                
-                {/* Element Symbol (first 2 letters) */}
-                <div 
-                  className="text-lg font-black text-center pt-1" 
-                  style={{ color: theme.primary }}
-                >
-                  {elementSymbol}
-                </div>
+                {elementSymbol}
               </div>
-            )}
-            
-            {/* Right: Vendor and MG info */}
-            <div className="flex-1 text-left flex flex-col justify-center">
-              {/* Vendor Name */}
-              {form.vendor && (
-                <div 
-                  className="text-xs font-bold truncate" 
-                  style={{ color: theme.primary }}
-                >
-                  {form.vendor.toUpperCase()}
-                </div>
-              )}
-              
-              {/* MG per vial */}
-              {currentMg && (
-                <div 
-                  className="text-[0.65rem] font-semibold" 
-                  style={{ color: '#6b7280' }}
-                >
-                  {currentMg}mg/vial
-                </div>
-              )}
             </div>
+          )}
+          
+          {/* Vendor Name - Larger but subtle */}
+          <div 
+            className="text-sm font-semibold mb-1.5 truncate w-full" 
+            style={{ color: '#9ca3af' }}
+          >
+            {form.vendor ? form.vendor.toUpperCase() : 'VENDOR'}
           </div>
           
-          {/* Current Peptide Name - Larger text */}
-          {peptideName && (
+          {/* Peptide Name - LARGEST/MOST PROMINENT */}
+          <div 
+            className="text-base font-bold mb-1.5 leading-tight truncate w-full" 
+            style={{ color: '#374151' }}
+          >
+            {peptideName || 'Add peptide name'}
+          </div>
+          
+          {/* MG - Under peptide name */}
+          {currentMg && (
             <div 
-              className="text-[0.7rem] font-semibold mb-1 leading-tight truncate w-full" 
-              style={{ color: '#374151' }}
+              className="text-xs font-semibold mb-1" 
+              style={{ color: '#6b7280' }}
             >
-              {peptideName}
+              {currentMg}mg
             </div>
           )}
           
           {/* Water Amount */}
           {form.water && (
-            <div className="text-[0.6rem] mb-0.5" style={{ color: '#6b7280' }}>
+            <div className="text-[0.65rem] mb-0.5" style={{ color: '#9ca3af' }}>
               💧 {form.water}mL
             </div>
           )}
           
           {/* Delivery Method */}
           {deliveryText && (
-            <div className="text-[0.55rem]" style={{ color: '#6b7280' }}>
+            <div className="text-[0.6rem]" style={{ color: '#9ca3af' }}>
               {deliveryText}
             </div>
           )}

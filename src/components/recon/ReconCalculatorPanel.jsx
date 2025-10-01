@@ -168,48 +168,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 placeholder="e.g., 45.00" 
                 theme={theme} 
               />
-              
-              {/* Add Peptide Button */}
-              <button
-                onClick={addPeptide}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
-                style={{
-                  backgroundColor: theme.secondary,
-                  color: theme.primary,
-                  border: `1.5px solid ${theme.primary}20`
-                }}
-              >
-                <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  <Plus size={14} style={{ color: theme.textOnPrimary }} />
-                </div>
-                Add Another Peptide
-              </button>
-              
-              {/* Pagination Dots */}
-              {form.peptides.length > 1 && (
-                <div className="flex justify-center gap-2 pt-2">
-                  {form.peptides.map((peptide, idx) => (
-                    <button
-                      key={peptide.id}
-                      onClick={() => setCurrentPeptideIndex(idx)}
-                      className="w-2.5 h-2.5 rounded-full transition-all hover:scale-125"
-                      style={{
-                        backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
-                        opacity: idx === currentPeptideIndex ? 1 : 0.4
-                      }}
-                      aria-label={`Peptide ${idx + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Visual Vial Preview - Takes 1/3 width */}
-          <div className="col-span-1">
+          {/* Visual Vial Preview - Takes 1/2 width */}
+          <div className="col-span-1 flex flex-col items-center space-y-3">
             <VialLabelPreview 
               form={form}
               deliveryMethod={deliveryMethod}
@@ -219,6 +182,43 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               theme={theme}
               currentPeptideIndex={currentPeptideIndex}
             />
+            
+            {/* Pagination Dots - Above button */}
+            {form.peptides.length > 1 && (
+              <div className="flex justify-center gap-2.5">
+                {form.peptides.map((peptide, idx) => (
+                  <button
+                    key={peptide.id}
+                    onClick={() => setCurrentPeptideIndex(idx)}
+                    className="w-3 h-3 rounded-full transition-all hover:scale-125"
+                    style={{
+                      backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
+                      opacity: idx === currentPeptideIndex ? 1 : 0.4
+                    }}
+                    aria-label={`Peptide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Add Peptide Button - Below dots */}
+            <button
+              onClick={addPeptide}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme.secondary,
+                color: theme.primary,
+                border: `1.5px solid ${theme.primary}20`
+              }}
+            >
+              <div 
+                className="w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: theme.primary }}
+              >
+                <Plus size={14} style={{ color: theme.textOnPrimary }} />
+              </div>
+              Add Another Peptide
+            </button>
           </div>
         </div>
 
