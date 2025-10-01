@@ -103,8 +103,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
       <p className="text-sm text-gray-500 mb-4">Calculate dosages for one or more peptides.</p>
 
       {/* Section Banner - Vial Details */}
-      <div className="mb-4 px-4 py-2 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-        <h4 className="font-semibold text-sm" style={{ color: theme.primary }}>Vial Details</h4>
+      <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Vial Details</h4>
       </div>
 
       {/* Two Column Layout: Left Content + Visual Preview */}
@@ -261,8 +261,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         {/* Right Column: Delivery Method (moved from left) */}
         <div>
           {/* Section Banner - Delivery Method */}
-          <div className="mb-3 px-4 py-2 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-semibold text-sm" style={{ color: theme.primary }}>Delivery Method</h4>
+          <div className="mb-3 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Delivery Method</h4>
           </div>
           <div className="grid grid-cols-3 gap-2">
                 <button 
