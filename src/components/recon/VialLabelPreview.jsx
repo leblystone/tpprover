@@ -7,29 +7,28 @@ export default function VialLabelPreview({
   administrationRoute, 
   penType, 
   penColor, 
-  theme 
+  theme,
+  currentPeptideIndex = 0
 }) {
-  // Get total mg in vial for "atomic number"
-  const getTotalMg = () => {
-    if (!form.peptides || form.peptides.length === 0) return '';
-    return form.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
+  // Get current peptide
+  const currentPeptide = form.peptides?.[currentPeptideIndex];
+
+  // Get mg for current peptide
+  const getCurrentMg = () => {
+    if (!currentPeptide) return '';
+    return currentPeptide.mg || '';
   };
 
-  // Get element symbol (first 2 letters of first peptide)
+  // Get element symbol (first 2 letters of current peptide)
   const getElementSymbol = () => {
-    if (!form.peptides || form.peptides.length === 0) return '';
-    const firstPeptide = form.peptides.find(p => p.name);
-    if (!firstPeptide) return '';
-    return firstPeptide.name.substring(0, 2).toUpperCase();
+    if (!currentPeptide?.name) return '';
+    return currentPeptide.name.substring(0, 2).toUpperCase();
   };
 
-  // Get full peptide list for below the element
-  const getPeptideNames = () => {
-    if (!form.peptides || form.peptides.length === 0) return '';
-    return form.peptides
-      .filter(p => p.name)
-      .map(p => p.name)
-      .join(' + ');
+  // Get current peptide name
+  const getPeptideName = () => {
+    if (!currentPeptide?.name) return '';
+    return currentPeptide.name;
   };
 
   // Get delivery method text
@@ -46,9 +45,9 @@ export default function VialLabelPreview({
     }
   };
 
-  const totalMg = getTotalMg();
+  const currentMg = getCurrentMg();
   const elementSymbol = getElementSymbol();
-  const peptideNames = getPeptideNames();
+  const peptideName = getPeptideName();
   const deliveryText = getDeliveryText();
 
   return (
@@ -84,13 +83,13 @@ export default function VialLabelPreview({
                   backgroundColor: 'rgba(59, 130, 246, 0.08)'
                 }}
               >
-                {/* Atomic Number (mg in vial) */}
-                <div 
-                  className="text-[0.4rem] font-bold absolute top-0.5 left-0.5" 
-                  style={{ color: theme.primary }}
-                >
-                  {totalMg}
-                </div>
+                  {/* Atomic Number (mg in vial) */}
+                  <div 
+                    className="text-[0.4rem] font-bold absolute top-0.5 left-0.5" 
+                    style={{ color: theme.primary }}
+                  >
+                    {currentMg}
+                  </div>
                 
                 {/* Element Symbol (first 2 letters) */}
                 <div 
@@ -115,24 +114,24 @@ export default function VialLabelPreview({
               )}
               
               {/* MG per vial */}
-              {totalMg && (
+              {currentMg && (
                 <div 
                   className="text-[0.45rem] font-semibold" 
                   style={{ color: '#6b7280' }}
                 >
-                  {totalMg}mg/vial
+                  {currentMg}mg/vial
                 </div>
               )}
             </div>
           </div>
           
-          {/* Full Peptide Names - One line below */}
-          {peptideNames && (
+          {/* Current Peptide Name - One line below */}
+          {peptideName && (
             <div 
               className="text-[0.5rem] font-medium mb-1 leading-tight truncate w-full" 
               style={{ color: '#374151' }}
             >
-              {peptideNames}
+              {peptideName}
             </div>
           )}
           

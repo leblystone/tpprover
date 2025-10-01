@@ -30,7 +30,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
   const [deliveryMethod, setDeliveryMethod] = useState('syringe');
   const [administrationRoute, setAdministrationRoute] = useState('subq'); // SubQ, IM, IV
   const [penColor, setPenColor] = useState('#9ca3af');
-  const [cost, setCost] = useState('')
+  const [cost, setCost] = useState('');
+  const [currentPeptideIndex, setCurrentPeptideIndex] = useState(0); // For pagination
 
   useEffect(() => {
     if (prefill) {
@@ -109,39 +110,44 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           <div className="col-span-2">
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
             <div className="space-y-2">
-              {/* Peptide Name */}
-              <TextInput 
-                label="Peptide Name" 
-                value={form.peptides[0]?.name || ''} 
-                onChange={v => updatePeptide(form.peptides[0]?.id, 'name', v)} 
-                placeholder="e.g., BPC-157" 
-                theme={theme} 
-              />
-              
-              {/* MG */}
-              <TextInput 
-                label="mg" 
-                type="number"
-                value={form.peptides[0]?.mg || ''} 
-                onChange={v => updatePeptide(form.peptides[0]?.id, 'mg', v)} 
-                placeholder="e.g., 10" 
-                theme={theme} 
-              />
-              
-              {/* Dose with integrated unit selector */}
-              <div>
-                <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dose</div>
-                <CombinedDosageInput
-                  value={{ amount: form.peptides[0]?.dose || '', unit: form.peptides[0]?.doseUnit || 'mcg' }}
-                  onChange={(newValue) => {
-                    updatePeptide(form.peptides[0]?.id, 'dose', newValue.amount);
-                    updatePeptide(form.peptides[0]?.id, 'doseUnit', newValue.unit);
-                  }}
-                  theme={theme}
-                  placeholder="250"
-                  units={['mcg', 'mg', 'mL']}
-                />
-              </div>
+              {/* Current Peptide from pagination */}
+              {form.peptides[currentPeptideIndex] && (
+                <>
+                  {/* Peptide Name */}
+                  <TextInput 
+                    label="Peptide Name" 
+                    value={form.peptides[currentPeptideIndex]?.name || ''} 
+                    onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'name', v)} 
+                    placeholder="e.g., BPC-157" 
+                    theme={theme} 
+                  />
+                  
+                  {/* MG */}
+                  <TextInput 
+                    label="mg" 
+                    type="number"
+                    value={form.peptides[currentPeptideIndex]?.mg || ''} 
+                    onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'mg', v)} 
+                    placeholder="e.g., 10" 
+                    theme={theme} 
+                  />
+                  
+                  {/* Dose with integrated unit selector */}
+                  <div>
+                    <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dose</div>
+                    <CombinedDosageInput
+                      value={{ amount: form.peptides[currentPeptideIndex]?.dose || '', unit: form.peptides[currentPeptideIndex]?.doseUnit || 'mcg' }}
+                      onChange={(newValue) => {
+                        updatePeptide(form.peptides[currentPeptideIndex]?.id, 'dose', newValue.amount);
+                        updatePeptide(form.peptides[currentPeptideIndex]?.id, 'doseUnit', newValue.unit);
+                      }}
+                      theme={theme}
+                      placeholder="250"
+                      units={['mcg', 'mg', 'mL']}
+                    />
+                  </div>
+                </>
+              )}
               
               {/* Vendor */}
               <VendorSuggestInput 
@@ -162,6 +168,38 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 placeholder="e.g., 45.00" 
                 theme={theme} 
               />
+              
+              {/* Add Peptide Button */}
+              <button
+                onClick={addPeptide}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md border-2 border-dashed text-sm font-semibold hover:bg-opacity-10 transition-all"
+                style={{
+                  borderColor: theme.primary,
+                  color: theme.primary,
+                  backgroundColor: 'transparent'
+                }}
+              >
+                <Plus size={16} />
+                Add Another Peptide
+              </button>
+              
+              {/* Pagination Dots */}
+              {form.peptides.length > 1 && (
+                <div className="flex justify-center gap-2 pt-2">
+                  {form.peptides.map((peptide, idx) => (
+                    <button
+                      key={peptide.id}
+                      onClick={() => setCurrentPeptideIndex(idx)}
+                      className="w-2.5 h-2.5 rounded-full transition-all hover:scale-125"
+                      style={{
+                        backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
+                        opacity: idx === currentPeptideIndex ? 1 : 0.4
+                      }}
+                      aria-label={`Peptide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -174,6 +212,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               penType={form.penType}
               penColor={penColor}
               theme={theme}
+              currentPeptideIndex={currentPeptideIndex}
             />
           </div>
         </div>
@@ -300,8 +339,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Step 4: Peptides & Doses */}
+        <div className="space-y-6 hidden">
+          {/* Old Peptides & Doses section - Hidden, using pagination now */}
           <div>
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>4. Peptides & Doses</h4>
           <div className="space-y-3">
