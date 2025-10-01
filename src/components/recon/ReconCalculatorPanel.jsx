@@ -5,7 +5,7 @@ import CustomDropdown from '../common/inputs/CustomDropdown'
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
-import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus } from 'lucide-react'
+import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
 export const penColors = [
@@ -173,15 +173,40 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
           {/* Visual Vial Preview - Takes 1/2 width */}
           <div className="col-span-1 flex flex-col items-center space-y-3">
-            <VialLabelPreview 
-              form={form}
-              deliveryMethod={deliveryMethod}
-              administrationRoute={administrationRoute}
-              penType={form.penType}
-              penColor={penColor}
-              theme={theme}
-              currentPeptideIndex={currentPeptideIndex}
-            />
+            <div className="relative w-full flex justify-center">
+              <VialLabelPreview 
+                form={form}
+                deliveryMethod={deliveryMethod}
+                administrationRoute={administrationRoute}
+                penType={form.penType}
+                penColor={penColor}
+                theme={theme}
+                currentPeptideIndex={currentPeptideIndex}
+              />
+              
+              {/* Delete Peptide Button - Top right corner (only show if more than 1 peptide) */}
+              {form.peptides.length > 1 && (
+                <button
+                  onClick={() => {
+                    const peptideId = form.peptides[currentPeptideIndex]?.id;
+                    removePeptide(peptideId);
+                    // Move to previous peptide if we deleted the last one
+                    if (currentPeptideIndex >= form.peptides.length - 1) {
+                      setCurrentPeptideIndex(Math.max(0, currentPeptideIndex - 1));
+                    }
+                  }}
+                  className="absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  style={{
+                    backgroundColor: theme.secondary,
+                    color: theme.error || '#ef4444',
+                    border: `1.5px solid ${theme.error || '#ef4444'}30`
+                  }}
+                  title="Remove this peptide"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
             
             {/* Logo - Above pagination dots */}
             <img 
