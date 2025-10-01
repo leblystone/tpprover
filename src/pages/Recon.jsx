@@ -350,7 +350,7 @@ export default function Recon() {
 										)}
 									</div>
 								)
-							})}
+							})
 							)}
 						</div>
 					)}
