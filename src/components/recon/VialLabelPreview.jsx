@@ -111,8 +111,12 @@ export default function VialLabelPreview({
           {/* Vendor Name - Subtle */}
           {currentPeptide?.vendor && (
             <div 
-              className="text-xs font-semibold mb-0.5 truncate w-full leading-tight" 
-              style={{ color: '#9ca3af' }}
+              className="text-xs font-semibold mb-0.5 w-full leading-tight overflow-hidden" 
+              style={{ 
+                color: '#9ca3af',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
             >
               {currentPeptide.vendor.toUpperCase()}
             </div>
@@ -121,8 +125,13 @@ export default function VialLabelPreview({
           {/* Peptide Name - LARGEST/MOST PROMINENT */}
           {peptideName && (
             <div 
-              className="text-sm font-bold mb-1 leading-tight truncate w-full" 
-              style={{ color: '#374151' }}
+              className="text-sm font-bold mb-1.5 w-full overflow-hidden" 
+              style={{ 
+                color: '#374151',
+                lineHeight: '1.1',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
             >
               {peptideName}
             </div>
@@ -131,8 +140,8 @@ export default function VialLabelPreview({
           {/* MG - Under peptide name - Larger with sage green */}
           {currentMg && (
             <div 
-              className="text-sm font-bold mb-0.5 leading-tight" 
-              style={{ color: '#84a98c' }}
+              className="text-sm font-bold mb-0.5" 
+              style={{ color: '#84a98c', lineHeight: '1' }}
             >
               {currentMg}mg
             </div>
@@ -140,7 +149,7 @@ export default function VialLabelPreview({
           
           {/* Water Amount */}
           {form.water && (
-            <div className="text-[0.6rem] leading-tight" style={{ color: '#9ca3af' }}>
+            <div className="text-[0.6rem]" style={{ color: '#9ca3af', lineHeight: '1' }}>
               💧 {form.water}mL
             </div>
           )}
