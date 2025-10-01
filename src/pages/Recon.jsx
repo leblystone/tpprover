@@ -102,14 +102,14 @@ export default function Recon() {
 								<button
 									key={tab.value}
 									onClick={() => setActiveTab(tab.value)}
-									className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 ${
+									className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
 										activeTab === tab.value 
 											? 'shadow-sm' 
 											: 'hover:bg-gray-50'
 									}`}
 									style={{
-										backgroundColor: activeTab === tab.value ? theme.primary : 'transparent',
-										color: activeTab === tab.value ? theme.textOnPrimary : theme.textLight
+										backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
+										color: activeTab === tab.value ? theme.primary : theme.textLight
 									}}
 								>
 									{tab.label}
