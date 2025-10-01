@@ -95,9 +95,9 @@ export default function Recon() {
 					<div className="px-4 py-1">
 						<div className="flex justify-between">
 							{[
-								{ value: 'reconstituted', label: 'Reconstituted' },
-								{ value: 'history', label: 'History' },
-								{ value: 'calculator', label: 'Calculator' }
+								{ value: 'calculator', label: 'Calculator' },
+								{ value: 'reconstituted', label: 'On Hand' },
+								{ value: 'history', label: 'History' }
 							].map(tab => (
 								<button
 									key={tab.value}
