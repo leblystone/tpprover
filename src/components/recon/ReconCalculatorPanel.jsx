@@ -210,16 +210,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                   <X size={14} />
                 </button>
               )}
-            </div>
-            
-            {/* Bottom section - Logo, dots, button */}
-            <div className="w-full space-y-3">
-              {/* Logo - Above pagination dots */}
+              
+              {/* Logo - Overlaid at bottom center of vial */}
               <img 
                 src="/src/assets/tpp-logo.png" 
                 alt="The Pep Planner" 
-                className="h-6 opacity-60 mx-auto block"
+                className="absolute bottom-2 left-1/2 transform -translate-x-1/2 h-8 opacity-50"
               />
+            </div>
+            
+            {/* Bottom section - dots, button */}
+            <div className="w-full space-y-3">
             
             {/* Pagination Dots - Always reserve space */}
             <div className="flex justify-center gap-2.5 h-3">
