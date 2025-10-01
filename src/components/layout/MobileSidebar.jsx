@@ -26,7 +26,7 @@ export default function MobileSidebar({ open, onClose, theme }) {
   const links = [
     { to: '/app/dashboard', label: 'Dashboard', icon: Home },
     { to: '/app/calendar', label: 'Calendar', icon: Calendar },
-    { to: '/app/recon', label: 'Reconstitution', icon: Calculator },
+    { to: '/app/recon', label: 'Reconstitute', icon: Calculator },
     { to: '/app/protocols', label: 'Protocols', icon: FlaskConical },
     { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
     { to: '/app/orders', label: 'Orders', icon: ShoppingCart },

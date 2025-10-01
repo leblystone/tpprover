@@ -25,7 +25,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
     { to: '/app/dashboard', label: 'Dashboard', icon: Home, tourId: 'dashboard-welcome' },
     { to: '/app/calendar', label: 'Calendar', icon: Calendar, tourId: 'sidebar-calendar' },
     { to: '/app/protocols', label: 'Protocols', icon: FlaskConical, tourId: 'sidebar-protocols' },
-    { to: '/app/recon', label: 'Reconstitution', icon: Calculator, tourId: 'sidebar-recon' },
+    { to: '/app/recon', label: 'Reconstitute', icon: Calculator, tourId: 'sidebar-recon' },
     { to: '/app/stockpile', label: 'Stockpile', icon: Boxes, tourId: 'sidebar-stockpile' },
     { to: '/app/orders', label: 'Orders', icon: ShoppingCart, tourId: 'sidebar-orders' },
     { to: '/app/vendors', label: 'Vendors', icon: Store, tourId: 'sidebar-vendors' },

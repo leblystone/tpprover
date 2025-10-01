@@ -12,7 +12,7 @@ const TOUR_STEPS = [
     {
         target: '[data-tour="sidebar-recon"]',
         content: "Here's where the magic happens! 🧪\n\n- Track every vial you reconstitute and link it to a vendor.\n- Choose your delivery method: syringe 💉 or pen 🖊️.\n- Pick a color for your pen to keep things organized!\n- Use the calculator to figure out your doses.",
-        title: 'Reconstitution',
+        title: 'Reconstitute',
         path: '/recon',
     },
     {
