@@ -55,13 +55,13 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center items-start h-full">
       <div className="relative inline-block">
-        {/* Vial Image with subtle shadow */}
+        {/* Vial Image with subtle shadow - Maximum size */}
         <img 
           src={vialImage} 
           alt="Vial" 
           className="w-full h-auto"
           style={{ 
-            maxWidth: '400px',
+            maxWidth: '100%',
             filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08))'
           }}
         />
