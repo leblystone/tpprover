@@ -101,8 +101,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
   return (
     <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-      <h3 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Peptide Calculator</h3>
-      <p className="text-sm text-gray-500 mb-4">Calculate dosages for one or more peptides.</p>
 
       {/* Section Banner - Vial Details */}
       <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
