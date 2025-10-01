@@ -52,13 +52,14 @@ export default function VialLabelPreview({
   const deliveryText = getDeliveryText();
 
   return (
-    <div className="flex justify-center items-center h-full min-h-[300px] sm:min-h-0">
+    <div className="flex justify-center items-start h-full">
       <div className="relative inline-block">
         {/* Vial Image */}
         <img 
           src={vialImage} 
           alt="Vial" 
-          className="w-48 sm:w-56 h-auto"
+          className="w-full h-auto"
+          style={{ maxWidth: '280px' }}
         />
         
         {/* Text Overlay on White Label Area - Positioned to match the label */}

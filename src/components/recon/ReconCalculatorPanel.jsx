@@ -108,7 +108,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           {/* Vial Details - Takes 2/3 width */}
           <div className="col-span-2">
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Peptide Name */}
               <TextInput 
                 label="Peptide Name" 
@@ -167,7 +167,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
           {/* Visual Vial Preview - Takes 1/3 width */}
           <div className="col-span-1">
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Your Vial</h4>
             <VialLabelPreview 
               form={form}
               deliveryMethod={deliveryMethod}
