@@ -211,6 +211,17 @@ export default function Recon() {
 
 					{activeTab === 'reconstituted' && (
 						<div className="space-y-3">
+							{/* Add Button for On Hand */}
+							<div className="flex justify-end mb-4">
+								<button
+									onClick={() => setShowEditModal(true)}
+									className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+									style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+								>
+									<PlusCircle size={16} />
+									Add Vial
+								</button>
+							</div>
 							{sortedItems.map(item => {
 								const isBlend = Array.isArray(item.peptides) && item.peptides.length > 0;
                                 const totalMg = isBlend ? item.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0) : item.mg;

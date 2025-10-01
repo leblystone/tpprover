@@ -497,7 +497,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
         >
           <FilePlus size={16} />
-          Add to On Hand
+          Save Calculation
         </button>
         <div className="p-3 rounded-md bg-yellow-50 text-yellow-800 text-xs mt-4 border border-yellow-200 text-center">
           <Info size={14} className="inline mr-1" />
