@@ -339,9 +339,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           </div>
         </div>
 
-        <div className="space-y-6 hidden">
+        {/* Results and old peptide section wrapper */}
+        <div className="space-y-6">
           {/* Old Peptides & Doses section - Hidden, using pagination now */}
-          <div>
+          <div className="hidden">
           <h4 className="font-semibold mb-2" style={{ color: theme.text }}>4. Peptides & Doses</h4>
           <div className="space-y-3">
             {form.peptides.map((p, index) => (
