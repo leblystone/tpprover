@@ -103,7 +103,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
 
       {/* Two Column Layout: Left Content + Visual Preview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-        {/* Left Column: 2:1 Split for Vial Details and Delivery Method */}
+        {/* Left Column: 2:1 Split for Vial Details and Visual Preview */}
         <div className="grid grid-cols-3 gap-4">
           {/* Vial Details - Takes 2/3 width */}
           <div className="col-span-2">
@@ -117,10 +117,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             </div>
           </div>
 
-          {/* Delivery Method - Takes 1/3 width */}
+          {/* Visual Vial Preview - Takes 1/3 width */}
           <div className="col-span-1">
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Delivery Method</h4>
-            <div className="space-y-2">
+            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>2. Your Vial</h4>
+            <VialLabelPreview 
+              form={form}
+              deliveryMethod={deliveryMethod}
+              administrationRoute={administrationRoute}
+              penType={form.penType}
+              penColor={penColor}
+              theme={theme}
+            />
+          </div>
+        </div>
+
+        {/* Right Column: Delivery Method (moved from left) */}
+        <div>
+          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>3. Delivery Method</h4>
+          <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('syringe');
@@ -236,26 +250,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     </div>
                 </div>
             )}
-            </div>
-          </div>
-
-          {/* Right Column: Vial Label Preview */}
-          <div className="flex justify-center sm:justify-end">
-            <VialLabelPreview 
-              form={form}
-              deliveryMethod={deliveryMethod}
-              administrationRoute={administrationRoute}
-              penType={form.penType}
-              penColor={penColor}
-              theme={theme}
-            />
           </div>
         </div>
 
         <div className="space-y-6">
-          {/* Step 2: Peptides & Doses */}
+          {/* Step 4: Peptides & Doses */}
           <div>
-          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>3. Peptides & Doses</h4>
+          <h4 className="font-semibold mb-2" style={{ color: theme.text }}>4. Peptides & Doses</h4>
           <div className="space-y-3">
             {form.peptides.map((p, index) => (
               <div key={p.id} className="space-y-4 p-4 border rounded-lg" style={{ borderColor: theme?.border || '#e5e7eb', backgroundColor: theme?.cardBackground || 'white' }}>
