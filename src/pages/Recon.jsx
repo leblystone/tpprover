@@ -90,9 +90,9 @@ export default function Recon() {
 	return (
 		<section>
 			{/* Mobile-only sub-header with pill tabs - break out of main content padding */}
-			<div className="block lg:hidden -mx-2 md:-mx-6 -mt-2 relative">
-				<div className="bg-white border-b absolute top-0 left-0 right-0" style={{ borderColor: theme.border }}>
-					<div className="px-6 py-3">
+			<div className="block lg:hidden -mx-2 md:-mx-6">
+				<div className="bg-white border-b" style={{ borderColor: theme.border }}>
+					<div className="px-4 py-3">
 						<div className="flex gap-1">
 							{[
 								{ value: 'reconstituted', label: 'Reconstituted' },
@@ -120,7 +120,7 @@ export default function Recon() {
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-20 lg:mt-6">
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
 				{/* Desktop: Show calculator in sidebar, Mobile: Show based on activeTab */}
 				<div className={`order-1 lg:order-2 ${activeTab === 'calculator' ? 'block lg:block' : 'hidden lg:block'}`}>
 					<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
