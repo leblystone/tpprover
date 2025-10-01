@@ -109,11 +109,70 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           <div className="col-span-2">
             <h4 className="font-semibold mb-2" style={{ color: theme.text }}>1. Vial Details</h4>
             <div className="space-y-3">
-              <VendorSuggestInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor Name" theme={theme} />
-              <div className="space-y-3">
-                  <TextInput icon={<Droplet size={16} />} label="Water(mL)" type="number" value={form.water} onChange={v => setForm({ ...form, water: v })} placeholder="e.g., 2" theme={theme} />
-                  <TextInput icon={<Info size={16} />} label="Vial Cost ($)" type="number" value={cost} onChange={v => setCost(v)} placeholder="e.g., 45.00" theme={theme} />
+              {/* Peptide Name */}
+              <TextInput 
+                label="Peptide Name" 
+                value={form.peptides[0]?.name || ''} 
+                onChange={v => updatePeptide(form.peptides[0]?.id, 'name', v)} 
+                placeholder="e.g., BPC-157" 
+                theme={theme} 
+              />
+              
+              {/* MG */}
+              <TextInput 
+                label="mg" 
+                type="number"
+                value={form.peptides[0]?.mg || ''} 
+                onChange={v => updatePeptide(form.peptides[0]?.id, 'mg', v)} 
+                placeholder="e.g., 10" 
+                theme={theme} 
+              />
+              
+              {/* Dose with integrated unit selector */}
+              <div>
+                <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dose</div>
+                <CombinedDosageInput
+                  value={{ amount: form.peptides[0]?.dose || '', unit: form.peptides[0]?.doseUnit || 'mcg' }}
+                  onChange={(newValue) => {
+                    updatePeptide(form.peptides[0]?.id, 'dose', newValue.amount);
+                    updatePeptide(form.peptides[0]?.id, 'doseUnit', newValue.unit);
+                  }}
+                  theme={theme}
+                  placeholder="250"
+                  units={['mcg', 'mg', 'mL']}
+                />
               </div>
+              
+              {/* Vendor */}
+              <VendorSuggestInput 
+                label="Vendor" 
+                value={form.vendor} 
+                onChange={v => setForm({ ...form, vendor: v })} 
+                placeholder="(Optional)" 
+                theme={theme} 
+              />
+              
+              {/* Water */}
+              <TextInput 
+                icon={<Droplet size={16} />} 
+                label="Water(mL)" 
+                type="number" 
+                value={form.water} 
+                onChange={v => setForm({ ...form, water: v })} 
+                placeholder="e.g., 2" 
+                theme={theme} 
+              />
+              
+              {/* Cost */}
+              <TextInput 
+                icon={<Info size={16} />} 
+                label="Vial Cost ($)" 
+                type="number" 
+                value={cost} 
+                onChange={v => setCost(v)} 
+                placeholder="e.g., 45.00" 
+                theme={theme} 
+              />
             </div>
           </div>
 
