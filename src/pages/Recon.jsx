@@ -92,7 +92,7 @@ export default function Recon() {
 			{/* Mobile-only sub-header with pill tabs - break out of main content padding */}
 			<div className="block lg:hidden -m-2 md:-m-6">
 				<div className="bg-white border-b" style={{ borderColor: theme.border }}>
-					<div className="px-4 py-3">
+					<div className="px-4 py-2">
 						<div className="flex gap-1">
 							{[
 								{ value: 'reconstituted', label: 'Reconstituted' },
