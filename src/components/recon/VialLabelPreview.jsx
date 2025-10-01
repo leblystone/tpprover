@@ -54,7 +54,7 @@ export default function VialLabelPreview({
 
   return (
     <div className="flex justify-center items-start h-full">
-      <div className="relative inline-block">
+      <div className="relative inline-block" style={{ marginLeft: '-10%' }}>
         {/* Vial Image with subtle shadow - Maximum size */}
         <img 
           src={vialImage} 
@@ -70,11 +70,11 @@ export default function VialLabelPreview({
         <div 
           className="absolute flex flex-col items-center text-center px-4"
           style={{
-            top: '46%',
+            top: '44%',
             left: '50%',
             transform: 'translateX(-50%)',
             width: '80%',
-            height: '30%',
+            height: '32%',
           }}
         >
           {/* Periodic Table Element Logo - Centered as "Brand Logo" */}
@@ -83,7 +83,7 @@ export default function VialLabelPreview({
               className="relative border-2 rounded p-2.5 w-16 mb-2"
               style={{ 
                 borderColor: theme.primary || '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                backgroundColor: '#f3f4f6',
                 fontFamily: 'Helvetica, Arial, sans-serif'
               }}
             >
