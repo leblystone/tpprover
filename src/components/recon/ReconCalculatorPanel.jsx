@@ -126,15 +126,25 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                     theme={theme} 
                   />
                   
-                  {/* MG */}
-                  <TextInput 
-                    label="mg" 
-                    type="number"
-                    value={form.peptides[currentPeptideIndex]?.mg || ''} 
-                    onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'mg', v)} 
-                    placeholder="e.g., 10" 
-                    theme={theme} 
-                  />
+                  {/* MG and Water in 2 columns */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <TextInput 
+                      label="mg" 
+                      type="number"
+                      value={form.peptides[currentPeptideIndex]?.mg || ''} 
+                      onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'mg', v)} 
+                      placeholder="e.g., 10" 
+                      theme={theme} 
+                    />
+                    <TextInput 
+                      label="Water(mL)" 
+                      type="number"
+                      value={form.water || ''} 
+                      onChange={v => setForm(prev => ({...prev, water: v}))} 
+                      placeholder="e.g., 2" 
+                      theme={theme} 
+                    />
+                  </div>
                   
                   {/* Dose with integrated unit selector */}
                   <div>
