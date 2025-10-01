@@ -55,14 +55,14 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center items-start h-full">
       <div className="relative inline-block">
-        {/* Vial Image with bottom shadow */}
+        {/* Vial Image with subtle shadow */}
         <img 
           src={vialImage} 
           alt="Vial" 
-          className="w-full h-auto drop-shadow-lg"
+          className="w-full h-auto"
           style={{ 
-            maxWidth: '280px',
-            filter: 'drop-shadow(0 10px 15px rgba(0, 0, 0, 0.15))'
+            maxWidth: '400px',
+            filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08))'
           }}
         />
         
@@ -136,15 +136,8 @@ export default function VialLabelPreview({
           
           {/* Water Amount */}
           {form.water && (
-            <div className="text-[0.65rem] mb-0.5" style={{ color: '#9ca3af' }}>
+            <div className="text-[0.65rem]" style={{ color: '#9ca3af' }}>
               💧 {form.water}mL
-            </div>
-          )}
-          
-          {/* Delivery Method */}
-          {deliveryText && (
-            <div className="text-[0.6rem]" style={{ color: '#9ca3af' }}>
-              {deliveryText}
             </div>
           )}
         </div>
