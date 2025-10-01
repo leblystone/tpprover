@@ -37,7 +37,7 @@ export default function VialLabelPreview({
   const deliveryText = getDeliveryText();
 
   return (
-    <div className="flex justify-center mb-6">
+    <div className="flex justify-center items-center h-full">
       <div className="relative inline-block">
         {/* Vial Image */}
         <img 
