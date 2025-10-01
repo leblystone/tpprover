@@ -72,11 +72,12 @@ export default function VialLabelPreview({
             height: '25%',
           }}
         >
-          {/* Periodic Table Style Element Logo - Top of label */}
-          {elementSymbol && (
-            <div className="flex justify-center mb-1">
+          {/* Two Column Layout: Element Logo + Vendor/MG */}
+          <div className="flex gap-2 mb-1 w-full">
+            {/* Left: Periodic Table Element Logo */}
+            {elementSymbol && (
               <div 
-                className="relative border-2 rounded p-1.5 w-12"
+                className="relative border-2 rounded p-1 w-10 flex-shrink-0"
                 style={{ 
                   borderColor: theme.primary || '#3b82f6',
                   backgroundColor: 'rgba(59, 130, 246, 0.08)'
@@ -84,7 +85,7 @@ export default function VialLabelPreview({
               >
                 {/* Atomic Number (mg in vial) */}
                 <div 
-                  className="text-[0.45rem] font-bold absolute top-0.5 left-1" 
+                  className="text-[0.4rem] font-bold absolute top-0.5 left-0.5" 
                   style={{ color: theme.primary }}
                 >
                   {totalMg}
@@ -92,26 +93,39 @@ export default function VialLabelPreview({
                 
                 {/* Element Symbol (first 2 letters) */}
                 <div 
-                  className="text-[0.85rem] font-black text-center pt-1" 
+                  className="text-[0.75rem] font-black text-center pt-0.5" 
                   style={{ color: theme.primary }}
                 >
                   {elementSymbol}
                 </div>
               </div>
+            )}
+            
+            {/* Right: Vendor and MG info */}
+            <div className="flex-1 text-left">
+              {/* Vendor Name */}
+              {form.vendor && (
+                <div 
+                  className="text-[0.5rem] font-bold truncate" 
+                  style={{ color: '#374151' }}
+                >
+                  {form.vendor.toUpperCase()}
+                </div>
+              )}
+              
+              {/* MG per vial */}
+              {totalMg && (
+                <div 
+                  className="text-[0.45rem] font-semibold" 
+                  style={{ color: '#6b7280' }}
+                >
+                  {totalMg}mg/vial
+                </div>
+              )}
             </div>
-          )}
+          </div>
           
-          {/* Vendor Name */}
-          {form.vendor && (
-            <div 
-              className="text-[0.45rem] font-semibold mb-0.5 truncate w-full" 
-              style={{ color: '#6b7280' }}
-            >
-              {form.vendor.toUpperCase()}
-            </div>
-          )}
-          
-          {/* Full Peptide Names */}
+          {/* Full Peptide Names - One line below */}
           {peptideNames && (
             <div 
               className="text-[0.5rem] font-medium mb-1 leading-tight truncate w-full" 
