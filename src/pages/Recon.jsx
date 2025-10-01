@@ -89,9 +89,8 @@ export default function Recon() {
 
 	return (
 		<section>
-
-			{/* Mobile-only sub-header with pill tabs */}
-			<div className="block lg:hidden">
+			{/* Mobile-only sub-header with pill tabs - break out of main content padding */}
+			<div className="block lg:hidden -mx-2 md:-mx-6">
 				<div className="bg-white border-b" style={{ borderColor: theme.border }}>
 					<div className="px-4 py-3">
 						<div className="flex gap-1">
