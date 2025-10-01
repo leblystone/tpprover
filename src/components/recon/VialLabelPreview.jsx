@@ -121,7 +121,7 @@ export default function VialLabelPreview({
           {/* Peptide Name - LARGEST/MOST PROMINENT */}
           {peptideName && (
             <div 
-              className="text-sm font-bold mb-0.5 leading-tight truncate w-full" 
+              className="text-sm font-bold mb-1 leading-tight truncate w-full" 
               style={{ color: '#374151' }}
             >
               {peptideName}
