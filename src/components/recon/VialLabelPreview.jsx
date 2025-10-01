@@ -71,7 +71,7 @@ export default function VialLabelPreview({
           className="absolute flex flex-col items-center text-center px-4"
           style={{
             top: '44%',
-            left: '54%',
+            left: '53%',
             transform: 'translateX(-50%)',
             width: '80%',
             height: '32%',
@@ -80,7 +80,7 @@ export default function VialLabelPreview({
           {/* Periodic Table Element Logo - Smaller, more compact */}
           {elementSymbol && (
             <div 
-              className="relative border rounded p-1 w-8 mb-0.5"
+              className="relative border rounded p-1.5 w-9 mb-0.5"
               style={{ 
                 borderColor: theme.primary || '#3b82f6',
                 backgroundColor: '#f3f4f6',
@@ -89,7 +89,7 @@ export default function VialLabelPreview({
             >
               {/* Atomic Number with mg */}
               <div 
-                className="text-[0.4rem] font-bold absolute top-0 left-0.5" 
+                className="text-[0.45rem] font-bold absolute top-0.5 left-0.5" 
                 style={{ color: theme.primary }}
               >
                 {currentMg}mg
@@ -97,7 +97,7 @@ export default function VialLabelPreview({
               
               {/* Element Symbol - First cap, second lowercase */}
               <div 
-                className="text-xs font-black text-center leading-none" 
+                className="text-sm font-black text-center leading-none pt-0.5" 
                 style={{ 
                   color: theme.primary,
                   fontFamily: 'Helvetica, Arial, sans-serif'
@@ -109,12 +109,12 @@ export default function VialLabelPreview({
           )}
           
           {/* Vendor Name - Subtle */}
-          {form.vendor && (
+          {currentPeptide?.vendor && (
             <div 
               className="text-xs font-semibold mb-0.5 truncate w-full leading-tight" 
               style={{ color: '#9ca3af' }}
             >
-              {form.vendor.toUpperCase()}
+              {currentPeptide.vendor.toUpperCase()}
             </div>
           )}
           
@@ -128,13 +128,15 @@ export default function VialLabelPreview({
             </div>
           )}
           
-          {/* MG - Under peptide name */}
-          <div 
-            className="text-[0.7rem] font-semibold mb-0.5 leading-tight" 
-            style={{ color: '#6b7280' }}
-          >
-            {currentMg ? `${currentMg}mg` : ''}
-          </div>
+          {/* MG - Under peptide name - Larger with sage green */}
+          {currentMg && (
+            <div 
+              className="text-sm font-bold mb-0.5 leading-tight" 
+              style={{ color: '#84a98c' }}
+            >
+              {currentMg}mg
+            </div>
+          )}
           
           {/* Water Amount */}
           {form.water && (

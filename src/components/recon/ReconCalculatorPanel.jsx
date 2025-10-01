@@ -82,6 +82,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
   const addPeptide = () => {
     const newId = Math.max(0, ...form.peptides.map(p => p.id)) + 1;
     setForm(prev => ({...prev, peptides: [...prev.peptides, { id: newId, name: '', mg: '', dose: '', doseUnit: 'mcg' }]}));
+    // Automatically switch to the new peptide
+    setCurrentPeptideIndex(form.peptides.length);
   }
 
   const updatePeptide = (id, key, value) => {
@@ -153,11 +155,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 </>
               )}
               
-              {/* Vendor */}
+              {/* Vendor - Per peptide */}
               <VendorSuggestInput 
                 label="Vendor" 
-                value={form.vendor} 
-                onChange={v => setForm({ ...form, vendor: v })} 
+                value={form.peptides[currentPeptideIndex]?.vendor || ''} 
+                onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'vendor', v)} 
                 placeholder="(Optional)" 
                 theme={theme} 
               />
