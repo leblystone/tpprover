@@ -29,7 +29,7 @@ export default function Recon() {
 	const [viewItem, setViewItem] = useState(null)
 	const [stockpile, setStockpile] = useState([])
 	const [prefill, setPrefill] = useState(null)
-	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history
+	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history | calculator
 	const [searchOpen, setSearchOpen] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
@@ -93,9 +93,71 @@ export default function Recon() {
 				<h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Reconstitution</h1>
 			</div>
 
+			{/* Mobile-only sub-header with pill tabs */}
+			<div className="block lg:hidden mb-6">
+				<div className="bg-white border-b" style={{ borderColor: theme.border }}>
+					<div className="px-4 py-3">
+						<div className="flex gap-1">
+							{[
+								{ value: 'reconstituted', label: 'Reconstituted' },
+								{ value: 'history', label: 'History' },
+								{ value: 'calculator', label: 'Calculator' }
+							].map(tab => (
+								<button
+									key={tab.value}
+									onClick={() => setActiveTab(tab.value)}
+									className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 ${
+										activeTab === tab.value 
+											? 'shadow-sm' 
+											: 'hover:bg-gray-50'
+									}`}
+									style={{
+										backgroundColor: activeTab === tab.value ? theme.primary : 'transparent',
+										color: activeTab === tab.value ? theme.textOnPrimary : theme.textLight
+									}}
+								>
+									{tab.label}
+								</button>
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				<div className="order-2 lg:order-1 lg:col-span-2">
-					<div className="flex items-center justify-between mb-4">
+				{/* Desktop: Show calculator in sidebar, Mobile: Show based on activeTab */}
+				<div className={`order-1 lg:order-2 ${activeTab === 'calculator' ? 'block lg:block' : 'hidden lg:block'}`}>
+					<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
+						const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
+						const totalMg = data.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
+						const totalDose = data.peptides.reduce((sum, p) => {
+                            const dose = Number(p.dose) || 0;
+                            return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
+                        }, 0);
+
+						const newItem = {
+								id: generateId(),
+								peptide: peptideNames,
+								mg: totalMg,
+								dose: totalDose, // This is now total mcg for calculation purposes
+								vendor: data.vendor, // Keep original for history/legacy
+                                vendorId: vendors.find(v => v.name === data.vendor)?.id || null,
+								water: data.water,
+								deliveryMethod: data.deliveryMethod,
+								penColor: data.penColor,
+								cost: data.cost,
+								date: new Date().toISOString(),
+                                peptides: data.peptides, // Save the full peptide list
+								notes: ''
+						};
+						setReconItems(prev => [newItem, ...prev])
+					}} />
+				</div>
+
+				{/* Main content area */}
+				<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
+					{/* Desktop tabs - hidden on mobile */}
+					<div className="hidden lg:flex items-center justify-between mb-4">
 						<div className="flex items-center gap-2 flex-1">
 							<Tabs theme={theme} value={activeTab} onChange={setActiveTab} compact stretch options={[
 								{ value: 'reconstituted', label: 'Reconstituted' },
@@ -123,7 +185,34 @@ export default function Recon() {
 						)}
 					</div>
 
-					{activeTab === 'reconstituted' ? (
+					{/* Mobile search - only show when not on calculator tab */}
+					{activeTab !== 'calculator' && (
+						<div className="flex lg:hidden items-center justify-between mb-4">
+							<div className="flex items-center gap-2 flex-1">
+								<button 
+									className="p-2 rounded-md hover:bg-opacity-10 hover:bg-gray-500 transition-colors" 
+									style={{ color: theme.text, backgroundColor: searchOpen ? theme.accent : 'transparent' }} 
+									title="Search entries" 
+									onClick={() => {
+										console.log('Search button clicked, current state:', searchOpen);
+										setSearchOpen(v => !v);
+									}}
+								>
+									<Search className="h-4 w-4" />
+								</button>
+								{searchOpen && (
+									<input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search entries..." className="ml-1 p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} />
+								)}
+							</div>
+							{activeTab === 'history' && (
+								<button className="p-2 rounded-md" title="Filter" onClick={() => setShowHistoryFilters(v => !v)}>
+									<Filter className="h-4 w-4" />
+								</button>
+							)}
+						</div>
+					)}
+
+					{activeTab === 'reconstituted' && (
 						<div className="space-y-3">
 							{sortedItems.map(item => {
 								const isBlend = Array.isArray(item.peptides) && item.peptides.length > 0;
@@ -233,7 +322,9 @@ export default function Recon() {
 								)
 							})}
 						</div>
-					) : (
+					)}
+
+					{activeTab === 'history' && (
 						<div className="overflow-x-auto">
 							{showHistoryFilters && (
 								<div className="mb-3 p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -267,34 +358,6 @@ export default function Recon() {
 							</table>
 						</div>
 					)}
-				</div>
-
-				<div className="order-1 lg:order-2">
-					<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
-						const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
-						const totalMg = data.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
-						const totalDose = data.peptides.reduce((sum, p) => {
-                            const dose = Number(p.dose) || 0;
-                            return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
-                        }, 0);
-
-						const newItem = {
-								id: generateId(),
-								peptide: peptideNames,
-								mg: totalMg,
-								dose: totalDose, // This is now total mcg for calculation purposes
-								vendor: data.vendor, // Keep original for history/legacy
-                                vendorId: vendors.find(v => v.name === data.vendor)?.id || null,
-								water: data.water,
-								deliveryMethod: data.deliveryMethod,
-								penColor: data.penColor,
-								cost: data.cost,
-								date: new Date().toISOString(),
-                                peptides: data.peptides, // Save the full peptide list
-								notes: ''
-						};
-						setReconItems(prev => [newItem, ...prev])
-					}} />
 				</div>
 			</div>
 
