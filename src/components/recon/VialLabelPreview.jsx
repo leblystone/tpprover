@@ -15,7 +15,7 @@ export default function VialLabelPreview({
         <img 
           src={vialImage} 
           alt="Vial" 
-          className="w-32 h-auto"
+          className="w-56 h-auto"
         />
       </div>
     </div>
