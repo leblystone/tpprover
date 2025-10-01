@@ -91,7 +91,7 @@ export default function Recon() {
 		<section>
 
 			{/* Mobile-only sub-header with pill tabs */}
-			<div className="block lg:hidden mb-6">
+			<div className="block lg:hidden">
 				<div className="bg-white border-b" style={{ borderColor: theme.border }}>
 					<div className="px-4 py-3">
 						<div className="flex gap-1">
@@ -121,7 +121,7 @@ export default function Recon() {
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
 				{/* Desktop: Show calculator in sidebar, Mobile: Show based on activeTab */}
 				<div className={`order-1 lg:order-2 ${activeTab === 'calculator' ? 'block lg:block' : 'hidden lg:block'}`}>
 					<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
