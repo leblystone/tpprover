@@ -28,7 +28,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
     research: 'Research',
     calendar: 'Calendar',
     recon: 'Reconstitute',
-    protocols: 'Protocols',
+    protocols: 'Protocols - The Pep Planner',
     orders: 'Orders',
     vendors: 'Vendors',
     stockpile: 'Stockpile',
@@ -61,7 +61,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
           </button>
           <h1 className="text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
             <span className="hidden sm:inline">{title}</span>
-            <span className="sm:hidden">{title.includes('Welcome') ? 'The Pep Planner' : title}</span>
+            <span className="sm:hidden">{title}</span>
           </h1>
         </div>
         <div className="flex items-center gap-2 flex-1 justify-end">
