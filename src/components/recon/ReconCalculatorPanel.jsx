@@ -152,17 +152,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 theme={theme} 
               />
               
-              {/* Water */}
-              <TextInput 
-                icon={<Droplet size={16} />} 
-                label="Water(mL)" 
-                type="number" 
-                value={form.water} 
-                onChange={v => setForm({ ...form, water: v })} 
-                placeholder="e.g., 2" 
-                theme={theme} 
-              />
-              
               {/* Cost */}
               <TextInput 
                 icon={<Info size={16} />} 
