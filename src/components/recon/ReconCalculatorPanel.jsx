@@ -5,25 +5,9 @@ import CustomDropdown from '../common/inputs/CustomDropdown'
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
+import { penColors } from '../../utils/penColors'
 import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
-
-export const penColors = [
-    { name: 'Gold', hex: '#DAA520' },
-    { name: 'Silver', hex: '#C0C0C0' },
-    { name: 'Black', hex: '#000000' },
-    { name: 'White', hex: '#FFFFFF' },
-    { name: 'Hot Pink', hex: '#FF69B4' },
-    { name: 'Light Pink', hex: '#FFB6C1' },
-    { name: 'Dark Blue', hex: '#00008B' },
-    { name: 'Light Blue', hex: '#ADD8E6' },
-    { name: 'Teal', hex: '#008080' },
-    { name: 'Lime Green', hex: '#32CD32' },
-    { name: 'Brown', hex: '#8B4513' },
-    { name: 'Red', hex: '#CC0000' },
-    { name: 'Burgundy', hex: '#800000' },
-    { name: 'Purple', hex: '#800080' },
-];
 
 export function ReconCalculatorPanel({ theme, prefill, onSave }) {
   const [form, setForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] })
@@ -107,142 +91,116 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Vial Details</h4>
       </div>
 
-      {/* Two Column Layout: Left Content + Visual Preview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-        {/* Left Column: Equal Split for Vial Details and Visual Preview */}
-        <div className="grid grid-cols-2 gap-4 items-end">
-          {/* Vial Details - Takes 1/2 width */}
-          <div className="col-span-1">
-            <div className="space-y-2">
-              {/* Current Peptide from pagination */}
-              {form.peptides[currentPeptideIndex] && (
-                <>
-                  {/* Peptide Name */}
-                  <TextInput 
-                    label="Peptide Name" 
-                    value={form.peptides[currentPeptideIndex]?.name || ''} 
-                    onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'name', v)} 
-                    placeholder="e.g., BPC-157" 
-                    theme={theme} 
-                  />
-                  
-                  {/* MG and Water in 2 columns */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <TextInput 
-                      label="mg" 
-                      type="number"
-                      value={form.peptides[currentPeptideIndex]?.mg || ''} 
-                      onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'mg', v)} 
-                      placeholder="e.g., 10" 
-                      theme={theme} 
-                    />
-                    <TextInput 
-                      label="Water(mL)" 
-                      type="number"
-                      value={form.water || ''} 
-                      onChange={v => setForm(prev => ({...prev, water: v}))} 
-                      placeholder="e.g., 2" 
-                      theme={theme} 
-                    />
-                  </div>
-                  
-                  {/* Dose with integrated unit selector */}
-                  <div>
-                    <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dose</div>
-                    <CombinedDosageInput
-                      value={{ amount: form.peptides[currentPeptideIndex]?.dose || '', unit: form.peptides[currentPeptideIndex]?.doseUnit || 'mcg' }}
-                      onChange={(newValue) => {
-                        updatePeptide(form.peptides[currentPeptideIndex]?.id, 'dose', newValue.amount);
-                        updatePeptide(form.peptides[currentPeptideIndex]?.id, 'doseUnit', newValue.unit);
-                      }}
-                      theme={theme}
-                      placeholder="250"
-                      units={['mcg', 'mg', 'mL']}
-                    />
-                  </div>
-                </>
-              )}
-              
-              {/* Vendor - Per peptide */}
-              <VendorSuggestInput 
-                label="Vendor" 
-                value={form.peptides[currentPeptideIndex]?.vendor || ''} 
-                onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'vendor', v)} 
-                placeholder="(Optional)" 
-                theme={theme} 
-              />
-              
-              {/* Cost */}
-              <TextInput 
-                icon={<Info size={16} />} 
-                label="Vial Cost ($)" 
-                type="number" 
-                value={cost} 
-                onChange={v => setCost(v)} 
-                placeholder="e.g., 45.00" 
-                theme={theme} 
-              />
-            </div>
+      {/* Single Column Layout with Integrated Vial Visual */}
+      <div className="space-y-4 mb-6">
+        {/* Peptide Name */}
+        {form.peptides[currentPeptideIndex] && (
+          <TextInput 
+            label="Peptide Name" 
+            value={form.peptides[currentPeptideIndex]?.name || ''} 
+            onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'name', v)} 
+            placeholder="e.g., BPC-157" 
+            theme={theme} 
+          />
+        )}
+        
+        {/* MG and Water in 2 columns */}
+        <div className="grid grid-cols-2 gap-3">
+          <TextInput 
+            label="mg" 
+            type="number"
+            value={form.peptides[currentPeptideIndex]?.mg || ''} 
+            onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'mg', v)} 
+            placeholder="e.g., 10" 
+            theme={theme} 
+          />
+          <TextInput 
+            label="Water(mL)" 
+            type="number"
+            value={form.water || ''} 
+            onChange={v => setForm(prev => ({...prev, water: v}))} 
+            placeholder="e.g., 2" 
+            theme={theme} 
+          />
+        </div>
+        
+        {/* Dose and Vial Visual - 2 column layout */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Dose with integrated unit selector */}
+        <div>
+            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dose</div>
+            <CombinedDosageInput
+              value={{ amount: form.peptides[currentPeptideIndex]?.dose || '', unit: form.peptides[currentPeptideIndex]?.doseUnit || 'mcg' }}
+              onChange={(newValue) => {
+                updatePeptide(form.peptides[currentPeptideIndex]?.id, 'dose', newValue.amount);
+                updatePeptide(form.peptides[currentPeptideIndex]?.id, 'doseUnit', newValue.unit);
+              }}
+              theme={theme}
+              placeholder="250"
+              units={['mcg', 'mg', 'mL']}
+            />
           </div>
-
-          {/* Visual Vial Preview - Takes 1/2 width */}
-          <div className="col-span-1 flex flex-col justify-between items-center">
-            <div className="relative w-full flex justify-center">
-              <VialLabelPreview 
-                form={form}
-                deliveryMethod={deliveryMethod}
-                administrationRoute={administrationRoute}
-                penType={form.penType}
-                penColor={penColor}
-                theme={theme}
-                currentPeptideIndex={currentPeptideIndex}
-              />
-              
-              {/* Delete Peptide Button - Top right corner (only show if more than 1 peptide) */}
-              {form.peptides.length > 1 && (
-                <button
-                  onClick={() => {
-                    const peptideId = form.peptides[currentPeptideIndex]?.id;
-                    removePeptide(peptideId);
-                    // Move to previous peptide if we deleted the last one
-                    if (currentPeptideIndex >= form.peptides.length - 1) {
-                      setCurrentPeptideIndex(Math.max(0, currentPeptideIndex - 1));
-                    }
-                  }}
-                  className="absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                  style={{
-                    backgroundColor: theme.secondary,
-                    color: theme.error || '#ef4444',
-                    border: `1.5px solid ${theme.error || '#ef4444'}30`
-                  }}
-                  title="Remove this peptide"
-                >
-                  <X size={14} />
-                </button>
-              )}
-              
-            </div>
+          
+          {/* Vial Visual */}
+          <div className="relative flex justify-center">
+            <VialLabelPreview 
+              form={form}
+              deliveryMethod={deliveryMethod}
+              administrationRoute={administrationRoute}
+              penType={form.penType}
+              penColor={penColor}
+              theme={theme}
+              currentPeptideIndex={currentPeptideIndex}
+            />
             
-            {/* Bottom section - dots and add button */}
-            <div className="w-full space-y-3">
-            
-            {/* Pagination Dots - Always reserve space */}
-            <div className="flex justify-center gap-2.5 h-3">
-              {form.peptides.length > 1 && form.peptides.map((peptide, idx) => (
-                <button
-                  key={peptide.id}
-                  onClick={() => setCurrentPeptideIndex(idx)}
-                  className="w-3 h-3 rounded-full transition-all hover:scale-125"
-                  style={{
-                    backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
-                    opacity: idx === currentPeptideIndex ? 1 : 0.4
-                  }}
-                  aria-label={`Peptide ${idx + 1}`}
-                />
-              ))}
-            </div>
-            
-            {/* Add Peptide Button - In second column */}
+            {/* Delete Peptide Button - Top right corner (only show if more than 1 peptide) */}
+            {form.peptides.length > 1 && (
+              <button
+                onClick={() => {
+                  const peptideId = form.peptides[currentPeptideIndex]?.id;
+                  removePeptide(peptideId);
+                  // Move to previous peptide if we deleted the last one
+                  if (currentPeptideIndex >= form.peptides.length - 1) {
+                    setCurrentPeptideIndex(Math.max(0, currentPeptideIndex - 1));
+                  }
+                }}
+                className="absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                style={{
+                  backgroundColor: theme.secondary,
+                  color: theme.error || '#ef4444',
+                  border: `1.5px solid ${theme.error || '#ef4444'}30`
+                }}
+                title="Remove this peptide"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {/* Vendor */}
+        <VendorSuggestInput 
+          label="Vendor" 
+          value={form.peptides[currentPeptideIndex]?.vendor || ''} 
+          onChange={v => updatePeptide(form.peptides[currentPeptideIndex]?.id, 'vendor', v)} 
+          placeholder="(Optional)" 
+          theme={theme} 
+        />
+        
+        {/* Cost and Add Peptide Button - 2 column layout */}
+        <div className="grid grid-cols-2 gap-4">
+          <TextInput 
+            icon={<Info size={16} />} 
+            label="Vial Cost ($)" 
+            type="number" 
+            value={cost} 
+            onChange={v => setCost(v)} 
+            placeholder="e.g., 45.00" 
+            theme={theme} 
+          />
+          
+          {/* Add Peptide Button */}
+          <div className="flex items-end">
             <button
               onClick={addPeptide}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
@@ -260,12 +218,26 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
               </div>
               Add Peptide
             </button>
-            </div>
           </div>
         </div>
+        
+        {/* Pagination Dots - Always reserve space */}
+        <div className="flex justify-center gap-2.5 h-3">
+          {form.peptides.length > 1 && form.peptides.map((peptide, idx) => (
+            <button
+              key={peptide.id}
+              onClick={() => setCurrentPeptideIndex(idx)}
+              className="w-3 h-3 rounded-full transition-all hover:scale-125"
+              style={{
+                backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
+                opacity: idx === currentPeptideIndex ? 1 : 0.4
+              }}
+            />
+          ))}
+        </div>
 
-        {/* Right Column: Delivery Method (moved from left) */}
-        <div>
+      {/* Delivery Method Section */}
+      <div>
           {/* Section Banner - Delivery Method */}
           <div className="mb-3 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
             <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Delivery Method</h4>
@@ -354,7 +326,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             {deliveryMethod === 'pen' && (
                 <div className="mt-3">
                     <div className="grid grid-cols-2 gap-4">
-                        {/* Pen Type Selection */}
+                    {/* Pen Type Selection */}
                         <CustomDropdown
                             label="Pen Type"
                             value={form.penType || ''}
@@ -375,7 +347,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                             theme={theme}
                         />
 
-                        {/* Pen Color Selection */}
+                    {/* Pen Color Selection */}
                         <ColorSwatchDropdown
                             label="Pen Color"
                             value={penColor}
@@ -432,9 +404,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                                     updatePeptide(p.id, 'doseUnit', newValue.unit);
                                 }}
                                 theme={theme}
-                                placeholder="250"
+                      placeholder="250" 
                                 deliveryMethod={deliveryMethod}
-                            />
+                    />
                   </div>
                 </div>
                 
@@ -481,10 +453,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             <p className="text-xs text-center mt-3" style={{ color: theme.textLight }}>
                 Based on {deliveryMethod === 'syringe' ? 'an insulin syringe (U-100, 1mL)' : deliveryMethod === 'pen' ? 'a dosage pen' : 'nasal spray delivery'}
             </p>
-          </div>
         </div>
-        
-        <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+      </div>
+      
+      <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
         <button
           onClick={() => {
             // Convert hex color to name before saving
@@ -509,8 +481,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           <Info size={14} className="inline mr-1" />
           For research purposes only. Always verify calculations with alternative methods.
         </div>
-        </div>
       </div>
+    </div>
     </div>
   );
 }
