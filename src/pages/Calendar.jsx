@@ -13,6 +13,8 @@ import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
 import { calculateRecon } from '../utils/recon'
 import { useAppContext } from '../context/AppContext'
 import { getCalendarDone, toggleTaskCompletion, generateTaskId } from '../utils/taskCompletion'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
 let colorIndex = 0;
@@ -98,6 +100,8 @@ function getWindows(p) {
 export default function Calendar() {
   const { theme } = useOutletContext()
   const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys } = useAppContext();
+  const { isReadOnly } = useSubscriptionAccess();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [goals, setGoals] = useState([]);
   
   // Load goals from localStorage
@@ -792,6 +796,10 @@ export default function Calendar() {
   }
 
   const handleSaveNotes = (text) => {
+      if (isReadOnly) {
+        setShowUpgradeModal(true);
+        return;
+      }
       if (!editingNotesFor) return;
       const key = toKey(editingNotesFor);
       setEntries(prev => ({ ...prev, [key]: text }));
@@ -904,6 +912,13 @@ export default function Calendar() {
         theme={theme}
         isVisible={showIconKey}
         onClose={() => setShowIconKey(false)}
+      />
+
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        actionAttempted="add notes to calendar"
+        theme={theme}
       />
     </section>
   )

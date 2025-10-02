@@ -97,25 +97,25 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
   }, [order?.tracking])
   
   if (!order)   return (
-    <div className="p-8 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground }}>
+    <div className="p-4 rounded-xl content-card w-full" style={{ backgroundColor: theme.cardBackground }}>
       {!hideHeader && (
-        <div className="px-4 py-3 border-b mb-6" style={{ borderColor: theme.border }}>
+        <div className="px-3 py-2 border-b mb-3" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            <h3 className="text-base font-semibold" style={{ color: theme.text }}>
               Incoming Peptides
             </h3>
-            <Truck size={20} style={{ color: theme.primary }} />
+            <Truck size={18} style={{ color: theme.primary }} />
           </div>
         </div>
       )}
-      <p>No active orders.</p>
+      <p className="text-sm">No active orders.</p>
     </div>
   )
 
   const steps = [
-    { status: 'received', icon: <Clock size={24} color={theme.primary} />, label: 'Order Placed' },
-    { status: 'shipped', icon: <Truck size={24} color={theme.primary} />, label: 'In Transit' },
-    { status: 'delivered', icon: <CheckCircle size={24} color={theme.primary} />, label: 'Delivered' },
+    { status: 'received', icon: <Clock size={20} color={theme.primary} />, label: 'Order Placed' },
+    { status: 'shipped', icon: <Truck size={20} color={theme.primary} />, label: 'In Transit' },
+    { status: 'delivered', icon: <CheckCircle size={20} color={theme.primary} />, label: 'Delivered' },
   ]
   
   // Use real tracking data if available, otherwise fall back to order status
@@ -139,27 +139,27 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
   }
 
   return (
-    <div className={`${hideHeader ? 'p-4' : 'p-8'} w-full h-full flex flex-col items-center transition-opacity min-h-0`}>
+    <div className={`${hideHeader ? 'p-3' : 'p-4'} w-full h-full flex flex-col items-center transition-opacity min-h-0`}>
       {!hideHeader && (
-        <div className="px-4 py-3 border-b mb-4 flex-shrink-0" style={{ borderColor: theme.border }}>
+        <div className="px-3 py-2 border-b mb-3 flex-shrink-0" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            <h3 className="text-base font-semibold" style={{ color: theme.text }}>
               Incoming Peptides
             </h3>
-            <Truck size={20} style={{ color: theme.primary }} />
+            <Truck size={18} style={{ color: theme.primary }} />
           </div>
         </div>
       )}
-      <div className="w-full flex flex-col items-center mb-4 flex-shrink-0">
-        <div className="text-lg font-semibold mb-1" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
-        <div className="text-sm mb-3" style={{ color: theme.textLight }}>
+      <div className="w-full flex flex-col items-center mb-3 flex-shrink-0">
+        <div className="text-base font-semibold mb-0.5" style={{ color: theme.primary }}>{order.peptide} {order.mg}mg</div>
+        <div className="text-xs mb-2" style={{ color: theme.textLight }}>
           <span style={{ fontWeight: 500, color: theme.text }}>From:</span> {order.vendor}
         </div>
         
         {/* Real-time tracking status */}
         {trackingInfo && !trackingInfo.hasError && (
-          <div className="text-center mb-2">
-            <div className="text-sm font-semibold" style={{ color: theme.text }}>
+          <div className="text-center mb-1.5">
+            <div className="text-xs font-semibold" style={{ color: theme.text }}>
               {displayStatus}
             </div>
             {statusDetail && (
@@ -168,8 +168,8 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
               </div>
             )}
             {lastLocation && (
-              <div className="text-xs flex items-center justify-center gap-1 mt-1" style={{ color: theme.textLight }}>
-                <MapPin size={12} />
+              <div className="text-xs flex items-center justify-center gap-1 mt-0.5" style={{ color: theme.textLight }}>
+                <MapPin size={10} />
                 {lastLocation}
               </div>
             )}
@@ -178,20 +178,20 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
         
         {/* Tracking number display */}
         {order.tracking && (
-          <div className="text-xs font-mono bg-gray-100 px-2 py-1 rounded" style={{ color: theme.text }}>
+          <div className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded" style={{ color: theme.text }}>
             {order.tracking}
-            {isLoadingTracking && <RefreshCw size={12} className="inline ml-1 animate-spin" />}
+            {isLoadingTracking && <RefreshCw size={10} className="inline ml-1 animate-spin" />}
           </div>
         )}
         
         {/* Error display */}
         {trackingError && (
-          <div className="text-xs text-red-600 mt-1">
+          <div className="text-xs text-red-600 mt-0.5">
             {trackingError}
           </div>
         )}
       </div>
-      <div className="w-full flex items-center justify-between relative mb-8 px-4 flex-shrink-0">
+      <div className="w-full flex items-center justify-between relative mb-4 px-3 flex-shrink-0">
           <div 
             className="absolute top-1/2 -translate-y-1/2 left-0 h-1" 
             style={{ 
@@ -210,7 +210,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
           {steps.map((s, idx) => (
             <div key={s.status} className="flex flex-col items-center z-10">
               <div
-                className="rounded-full p-3 border-4"
+                className="rounded-full p-2 border-3"
                 style={{ 
                   backgroundColor: idx <= current ? theme.primary : theme.cardBackground,
                   borderColor: idx <= current ? theme.primary : theme.secondary
@@ -222,7 +222,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
           ))}
       </div>
 
-      <div className="w-full flex justify-between px-4 flex-shrink-0">
+      <div className="w-full flex justify-between px-3 flex-shrink-0">
         {steps.map((s, idx) => (
             <span
               key={s.status}
@@ -234,10 +234,10 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
         ))}
       </div>
       
-      <div className="mt-6 w-full space-y-2 flex-shrink-0 px-4 pb-4">
+      <div className="mt-3 w-full space-y-1.5 flex-shrink-0 px-3 pb-3">
         {order.tracking && (
           <button
-            className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 w-full flex items-center justify-center gap-2 border"
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 w-full flex items-center justify-center gap-1.5 border"
             style={{ 
               backgroundColor: theme.cardBackground, 
               color: theme.text,
@@ -254,13 +254,13 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
             }}
             disabled={isLoadingTracking}
           >
-            <RefreshCw size={16} className={isLoadingTracking ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={isLoadingTracking ? 'animate-spin' : ''} />
             {isLoadingTracking ? 'Updating...' : 'Refresh Tracking'}
           </button>
         )}
         
         <button
-          className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 w-full border"
+          className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 w-full border"
           style={{ 
             backgroundColor: theme.cardBackground, 
             color: theme.text,

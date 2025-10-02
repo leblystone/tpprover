@@ -74,7 +74,15 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                             <div key={peptide.id || index} className="text-sm p-2 rounded-md bg-gray-50/70">
                                 <div className="font-semibold" style={{color: theme.text}}>{peptide.name || 'Unnamed Peptide'}</div>
                                 <div className="text-xs space-y-1 mt-1">
-                                    {peptide.dosage?.amount > 0 && (<div className="flex items-center gap-1.5"><Droplet size={12} /><span>{peptide.dosage.amount} {peptide.dosage.unit}</span></div>)}
+                                    {peptide.dosage?.amount > 0 && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Droplet size={12} />
+                                            <span>
+                                                {peptide.dosage.amount} {peptide.dosage.unit}
+                                                {peptide.unitValue && ` (${peptide.unitValue} units)`}
+                                            </span>
+                                        </div>
+                                    )}
                                     {peptide.frequency && (<div className="flex items-center gap-1.5"><Repeat size={12} /><span>{formatIndividualFrequency(peptide.frequency)}</span></div>)}
                                     {peptide.titration?.length > 0 && (<div className="flex items-start gap-1.5"><TrendingUp size={12} className="mt-0.5" /><span className="text-gray-500">{formatTitration(peptide.titration)}</span></div>)}
                                 </div>

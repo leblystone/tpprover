@@ -876,13 +876,17 @@ function Admin() {
           </div>
           
           {/* Mobile Tab Navigation */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 px-1" style={{ scrollbarWidth: 'thin' }}>
             {[
-              { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-              { id: 'subscriptions', label: 'Users', icon: Users },
-              { id: 'announcements', label: 'Posts', icon: Megaphone },
-              { id: 'feedback', label: 'Feedback', icon: MessageSquare },
-              { id: 'whitelist', label: 'Access', icon: Shield }
+              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#3b82f6' },
+              { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981' },
+              { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b' },
+              { id: 'billing', label: 'Billing', icon: CreditCard, color: '#f97316' },
+              { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6' },
+              { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6' },
+              { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
+              { id: 'whitelist', label: 'Access', icon: Mail, color: '#64748b' },
+              { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -890,16 +894,49 @@ function Admin() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                    isActive ? 'text-white' : 'hover:opacity-70'
+                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                    isActive ? 'shadow-md' : 'hover:opacity-70'
                   }`}
                   style={{ 
-                    backgroundColor: isActive ? theme.primary : 'transparent',
-                    color: isActive ? theme.textOnPrimary : theme.text
+                    backgroundColor: isActive ? tab.color + '15' : theme.background,
+                    color: isActive ? tab.color : theme.textLight,
+                    border: `1px solid ${isActive ? tab.color + '40' : theme.border}`,
+                    minWidth: '70px'
                   }}
                 >
-                  <Icon size={16} />
-                  {tab.label}
+                  <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                  <span>{tab.label}</span>
+                  {/* Show count badges on mobile too */}
+                  {tab.id === 'analytics' && analytics.totalUsers > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
+                      {analytics.totalUsers}
+                    </span>
+                  )}
+                  {tab.id === 'subscriptions' && subscriptions.total > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
+                      {subscriptions.total}
+                    </span>
+                  )}
+                  {tab.id === 'lifetime' && lifetimeUsers.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
+                      {lifetimeUsers.length}
+                    </span>
+                  )}
+                  {tab.id === 'feedback' && feedback.filter(f => f.status === 'new').length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
+                      {feedback.filter(f => f.status === 'new').length}
+                    </span>
+                  )}
+                  {tab.id === 'announcements' && announcements.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
+                      {announcements.length}
+                    </span>
+                  )}
+                  {tab.id === 'whitelist' && emailWhitelist.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
+                      {emailWhitelist.length}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -2170,47 +2207,52 @@ function Admin() {
                   <p style={{ color: theme.textLight, fontSize: '14px' }}>Use the migration tool above to import from localStorage</p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
                     <thead>
                       <tr style={{ borderBottom: `2px solid ${theme.border}` }}>
-                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Email</th>
-                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Reason</th>
-                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Granted</th>
-                        <th style={{ padding: '12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Status</th>
-                        <th style={{ padding: '12px', textAlign: 'center', color: theme.textLight, fontWeight: '600', fontSize: '14px' }}>Actions</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Email</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Reason</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Granted</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Status</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {lifetimeUsers.map((user, idx) => (
                         <tr key={user.id || idx} style={{ borderBottom: `1px solid ${theme.border}` }}>
-                          <td style={{ padding: '12px', fontSize: '14px', color: theme.text }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Award size={16} style={{ color: theme.warning }} />
-                              {user.email}
+                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.text, minWidth: '200px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Award size={14} style={{ color: theme.warning, flexShrink: 0 }} />
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {user.email}
+                              </span>
                             </div>
                           </td>
-                          <td style={{ padding: '12px', fontSize: '14px', color: theme.textLight }}>
-                            {user.reason || 'N/A'}
+                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, minWidth: '150px' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
+                              {user.reason || 'N/A'}
+                            </span>
                           </td>
-                          <td style={{ padding: '12px', fontSize: '14px', color: theme.textLight }}>
+                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, whiteSpace: 'nowrap' }}>
                             {user.grantedAt?.toDate ? 
                               formatMMDDYYYY(user.grantedAt.toDate()) : 
                               user.grantedAt ? new Date(user.grantedAt).toLocaleDateString() : 'N/A'}
                           </td>
-                          <td style={{ padding: '12px', fontSize: '14px' }}>
+                          <td style={{ padding: '8px 12px', fontSize: '13px', whiteSpace: 'nowrap' }}>
                             <span style={{
-                              padding: '4px 12px',
-                              borderRadius: '12px',
-                              fontSize: '12px',
+                              padding: '3px 10px',
+                              borderRadius: '10px',
+                              fontSize: '11px',
                               fontWeight: '600',
                               backgroundColor: user.status === 'active' ? theme.successBg : '#fee',
-                              color: user.status === 'active' ? theme.success : '#c00'
+                              color: user.status === 'active' ? theme.success : '#c00',
+                              whiteSpace: 'nowrap'
                             }}>
                               {user.status || 'active'}
                             </span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                             <button
                               onClick={async () => {
                                 if (window.confirm(`Revoke lifetime access for ${user.email}?`)) {
@@ -2225,13 +2267,14 @@ function Admin() {
                                 }
                               }}
                               style={{
-                                padding: '6px 12px',
+                                padding: '4px 10px',
                                 backgroundColor: theme.error,
                                 color: 'white',
                                 border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                cursor: 'pointer'
+                                borderRadius: '5px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
                               }}
                             >
                               Revoke

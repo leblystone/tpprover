@@ -64,12 +64,6 @@ const SchedulingPreview = ({ protocol, theme }) => {
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3" style={{ backgroundColor: theme.info + '10', borderColor: theme.info + '40' }}>
-      <div className="flex items-center gap-2 mb-3">
-        <Calendar size={18} style={{ color: theme.info }} />
-        <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
-          📅 Scheduling Preview
-        </h4>
-      </div>
       
       <div className="text-sm space-y-2" style={{ color: theme.text }}>
         <div className="flex items-start gap-2">
@@ -105,14 +99,6 @@ const SchedulingPreview = ({ protocol, theme }) => {
           ))}
         </div>
 
-        <div className="bg-green-50 border border-green-200 rounded p-2 text-xs" style={{ backgroundColor: theme.success + '10', borderColor: theme.success + '40' }}>
-          <div className="font-medium" style={{ color: theme.success }}>
-            ✅ Ready to Schedule
-          </div>
-          <div style={{ color: theme.textLight }}>
-            This will create {weeklyTasks} tasks per week based on your frequency settings.
-          </div>
-        </div>
       </div>
     </div>
   );

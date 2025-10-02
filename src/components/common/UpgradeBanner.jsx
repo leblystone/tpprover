@@ -33,31 +33,27 @@ export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss
   // Trial ending soon (last 2 days)
   if (daysRemaining > 0 && daysRemaining <= 2) {
     return (
-      <div className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md">
+      <div className="w-full text-white shadow-md" style={{ background: 'linear-gradient(to right, #D97944, #E57A44)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Crown size={20} />
               <div>
                 <span className="font-semibold">Trial ending soon!</span>
-                <span className="ml-2">
-                  {daysRemaining === 1 
-                    ? 'Last day of your trial' 
-                    : `${daysRemaining} days remaining`}
-                </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <button 
                 onClick={handleUpgradeClick}
-                className="px-4 py-1.5 rounded-md bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all flex items-center gap-2"
+                className="px-4 py-1.5 rounded-md bg-white font-semibold hover:opacity-90 transition-all flex items-center gap-2"
+                style={{ color: '#D97944' }}
               >
                 Choose a Plan
                 <ArrowRight size={16} />
               </button>
               <button 
                 onClick={handleDismiss}
-                className="p-1 hover:bg-blue-700 rounded transition-all"
+                className="p-1 hover:bg-white/20 rounded transition-all"
                 aria-label="Dismiss"
               >
                 <X size={18} />
@@ -72,22 +68,20 @@ export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss
   // Trial expired
   if (isTrialExpired) {
     return (
-      <div className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md">
+      <div className="w-full text-white shadow-md" style={{ background: 'linear-gradient(to right, #A2496D, #B9586E)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Crown size={20} />
               <div>
-                <span className="font-semibold">Trial Expired</span>
-                <span className="ml-2">
-                  You're in read-only mode. Choose a plan to continue researching.
-                </span>
+                <span className="font-semibold">Trial Expired - Read-only mode</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <button 
                 onClick={handleUpgradeClick}
-                className="px-4 py-1.5 rounded-md bg-white text-red-600 font-semibold hover:bg-red-50 transition-all flex items-center gap-2 animate-pulse"
+                className="px-4 py-1.5 rounded-md bg-white font-semibold hover:opacity-90 transition-all flex items-center gap-2 animate-pulse"
+                style={{ color: '#A2496D' }}
               >
                 Choose a Plan Now
                 <ArrowRight size={16} />

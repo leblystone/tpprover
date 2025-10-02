@@ -9,7 +9,6 @@ import UpcomingOrderCard from '../components/dashboard/UpcomingOrderCard'
 import ReconCalculatorModal from '../components/recon/ReconCalculatorModal'
 import UpcomingBuys from '../components/dashboard/UpcomingBuys'
 import PendingVendorsView from '../components/dashboard/PendingVendorsView'
-import { ToastContainer, Toast } from '../components/ui/Toast'
 import OCRImportModal from '../components/import/OCRImportModal'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
@@ -30,12 +29,16 @@ import ConversionWidget from '../components/dashboard/ConversionWidget'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { useBadgeStats } from '../utils/badges'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Dashboard() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
+  const { protocols: protocolsFromContext } = useAppContext()
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
   const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription } = useAppContext();
+  const { isReadOnly } = useSubscriptionAccess();
   
   // Mock minimal data to render the dashboard without external deps
   const [vitamins, setVitamins] = useState([
@@ -106,7 +109,6 @@ export default function Dashboard() {
   const [showNewOrder, setShowNewOrder] = useState(false)
   const [showNewProtocol, setShowNewProtocol] = useState(false)
   const [vendorNames, setVendorNames] = useState(() => { try { return JSON.parse(localStorage.getItem('tpprover_vendors')||'[]') } catch { return [] } })
-  const [toasts, setToasts] = useState([])
   const [goals, setGoals] = useLocalStorage('tpprover_goals', [])
   const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', [])
   const [showMetrics, setShowMetrics] = useState(false)
@@ -117,13 +119,9 @@ export default function Dashboard() {
   const [editingSupplement, setEditingSupplement] = useState(null)
   const [showBadges, setShowBadges] = useState(false)
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
 
-  const addToast = (message, type = 'success') => {
-    const id = Date.now()
-    setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
-  }
 
   const formatSchedule = (item) => {
     const schedule = Array.isArray(item.schedule) ? item.schedule : [];
@@ -297,6 +295,9 @@ export default function Dashboard() {
                     `${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`
                 );
                 
+                // Check if any peptide has unitValue
+                const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
+                
                 let doseDisplay = doseParts.join(' + ');
                 if (reconItem) {
                     const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
@@ -306,8 +307,16 @@ export default function Dashboard() {
                     const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
                     const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
                     if (calc.unitsPerDose > 0) {
-                        doseDisplay = `${calc.unitsPerDose.toFixed(0)} units`;
+                        if (additionalUnits) {
+                            doseDisplay = `${calc.unitsPerDose.toFixed(0)} (${additionalUnits} units)`;
+                        } else {
+                            doseDisplay = `${calc.unitsPerDose.toFixed(0)} units`;
+                        }
+                    } else if (additionalUnits) {
+                        doseDisplay = `${doseDisplay} (${additionalUnits} units)`;
                     }
+                } else if (additionalUnits) {
+                    doseDisplay = `${doseDisplay} (${additionalUnits} units)`;
                 }
 
                 // Create one task per scheduled time
@@ -323,7 +332,9 @@ export default function Dashboard() {
                         time: timeSlot,
                         completed: false,
                         deliveryMethod: reconItem?.deliveryMethod,
-                        penColor: reconItem?.penColor
+                        penColor: reconItem?.penColor,
+                        protocolName: p.protocolName,
+                        administrationRoute: reconItem?.administrationRoute
                     };
                     // Generate stable task ID and check completion status
                     const taskId = generateTaskId(task);
@@ -365,6 +376,15 @@ export default function Dashboard() {
               
               let dose = pep.dosage?.amount || '';
               let unit = pep.dosage?.unit || '';
+              let additionalUnits = pep.unitValue || ''; // Get units value from peptide
+              
+              console.log('🔍 Peptide data:', { 
+                name: pep.name, 
+                dose, 
+                unit, 
+                unitValue: pep.unitValue,
+                hasRecon: !!reconItem 
+              });
               
               if (reconItem) {
                 const calc = calculateRecon({ 
@@ -373,9 +393,23 @@ export default function Dashboard() {
                     dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
                 });
                  if (calc.unitsPerDose > 0) {
-                    dose = calc.unitsPerDose.toFixed(0);
-                    unit = 'units';
+                    // If unitValue is set, show both calculated units and custom units
+                    if (additionalUnits) {
+                        dose = `${calc.unitsPerDose.toFixed(0)} (${additionalUnits} units)`;
+                        unit = ''; // Unit is in dose string
+                    } else {
+                        dose = calc.unitsPerDose.toFixed(0);
+                        unit = 'units';
+                    }
+                } else if (additionalUnits) {
+                    // If no recon but has unitValue, append it
+                    dose = `${dose} ${unit} (${additionalUnits} units)`;
+                    unit = ''; // Unit is in dose string
                 }
+              } else if (additionalUnits) {
+                // No recon but has unitValue
+                dose = `${dose} ${unit} (${additionalUnits} units)`;
+                unit = ''; // Unit is in dose string
               }
 
               pep.frequency.time.forEach(t => {
@@ -389,7 +423,9 @@ export default function Dashboard() {
                   time: timeSlot,
                   completed: false,
                   deliveryMethod: reconItem?.deliveryMethod,
-                  penColor: reconItem?.penColor
+                  penColor: reconItem?.penColor,
+                  protocolName: p.protocolName,
+                  administrationRoute: reconItem?.administrationRoute
                 };
                 // Generate stable task ID and check completion status
                 const taskId = generateTaskId(task);
@@ -502,7 +538,7 @@ export default function Dashboard() {
     
     // Debug task completion data
     debugTaskCompletion();
-  }, [peptideLog, supplements, calendarBump])
+  }, [peptideLog, supplements, calendarBump, protocolsFromContext])
 
   useEffect(() => {
     const handler = () => setShowImport(true)
@@ -538,40 +574,27 @@ export default function Dashboard() {
     return () => window.removeEventListener('tpp:open_recon', onOpenRecon)
   }, [])
 
-  React.useEffect(() => {
-    const onToast = (e) => {
-      try {
-        const { message, type } = e.detail || {}
-        if (!message) return
-        const id = Date.now()
-        setToasts(prev => [...prev, { id, message, type: type || 'success' }])
-        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
-      } catch {}
-    }
-    window.addEventListener('tpp:toast', onToast)
-    return () => window.removeEventListener('tpp:toast', onToast)
-  }, [])
 
   console.log('🎨 Dashboard rendering with subscription:', subscription);
   
   return (
-    <div className="space-y-8" data-tour="dashboard-welcome">
+    <div className="space-y-0.5 md:space-y-4" data-tour="dashboard-welcome">
       <ViewContainer theme={theme} transparent noMinHeight>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-0 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-0.5 md:gap-3 mb-0 items-start">
           {/* Today's Research taking up 3/4 of the space */}
-          <div className="lg:col-span-3 p-8 rounded-xl content-card h-full flex flex-col" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
+          <div className="lg:col-span-3 p-2 md:p-4 rounded-xl content-card h-full flex flex-col" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
             <div className="flex justify-between items-center mb-1">
-                <h3 className="h3" style={{ color: theme.primaryDark }}>Today's Research</h3>
+                <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Today's Research</h3>
                 <button 
                     onClick={() => navigate('/calendar')}
-                    className="px-3 py-1.5 rounded-md text-sm font-semibold flex items-center gap-2" 
+                    className="px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5" 
                     style={{ backgroundColor: theme.accent, color: theme.primaryDark }}
                 >
-                    <Calendar size={14}/>
+                    <Calendar size={12}/>
                     <span>View Schedule</span>
                 </button>
             </div>
-            <hr className="mb-4" style={{ borderColor: theme.border }} />
+            <hr className="mb-2" style={{ borderColor: theme.border }} />
             <div className="flex-1">
                 <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
             </div>
@@ -588,28 +611,52 @@ export default function Dashboard() {
           </div>
 
           {/* Side column for Supplements and Goals */}
-          <div className="lg:col-span-1 space-y-4" data-tour-id="supplements-goals">
+          <div className="lg:col-span-1 space-y-0.5 md:space-y-3" data-tour-id="supplements-goals">
             {/* Supplements Panel */}
-            <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2"><Pill className="h-5 w-5" /><span className="font-semibold">Supplements</span></div>
-                  <button onClick={() => { setEditingSupplement(null); setShowAddSupplement(true) }} className="p-1 rounded hover:opacity-80"><PlusCircle className="h-5 w-5"/></button>
+            <div className="rounded border p-2 md:p-3 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5"><Pill className="h-4 w-4" /><span className="font-semibold text-sm">Supplements</span></div>
+                  <button 
+                    onClick={() => { 
+                      if (isReadOnly) {
+                        setShowUpgradeModal(true);
+                        return;
+                      }
+                      setEditingSupplement(null); 
+                      setShowAddSupplement(true);
+                    }} 
+                    className="p-1 rounded hover:opacity-80"
+                  >
+                    <PlusCircle className="h-4 w-4"/>
+                  </button>
               </div>
-              <hr className="mb-3" style={{ borderColor: theme.border }} />
+              <hr className="mb-2" style={{ borderColor: theme.border }} />
               {supplements.length === 0 ? (
-                  <p className="text-sm" style={{ color: theme.textLight }}>No supplements yet.</p>
+                  <p className="text-xs py-2" style={{ color: theme.textLight }}>No supplements yet.</p>
               ) : (
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                   {supplements.slice(0, 5).map(v => (
-                      <li key={v.id} className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: theme.secondary }}>
-                      <div className="flex items-center gap-2">
+                      <li key={v.id} className="flex items-center justify-between p-1.5 rounded" style={{ backgroundColor: theme.secondary }}>
+                      <div className="flex items-center gap-1.5">
                           {getDeliveryIcon(v.delivery)}
                           <div>
-                            <div className="font-medium text-sm">{v.name}</div>
+                            <div className="font-medium text-xs">{v.name}</div>
                             <div className="text-xs" style={{ color: theme.textLight }}>{v.dose}</div>
                           </div>
                       </div>
-                      <button className="p-1 rounded hover:opacity-80" onClick={() => { setEditingSupplement(v); setShowAddSupplement(true) }}><Edit className="h-4 w-4" /></button>
+                      <button 
+                        className="p-0.5 rounded hover:opacity-80" 
+                        onClick={() => { 
+                          if (isReadOnly) {
+                            setShowUpgradeModal(true);
+                            return;
+                          }
+                          setEditingSupplement(v); 
+                          setShowAddSupplement(true);
+                        }}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </button>
                       </li>
                   ))}
                   </ul>
@@ -617,20 +664,33 @@ export default function Dashboard() {
             </div>
 
             {/* Goals Panel */}
-            <div className="rounded border p-4 content-card flex flex-col" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2"><Target className="h-5 w-5" /><span className="font-semibold">Goals</span></div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => navigate('/goals')} className="px-3 py-1.5 rounded-md text-xs font-semibold" style={{ backgroundColor: theme.accent, color: theme.primaryDark }}>View All</button>
-                      <button onClick={() => { setEditingGoal(null); setShowGoal(true) }} className="p-1 rounded hover:opacity-80" title="New Goal"><PlusCircle className="h-5 w-5"/></button>
+            <div className="rounded border p-2 md:p-3 content-card flex flex-col" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5"><Target className="h-4 w-4" /><span className="font-semibold text-sm">Goals</span></div>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => navigate('/goals')} className="px-2 py-1 rounded-md text-xs font-semibold" style={{ backgroundColor: theme.accent, color: theme.primaryDark }}>View All</button>
+                      <button 
+                        onClick={() => { 
+                          if (isReadOnly) {
+                            setShowUpgradeModal(true);
+                            return;
+                          }
+                          setEditingGoal(null); 
+                          setShowGoal(true);
+                        }} 
+                        className="p-1 rounded hover:opacity-80" 
+                        title="New Goal"
+                      >
+                        <PlusCircle className="h-4 w-4"/>
+                      </button>
                     </div>
                 </div>
-                <hr className="mb-3" style={{ borderColor: theme.border }} />
+                <hr className="mb-2" style={{ borderColor: theme.border }} />
                 {goals.length === 0 ? (
-                    <p className="text-sm text-center py-2" style={{ color: theme.textLight }}>No goals yet.</p>
+                    <p className="text-xs text-center py-2" style={{ color: theme.textLight }}>No goals yet.</p>
                 ) : (
                     <>
-                    <ul className="space-y-2 mt-1 flex-grow">
+                    <ul className="space-y-1.5 flex-grow">
                         {goals.slice(0, 3).map(g => (
                         <li key={g.id} className="flex items-start justify-between p-1 rounded">
                             <div className="flex items-start gap-2">
@@ -695,57 +755,104 @@ export default function Dashboard() {
         </div>
       </ViewContainer>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="flex flex-col gap-6">
-            <div className="grid grid-cols-2 gap-6" data-tour-id="action-buttons">
-                <ActionButton onClick={() => { setShowNewOrder(true) }} icon={<ShoppingCart />} label="New Order" theme={theme} />
-                <ActionButton onClick={() => { setEditingVendor(null); setShowNewVendor(true); }} icon={<Users />} label="New Vendor" theme={theme} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0.5 md:gap-4">
+        <div className="flex flex-col gap-0 md:gap-4">
+            <div className="grid grid-cols-2 gap-0.5 md:gap-3" data-tour-id="action-buttons">
+                <ActionButton 
+                  onClick={() => { 
+                    if (isReadOnly) {
+                      setShowUpgradeModal(true);
+                      return;
+                    }
+                    setShowNewOrder(true);
+                  }} 
+                  icon={<ShoppingCart />} 
+                  label="New Order" 
+                  theme={theme} 
+                />
+                <ActionButton 
+                  onClick={() => { 
+                    if (isReadOnly) {
+                      setShowUpgradeModal(true);
+                      return;
+                    }
+                    setEditingVendor(null); 
+                    setShowNewVendor(true); 
+                  }} 
+                  icon={<Users />} 
+                  label="New Vendor" 
+                  theme={theme} 
+                />
                 <ActionButton onClick={() => { setShowRecon(true) }} icon={<Droplet />} label="Recon Calculator" theme={theme} />
-                <ActionButton onClick={() => { setShowNewProtocol(true) }} icon={<Plus />} label="New Protocol" theme={theme} />
+                <ActionButton 
+                  onClick={() => { 
+                    if (isReadOnly) {
+                      setShowUpgradeModal(true);
+                      return;
+                    }
+                    setShowNewProtocol(true);
+                  }} 
+                  icon={<Plus />} 
+                  label="New Protocol" 
+                  theme={theme} 
+                />
             </div>
             {/* Bio-Metrics Panel */}
-            <div className="rounded border p-4 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="body-metrics">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold">Bio-Metrics</div>
-                    <button onClick={() => { setEditingMetric(null); setShowMetrics(true) }} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}><PlusCircle className="h-4 w-4 inline mr-1"/>Add</button>
+            <div className="rounded border p-2 md:p-3 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="body-metrics">
+                <div className="flex items-center justify-between mb-1.5">
+                    <div className="font-semibold text-sm">Bio-Metrics</div>
+                    <button 
+                      onClick={() => { 
+                        if (isReadOnly) {
+                          setShowUpgradeModal(true);
+                          return;
+                        }
+                        setEditingMetric(null); 
+                        setShowMetrics(true);
+                      }} 
+                      className="px-2 py-1 rounded-md text-xs font-semibold" 
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    >
+                      <PlusCircle className="h-3 w-3 inline mr-1"/>Add
+                    </button>
                 </div>
-                <hr className="mb-3" style={{ borderColor: theme.border }} />
+                <hr className="mb-2" style={{ borderColor: theme.border }} />
 
                 {metrics.length === 0 ? (
-                    <p className="text-sm text-center py-4" style={{ color: theme.textLight }}>No metrics logged yet.</p>
+                    <p className="text-xs text-center py-3" style={{ color: theme.textLight }}>No metrics logged yet.</p>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     <div>
                         <LatestMetrics metrics={metrics} theme={theme} />
-                        <h3 className="text-sm font-semibold mt-4 mb-2" style={{color: theme.text}}>History</h3>
-                        <ul className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        <h3 className="text-xs font-semibold mt-3 mb-1.5" style={{color: theme.text}}>History</h3>
+                        <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-2">
                         {metrics.map(m => (
-                            <li key={m.id} className="p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
+                            <li key={m.id} className="p-1.5 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
                             <div className="flex items-center justify-between">
-                                <div className="font-medium text-sm">{formatMMDDYYYY(new Date(m.date))}</div>
+                                <div className="font-medium text-xs">{formatMMDDYYYY(new Date(m.date))}</div>
                                 <div className="flex items-center gap-2">
                                 <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: theme.infoBg, color: theme.info }}>{m.weight || '-'} lbs</span>
                                 <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: theme.successBg, color: theme.success }}>{m.bodyfat || '-'}%</span>
                                 <button className="p-1 rounded hover:opacity-80" onClick={() => { setEditingMetric(m); setShowMetrics(true) }}><Edit size={14} /></button>
                                 </div>
                             </div>
-                            <div className="mt-2 flex items-center justify-between text-xs border-t pt-2" style={{borderColor: theme.border, color: theme.textLight}}>
-                                <span className="flex items-center gap-1"><Bed size={12}/> {m.sleep || '-'}</span>
-                                <span className="flex items-center gap-1"><Zap size={12}/> {m.energy || '-'}</span>
-                                <span className="flex items-center gap-1"><Smile size={12}/> {m.mood || '-'}</span>
-                                <span className="flex items-center gap-1"><ShieldAlert size={12}/> {m.pain || '-'}</span>
+                            <div className="mt-1.5 flex items-center justify-between text-xs border-t pt-1.5" style={{borderColor: theme.border, color: theme.textLight}}>
+                                <span className="flex items-center gap-0.5"><Bed size={10}/> {m.sleep || '-'}</span>
+                                <span className="flex items-center gap-0.5"><Zap size={10}/> {m.energy || '-'}</span>
+                                <span className="flex items-center gap-0.5"><Smile size={10}/> {m.mood || '-'}</span>
+                                <span className="flex items-center gap-0.5"><ShieldAlert size={10}/> {m.pain || '-'}</span>
                             </div>
                             </li>
                         ))}
                         </ul>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                         <div>
-                        <div className="text-xs mb-1" style={{ color: theme.textLight }}>Weight trend</div>
+                        <div className="text-xs mb-0.5" style={{ color: theme.textLight }}>Weight trend</div>
                         <MiniLineChart theme={theme} data={metrics.filter(m => !!m.weight).sort((a,b) => new Date(a.date) - new Date(b.date)).map(m => ({ x: m.date, y: parseFloat(String(m.weight).replace(/[^0-9.]/g,'')) }))} color={theme.info} />
                         </div>
                         <div>
-                        <div className="text-xs mb-1" style={{ color: theme.textLight }}>Body fat % trend</div>
+                        <div className="text-xs mb-0.5" style={{ color: theme.textLight }}>Body fat % trend</div>
                         <MiniLineChart theme={theme} data={metrics.filter(m => !!m.bodyfat).sort((a,b) => new Date(a.date) - new Date(b.date)).map(m => ({ x: m.date, y: parseFloat(String(m.bodyfat).replace(/[^0-9.]/g,'')) }))} color={theme.success} />
                         </div>
                     </div>
@@ -753,7 +860,7 @@ export default function Dashboard() {
                 )}
             </div>
         </div>
-        <div className="flex flex-col gap-6" data-tour-id="incoming">
+        <div className="flex flex-col gap-0 md:gap-4" data-tour-id="incoming">
             <UpcomingOrderCard 
                 theme={theme}
                 order={incomingOrder}
@@ -774,38 +881,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-    <div className="grid grid-cols-1 gap-6">
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="analytics">
+    <div className="grid grid-cols-1 gap-0 md:gap-4">
+        <div className="rounded-lg border p-2 md:p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="analytics">
             <AnalyticsDashboard theme={theme} />
         </div>
     </div>
 
-    <div className="grid grid-cols-1 gap-6">
-    </div>
-
-    <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="badges">
+    <div className="rounded-lg border p-2 md:p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="badges">
         <div className="flex items-center justify-between">
             <div>
-                <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Your Badges</h2>
-                <p className="text-sm text-gray-500">You've earned {earnedCount} of {totalBadges} badges.</p>
+                <h2 className="text-base font-semibold" style={{ color: theme.text }}>Your Badges</h2>
+                <p className="text-xs text-gray-500">You've earned {earnedCount} of {totalBadges} badges.</p>
             </div>
             <button 
                 onClick={() => navigate('/badges')}
-                className="px-4 py-2 rounded-md text-sm font-semibold" 
+                className="px-3 py-1.5 rounded-md text-xs font-semibold" 
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
                 View Badges
             </button>
         </div>
-        <div className="mt-4">
+        <div className="mt-2">
             <div className="h-2 w-full bg-gray-200 rounded-full">
                 <div className="h-2 rounded-full" style={{ width: `${progressPercentage}%`, backgroundColor: theme.primary }}></div>
             </div>
         </div>
     </div>
 
-    <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
-    <OCRImportModal open={showImport} onClose={() => setShowImport(false)} theme={theme} onImport={() => addToast('Import saved', 'success')} />
+    <OCRImportModal open={showImport} onClose={() => setShowImport(false)} theme={theme} onImport={() => {}} />
 
     <VendorDetailsModal
         open={!!editingVendor || showNewVendor}
@@ -943,6 +1046,13 @@ export default function Dashboard() {
         }}
       />
 
+    <UpgradeModal 
+      isOpen={showUpgradeModal}
+      onClose={() => setShowUpgradeModal(false)}
+      actionAttempted="add or modify data"
+      theme={theme}
+    />
+
     </div>
   )
 }
@@ -951,11 +1061,11 @@ function ActionButton({ icon, label, theme, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center gap-2 p-4 rounded-xl transition-all duration-200 hover:shadow-lg w-full"
+      className="flex items-center justify-center gap-1.5 p-3 rounded-xl transition-all duration-200 hover:shadow-lg w-full"
       style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
     >
-      {React.cloneElement(icon, { size: 20 })}
-      <span className="font-semibold">{label}</span>
+      {React.cloneElement(icon, { size: 16 })}
+      <span className="font-semibold text-sm">{label}</span>
     </button>
   )
 }
@@ -987,11 +1097,11 @@ function LatestMetrics({ metrics, theme }) {
 
     return (
         <div>
-            <h3 className="text-sm font-semibold mb-2" style={{color: theme.text}}>Latest</h3>
-            <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 rounded-lg bg-gray-50 border" style={{borderColor: theme.border}}>
+            <h3 className="text-xs font-semibold mb-1.5" style={{color: theme.text}}>Latest</h3>
+            <div className="grid grid-cols-2 gap-1.5">
+                <div className="p-2 rounded-lg bg-gray-50 border" style={{borderColor: theme.border}}>
                     <div className="text-xs text-gray-500">Weight</div>
-                    <div className="text-base font-bold" style={{color: theme.text}}>{latest.weight || '-'} lbs</div>
+                    <div className="text-sm font-bold" style={{color: theme.text}}>{latest.weight || '-'} lbs</div>
                     {weightDiff !== null && (
                         <span className={`text-xs font-semibold inline-flex items-center gap-1 ${weightDiff > 0 ? 'text-red-500' : 'text-green-500'}`}>
                             {weightDiff > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -999,9 +1109,9 @@ function LatestMetrics({ metrics, theme }) {
                         </span>
                     )}
                 </div>
-                <div className="p-3 rounded-lg bg-gray-50 border" style={{borderColor: theme.border}}>
+                <div className="p-2 rounded-lg bg-gray-50 border" style={{borderColor: theme.border}}>
                     <div className="text-xs text-gray-500">Body Fat</div>
-                    <div className="text-base font-bold" style={{color: theme.text}}>{latest.bodyfat || '-'}%</div>
+                    <div className="text-sm font-bold" style={{color: theme.text}}>{latest.bodyfat || '-'}%</div>
                         {fatDiff !== null && (
                         <span className={`text-xs font-semibold inline-flex items-center gap-1 ${fatDiff > 0 ? 'text-red-500' : 'text-green-500'}`}>
                             {fatDiff > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -1010,7 +1120,7 @@ function LatestMetrics({ metrics, theme }) {
                     )}
                 </div>
             </div>
-            <div className="grid grid-cols-4 gap-2 mt-2 text-center">
+            <div className="grid grid-cols-4 gap-1.5 mt-1.5 text-center">
                 <MetricDisplay icon={<Bed size={14}/>} value={latest.sleep} label="Sleep" theme={theme} />
                 <MetricDisplay icon={<Zap size={14}/>} value={latest.energy} label="Energy" theme={theme} />
                 <MetricDisplay icon={<Smile size={14}/>} value={latest.mood} label="Mood" theme={theme} />
@@ -1021,9 +1131,9 @@ function LatestMetrics({ metrics, theme }) {
 }
 
 const MetricDisplay = ({ icon, value, label, theme }) => (
-    <div className="p-2 rounded-lg bg-gray-50 border" style={{borderColor: theme.border}}>
+    <div className="p-1.5 rounded-lg bg-gray-50 border" style={{borderColor: theme.border}}>
         <div className="text-xs text-gray-500">{label}</div>
-        <div className="font-semibold text-sm" style={{color: theme.text}}>{value || '-'}</div>
+        <div className="font-semibold text-xs" style={{color: theme.text}}>{value || '-'}</div>
     </div>
 );
 

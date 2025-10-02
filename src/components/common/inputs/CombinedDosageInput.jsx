@@ -46,11 +46,12 @@ export default function CombinedDosageInput({
                         backgroundColor: theme.inputBackground || '#fff',
                         color: theme.text 
                     }}
+                    autoComplete="off"
                 />
                 
                 {/* Unit Selector Pills - Integrated */}
                 <div 
-                    className="flex items-center gap-0.5 px-1.5 py-1.5 border-l"
+                    className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
                     style={{ 
                         borderColor: theme.border,
                         backgroundColor: theme.cardBackground || '#f9fafb'
@@ -61,7 +62,7 @@ export default function CombinedDosageInput({
                             key={unit}
                             type="button"
                             onClick={() => handleUnitChange(unit)}
-                            className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
+                            className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
                                 currentUnit === unit 
                                     ? 'text-white shadow-sm' 
                                     : 'text-gray-600 hover:bg-gray-200'
@@ -76,7 +77,7 @@ export default function CombinedDosageInput({
 
             {/* Nasal spray disclaimer */}
             {deliveryMethod === 'nasal' && currentUnit === 'sprays' && (
-                <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded border border-blue-200 whitespace-nowrap text-center">
                     💡 Assumes 100 mcg per spray (typical nasal spray)
                 </div>
             )}

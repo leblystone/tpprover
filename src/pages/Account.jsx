@@ -1,4 +1,4 @@
-  import React, { useTransition } from 'react'
+  import React from 'react'
   import { useOutletContext, useNavigate } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
   import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp } from 'lucide-react'
@@ -49,7 +49,6 @@
     const navigate = useNavigate()
     const { user, logout } = useAppContext();
     const { earnedBadges } = useBadgeStats();
-    const [isPending, startTransition] = useTransition()
     // const [user, setUser] = React.useState(() => {
     //   try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
     // })

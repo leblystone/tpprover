@@ -63,6 +63,18 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
           Your trial has ended. To {actionAttempted}, please choose a subscription plan.
         </p>
 
+        {/* Info about data access */}
+        <div className="text-left bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
+          <p className="text-xs font-medium mb-1" style={{ color: '#1E40AF' }}>
+            You can still:
+          </p>
+          <p className="text-xs" style={{ color: '#3B82F6' }}>
+            • View all your data<br/>
+            • Delete items from your account<br/>
+            • Export your information
+          </p>
+        </div>
+
         {/* Features List */}
         <div className="text-left bg-gray-50 rounded-lg p-4 mb-4">
           <p className="text-sm font-semibold mb-3" style={{ color: '#344E41' }}>
@@ -80,10 +92,6 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
             <li className="flex items-start gap-2">
               <Crown size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#3A5A40' }} />
               <span>Access all research tools</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Crown size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#3A5A40' }} />
-              <span>Export your data anytime</span>
             </li>
           </ul>
         </div>

@@ -165,19 +165,29 @@ export default function CustomizableDashboard() {
     const handleOpenProtocol = () => {
       setShowNewProtocol(true);
     };
+    const handleDashboardCustomize = () => {
+      setIsCustomizing(!isCustomizing);
+    };
+    const handleDashboardSettings = () => {
+      setShowCustomizer(true);
+    };
 
     window.addEventListener('tpp:openRecon', handleOpenRecon);
     window.addEventListener('tpp:openOrder', handleOpenOrder);
     window.addEventListener('tpp:openVendor', handleOpenVendor);
     window.addEventListener('tpp:openProtocol', handleOpenProtocol);
+    window.addEventListener('tpp:dashboard-customize', handleDashboardCustomize);
+    window.addEventListener('tpp:dashboard-settings', handleDashboardSettings);
 
     return () => {
       window.removeEventListener('tpp:openRecon', handleOpenRecon);
       window.removeEventListener('tpp:openOrder', handleOpenOrder);
       window.removeEventListener('tpp:openVendor', handleOpenVendor);
       window.removeEventListener('tpp:openProtocol', handleOpenProtocol);
+      window.removeEventListener('tpp:dashboard-customize', handleDashboardCustomize);
+      window.removeEventListener('tpp:dashboard-settings', handleDashboardSettings);
     };
-  }, []);
+  }, [isCustomizing]);
 
   // Generate today's tasks from supplements and protocols
   useEffect(() => {
@@ -268,6 +278,13 @@ export default function CustomizableDashboard() {
   const handleUpdateWidgets = (newWidgets) => {
     setWidgets(newWidgets);
   };
+
+  // Notify topbar of customizing state changes
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('tpp:dashboard-customizing-changed', {
+      detail: { isCustomizing }
+    }));
+  }, [isCustomizing]);
 
   const handleRemoveWidget = (widgetId) => {
     setWidgets(prev => prev.filter(w => w.id !== widgetId));
@@ -400,36 +417,7 @@ export default function CustomizableDashboard() {
 
   return (
     <ViewContainer theme={theme}>
-      <div className="space-y-6">
-        {/* Header with buttons */}
-        <div className="flex items-center justify-end mb-6 gap-2">
-          <button
-            onClick={() => setIsCustomizing(!isCustomizing)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-              isCustomizing ? 'ring-2 ring-opacity-50' : ''
-            }`}
-            style={{
-              backgroundColor: isCustomizing ? theme.primary : theme.primaryDark,
-              color: theme.textOnPrimary,
-              ringColor: isCustomizing ? theme.primary : 'transparent'
-            }}
-          >
-            <Edit size={14} className="inline mr-1" />
-            {isCustomizing ? 'Done Editing' : 'Customize'}
-          </button>
-          
-          <button
-            onClick={() => setShowCustomizer(true)}
-            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-            style={{
-              backgroundColor: theme.primaryDark,
-              color: theme.textOnPrimary
-            }}
-          >
-            <Settings size={14} className="inline mr-1" />
-            Settings
-          </button>
-        </div>
+      <div className="space-y-4">
 
         {/* Dashboard Layout - Flexible Grid */}
         <div>

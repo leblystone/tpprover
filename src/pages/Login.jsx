@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import { X, Plus, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Clock } from 'lucide-react';
 import logo from '../assets/tpp-logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import { useAppContext } from '../context/AppContext';

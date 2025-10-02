@@ -61,14 +61,14 @@ export default function AnalyticsDashboard({ theme }) {
   const cardStyle = { backgroundColor: theme.white, borderColor: theme.border }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Key Metrics */}
       <section>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard theme={theme} icon={<CheckCircle className="h-6 w-6 text-green-500" />} title="7d Research Consistency" value={`${stats.compliancePct}%`} />
-          <StatCard theme={theme} icon={<DollarSign className="h-6 w-6 text-blue-500" />} title="Last Month Spend" value={`$${stats.lastMonthSpend?.toFixed ? stats.lastMonthSpend.toFixed(2) : '0.00'}`} />
-          <StatCard theme={theme} icon={<Truck className="h-6 w-6 text-purple-500" />} title="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} />
-          <StatCard theme={theme} icon={<Archive className="h-6 w-6 text-red-500" />} title="Low Stock Items" value={stats.lowStock} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard theme={theme} icon={<CheckCircle className="h-5 w-5 text-green-500" />} title="7d Research Consistency" value={`${stats.compliancePct}%`} />
+          <StatCard theme={theme} icon={<DollarSign className="h-5 w-5 text-blue-500" />} title="Last Month Spend" value={`$${stats.lastMonthSpend?.toFixed ? stats.lastMonthSpend.toFixed(2) : '0.00'}`} />
+          <StatCard theme={theme} icon={<Truck className="h-5 w-5 text-purple-500" />} title="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} />
+          <StatCard theme={theme} icon={<Archive className="h-5 w-5 text-red-500" />} title="Low Stock Items" value={stats.lowStock} />
         </div>
       </section>
 
@@ -86,7 +86,7 @@ export default function AnalyticsDashboard({ theme }) {
 
       {activeTab === 'compliance' && (
       <section>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <AnalyticsCard theme={theme} title="Research Consistency (last 30 days)" className="md:col-span-2">
             <ComplianceTrend supplements={supplements} suppDone={suppDone} theme={theme} />
           </AnalyticsCard>
@@ -100,7 +100,7 @@ export default function AnalyticsDashboard({ theme }) {
 
       {activeTab === 'spending' && (
       <section>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <AnalyticsCard theme={theme} title="Monthly Spend Trend" className="lg:col-span-3">
             <MonthlySpendChart orders={orders} theme={theme} />
           </AnalyticsCard>
@@ -122,7 +122,7 @@ export default function AnalyticsDashboard({ theme }) {
 
       {activeTab === 'inventory' && (
       <section>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <AnalyticsCard theme={theme} title="Delivery Lead‑time (days)">
             <LeadtimeHistogram orders={orders} theme={theme} />
           </AnalyticsCard>
@@ -130,13 +130,13 @@ export default function AnalyticsDashboard({ theme }) {
             <VendorLeadtimeOnTime orders={orders} theme={theme} />
           </AnalyticsCard>
         </div>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard theme={theme} title="Delivered Orders" value={stats.delivered} />
             <StatCard theme={theme} title="Active Protocols" value={stats.activeProtocols} />
             <StatCard theme={theme} title="Supplements Tracked" value={stats.supplementCount} />
             <StatCard theme={theme} title="Low Stock Total" value={stats.lowStock} />
         </div>
-        <div className="mt-4">
+        <div className="mt-3">
             <AnalyticsCard theme={theme} title="Items Currently Low in Stock">
                 <LowStockList stockpile={stockpile} theme={theme} />
             </AnalyticsCard>
@@ -148,20 +148,20 @@ export default function AnalyticsDashboard({ theme }) {
 }
 
 const StatCard = ({ theme, icon, title, value }) => (
-    <div className="p-4 rounded-lg border bg-white content-card shadow-sm" style={{ borderColor: theme.border }}>
-        <div className="flex items-center gap-4">
+    <div className="p-3 rounded-lg border bg-white content-card shadow-sm" style={{ borderColor: theme.border }}>
+        <div className="flex items-center gap-2">
             {icon && <div>{icon}</div>}
             <div>
-                <div className="text-sm text-gray-500">{title}</div>
-                <div className="text-2xl font-bold" style={{ color: theme.text }}>{value}</div>
+                <div className="text-xs text-gray-500">{title}</div>
+                <div className="text-xl font-bold" style={{ color: theme.text }}>{value}</div>
             </div>
         </div>
     </div>
 )
 
 const AnalyticsCard = ({ theme, title, children, className = '' }) => (
-    <div className={`p-4 rounded-lg border bg-white content-card shadow-sm ${className}`} style={{ borderColor: theme.border }}>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: theme.primaryDark }}>{title}</h3>
+    <div className={`p-3 rounded-lg border bg-white content-card shadow-sm ${className}`} style={{ borderColor: theme.border }}>
+        <h3 className="text-xs font-semibold mb-2" style={{ color: theme.primaryDark }}>{title}</h3>
         {children}
     </div>
 )

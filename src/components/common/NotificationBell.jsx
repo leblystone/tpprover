@@ -125,15 +125,15 @@ export default function NotificationBell({ theme }) {
 
   const loadNotifications = async () => {
     if (!firebaseUser?.email) {
-      console.log('🔔 NotificationBell: No firebase user email');
+      // console.log('🔔 NotificationBell: No firebase user email');
       return;
     }
     
     try {
       setLoading(true);
-      console.log('🔔 NotificationBell: Loading notifications for:', firebaseUser.email);
+      // console.log('🔔 NotificationBell: Loading notifications for:', firebaseUser.email);
       const userNotifications = await getUserNotifications(firebaseUser.email);
-      console.log('🔔 NotificationBell: Received notifications:', userNotifications);
+      // console.log('🔔 NotificationBell: Received notifications:', userNotifications);
       
       // CRITICAL FIX: Filter out notifications that should be auto-dismissed (24h after read)
       const now = new Date();
@@ -179,9 +179,9 @@ export default function NotificationBell({ theme }) {
 
   const loadAnnouncements = async () => {
     try {
-      console.log('📢 NotificationBell: Loading announcements');
+      // console.log('📢 NotificationBell: Loading announcements');
       const firebaseAnnouncements = await getAnnouncements();
-      console.log('📢 NotificationBell: Received announcements:', firebaseAnnouncements);
+      // console.log('📢 NotificationBell: Received announcements:', firebaseAnnouncements);
       
       if (firebaseAnnouncements && firebaseAnnouncements.length > 0) {
         setAnnouncements(firebaseAnnouncements);
@@ -286,7 +286,7 @@ export default function NotificationBell({ theme }) {
   }
 
   // DEBUG: Always show bell for debugging
-  console.log('🔔 NotificationBell: Rendering with', notifications.length, 'notifications, activeTab:', activeTab);
+  // console.log('🔔 NotificationBell: Rendering with', notifications.length, 'notifications, activeTab:', activeTab);
   
   // Make debugging functions available globally
   React.useEffect(() => {
@@ -326,15 +326,15 @@ export default function NotificationBell({ theme }) {
             console.log('🔔 Bell clicked!', { showNotifications });
             handleBellClick();
           }}
-          className="relative p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+          className="relative p-1.5 md:p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
           style={{ 
             cursor: 'pointer',
             pointerEvents: 'auto'
           }}
         >
-          <Bell size={20} style={{ color: theme.text }} />
+          <Bell size={18} className="md:h-5 md:w-5" style={{ color: theme.text }} />
           {unreadCount > 0 && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+            <div className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
                  style={{ backgroundColor: theme.error }}>
               {unreadCount > 9 ? '9+' : unreadCount}
             </div>

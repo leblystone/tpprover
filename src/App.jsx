@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileSidebar'
 import Topbar from './components/layout/Topbar'
@@ -22,6 +22,7 @@ import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
 import UpgradeBanner from './components/common/UpgradeBanner';
 
 function App() {
+  const location = useLocation();
   const [themeName] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
@@ -131,7 +132,19 @@ function App() {
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
       <div className="flex-1 flex flex-col md:ml-24 min-w-0">
-        <Topbar theme={theme} onMenuClick={() => setMobileMenuOpen(true)} />
+        <Topbar 
+          theme={theme} 
+          onMenuClick={() => setMobileMenuOpen(true)}
+          onDashboardCustomize={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
+            // Dispatch custom event for dashboard customize
+            window.dispatchEvent(new CustomEvent('tpp:dashboard-customize'));
+          } : undefined}
+          onDashboardSettings={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
+            // Dispatch custom event for dashboard settings
+            window.dispatchEvent(new CustomEvent('tpp:dashboard-settings'));
+          } : undefined}
+          isCustomizing={false} // This will be managed by the dashboard component
+        />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
         {showUpgradePrompt && user && (
           <UpgradeBanner 
@@ -139,7 +152,7 @@ function App() {
             isTrialExpired={isTrialExpired}
           />
         )}
-        <main className="flex-1 overflow-y-auto main-content p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
+        <main className="flex-1 overflow-y-auto main-content p-2 md:p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
             <Outlet context={{ theme, installPrompt }} />
           </Suspense>

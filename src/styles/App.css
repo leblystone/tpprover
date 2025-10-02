@@ -23,3 +23,27 @@
 .animate-slide-up {
     animation: slide-up 0.5s ease-out;
 }
+
+/* Mobile-specific spacing overrides for dashboard */
+@media (max-width: 768px) {
+  .space-y-0\.5 > * + * {
+    margin-top: 0.125rem !important; /* 2px */
+  }
+  
+  .gap-0\.5 {
+    gap: 0.125rem !important; /* 2px */
+  }
+  
+  .gap-0 {
+    gap: 0 !important;
+  }
+  
+  /* Force minimal spacing on mobile dashboard */
+  .dashboard-welcome > * + * {
+    margin-top: 0.25rem !important; /* 4px max on mobile */
+  }
+  
+  .dashboard-welcome .grid > * + * {
+    margin-top: 0 !important;
+  }
+}

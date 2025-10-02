@@ -6,16 +6,21 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Plus } from 'lucide-react'
 import ProtocolCard from '../components/protocols/ProtocolCard'
 import ProtocolHistoryModal from '../components/protocols/ProtocolHistoryModal';
 import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
 import { useAppContext } from '../context/AppContext';
 import { generateId } from '../utils/string';
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
+import UpgradeModal from '../components/common/UpgradeModal';
+import Tabs from '../components/common/Tabs';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
   const { protocols, setProtocols, addProtocol, updateProtocol, deleteProtocol } = useAppContext();
+  const { isReadOnly } = useSubscriptionAccess();
+  const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history'
   const [openAdd, setOpenAdd] = useState(false)
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
@@ -23,6 +28,7 @@ export default function Protocols() {
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10))
   const [stockpile, setStockpile] = useState([]);
   const [manageConfirm, setManageConfirm] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const endProtocol = (protocolToEnd) => {
     const today = new Date().toISOString().slice(0, 10);
@@ -187,34 +193,125 @@ export default function Protocols() {
     }
   }
 
+  const handleAddClick = () => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setOpenAdd(true);
+  };
+
+  const handleEditClick = (protocol) => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setEditing(protocol);
+  };
+
+  const handleStartClick = (protocol, opts) => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    if (opts?.manage) {
+      setManageConfirm(protocol);
+    } else {
+      setStartConfirm(protocol);
+      setStartDate(protocol.startDate || new Date().toISOString().slice(0,10));
+    }
+  };
+
+  // Allow deletion in read-only mode - users can manage their sensitive data
+  const handleDeleteClick = (protocol) => {
+    deleteProtocol(protocol.id);
+  };
+
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-end">
-        <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => setOpenAdd(true)}><PlusCircle className="h-4 w-4 inline mr-1"/>Add Protocol</button>
+    <section>
+      {/* Mobile-only sub-header with pill tabs - break out of main content padding */}
+      <div className="block lg:hidden -m-2 md:-m-6">
+        <div className="bg-white border-b" style={{ borderColor: theme.border }}>
+          <div className="px-4 py-1">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: 'protocols', label: 'Protocols' },
+                { value: 'history', label: 'History' }
+              ].map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => setActiveTab(tab.value)}
+                  className={`px-4 py-2 text-sm uppercase tracking-widest rounded-lg transition-all duration-200 text-center ${
+                    activeTab === tab.value 
+                      ? 'shadow-sm' 
+                      : 'hover:bg-gray-800 hover:text-white'
+                  }`}
+                  style={{
+                    backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
+                    color: activeTab === tab.value ? theme.primary : theme.textLight,
+                    fontWeight: 550
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        {protocols.length === 0 ? (
-          <p className="text-sm" style={{ color: theme.textLight }}>No protocols yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {protocols.map(p => (
-            <ProtocolCard 
-              key={p.id}
-              item={p}
-              theme={theme}
-              isActive={p.active === true || isActiveNow(p)}
-              onStartClick={(protocol, opts) => {
-                if (opts?.manage) {
-                  setManageConfirm(protocol);
-                } else {
-                  setStartConfirm(protocol);
-                  setStartDate(protocol.startDate || new Date().toISOString().slice(0,10));
-                }
-              }}
-              onEditClick={setEditing}
-              onHistoryClick={setHistoryProtocol}
-            />
-          ))}
+
+      {/* Desktop tabs and content */}
+      <div className="space-y-4">
+        {/* Desktop tabs - hidden on mobile */}
+        <div className="hidden lg:flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-1">
+            <Tabs theme={theme} value={activeTab} onChange={setActiveTab} compact stretch options={[
+              { value: 'protocols', label: 'Protocols' },
+              { value: 'history', label: 'History' },
+            ]} />
+          </div>
+          <button 
+            className="p-2 rounded-md hover:bg-opacity-10 hover:bg-gray-500 transition-colors" 
+            style={{ 
+              color: theme.text, 
+              backgroundColor: isReadOnly ? theme.textLight : theme.primary,
+              opacity: isReadOnly ? 0.6 : 1,
+              cursor: isReadOnly ? 'not-allowed' : 'pointer'
+            }} 
+            title="Add Protocol" 
+            onClick={handleAddClick}
+            disabled={isReadOnly}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content based on active tab */}
+        {activeTab === 'protocols' && (
+          <div>
+            {protocols.length === 0 ? (
+              <p className="text-sm" style={{ color: theme.textLight }}>No protocols yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {protocols.map(p => (
+                  <ProtocolCard 
+                    key={p.id}
+                    item={p}
+                    theme={theme}
+                    isActive={p.active === true || isActiveNow(p)}
+                    onStartClick={handleStartClick}
+                    onEditClick={handleEditClick}
+                    onHistoryClick={setHistoryProtocol}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'history' && (
+          <div>
+            <p className="text-sm" style={{ color: theme.textLight }}>Protocol history coming soon.</p>
           </div>
         )}
       </div>
@@ -281,6 +378,9 @@ export default function Protocols() {
           const newEndDate = computeEndDate(updatedProtocol);
           const finalProtocol = { ...updatedProtocol, endDate: newEndDate };
 
+          // Update protocol - this will automatically update all schedules on dashboard and calendar
+          // since they dynamically read from localStorage on each render
+          // Changes to dosage, frequency, duration, unitValue, etc. will all reflect immediately
           updateProtocol(finalProtocol);
           setEditing(null); 
         }}
@@ -414,6 +514,13 @@ export default function Protocols() {
             // Close the modal after the update has been queued.
             setStartConfirm(null);
         }}
+      />
+
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        actionAttempted="modify protocols"
+        theme={theme}
       />
     </section>
   )

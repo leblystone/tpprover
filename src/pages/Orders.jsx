@@ -10,14 +10,18 @@ import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { syncOrderDocumentationToStockpile, updateSyncedDocumentation, removeSyncedDocumentation } from '../utils/documentationSync'
 import useLocalStorage from '../utils/hooks'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
 	const { orders, setOrders, vendors, addVendor, setStockpile } = useAppContext();
+	const { isReadOnly } = useSubscriptionAccess();
 	const location = useLocation()
 	const [activeTab, setActiveTab] = useState('domestic')
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [editingOrder, setEditingOrder] = useState(null)
+	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
 	useEffect(() => {
 		if (location.state?.activeTab) {
@@ -158,7 +162,24 @@ export default function Orders() {
 						{ value: 'groupbuy', label: 'Group Buy' },
 					]}
 				/>
-				<button className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => setShowAddModal(true)}><PlusCircle className="h-4 w-4" /> Add Order</button>
+				<button 
+					className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" 
+					style={{ 
+						backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
+						color: theme.textOnPrimary,
+						opacity: isReadOnly ? 0.6 : 1,
+						cursor: isReadOnly ? 'not-allowed' : 'pointer'
+					}} 
+					onClick={() => {
+						if (isReadOnly) {
+							setShowUpgradeModal(true);
+							return;
+						}
+						setShowAddModal(true);
+					}}
+				>
+					<PlusCircle className="h-4 w-4" /> Add Order
+				</button>
 			</div>
 
 			<div className="mt-6">
@@ -169,9 +190,25 @@ export default function Orders() {
 								<div className="lg:col-span-2">
 									<OrderList 
 										orders={filteredOrders} 
-										onEdit={(order) => { setEditingOrder(order); setShowAddModal(true); }}
-										onDelete={(id) => setOrders(prev => prev.filter(o => o.id !== id))}
-										onAdvance={advanceOrderStatus}
+										onEdit={(order) => { 
+											if (isReadOnly) {
+												setShowUpgradeModal(true);
+												return;
+											}
+											setEditingOrder(order); 
+											setShowAddModal(true); 
+										}}
+										onDelete={(id) => {
+											// Allow deletion in read-only mode for data management
+											setOrders(prev => prev.filter(o => o.id !== id));
+										}}
+										onAdvance={(order) => {
+											if (isReadOnly) {
+												setShowUpgradeModal(true);
+												return;
+											}
+											advanceOrderStatus(order);
+										}}
 										theme={theme}
 										vendors={vendors}
 									/>
@@ -194,9 +231,25 @@ export default function Orders() {
 				) : (
 					<OrderList 
 						orders={filteredOrders} 
-						onEdit={(order) => { setEditingOrder(order); setShowAddModal(true); }}
-						onDelete={(id) => setOrders(prev => prev.filter(o => o.id !== id))}
-						onAdvance={advanceOrderStatus}
+						onEdit={(order) => { 
+							if (isReadOnly) {
+								setShowUpgradeModal(true);
+								return;
+							}
+							setEditingOrder(order); 
+							setShowAddModal(true); 
+						}}
+						onDelete={(id) => {
+							// Allow deletion in read-only mode for data management
+							setOrders(prev => prev.filter(o => o.id !== id));
+						}}
+						onAdvance={(order) => {
+							if (isReadOnly) {
+								setShowUpgradeModal(true);
+								return;
+							}
+							advanceOrderStatus(order);
+						}}
 						theme={theme}
 						vendors={vendors}
 					/>
@@ -248,6 +301,13 @@ export default function Orders() {
 					setShowAddModal(false);
 					setEditingOrder(null);
 				}}
+			/>
+
+			<UpgradeModal 
+				isOpen={showUpgradeModal}
+				onClose={() => setShowUpgradeModal(false)}
+				actionAttempted="manage orders"
+				theme={theme}
 			/>
 		</section>
 	)

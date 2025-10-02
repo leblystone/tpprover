@@ -318,36 +318,80 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
      const renderConfirmStep = () => {
         return (
-             <div>
-                <h3 className="font-semibold text-lg" style={{ color: theme.text }}>Confirm Protocol Start</h3>
-                <p className="text-sm mt-2 mb-4" style={{ color: theme.textLight }}>Review the details below and confirm to start your protocol.</p>
-                <div className="space-y-3">
-                    <label className="block text-sm font-medium" style={{ color: theme.text }}>
+             <div className="space-y-6">
+                {/* Header */}
+                <div>
+                    <h3 className="font-semibold text-lg" style={{ color: theme.text }}>Ready to Start</h3>
+                    <p className="text-sm mt-1 italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
+                </div>
+
+                {/* Start Date Input */}
+                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
                         Start Date
-                        <input type="date" className="mt-1 p-2 rounded border w-full bg-gray-50" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ borderColor: theme.border }} />
                     </label>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm" style={{ backgroundColor: theme.info + '10', borderColor: theme.info + '40' }}>
-                        <div className="font-medium mb-2" style={{ color: theme.info }}>
-                            🎯 What happens when you start this protocol:
+                    <input 
+                        type="date" 
+                        className="w-full px-3 py-2 rounded-md border transition-all focus:ring-2 focus:ring-opacity-50" 
+                        value={startDate} 
+                        onChange={e => setStartDate(e.target.value)} 
+                        style={{ borderColor: theme.border, backgroundColor: theme.inputBackground || '#fff', color: theme.text }} 
+                    />
+                </div>
+
+                {/* Protocol Summary Card */}
+                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Protocol Summary</div>
+                    <div className="space-y-2 text-xs" style={{ color: theme.textLight }}>
+                        <div className="flex justify-between">
+                            <span>Protocol Name:</span>
+                            <span className="font-semibold" style={{ color: theme.text }}>{protocol.protocolName}</span>
                         </div>
-                        <ul className="list-disc list-inside space-y-1 text-xs" style={{ color: theme.textLight }}>
-                            <li><strong>Daily tasks</strong> will appear on your Dashboard under "Today's Research"</li>
-                            <li><strong>Schedule</strong> will be visible in your Calendar view</li>
-                            <li><strong>Reminders</strong> will help you stay consistent with your protocol</li>
-                            <li><strong>Progress tracking</strong> lets you mark tasks complete as you go</li>
-                        </ul>
-                        <div className="mt-2 text-xs font-medium" style={{ color: theme.info }}>
-                            Protocol: <span className="font-bold">{protocol.protocolName}</span>
+                        {protocol.duration && !protocol.duration.noEnd && (
+                            <div className="flex justify-between">
+                                <span>Duration:</span>
+                                <span className="font-semibold" style={{ color: theme.text }}>
+                                    {protocol.duration.count} {protocol.duration.unit}
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex justify-between">
+                            <span>Compounds:</span>
+                            <span className="font-semibold" style={{ color: theme.text }}>{protocol.peptides?.length || 0}</span>
                         </div>
                     </div>
                 </div>
-                <div className="mt-6 flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded-md border text-sm" style={{ borderColor: theme.border }}>Cancel</button>
+
+                {/* What Happens Next */}
+                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.secondary }}>
+                    <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>What Happens Next</div>
+                    <div className="space-y-2 text-xs" style={{ color: theme.textLight }}>
+                        <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
+                            <span>Daily tasks will appear on your Dashboard</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
+                            <span>Schedule will be visible in your Calendar</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
+                            <span>Track progress by marking tasks complete</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-2 pt-2">
+                    <button onClick={onClose} className="px-4 py-2 rounded-md border text-sm font-medium" style={{ borderColor: theme.border, color: theme.text }}>
+                        Cancel
+                    </button>
                     <button 
                         onClick={() => onStart({ ...protocol, startDate, active: true, linkedItems: linkedData })}
-                        className="px-4 py-2 rounded-md text-sm" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                        className="px-4 py-2 rounded-md text-sm font-semibold"
+                        style={{ backgroundColor: theme.primary, color: '#ffffff' }}
                     >
-                        Confirm & Start Protocol
+                        Start Protocol
                     </button>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
+import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { X, Syringe, Pen, Droplets, Activity } from 'lucide-react';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import { getChromeGradient } from '../../utils/recon';
@@ -48,35 +49,98 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
+                {/* PEPTIDE DETAILS Section Header */}
+                <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Details</h4>
+                </div>
+
                 {/* Peptide Information */}
                 <div className="space-y-4">
                     <TextInput 
-                        label="Peptide/Amino Name" 
+                        label="Peptide Name" 
                         value={item.name || ''} 
                         onChange={v => handleChange('name', v)} 
                         theme={theme} 
                         placeholder="e.g., BPC-157, Superhuman, Super Shredder, Lipo-C" 
                     />
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="sm:col-span-2">
-                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage</div>
-                            <CombinedDosageInput
-                                value={item.dosage || { amount: '', unit: 'mcg' }}
-                                onChange={(newDosage) => handleChange('dosage', newDosage)}
-                                theme={theme}
-                                deliveryMethod={item.deliveryMethod}
-                                placeholder="250, 0.5, or 2"
-                            />
-                        </div>
-                        
-                        {/* Delivery Method - Only show for separate protocols or first peptide in blended */}
-                        {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
-                            <div>
-                                <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>
-                                    Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal" style={{ color: theme.textLight }}>(shared by all peptides)</span>}
+                    <div>
+                        <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage</div>
+                        <div className="grid grid-cols-3 gap-3">
+                            {/* Dosage - 2/3 width */}
+                            <div className="col-span-2">
+                                <CombinedDosageInput
+                                            value={item.dosage || { amount: '', unit: 'mcg' }}
+                                            onChange={(newDosage) => {
+                                                // Update only dosage, do NOT sync to units text box
+                                                onChange({ 
+                                                    ...item, 
+                                                    dosage: newDosage
+                                                });
+                                            }}
+                                            theme={theme}
+                                            deliveryMethod={item.deliveryMethod}
+                                            placeholder="250, 0.5, or 2"
+                                        />
+                                    </div>
+                                    
+                                    {/* Units - 1/3 width */}
+                                    <div className="col-span-1">
+                                        <div 
+                                            className="flex items-stretch border rounded-lg overflow-hidden"
+                                            style={{ borderColor: theme.border }}
+                                        >
+                                            {/* Input field for units - numeric values only */}
+                                            <input
+                                                type="text"
+                                                value={item.unitValue || ''}
+                                                onChange={(e) => {
+                                                    const newValue = e.target.value;
+                                                    onChange({ 
+                                                        ...item, 
+                                                        unitValue: newValue
+                                                    });
+                                                }}
+                                                placeholder="Optional"
+                                                className="flex-1 px-2 py-2 outline-none min-w-0"
+                                                style={{ 
+                                                    backgroundColor: theme.inputBackground || '#fff',
+                                                    color: theme.text 
+                                                }}
+                                            />
+                                            
+                                            {/* Unit Selector - Single 'units' pill */}
+                                            <div 
+                                                className="flex items-center px-1.5 py-1.5 border-l flex-shrink-0"
+                                                style={{ 
+                                                    borderColor: theme.border,
+                                                    backgroundColor: theme.cardBackground || '#f9fafb'
+                                                }}
+                                            >
+                                                <div
+                                                    className="px-2 py-1 text-xs font-semibold rounded transition-all text-white shadow-sm flex-shrink-0"
+                                                    style={{ backgroundColor: theme.primary }}
+                                                >
+                                                    units
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                        </div>
+                </div>
+
+                {/* DELIVERY METHOD Section - Only show for separate protocols or first peptide in blended */}
+                {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
+                    <>
+                        <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>
+                                Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal lowercase" style={{ color: theme.primary }}>(shared by all peptides)</span>}
+                            </h4>
+                        </div>
+
+                        <div className="space-y-4">
                             <div className="grid grid-cols-3 gap-2">
                                 <button 
                                     type="button"
@@ -87,7 +151,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             handleChange('injectionType', 'SubQ');
                                         }
                                     }}
-                                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.textOnPrimary : theme.text,
@@ -99,7 +163,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 <button 
                                     type="button"
                                     onClick={() => handleChange('deliveryMethod', 'pen')}
-                                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'syringe') === 'pen' ? theme.textOnPrimary : theme.text,
@@ -117,7 +181,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             handleChange('dosage', { ...item.dosage, unit: 'sprays' });
                                         }
                                     }}
-                                    className={`flex items-center justify-center gap-2 p-3 rounded-md border text-sm font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.textOnPrimary : theme.text,
@@ -132,18 +196,15 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             {(item.deliveryMethod || 'syringe') === 'syringe' && (
                                 <div className="mt-3">
                                     <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Injection Type</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
                                         {['SubQ', 'IM', 'IV'].map(type => (
                                             <button 
                                                 key={type}
                                                 type="button"
                                                 onClick={() => handleChange('injectionType', type)}
-                                                className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
-                                                    (item.injectionType || 'SubQ') === type 
-                                                        ? 'text-white shadow-md' 
-                                                        : 'text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
-                                                style={(item.injectionType || 'SubQ') === type ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}}>
+                                                className={`flex-1 px-2 py-2 text-xs font-semibold rounded transition-all ${(item.injectionType || 'SubQ') === type ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                style={(item.injectionType || 'SubQ') === type ? { backgroundColor: theme.primary } : {}}
+                                            >
                                                 {type}
                                             </button>
                                         ))}
@@ -153,7 +214,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             
                             {/* Pen Options */}
                             {(item.deliveryMethod || 'syringe') === 'pen' && (
-                                <div className="mt-3 space-y-3">
+                                <div className="mt-3 grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
                                     <div>
                                         <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Type</label>
@@ -168,69 +229,60 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 focusRingColor: theme.primary
                                             }}
                                         >
-                           <option value="">Select pen type (optional)</option>
-                           <option value="savvio">Savvio</option>
-                           <option value="novo">Novo</option>
-                           <option value="v1">V1</option>
-                           <option value="v2">V2</option>
-                           <option value="v3">V3</option>
-                           <option value="bird-pen">Bird Pen</option>
-                           <option value="luxura">Luxura</option>
-                           <option value="gansulin">Gansulin</option>
-                           <option value="other">Other</option>
+                                            <option value="">(Optional)</option>
+                                            <option value="savvio">Savvio</option>
+                                            <option value="novo">Novo</option>
+                                            <option value="v1">V1</option>
+                                            <option value="v2">V2</option>
+                                            <option value="v3">V3</option>
+                                            <option value="bird-pen">Bird Pen</option>
+                                            <option value="luxura">Luxura</option>
+                                            <option value="gansulin">Gansulin</option>
+                                            <option value="other">Other</option>
                                         </select>
                                     </div>
 
-                                    {/* Pen Color Selection */}
+                                    {/* Pen Color Selection - Dropdown with Color Swatch */}
                                     <div>
-                                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Color</label>
-                                        <div className="flex gap-2 flex-wrap">
-                                            {penColors.map(({ name, hex }) => {
-                                                const style = {
-                                                    background: getChromeGradient(hex),
-                                                    borderColor: hex,
-                                                    ringColor: theme.primary,
-                                                };
-                                                if (hex === '#FFFFFF') {
-                                                    style.boxShadow = 'inset 0 0 0 1px #ddd';
-                                                }
-                                                return (
-                                                    <button 
-                                                        key={name}
-                                                        type="button"
-                                                        title={name}
-                                                        onClick={() => handleChange('penColor', name)}
-                                                        className={`w-8 h-8 rounded-full border-2 transition-transform duration-150 transform hover:scale-110 ${(item.penColor || 'Silver') === name ? 'ring-2 ring-offset-2' : ''}`}
-                                                        style={style}
-                                                    />
-                                                );
-                                            })}
-                                        </div>
+                                        <ColorSwatchDropdown
+                                            label="Pen Color"
+                                            value={item.penColor}
+                                            onChange={(hexValue) => {
+                                                // Find the color name from hex and save the name
+                                                const colorObj = penColors.find(c => c.hex === hexValue);
+                                                handleChange('penColor', colorObj?.name || hexValue);
+                                            }}
+                                            colors={penColors}
+                                            theme={theme}
+                                        />
                                     </div>
                                 </div>
                             )}
                         </div>
-                        )}
-                    </div>
-                </div>
+                    </>
+                )}
 
-                {/* Frequency & Schedule - Show for separate protocols OR first peptide in blended protocols */}
+                {/* FREQUENCY Section - Show for separate protocols OR first peptide in blended protocols */}
                 {(protocolType === 'separate' || isFirstPeptide) && (
-                <div className="space-y-4">
+                <>
                     <div>
-                        <div className="mb-2">
-                            <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Frequency</div>
-                            <div className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 inline-block" style={{ backgroundColor: theme.info + '20', color: theme.info }}>
-                                📅 Schedules peptide research on your dashboard & calendar
-                            </div>
+                        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Frequency & Schedule</h4>
                         </div>
-                        <div className="inline-flex w-full rounded-md bg-gray-100 p-1 shadow-inner">
+                        <div className="text-xs text-center mt-2 italic" style={{ color: theme.textLight }}>
+                            Schedules peptide research on your dashboard & calendar
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                        <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
                             {['daily', 'weekly', 'custom', 'cycle'].map(type => (
                                 <button 
                                     key={type} 
                                     type="button" 
                                     onClick={() => handleFrequencyChange('type', type)}
-                                    className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded ${(item.frequency?.type || 'daily') === type ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                                    className={`flex-1 px-2 py-2 text-xs font-semibold rounded transition-all ${(item.frequency?.type || 'daily') === type ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
                                     style={(item.frequency?.type || 'daily') === type ? { backgroundColor: theme.primary } : {}}
                                     title={
                                         type === 'daily' ? 'Every day of the week' :
@@ -245,39 +297,42 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         </div>
                         
                         {/* Frequency explanations */}
-                        <div className="mt-2 text-xs" style={{ color: theme.textLight }}>
-                            {((item.frequency?.type || 'daily') === 'daily' && '✅ Task appears every day') ||
-                             (item.frequency?.type === 'weekly' && '📅 Task appears on selected days only') ||
-                             (item.frequency?.type === 'custom' && '🔄 Task repeats every X days') ||
-                             (item.frequency?.type === 'cycle' && '⚡ On/off cycling pattern (e.g., 5 days on, 2 days off)') ||
+                        <div className="text-xs text-center italic" style={{ color: theme.textLight }}>
+                            {((item.frequency?.type || 'daily') === 'daily' && 'Task appears every day') ||
+                             (item.frequency?.type === 'weekly' && 'Task appears on selected days only') ||
+                             (item.frequency?.type === 'custom' && 'Task repeats every X days') ||
+                             (item.frequency?.type === 'cycle' && 'On/off cycling pattern (e.g., 5 days on, 2 days off)') ||
                              ''}
                         </div>
                     </div>
 
                     {item.frequency?.type === 'cycle' && (
-                        <div className="grid grid-cols-2 gap-3">
-                            <TextInput 
-                                label="Days On" 
-                                value={item.frequency?.onDays || ''} 
-                                onChange={v => handleFrequencyChange('onDays', v)} 
-                                theme={theme} 
-                                placeholder="5" 
-                                type="number"
-                            />
-                            <TextInput 
-                                label="Days Off" 
-                                value={item.frequency?.offDays || ''} 
-                                onChange={v => handleFrequencyChange('offDays', v)} 
-                                theme={theme} 
-                                placeholder="2" 
-                                type="number"
-                            />
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Cycle Pattern</div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <TextInput 
+                                    label="Days On" 
+                                    value={item.frequency?.onDays || ''} 
+                                    onChange={v => handleFrequencyChange('onDays', v)} 
+                                    theme={theme} 
+                                    placeholder="5" 
+                                    type="number"
+                                />
+                                <TextInput 
+                                    label="Days Off" 
+                                    value={item.frequency?.offDays || ''} 
+                                    onChange={v => handleFrequencyChange('offDays', v)} 
+                                    theme={theme} 
+                                    placeholder="2" 
+                                    type="number"
+                                />
+                            </div>
                         </div>
                     )}
 
                     {item.frequency?.type === 'weekly' && (
-                        <div>
-                            <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Select Days</div>
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Select Days</div>
                             <div className="flex flex-wrap gap-2">
                                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                                     <button 
@@ -298,23 +353,50 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     )}
 
                     {item.frequency?.type === 'custom' && (
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium" style={{ color: theme.text }}>Every</span>
-                            <TextInput 
-                                value={item.frequency?.customDays || ''} 
-                                onChange={v => handleFrequencyChange('customDays', v)} 
-                                theme={theme} 
-                                placeholder="3" 
-                                type="number"
-                                className="w-20"
-                            />
-                            <span className="text-sm" style={{ color: theme.text }}>day(s)</span>
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-medium" style={{ color: theme.text }}>Every</span>
+                                
+                                {/* Combined Input with 'days' pill */}
+                                <div 
+                                    className="flex items-stretch border rounded-lg overflow-hidden"
+                                    style={{ borderColor: theme.border }}
+                                >
+                                    <input 
+                                        type="text"
+                                        value={item.frequency?.customDays || ''}
+                                        onChange={e => handleFrequencyChange('customDays', e.target.value)}
+                                        placeholder="3"
+                                        className="flex-1 px-3 py-2 outline-none min-w-0 w-20"
+                                        style={{ 
+                                            backgroundColor: theme.inputBackground || '#fff',
+                                            color: theme.text 
+                                        }}
+                                    />
+                                    
+                                    {/* Single 'days' pill */}
+                                    <div 
+                                        className="flex items-center px-1.5 py-1.5 border-l flex-shrink-0"
+                                        style={{ 
+                                            borderColor: theme.border,
+                                            backgroundColor: theme.cardBackground || '#f9fafb'
+                                        }}
+                                    >
+                                        <div
+                                            className="px-2 py-1 text-xs font-semibold rounded transition-all text-white shadow-sm flex-shrink-0"
+                                            style={{ backgroundColor: theme.primary }}
+                                        >
+                                            days
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 
-                    <div>
-                        <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Time of Day</div>
-                        <div className="inline-flex rounded-md bg-gray-100 p-1 shadow-inner">
+                    <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                        <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Time of Day</div>
+                        <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
                             {['AM','PM'].map(t => {
                                 const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
                                 return (
@@ -327,7 +409,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             const safeNext = next.length === 0 ? ['AM'] : next;
                                             handleFrequencyChange('time', safeNext);
                                         }}
-                                        className={`px-4 py-1.5 text-xs font-semibold rounded ${active ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                                        className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
                                         style={active ? { backgroundColor: theme.primary } : {}}
                                     >
                                         {t}
@@ -336,7 +418,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             })}
                         </div>
                     </div>
-                </div>
+                    </div>
+                </>
                 )}
 
                 {/* Info note for blended protocols (non-first peptides) */}
@@ -357,37 +440,45 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     </div>
                 )}
 
-                {/* Titration Section - Only show for separate protocols, hidden for blended (handled globally) */}
+                {/* TITRATION Section - Only show for separate protocols */}
                 {protocolType === 'separate' && (
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                checked={!!item.titrationEnabled} 
-                                onChange={e => {
-                                    const isEnabled = e.target.checked;
-                                    handleChange('titrationEnabled', isEnabled);
-                                    // If enabling and no steps exist, add the first one automatically
-                                    if (isEnabled && (!item.titration || item.titration.length === 0)) {
-                                        handleChange('titration', [{ dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'weeks' }]);
-                                    }
-                                }} 
-                                className="sr-only peer" 
-                            />
-                            <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: item.titrationEnabled ? theme.primary : theme.secondary}}></div>
-                        </label>
-                        <span className="text-sm font-medium" style={{ color: theme.text }}>Enable Dosing Schedule (Titration)</span>
+                <>
+                    <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Dosing Schedule (Optional)</h4>
                     </div>
 
-                    {item.titrationEnabled && (
-                        <DosingScheduleEditor 
-                            titration={item.titration || []}
-                            onChange={t => handleChange('titration', t)}
-                            theme={theme}
-                        />
-                    )}
-                </div>
+                    <div className="space-y-4">
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="flex items-center gap-3">
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!item.titrationEnabled} 
+                                        onChange={e => {
+                                            const isEnabled = e.target.checked;
+                                            handleChange('titrationEnabled', isEnabled);
+                                            // If enabling and no steps exist, add the first one automatically
+                                            if (isEnabled && (!item.titration || item.titration.length === 0)) {
+                                                handleChange('titration', [{ dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'weeks' }]);
+                                            }
+                                        }} 
+                                        className="sr-only peer" 
+                                    />
+                                    <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: item.titrationEnabled ? theme.primary : theme.secondary}}></div>
+                                </label>
+                                <span className="text-sm font-medium" style={{ color: theme.text }}>Enable Dosing Schedule (Titration)</span>
+                            </div>
+                        </div>
+
+                        {item.titrationEnabled && (
+                            <DosingScheduleEditor 
+                                titration={item.titration || []}
+                                onChange={t => handleChange('titration', t)}
+                                theme={theme}
+                            />
+                        )}
+                    </div>
+                </>
                 )}
         </div>
     );

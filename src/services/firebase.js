@@ -776,7 +776,7 @@ export async function respondToFeedback(feedbackId, responseText, userEmail) {
  */
 export async function getUserNotifications(userEmail) {
   try {
-    console.log('🔔 Firebase: Getting notifications for email:', userEmail.toLowerCase());
+    // console.log('🔔 Firebase: Getting notifications for email:', userEmail.toLowerCase());
     // Temporarily remove orderBy to avoid index requirement
     const q = query(
       collection(db, 'notifications'),
@@ -814,7 +814,7 @@ export async function getUserNotifications(userEmail) {
       return bTime - aTime; // Descending order (newest first)
     });
     
-    console.log('🔔 Firebase: Found', notifications.length, 'notifications:', notifications);
+    // console.log('🔔 Firebase: Found', notifications.length, 'notifications:', notifications);
     return notifications;
   } catch (error) {
     console.error('❌ Failed to get user notifications:', error);

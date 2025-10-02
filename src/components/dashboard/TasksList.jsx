@@ -46,7 +46,7 @@ const TaskIcon = ({ type, delivery, theme }) => {
 
 export default function TasksList({ tasks, theme, onToggle }) {
     if (!tasks || tasks.length === 0) {
-        return <p className="text-sm text-center py-4" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
+        return <p className="text-xs text-center py-3" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
 
     const amTasks = tasks.filter(t => t.time === 'AM');
@@ -54,13 +54,13 @@ export default function TasksList({ tasks, theme, onToggle }) {
     const otherTasks = tasks.filter(t => t.time !== 'AM' && t.time !== 'PM');
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-2">
             {otherTasks.length > 0 && (
                 <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} />
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-3">
                 <TaskListSection title="AM" tasks={amTasks} theme={theme} onToggle={onToggle} />
-                <div className="mt-4 border-t pt-4 md:mt-0 md:border-t-0 md:border-l md:pl-4" style={{ borderColor: theme.border }}>
+                <div className="mt-2 border-t pt-2 md:mt-0 md:border-t-0 md:border-l md:pl-3" style={{ borderColor: theme.border }}>
                      <TaskListSection title="PM" tasks={pmTasks} theme={theme} onToggle={onToggle} />
                 </div>
             </div>
@@ -72,14 +72,14 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
     if (!tasks || tasks.length === 0) return null;
     return (
         <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>{title}</h4>
-            <ul className="space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>{title}</h4>
+            <ul className="space-y-1.5">
                 {tasks.map(task => (
-                    <li key={task.id} className="flex items-center justify-between p-3 rounded-md border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
-                         <div className="flex items-center gap-3 flex-1">
+                    <li key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
+                        <div className="flex items-center gap-3 flex-1">
                             <button
                                 onClick={() => onToggle(task)}
-                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all`}
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110`}
                                 style={{
                                     borderColor: task.completed ? theme.primary : theme.border,
                                     backgroundColor: task.completed ? theme.primary : 'transparent'
@@ -87,16 +87,32 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
                             >
                                 {task.completed && <Check size={12} className="text-white" />}
                             </button>
-                            <TaskIcon type={task.type} delivery={task.delivery} theme={theme} />
+                            
                             <div className={`flex-1 ${task.completed ? 'line-through text-gray-400' : ''}`}>
-                                <span className="font-semibold">{task.name}</span>
-                                <span className="text-sm ml-2">{task.dose} {task.unit}</span>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-semibold text-sm" style={{ color: theme.text }}>{task.name}</span>
+                                    {task.type === 'peptide' && task.deliveryMethod && (
+                                        <DeliveryInfo task={task} theme={theme} />
+                                    )}
+                                </div>
+                                {task.type === 'peptide' && task.protocolName && (
+                                    <div className="text-xs" style={{ color: theme.textLight }}>
+                                        Protocol For: {task.protocolName}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         
-                        {task.type === 'peptide' && task.deliveryMethod && (
-                            <DeliveryChip task={task} />
-                        )}
+                        <div className="text-right">
+                            <div className="font-semibold text-sm" style={{ color: theme.text }}>
+                                {task.dose}
+                            </div>
+                            {task.unit && (
+                                <div className="text-xs" style={{ color: theme.textLight }}>
+                                    {task.unit}
+                                </div>
+                            )}
+                        </div>
                     </li>
                 ))}
             </ul>
@@ -104,7 +120,7 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
     )
 };
 
-const DeliveryChip = ({ task }) => {
+const DeliveryInfo = ({ task, theme }) => {
     if (task.deliveryMethod === 'pen') {
         const raw = String(task.penColor || '').trim();
         const isHex = raw.startsWith('#');
@@ -114,23 +130,40 @@ const DeliveryChip = ({ task }) => {
         const mappedName = colorMap[lowerHex];
         const nameFromHex = override || mappedName;
         const colorName = isHex ? (nameFromHex || raw) : raw;
-        const textColor = isColorDark(resolvedHex) ? 'white' : '#1f2937'; // white or dark gray
+        const textColor = isColorDark(resolvedHex) ? 'white' : '#1f2937';
+        
         return (
-            <div 
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ml-2 shadow-md" 
-                style={{ background: getChromeGradient(resolvedHex), color: textColor }}
-            >
-                <PenTool size={14} style={{ color: textColor }} />
-                <span>{colorName ? `${colorName} Pen` : 'Pen'}</span>
+            <div className="flex items-center gap-1.5">
+                <PenTool size={14} style={{ color: theme.textLight }} />
+                <div 
+                    className="w-3 h-3 rounded-full border border-gray-300 shadow-sm" 
+                    style={{ backgroundColor: resolvedHex }}
+                />
+                <span className="text-xs" style={{ color: theme.textLight }}>
+                    {colorName || 'Pen'}
+                </span>
             </div>
         );
     }
 
     if (task.deliveryMethod === 'syringe') {
         return (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700 ml-2" style={{backgroundColor: '#e5e7eb'}}>
-                <Syringe size={14} />
-                <span>Syringe</span>
+            <div className="flex items-center gap-1.5">
+                <Syringe size={14} style={{ color: theme.textLight }} />
+                <span className="text-xs" style={{ color: theme.textLight }}>
+                    {task.administrationRoute ? task.administrationRoute.toUpperCase() : 'Syringe'}
+                </span>
+            </div>
+        );
+    }
+
+    if (task.deliveryMethod === 'nasal') {
+        return (
+            <div className="flex items-center gap-1.5">
+                <Droplet size={14} style={{ color: theme.textLight }} />
+                <span className="text-xs" style={{ color: theme.textLight }}>
+                    Nasal
+                </span>
             </div>
         );
     }

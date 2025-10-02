@@ -28,18 +28,6 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
             <Save size={16} style={{ color: theme.success }} />
           </ModernTooltip>
         )}
-        
-        {onClearForm && (
-          <ModernTooltip text="Clear form" position="bottom">
-            <button
-              onClick={onClearForm}
-              className="p-1 rounded hover:bg-gray-200 transition-colors"
-              style={{ color: theme.textLight }}
-            >
-              <Trash2 size={14} />
-            </button>
-          </ModernTooltip>
-        )}
       </div>
     );
   }

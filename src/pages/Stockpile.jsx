@@ -12,12 +12,16 @@ import DocumentationUpload from '../components/common/DocumentationUpload'
 import StockpileCard from '../components/stockpile/StockpileCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate();
   const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems } = useAppContext();
+  const { isReadOnly } = useSubscriptionAccess();
   const [openAdd, setOpenAdd] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] })
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
   const [vendorFilter, setVendorFilter] = useState('')
@@ -306,7 +310,24 @@ export default function Stockpile() {
             <Filter className="h-4 w-4" />
           </button>
         </div>
-        <button className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => setOpenAdd(true)}><PlusCircle className="h-4 w-4 inline mr-1"/>Add Peptide</button>
+        <button 
+          className="px-3 py-2 rounded-md text-sm font-semibold" 
+          style={{ 
+            backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
+            color: theme.textOnPrimary,
+            opacity: isReadOnly ? 0.6 : 1,
+            cursor: isReadOnly ? 'not-allowed' : 'pointer'
+          }} 
+          onClick={() => {
+            if (isReadOnly) {
+              setShowUpgradeModal(true);
+              return;
+            }
+            setOpenAdd(true);
+          }}
+        >
+          <PlusCircle className="h-4 w-4 inline mr-1"/>Add Peptide
+        </button>
       </div>
       {showFilters && (
         <div className="flex items-center gap-2">
@@ -430,7 +451,22 @@ export default function Stockpile() {
                             </div>
                         </div>
                         <div className="mt-4 flex items-center justify-end gap-2">
-                            <button className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={() => openManage(g.name)}>
+                            <button 
+                              className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" 
+                              style={{ 
+                                backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
+                                color: theme.textOnPrimary,
+                                opacity: isReadOnly ? 0.6 : 1,
+                                cursor: isReadOnly ? 'not-allowed' : 'pointer'
+                              }} 
+                              onClick={() => {
+                                if (isReadOnly) {
+                                  setShowUpgradeModal(true);
+                                  return;
+                                }
+                                openManage(g.name);
+                              }}
+                            >
                                 <Edit size={14} /> Manage
                             </button>
                         </div>
@@ -688,6 +724,13 @@ export default function Stockpile() {
         onClose={() => setShowMergeModal(false)}
         onConfirm={handleConfirmMerge}
         mergeData={mergeData}
+        theme={theme}
+      />
+
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        actionAttempted="manage stockpile"
         theme={theme}
       />
     </section>

@@ -10,14 +10,18 @@ import VendorCard from '../components/vendors/VendorCard'
 import ViewContainer from '../components/ui/ViewContainer'
 import { useAppContext } from '../context/AppContext'
 import useLocalStorage from '../utils/hooks'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Vendors() {
 	const { theme } = useOutletContext()
 	const { vendors, addVendor, updateVendor, deleteVendor } = useAppContext();
+	const { isReadOnly } = useSubscriptionAccess();
 	const [editingVendor, setEditingVendor] = useState(null)
 	const [activeTab, setActiveTab] = useLocalStorage('tpprover_vendors_tab', 'domestic')
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [filters, setFilters] = useState({ payment: [], contact: [], label: [] })
+	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
 	// DISABLED: Dangerous cleanup function that caused data loss
 	// This function has been permanently disabled due to critical data loss incident
@@ -54,7 +58,25 @@ export default function Vendors() {
 						{ value: 'groupbuy', label: 'Group Buy' },
 					]}
 				/>
-				<button onClick={() => { setEditingVendor({}); setShowAddModal(true); }} className="w-full sm:w-auto px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center justify-center gap-2" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}><PlusCircle className="h-4 w-4" /> New Vendor</button>
+				<button 
+				onClick={() => { 
+					if (isReadOnly) {
+						setShowUpgradeModal(true);
+						return;
+					}
+					setEditingVendor({}); 
+					setShowAddModal(true); 
+				}} 
+				className="w-full sm:w-auto px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center justify-center gap-2" 
+				style={{ 
+					backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
+					color: theme.textOnPrimary,
+					opacity: isReadOnly ? 0.6 : 1,
+					cursor: isReadOnly ? 'not-allowed' : 'pointer'
+				}}
+			>
+				<PlusCircle className="h-4 w-4" /> New Vendor
+			</button>
 			</div>
 
 			<div className="mt-6">
@@ -64,7 +86,14 @@ export default function Vendors() {
 							key={v.id || `${v.name || 'vendor'}-${idx}`}
 							vendor={v}
 							theme={theme}
-							onEditClick={(vendor) => { setEditingVendor(vendor); setShowAddModal(true) }}
+							onEditClick={(vendor) => { 
+								if (isReadOnly) {
+									setShowUpgradeModal(true);
+									return;
+								}
+								setEditingVendor(vendor); 
+								setShowAddModal(true);
+							}}
 							onManageProtocolClick={(vendor) => { alert(`Manage protocol for ${vendor.name}`) }}
 						/>
 					))}
@@ -94,6 +123,13 @@ export default function Vendors() {
 					setShowAddModal(false)
 					setEditingVendor(null)
 				}}
+			/>
+
+			<UpgradeModal 
+				isOpen={showUpgradeModal}
+				onClose={() => setShowUpgradeModal(false)}
+				actionAttempted="manage vendors"
+				theme={theme}
 			/>
 		</section>
 	)

@@ -93,25 +93,26 @@ export default function LifetimeMigration({ theme, onComplete }) {
 
   return (
     <div style={{
-      padding: '24px',
+      padding: window.innerWidth < 768 ? '16px' : '24px',
       backgroundColor: theme.cardBackground,
       borderRadius: '12px',
       border: `1px solid ${theme.border}`
     }}>
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: window.innerWidth < 768 ? '16px' : '24px' }}>
         <h3 style={{
-          fontSize: '20px',
+          fontSize: window.innerWidth < 768 ? '18px' : '20px',
           fontWeight: 'bold',
           color: theme.text,
           marginBottom: '8px',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '8px',
+          flexWrap: 'wrap'
         }}>
-          <Database size={24} style={{ color: theme.primary }} />
-          Lifetime Access Migration Tool
+          <Database size={window.innerWidth < 768 ? 20 : 24} style={{ color: theme.primary }} />
+          <span>Lifetime Access Migration Tool</span>
         </h3>
-        <p style={{ color: theme.textLight, fontSize: '14px' }}>
+        <p style={{ color: theme.textLight, fontSize: window.innerWidth < 768 ? '13px' : '14px' }}>
           Migrate beta tester lifetime access from localStorage to Firestore for permanent, cross-device access.
         </p>
       </div>
@@ -142,34 +143,37 @@ export default function LifetimeMigration({ theme, onComplete }) {
       }}>
         <div style={{
           display: 'flex',
+          flexDirection: window.innerWidth < 768 ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '12px'
+          alignItems: window.innerWidth < 768 ? 'flex-start' : 'center',
+          marginBottom: '12px',
+          gap: '12px'
         }}>
-          <div>
-            <h4 style={{ fontSize: '16px', fontWeight: '600', color: theme.text, marginBottom: '4px' }}>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontSize: window.innerWidth < 768 ? '14px' : '16px', fontWeight: '600', color: theme.text, marginBottom: '4px' }}>
               Step 1: Scan localStorage
             </h4>
-            <p style={{ fontSize: '14px', color: theme.textLight }}>
+            <p style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', color: theme.textLight }}>
               Found {localStorageUsers.length} users with lifetime access in localStorage
             </p>
           </div>
           <button
             onClick={scanLocalStorage}
             style={{
-              padding: '8px 16px',
+              padding: window.innerWidth < 768 ? '6px 12px' : '8px 16px',
               backgroundColor: theme.primary,
               color: theme.textOnPrimary,
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: window.innerWidth < 768 ? '12px' : '14px',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '6px',
+              whiteSpace: 'nowrap'
             }}
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={window.innerWidth < 768 ? 14 : 16} />
             Rescan
           </button>
         </div>
@@ -200,15 +204,17 @@ export default function LifetimeMigration({ theme, onComplete }) {
       }}>
         <div style={{
           display: 'flex',
+          flexDirection: window.innerWidth < 768 ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '12px'
+          alignItems: window.innerWidth < 768 ? 'flex-start' : 'center',
+          marginBottom: '12px',
+          gap: '12px'
         }}>
-          <div>
-            <h4 style={{ fontSize: '16px', fontWeight: '600', color: theme.text, marginBottom: '4px' }}>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontSize: window.innerWidth < 768 ? '14px' : '16px', fontWeight: '600', color: theme.text, marginBottom: '4px' }}>
               Step 2: Match with Firebase Users
             </h4>
-            <p style={{ fontSize: '14px', color: theme.textLight }}>
+            <p style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', color: theme.textLight }}>
               {firestoreUsers.length === 0 ? 'Click "Match Users" to find Firebase UIDs' : 
                `Matched ${firestoreUsers.filter(u => u.matched).length} of ${firestoreUsers.length} users`}
             </p>
@@ -217,20 +223,21 @@ export default function LifetimeMigration({ theme, onComplete }) {
             onClick={matchUsersWithFirebase}
             disabled={migrationStatus === 'scanning' || localStorageUsers.length === 0}
             style={{
-              padding: '8px 16px',
+              padding: window.innerWidth < 768 ? '6px 12px' : '8px 16px',
               backgroundColor: migrationStatus === 'scanning' ? theme.textLight : theme.primary,
               color: theme.textOnPrimary,
               border: 'none',
               borderRadius: '6px',
               cursor: migrationStatus === 'scanning' || localStorageUsers.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
+              fontSize: window.innerWidth < 768 ? '12px' : '14px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              opacity: localStorageUsers.length === 0 ? 0.5 : 1
+              opacity: localStorageUsers.length === 0 ? 0.5 : 1,
+              whiteSpace: 'nowrap'
             }}
           >
-            <Users size={16} />
+            <Users size={window.innerWidth < 768 ? 14 : 16} />
             {migrationStatus === 'scanning' ? 'Matching...' : 'Match Users'}
           </button>
         </div>
@@ -276,15 +283,17 @@ export default function LifetimeMigration({ theme, onComplete }) {
       }}>
         <div style={{
           display: 'flex',
+          flexDirection: window.innerWidth < 768 ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '12px'
+          alignItems: window.innerWidth < 768 ? 'flex-start' : 'center',
+          marginBottom: '12px',
+          gap: '12px'
         }}>
-          <div>
-            <h4 style={{ fontSize: '16px', fontWeight: '600', color: theme.text, marginBottom: '4px' }}>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontSize: window.innerWidth < 768 ? '14px' : '16px', fontWeight: '600', color: theme.text, marginBottom: '4px' }}>
               Step 3: Migrate to Firestore
             </h4>
-            <p style={{ fontSize: '14px', color: theme.textLight }}>
+            <p style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', color: theme.textLight }}>
               {migrationStatus === 'complete' 
                 ? `Migration complete: ${progress.success} succeeded, ${progress.failed} failed`
                 : migrationStatus === 'migrating'
@@ -296,7 +305,7 @@ export default function LifetimeMigration({ theme, onComplete }) {
             onClick={startMigration}
             disabled={migrationStatus !== 'ready' || progress.total === 0}
             style={{
-              padding: '8px 16px',
+              padding: window.innerWidth < 768 ? '6px 12px' : '8px 16px',
               backgroundColor: migrationStatus === 'complete' ? theme.success : 
                             migrationStatus === 'migrating' ? theme.textLight : 
                             theme.primary,
@@ -304,24 +313,25 @@ export default function LifetimeMigration({ theme, onComplete }) {
               border: 'none',
               borderRadius: '6px',
               cursor: migrationStatus !== 'ready' || progress.total === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
+              fontSize: window.innerWidth < 768 ? '12px' : '14px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              opacity: migrationStatus !== 'ready' || progress.total === 0 ? 0.5 : 1
+              opacity: migrationStatus !== 'ready' || progress.total === 0 ? 0.5 : 1,
+              whiteSpace: 'nowrap'
             }}
           >
             {migrationStatus === 'complete' ? (
               <>
-                <CheckCircle size={16} /> Complete
+                <CheckCircle size={window.innerWidth < 768 ? 14 : 16} /> Complete
               </>
             ) : migrationStatus === 'migrating' ? (
               <>
-                <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> Migrating...
+                <RefreshCw size={window.innerWidth < 768 ? 14 : 16} style={{ animation: 'spin 1s linear infinite' }} /> Migrating...
               </>
             ) : (
               <>
-                <Upload size={16} /> Start Migration
+                <Upload size={window.innerWidth < 768 ? 14 : 16} /> Start Migration
               </>
             )}
           </button>

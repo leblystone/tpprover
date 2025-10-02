@@ -48,8 +48,8 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
 
   return (
     <>
-      <header className="backdrop-blur border-b h-16 flex items-center px-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-3">
+      <header className="backdrop-blur border-b h-12 md:h-16 flex items-center px-3 md:px-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="flex items-center gap-2 md:gap-3">
           <button 
             onClick={onMenuClick} 
             className="md:hidden no-shadow" 
@@ -57,14 +57,14 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
             aria-label="Open navigation menu"
             aria-expanded="false"
           >
-            <Menu size={24} />
+            <Menu size={20} className="md:hidden" />
           </button>
-          <h1 className="text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
             <span className="hidden sm:inline">{title}</span>
-            <span className="sm:hidden">{title}</span>
+            <span className="sm:hidden">{title.includes('Welcome') ? 'The Pep Planner' : title}</span>
           </h1>
         </div>
-        <div className="flex items-center gap-2 flex-1 justify-end">
+        <div className="flex items-center gap-1 md:gap-2 flex-1 justify-end">
           {showSearch && (
             <div className="hidden md:block w-full max-w-xl mr-2">
               <GlobalSearchInline theme={theme} onClose={() => setShowSearch(false)} onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} />
@@ -72,13 +72,13 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
           )}
           <ModernTooltip text="Search" position="bottom">
             <button 
-              className="p-2 rounded-full no-shadow" 
+              className="p-1.5 md:p-2 rounded-full no-shadow" 
               onClick={() => setShowSearch(s => !s)} 
               style={{ color: theme.text }}
               aria-label="Toggle global search"
               aria-expanded={showSearch}
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-4 w-4 md:h-5 md:w-5" />
             </button>
           </ModernTooltip>
           {/* Import feature temporarily hidden - uncomment to re-enable
@@ -90,7 +90,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
           {onDashboard && onDashboardCustomize && (
             <ModernTooltip text={customizingState ? "Done Editing" : "Customize Dashboard"} position="bottom">
               <button 
-                className={`p-2 rounded-full no-shadow transition-all duration-200 ${
+                className={`p-1.5 md:p-2 rounded-full no-shadow transition-all duration-200 ${
                   customizingState ? 'ring-2 ring-opacity-50' : ''
                 }`}
                 onClick={onDashboardCustomize}
@@ -102,31 +102,31 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
                 aria-label={customizingState ? "Done editing dashboard" : "Customize dashboard"}
                 title="Customize Dashboard"
               >
-                <Edit className="h-5 w-5" />
+                <Edit className="h-4 w-4 md:h-5 md:w-5" />
               </button>
             </ModernTooltip>
           )}
           {onDashboard && onDashboardSettings && (
             <ModernTooltip text="Dashboard Settings" position="bottom">
               <button 
-                className="p-2 rounded-full no-shadow transition-all duration-200" 
+                className="p-1.5 md:p-2 rounded-full no-shadow transition-all duration-200" 
                 onClick={onDashboardSettings}
                 style={{ color: theme.text }}
                 aria-label="Open dashboard settings"
                 title="Dashboard Settings"
               >
-                <Settings className="h-5 w-5" />
+                <Settings className="h-4 w-4 md:h-5 md:w-5" />
               </button>
             </ModernTooltip>
           )}
           <ModernTooltip text="Help" position="bottom">
             <button 
-              className="p-2 rounded-full no-shadow" 
+              className="p-1.5 md:p-2 rounded-full no-shadow hidden xs:flex" 
               onClick={() => setShowHelp(true)} 
               style={{ color: theme.text }}
               aria-label="Open help and tips"
             >
-              <HelpCircle className="h-5 w-5" />
+              <HelpCircle className="h-4 w-4 md:h-5 md:w-5" />
             </button>
           </ModernTooltip>
         </div>

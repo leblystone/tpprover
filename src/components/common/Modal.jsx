@@ -53,11 +53,13 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
               </button>
             )}
             <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{title}</h3>
-            {titleExtra && titleExtra}
           </div>
-          <button onClick={onClose} className="p-1 rounded-full" style={{ color: theme.textLight }}>
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-3">
+            {titleExtra && titleExtra}
+            <button onClick={onClose} className="p-1 rounded-full" style={{ color: theme.textLight }}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
         <div className="p-4 overflow-y-auto">
           {children}
