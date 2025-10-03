@@ -10,7 +10,7 @@ import '../styles/badges.css';
 
 export default function Badges() {
   const { theme } = useOutletContext();
-  const { allBadges, earnedBadges, totalBadges, earnedCount, progressPercentage } = useBadgeStats();
+  const { allBadges, earnedBadges, totalBadges, earnedCount, progressPercentage, stats } = useBadgeStats();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -161,7 +161,7 @@ export default function Badges() {
                 }}>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12">
-                      <BadgeCard badge={badge} isEarned={true} theme={theme} />
+                      <BadgeCard badge={badge} isEarned={true} theme={theme} stats={stats} />
                     </div>
                     <div>
                       <h3 className="font-bold" style={{ color: theme.primaryDark }}>
@@ -262,6 +262,7 @@ export default function Badges() {
                     badge={badge}
                     isEarned={earnedBadgeNames.has(badge.name)}
                     theme={theme}
+                    stats={stats}
                     className={`badge-card-stagger-${(badgeIndex % 6) + 1}`}
                   />
                 ))}

@@ -125,6 +125,20 @@ export default function Calendar() {
   const [done, setDone] = useState({})
   const [protocolTimelines, setProtocolTimelines] = useState([]);
   const [calendarBump, setCalendarBump] = useState(0);
+  
+  // Listen for task completion events to sync calendar views
+  useEffect(() => {
+    const handleTaskCompletionChange = (e) => {
+      console.log('📡 Calendar received task completion event:', e.detail);
+      setCalendarBump(Date.now());
+    };
+    
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    };
+  }, []);
   const [showIconKey, setShowIconKey] = useState(false);
   const [quickEditDate, setQuickEditDate] = useState(null);
   const [quickEditData, setQuickEditData] = useState(null);
@@ -864,6 +878,7 @@ export default function Calendar() {
             entries={entries}
             scheduled={scheduled}
             theme={theme}
+            calendarBump={calendarBump}
             onDayClick={(d) => {
               if (!d) return
               // Check if the day has scheduled tasks - if so, open quick edit

@@ -139,5 +139,5 @@ export function useBadgeStats() {
     const earnedCount = earnedBadges.length;
     const progressPercentage = Math.round((earnedCount / totalBadges) * 100);
 
-    return { allBadges, earnedBadges, totalBadges, earnedCount, progressPercentage };
+    return { allBadges, earnedBadges, totalBadges, earnedCount, progressPercentage, stats };
 }

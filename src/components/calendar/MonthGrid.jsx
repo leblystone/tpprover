@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
 import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker, Target, CheckCircle, PenTool } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
@@ -79,7 +79,23 @@ function MetricIndicator({ metric, theme }) {
     return <div className="w-2 h-2 rounded-full" style={{ backgroundColor: indicatorColor }} title={`${metric.type}: ${metric.value}`} />;
 }
 
-export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayClick, theme, protocolTimelines = [] }) {
+export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayClick, theme, protocolTimelines = [], calendarBump = 0 }) {
+  const [forceRender, setForceRender] = useState(0);
+  
+  // Listen for task completion events to force re-render
+  useEffect(() => {
+    const handleTaskCompletionChange = (e) => {
+      console.log('📡 MonthGrid received task completion event:', e.detail);
+      setForceRender(prev => prev + 1);
+    };
+    
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    };
+  }, []);
+  
   const days = getMonthDays(date)
   const weeks = [];
   for (let i = 0; i < days.length; i += 7) {

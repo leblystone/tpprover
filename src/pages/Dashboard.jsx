@@ -160,8 +160,19 @@ export default function Dashboard() {
               setCalendarBump(Date.now());
           }
       };
+      
+      const handleTaskCompletionChange = (e) => {
+          console.log('📡 Dashboard received task completion event:', e.detail);
+          setCalendarBump(Date.now());
+      };
+      
       window.addEventListener('storage', handleStorageChange);
-      return () => window.removeEventListener('storage', handleStorageChange);
+      window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+      
+      return () => {
+          window.removeEventListener('storage', handleStorageChange);
+          window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+      };
   }, []);
 
   useEffect(() => {
@@ -590,6 +601,10 @@ export default function Dashboard() {
           newCompleted
         });
         toggleTaskCompletion(taskId, newCompleted, undefined, t.time);
+        
+        // Trigger calendar sync by updating calendarBump
+        setCalendarBump(Date.now());
+        
         return { ...t, completed: newCompleted };
       }
       return t;

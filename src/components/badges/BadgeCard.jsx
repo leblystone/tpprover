@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CheckCircle, Lock, TrendingUp, Star } from 'lucide-react';
 import BadgeImage from './BadgeImage';
 
-export default function BadgeCard({ badge, isEarned, theme, showProgress = true, className = '' }) {
+export default function BadgeCard({ badge, isEarned, theme, showProgress = true, className = '', stats = {} }) {
   const [isHovered, setIsHovered] = useState(false);
   
   const cardStyle = {
@@ -18,7 +18,7 @@ export default function BadgeCard({ badge, isEarned, theme, showProgress = true,
       : '0 2px 8px rgba(0,0,0,0.1)',
   };
 
-  const progress = badge.progress ? badge.progress() : 0;
+  const progress = badge.progress ? badge.progress(stats) : 0;
   const progressPercentage = Math.min(Math.round(progress * 100), 100);
 
   return (

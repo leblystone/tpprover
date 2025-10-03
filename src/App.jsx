@@ -168,10 +168,6 @@ function App() {
             // Dispatch custom event for dashboard customize
             window.dispatchEvent(new CustomEvent('tpp:dashboard-customize'));
           } : undefined}
-          onDashboardSettings={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
-            // Dispatch custom event for dashboard settings
-            window.dispatchEvent(new CustomEvent('tpp:dashboard-settings'));
-          } : undefined}
           isCustomizing={false} // This will be managed by the dashboard component
           tabs={topbarTabs?.tabs}
           activeTab={topbarTabs?.activeTab}

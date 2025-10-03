@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pill, Syringe, Check, PenTool, Droplet, Beaker } from 'lucide-react';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -57,10 +57,26 @@ const TaskDisplay = ({
   showCheckbox = true,
   showPenDetails = true
 }) => {
+  const [forceRender, setForceRender] = useState(0);
+  
+  // Listen for task completion events to force re-render
+  useEffect(() => {
+    const handleTaskCompletionChange = (e) => {
+      console.log('📡 TaskDisplay received task completion event:', e.detail);
+      setForceRender(prev => prev + 1);
+    };
+    
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    };
+  }, []);
+  
   const dateKey = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '';
   const taskId = generateTaskId(task);
-  // Use task.completed if provided, otherwise check completion status
-  const isCompleted = task.completed !== undefined ? task.completed : (dateKey ? isTaskCompleted(taskId, dateKey, timeSlot) : false);
+  // Always check completion status from localStorage for real-time updates
+  const isCompleted = dateKey ? isTaskCompleted(taskId, dateKey, timeSlot) : (task.completed || false);
 
   const handleToggle = () => {
     if (onToggle) {

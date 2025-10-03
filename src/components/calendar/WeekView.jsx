@@ -55,6 +55,20 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
   useEffect(() => {
     setForceRender(prev => prev + 1);
   }, [calendarBump]);
+  
+  // Listen for task completion events to sync with dashboard
+  useEffect(() => {
+    const handleTaskCompletionChange = (e) => {
+      console.log('📡 WeekView received task completion event:', e.detail);
+      setForceRender(prev => prev + 1);
+    };
+    
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    };
+  }, []);
 
   const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(startDate)

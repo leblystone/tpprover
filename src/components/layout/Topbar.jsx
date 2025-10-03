@@ -1,12 +1,12 @@
 import React from 'react';
-import { Menu, Search, Upload, Edit, Settings, Plus } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlobalSearchInline from '../search/GlobalSearchInline';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
 
-export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDashboardSettings, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
+export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
   // Handle both /page and /app/page routing patterns
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -173,19 +173,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, onDas
                 title="Customize Dashboard"
               >
                 <Edit className="h-4 w-4 md:h-5 md:w-5" />
-              </button>
-            </ModernTooltip>
-          )}
-          {onDashboard && onDashboardSettings && (
-            <ModernTooltip text="Dashboard Settings" position="bottom">
-              <button 
-                className="p-1.5 md:p-2 rounded-full no-shadow transition-all duration-200" 
-                onClick={onDashboardSettings}
-                style={{ color: theme.text }}
-                aria-label="Open dashboard settings"
-                title="Dashboard Settings"
-              >
-                <Settings className="h-4 w-4 md:h-5 md:w-5" />
               </button>
             </ModernTooltip>
           )}
