@@ -507,8 +507,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             )}
           </div>
         </div>
+      </div>
 
-        {/* Results and old peptide section wrapper */}
+      {/* Results and old peptide section wrapper */}
         <div className="space-y-6">
           {/* Old Peptides & Doses section - Hidden, using pagination now */}
           <div className="hidden">
