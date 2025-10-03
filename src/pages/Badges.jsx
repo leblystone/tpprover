@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Trophy, Search, Filter, TrendingUp, Star, Award, Target, Clock, BarChart3 } from 'lucide-react';
+import { Trophy, TrendingUp, Star, Award, Target, Clock, BarChart3 } from 'lucide-react';
 import ViewContainer from '../components/ui/ViewContainer';
 import { useBadgeStats } from '../utils/badges';
 import BadgeCard from '../components/badges/BadgeCard';
@@ -12,8 +12,6 @@ import '../styles/badges.css';
 export default function Badges() {
   const { theme } = useOutletContext();
   const { allBadges, earnedBadges, totalBadges, earnedCount, progressPercentage, stats } = useBadgeStats();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
 
   const earnedBadgeNames = new Set(earnedBadges.map(b => b.name));
 
@@ -23,15 +21,8 @@ export default function Badges() {
     return cats;
   }, [allBadges]);
 
-  // Filter badges based on search and category
-  const filteredBadges = useMemo(() => {
-    return allBadges.filter(badge => {
-      const matchesSearch = badge.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           badge.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'All' || badge.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [allBadges, searchTerm, selectedCategory]);
+  // Use all badges (no filtering)
+  const filteredBadges = allBadges;
 
   // Group filtered badges
   const groupedBadges = useMemo(() => {
@@ -155,21 +146,25 @@ export default function Badges() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-4 rounded-xl border-2" style={{ 
+                <div key={badge.name} className="p-5 rounded-xl border-2" style={{ 
                   backgroundColor: theme.cardBackground, 
                   borderColor: theme.primary
                 }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 flex-shrink-0">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <div className="w-16 h-16">
                       <BadgeImage name={badge.name} isEarned={true} theme={theme} caption={false} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm" style={{ color: theme.primaryDark }}>
+                    <div className="space-y-2">
+                      <h3 className="font-bold text-base" style={{ color: theme.primaryDark }}>
                         {badge.name}
                       </h3>
-                      <p className="text-xs opacity-80 mt-1" style={{ color: theme.text }}>
+                      <p className="text-sm opacity-80 leading-relaxed" style={{ color: theme.text }}>
                         {badge.description}
                       </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-medium" style={{ color: theme.primary }}>
+                      <Star className="w-3 h-3" />
+                      <span>Earned!</span>
                     </div>
                   </div>
                 </div>
@@ -178,46 +173,6 @@ export default function Badges() {
           </div>
         )}
 
-        {/* Search and Filter */}
-        <div className="search-filter-container flex flex-col md:flex-row gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-50" style={{ color: theme.text }} />
-            <input
-              type="text"
-              placeholder="Search badges..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border"
-              style={{ 
-                backgroundColor: theme.cardBackground, 
-                borderColor: theme.border, 
-                color: theme.text 
-              }}
-            />
-          </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-50" style={{ color: theme.text }} />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="pl-10 pr-8 py-3 rounded-lg border appearance-none bg-no-repeat bg-right"
-              style={{ 
-                backgroundColor: theme.cardBackground, 
-                borderColor: theme.border, 
-                color: theme.text,
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: 'right 0.5rem center',
-                backgroundSize: '1.5em 1.5em'
-              }}
-            >
-              {categories.map(category => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
 
         {/* Badge Categories */}
         {Object.entries(groupedBadges).map(([category, badges], categoryIndex) => {
