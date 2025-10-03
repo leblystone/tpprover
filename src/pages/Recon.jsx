@@ -3,6 +3,10 @@ import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
 import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, Syringe, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History } from 'lucide-react'
+import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
+import useAutoSave from '../utils/useAutoSave'
+import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
+import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import ReconHelpPanel from '../components/recon/ReconHelpPanel'
@@ -21,8 +25,16 @@ export default function Recon() {
 	const [searchParams] = useSearchParams()
 	const [editingItem, setEditingItem] = useState(null)
 	const [showEditModal, setShowEditModal] = useState(false)
-	const [viewItem, setViewItem] = useState(null)
+    const [viewItem, setViewItem] = useState(null)
 	const [stockpile, setStockpile] = useState([])
+
+    // Autosave for Add/Edit Recon modal
+    const [draft, setDraft] = useState({})
+    const { isSaving, lastSaved, clearSavedData, updateFormData } = useAutoSave('tpprover_recon_add_draft', draft, setDraft, 1200)
+
+  // Autosave setup for Add/Edit Recon modal
+  const [draft, setDraft] = useState({})
+  const { isSaving, lastSaved, clearSavedData, updateFormData } = useAutoSave('tpprover_recon_add_draft', draft, setDraft, 1200)
 	const [prefill, setPrefill] = useState(null)
 	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history | calculator
 	const [searchOpen, setSearchOpen] = useState(false)
@@ -386,7 +398,7 @@ export default function Recon() {
 				</div>
 			</div>
 
-            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null) }} title={editingItem ? 'Edit Reconstitution' : 'New Entry'} theme={theme} variant="modern" footer={
+            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'New Entry'} theme={theme} variant="modern" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact />} footer={
 				<div className="w-full flex justify-between">
 					<div>
 						{editingItem && <button onClick={() => handleDelete(editingItem.id)} className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 text-sm">Delete</button>}
@@ -397,21 +409,22 @@ export default function Recon() {
 					</div>
 				</div>
 			}>
-				<div className="space-y-4">
-                    <TextInput label="Peptide Name" value={editingItem?.peptide || ''} onChange={v => setEditingItem(i => ({ ...i, peptide: v }))} theme={theme} />
+                <div className="space-y-4">
+                    <TextInput label="Peptide Name" value={editingItem?.peptide || draft.peptide || ''} onChange={v => { setEditingItem(i => ({ ...i, peptide: v })); updateFormData({ peptide: v }); }} theme={theme} />
                     <VendorSuggestInput 
                         label="Vendor" 
-                        value={editingItem?.vendorId ? vendorMap[editingItem.vendorId] : (editingItem?.vendor || '')} 
+                        value={editingItem?.vendorId ? vendorMap[editingItem.vendorId] : (editingItem?.vendor || draft.vendor || '')} 
                         onChange={v => {
                             const selectedVendor = vendors.find(vendor => vendor.name === v);
-                            setEditingItem(i => ({ ...i, vendor: v, vendorId: selectedVendor ? selectedVendor.id : null }))
+                            setEditingItem(i => ({ ...i, vendor: v, vendorId: selectedVendor ? selectedVendor.id : null }));
+                            updateFormData({ vendor: v, vendorId: selectedVendor ? selectedVendor.id : null });
                         }} 
                         theme={theme} 
                     />
                     <div className="grid grid-cols-3 gap-3">
-                        <TextInput label="mg/vial" type="number" value={editingItem?.mg || ''} onChange={v => setEditingItem(i => ({ ...i, mg: v }))} theme={theme} />
-                        <TextInput label="Water (mL)" type="number" value={editingItem?.water || ''} onChange={v => setEditingItem(i => ({ ...i, water: v }))} theme={theme} />
-                        <TextInput label="Dose (mcg)" type="number" value={editingItem?.dose || ''} onChange={v => setEditingItem(i => ({ ...i, dose: v }))} theme={theme} />
+                        <TextInput label="mg/vial" type="number" value={editingItem?.mg || draft.mg || ''} onChange={v => { setEditingItem(i => ({ ...i, mg: v })); updateFormData({ mg: v }); }} theme={theme} />
+                        <TextInput label="Water (mL)" type="number" value={editingItem?.water || draft.water || ''} onChange={v => { setEditingItem(i => ({ ...i, water: v })); updateFormData({ water: v }); }} theme={theme} />
+                        <TextInput label="Dose (mcg)" type="number" value={editingItem?.dose || draft.dose || ''} onChange={v => { setEditingItem(i => ({ ...i, dose: v })); updateFormData({ dose: v }); }} theme={theme} />
                     </div>
                     <div>
                         <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Delivery Method</div>

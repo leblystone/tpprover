@@ -47,7 +47,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
         onTouchStart={(e) => e.stopPropagation()}
       >
         {isModern ? (
-          <div className="relative p-6 pb-8 flex-shrink-0" style={{ 
+          <div className="relative p-3 pb-4 flex-shrink-0" style={{ 
             background: `linear-gradient(135deg, ${theme?.primary}, ${theme?.primaryDark || theme?.primary})`,
             color: theme?.textOnPrimary
           }}>
@@ -56,32 +56,36 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
                 <ChevronLeft size={20} />
               </button>
             )}
-            <button onClick={onClose} className="absolute right-4 top-4 p-2 rounded-full hover:bg-white/20 transition-colors" style={{ color: theme?.textOnPrimary }}>
-              <X size={20} />
-            </button>
-            <div className="pr-12">
-              <h3 className="text-2xl font-bold mb-2">{title}</h3>
-              {titleExtra && (
-                <div className="text-sm opacity-90">{titleExtra}</div>
-              )}
+            {/* Title extra (e.g., autosave) and close aligned at right */}
+            <div className="flex items-center justify-between w-full pr-12">
+              <h3 className="text-xl font-bold">{title}</h3>
+              <div className="flex items-center gap-2">
+                {titleExtra && (
+                  <div className="text-xs opacity-95">{titleExtra}</div>
+                )}
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-white/20 transition-colors" style={{ color: theme?.textOnPrimary }}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ backgroundColor: '#A3B18A' }}>
+          <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ 
+            background: `linear-gradient(135deg, ${theme?.primary || '#7F9E95'}, ${theme?.primaryDark || '#5F7F76'})`,
+            color: theme?.textOnPrimary || '#FFFFFF'
+          }}>
             <div className="flex items-center gap-3">
               {onBack && (
                 <button onClick={onBack} className="p-1 rounded-full -ml-2 text-white hover:bg-white/20 transition-colors">
                   <ChevronLeft size={20} />
                 </button>
               )}
-              <div>
-                <h3 className="text-lg font-bold text-white">{title}</h3>
-                {titleExtra && (
-                  <div className="text-sm text-white/90 mt-0.5">{titleExtra}</div>
-                )}
-              </div>
+              <h3 className="text-lg font-bold text-white">{title}</h3>
             </div>
             <div className="flex items-center gap-3">
+              {titleExtra && (
+                <div className="text-sm text-white/90">{titleExtra}</div>
+              )}
               <button onClick={onClose} className="p-1 rounded-full text-white hover:bg-white/20 transition-colors">
                 <X size={20} />
               </button>
