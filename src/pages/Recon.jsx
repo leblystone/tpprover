@@ -2,23 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, Syringe, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, Syringe, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History } from 'lucide-react'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import { getChromeGradient } from '../utils/recon'
+import { PEN_COLORS } from '../utils/penColors'
 import Tabs from '../components/common/Tabs'
 import Modal from '../components/common/Modal'
 import { calculateRecon } from '../utils/recon'
 import { formatMMDDYYYY } from '../utils/date'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
-
-const PEN_COLORS = {
-    Gold: '#B8860B', Silver: '#C0C0C0', Black: '#000000', Purple: '#800080',
-    'Hot Pink': '#FF69B4', 'Light Pink': '#FFB6C1', 'Dark Blue': '#00008B',
-    'Light Blue': '#ADD8E6', Teal: '#0080B0', 'Lime Green': '#32CD32',
-    Yellow: '#FFFF00', White: '#FFFFFF', Brown: '#8B4513', Burgundy: '#800020'
-};
 
 export default function Recon() {
 	const { theme } = useOutletContext()
@@ -87,41 +81,31 @@ export default function Recon() {
         setReconHistory(prev => [{ ...itemToMove, usedDate: new Date().toISOString() }, ...prev]);
     };
 
-	return (
-		<section>
-			{/* Mobile-only sub-header with pill tabs - break out of main content padding */}
-			<div className="block lg:hidden -m-2 md:-m-6">
-				<div className="bg-white border-b" style={{ borderColor: theme.border }}>
-					<div className="px-4 py-1">
-						<div className="flex justify-between">
-							{[
-								{ value: 'calculator', label: 'Calculator' },
-								{ value: 'reconstituted', label: 'On Hand' },
-								{ value: 'history', label: 'History' }
-							].map(tab => (
-								<button
-									key={tab.value}
-									onClick={() => setActiveTab(tab.value)}
-									className={`px-4 py-2 text-sm uppercase tracking-widest rounded-lg transition-all duration-200 ${
-										activeTab === tab.value 
-											? 'shadow-sm' 
-											: 'hover:bg-gray-800 hover:text-white'
-									}`}
-									style={{
-										backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
-										color: activeTab === tab.value ? theme.primary : theme.textLight,
-										fontWeight: 550
-									}}
-								>
-									{tab.label}
-								</button>
-							))}
-						</div>
-					</div>
-				</div>
-			</div>
+	// Set topbar tabs via custom event
+	useEffect(() => {
+		const tabs = [
+			{ value: 'calculator', label: 'Calculator' },
+			{ value: 'reconstituted', label: 'On Hand' },
+			{ value: 'history', label: 'History' }
+		];
+		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
+			detail: { 
+				tabs, 
+				activeTab, 
+				onTabChange: setActiveTab,
+				onActionClick: () => setShowEditModal(true),
+				actionDisabled: false
+			} 
+		}));
+		
+		return () => {
+			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+		};
+	}, [activeTab]);
 
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+	return (
+		<>
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Desktop: Show calculator in sidebar, Mobile: Show based on activeTab */}
 				<div className={`order-1 lg:order-2 ${activeTab === 'calculator' ? 'block lg:block' : 'hidden lg:block'}`}>
 					<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
@@ -153,38 +137,9 @@ export default function Recon() {
 
 				{/* Main content area */}
 				<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
-					{/* Desktop tabs - hidden on mobile */}
-					<div className="hidden lg:flex items-center justify-between mb-4">
-						<div className="flex items-center gap-2 flex-1">
-							<Tabs theme={theme} value={activeTab} onChange={setActiveTab} compact stretch options={[
-								{ value: 'reconstituted', label: 'Reconstituted' },
-								{ value: 'history', label: 'History' },
-							]} />
-							<button 
-								className="p-2 rounded-md hover:bg-opacity-10 hover:bg-gray-500 transition-colors" 
-								style={{ color: theme.text, backgroundColor: searchOpen ? theme.accent : 'transparent' }} 
-								title="Search entries" 
-								onClick={() => {
-									console.log('Search button clicked, current state:', searchOpen);
-									setSearchOpen(v => !v);
-								}}
-							>
-								<Search className="h-4 w-4" />
-							</button>
-							{searchOpen && (
-								<input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search entries..." className="ml-1 p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} />
-							)}
-						</div>
-						{activeTab === 'history' && (
-							<button className="p-2 rounded-md" title="Filter" onClick={() => setShowHistoryFilters(v => !v)}>
-								<Filter className="h-4 w-4" />
-							</button>
-						)}
-					</div>
-
-					{/* Mobile search - only show when not on calculator tab */}
+					{/* Search and Filter - show when not on calculator tab */}
 					{activeTab !== 'calculator' && (
-						<div className="flex lg:hidden items-center justify-between mb-4">
+						<div className="flex items-center justify-between mb-4">
 							<div className="flex items-center gap-2 flex-1">
 								<button 
 									className="p-2 rounded-md hover:bg-opacity-10 hover:bg-gray-500 transition-colors" 
@@ -211,18 +166,6 @@ export default function Recon() {
 
 					{activeTab === 'reconstituted' && (
 						<div className="space-y-3">
-							{/* Add Button for On Hand */}
-							<div className="flex justify-end mb-4">
-								<button
-									onClick={() => setShowEditModal(true)}
-									className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
-									style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-								>
-									<PlusCircle size={16} />
-									Add Vial
-								</button>
-							</div>
-							
 							{/* Empty State - Show when no items */}
 							{sortedItems.length === 0 ? (
 								<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
@@ -356,37 +299,52 @@ export default function Recon() {
 					)}
 
 					{activeTab === 'history' && (
-						<div className="overflow-x-auto">
-							{showHistoryFilters && (
-								<div className="mb-3 p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-										<TextInput label="Peptide" placeholder="Filter by peptide" value={historyFilters.peptide} onChange={v => setHistoryFilters(f => ({ ...f, peptide: v }))} theme={theme} />
-										<TextInput label="Vendor" placeholder="Filter by vendor" value={historyFilters.vendor} onChange={v => setHistoryFilters(f => ({ ...f, vendor: v }))} theme={theme} />
+						<div>
+							{sortedHistory.length === 0 ? (
+								<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+									<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+										<History size={32} style={{ color: theme.primary }} />
 									</div>
+									<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No History Yet</h3>
+									<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+										Your reconstitution history will appear here once you mark vials as used. 
+										This helps you track past usage patterns, vendors, and dosing information for future reference.
+									</p>
+								</div>
+							) : (
+								<div className="overflow-x-auto">
+									{showHistoryFilters && (
+										<div className="mb-3 p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+											<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+												<TextInput label="Peptide" placeholder="Filter by peptide" value={historyFilters.peptide} onChange={v => setHistoryFilters(f => ({ ...f, peptide: v }))} theme={theme} />
+												<TextInput label="Vendor" placeholder="Filter by vendor" value={historyFilters.vendor} onChange={v => setHistoryFilters(f => ({ ...f, vendor: v }))} theme={theme} />
+											</div>
+										</div>
+									)}
+									<table className="w-full text-left">
+										<thead>
+											<tr className="text-xs" style={{ color: theme.textLight }}>
+												<th className="py-2 pr-3">Peptide</th>
+												<th className="py-2 pr-3">Date</th>
+												<th className="py-2 pr-3">Vendor</th>
+												<th className="py-2 pr-3">mg</th>
+												<th className="py-2 pr-3 text-right">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											{sortedHistory.map(item => (
+												<tr key={`h-${item.id}`} className="border-t" style={{ borderColor: theme.border }}>
+													<td className="py-2 pr-3">{item.peptide}</td>
+													<td className="py-2 pr-3">{formatMMDDYYYY(item.date)}</td>
+													<td className="py-2 pr-3">{item.vendor}</td>
+													<td className="py-2 pr-3">{item.mg}</td>
+													<td className="py-2 pr-3 text-right"><button className="p-1 rounded" onClick={() => setViewItem(item)} title="View details" style={{ color: theme.textLight }}><Eye className="h-4 w-4" /></button></td>
+												</tr>
+											))}
+										</tbody>
+									</table>
 								</div>
 							)}
-							<table className="w-full text-left">
-								<thead>
-									<tr className="text-xs" style={{ color: theme.textLight }}>
-										<th className="py-2 pr-3">Peptide</th>
-										<th className="py-2 pr-3">Date</th>
-										<th className="py-2 pr-3">Vendor</th>
-										<th className="py-2 pr-3">mg</th>
-										<th className="py-2 pr-3 text-right">Actions</th>
-									</tr>
-								</thead>
-								<tbody>
-									{sortedHistory.map(item => (
-										<tr key={`h-${item.id}`} className="border-t" style={{ borderColor: theme.border }}>
-											<td className="py-2 pr-3">{item.peptide}</td>
-											<td className="py-2 pr-3">{formatMMDDYYYY(item.date)}</td>
-											<td className="py-2 pr-3">{item.vendor}</td>
-											<td className="py-2 pr-3">{item.mg}</td>
-											<td className="py-2 pr-3 text-right"><button className="p-1 rounded" onClick={() => setViewItem(item)} title="View details" style={{ color: theme.textLight }}><Eye className="h-4 w-4" /></button></td>
-										</tr>
-									))}
-								</tbody>
-							</table>
 						</div>
 					)}
 				</div>
@@ -522,7 +480,7 @@ export default function Recon() {
 					)
 				})()}
 			</Modal>
-		</section>
+		</>
 	)
 }
 
