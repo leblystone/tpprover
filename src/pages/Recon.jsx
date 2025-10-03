@@ -5,8 +5,6 @@ import TextInput from '../components/common/inputs/TextInput'
 import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, Syringe, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
-import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
-import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import ReconHelpPanel from '../components/recon/ReconHelpPanel'
@@ -31,10 +29,6 @@ export default function Recon() {
     // Autosave for Add/Edit Recon modal
     const [draft, setDraft] = useState({})
     const { isSaving, lastSaved, clearSavedData, updateFormData } = useAutoSave('tpprover_recon_add_draft', draft, setDraft, 1200)
-
-  // Autosave setup for Add/Edit Recon modal
-  const [draft, setDraft] = useState({})
-  const { isSaving, lastSaved, clearSavedData, updateFormData } = useAutoSave('tpprover_recon_add_draft', draft, setDraft, 1200)
 	const [prefill, setPrefill] = useState(null)
 	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history | calculator
 	const [searchOpen, setSearchOpen] = useState(false)
