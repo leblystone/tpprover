@@ -144,21 +144,21 @@ export default function Badges() {
                 Recently Earned
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-5 rounded-xl border-2" style={{ 
+                <div key={badge.name} className="p-2 md:p-3 rounded-lg border-2" style={{ 
                   backgroundColor: theme.cardBackground, 
                   borderColor: theme.primary
                 }}>
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <div className="w-16 h-16">
+                  <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
+                    <div className="w-8 h-8 md:w-10 md:h-10">
                       <BadgeImage name={badge.name} isEarned={true} theme={theme} caption={false} />
                     </div>
-                    <div className="space-y-2">
-                      <h3 className="font-bold text-base" style={{ color: theme.primaryDark }}>
+                    <div className="space-y-0.5 md:space-y-1">
+                      <h3 className="font-bold text-xs md:text-sm" style={{ color: theme.primaryDark }}>
                         {badge.name}
                       </h3>
-                      <p className="text-sm opacity-80 leading-relaxed" style={{ color: theme.text }}>
+                      <p className="text-xs opacity-80 leading-relaxed hidden md:block" style={{ color: theme.text }}>
                         {badge.description}
                       </p>
                     </div>
