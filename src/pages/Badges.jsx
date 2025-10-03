@@ -144,14 +144,14 @@ export default function Badges() {
                 Recently Earned
               </h2>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-0.5 md:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 md:gap-3">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-0.5 md:p-3 rounded-md border" style={{ 
+                <div key={badge.name} className="p-2 md:p-3 rounded-md border" style={{ 
                   backgroundColor: theme.cardBackground, 
                   borderColor: theme.primary
                 }}>
-                  <div className="flex flex-col items-center text-center space-y-0.5 md:space-y-2">
-                    <div className="w-4 h-4 md:w-10 md:h-10">
+                  <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
+                    <div className="w-6 h-6 md:w-10 md:h-10">
                       <BadgeImage name={badge.name} isEarned={true} theme={theme} caption={false} />
                     </div>
                     <div className="space-y-0 md:space-y-1">
