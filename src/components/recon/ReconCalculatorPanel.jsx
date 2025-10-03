@@ -601,6 +601,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
             <p className="text-xs text-center mt-3" style={{ color: theme.textLight }}>
                 Based on {deliveryMethod === 'syringe' ? 'an insulin syringe (U-100, 1mL)' : deliveryMethod === 'pen' ? 'a dosage pen' : 'nasal spray delivery'}
             </p>
+          </div>
         </div>
       </div>
       
