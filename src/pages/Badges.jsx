@@ -4,6 +4,7 @@ import { Trophy, Search, Filter, TrendingUp, Star, Award, Target, Clock, BarChar
 import ViewContainer from '../components/ui/ViewContainer';
 import { useBadgeStats } from '../utils/badges';
 import BadgeCard from '../components/badges/BadgeCard';
+import BadgeImage from '../components/badges/BadgeImage';
 import BadgeProgressWidget from '../components/badges/BadgeProgressWidget';
 import AchievementTimeline from '../components/badges/AchievementTimeline';
 import '../styles/badges.css';
@@ -35,13 +36,13 @@ export default function Badges() {
   // Group filtered badges
   const groupedBadges = useMemo(() => {
     return filteredBadges.reduce((acc, badge) => {
-      const category = badge.category || 'General';
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(badge);
-      return acc;
-    }, {});
+    const category = badge.category || 'General';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(badge);
+    return acc;
+  }, {});
   }, [filteredBadges]);
 
   // Get recent badges (last 3 earned)
@@ -145,8 +146,8 @@ export default function Badges() {
 
         {/* Recent Badges */}
         {recentBadges.length > 0 && (
-          <div>
-            <div className="flex items-center gap-3 mb-4">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-6">
               <Clock className="w-5 h-5" style={{ color: theme.primary }} />
               <h2 className="text-xl font-bold" style={{ color: theme.primaryDark }}>
                 Recently Earned
@@ -154,20 +155,19 @@ export default function Badges() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-4 rounded-xl border-2 animate-pulse" style={{ 
+                <div key={badge.name} className="p-4 rounded-xl border-2" style={{ 
                   backgroundColor: theme.cardBackground, 
-                  borderColor: theme.primary,
-                  animation: 'none'
+                  borderColor: theme.primary
                 }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12">
-                      <BadgeCard badge={badge} isEarned={true} theme={theme} stats={stats} />
+                    <div className="w-12 h-12 flex-shrink-0">
+                      <BadgeImage name={badge.name} isEarned={true} theme={theme} caption={false} />
                     </div>
-                    <div>
-                      <h3 className="font-bold" style={{ color: theme.primaryDark }}>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm" style={{ color: theme.primaryDark }}>
                         {badge.name}
                       </h3>
-                      <p className="text-sm opacity-80" style={{ color: theme.text }}>
+                      <p className="text-xs opacity-80 mt-1" style={{ color: theme.text }}>
                         {badge.description}
                       </p>
                     </div>
@@ -179,7 +179,7 @@ export default function Badges() {
         )}
 
         {/* Search and Filter */}
-        <div className="search-filter-container flex flex-col md:flex-row gap-4">
+        <div className="search-filter-container flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-50" style={{ color: theme.text }} />
             <input
@@ -255,17 +255,17 @@ export default function Badges() {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {badges.map((badge, badgeIndex) => (
-                  <BadgeCard
-                    key={badge.name}
-                    badge={badge}
-                    isEarned={earnedBadgeNames.has(badge.name)}
-                    theme={theme}
+                <BadgeCard
+                  key={badge.name}
+                  badge={badge}
+                  isEarned={earnedBadgeNames.has(badge.name)}
+                  theme={theme}
                     stats={stats}
                     className={`badge-card-stagger-${(badgeIndex % 6) + 1}`}
-                  />
-                ))}
+                />
+              ))}
               </div>
             </div>
           );
