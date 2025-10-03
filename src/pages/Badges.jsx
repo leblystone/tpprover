@@ -144,18 +144,18 @@ export default function Badges() {
                 Recently Earned
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 md:gap-3">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-2 md:p-3 rounded-lg border-2" style={{ 
+                <div key={badge.name} className="p-1.5 md:p-3 rounded-lg border-2" style={{ 
                   backgroundColor: theme.cardBackground, 
                   borderColor: theme.primary
                 }}>
                   <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
-                    <div className="w-8 h-8 md:w-10 md:h-10">
+                    <div className="w-6 h-6 md:w-10 md:h-10">
                       <BadgeImage name={badge.name} isEarned={true} theme={theme} caption={false} />
                     </div>
                     <div className="space-y-0.5 md:space-y-1">
-                      <h3 className="font-bold text-xs md:text-sm" style={{ color: theme.primaryDark }}>
+                      <h3 className="font-bold text-xs md:text-sm leading-tight" style={{ color: theme.primaryDark }}>
                         {badge.name}
                       </h3>
                       <p className="text-xs opacity-80 leading-relaxed hidden md:block" style={{ color: theme.text }}>
@@ -163,8 +163,8 @@ export default function Badges() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 text-xs font-medium" style={{ color: theme.primary }}>
-                      <Star className="w-3 h-3" />
-                      <span>Earned!</span>
+                      <Star className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                      <span className="hidden sm:inline">Earned!</span>
                     </div>
                   </div>
                 </div>
