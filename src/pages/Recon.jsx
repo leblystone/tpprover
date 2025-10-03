@@ -5,6 +5,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, Syringe, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History } from 'lucide-react'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
+import ReconHelpPanel from '../components/recon/ReconHelpPanel'
 import { getChromeGradient } from '../utils/recon'
 import { PEN_COLORS } from '../utils/penColors'
 import Tabs from '../components/common/Tabs'
@@ -105,9 +106,44 @@ export default function Recon() {
 
 	return (
 		<>
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Desktop: Show calculator in sidebar, Mobile: Show based on activeTab */}
-				<div className={`order-1 lg:order-2 ${activeTab === 'calculator' ? 'block lg:block' : 'hidden lg:block'}`}>
+			<ReconHelpPanel theme={theme} />
+			
+			{/* Calculator Tab - Full width centered on desktop when active */}
+			{activeTab === 'calculator' && (
+				<div className="flex justify-center">
+					<div className="w-full lg:max-w-2xl">
+						<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
+							const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
+							const totalMg = data.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
+							const totalDose = data.peptides.reduce((sum, p) => {
+								const dose = Number(p.dose) || 0;
+								return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
+							}, 0);
+
+							const newItem = {
+									id: generateId(),
+									peptide: peptideNames,
+									mg: totalMg,
+									dose: totalDose, // This is now total mcg for calculation purposes
+									vendor: data.vendor, // Keep original for history/legacy
+									vendorId: vendors.find(v => v.name === data.vendor)?.id || null,
+									water: data.water,
+									deliveryMethod: data.deliveryMethod,
+									penColor: data.penColor,
+									cost: data.cost,
+									date: new Date().toISOString(),
+									peptides: data.peptides, // Save the full peptide list
+									notes: ''
+							};
+							setReconItems(prev => [newItem, ...prev])
+						}} />
+					</div>
+				</div>
+			)}
+
+			<div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${activeTab === 'calculator' ? 'hidden' : ''}`}>
+				{/* Desktop: Show calculator in sidebar on other tabs */}
+				<div className="order-1 lg:order-2 hidden lg:block">
 					<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
 						const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
 						const totalMg = data.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
@@ -350,7 +386,7 @@ export default function Recon() {
 				</div>
 			</div>
 
-			<Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null) }} title={editingItem ? 'Edit Reconstitution' : 'New Entry'} theme={theme} footer={
+            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null) }} title={editingItem ? 'Edit Reconstitution' : 'New Entry'} theme={theme} variant="modern" footer={
 				<div className="w-full flex justify-between">
 					<div>
 						{editingItem && <button onClick={() => handleDelete(editingItem.id)} className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 text-sm">Delete</button>}
@@ -459,7 +495,7 @@ export default function Recon() {
                 </div>
 			</Modal>
 
-			<Modal open={!!viewItem} onClose={() => setViewItem(null)} title="Recon History Details" theme={theme}>
+            <Modal open={!!viewItem} onClose={() => setViewItem(null)} title="Recon History Details" theme={theme} variant="modern">
 				{viewItem && (() => {
 					const calc = calculateRecon(viewItem)
 					const costPerDose = viewItem.cost ? `$${(viewItem.cost / calc.dosesPerVial).toFixed(2)}` : null
