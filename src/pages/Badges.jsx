@@ -58,24 +58,24 @@ export default function Badges() {
 
   return (
     <ViewContainer theme={theme} title="Badges & Achievements">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
         {/* Main Content */}
-        <div className="lg:col-span-3 space-y-8">
+        <div className="md:col-span-2 lg:col-span-3 space-y-4 md:space-y-8">
         {/* Hero Section */}
-        <div className="badge-hero-section relative overflow-hidden rounded-2xl p-8" style={{ 
+        <div className="badge-hero-section relative overflow-hidden rounded-2xl p-4 md:p-8" style={{ 
           background: `linear-gradient(135deg, ${theme.primary}15, ${theme.accent}15)`,
           border: `1px solid ${theme.border}`
         }}>
           <div className="relative z-10">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 rounded-full" style={{ backgroundColor: theme.primary }}>
-                <Trophy className="w-8 h-8" style={{ color: theme.white }} />
+            <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-6">
+              <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: theme.primary }}>
+                <Trophy className="w-6 h-6 md:w-8 md:h-8" style={{ color: theme.white }} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold" style={{ color: theme.primaryDark }}>
+                <h1 className="text-xl md:text-3xl font-bold" style={{ color: theme.primaryDark }}>
                   Achievement Gallery
                 </h1>
-                <p className="text-lg opacity-80" style={{ color: theme.text }}>
+                <p className="text-sm md:text-lg opacity-80" style={{ color: theme.text }}>
                   Track your progress and unlock new milestones
                 </p>
               </div>
@@ -144,17 +144,17 @@ export default function Badges() {
                 Recently Earned
               </h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 md:gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-1 md:gap-3">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-1.5 md:p-3 rounded-lg border-2" style={{ 
+                <div key={badge.name} className="p-1 md:p-3 rounded-lg border-2" style={{ 
                   backgroundColor: theme.cardBackground, 
                   borderColor: theme.primary
                 }}>
-                  <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
-                    <div className="w-6 h-6 md:w-10 md:h-10">
+                  <div className="flex flex-col items-center text-center space-y-0.5 md:space-y-2">
+                    <div className="w-5 h-5 md:w-10 md:h-10">
                       <BadgeImage name={badge.name} isEarned={true} theme={theme} caption={false} />
                     </div>
-                    <div className="space-y-0.5 md:space-y-1">
+                    <div className="space-y-0 md:space-y-1">
                       <h3 className="font-bold text-xs md:text-sm leading-tight" style={{ color: theme.primaryDark }}>
                         {badge.name}
                       </h3>
@@ -163,8 +163,8 @@ export default function Badges() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 text-xs font-medium" style={{ color: theme.primary }}>
-                      <Star className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                      <span className="hidden sm:inline">Earned!</span>
+                      <Star className="w-2 h-2 md:w-3 md:h-3" />
+                      <span className="hidden md:inline">Earned!</span>
                     </div>
                   </div>
                 </div>
@@ -241,7 +241,7 @@ export default function Badges() {
         </div>
 
         {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="md:col-span-2 lg:col-span-1 space-y-4 md:space-y-6">
           {/* Progress Widget */}
           <div className="progress-widget p-6 rounded-xl" style={{ 
             backgroundColor: theme.cardBackground,
