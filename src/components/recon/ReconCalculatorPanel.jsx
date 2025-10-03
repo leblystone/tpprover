@@ -506,8 +506,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 </div>
             )}
           </div>
-        </div>
-      </div>
 
       {/* Results and old peptide section wrapper */}
       <div className="space-y-6">
@@ -631,7 +629,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
           For research purposes only. Always verify calculations with alternative methods.
         </div>
       </div>
-    </div>
     </div>
   );
 }
