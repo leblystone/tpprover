@@ -50,6 +50,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
             onClose={onClose}
             title={supplement ? 'Edit Supplement' : 'Add Supplement'}
             theme={theme}
+            variant="modern"
             footer={
                 <div className="flex justify-between items-center w-full">
                     <div className="flex-1">

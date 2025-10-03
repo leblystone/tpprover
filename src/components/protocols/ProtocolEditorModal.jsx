@@ -22,11 +22,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
     const [form, setForm] = useState(createEmpty);
     
-    // Auto-save functionality
+    // Auto-save functionality - only for existing protocols
     const storageKey = `tpprover_protocol_draft_${protocol?.id || 'new'}`;
     const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
         storageKey, 
-        form, 
+        protocol?.id ? form : {}, // Only autosave for existing protocols, not new ones
         setForm, 
         2000 // 2 second delay
     );
@@ -272,13 +272,34 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
             theme={theme}
             maxWidth="max-w-4xl"
-            footer={form?.id ? (
-                <div className="flex items-center justify-start w-full">
-                    <button onClick={() => onDelete?.(form)} className="px-3 py-2 rounded-md border text-sm font-medium" style={{ borderColor: theme?.border, color: '#b91c1c' }}>
-                        Delete Protocol
-                    </button>
+            footer={
+                <div className="flex items-center justify-between w-full">
+                    {form?.id ? (
+                        // Existing protocol - show delete button
+                        <button onClick={() => onDelete?.(form)} className="px-3 py-2 rounded-md border text-sm font-medium" style={{ borderColor: theme?.border, color: '#b91c1c' }}>
+                            Delete Protocol
+                        </button>
+                    ) : (
+                        // New protocol - show save/cancel buttons
+                        <div className="flex items-center justify-end gap-2 w-full">
+                            <button 
+                                onClick={onClose} 
+                                className="px-4 py-2 rounded-md border text-sm font-medium" 
+                                style={{ borderColor: theme?.border, color: theme?.text }}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleFinalSave} 
+                                className="px-4 py-2 rounded-md text-sm font-semibold"
+                                style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
+                            >
+                                Save
+                            </button>
+                        </div>
+                    )}
                 </div>
-            ) : null}
+            }
         >
             <div className="space-y-5">
                 

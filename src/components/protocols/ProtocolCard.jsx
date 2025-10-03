@@ -3,20 +3,7 @@ import { formatMMDDYYYY } from '../../utils/date';
 import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Syringe, Pen } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
 import { getChromeGradient } from '../../utils/recon';
-
-const penColors = [
-    { name: 'Gold', hex: '#DAA520' },
-    { name: 'Silver', hex: '#C0C0C0' },
-    { name: 'Black', hex: '#000000' },
-    { name: 'Blue', hex: '#0066CC' },
-    { name: 'Red', hex: '#CC0000' },
-    { name: 'Green', hex: '#00AA00' },
-    { name: 'Purple', hex: '#6600CC' },
-    { name: 'Orange', hex: '#FF6600' },
-    { name: 'Pink', hex: '#FF69B4' },
-    { name: 'White', hex: '#FFFFFF' },
-    { name: 'Gray', hex: '#9CA3AF' },
-];
+import { penColors } from '../../utils/penColors';
 
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
@@ -79,7 +66,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                             <Droplet size={12} />
                                             <span>
                                                 {peptide.dosage.amount} {peptide.dosage.unit}
-                                                {peptide.unitValue && ` (${peptide.unitValue} units)`}
+                                                {peptide.unitValue && ` | ${peptide.unitValue} units`}
                                             </span>
                                         </div>
                                     )}

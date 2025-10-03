@@ -266,7 +266,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
             color: theme.text,
             borderColor: theme.border
           }}
-          onClick={() => navigate('/orders')}
+          onClick={() => navigate('/app/orders')}
         >
           View Orders
         </button>

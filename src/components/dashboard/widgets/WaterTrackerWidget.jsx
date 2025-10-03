@@ -78,7 +78,16 @@ const WaterTrackerWidget = ({ widget, theme }) => {
         glasses: 0 // Reset intake when changing units
       }
     }));
-    setShowSettingsModal(false);
+  };
+
+  const updateCustomGoal = (newGoal) => {
+    setWaterData(prev => ({
+      ...prev,
+      [today]: {
+        ...todayData,
+        goal: Math.max(1, newGoal)
+      }
+    }));
   };
 
   const resetToday = () => {
@@ -206,9 +215,11 @@ const WaterTrackerWidget = ({ widget, theme }) => {
         onClose={() => setShowSettingsModal(false)}
         title="Water Intake Settings"
         theme={theme}
-        maxWidth="sm"
+        maxWidth="max-w-md"
+        variant="modern"
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Unit Selection */}
           <div>
             <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>
               Choose Unit
@@ -229,14 +240,43 @@ const WaterTrackerWidget = ({ widget, theme }) => {
                 >
                   {unit.label}
                   <div className="text-xs opacity-75">
-                    Goal: {unit.defaultGoal} {unit.abbrev}
+                    Default: {unit.defaultGoal} {unit.abbrev}
                   </div>
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Custom Goal Setting */}
+          <div>
+            <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>
+              Daily Goal
+            </h4>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min="1"
+                step={currentUnit.increment}
+                value={todayData.goal}
+                onChange={(e) => updateCustomGoal(parseFloat(e.target.value) || 1)}
+                className="flex-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.cardBackground,
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+              />
+              <span className="text-sm font-medium" style={{ color: theme.textLight }}>
+                {currentUnit.abbrev}
+              </span>
+            </div>
+            <p className="text-xs mt-2" style={{ color: theme.textLight }}>
+              Set your daily water intake goal. Current: {todayData.goal} {currentUnit.abbrev}
+            </p>
+          </div>
           
-          <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
+          <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
             <p className="text-xs" style={{ color: theme.textLight }}>
               Note: Changing units will reset your daily intake to start fresh.
             </p>

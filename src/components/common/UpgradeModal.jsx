@@ -21,6 +21,7 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
       onClose={onClose}
       title=""
       theme={theme}
+      variant="modern"
       maxWidth="max-w-md"
       footer={
         <div className="w-full flex justify-between gap-3">

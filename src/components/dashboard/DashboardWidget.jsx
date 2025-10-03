@@ -82,14 +82,15 @@ const DashboardWidget = ({
 
   return (
     <div
-      className={`relative rounded-xl border content-card shadow-lg transition-all duration-200 ${
-        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : 'hover:ring-2 hover:ring-opacity-30'
+      className={`dashboard-widget relative rounded-xl border content-card shadow-lg transition-all duration-200 ${
+        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : 'hover:border-2'
       } ${isDragging ? 'z-50 shadow-2xl' : 'hover:shadow-xl'}`}
       style={{
         ...widgetStyle,
         borderColor: theme.border,
         backgroundColor: theme.white || '#ffffff',
-        '--tw-ring-color': isCustomizing ? theme.primary : theme.primary + '4D' // 30% opacity for hover
+        '--tw-ring-color': isCustomizing ? theme.primary : theme.primary + '4D', // 30% opacity for hover
+        '--hover-border-color': theme.primary
       }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

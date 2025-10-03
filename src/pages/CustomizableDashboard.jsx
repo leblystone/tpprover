@@ -51,7 +51,8 @@ export default function CustomizableDashboard() {
     addSupplement, 
     updateSupplement, 
     deleteSupplement,
-    subscription
+    subscription,
+    reconItems
   } = useAppContext();
 
   // Dashboard customization state
@@ -189,8 +190,29 @@ export default function CustomizableDashboard() {
     };
   }, [isCustomizing]);
 
+  // Listen for autosave changes to protocols
+  useEffect(() => {
+    const handleAutosaveChange = () => {
+      console.log('📝 Autosave detected - checking for protocol updates');
+      // Force task regeneration by updating calendarBump
+      setCalendarBump(Date.now());
+    };
+
+    // Listen for autosave events
+    window.addEventListener('tpp:protocol-autosaved', handleAutosaveChange);
+    
+    return () => {
+      window.removeEventListener('tpp:protocol-autosaved', handleAutosaveChange);
+    };
+  }, []);
+
   // Generate today's tasks from supplements and protocols
   useEffect(() => {
+    console.log('🔄 CustomizableDashboard: Regenerating tasks', { 
+      protocolsCount: protocols.length, 
+      supplementsCount: supplements.length,
+      calendarBump 
+    });
     const tasks = [];
     const today = new Date();
     const todayKey = today.toISOString().split('T')[0];
@@ -223,31 +245,132 @@ export default function CustomizableDashboard() {
     protocols.forEach(protocol => {
       if (protocol.active === false) return;
       
-      const startDate = protocol.startDate ? new Date(protocol.startDate) : null;
-      const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+      // Check for autosaved draft data
+      let protocolData = protocol;
+      try {
+        const draftKey = `tpprover_protocol_draft_${protocol.id}`;
+        const draftData = localStorage.getItem(draftKey);
+        if (draftData) {
+          const parsed = JSON.parse(draftData);
+          if (parsed.data && Object.keys(parsed.data).length > 0) {
+            console.log('📝 Using autosaved draft data for protocol:', protocol.protocolName);
+            protocolData = { ...protocol, ...parsed.data };
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load autosaved data for protocol:', protocol.id);
+      }
+      
+      console.log('🔍 Processing protocol:', {
+        name: protocolData.protocolName,
+        id: protocolData.id,
+        peptides: protocolData.peptides?.length || 0,
+        firstPeptide: protocolData.peptides?.[0],
+        hasAutosavedData: protocolData !== protocol
+      });
+      
+      const startDate = protocolData.startDate ? new Date(protocolData.startDate) : null;
+      const endDate = protocolData.endDate ? new Date(protocolData.endDate) : null;
       
       // Check if protocol is active today
       if (startDate && today < startDate) return;
       if (endDate && today > endDate) return;
       
-      const peptides = Array.isArray(protocol.peptides) ? protocol.peptides : [];
+      const peptides = Array.isArray(protocolData.peptides) ? protocolData.peptides : [];
+      
+      // Debug: Log protocol data to see structure
+      console.log('🔍 CustomizableDashboard protocol:', {
+        id: protocolData.id,
+        name: protocolData.protocolName,
+        peptides: peptides.map(p => ({
+          name: p.name,
+          dosage: p.dosage,
+          frequency: p.frequency,
+          fullPeptide: p // Show the complete peptide object
+        }))
+      });
+      
+      // Find matching recon item for this protocol (optional - for users who use recon calculator)
+      // Try multiple matching strategies
+      const reconItem = reconItems.find(r => {
+        if (!r.name) return false;
+        return r.name === protocolData.protocolName || 
+               r.name.startsWith(protocolData.protocolName) ||
+               protocolData.protocolName.includes(r.name);
+      });
+      
+      // Debug: Log recon item search
+      console.log('🔍 Recon item search debug:');
+      console.log('  Protocol Name:', protocolData.protocolName);
+      console.log('  Available Recon Items:', reconItems.length);
+      reconItems.forEach((r, i) => {
+        console.log(`    ${i}: ${r.name} - ${r.deliveryMethod} - ${r.penColor} - ${r.penType}`);
+      });
+      console.log('  Found Recon Item:', reconItem ? `${reconItem.name} - ${reconItem.deliveryMethod} - ${reconItem.penColor} - ${reconItem.penType}` : 'None');
       
       peptides.forEach((peptide, peptideIndex) => {
         const frequency = peptide.frequency || {};
         const times = Array.isArray(frequency.time) ? frequency.time : ['AM'];
         
         times.forEach(time => {
+          // Extract dose and unit properly - handle both simple and complex displays
+          let dose = peptide.dosage?.amount || '';
+          let unit = peptide.dosage?.unit || 'mcg';
+          const unitValue = peptide.unitValue || '';
+          
+          // Build the complete dose display
+          if (dose && unit) {
+            if (unitValue) {
+              // Complex display: "2 mg | 20 units" - store complete string in dose, clear unit
+              dose = `${dose} ${unit} | ${unitValue} units`;
+              unit = ''; // Clear unit since it's included in dose
+            } else {
+              // Simple display: "2 mg" - store complete string in dose, clear unit
+              dose = `${dose} ${unit}`;
+              unit = ''; // Clear unit since it's included in dose
+            }
+          }
+          
+          // Get delivery method and pen color from either recon item OR protocol data
+          // Priority: recon item (if user used recon calculator) > protocol data (manual entry)
+          const deliveryMethod = reconItem?.deliveryMethod || peptide.deliveryMethod;
+          const penColor = reconItem?.penColor || peptide.penColor;
+          const penType = reconItem?.penType || peptide.penType;
+          const administrationRoute = reconItem?.administrationRoute || peptide.injectionType;
+          
+          // Debug: Log the source of pen data
+          console.log('🖊️ Pen data source debug:');
+          console.log('  Protocol:', protocolData.protocolName);
+          console.log('  Peptide:', peptide.name);
+          console.log('  Recon Item Data:', reconItem ? `${reconItem.deliveryMethod} - ${reconItem.penColor} - ${reconItem.penType}` : 'None');
+          console.log('  Protocol Data:', `${peptide.deliveryMethod} - ${peptide.penColor} - ${peptide.penType}`);
+          console.log('  Final Values:', `${deliveryMethod} - ${penColor} - ${penType}`);
+          
           const task = {
-            id: `protocol_${protocol.id}_${peptideIndex}_${time}`,
+            id: `protocol_${protocolData.id}_${peptideIndex}_${time}`,
             name: peptide.name || 'Unknown Peptide',
-            dose: peptide.dosage?.amount || '',
-            unit: peptide.dosage?.unit || 'mcg',
+            dose: dose,
+            unit: unit,
             time: time,
             type: 'peptide',
-            protocolId: protocol.id,
-            protocolName: protocol.protocolName,
+            protocolId: protocolData.id,
+            protocolName: protocolData.protocolName,
+            deliveryMethod: deliveryMethod,
+            penColor: penColor,
+            penType: penType,
+            administrationRoute: administrationRoute,
             completed: false
           };
+          
+          // Debug: Log task being created
+          console.log('🔍 CustomizableDashboard creating task:');
+          console.log('  Name:', task.name);
+          console.log('  Dose:', task.dose);
+          console.log('  Unit:', task.unit);
+          console.log('  Delivery Method:', task.deliveryMethod);
+          console.log('  Pen Color:', task.penColor);
+          console.log('  Pen Type:', task.penType);
+          console.log('  Administration Route:', task.administrationRoute);
           
           // Generate stable task ID and check completion status
           const taskId = generateTaskId(task);
@@ -417,11 +540,11 @@ export default function CustomizableDashboard() {
 
   return (
     <ViewContainer theme={theme}>
-      <div className="space-y-4">
+      <div className="space-y-2 overflow-x-hidden w-full max-w-full">
 
         {/* Dashboard Layout - Flexible Grid */}
-        <div>
-          <div className="dashboard-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
+        <div className="overflow-x-hidden">
+          <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 auto-rows-min overflow-x-hidden w-full max-w-full">
             {enabledWidgets.map((widget, index) => {
               // Use consistent widget sizing based on configuration
               const sizeConfig = getSizeConfig(widget.size);
@@ -450,16 +573,16 @@ export default function CustomizableDashboard() {
               let maxHeight = '';
               switch (sizeConfig.h) {
                 case 1:
-                  minHeight = '240px';
-                  maxHeight = '320px';
+                  minHeight = '200px';
+                  maxHeight = '280px';
                   break;
                 case 2:
-                  minHeight = '400px';
-                  maxHeight = '500px';
+                  minHeight = '300px';
+                  maxHeight = '400px';
                   break;
                 default:
-                  minHeight = '240px';
-                  maxHeight = '320px';
+                  minHeight = '200px';
+                  maxHeight = '280px';
               }
               
               // Special case: hide widgets that should be conditionally shown
@@ -468,7 +591,7 @@ export default function CustomizableDashboard() {
               }
 
               return (
-                <div key={`${widget.id}-${index}`} className={gridClasses}>
+                <div key={`${widget.id}-${index}`} className={`${gridClasses} overflow-hidden w-full max-w-full`}>
                   <DashboardWidget
                     widget={widget}
                     theme={theme}
@@ -492,7 +615,7 @@ export default function CustomizableDashboard() {
                       onTaskToggle={handleTaskToggle}
                       onNewOrder={() => setShowNewOrder(true)}
                       onAddBuy={() => setShowAddBuyModal(true)}
-                      onViewAllVendors={() => navigate('/vendors')}
+                      onViewAllVendors={() => navigate('/app/vendors')}
                       onCompleteVendor={(vendor) => {
                         setEditingVendor(vendor);
                         setShowNewVendor(true);

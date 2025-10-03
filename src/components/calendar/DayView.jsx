@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Modal from '../common/Modal'
 import { formatMMDDYYYY } from '../../utils/date'
+import TaskDisplay from './TaskDisplay'
 
 export default function DayView({ open, onClose, date, theme, notes, onSave, scheduled = {}, done = {}, onToggleSlot }) {
   const [text, setText] = useState(notes || '')
@@ -72,25 +73,112 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
       <div className="space-y-4">
         
         <div>
-          <div className="text-xs mb-1" style={{ color: theme?.textLight }}>Scheduled Today</div>
-          <div className="space-y-2">
-            {(morningItems.length > 0) && (
+          <div className="text-sm font-semibold mb-3" style={{ color: theme?.text }}>Today's Research</div>
+          <div className="space-y-3">
+            {/* AM Tasks */}
+            {scheduled.bySlot?.AM && (scheduled.bySlot.AM.peptides?.length > 0 || scheduled.bySlot.AM.supplements?.length > 0) && (
               <div>
-                <div className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>AM</div>
-                <div className="flex flex-wrap gap-2">
-                  {morningItems.map((it, idx) => (
-                    <span key={`m-${idx}`} className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: it.type==='protocol' ? theme?.accent : '#EFF6FF', color: it.type==='protocol' ? theme?.accentText : '#1D4ED8' }}>{it.name}</span>
-                  ))}
+                <div className="text-xs font-semibold mb-2" style={{ color: theme?.textLight }}>AM</div>
+                <div className="space-y-1">
+                  {scheduled.bySlot.AM.peptides?.map((p, i) => {
+                    const task = {
+                      name: typeof p === 'object' ? p.name : p,
+                      dose: typeof p === 'object' ? p.dose : '',
+                      unit: typeof p === 'object' ? p.unit : '',
+                      type: 'peptide',
+                      time: 'AM',
+                      delivery: typeof p === 'object' ? p.delivery : 'injection',
+                      deliveryMethod: typeof p === 'object' ? p.deliveryMethod : 'injection',
+                      penColor: typeof p === 'object' ? p.penColor : undefined,
+                      penType: typeof p === 'object' ? p.penType : undefined
+                    };
+                    return (
+                      <TaskDisplay
+                        key={`am-p-${i}`}
+                        task={task}
+                        theme={theme}
+                        date={date}
+                        timeSlot="AM"
+                        onToggle={onToggleSlot}
+                        size="normal"
+                      />
+                    );
+                  })}
+                  {scheduled.bySlot.AM.supplements?.map((s, i) => {
+                    const task = {
+                      name: typeof s === 'object' ? s.name : s,
+                      dose: typeof s === 'object' ? s.dose : '',
+                      unit: typeof s === 'object' ? s.unit : '',
+                      type: 'supplement',
+                      time: 'AM',
+                      delivery: typeof s === 'object' ? s.delivery : 'oral'
+                    };
+                    return (
+                      <TaskDisplay
+                        key={`am-s-${i}`}
+                        task={task}
+                        theme={theme}
+                        date={date}
+                        timeSlot="AM"
+                        onToggle={onToggleSlot}
+                        size="normal"
+                      />
+                    );
+                  })}
                 </div>
               </div>
             )}
-            {(eveningItems.length > 0) && (
+
+            {/* PM Tasks */}
+            {scheduled.bySlot?.PM && (scheduled.bySlot.PM.peptides?.length > 0 || scheduled.bySlot.PM.supplements?.length > 0) && (
               <div>
-                <div className="text-xs font-semibold mb-1" style={{ color: theme?.text }}>PM</div>
-                <div className="flex flex-wrap gap-2">
-                  {eveningItems.map((it, idx) => (
-                    <span key={`e-${idx}`} className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: it.type==='protocol' ? theme?.accent : '#EFF6FF', color: it.type==='protocol' ? theme?.accentText : '#1D4ED8' }}>{it.name}</span>
-                  ))}
+                <div className="text-xs font-semibold mb-2" style={{ color: theme?.textLight }}>PM</div>
+                <div className="space-y-1">
+                  {scheduled.bySlot.PM.peptides?.map((p, i) => {
+                    const task = {
+                      name: typeof p === 'object' ? p.name : p,
+                      dose: typeof p === 'object' ? p.dose : '',
+                      unit: typeof p === 'object' ? p.unit : '',
+                      type: 'peptide',
+                      time: 'PM',
+                      delivery: typeof p === 'object' ? p.delivery : 'injection',
+                      deliveryMethod: typeof p === 'object' ? p.deliveryMethod : 'injection',
+                      penColor: typeof p === 'object' ? p.penColor : undefined,
+                      penType: typeof p === 'object' ? p.penType : undefined
+                    };
+                    return (
+                      <TaskDisplay
+                        key={`pm-p-${i}`}
+                        task={task}
+                        theme={theme}
+                        date={date}
+                        timeSlot="PM"
+                        onToggle={onToggleSlot}
+                        size="normal"
+                      />
+                    );
+                  })}
+                  {scheduled.bySlot.PM.supplements?.map((s, i) => {
+                    const task = {
+                      name: typeof s === 'object' ? s.name : s,
+                      dose: typeof s === 'object' ? s.dose : '',
+                      unit: typeof s === 'object' ? s.unit : '',
+                      type: 'supplement',
+                      time: 'PM',
+                      delivery: typeof s === 'object' ? s.delivery : 'oral'
+                    };
+                    return (
+                      <TaskDisplay
+                        key={`pm-s-${i}`}
+                        task={task}
+                        theme={theme}
+                        date={date}
+                        timeSlot="PM"
+                        onToggle={onToggleSlot}
+                        size="normal"
+                      />
+                    );
+                  })}
                 </div>
               </div>
             )}

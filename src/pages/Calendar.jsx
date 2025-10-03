@@ -438,15 +438,27 @@ export default function Calendar() {
                     const times = peptides.length > 0 ? (peptides[0].frequency?.time || ['AM']) : ['AM'];
                     
                     Array.from(times).forEach(t => {
-                      const currentSlot = obj[t] || { peptides: [], supplements: [] }
+                      // Normalize legacy time slots to current ones
+                      const normalizedTimeSlot = t === 'Morning' ? 'AM' : t === 'Evening' ? 'PM' : t;
+                      const currentSlot = obj[normalizedTimeSlot] || { peptides: [], supplements: [] }
                       let deliveryInfo = '';
                       if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
                       if (reconItem?.deliveryMethod === 'syringe') deliveryInfo = ' (Syringe)';
                       const peptideName = `${p.protocolName || 'Blended Protocol'}${doseDisplay}${deliveryInfo}`;
+                      // For blended protocols, we'll use the first peptide's dose info
+                      const firstPeptide = getNormalizedPeptides(p)[0];
+                      const doseInfo = `${firstPeptide?.dosage?.amount || ''} ${firstPeptide?.dosage?.unit || 'mcg'}`;
+                      const doseMatch = doseInfo.match(/^(\d+(?:\.\d+)?)\s*(units?|mg|mcg|ml)$/);
+                      const dose = doseMatch ? doseMatch[1] : '';
+                      const unit = doseMatch ? doseMatch[2] : '';
+
                       const peptideData = {
-                          name: `${p.protocolName || 'Blended Protocol'}${doseDisplay}`,
-                          deliveryMethod: reconItem?.deliveryMethod,
-                          penColor: reconItem?.penColor,
+                          name: p.protocolName || 'Blended Protocol',
+                          dose: dose,
+                          unit: unit,
+                          deliveryMethod: reconItem?.deliveryMethod || firstPeptide?.deliveryMethod,
+                          penColor: reconItem?.penColor || firstPeptide?.penColor,
+                          penType: reconItem?.penType || firstPeptide?.penType,
                           protocolId: p.id,
                           peptideId: `${p.id}-blended`
                       };
@@ -455,7 +467,7 @@ export default function Calendar() {
                           item.protocolId === peptideData.protocolId &&
                           item.peptideId === peptideData.peptideId
                       )) {
-                        obj[t] = {
+                        obj[normalizedTimeSlot] = {
                           ...currentSlot,
                           peptides: [...currentSlot.peptides, peptideData],
                         }
@@ -509,7 +521,9 @@ export default function Calendar() {
 
                       if (isScheduledToday) {
                           pep.frequency.time.forEach(t => {
-                              const currentSlot = obj[t] || { peptides: [], supplements: [] };
+                              // Normalize legacy time slots to current ones
+                              const normalizedTimeSlot = t === 'Morning' ? 'AM' : t === 'Evening' ? 'PM' : t;
+                              const currentSlot = obj[normalizedTimeSlot] || { peptides: [], supplements: [] };
                               let doseInfo = `${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`;
 
                               if (reconItem) {
@@ -528,10 +542,18 @@ export default function Calendar() {
                               if (reconItem?.deliveryMethod === 'syringe') deliveryInfo = ' (Syringe)';
 
                               const peptideName = `${pep.name || 'Peptide'} - ${doseInfo}${deliveryInfo}`;
+                              // Parse dose and unit from doseInfo
+                              const doseMatch = doseInfo.match(/^(\d+(?:\.\d+)?)\s*(units?|mg|mcg|ml)$/);
+                              const dose = doseMatch ? doseMatch[1] : '';
+                              const unit = doseMatch ? doseMatch[2] : '';
+
                               const peptideData = {
-                                  name: `${pep.name || 'Peptide'} - ${doseInfo}`,
-                                  deliveryMethod: reconItem?.deliveryMethod,
-                                  penColor: reconItem?.penColor,
+                                  name: pep.name || 'Peptide',
+                                  dose: dose,
+                                  unit: unit,
+                                  deliveryMethod: reconItem?.deliveryMethod || pep.deliveryMethod,
+                                  penColor: reconItem?.penColor || pep.penColor,
+                                  penType: reconItem?.penType || pep.penType,
                                   protocolId: p.id,
                                   peptideId: pep.id || `${p.id}-${pep.name}`
                               };
@@ -541,7 +563,7 @@ export default function Calendar() {
                                   item.protocolId === peptideData.protocolId &&
                                   item.peptideId === peptideData.peptideId
                               )) {
-                                obj[t] = {
+                                obj[normalizedTimeSlot] = {
                                     ...currentSlot,
                                     peptides: [...currentSlot.peptides, peptideData],
                                 };
@@ -698,6 +720,7 @@ export default function Calendar() {
     setDone(getCalendarDone());
     setCalendarBump(Date.now());
   }, []);
+
 
   // Listen for task completion changes from other views
   useEffect(() => {

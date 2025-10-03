@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useOutletContext, useLocation } from 'react-router-dom'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Package } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
 import OrdersHelpPanel from '../components/orders/OrdersHelpPanel'
@@ -12,6 +12,8 @@ import { syncOrderDocumentationToStockpile, updateSyncedDocumentation, removeSyn
 import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
+import { useAutoSave } from '../utils/useAutoSave'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
@@ -22,6 +24,17 @@ export default function Orders() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+	
+	// Auto save for orders data
+	const [ordersDraft, setOrdersDraft] = useState({})
+	const { isSaving, lastSaved, clearSavedData } = useAutoSave('tpprover_orders_draft', ordersDraft, setOrdersDraft, 2000)
+	
+	// Update auto save when orders change
+	useEffect(() => {
+		if (orders.length > 0) {
+			setOrdersDraft({ orders, lastUpdated: new Date().toISOString() })
+		}
+	}, [orders])
 
 	useEffect(() => {
 		if (location.state?.activeTab) {
@@ -37,6 +50,57 @@ export default function Orders() {
 			}
 		}
 	}, [location.state, orders])
+
+	// Set topbar tabs via custom event
+	useEffect(() => {
+		const tabs = [
+			{ value: 'domestic', label: 'Domestic' },
+			{ value: 'international', label: 'International' },
+			{ value: 'groupbuy', label: 'Group Buy' }
+		];
+		
+		const handleAddClick = () => {
+			if (isReadOnly) {
+				setShowUpgradeModal(true);
+				return;
+			}
+			setShowAddModal(true);
+		};
+		
+		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
+			detail: { 
+				tabs, 
+				activeTab, 
+				onTabChange: setActiveTab,
+				onActionClick: handleAddClick,
+				actionDisabled: isReadOnly
+			} 
+		}));
+		
+		return () => {
+			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+		};
+	}, [activeTab, isReadOnly])
+
+	// Set auto save indicator in topbar
+	useEffect(() => {
+		const autoSaveIndicator = (
+			<AutoSaveIndicator 
+				isSaving={isSaving}
+				lastSaved={lastSaved}
+				theme={theme}
+				compact={true}
+			/>
+		);
+		
+		window.dispatchEvent(new CustomEvent('tpp:set-topbar-autosave', { 
+			detail: { autoSaveIndicator } 
+		}));
+		
+		return () => {
+			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-autosave'));
+		};
+	}, [isSaving, lastSaved, theme])
 
 	const filteredOrders = useMemo(() => {
 		return orders.filter(o => {
@@ -144,43 +208,7 @@ export default function Orders() {
 
 	return (
 		<section>
-			<div className="flex items-center justify-between mb-4">
-				<h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Orders</h1>
-			</div>
-			
 			<OrdersHelpPanel theme={theme} />
-
-			<div className="flex items-center justify-between mb-6">
-				<Tabs
-					value={activeTab}
-					onChange={v => setActiveTab(v)}
-					theme={theme}
-					stretch
-					options={[
-						{ value: 'domestic', label: 'Domestic' },
-						{ value: 'international', label: 'International' },
-						{ value: 'groupbuy', label: 'Group Buy' },
-					]}
-				/>
-				<button 
-					className="px-3 py-2 rounded-md text-sm font-semibold inline-flex items-center gap-2" 
-					style={{ 
-						backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
-						color: theme.textOnPrimary,
-						opacity: isReadOnly ? 0.6 : 1,
-						cursor: isReadOnly ? 'not-allowed' : 'pointer'
-					}} 
-					onClick={() => {
-						if (isReadOnly) {
-							setShowUpgradeModal(true);
-							return;
-						}
-						setShowAddModal(true);
-					}}
-				>
-					<PlusCircle className="h-4 w-4" /> Add Order
-				</button>
-			</div>
 
 			<div className="mt-6">
 				{activeTab === 'groupbuy' ? (
@@ -218,41 +246,80 @@ export default function Orders() {
 								</div>
 							</div>
 						) : (
-							<div>
-								<p className="w-full text-sm mb-4" style={{ color: theme?.textLight || '#666' }}>No orders.</p>
-								<div className="flex justify-end">
-									<div className="w-full lg:w-1/2 xl:w-1/3">
-										<ScheduledBuysPanel theme={theme} />
-									</div>
+							<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+								<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+									<Package size={32} style={{ color: theme.primary }} />
 								</div>
+								<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Group Buy Orders Yet</h3>
+								<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+									Track group buy orders separately to manage timing, coordination, and delivery. 
+									Group buys often have unique timelines and require special attention to order status and fulfillment dates.
+								</p>
+								{!isReadOnly && (
+									<button
+										onClick={() => setShowAddModal(true)}
+										className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+										style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+									>
+										<PlusCircle size={18} />
+										Add Your First Group Buy Order
+									</button>
+								)}
 							</div>
 						)}
 					</div>
 				) : (
-					<OrderList 
-						orders={filteredOrders} 
-						onEdit={(order) => { 
-							if (isReadOnly) {
-								setShowUpgradeModal(true);
-								return;
-							}
-							setEditingOrder(order); 
-							setShowAddModal(true); 
-						}}
-						onDelete={(id) => {
-							// Allow deletion in read-only mode for data management
-							setOrders(prev => prev.filter(o => o.id !== id));
-						}}
-						onAdvance={(order) => {
-							if (isReadOnly) {
-								setShowUpgradeModal(true);
-								return;
-							}
-							advanceOrderStatus(order);
-						}}
-						theme={theme}
-						vendors={vendors}
-					/>
+					filteredOrders.length > 0 ? (
+						<OrderList 
+							orders={filteredOrders} 
+							onEdit={(order) => { 
+								if (isReadOnly) {
+									setShowUpgradeModal(true);
+									return;
+								}
+								setEditingOrder(order); 
+								setShowAddModal(true); 
+							}}
+							onDelete={(id) => {
+								// Allow deletion in read-only mode for data management
+								setOrders(prev => prev.filter(o => o.id !== id));
+							}}
+							onAdvance={(order) => {
+								if (isReadOnly) {
+									setShowUpgradeModal(true);
+									return;
+								}
+								advanceOrderStatus(order);
+							}}
+							theme={theme}
+							vendors={vendors}
+						/>
+					) : (
+						<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+							<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+								<Package size={32} style={{ color: theme.primary }} />
+							</div>
+							<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+								{activeTab === 'domestic' ? 'No Domestic Orders Yet' : 'No International Orders Yet'}
+							</h3>
+							<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+								{activeTab === 'domestic' 
+									? 'Track your domestic orders to monitor shipping status, delivery dates, and manage your research supply chain. Stay organized and never miss a delivery.'
+									: 'Track international orders with extended shipping times, customs clearance, and delivery updates.'
+								}
+							</p>
+							{!isReadOnly && (
+								<button
+									onClick={() => setShowAddModal(true)}
+									className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+									style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+								>
+									<PlusCircle size={18} />
+									{activeTab === 'domestic' ? 'Add Your First Domestic Order' : 'Add Your First International Order'}
+								</button>
+							)}
+						</div>
+					)
 				)}
 			</div>
 			

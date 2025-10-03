@@ -4,38 +4,122 @@ export const TermsOfServiceContent = () => (
     <div className="space-y-4 text-sm text-gray-600">
         <h2 className="text-lg font-bold text-gray-800">Terms of Service</h2>
 
-        <p>Welcome to The Pep Planner. By using our application, you agree to these Terms of Service. Please read them carefully.</p>
+        <p>By using The Pep Planner application ("App," "Service," "we," "us"), a product of The Pep Planner LLC, you agree to these Terms of Service ("Terms"). Please read them carefully.</p>
+
+        <div className="p-4 bg-red-50 border-2 border-red-300 rounded-md">
+            <h3 className="font-bold text-red-800 text-base">⚠️ CRITICAL: NOT FOR HUMAN USE</h3>
+            <p className="text-red-700 font-medium">This application is designed EXCLUSIVELY for research purposes. All peptides and substances tracked in this application are for RESEARCH USE ONLY and are NOT INTENDED FOR HUMAN CONSUMPTION. Any information provided is strictly for educational and research tracking purposes.</p>
+        </div>
 
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <h3 className="font-semibold text-yellow-800">1. For Research & Informational Purposes Only</h3>
-            <p className="text-yellow-700">This application is intended solely for tracking and organizing personal research data. The information you input and the features provided are not intended to be, and should not be interpreted as, medical advice. This product is not a substitute for professional medical advice, diagnosis, or treatment.</p>
+            <h3 className="font-semibold text-yellow-800">1. Research & Educational Purposes Only</h3>
+            <p className="text-yellow-700">This application is intended solely for tracking and organizing research data. The information, calculators, and features provided by us are not intended to be, and should not be interpreted as, medical advice. This product is not a substitute for professional medical advice, diagnosis, or treatment. NO MEDICAL ADVICE IS PROVIDED.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">2. No Medical Relationship</h3>
-            <p>Your use of this application does not create a doctor-patient relationship. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay in seeking it because of something you have read or tracked in this application.</p>
+            <h3 className="font-semibold text-gray-800">2. No Medical Relationship or Advice</h3>
+            <p>Your use of this application does not create a doctor-patient relationship. This application provides NO MEDICAL ADVICE whatsoever. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay in seeking it because of something you have read or tracked in this application.</p>
         </div>
         
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-            <h3 className="font-semibold text-red-800">3. Regarding "Grey Market" Peptides</h3>
-            <p className="text-red-700">You acknowledge that this application may be used to track substances that are not prescribed by a medical professional and may be considered "grey market" products. We do not endorse or condone the use of any substance for non-research purposes. You are solely responsible for complying with all applicable laws and regulations regarding any substances you choose to research and track.</p>
+            <h3 className="font-semibold text-red-800">3. Research Substances & Legal Compliance</h3>
+            <p className="text-red-700">You acknowledge that this application may be used to track research substances that are for LABORATORY RESEARCH PURPOSES ONLY. We do not endorse, recommend, or condone the use of any substance for human consumption. You are solely responsible for complying with all applicable laws and regulations regarding any research substances you choose to track. All substances are NOT FOR HUMAN USE.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">4. User Responsibility & Assumption of Risk</h3>
-            <p>You are solely responsible for the information you track and any decisions you make based on that information. You assume all risks associated with your research. We are not liable for any outcomes, positive or negative, that may result from your use of this application.</p>
+            <h3 className="font-semibold text-gray-800">4. Subscription Services</h3>
+            <p>Full continued access to features is available through subscription plans. Subscriptions automatically renew unless cancelled. You may cancel your subscription at any time through your account settings. Refunds are not provided for unused portions of subscription periods. We reserve the right to modify subscription pricing and features. We will provide you with at least thirty (30) days' notice of any price changes by sending an email to the address associated with your account or by providing an in-app notification.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">5. Data & Privacy</h3>
+            <h3 className="font-semibold text-gray-800">5. Lifetime Access</h3>
+            <p>Lifetime access plans provide unlimited access to all application features for the duration of the application's availability. "Lifetime" is defined as the period during which The Pep Planner application remains operational and accessible to users. Lifetime access purchases are non-refundable and non-transferable. In the event that the application is discontinued or becomes unavailable, lifetime access holders will not be entitled to refunds or compensation. Lifetime access does not guarantee perpetual service availability and is subject to the continued operation of our platform.</p>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">6. User Responsibility & Assumption of Risk</h3>
+            <p>You are solely responsible for the information you track and any decisions you make based on that information. You assume all risks associated with your research activities. We are not liable for any outcomes, positive or negative, that may result from your use of this application or any research activities you conduct.</p>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">7. Data & Privacy</h3>
             <p>We take your privacy seriously. To provide a seamless experience across your devices, your data is securely stored and synchronized with our cloud backend. We use industry-standard security measures to protect your information. Some data may be temporarily stored on your local device for performance and offline access. For more details, please see our Privacy Policy.</p>
         </div>
 
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <h3 className="font-semibold text-blue-800">8. Research Data Protection & Legal Safeguards</h3>
+            <div className="text-blue-700 space-y-2">
+                <p><strong>Data Minimization:</strong> We collect and store only the minimum data necessary to provide our research tracking services. We do not collect unnecessary personal information or research data beyond what is required for the application's core functionality.</p>
+                
+                <p><strong>Purpose Limitation:</strong> Your research data is used solely for providing the services you have requested. We do not use your research data for any other purposes, including marketing, advertising, or data analysis beyond service improvement.</p>
+                
+                <p><strong>Data Retention Limits:</strong> We retain your research data only as long as necessary to provide our services. You may request deletion of your data at any time, and we will comply with such requests within 30 days, subject to legal obligations.</p>
+                
+                <p><strong>Limited Access:</strong> Access to your research data is restricted to authorized personnel who require such access to provide technical support or maintain our services. All personnel with access are bound by strict confidentiality agreements.</p>
+                
+                <p><strong>Legal Challenge Rights:</strong> In the event of any legal request for your data, we will, where legally permissible, provide you with notice and an opportunity to challenge such requests before disclosure.</p>
+            </div>
+        </div>
+
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+            <h3 className="font-semibold text-green-800">9. Data Security & Legal Compliance Commitments</h3>
+            <div className="text-green-700 space-y-2">
+                <p><strong>Security Standards:</strong> We maintain industry-standard security measures to protect your research data, including encryption in transit and at rest, secure authentication, and regular security audits.</p>
+                
+                <p><strong>Legal Compliance:</strong> We operate in compliance with applicable data protection laws and regulations. We will resist any requests for your data that we believe are not legally valid or properly authorized.</p>
+                
+                <p><strong>Transparency:</strong> We will provide you with clear information about any data requests we receive and our response to such requests, where legally permitted.</p>
+                
+                <p><strong>Data Integrity:</strong> We commit to maintaining the integrity and confidentiality of your research data and will not access, use, or disclose it except as necessary to provide our services or as required by law.</p>
+                
+                <p><strong>User Control:</strong> You maintain full control over your research data and may export, modify, or delete it at any time through the application's features.</p>
+            </div>
+        </div>
+
         <div>
-            <h3 className="font-semibold text-gray-800">6. Changes to Terms</h3>
+            <h3 className="font-semibold text-gray-800">10. Changes to Terms</h3>
             <p>We may modify these terms at any time. We will notify you of any changes by posting the new Terms of Service in the application. You are advised to review these Terms of Service periodically for any changes.</p>
         </div>
 
-        <p className="pt-2 border-t border-gray-200">By clicking "I Agree," you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</p>
+        <div>
+            <h3 className="font-semibold text-gray-800">11. Limitation of Liability</h3>
+            <p>TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE PEP PLANNER LLC, ITS AFFILIATES, DIRECTORS, OR EMPLOYEES, BE LIABLE FOR ANY INDIRECT, PUNITIVE, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, INCLUDING WITHOUT LIMITATION DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR RELATING TO THE USE OF, OR INABILITY TO USE, THIS SERVICE.</p>
+            <p>IN NO EVENT SHALL THE PEP PLANNER LLC'S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE GREATER OF ONE HUNDRED U.S. DOLLARS ($100) OR THE AMOUNTS PAID BY YOU TO THE PEP PLANNER LLC FOR THE PAST 12 MONTHS OF THE SERVICES IN QUESTION.</p>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">12. Indemnification</h3>
+            <p>You agree to defend, indemnify, and hold harmless The Pep Planner LLC and its licensee and licensors, and their employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs or debt, and expenses (including but not limited to attorney's fees), resulting from or arising out of a) your use and access of the Service, or b) a breach of these Terms.</p>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">13. Your California Privacy Rights</h3>
+            <p>If you are a California resident, you have specific rights under the California Consumer Privacy Act (CCPA). We do not "sell" or "share" your personal information as those terms are defined under the CCPA. California residents have the right to: request information about the categories and specific pieces of personal information we have collected; request deletion of their personal information; and not be discriminated against for exercising their privacy rights. To make a request, please contact us at the email provided below.</p>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">14. Governing Law</h3>
+            <p>These Terms shall be governed and construed in accordance with the laws of the State of New Mexico, United States, without regard to its conflict of law provisions. You agree to submit to the personal and exclusive jurisdiction of the state and federal courts located within Socorro County, New Mexico, United States to litigate any such matters.</p>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">15. Termination</h3>
+            <p>We may terminate or suspend your account and bar access to the Service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever and without limitation, including but not limited to a breach of the Terms.</p>
+        </div>
+
+        <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+            <h3 className="font-semibold text-gray-800">16. Acknowledgment</h3>
+            <p className="text-gray-700">By using this application, you acknowledge that you understand this is a research tracking tool and that NO MEDICAL ADVICE is provided. You confirm that you will use this application solely for research purposes and that any substances tracked are NOT FOR HUMAN USE.</p>
+        </div>
+
+        <div className="pt-4 border-t border-gray-200">
+            <p className="text-sm text-gray-600">
+                <strong>Last Updated:</strong> {new Date().toLocaleDateString()}
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+                If you have any questions about these Terms, please contact us at contact@thepepplanner.com.
+            </p>
+        </div>
+
     </div>
 );

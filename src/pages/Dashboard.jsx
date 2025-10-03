@@ -33,6 +33,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Dashboard() {
+  console.log('🏠 Dashboard component rendered');
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { protocols: protocolsFromContext } = useAppContext()
@@ -204,6 +205,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    console.log('🔄 Dashboard useEffect running - generating tasks');
     const today = new Date()
     const dayName = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
     const getWeekOfMonth = (date) => {
@@ -323,12 +325,26 @@ export default function Dashboard() {
                 const times = freq.time || ['Morning'];
                 times.forEach(t => {
                     const timeSlot = t === 'Morning' ? 'AM' : 'PM';
+                    
+                    // For complex dose displays, keep the full string as dose and extract primary unit
+                    let dose = doseDisplay;
+                    let unit = '';
+                    
+                    // Extract the primary unit (mcg takes precedence over mg, units takes precedence over both)
+                    if (doseDisplay.includes('units')) {
+                        unit = 'units';
+                    } else if (doseDisplay.includes('mcg')) {
+                        unit = 'mcg';
+                    } else if (doseDisplay.includes('mg')) {
+                        unit = 'mg';
+                    }
+                    
                     const task = {
                         id: `${p.id}-${blendName}-${t}`,
                         type: 'peptide',
                         name: blendName,
-                        dose: doseDisplay,
-                        unit: '', // Unit is part of the doseDisplay string
+                        dose: dose,
+                        unit: unit,
                         time: timeSlot,
                         completed: false,
                         deliveryMethod: reconItem?.deliveryMethod,
@@ -383,7 +399,9 @@ export default function Dashboard() {
                 dose, 
                 unit, 
                 unitValue: pep.unitValue,
-                hasRecon: !!reconItem 
+                hasRecon: !!reconItem,
+                reconItem: reconItem,
+                protocolName: p.protocolName
               });
               
               if (reconItem) {
@@ -396,7 +414,7 @@ export default function Dashboard() {
                     // If unitValue is set, show both calculated units and custom units
                     if (additionalUnits) {
                         dose = `${calc.unitsPerDose.toFixed(0)} (${additionalUnits} units)`;
-                        unit = ''; // Unit is in dose string
+                        unit = 'units';
                     } else {
                         dose = calc.unitsPerDose.toFixed(0);
                         unit = 'units';
@@ -404,12 +422,12 @@ export default function Dashboard() {
                 } else if (additionalUnits) {
                     // If no recon but has unitValue, append it
                     dose = `${dose} ${unit} (${additionalUnits} units)`;
-                    unit = ''; // Unit is in dose string
+                    unit = 'units';
                 }
               } else if (additionalUnits) {
                 // No recon but has unitValue
                 dose = `${dose} ${unit} (${additionalUnits} units)`;
-                unit = ''; // Unit is in dose string
+                unit = 'units';
               }
 
               pep.frequency.time.forEach(t => {
@@ -427,6 +445,15 @@ export default function Dashboard() {
                   protocolName: p.protocolName,
                   administrationRoute: reconItem?.administrationRoute
                 };
+                
+                console.log('🔍 Individual peptide task created:', {
+                  name: task.name,
+                  dose: task.dose,
+                  unit: task.unit,
+                  deliveryMethod: task.deliveryMethod,
+                  penColor: task.penColor,
+                  reconItem: reconItem
+                });
                 // Generate stable task ID and check completion status
                 const taskId = generateTaskId(task);
                 const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
@@ -486,7 +513,7 @@ export default function Dashboard() {
             type: 'supplement',
             name: s.name,
             dose: s.dose,
-            unit: '',
+            unit: s.unit || '',
             delivery: s.delivery,
             time: 'AM',
             completed: false,
@@ -504,7 +531,7 @@ export default function Dashboard() {
             type: 'supplement',
             name: s.name,
             dose: s.dose,
-            unit: '',
+            unit: s.unit || '',
             delivery: s.delivery,
             time: 'PM',
             completed: false,
@@ -530,9 +557,13 @@ export default function Dashboard() {
       id: t.id,
       taskId: generateTaskId(t),
       name: t.name,
-      completed: t.completed
+      completed: t.completed,
+      type: t.type,
+      deliveryMethod: t.deliveryMethod,
+      penColor: t.penColor
     })));
     
+    console.log('📋 TasksList will receive:', combined.length, 'tasks');
     setTodaysTasks(combined)
     setWashoutReminders(reminders);
     
@@ -580,13 +611,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-0.5 md:space-y-4" data-tour="dashboard-welcome">
       <ViewContainer theme={theme} transparent noMinHeight>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-0.5 md:gap-3 mb-0 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-1 md:gap-2 mb-0 items-start">
           {/* Today's Research taking up 3/4 of the space */}
-          <div className="lg:col-span-3 p-2 md:p-4 rounded-xl content-card h-full flex flex-col" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
+          <div className="lg:col-span-3 p-2 rounded-xl content-card h-full flex flex-col" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
             <div className="flex justify-between items-center mb-1">
                 <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Today's Research</h3>
                 <button 
-                    onClick={() => navigate('/calendar')}
+                    onClick={() => navigate('/app/calendar')}
                     className="px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5" 
                     style={{ backgroundColor: theme.accent, color: theme.primaryDark }}
                 >
@@ -668,7 +699,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5"><Target className="h-4 w-4" /><span className="font-semibold text-sm">Goals</span></div>
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => navigate('/goals')} className="px-2 py-1 rounded-md text-xs font-semibold" style={{ backgroundColor: theme.accent, color: theme.primaryDark }}>View All</button>
+                      <button onClick={() => navigate('/app/goals')} className="px-2 py-1 rounded-md text-xs font-semibold" style={{ backgroundColor: theme.accent, color: theme.primaryDark }}>View All</button>
                       <button 
                         onClick={() => { 
                           if (isReadOnly) {
@@ -755,9 +786,9 @@ export default function Dashboard() {
         </div>
       </ViewContainer>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0.5 md:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 md:gap-2">
         <div className="flex flex-col gap-0 md:gap-4">
-            <div className="grid grid-cols-2 gap-0.5 md:gap-3" data-tour-id="action-buttons">
+            <div className="grid grid-cols-2 gap-1 md:gap-2" data-tour-id="action-buttons">
                 <ActionButton 
                   onClick={() => { 
                     if (isReadOnly) {
@@ -871,7 +902,7 @@ export default function Dashboard() {
                 <PendingVendorsView 
                     vendors={pendingVendors} 
                     theme={theme} 
-                    onViewAll={() => navigate('/vendors')}
+                    onViewAll={() => navigate('/app/vendors')}
                     onComplete={(vendor) => {
                         setEditingVendor(vendor);
                         setShowNewVendor(true);
@@ -881,20 +912,20 @@ export default function Dashboard() {
         </div>
       </div>
 
-    <div className="grid grid-cols-1 gap-0 md:gap-4">
-        <div className="rounded-lg border p-2 md:p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="analytics">
+    <div className="grid grid-cols-1 gap-1 md:gap-2">
+        <div className="rounded-lg border p-2 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="analytics">
             <AnalyticsDashboard theme={theme} />
         </div>
     </div>
 
-    <div className="rounded-lg border p-2 md:p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="badges">
+    <div className="rounded-lg border p-2 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="badges">
         <div className="flex items-center justify-between">
             <div>
                 <h2 className="text-base font-semibold" style={{ color: theme.text }}>Your Badges</h2>
                 <p className="text-xs text-gray-500">You've earned {earnedCount} of {totalBadges} badges.</p>
             </div>
             <button 
-                onClick={() => navigate('/badges')}
+                onClick={() => navigate('/app/badges')}
                 className="px-3 py-1.5 rounded-md text-xs font-semibold" 
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >

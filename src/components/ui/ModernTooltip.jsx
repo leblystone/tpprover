@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Modern Gmail-style tooltip component
@@ -10,41 +11,124 @@ const ModernTooltip = ({
   position = 'top',
   disabled = false 
 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const tooltipRef = useRef(null);
+
   if (disabled || !text) {
     return children;
   }
 
-  const positionClasses = {
-    top: 'bottom-full left-1/2 transform -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 transform -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 transform -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 transform -translate-y-1/2 ml-2'
+  const updatePosition = () => {
+    if (!triggerRef.current || !tooltipRef.current) return;
+
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+
+    let top = 0;
+    let left = 0;
+
+    // Calculate position based on preferred position
+    switch (position) {
+      case 'top':
+        top = triggerRect.top - tooltipRect.height - 8;
+        left = triggerRect.left + (triggerRect.width - tooltipRect.width) / 2;
+        break;
+      case 'bottom':
+        top = triggerRect.bottom + 8;
+        left = triggerRect.left + (triggerRect.width - tooltipRect.width) / 2;
+        break;
+      case 'left':
+        top = triggerRect.top + (triggerRect.height - tooltipRect.height) / 2;
+        left = triggerRect.left - tooltipRect.width - 8;
+        break;
+      case 'right':
+        top = triggerRect.top + (triggerRect.height - tooltipRect.height) / 2;
+        left = triggerRect.right + 8;
+        break;
+      default:
+        top = triggerRect.top - tooltipRect.height - 8;
+        left = triggerRect.left + (triggerRect.width - tooltipRect.width) / 2;
+    }
+
+    // Adjust for viewport boundaries
+    if (left < 8) {
+      left = 8;
+    } else if (left + tooltipRect.width > viewport.width - 8) {
+      left = viewport.width - tooltipRect.width - 8;
+    }
+
+    if (top < 8) {
+      top = triggerRect.bottom + 8; // Flip to bottom if no space on top
+    } else if (top + tooltipRect.height > viewport.height - 8) {
+      top = triggerRect.top - tooltipRect.height - 8; // Flip to top if no space on bottom
+    }
+
+    setTooltipPosition({ top, left });
   };
 
-  const arrowClasses = {
-    top: 'top-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-gray-900',
-    bottom: 'bottom-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-gray-900',
-    left: 'left-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-gray-900',
-    right: 'right-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-gray-900'
+  const showTooltip = () => {
+    setIsVisible(true);
+    updatePosition();
   };
+
+  const hideTooltip = () => {
+    setIsVisible(false);
+  };
+
+  useEffect(() => {
+    if (isVisible) {
+      updatePosition();
+      const handleResize = () => updatePosition();
+      const handleScroll = () => hideTooltip();
+      
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('scroll', handleScroll, true);
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('scroll', handleScroll, true);
+      };
+    }
+  }, [isVisible]);
+
+  const tooltipContent = isVisible && createPortal(
+    <div
+      ref={tooltipRef}
+      className="fixed px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-xl pointer-events-none transition-opacity duration-200 whitespace-nowrap"
+      style={{
+        top: tooltipPosition.top,
+        left: tooltipPosition.left,
+        maxWidth: '250px',
+        zIndex: 2147483647,
+        filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))',
+        opacity: isVisible ? 1 : 0
+      }}
+    >
+      {text}
+    </div>,
+    document.body
+  );
 
   return (
-    <div className="relative group inline-block">
-      {children}
+    <>
       <div
-        className={`tooltip-overlay absolute ${positionClasses[position]} px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out pointer-events-none whitespace-nowrap z-[2147483646]`}
-        style={{ 
-          maxWidth: '250px',
-          filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))'
-        }}
+        ref={triggerRef}
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
+        className="inline-block"
       >
-        {text}
-        {/* Arrow */}
-        <div
-          className={`absolute ${arrowClasses[position]} w-0 h-0 border-[5px]`}
-        />
+        {children}
       </div>
-    </div>
+      {tooltipContent}
+    </>
   );
 };
 

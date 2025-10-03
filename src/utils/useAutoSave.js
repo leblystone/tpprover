@@ -66,6 +66,13 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000) => 
         localStorage.setItem(storageKey, JSON.stringify(saveData));
         setLastSaved(new Date());
         previousDataRef.current = formData;
+        
+        // Dispatch autosave event for protocol updates
+        if (storageKey.includes('protocol_draft_')) {
+          window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
+            detail: { storageKey, formData }
+          }));
+        }
       } catch (error) {
         console.warn('Failed to auto-save data:', error);
       } finally {

@@ -17,6 +17,7 @@ import TourController from './components/onboarding/TourController';
 import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
+import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
 import UpgradeBanner from './components/common/UpgradeBanner';
@@ -54,6 +55,8 @@ function App() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
+  const [topbarTabs, setTopbarTabs] = useState(null);
+  const [topbarAutoSave, setTopbarAutoSave] = useState(null);
 
   // App is now live - no beta restrictions
 
@@ -109,6 +112,32 @@ function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // Listen for topbar tabs from pages
+  useEffect(() => {
+    const handleSetTabs = (event) => {
+      setTopbarTabs(event.detail);
+    };
+    const handleClearTabs = () => {
+      setTopbarTabs(null);
+    };
+    const handleSetAutoSave = (event) => {
+      setTopbarAutoSave(event.detail.autoSaveIndicator);
+    };
+    const handleClearAutoSave = () => {
+      setTopbarAutoSave(null);
+    };
+    window.addEventListener('tpp:set-topbar-tabs', handleSetTabs);
+    window.addEventListener('tpp:clear-topbar-tabs', handleClearTabs);
+    window.addEventListener('tpp:set-topbar-autosave', handleSetAutoSave);
+    window.addEventListener('tpp:clear-topbar-autosave', handleClearAutoSave);
+    return () => {
+      window.removeEventListener('tpp:set-topbar-tabs', handleSetTabs);
+      window.removeEventListener('tpp:clear-topbar-tabs', handleClearTabs);
+      window.removeEventListener('tpp:set-topbar-autosave', handleSetAutoSave);
+      window.removeEventListener('tpp:clear-topbar-autosave', handleClearAutoSave);
+    };
+  }, []);
+
   const handleCloseWelcome = () => {
     setShowWelcome(false);
     localStorage.setItem('tpprover_has_onboarded', 'true');
@@ -144,6 +173,12 @@ function App() {
             window.dispatchEvent(new CustomEvent('tpp:dashboard-settings'));
           } : undefined}
           isCustomizing={false} // This will be managed by the dashboard component
+          tabs={topbarTabs?.tabs}
+          activeTab={topbarTabs?.activeTab}
+          onTabChange={topbarTabs?.onTabChange}
+          onActionClick={topbarTabs?.onActionClick}
+          actionDisabled={topbarTabs?.actionDisabled}
+          autoSaveIndicator={topbarAutoSave}
         />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
         {showUpgradePrompt && user && (
@@ -152,7 +187,7 @@ function App() {
             isTrialExpired={isTrialExpired}
           />
         )}
-        <main className="flex-1 overflow-y-auto main-content p-2 md:p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
+               <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
             <Outlet context={{ theme, installPrompt }} />
           </Suspense>
@@ -192,6 +227,10 @@ function App() {
         open={showUnsupportedModal} 
         onClose={() => setShowUnsupportedModal(false)} 
         theme={theme} 
+      />
+      <FirstLaunchDisclaimer 
+        open={false} 
+        onAccept={() => {}} 
       />
     </div>
   )

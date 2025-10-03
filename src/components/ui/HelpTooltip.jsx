@@ -14,7 +14,7 @@ export default function HelpTooltip({ text, theme }) {
         <Info size={16} style={{ color: theme?.textLight || '#555' }} />
       </button>
       {open && (
-        <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 p-3 rounded-md shadow text-xs z-50"
+        <div className="tooltip-overlay absolute left-1/2 -translate-x-1/2 mt-2 w-64 p-3 rounded-md shadow text-xs"
              style={{ backgroundColor: theme?.white || '#fff', color: theme?.text || '#111', border: `1px solid ${theme?.border || '#eee'}` }}>
           {text}
         </div>

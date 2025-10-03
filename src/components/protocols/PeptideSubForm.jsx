@@ -5,20 +5,7 @@ import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { X, Syringe, Pen, Droplets, Activity } from 'lucide-react';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import { getChromeGradient } from '../../utils/recon';
-
-const penColors = [
-    { name: 'Gold', hex: '#DAA520' },
-    { name: 'Silver', hex: '#C0C0C0' },
-    { name: 'Black', hex: '#000000' },
-    { name: 'Blue', hex: '#0066CC' },
-    { name: 'Red', hex: '#CC0000' },
-    { name: 'Green', hex: '#00AA00' },
-    { name: 'Purple', hex: '#6600CC' },
-    { name: 'Orange', hex: '#FF6600' },
-    { name: 'Pink', hex: '#FF69B4' },
-    { name: 'White', hex: '#FFFFFF' },
-    { name: 'Gray', hex: '#9CA3AF' },
-];
+import { penColors } from '../../utils/penColors';
 
 export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
     

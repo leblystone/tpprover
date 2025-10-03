@@ -1012,39 +1012,105 @@
         </div>
 
         {/* Two-Factor modal */}
-        <Modal open={twoFAOpen} onClose={() => setTwoFAOpen(false)} title="Two-Factor Authentication" theme={theme} maxWidth="max-w-md" footer={(
-          <>
-            <button className="px-3 py-2 rounded-md" onClick={() => setTwoFAOpen(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Close</button>
-            <button className="px-3 py-2 rounded-md font-semibold" onClick={enableTwoFA} style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
-          </>
-        )}>
-          <div className="space-y-3">
+        <Modal 
+          open={twoFAOpen} 
+          onClose={() => setTwoFAOpen(false)} 
+          title="Two-Factor Authentication" 
+          titleExtra={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          theme={theme} 
+          maxWidth="max-w-md" 
+          footer={(
+            <>
+              <button 
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90" 
+                onClick={() => setTwoFAOpen(false)} 
+                style={{ backgroundColor: '#F3F4F6', color: '#374151' }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90" 
+                onClick={enableTwoFA} 
+                style={{ backgroundColor: '#A3B18A' }}
+              >
+                Save
+              </button>
+            </>
+          )}
+        >
+          <div className="space-y-4">
             <div>
-              <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Method</div>
-              <select className="w-full p-2 rounded border" value={twoFAMethod} onChange={e => setTwoFAMethod(e.target.value)} style={{ borderColor: theme.border }}>
+              <div className="text-sm font-medium mb-2" style={{ color: '#374151' }}>Authentication Method</div>
+              <select 
+                className="w-full p-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-opacity-50" 
+                value={twoFAMethod} 
+                onChange={e => setTwoFAMethod(e.target.value)} 
+                style={{ 
+                  borderColor: '#D1D5DB', 
+                  backgroundColor: '#F9FAFB',
+                  focusRingColor: '#A3B18A'
+                }}
+              >
                 <option value="email">Email OTP</option>
                 <option value="authenticator">Authenticator App</option>
               </select>
             </div>
             {twoFAMethod === 'authenticator' && (
-              <div className="rounded border p-3" style={{ borderColor: theme.border }}>
-                <div className="text-sm font-medium" style={{ color: theme.text }}>Authenticator Secret</div>
-                <div className="font-mono text-sm select-all mt-1">{twoFASecret}</div>
-                <div className="text-xs text-gray-500 mt-1">Scan this secret in your authenticator app. Store recovery codes safely.</div>
-                <div className="text-right mt-2"><button className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }} onClick={() => setTwoFASecret(genAuthSecret())}>Regenerate</button></div>
+              <div className="rounded-lg border p-4 bg-gray-50" style={{ borderColor: '#E5E7EB' }}>
+                <div className="text-sm font-medium mb-2" style={{ color: '#374151' }}>Authenticator Secret</div>
+                <div className="font-mono text-sm select-all p-2 bg-white rounded border" style={{ borderColor: '#D1D5DB' }}>{twoFASecret}</div>
+                <div className="text-xs text-gray-600 mt-2">Scan this secret in your authenticator app. Store recovery codes safely.</div>
+                <div className="text-right mt-3">
+                  <button 
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90" 
+                    style={{ backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB' }} 
+                    onClick={() => setTwoFASecret(genAuthSecret())}
+                  >
+                    Regenerate
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </Modal>
 
         {/* Edit Email Modal */}
-        <Modal open={editingEmail} onClose={() => setEditingEmail(false)} title="Edit Email" theme={theme} footer={
-          <>
-            <button className="px-3 py-2 rounded-md" onClick={() => setEditingEmail(false)} style={{ backgroundColor: theme.border, color: theme.text }}>Cancel</button>
-            <button className="px-3 py-2 rounded-md font-semibold" onClick={saveEmail} style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
-          </>
-        }>
-          <input value={emailDraft} onChange={e => setEmailDraft(e.target.value)} className="w-full p-2 rounded border text-sm" style={{ borderColor: theme.border }} placeholder="you@example.com" />
+        <Modal 
+          open={editingEmail} 
+          onClose={() => setEditingEmail(false)} 
+          title="Edit Email" 
+          titleExtra={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          theme={theme} 
+          footer={
+            <>
+              <button 
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90" 
+                onClick={() => setEditingEmail(false)} 
+                style={{ backgroundColor: '#F3F4F6', color: '#374151' }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90" 
+                onClick={saveEmail} 
+                style={{ backgroundColor: '#A3B18A' }}
+              >
+                Save
+              </button>
+            </>
+          }
+        >
+          <input 
+            value={emailDraft} 
+            onChange={e => setEmailDraft(e.target.value)} 
+            className="w-full p-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-opacity-50" 
+            style={{ 
+              borderColor: '#D1D5DB', 
+              backgroundColor: '#F9FAFB',
+              focusRingColor: '#A3B18A'
+            }} 
+            placeholder="you@example.com" 
+          />
         </Modal>
 
         {/* Confirmation Modal */}
@@ -1052,22 +1118,23 @@
           open={confirmModalOpen} 
           onClose={handleCancelAction} 
           title={confirmAction === 'switchPlan' ? 'Confirm Lab Access Change' : 'Confirm Cancellation'} 
+          titleExtra={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           theme={theme} 
           maxWidth="max-w-md" 
           footer={(
             <div className="w-full flex justify-end gap-3">
               <button 
-                className="px-4 py-2 rounded-md text-sm font-medium transition-all" 
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90" 
                 onClick={handleCancelAction}
-                style={{ backgroundColor: theme.border, color: theme.text }}
+                style={{ backgroundColor: '#F3F4F6', color: '#374151' }}
               >
                 Cancel
               </button>
               <button 
-                className="px-4 py-2 rounded-md text-sm font-medium text-white transition-all" 
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90" 
                 onClick={handleConfirmAction}
                 style={{ 
-                  backgroundColor: confirmAction === 'cancelSubscription' ? '#344E41' : '#5C7659'
+                  backgroundColor: confirmAction === 'cancelSubscription' ? '#DC2626' : '#A3B18A'
                 }}
               >
                 {confirmAction === 'switchPlan' ? 'Confirm Change' : 'Confirm Cancellation'}

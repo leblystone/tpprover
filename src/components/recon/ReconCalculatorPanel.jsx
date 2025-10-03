@@ -9,7 +9,7 @@ import { penColors } from '../../utils/penColors'
 import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
-export function ReconCalculatorPanel({ theme, prefill, onSave }) {
+export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, compact = false }) {
   const [form, setForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] })
   const [deliveryMethod, setDeliveryMethod] = useState('syringe');
   const [administrationRoute, setAdministrationRoute] = useState('subq'); // SubQ, IM, IV
@@ -83,9 +83,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
     }
   }
 
-  return (
-    <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-
+  const content = (
+    <div>
       {/* Section Banner - Vial Details */}
       <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
         <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Vial Details</h4>
@@ -180,6 +179,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
                 penColor={penColor}
                 theme={theme}
                 currentPeptideIndex={currentPeptideIndex}
+                compact={compact}
               />
               
               {/* Delete Peptide Button - Top right corner (only show if more than 1 peptide) */}
@@ -495,6 +495,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave }) {
         </div>
         </div>
       </div>
+    </div>
+  );
+
+  // Return with or without card wrapper based on noCard prop
+  if (noCard) {
+    return content;
+  }
+
+  return (
+    <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      {content}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import React from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker, Target, CheckCircle } from 'lucide-react'
+import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker, Target, CheckCircle, PenTool } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
+import { getChromeGradient } from '../../utils/recon'
+import { penColors } from '../../utils/penColors'
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
@@ -12,6 +14,33 @@ function getSupplementIcon(delivery, className = "h-3 w-3") {
         case 'oral':
         default: return <Pill className={className} />;
     }
+}
+
+// Helper function to get pen color
+const getResolvedPenColor = (penColor) => {
+  if (!penColor) return '#9ca3af';
+  const raw = String(penColor).trim();
+  const isHex = raw.startsWith('#');
+  if (isHex) return raw;
+  
+  const foundColor = penColors.find(color => 
+    color.name.toLowerCase() === raw.toLowerCase()
+  );
+  
+  return foundColor ? foundColor.hex : '#9ca3af';
+};
+
+// Helper function to get delivery icon for peptides
+function getPeptideDeliveryIcon(item, className = "h-3 w-3") {
+    if (typeof item === 'object' && item.deliveryMethod) {
+        switch (item.deliveryMethod) {
+            case 'pen': return <PenTool className={className} />;
+            case 'syringe': return <Syringe className={className} />;
+            case 'nasal': return <Droplet className={className} />;
+            default: return <Syringe className={className} />;
+        }
+    }
+    return <Syringe className={className} />;
 }
 
 function getMonthDays(date) {
@@ -106,18 +135,18 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const isToday = d && new Date().toDateString() === d.toDateString();
                     
                     return (
-                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] ${sched.doneAll ? 'ring-2 ring-green-200' : ''}`} style={{ 
-                            borderColor: theme.border,
+                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] ${sched.doneAll ? 'opacity-60' : ''}`} style={{ 
+                            borderColor: sched.doneAll ? '#D1D5DB' : theme.border,
                             backgroundColor: d ? (
                                 isToday ? theme.primary + '15' :
-                                sched.doneAll ? theme.success + '10' : 
+                                sched.doneAll ? '#F3F4F6' : 
                                 hasActivity ? theme.primary + '05' :
                                 theme.cardBackground
                             ) : 'transparent'
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             {/* Mobile-first layout */}
                             <div className="flex flex-col h-full">
-                                {/* Date and primary icons row */}
+                                {/* Date and icons row */}
                                 <div className="flex items-center justify-between mb-1">
                                     <span className={`text-sm sm:text-base md:text-xl font-bold ${isToday ? 'bg-white rounded-full w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex justify-center items-center shadow-sm text-xs sm:text-sm md:text-xl' : ''}`} style={{ 
                                         backgroundColor: isToday ? theme.primary : 'transparent',
@@ -126,85 +155,78 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         {d ? d.getDate() : ''}
                                     </span>
                                     
-                                    {/* Mobile: Show only essential icons */}
+                                    {/* Single row with icons and completion dot */}
                                     {d && (
-                                        <div className="flex items-center gap-0.5 sm:gap-1">
-                                            {/* Shopping cart */}
-                                            {buyCount > 0 && <ShoppingCart size={12} className="sm:size-3 md:size-4" style={{ color: theme.primary }} />}
-                                            {/* Mobile & Medium: Show only first delivery method */}
-                                            {deliveryMethods.slice(0, 1).map((delivery, idx) => (
-                                                <span key={idx} className="md:hidden">{getSupplementIcon(delivery, "h-3 w-3")}</span>
-                                            ))}
-                                            {/* Desktop: Show all delivery methods */}
-                                            <div className="hidden md:flex md:gap-0.5">
-                                                {deliveryMethods.map((delivery, idx) => (
-                                                    <span key={idx}>{getSupplementIcon(delivery, "h-4 w-4")}</span>
-                                                ))}
-                                            </div>
+                                        <div className="flex items-center gap-1 sm:gap-1.5">
+                                            {/* Protocols (Syringe) - Sage Grey */}
+                                            {peptideCount > 0 && <Syringe size={12} className="sm:size-3 md:size-4" style={{ color: '#73796D' }} />}
+                                            
+                                            {/* Supplements (Pill) - Classic */}
+                                            {suppCount > 0 && <Pill size={12} className="sm:size-3 md:size-4" style={{ color: '#A4A897' }} />}
+                                            
+                                            {/* Group Buys (Shopping cart) - Olive */}
+                                            {buyCount > 0 && <ShoppingCart size={12} className="sm:size-3 md:size-4" style={{ color: '#9B9B7A' }} />}
+                                            
+                                            {/* Completion indicator - Upper right */}
+                                            {hasActivity && (
+                                                sched.doneAll ? (
+                                                    <CheckCircle 
+                                                        size={14} 
+                                                        className="sm:size-4 md:size-5 flex-shrink-0" 
+                                                        style={{ color: '#4CAF50' }}
+                                                        strokeWidth={2.5}
+                                                        title="All tasks completed"
+                                                    />
+                                                ) : (
+                                                    <div 
+                                                        className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0" 
+                                                        style={{ backgroundColor: '#73796D' }}
+                                                        title="Tasks pending"
+                                                    />
+                                                )
+                                            )}
                                         </div>
                                     )}
                                 </div>
 
-
-                                {/* Desktop: Full layout */}
-                                <div className="hidden md:block">
-                                    {d && (
-                                        <div className="flex items-center justify-end gap-1 mb-2">
-                                            {/* Task completion indicator - grey when partial, filled when complete */}
-                                            {hasActivity && (
-                                                <div className="w-4 h-4 rounded-full border flex items-center justify-center">
-                                                    {sched.doneAll ? (
-                                                        <CheckCircle size={10} style={{ color: theme.success }} />
-                                                    ) : (
-                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.textLight }} />
-                                                    )}
+                                {/* Desktop: Show protocol list */}
+                                <div className="hidden md:block space-y-1">
+                                    {peptides.slice(0, 2).map((p, idx) => {
+                                        const peptideName = typeof p === 'object' ? p.name : p;
+                                        const dose = typeof p === 'object' ? p.dose : '';
+                                        const unit = typeof p === 'object' ? p.unit : '';
+                                        const deliveryMethod = typeof p === 'object' ? p.deliveryMethod : 'syringe';
+                                        const penColor = typeof p === 'object' ? p.penColor : undefined;
+                                        const penType = typeof p === 'object' ? p.penType : undefined;
+                                        const isCompleted = isPeptideCompleted(p, d, 'AM') || isPeptideCompleted(p, d, 'PM') || isPeptideCompleted(p, d, 'Morning') || isPeptideCompleted(p, d, 'Evening');
+                                        
+                                        return (
+                                            <div 
+                                                key={idx} 
+                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] md:text-[11px] leading-tight ${isCompleted ? 'line-through opacity-60' : ''}`} 
+                                                style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                                            >
+                                                <span className="truncate flex-1">{peptideName}</span>
+                                                {dose && <span className="opacity-75">{dose}{unit ? ` ${unit}` : ''}</span>}
+                                                {deliveryMethod === 'pen' && penColor && (
+                                                    <div 
+                                                        className="w-2 h-2 rounded-full border border-gray-300 flex-shrink-0" 
+                                                        style={{ 
+                                                            background: getChromeGradient(getResolvedPenColor(penColor)),
+                                                            opacity: isCompleted ? 0.5 : 1
+                                                        }}
+                                                        title={`${penColor}${penType ? ` ${penType}` : ''}`}
+                                                    />
+                                                )}
+                                                <div className="flex-shrink-0">
+                                                    {getPeptideDeliveryIcon(p, "h-2 w-2")}
                                                 </div>
-                                            )}
-                                            {/* Peptide count */}
-                                            {peptideCount > 0 && (
-                                                <div className="flex items-center gap-0.5 text-[10px]" style={{ color: theme.textLight }}>
-                                                    <Droplet className="h-3 w-3" />
-                                                    <span>{peptideCount}</span>
-                                                </div>
-                                            )}
-                                            {/* Supplement count */}
-                                            {suppCount > 0 && (
-                                                <div className="flex items-center gap-0.5 text-[10px]" style={{ color: theme.textLight }}>
-                                                    {getSupplementIcon(primaryDelivery, "h-3 w-3")}
-                                                    <span>{suppCount}</span>
-                                                </div>
-                                            )}
-                                            {/* Goals count */}
-                                            {totalGoals > 0 && (
-                                                <div className="flex items-center gap-0.5 text-[10px]" style={{ color: theme.textLight }}>
-                                                    <Target className="h-3 w-3" />
-                                                    <span>{completedGoals}/{totalGoals}</span>
-                                                </div>
-                                            )}
-                                            {/* Shopping cart */}
-                                            {buyCount > 0 && <ShoppingCart size={14} style={{ color: theme.primary }} />}
-                                        </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {peptides.length > 2 && (
+                                        <div className="px-1.5 py-0.5 rounded text-[10px] md:text-[11px]" style={{ backgroundColor: theme.secondary, color: theme.text }} title={`+${peptides.length - 2} more`}>+{peptides.length - 2}</div>
                                     )}
-                                    
-                                    {/* Desktop peptide list */}
-                                    <div className="space-y-1">
-                                        {peptides.slice(0, 3).map((p, idx) => {
-                                            const peptideName = typeof p === 'object' ? p.name : p;
-                                            const isCompleted = isPeptideCompleted(p, d, 'AM') || isPeptideCompleted(p, d, 'PM') || isPeptideCompleted(p, d, 'Morning') || isPeptideCompleted(p, d, 'Evening');
-                                            return (
-                                                <div 
-                                                    key={idx} 
-                                                    className={`px-1.5 py-0.5 rounded text-[10px] md:text-[11px] leading-tight truncate ${isCompleted ? 'line-through opacity-60' : ''}`} 
-                                                    style={{ backgroundColor: theme.accent, color: theme.accentText }}
-                                                >
-                                                    {peptideName}
-                                                </div>
-                                            );
-                                        })}
-                                        {peptides.length > 3 && (
-                                            <div className="px-1.5 py-0.5 rounded text-[10px] md:text-[11px]" style={{ backgroundColor: theme.secondary, color: theme.text }} title={`+${peptides.length - 3} more`}>+{peptides.length - 3}</div>
-                                        )}
-                                    </div>
                                 </div>
 
                                 {/* Notes - simplified for mobile */}

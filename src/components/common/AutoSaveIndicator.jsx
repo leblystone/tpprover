@@ -1,5 +1,5 @@
 import React from 'react';
-import { Save, Clock, Trash2 } from 'lucide-react';
+import { Save, Clock } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 
 const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = false }) => {
@@ -20,13 +20,9 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
     return (
       <div className="flex items-center gap-2">
         {isSaving ? (
-          <ModernTooltip text="Saving..." position="bottom">
-            <Clock size={16} className="animate-spin" style={{ color: theme.primary }} />
-          </ModernTooltip>
+          <Clock size={16} className="animate-spin" style={{ color: theme.primary }} />
         ) : (
-          <ModernTooltip text={`Auto-saved ${formatTime(lastSaved)}`} position="bottom">
-            <Save size={16} style={{ color: theme.success }} />
-          </ModernTooltip>
+          <Save size={16} style={{ color: theme.success }} />
         )}
       </div>
     );
@@ -36,26 +32,12 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
   return (
     <div className="text-xs flex items-center gap-2 opacity-60" style={{ color: theme.textLight }}>
       {isSaving ? (
-        <>
-          <Clock size={12} className="animate-spin" />
-          <span>Saving...</span>
-        </>
+        <Clock size={12} className="animate-spin" />
       ) : (
         <>
           <Save size={12} />
           <span>Saved {formatTime(lastSaved)}</span>
         </>
-      )}
-      
-      {onClearForm && (
-        <button
-          onClick={onClearForm}
-          className="ml-2 p-0.5 opacity-40 hover:opacity-80 transition-opacity"
-          style={{ color: theme.textLight }}
-          title="Clear form"
-        >
-          <Trash2 size={10} />
-        </button>
       )}
     </div>
   );

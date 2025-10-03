@@ -24,8 +24,17 @@ html, body, #root {
 }
 
 .tooltip-overlay {
-  z-index: 2147483646 !important;
+  z-index: 2147483647 !important;
   position: absolute !important;
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+  pointer-events: none !important;
+}
+
+/* Ensure tooltips can escape overflow containers */
+.group:hover .tooltip-overlay {
+  position: fixed !important;
+  transform: translateZ(0) !important;
 }
 
 /* Typography scale (reverted to original app defaults) */

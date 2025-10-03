@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pill, Syringe, Check, Info, PenTool, Droplet, Beaker } from 'lucide-react';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
-import { penColors } from '../recon/ReconCalculatorPanel';
+import { penColors } from '../../utils/penColors';
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 // Preferred display names to match Reconstitution UI exactly
@@ -49,18 +49,29 @@ export default function TasksList({ tasks, theme, onToggle }) {
         return <p className="text-xs text-center py-3" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
 
+    // Debug: Log the first few tasks to see what data we have
+    console.log('🔍 TasksList received tasks:', tasks.length, 'total tasks');
+    console.log('🔍 First 3 tasks:', tasks.slice(0, 3).map(t => ({
+        name: t.name,
+        type: t.type,
+        deliveryMethod: t.deliveryMethod,
+        penColor: t.penColor,
+        dose: t.dose,
+        unit: t.unit
+    })));
+
     const amTasks = tasks.filter(t => t.time === 'AM');
     const pmTasks = tasks.filter(t => t.time === 'PM');
     const otherTasks = tasks.filter(t => t.time !== 'AM' && t.time !== 'PM');
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-2 overflow-hidden">
             {otherTasks.length > 0 && (
                 <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} />
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-3 overflow-hidden">
                 <TaskListSection title="AM" tasks={amTasks} theme={theme} onToggle={onToggle} />
-                <div className="mt-2 border-t pt-2 md:mt-0 md:border-t-0 md:border-l md:pl-3" style={{ borderColor: theme.border }}>
+                <div className="mt-2 border-t pt-2 md:mt-0 md:border-t-0 md:border-l md:pl-3 overflow-hidden" style={{ borderColor: theme.border }}>
                      <TaskListSection title="PM" tasks={pmTasks} theme={theme} onToggle={onToggle} />
                 </div>
             </div>
@@ -71,15 +82,15 @@ export default function TasksList({ tasks, theme, onToggle }) {
 const TaskListSection = ({ title, tasks, theme, onToggle }) => {
     if (!tasks || tasks.length === 0) return null;
     return (
-        <div>
+        <div className="overflow-hidden">
             <h4 className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>{title}</h4>
-            <ul className="space-y-1.5">
+            <ul className="space-y-1.5 overflow-hidden">
                 {tasks.map(task => (
                     <li key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
                         <div className="flex items-center gap-3 flex-1">
                             <button
                                 onClick={() => onToggle(task)}
-                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110`}
+                                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110`}
                                 style={{
                                     borderColor: task.completed ? theme.primary : theme.border,
                                     backgroundColor: task.completed ? theme.primary : 'transparent'
@@ -88,30 +99,45 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
                                 {task.completed && <Check size={12} className="text-white" />}
                             </button>
                             
-                            <div className={`flex-1 ${task.completed ? 'line-through text-gray-400' : ''}`}>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-sm" style={{ color: theme.text }}>{task.name}</span>
-                                    {task.type === 'peptide' && task.deliveryMethod && (
-                                        <DeliveryInfo task={task} theme={theme} />
-                                    )}
+                            <div className="flex-1">
+                                <div className={`font-semibold text-sm ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                    {task.name}
                                 </div>
-                                {task.type === 'peptide' && task.protocolName && (
-                                    <div className="text-xs" style={{ color: theme.textLight }}>
-                                        Protocol For: {task.protocolName}
-                                    </div>
-                                )}
                             </div>
                         </div>
                         
-                        <div className="text-right">
-                            <div className="font-semibold text-sm" style={{ color: theme.text }}>
-                                {task.dose}
+                        <div className={`text-right flex items-center gap-2 ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`}>
+                            <div className="text-right">
+                                <div className="font-semibold text-sm" style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                    {task.dose}{task.unit ? ` ${task.unit}` : ''}
+                                </div>
                             </div>
-                            {task.unit && (
-                                <div className="text-xs" style={{ color: theme.textLight }}>
-                                    {task.unit}
+                            {task.deliveryMethod === 'pen' && (
+                                <div className="flex items-center gap-1">
+                                    {console.log('🖊️ Pen display debug:', {
+                                        deliveryMethod: task.deliveryMethod,
+                                        penColor: task.penColor,
+                                        penType: task.penType,
+                                        resolvedColor: getResolvedPenColor(task.penColor)
+                                    })}
+                                    <div 
+                                        className="w-3 h-3 rounded-full border border-gray-300 shadow-sm flex-shrink-0" 
+                                        style={{ 
+                                            background: task.completed ? '#d1d5db' : getChromeGradient(getResolvedPenColor(task.penColor)),
+                                            opacity: task.completed ? 0.5 : 1
+                                        }}
+                                        title={`Pen Color: ${task.penColor || 'Default'}`}
+                                    />
+                                    {task.penType && (
+                                        <span className="text-xs font-medium" style={{ color: task.completed ? '#9ca3af' : theme.textLight }}>
+                                            {task.penType.toUpperCase()}
+                                        </span>
+                                    )}
                                 </div>
                             )}
+                            <div style={{ opacity: task.completed ? 0.5 : 1 }}>
+                                <DeliveryIcon task={task} theme={theme} />
+                            </div>
                         </div>
                     </li>
                 ))}
@@ -120,55 +146,56 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
     )
 };
 
-const DeliveryInfo = ({ task, theme }) => {
-    if (task.deliveryMethod === 'pen') {
-        const raw = String(task.penColor || '').trim();
-        const isHex = raw.startsWith('#');
-        const resolvedHex = isHex ? raw : (Object.entries(penColors).find(([name, hex]) => name.toLowerCase() === raw.toLowerCase())?.[1] || '#9ca3af');
-        const lowerHex = resolvedHex.toLowerCase();
-        const override = penLabelOverrides[lowerHex];
-        const mappedName = colorMap[lowerHex];
-        const nameFromHex = override || mappedName;
-        const colorName = isHex ? (nameFromHex || raw) : raw;
-        const textColor = isColorDark(resolvedHex) ? 'white' : '#1f2937';
-        
-        return (
-            <div className="flex items-center gap-1.5">
-                <PenTool size={14} style={{ color: theme.textLight }} />
-                <div 
-                    className="w-3 h-3 rounded-full border border-gray-300 shadow-sm" 
-                    style={{ backgroundColor: resolvedHex }}
-                />
-                <span className="text-xs" style={{ color: theme.textLight }}>
-                    {colorName || 'Pen'}
-                </span>
-            </div>
-        );
+const DeliveryIcon = ({ task, theme }) => {
+    // Handle peptide delivery methods
+    if (task.type === 'peptide') {
+        if (task.deliveryMethod === 'pen') {
+            return <PenTool size={14} style={{ color: theme.textLight }} />;
+        }
+        if (task.deliveryMethod === 'syringe') {
+            return <Syringe size={14} style={{ color: theme.textLight }} />;
+        }
+        if (task.deliveryMethod === 'nasal') {
+            return <Droplet size={14} style={{ color: theme.textLight }} />;
+        }
     }
-
-    if (task.deliveryMethod === 'syringe') {
-        return (
-            <div className="flex items-center gap-1.5">
-                <Syringe size={14} style={{ color: theme.textLight }} />
-                <span className="text-xs" style={{ color: theme.textLight }}>
-                    {task.administrationRoute ? task.administrationRoute.toUpperCase() : 'Syringe'}
-                </span>
-            </div>
-        );
+    
+    // Handle supplement delivery methods
+    if (task.type === 'supplement') {
+        const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
+        if (delivery === 'injection') {
+            return <Syringe size={14} style={{ color: theme.textLight }} />;
+        }
+        if (delivery === 'powder') {
+            return <Beaker size={14} style={{ color: theme.textLight }} />;
+        }
+        if (delivery === 'pill' || delivery === 'oral') {
+            return <Pill size={14} style={{ color: theme.textLight }} />;
+        }
     }
-
-    if (task.deliveryMethod === 'nasal') {
-        return (
-            <div className="flex items-center gap-1.5">
-                <Droplet size={14} style={{ color: theme.textLight }} />
-                <span className="text-xs" style={{ color: theme.textLight }}>
-                    Nasal
-                </span>
-            </div>
-        );
-    }
-
+    
     return null;
+}
+
+const getResolvedPenColor = (penColor) => {
+    if (!penColor) return '#9ca3af';
+    const raw = String(penColor).trim();
+    const isHex = raw.startsWith('#');
+    if (isHex) return raw;
+    
+    // Find color by name in penColors array
+    const foundColor = penColors.find(color => 
+        color.name.toLowerCase() === raw.toLowerCase()
+    );
+    
+    console.log('🎨 Pen color resolution:', {
+        input: penColor,
+        raw: raw,
+        foundColor: foundColor,
+        result: foundColor ? foundColor.hex : '#9ca3af'
+    });
+    
+    return foundColor ? foundColor.hex : '#9ca3af';
 }
 
 

@@ -1,0 +1,119 @@
+/* Badge animations and effects */
+@keyframes badgeGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+  }
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes progressFill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--progress-width);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Badge card animations */
+.badge-card-earned {
+  animation: fadeInScale 0.6s ease-out;
+}
+
+.badge-card-earned:hover {
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+.badge-progress-bar {
+  animation: progressFill 1s ease-out;
+}
+
+.badge-hero-section {
+  animation: slideInUp 0.8s ease-out;
+}
+
+/* Staggered animation for badge cards */
+.badge-card-stagger-1 { animation-delay: 0.1s; }
+.badge-card-stagger-2 { animation-delay: 0.2s; }
+.badge-card-stagger-3 { animation-delay: 0.3s; }
+.badge-card-stagger-4 { animation-delay: 0.4s; }
+.badge-card-stagger-5 { animation-delay: 0.5s; }
+.badge-card-stagger-6 { animation-delay: 0.6s; }
+
+/* Timeline animations */
+.timeline-item {
+  animation: slideInUp 0.6s ease-out;
+}
+
+.timeline-item:nth-child(1) { animation-delay: 0.1s; }
+.timeline-item:nth-child(2) { animation-delay: 0.2s; }
+.timeline-item:nth-child(3) { animation-delay: 0.3s; }
+.timeline-item:nth-child(4) { animation-delay: 0.4s; }
+.timeline-item:nth-child(5) { animation-delay: 0.5s; }
+
+/* Progress widget animations */
+.progress-widget {
+  animation: fadeInScale 0.8s ease-out;
+}
+
+/* Search and filter animations */
+.search-filter-container {
+  animation: slideInUp 0.6s ease-out;
+  animation-delay: 0.3s;
+  animation-fill-mode: both;
+}
+
+/* Category section animations */
+.category-section {
+  animation: slideInUp 0.6s ease-out;
+}
+
+.category-section:nth-child(1) { animation-delay: 0.4s; }
+.category-section:nth-child(2) { animation-delay: 0.5s; }
+.category-section:nth-child(3) { animation-delay: 0.6s; }
+.category-section:nth-child(4) { animation-delay: 0.7s; }
+.category-section:nth-child(5) { animation-delay: 0.8s; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .badge-card-earned:hover {
+    animation: none;
+  }
+  
+  .badge-hero-section {
+    animation-duration: 0.6s;
+  }
+}

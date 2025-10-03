@@ -8,7 +8,8 @@ export default function VialLabelPreview({
   penType, 
   penColor, 
   theme,
-  currentPeptideIndex = 0
+  currentPeptideIndex = 0,
+  compact = false
 }) {
   // Get current peptide
   const currentPeptide = form.peptides?.[currentPeptideIndex];
@@ -55,13 +56,13 @@ export default function VialLabelPreview({
   return (
     <div className="flex justify-center items-start h-full">
       <div className="relative inline-block" style={{ marginLeft: '-5%' }}>
-        {/* Vial Image with subtle shadow - Maximum size */}
+        {/* Vial Image with subtle shadow - Size based on compact prop */}
         <img 
           src={vialImage} 
           alt="Vial" 
-          className="w-full h-auto"
+          className={compact ? "w-32 h-auto" : "w-full h-auto"}
           style={{ 
-            maxWidth: '100%',
+            maxWidth: compact ? '128px' : '100%',
             filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08))'
           }}
         />

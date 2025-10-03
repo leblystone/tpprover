@@ -128,13 +128,13 @@ export function isTaskCompleted(taskId, date = getTodayKey(), timeSlot = 'AM') {
   const completionData = getTaskCompletion();
   const isCompleted = completionData[date]?.[timeSlot]?.[taskId] || false;
   
-  console.log('❓ Check Task Completion:', {
-    taskId,
-    date,
-    timeSlot,
-    isCompleted,
-    availableData: completionData[date]?.[timeSlot] || {}
-  });
+  // console.log('❓ Check Task Completion:', {
+  //   taskId,
+  //   date,
+  //   timeSlot,
+  //   isCompleted,
+  //   availableData: completionData[date]?.[timeSlot] || {}
+  // });
   
   return isCompleted;
 }
@@ -215,11 +215,11 @@ export function generateTaskId(task) {
   
   const taskId = `${normalizedType}-${normalizedName}-${normalizedDose}-${normalizedUnit}-${normalizedTime}`.toLowerCase().replace(/\s+/g, '-');
   
-  // Debug logging to help track issues
-  console.log('🆔 Generated Task ID:', {
-    original: task,
-    generated: taskId
-  });
+  // Debug logging to help track issues (commented out to reduce console spam)
+  // console.log('🆔 Generated Task ID:', {
+  //   original: task,
+  //   generated: taskId
+  // });
   
   return taskId;
 }

@@ -12,17 +12,29 @@ import DocumentationUpload from '../components/common/DocumentationUpload'
 import StockpileCard from '../components/stockpile/StockpileCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
+import StockpileHelpPanel from '../components/stockpile/StockpileHelpPanel'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import useAutoSave from '../utils/useAutoSave'
+import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate();
   const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
+  const [activeTab, setActiveTab] = useState('onhand')
   const [openAdd, setOpenAdd] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] })
+  
+  // Auto-save functionality for stockpile form
+  const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
+    'tpprover_stockpile_form_draft',
+    form,
+    setForm,
+    2000 // 2 second delay
+  )
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
@@ -158,6 +170,14 @@ export default function Stockpile() {
 
   const [manageName, setManageName] = useState(null)
   const [manageRows, setManageRows] = useState([])
+  
+  // Auto-save functionality for manage modal
+  const { isSaving: isManageSaving, lastSaved: lastManageSaved, clearSavedData: clearManageSavedData, markAsSubmitted: markManageSubmitted, updateFormData: updateManageData } = useAutoSave(
+    `tpprover_manage_${manageName || 'default'}_draft`,
+    manageRows,
+    setManageRows,
+    2000 // 2 second delay
+  )
   const [showHistory, setShowHistory] = useState(false)
   const openManage = (peptideName) => {
     setManageName(peptideName)
@@ -223,6 +243,36 @@ export default function Stockpile() {
     const key = `${duplicate.group1.groupKey}-${duplicate.group2.groupKey}`;
     setDismissedDuplicates(prev => new Set([...prev, key]));
   }
+
+  // Set topbar tabs via custom event
+  useEffect(() => {
+    const tabs = [
+      { value: 'onhand', label: 'On Hand' },
+      { value: 'incoming', label: 'Incoming' }
+    ];
+    
+    const handleAddClick = () => {
+      if (isReadOnly) {
+        setShowUpgradeModal(true);
+        return;
+      }
+      setOpenAdd(true);
+    };
+    
+    window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
+      detail: { 
+        tabs, 
+        activeTab, 
+        onTabChange: setActiveTab,
+        onActionClick: handleAddClick,
+        actionDisabled: isReadOnly
+      } 
+    }));
+    
+    return () => {
+      window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+    };
+  }, [activeTab, isReadOnly])
   const saveManage = () => {
     // First, convert any "kit" entries in the temporary edit state back to "vial" for storage
     const convertedRows = manageRows.map(row => {
@@ -269,6 +319,7 @@ export default function Stockpile() {
       })
     } catch {}
     setItems([...cleaned, ...others])
+    markManageSubmitted(); // Clear auto-save data
     setManageName(null)
     setManageRows([])
   }
@@ -304,44 +355,34 @@ export default function Stockpile() {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <button aria-label="Filters" className="p-2 rounded-md border" onClick={() => setShowFilters(v => !v)} style={{ borderColor: theme.border }}>
-            <Filter className="h-4 w-4" />
-          </button>
-        </div>
-        <button 
-          className="px-3 py-2 rounded-md text-sm font-semibold" 
-          style={{ 
-            backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
-            color: theme.textOnPrimary,
-            opacity: isReadOnly ? 0.6 : 1,
-            cursor: isReadOnly ? 'not-allowed' : 'pointer'
-          }} 
-          onClick={() => {
-            if (isReadOnly) {
-              setShowUpgradeModal(true);
-              return;
-            }
-            setOpenAdd(true);
-          }}
-        >
-          <PlusCircle className="h-4 w-4 inline mr-1"/>Add Peptide
-        </button>
-      </div>
-      {showFilters && (
-        <div className="flex items-center gap-2">
-          <input className="p-2 rounded border text-sm" placeholder="Search peptide or batch" value={query} onChange={e => setQuery(e.target.value)} style={{ borderColor: theme.border }} />
-          <input className="p-2 rounded border text-sm" placeholder="Filter by vendor" value={vendorFilter} onChange={e => setVendorFilter(e.target.value)} style={{ borderColor: theme.border }} />
-        </div>
-      )}
+      <StockpileHelpPanel theme={theme} />
       <div className="space-y-6">
-        {groups.length === 0 && incomingGroups.length === 0 ? (
-          <p className="text-sm" style={{ color: theme.textLight }}>No inventory yet.</p>
-        ) : (
+        {/* On Hand Tab */}
+        {activeTab === 'onhand' && (
           <div>
-            <div className="font-semibold" style={{ color: theme.primaryDark }}>On-hand Stock</div>
-            <hr className="mb-3" style={{ borderColor: theme.border }} />
+            {groups.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                  <Package size={32} style={{ color: theme.primary }} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Inventory On Hand</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                  Add peptides to your stockpile to track quantities, vendors, batches, and documentation. 
+                  Delivered orders automatically sync here, or add items manually to maintain your inventory.
+                </p>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setOpenAdd(true)}
+                    className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    <PlusCircle size={18} />
+                    Add Your First Peptide
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div>
             
             {/* Duplicate Detection */}
             <DuplicateDetection
@@ -473,12 +514,19 @@ export default function Stockpile() {
                     </div>
                 ))}
             </div>
-            {incomingGroups.length > 0 && (
-              <>
-                <div className="font-semibold" style={{ color: theme.primaryDark }}>Incoming Peptides</div>
-                <hr className="mb-3" style={{ borderColor: theme.border }} />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
-                  {incomingGroups.map(g => (
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Incoming Tab */}
+        {activeTab === 'incoming' && (
+          <div>
+            {incomingGroups.length === 0 ? (
+              <p className="text-sm" style={{ color: theme.textLight }}>No incoming orders with pending delivery.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
+                {incomingGroups.map(g => (
                     <div key={`incoming-${g.name}`} className="p-4 rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
@@ -505,11 +553,16 @@ export default function Stockpile() {
                         ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
+                ))}
+              </div>
             )}
+          </div>
+        )}
+      </div>
 
+      {/* Used / Depleted section - show on On Hand tab only */}
+      {activeTab === 'onhand' && (
+        <div className="space-y-6">
             {groups.some(g => g.totalMg <= 0) && (
               <>
                 <div className="font-semibold" style={{ color: theme.primaryDark }}>Out of Stock</div>
@@ -530,13 +583,25 @@ export default function Stockpile() {
                 </div>
               </>
             )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <Modal open={openAdd} onClose={() => setOpenAdd(false)} title="Add Peptide" theme={theme} footer={(
+      <Modal 
+        open={openAdd} 
+        onClose={() => { setOpenAdd(false); clearSavedData(); }} 
+        title="Add Peptide" 
+        titleExtra={
+          <AutoSaveIndicator 
+            isSaving={isSaving}
+            lastSaved={lastSaved}
+            theme={theme}
+            compact={true}
+          />
+        }
+        theme={theme} 
+        footer={(
         <>
-          <button onClick={() => setOpenAdd(false)} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
+          <button onClick={() => { setOpenAdd(false); clearSavedData(); }} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
           <button onClick={() => { 
               // Auto-create new vendor if it doesn't exist
               if (form.vendor && !vendors.some(v => v.name.toLowerCase() === form.vendor.toLowerCase())) {
@@ -553,20 +618,21 @@ export default function Stockpile() {
               }
 
               setItems(prev => [itemToAdd, ...prev]); 
+              markAsSubmitted(); // Clear auto-save data
               setOpenAdd(false); 
               setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] }) 
             }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
         </>
       )}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <TextInput label="Peptide/Amino Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="BPC-157, Superhuman, Lipo-C" theme={theme} />
+          <TextInput label="Peptide/Amino Name" value={form.name} onChange={v => updateFormData({ ...form, name: v })} placeholder="BPC-157, Superhuman, Lipo-C" theme={theme} />
           <div>
             <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Amount & Unit</div>
             <div className="flex items-center p-0.5 rounded border" style={{ borderColor: theme.border }}>
               <input 
                 className="flex-1 w-full border-none outline-none text-sm bg-transparent px-2 py-1.5" 
                 value={form.mg || ''} 
-                onChange={e => setForm({ ...form, mg: e.target.value })} 
+                onChange={e => updateFormData({ ...form, mg: e.target.value })} 
                 placeholder="10 or 0.5" 
                 type="text"
                 inputMode="decimal"
@@ -576,7 +642,7 @@ export default function Stockpile() {
                   <button 
                     key={unit} 
                     type="button" 
-                    onClick={() => setForm({ ...form, mgUnit: unit })}
+                    onClick={() => updateFormData({ ...form, mgUnit: unit })}
                     className={`px-2 py-1 text-xs font-semibold rounded-full ${(form.mgUnit || 'mg') === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-200'}`}
                     style={(form.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
                   >
@@ -589,10 +655,10 @@ export default function Stockpile() {
           <div className="sm:col-span-2">
               <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Quantity & Unit</div>
               <div className="flex items-center p-2 rounded border" style={{ borderColor: theme?.border }}>
-                <input className="flex-1 border-none outline-none text-sm bg-transparent" value={form.quantity || ''} onChange={e => setForm({ ...form, quantity: e.target.value })} placeholder="1" />
+                <input className="flex-1 border-none outline-none text-sm bg-transparent" value={form.quantity || ''} onChange={e => updateFormData({ ...form, quantity: e.target.value })} placeholder="1" />
                 <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
                     {['vial','bottle','kit'].map(k => (
-                        <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, unit: k }))}
+                        <button key={k} type="button" onClick={() => updateFormData({ ...form, unit: k })}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((form.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                             style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
                             {k.charAt(0).toUpperCase() + k.slice(1)}
@@ -601,21 +667,21 @@ export default function Stockpile() {
                 </div>
               </div>
             </div>
-          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
-          <TextInput label="Purity %" value={form.purity} onChange={v => setForm({ ...form, purity: v })} placeholder="e.g., 98" theme={theme} />
-          <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => setForm({ ...form, capColor: v })} placeholder="Blue" theme={theme} />
-          <TextInput label="Batch #" value={form.batchNumber} onChange={v => setForm({ ...form, batchNumber: v })} placeholder="#" theme={theme} />
+          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
+          <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ ...form, purity: v })} placeholder="e.g., 98" theme={theme} />
+          <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => updateFormData({ ...form, capColor: v })} placeholder="Blue" theme={theme} />
+          <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ ...form, batchNumber: v })} placeholder="#" theme={theme} />
         </div>
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => setForm({ ...form, date: v })} theme={theme} />
-            <TextInput label="Use By (Optional)" type="date" value={form.useByDate} onChange={v => setForm({ ...form, useByDate: v })} theme={theme} />
+            <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => updateFormData({ ...form, date: v })} theme={theme} />
+            <TextInput label="Use By (Optional)" type="date" value={form.useByDate} onChange={v => updateFormData({ ...form, useByDate: v })} theme={theme} />
         </div>
         
         {/* Documentation Upload */}
         <div className="mt-4">
           <DocumentationUpload
             documentation={form.documentation}
-            onChange={(documentation) => setForm({ ...form, documentation })}
+            onChange={(documentation) => updateFormData({ ...form, documentation })}
             theme={theme}
             title="Post-Delivery Documentation"
             description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
@@ -626,9 +692,23 @@ export default function Stockpile() {
         </div>
       </Modal>
 
-      <Modal open={!!manageName} onClose={() => { setManageName(null); setManageRows([]); setShowHistory(false) }} title={`${manageName || 'Manage'}`} theme={theme} maxWidth="max-w-3xl" footer={(
+      <Modal 
+        open={!!manageName} 
+        onClose={() => { setManageName(null); setManageRows([]); setShowHistory(false); clearManageSavedData(); }} 
+        title={`${manageName || 'Manage'}`} 
+        titleExtra={
+          <AutoSaveIndicator 
+            isSaving={isManageSaving}
+            lastSaved={lastManageSaved}
+            theme={theme}
+            compact={true}
+          />
+        }
+        theme={theme} 
+        maxWidth="max-w-3xl" 
+        footer={(
         <>
-          <button onClick={() => { setManageName(null); setManageRows([]) }} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
+          <button onClick={() => { setManageName(null); setManageRows([]); clearManageSavedData(); }} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
           <button onClick={saveManage} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
         </>
       )}>
@@ -655,7 +735,7 @@ export default function Stockpile() {
             <div key={row.id} className="space-y-2 border p-3 rounded" style={{ borderColor: theme.border }}>
               <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
                 <div className="sm:col-span-2">
-                  <VendorSuggestInput label="Vendor" value={row.vendorId ? vendorMap[row.vendorId] : (row.vendor || '')} onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, vendor: v, vendorId: (vendors || []).find(vnd => vnd.name === v)?.id || null } : r))} placeholder="Vendor" theme={theme} />
+                  <VendorSuggestInput label="Vendor" value={row.vendorId ? vendorMap[row.vendorId] : (row.vendor || '')} onChange={v => updateManageData(prev => prev.map(r => r.id === row.id ? { ...r, vendor: v, vendorId: (vendors || []).find(vnd => vnd.name === v)?.id || null } : r))} placeholder="Vendor" theme={theme} />
                 </div>
                 <div className="sm:col-span-1">
                   <TextInput label="mg" value={row.mg} onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: v } : r))} placeholder="10" theme={theme} />

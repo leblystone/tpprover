@@ -1,19 +1,20 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Clock } from 'lucide-react';
 import logo from '../assets/tpp-logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
+import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
+import SignupAgreementModal from '../components/legal/SignupAgreementModal';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import { 
   registerUser, 
   loginUser, 
-  getEmailWhitelist,
   checkAndAssignFounderStatus,
-  getUserFounderStatus,
-  checkUserExists
+  getUserFounderStatus
 } from '../services/firebase';
+import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -24,20 +25,12 @@ const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) 
 
 // Legacy localStorage functions removed - now using Firebase
 
-async function validateEmail(email) {
-  try {
-    const whitelist = await getEmailWhitelist();
-    
-    // Check if email is whitelisted
-    if (!whitelist.includes(email.toLowerCase())) {
-      return { valid: false, error: 'This email is not authorized for beta access. Please contact support if you believe this is an error.' };
-    }
-    
-    return { valid: true };
-  } catch (error) {
-    console.error('Email validation failed:', error);
-    return { valid: false, error: 'Unable to validate email access. Please try again.' };
+// Standard email validation for normal login/signup
+function validateEmail(email) {
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { valid: false, error: 'Please enter a valid email address.' };
   }
+  return { valid: true };
 }
 
 // markInviteUsed now handled by Firebase service
@@ -50,7 +43,7 @@ export default function Login() {
     const isTrialMode = searchParams.get('trial') === 'true';
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
-    const [mode, setMode] = useState('promptEmail'); // 'promptEmail' | 'login' | 'signup'
+    const [mode, setMode] = useState('login'); // 'login' | 'signup'
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -58,16 +51,19 @@ export default function Login() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showTerms, setShowTerms] = useState(false);
+    const [showPrivacy, setShowPrivacy] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [isReturningUser, setIsReturningUser] = useState(false);
     const [needsPasswordForSync, setNeedsPasswordForSync] = useState(false);
+    const [showAgreementModal, setShowAgreementModal] = useState(false);
     
     // Check if user is already authenticated
     useEffect(() => {
         if (!isFirebaseLoading && firebaseUser) {
             // User is already logged in, redirect to dashboard
             setUser({ email: firebaseUser.email, uid: firebaseUser.uid });
-            navigate('/app/dashboard');
+            startTransition(() => {
+                navigate('/app/dashboard');
+            });
         }
         
         // Check if user needs to re-enter password for data sync
@@ -78,17 +74,14 @@ export default function Login() {
         }
     }, [firebaseUser, isFirebaseLoading, setUser, navigate]);
 
-    const pwErrors = useMemo(() => {
-      if (mode !== 'signup') return []
-      const errs = []
-      if (password.length < 8) errs.push('At least 8 characters')
-      if (!/[A-Z]/.test(password)) errs.push('One uppercase letter')
-      if (!/[a-z]/.test(password)) errs.push('One lowercase letter')
-      if (!/\d/.test(password)) errs.push('One number')
-      if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errs.push('One special character')
-      if (confirmPassword && password !== confirmPassword) errs.push('Passwords must match')
-      return errs
-    }, [mode, password, confirmPassword]);
+
+    const canSubmit = useMemo(() => {
+      if (!email || !password) return false;
+      if (mode === 'signup') {
+        return password === confirmPassword && password.length >= 6;
+      }
+      return true;
+    }, [email, password, confirmPassword, mode]);
 
     const doLogin = async () => {
       try {
@@ -189,7 +182,9 @@ export default function Login() {
         }
         
         setUser(user);
-        navigate('/dashboard');
+        startTransition(() => {
+            navigate('/app/dashboard');
+        });
         return true;
       } catch (error) {
         console.error('Login failed:', error);
@@ -249,6 +244,26 @@ export default function Login() {
           console.error('Error checking founder status:', error);
         }
         
+        // Record agreement acceptance
+        try {
+          await recordAgreement(
+            AGREEMENT_TYPES.SIGNUP_TERMS,
+            AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
+            { signupFlow: true },
+            firebaseUser.email
+          );
+          
+          await recordAgreement(
+            AGREEMENT_TYPES.SIGNUP_PRIVACY,
+            AGREEMENT_VERSIONS.PRIVACY_POLICY,
+            { signupFlow: true },
+            firebaseUser.email
+          );
+        } catch (error) {
+          console.error('Error recording agreements:', error);
+          // Continue with signup even if agreement recording fails
+        }
+
         // Set user in app context
         const user = { 
           email: firebaseUser.email, 
@@ -279,7 +294,9 @@ export default function Login() {
         try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
         
         setUser(user);
-        navigate('/dashboard');
+        startTransition(() => {
+            navigate('/app/dashboard');
+        });
         return true;
       } catch (error) {
         console.error('Signup failed:', error);
@@ -306,55 +323,6 @@ export default function Login() {
       }
     };
 
-    const handleEmailSubmit = async () => {
-        if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-            setError('Please enter a valid email address.');
-            return;
-        }
-        
-        try {
-            console.log('🔍 STEP 1: Checking if user exists for email:', email);
-            
-            // Check if user exists using proper Firebase method
-            const userExists = await checkUserExists(email);
-            console.log('🔍 STEP 2: checkUserExists result:', userExists);
-            
-            if (userExists) {
-                // User exists! Show login form - skip all invite/whitelist validation
-                console.log('✅ STEP 3: Existing user detected - showing login form');
-                console.log('🔄 STEP 4: Setting isReturningUser to true and mode to login');
-                setIsReturningUser(true);
-                setMode('login');
-                setError('');
-                console.log('✅ STEP 5: Returning early - should NOT show invite code field');
-                setLoading(false);
-                return;
-            } else {
-                // New user - continue with signup flow
-                console.log('🆕 STEP 3: New user detected - checking whitelist');
-                console.log('❗ If you are an existing user but seeing this, use "Already have an account?" button below');
-                setIsReturningUser(false);
-            }
-            
-            // For new users, check if email is whitelisted for beta
-            const whitelist = await getEmailWhitelist();
-            console.log('📋 Email whitelist:', whitelist);
-            console.log('🔍 Checking if', email.toLowerCase(), 'is in whitelist');
-            
-            if (!whitelist.includes(email.toLowerCase())) {
-                setError('This email is not authorized for beta access. Please check your invitation email or contact support with your email address for assistance.');
-                return;
-            }
-            
-            // New user - show signup form
-            console.log('✅ Email is whitelisted - showing signup form');
-            setMode('signup');
-            setError('');
-        } catch (error) {
-            console.error('❌ Email validation failed:', error);
-            setError('Unable to validate email. Please try again.');
-        }
-    };
 
     const handleForgotPassword = async () => {
         if (!email) {
@@ -382,48 +350,34 @@ export default function Login() {
         }
     };
 
-    const forceLoginMode = () => {
-        setIsReturningUser(true);
-        setMode('login');
-        setError('Please enter your password to log in.');
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
 
-        if (mode === 'promptEmail') {
-            await handleEmailSubmit();
-            setLoading(false);
-            return;
-        }
-
-        try {
-            if (mode === 'login') {
+        if (mode === 'login') {
+            setLoading(true);
+            try {
                 await doLogin();
-            } else { // signup
-                // Validate credentials first, then show terms
-                const validationSuccess = await validateSignupCredentials();
-                if (validationSuccess) {
-                    setShowTerms(true);
-                }
+            } catch (error) {
                 setLoading(false);
             }
+        } else { // signup
+            // Show agreement modal instead of proceeding directly
+            setShowAgreementModal(true);
+        }
+    };
+
+    const handleAgreementAccept = async () => {
+        setLoading(true);
+        setShowAgreementModal(false);
+        try {
+            await doSignup();
         } catch (error) {
             setLoading(false);
         }
     };
 
-  const acceptTerms = async () => {
-      setShowTerms(false);
-      setLoading(true);
-      try {
-          await doSignup();
-      } catch (error) {
-          setLoading(false);
-      }
-  };
 
 
     return (
@@ -448,17 +402,13 @@ export default function Login() {
                     <div className="p-8 space-y-6 rounded-xl shadow-lg" style={{ backgroundColor: theme.white }}>
                         <div className="text-center">
                             <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>
-                                {mode === 'promptEmail' && 'Sign in or create an account'}
                                 {mode === 'login' && 'Welcome Back'}
-                                {mode === 'signup' && (isReturningUser ? 'Complete Your Account Setup' : 'Join the Beta')}
+                                {mode === 'signup' && 'Create Your Account'}
                             </h2>
-                            {mode !== 'promptEmail' && (
-                                <p className="text-sm text-gray-500 mt-1">
-                                    <button onClick={() => { setMode('promptEmail'); setPassword(''); setConfirmPassword(''); setError(''); }} className="font-semibold hover:underline" style={{ color: theme.primary }}>
-                                        Use a different email
-                                    </button>
-                                </p>
-                            )}
+                            <p className="text-sm mt-2" style={{ color: theme.textLight }}>
+                                {mode === 'login' && 'Sign in to your account'}
+                                {mode === 'signup' && 'Join The Pep Planner'}
+                            </p>
                         </div>
 
                         <form className="space-y-4" onSubmit={handleSubmit} onKeyDown={(e) => {
@@ -476,40 +426,38 @@ export default function Login() {
                                     required 
                                     className="w-full px-4 py-3 border rounded-lg bg-gray-50" 
                                     style={{ borderColor: theme.border }} 
-                                    disabled={mode !== 'promptEmail'}
                                 />
                             </div>
                             
-                            {mode === 'login' && (
-                                <div className="relative">
-                                    <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            )}
+                            <div className="relative">
+                                <input 
+                                    type={showPassword ? "text" : "password"} 
+                                    placeholder="Password" 
+                                    value={password} 
+                                    onChange={e => setPassword(e.target.value)} 
+                                    required 
+                                    className="w-full px-4 py-3 border rounded-lg bg-gray-50" 
+                                    style={{ borderColor: theme.border }} 
+                                />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
 
-                            {mode === 'signup' && !isReturningUser && (
-                                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                                    <div className="text-sm text-blue-800">
-                                        <strong>Beta Access:</strong> Only whitelisted email addresses can create accounts during the beta period.
-                                    </div>
+                            {mode === 'signup' && (
+                                <div className="relative">
+                                    <input 
+                                        type={showPassword ? "text" : "password"} 
+                                        placeholder="Confirm Password" 
+                                        value={confirmPassword} 
+                                        onChange={e => setConfirmPassword(e.target.value)} 
+                                        required 
+                                        className="w-full px-4 py-3 border rounded-lg bg-gray-50" 
+                                        style={{ borderColor: theme.border }} 
+                                    />
                                 </div>
                             )}
                             
-                            {mode === 'signup' && (
-                                <>
-                                    <div className="relative">
-                                        <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
-                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
-                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
-                                    </div>
-                                    <div className="relative">
-                                        <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full px-4 py-3 border rounded-lg bg-gray-50" style={{ borderColor: theme.border }} />
-                                    </div>
-                                </>
-                            )}
 
                             {needsPasswordForSync && mode === 'login' && (
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -527,59 +475,51 @@ export default function Login() {
                                 <p className="text-sm text-red-600 text-center bg-red-50 p-2 rounded-md">{error}</p>
                             )}
 
-                            {mode === 'signup' && password && (
-                                <div className="text-xs rounded border p-3" style={{ borderColor: theme.border, color: theme.textLight }}>
-                                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                                        {['At least 8 characters', 'One uppercase letter', 'One lowercase letter', 'One number', 'One special character', 'Passwords must match'].map(rule => (
-                                            <li key={rule} className="flex items-center gap-1.5" style={{ color: pwErrors.includes(rule) ? '#991B1B' : '#16A34A' }}>
-                                                <span className="font-mono text-base">{pwErrors.includes(rule) ? '×' : '✓'}</span>
-                                                {rule}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            
-                            {mode === 'login' && (
-                                <div className="text-right">
-                                    <button type="button" className="text-sm text-gray-500 hover:underline">Forgot password?</button>
+                            {mode === 'signup' && password && confirmPassword && password !== confirmPassword && (
+                                <div className="text-xs text-red-600 p-2 rounded border border-red-200 bg-red-50">
+                                    Passwords do not match
                                 </div>
                             )}
 
-                            <button type="submit" disabled={loading} className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: loading ? 0.7 : 1 }}>
+                            
+
+                            <button type="submit" disabled={loading || !canSubmit} className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: (loading || !canSubmit) ? 0.7 : 1 }}>
                                 {loading ? 'Processing...' : 
-                                 (mode === 'promptEmail' ? 'Continue' : 
-                                 (mode === 'login' ? 'Login' : 
-                                 (isReturningUser ? 'Create Account' : 'Join Beta')))}
+                                 (mode === 'login' ? 'Sign In' : 'Create Account')}
                             </button>
                         </form>
 
                         {/* Additional Options */}
-                        <div className="mt-4 text-center space-y-2">
-                            {(mode === 'signup' && !isReturningUser) && (
-                                <div className="space-y-2">
+                        <div className="mt-4 text-center space-y-3">
+                            {mode === 'signup' && (
+                                <div className="flex justify-center">
                                     <button 
-                                        onClick={forceLoginMode}
+                                        onClick={() => { setMode('login'); setPassword(''); setConfirmPassword(''); setError(''); }}
                                         className="text-sm underline hover:no-underline font-medium"
                                         style={{ color: theme.primary }}
                                     >
-                                        Already have an account? Log in instead
+                                        Already have an account? Sign in instead
                                     </button>
-                                    <div className="text-xs" style={{ color: theme.textLight }}>
-                                        Use this if you're an existing user but weren't automatically detected
-                                    </div>
                                 </div>
                             )}
-                            
                             {mode === 'login' && (
-                                <button 
-                                    onClick={handleForgotPassword}
-                                    disabled={loading}
-                                    className="text-sm underline hover:no-underline disabled:opacity-50"
-                                    style={{ color: theme.primary }}
-                                >
-                                    Forgot your password?
-                                </button>
+                                <div className="flex flex-col items-center space-y-3">
+                                    <button 
+                                        onClick={handleForgotPassword}
+                                        disabled={loading}
+                                        className="text-sm underline hover:no-underline disabled:opacity-50"
+                                        style={{ color: theme.primary }}
+                                    >
+                                        Forgot your password?
+                                    </button>
+                                    <button 
+                                        onClick={() => { setMode('signup'); setPassword(''); setConfirmPassword(''); setError(''); }}
+                                        className="text-sm underline hover:no-underline font-medium"
+                                        style={{ color: theme.primary }}
+                                    >
+                                        Don't have an account? Create one
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -590,7 +530,22 @@ export default function Login() {
                 <TermsOfServiceModal
                     open={showTerms}
                     onClose={() => setShowTerms(false)}
-                    onAgree={acceptTerms}
+                    theme={theme}
+                />
+            )}
+
+            {showPrivacy && (
+                <LandingPrivacyModal
+                    open={showPrivacy}
+                    onClose={() => setShowPrivacy(false)}
+                />
+            )}
+
+            {showAgreementModal && (
+                <SignupAgreementModal
+                    open={showAgreementModal}
+                    onAccept={handleAgreementAccept}
+                    onClose={() => setShowAgreementModal(false)}
                     theme={theme}
                 />
             )}

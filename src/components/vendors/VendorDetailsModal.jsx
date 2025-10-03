@@ -46,7 +46,21 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   const removeContact = (idx) => setForm(prev => ({ ...prev, contacts: prev.contacts.filter((_, i) => i !== idx) }))
 
   return (
-    <Modal open={open} onClose={onClose} title={form.name || 'Vendor Details'} theme={theme} maxWidth="max-w-4xl" footer={(
+    <Modal 
+      open={open} 
+      onClose={onClose} 
+      title={form.name || 'Vendor Details'} 
+      titleExtra={
+        <AutoSaveIndicator 
+          isSaving={isSaving}
+          lastSaved={lastSaved}
+          theme={theme}
+          compact={true}
+        />
+      }
+      theme={theme} 
+      maxWidth="max-w-4xl" 
+      footer={(
       <div className="w-full flex items-center justify-end gap-2">
         {vendor?.id && (
           <button onClick={() => onDelete?.(vendor.id)} className="px-3 py-2 rounded-md border mr-auto bg-red-600 text-white hover:bg-red-700">Delete</button>
@@ -65,14 +79,6 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       </div>
     )}>
       <div className="space-y-4">
-        {/* Auto-save indicator */}
-        <AutoSaveIndicator 
-          isSaving={isSaving} 
-          lastSaved={lastSaved} 
-          onClearForm={clearSavedData} 
-          theme={theme} 
-        />
-        
         {/* Header card: Name, Rating, Category */}
         <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
@@ -90,11 +96,11 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="flex flex-col items-start sm:items-start gap-2">
             <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Category</div>
             <div className="flex w-full rounded-md p-1 shadow-inner" style={{ backgroundColor: theme.cardBackground }}>
-              {['domestic','international','group'].map(k => (
+              {['domestic','international','groupbuy'].map(k => (
                 <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, type: k }))}
                   className={`flex-1 text-center px-2 py-1.5 text-xs font-semibold rounded-md ${form.type === k ? '' : 'hover:opacity-80'}`}
                   style={{ backgroundColor: form.type === k ? theme?.primary : 'transparent', color: form.type === k ? theme.textOnPrimary : theme.text }}>
-                  {k.charAt(0).toUpperCase() + k.slice(1)}
+                  {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
                 </button>
               ))}
             </div>

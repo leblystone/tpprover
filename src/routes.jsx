@@ -59,6 +59,11 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/account',
+    element: <Navigate to="/app/account" replace />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/app',
     element: IS_APP_BLOCKED ? <LaunchRedirect /> : <ProtectedRoute />,
     errorElement: <NotFound />,
@@ -89,8 +94,4 @@ export const router = createBrowserRouter([
       }
     ]
   }
-], {
-  future: {
-    v7_startTransition: true
-  }
-})
+])

@@ -5,6 +5,7 @@ import { exportToCSV } from '../utils/export'
 import { clearAppData, clearSpecific } from '../utils/reset'
 import { clearMockData } from '../utils/seed'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
+import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useAppContext } from '../context/AppContext'
 import SuccessModal from '../components/ui/SuccessModal'
 
@@ -66,6 +67,7 @@ export default function Settings() {
         }
     })
     const [showTerms, setShowTerms] = useState(false)
+    const [showPrivacy, setShowPrivacy] = useState(false)
     const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false)
     const [user, setUser] = useState(() => {
       try { return JSON.parse(localStorage.getItem('tpprover_user') || '{}') } catch { return {} }
@@ -242,8 +244,8 @@ export default function Settings() {
 
         {/* Legal */}
         <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Legal</h2>
-          <p className="text-sm text-gray-500 mb-4">Terms of Service and other legal documents.</p>
+          <h2 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Legal & Privacy</h2>
+          <p className="text-sm text-gray-500 mb-4">Terms of Service, Privacy Policy, and other legal documents.</p>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -253,6 +255,13 @@ export default function Settings() {
                 )}
               </div>
               <button onClick={() => setShowTerms(true)} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }}>View</button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium">Privacy Policy</div>
+                <div className="text-xs text-gray-500">How we collect, use, and protect your data</div>
+              </div>
+              <button onClick={() => setShowPrivacy(true)} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }}>View</button>
             </div>
           </div>
         </div>
@@ -302,6 +311,7 @@ export default function Settings() {
           </div>
         </div>
         <TermsOfServiceModal open={showTerms} onClose={() => setShowTerms(false)} onAgree={null} theme={theme} />
+        <LandingPrivacyModal open={showPrivacy} onClose={() => setShowPrivacy(false)} />
         <SuccessModal
           open={showDemoSuccessModal}
           onClose={() => setShowDemoSuccessModal(false)}

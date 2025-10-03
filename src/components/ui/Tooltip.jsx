@@ -115,7 +115,7 @@ const Tooltip = ({
   const tooltipContent = isVisible && content && createPortal(
     <div
       ref={tooltipRef}
-      className={`fixed z-[9999] px-2 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md shadow-lg pointer-events-none transition-opacity duration-200 ${className}`}
+      className={`tooltip-overlay fixed px-2 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md shadow-lg pointer-events-none transition-opacity duration-200 ${className}`}
       style={{
         top: tooltipPosition.top,
         left: tooltipPosition.left,

@@ -87,7 +87,25 @@ export function AppProvider({ children }) {
                 if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
 
                 const savedVendors = localStorage.getItem('tpprover_vendors');
-                if (savedVendors) setVendors(JSON.parse(savedVendors));
+                if (savedVendors) {
+                    const vendors = JSON.parse(savedVendors);
+                    // Migrate old 'group' category to 'groupbuy' for consistency
+                    const migratedVendors = vendors.map(vendor => {
+                        if (vendor.type === 'group') {
+                            console.log('🔄 Migrating vendor category from "group" to "groupbuy":', vendor.name);
+                            return { ...vendor, type: 'groupbuy' };
+                        }
+                        return vendor;
+                    });
+                    
+                    // Save migrated vendors back to localStorage if any changes were made
+                    if (migratedVendors.some((v, i) => v.type !== vendors[i].type)) {
+                        localStorage.setItem('tpprover_vendors', JSON.stringify(migratedVendors));
+                        console.log('✅ Vendor category migration completed');
+                    }
+                    
+                    setVendors(migratedVendors);
+                }
                 
                 const savedNotes = localStorage.getItem('tpprover_calendar_notes');
                 if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
@@ -188,7 +206,17 @@ export function AppProvider({ children }) {
                                 }
                                 if (firebaseData.orders) setOrders(firebaseData.orders);
                                 if (firebaseData.metrics) setMetrics(firebaseData.metrics);
-                                if (firebaseData.vendors) setVendors(firebaseData.vendors);
+                                if (firebaseData.vendors) {
+                                    // Migrate old 'group' category to 'groupbuy' for consistency
+                                    const migratedVendors = firebaseData.vendors.map(vendor => {
+                                        if (vendor.type === 'group') {
+                                            console.log('🔄 Migrating Firebase vendor category from "group" to "groupbuy":', vendor.name);
+                                            return { ...vendor, type: 'groupbuy' };
+                                        }
+                                        return vendor;
+                                    });
+                                    setVendors(migratedVendors);
+                                }
                                 if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
                                 if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
                                 if (firebaseData.scheduledBuys) setScheduledBuys(firebaseData.scheduledBuys);
@@ -753,10 +781,11 @@ export function AppProvider({ children }) {
         
         console.log('🛡️ Data Integrity Check:', dataCategories, `Total: ${totalItems} items`);
         
-        // Alert if suspicious data loss (more than 50% of data missing)
-        if (totalItems === 0 && (protocols.length + vendors.length + stockpile.length) === 0) {
-            console.error('🚨 CRITICAL: Complete data loss detected!');
-            console.error('🚨 All data categories are empty - this may indicate a critical bug');
+        // Only warn if we have a logged-in user with existing data that becomes empty
+        // Don't warn for new users or during initial load
+        if (totalItems === 0 && user && !isLoading && localStorage.getItem('tpprover_user_has_data') === 'true') {
+            console.warn('🚨 CRITICAL: Complete data loss detected!');
+            console.warn('🚨 All data categories are empty - this may indicate a critical bug');
             return false;
         }
         

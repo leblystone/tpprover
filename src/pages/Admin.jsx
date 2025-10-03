@@ -31,6 +31,7 @@ import {
   httpsCallable 
 } from 'firebase/functions';
 import LifetimeMigration from '../components/admin/LifetimeMigration';
+import AgreementTracking from '../components/admin/AgreementTracking';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -886,7 +887,8 @@ function Admin() {
               { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6' },
               { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
               { id: 'whitelist', label: 'Access', icon: Mail, color: '#64748b' },
-              { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' }
+              { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
+              { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1034,6 +1036,14 @@ function Admin() {
               desc: 'Beta features',
               color: '#f59e0b' 
             },
+            { 
+              id: 'agreements', 
+              label: 'Legal Agreements', 
+              icon: Shield, 
+              count: 0,
+              desc: 'User agreement tracking',
+              color: '#ef4444' 
+            },
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1100,6 +1110,7 @@ function Admin() {
                 {activeTab === 'announcements' && 'Manage app-wide announcements and notifications'}
                 {activeTab === 'whitelist' && 'Manage approved email addresses for beta access'}
                 {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
+                {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -2322,6 +2333,10 @@ function Admin() {
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === 'agreements' && (
+          <AgreementTracking theme={theme} />
         )}
 
         </div>

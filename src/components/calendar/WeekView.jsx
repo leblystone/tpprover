@@ -2,17 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
 import { Droplet, Pill, Edit, Syringe, PenTool, Beaker, Target, CheckCircle, Check } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
+import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
-
-const penColors = [
-    { name: 'Gold', hex: '#DAA520' }, { name: 'Silver', hex: '#C0C0C0' },
-    { name: 'Black', hex: '#000000' }, { name: 'White', hex: '#FFFFFF' },
-    { name: 'Hot Pink', hex: '#FF69B4' }, { name: 'Light Pink', hex: '#FFB6C1' },
-    { name: 'Dark Blue', hex: '#00008B' }, { name: 'Light Blue', hex: '#ADD8E6' },
-    { name: 'Teal', hex: '#008080' }, { name: 'Lime Green', hex: '#32CD32' },
-    { name: 'Brown', hex: '#8B4513' }, { name: 'Red', hex: '#CC0000' },
-    { name: 'Burgundy', hex: '#800000' }, { name: 'Purple', hex: '#800080' },
-];
+import { penColors } from '../../utils/penColors';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method
@@ -196,6 +188,9 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     const dose = typeof item === 'object' ? item.dose : '';
     const unit = typeof item === 'object' ? item.unit : '';
     const delivery = typeof item === 'object' ? item.delivery : (type === 'peptide' ? 'injection' : 'oral');
+    const deliveryMethod = typeof item === 'object' ? item.deliveryMethod : delivery;
+    const penColor = typeof item === 'object' ? item.penColor : undefined;
+    const penType = typeof item === 'object' ? item.penType : undefined;
     
     return {
       id: `${type}-${name}-${dose}-${unit}-${timeSlot}`.toLowerCase().replace(/\s+/g, '-'),
@@ -205,6 +200,9 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
       type,
       time: timeSlot,
       delivery,
+      deliveryMethod,
+      penColor,
+      penType,
       stableTaskId: generateTaskId({
         name,
         dose,
@@ -215,60 +213,34 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     };
   };
 
-  const handleTaskToggle = (task) => {
-    if (onTaskToggle) {
-      onTaskToggle(task, date);
-    }
-  };
-
   return (
     <div className="space-y-1">
       {scheduled.peptides?.map((p, i) => {
         const task = createTaskFromItem(p, 'peptide');
-        const isCompleted = isTaskCompleted(task.stableTaskId, dateKey, timeSlot);
-        
         return (
-          <div key={`p-${i}`} className="flex items-center gap-2 text-xs p-1 rounded" style={{ backgroundColor: theme.primary + '20' }}>
-            <button
-              onClick={() => handleTaskToggle(task)}
-              className="w-3 h-3 rounded-full border flex items-center justify-center flex-shrink-0"
-              style={{
-                borderColor: isCompleted ? theme.primary : theme.border,
-                backgroundColor: isCompleted ? theme.primary : 'transparent'
-              }}
-            >
-              {isCompleted && <Check size={8} className="text-white" />}
-            </button>
-            <DeliveryIndicator item={p} theme={theme} />
-            <span className={`flex-1 truncate ${isCompleted ? 'line-through opacity-60' : ''}`}>
-              {task.name}
-              {task.dose && <span className="ml-1 opacity-75">{task.dose} {task.unit}</span>}
-            </span>
-          </div>
+          <TaskDisplay
+            key={`p-${i}`}
+            task={task}
+            theme={theme}
+            date={date}
+            timeSlot={timeSlot}
+            onToggle={onTaskToggle}
+            size="compact"
+          />
         );
       })}
       {scheduled.supplements?.map((s, i) => {
         const task = createTaskFromItem(s, 'supplement');
-        const isCompleted = isTaskCompleted(task.stableTaskId, dateKey, timeSlot);
-        
         return (
-          <div key={`s-${i}`} className="flex items-center gap-2 text-xs p-1 rounded" style={{ backgroundColor: theme.secondary }}>
-            <button
-              onClick={() => handleTaskToggle(task)}
-              className="w-3 h-3 rounded-full border flex items-center justify-center flex-shrink-0"
-              style={{
-                borderColor: isCompleted ? theme.primary : theme.border,
-                backgroundColor: isCompleted ? theme.primary : 'transparent'
-              }}
-            >
-              {isCompleted && <Check size={8} className="text-white" />}
-            </button>
-            {getSupplementIcon(typeof s === 'object' ? s.delivery : 'oral', 12, theme.textLight)}
-            <span className={`flex-1 truncate ${isCompleted ? 'line-through opacity-60' : ''}`}>
-              {task.name}
-              {task.dose && <span className="ml-1 opacity-75">{task.dose} {task.unit}</span>}
-            </span>
-          </div>
+          <TaskDisplay
+            key={`s-${i}`}
+            task={task}
+            theme={theme}
+            date={date}
+            timeSlot={timeSlot}
+            onToggle={onTaskToggle}
+            size="compact"
+          />
         );
       })}
     </div>

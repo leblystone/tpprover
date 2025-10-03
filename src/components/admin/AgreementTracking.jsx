@@ -1,0 +1,260 @@
+import React, { useState, useEffect } from 'react';
+import { Download, Users, FileText, Clock, Search, Filter } from 'lucide-react';
+import { 
+  getAllUserAgreements, 
+  getUserAgreements, 
+  getAgreementStatistics, 
+  exportAllAgreements 
+} from '../../services/agreementTracking';
+
+export default function AgreementTracking({ theme }) {
+  const [agreements, setAgreements] = useState([]);
+  const [statistics, setStatistics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchEmail, setSearchEmail] = useState('');
+  const [filteredAgreements, setFilteredAgreements] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  useEffect(() => {
+    loadAgreementData();
+  }, []);
+
+  useEffect(() => {
+    if (searchEmail.trim()) {
+      const filtered = agreements.filter(agreement => 
+        agreement.userEmail && agreement.userEmail.toLowerCase().includes(searchEmail.toLowerCase())
+      );
+      setFilteredAgreements(filtered);
+    } else {
+      setFilteredAgreements(agreements);
+    }
+  }, [agreements, searchEmail]);
+
+  const loadAgreementData = async () => {
+    try {
+      setLoading(true);
+      const [agreementsData, statsData] = await Promise.all([
+        getAllUserAgreements(),
+        getAgreementStatistics()
+      ]);
+      setAgreements(agreementsData);
+      setStatistics(statsData);
+    } catch (error) {
+      console.error('Error loading agreement data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportAll = async () => {
+    try {
+      const exportData = await exportAllAgreements();
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `agreement-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+    }
+  };
+
+  const handleUserClick = async (userEmail) => {
+    if (userEmail === selectedUser) {
+      setSelectedUser(null);
+      return;
+    }
+    
+    setSelectedUser(userEmail);
+    try {
+      const userAgreements = await getUserAgreements(userEmail);
+      // Could show user-specific modal or details here
+      console.log('User agreements:', userAgreements);
+    } catch (error) {
+      console.error('Error loading user agreements:', error);
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
+  const getAgreementTypeLabel = (type) => {
+    const labels = {
+      'first_launch_disclaimer': 'First Launch Disclaimer',
+      'signup_terms': 'Sign-up Terms',
+      'signup_privacy': 'Sign-up Privacy',
+      'terms_update': 'Terms Update',
+      'privacy_update': 'Privacy Update'
+    };
+    return labels[type] || type;
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4" style={{ borderColor: theme.primary }}></div>
+        <p>Loading agreement data...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>User Agreement Tracking</h2>
+          <p className="text-gray-600 mt-1">Legal compliance and user agreement monitoring</p>
+        </div>
+        <button
+          onClick={handleExportAll}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium"
+          style={{ backgroundColor: theme.primary }}
+        >
+          <Download className="w-4 h-4" />
+          Export All Data
+        </button>
+      </div>
+
+      {/* Statistics */}
+      {statistics && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+            <div className="flex items-center gap-3">
+              <Users className="w-8 h-8 text-blue-600" />
+              <div>
+                <p className="text-sm text-gray-600">Unique Users</p>
+                <p className="text-2xl font-bold">{statistics.uniqueUsers}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+            <div className="flex items-center gap-3">
+              <FileText className="w-8 h-8 text-green-600" />
+              <div>
+                <p className="text-sm text-gray-600">Total Agreements</p>
+                <p className="text-2xl font-bold">{statistics.totalAgreements}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+            <div className="flex items-center gap-3">
+              <Clock className="w-8 h-8 text-orange-600" />
+              <div>
+                <p className="text-sm text-gray-600">Earliest</p>
+                <p className="text-sm font-medium">
+                  {statistics.timeRange.earliest ? formatDate(statistics.timeRange.earliest) : 'N/A'}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+            <div className="flex items-center gap-3">
+              <Clock className="w-8 h-8 text-purple-600" />
+              <div>
+                <p className="text-sm text-gray-600">Latest</p>
+                <p className="text-sm font-medium">
+                  {statistics.timeRange.latest ? formatDate(statistics.timeRange.latest) : 'N/A'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search by email address..."
+            value={searchEmail}
+            onChange={(e) => setSearchEmail(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-lg"
+            style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+          />
+        </div>
+        <div className="text-sm text-gray-600">
+          {filteredAgreements.length} of {agreements.length} agreements
+        </div>
+      </div>
+
+      {/* Agreement Types Breakdown */}
+      {statistics && (
+        <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+          <h3 className="font-semibold mb-3">Agreement Types</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {Object.entries(statistics.agreementTypes).map(([type, count]) => (
+              <div key={type} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <span className="text-sm">{getAgreementTypeLabel(type)}</span>
+                <span className="font-semibold text-sm">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Agreements Table */}
+      <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead style={{ backgroundColor: theme.secondary }}>
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium">User Email</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Agreement Type</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Version</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Date/Time</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAgreements.map((agreement, index) => (
+                <tr key={agreement.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => handleUserClick(agreement.userEmail)}
+                      className={`text-sm font-medium hover:underline ${
+                        selectedUser === agreement.userEmail ? 'text-blue-600' : 'text-gray-900'
+                      }`}
+                    >
+                      {agreement.userEmail || 'Anonymous'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {getAgreementTypeLabel(agreement.type)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {agreement.version || 'N/A'}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {formatDate(agreement.timestamp)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => console.log('Agreement details:', agreement)}
+                      className="text-xs px-2 py-1 rounded text-blue-600 hover:bg-blue-50"
+                    >
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {filteredAgreements.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          No agreement data found.
+        </div>
+      )}
+    </div>
+  );
+}

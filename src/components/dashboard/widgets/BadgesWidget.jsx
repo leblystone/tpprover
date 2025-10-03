@@ -54,7 +54,7 @@ const BadgesWidget = ({ widget, theme }) => {
         {showProgress && (
           <div className="text-center mt-auto">
             <button 
-              onClick={() => navigate('/badges')}
+              onClick={() => navigate('/app/badges')}
               className="text-xs px-3 py-1 rounded-full border transition-colors hover:bg-gray-50" 
               style={{ borderColor: theme.primary, color: theme.primary }}
             >

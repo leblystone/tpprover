@@ -164,9 +164,9 @@ export default function Imports() {
                       <div className="flex items-center gap-2">
                         <button className="px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.primary, color: theme.white }} onClick={() => acceptOne(imp)}>Accept</button>
                         <button className="px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={() => rejectOne(imp)}>Reject</button>
-                        {(imp.targetType || 'calendar') === 'orders' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/orders')}>Go to Orders</button>}
-                        {(imp.targetType || 'calendar') === 'stockpile' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/stockpile')}>Go to Stockpile</button>}
-                        {(imp.targetType || 'calendar') === 'calendar' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/calendar')}>Go to Calendar</button>}
+                        {(imp.targetType || 'calendar') === 'orders' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/app/orders')}>Go to Orders</button>}
+                        {(imp.targetType || 'calendar') === 'stockpile' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/app/stockpile')}>Go to Stockpile</button>}
+                        {(imp.targetType || 'calendar') === 'calendar' && <button className="ml-auto px-3 py-1 rounded-md text-sm" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }} onClick={() => navigate('/app/calendar')}>Go to Calendar</button>}
                       </div>
                     </div>
                   </div>

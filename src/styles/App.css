@@ -24,6 +24,22 @@
     animation: slide-up 0.5s ease-out;
 }
 
+/* Prevent horizontal overflow globally */
+* {
+  box-sizing: border-box;
+}
+
+/* Dashboard widget hover effects */
+.dashboard-widget:hover {
+  border-color: var(--hover-border-color) !important;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  overflow-y: auto;
+}
+
 /* Mobile-specific spacing overrides for dashboard */
 @media (max-width: 768px) {
   .space-y-0\.5 > * + * {
@@ -46,4 +62,23 @@
   .dashboard-welcome .grid > * + * {
     margin-top: 0 !important;
   }
+  
+  /* Mobile-specific: Ensure single column on mobile */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Dashboard grid fixes for all screen sizes */
+.dashboard-grid {
+  gap: 0.5rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.dashboard-grid > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
 }
