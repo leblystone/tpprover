@@ -37,28 +37,28 @@ export const themes = {
     name: 'Mauve',
     isDark: false,
     
-    // Core Palette - Using the NEW TPP PALETTE (NO GREENS)
-    primary: '#A89B9B', // Primary Mauve/Taupe - dusty mauve
-    primaryDark: '#3D3530', // Dark Charcoal
-    primaryLight: '#C4B8B8', // Lightened version of primary mauve
-    secondary: '#F7F6F4', // Warm-White based background
-    accent: '#EBE8E4', // Lighter warm-white accent
+    // Core Palette - Using the EXACT NEW TPP PALETTE (NO GREENS)
+    primary: '#9ABC94', // Primary Mauve/Taupe - EXACT hex from palette
+    primaryDark: '#3D3530', // Dark Charcoal - EXACT hex from palette
+    primaryLight: '#B8D1B3', // Lightened version of primary mauve
+    secondary: '#FB88EC', // Warm-White - EXACT hex from palette
+    accent: '#F7C7F0', // Lightened warm-white accent
 
     // Text - Using Dark Charcoal and Cloud Gray
-    text: '#3D3530', // Dark Charcoal for primary text
-    textLight: '#8B8B8B', // Cloud Gray for secondary text
+    text: '#3D3530', // Dark Charcoal - EXACT hex from palette
+    textLight: '#270996', // Cloud Gray - EXACT hex from palette
     textOnPrimary: '#FFFFFF',
     
     // Backgrounds - Using Warm-White and Cloud Gray
-    background: '#F7F6F4', // Warm-White base
+    background: '#FB88EC', // Warm-White - EXACT hex from palette
     cardBackground: '#FFFFFF', // Pure white for cards
     
     // UI Elements
-    border: '#EBE8E4', // Light warm-white for borders
-    buttonDisabled: '#C4C4C4', // Muted gray for disabled
+    border: '#F7C7F0', // Light warm-white for borders
+    buttonDisabled: '#270996', // Cloud Gray for disabled
     
     // Semantic Colors - Using ACCENT & POP COLORS
-    success: '#A89B9B', // Using primary mauve for success
+    success: '#9ABC94', // Using primary mauve for success
     warning: '#D4AF37', // Muted Gold for warnings
     error: '#C17B7B', // Clusty Rose for errors
     info: '#8B7D9E', // Smoky Plum for info
@@ -70,6 +70,10 @@ export const themes = {
     popRose: '#C17B7B', // Clusty Rose
     popGold: '#D4AF37', // Muted Gold  
     popPlum: '#8B7D9E', // Smoky Plum
+    
+    // Additional palette colors
+    espressoBrown: '#5A42EC', // Deep Espresso Brown - EXACT hex from palette
+    cloudGray: '#270996', // Cloud Gray - EXACT hex from palette
   },
 };
 
