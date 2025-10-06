@@ -29,7 +29,7 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
           <button
             className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 flex items-center justify-center gap-2"
             onClick={onSignUp}
-            style={{ backgroundColor: '#A3B18A' }}
+            style={{ backgroundColor: theme.primary }}
           >
             <Rocket size={18} />
             Choose Your Plan
@@ -41,8 +41,8 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
         {/* Icon */}
         <div className="flex justify-center mb-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ 
-            background: 'linear-gradient(135deg, #A3B18A 0%, #5C7659 100%)',
-            boxShadow: '0 4px 6px -1px rgba(163, 177, 138, 0.3)'
+            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
+            boxShadow: `0 4px 6px -1px ${theme.primary}30`
           }}>
             <Clock size={32} className="text-white" />
           </div>

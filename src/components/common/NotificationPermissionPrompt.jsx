@@ -121,7 +121,7 @@ export default function NotificationPermissionPrompt({ theme }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4" style={{ backgroundColor: '#A3B18A' }}>
+        <div className="px-6 py-4" style={{ backgroundColor: theme.primary }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/20">
@@ -169,7 +169,7 @@ export default function NotificationPermissionPrompt({ theme }) {
                 onClick={handleEnable}
                 disabled={isRequesting}
                 className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: '#A3B18A' }}
+                style={{ backgroundColor: theme.primary }}
               >
                 {isRequesting ? 'Enabling...' : 'Enable Notifications'}
               </button>

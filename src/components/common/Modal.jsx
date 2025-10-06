@@ -36,7 +36,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`,
     color: theme.textOnPrimary
   } : { 
-    background: `linear-gradient(135deg, #6B8A7A, #5A7568)`,
+    background: `linear-gradient(135deg, #7F9E95, #5F7F76)`,
     color: '#FFFFFF'
   };
   const titleClass = isModern ? 'text-2xl font-bold' : 'text-lg font-bold';

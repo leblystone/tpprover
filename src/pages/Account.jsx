@@ -582,7 +582,7 @@
                      ) : sub.interval === 'lifetime' ? (
                        <>
                          {/* Lifetime Celebration - Main Content */}
-                         <div className="p-8 rounded-xl text-center" style={{ backgroundColor: 'rgba(250, 250, 248, 0.5)', border: '2px solid #A3B18A' }}>
+                         <div className="p-8 rounded-xl text-center" style={{ backgroundColor: 'rgba(250, 250, 248, 0.5)', border: `2px solid ${theme.primary}` }}>
                            <div className="flex items-center justify-center gap-3 mb-4">
                              <Crown size={32} style={{ color: '#3A5A40' }} />
                              <h3 className="text-2xl font-bold" style={{ color: '#344E41' }}>
@@ -595,7 +595,7 @@
                            <p className="text-sm" style={{ color: '#6B7280' }}>
                              Thank you for your support!
                            </p>
-                           <div className="mt-4 pt-4 border-t" style={{ borderColor: '#A3B18A' }}>
+                           <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.primary }}>
                              <p className="text-xs font-medium" style={{ color: '#3A5A40' }}>
                                Plan: {sub.plan} • One-time payment of ${sub.price}
                              </p>
