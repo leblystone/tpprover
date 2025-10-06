@@ -6,6 +6,7 @@ import InjectionHistoryModal from '../../common/InjectionHistoryModal';
 import { penColors } from '../../../utils/penColors';
 import { getChromeGradient } from '../../../utils/recon';
 import { getInjectionHistory } from '../../../utils/injectionTracking';
+import { debugLog } from '../../../utils/debugMode';
 
 const DeliveryIcon = ({ task, theme }) => {
   // Handle peptide delivery methods
@@ -72,7 +73,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     });
   }, [tasks]);
   
-  console.log('🎯 TasksWidget received:', { 
+  debugLog('🎯 TasksWidget received:', { 
     tasksCount: tasks?.length || 0, 
     tasks: tasks?.slice(0, 3).map(t => ({ 
       name: t.name, 
@@ -82,7 +83,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
       dose: t.dose,
       unit: t.unit
     })) || []
-  });
+  }, 'tasks');
   
   const { showCompleted, groupByTime } = widget.settings;
   
@@ -92,11 +93,11 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     filteredTasks = filteredTasks.filter(task => !task.completed);
   }
   
-  console.log('🎯 TasksWidget filtered:', { 
+  debugLog('🎯 TasksWidget filtered:', { 
     filteredCount: filteredTasks.length,
     showCompleted,
     willUseCompactLayout: filteredTasks.length <= 3
-  });
+  }, 'tasks');
 
   // If no tasks, show compact empty state
   if (filteredTasks.length === 0) {
@@ -241,12 +242,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           taskName={injectionTask?.name}
           task={injectionTask}
           onConfirm={(injectionSite) => {
-            console.log('💉 TasksWidget injection confirmed:', injectionSite);
+            debugLog('💉 TasksWidget injection confirmed:', injectionSite, 'tasks');
             onToggle(injectionTask);
             setInjectionTask(null);
           }}
           onCancel={() => {
-            console.log('💉 TasksWidget injection cancelled');
+            debugLog('💉 TasksWidget injection cancelled', null, 'tasks');
             setInjectionTask(null);
           }}
           theme={theme}
@@ -304,12 +305,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           taskName={injectionTask?.name}
           task={injectionTask}
           onConfirm={(injectionSite) => {
-            console.log('💉 TasksWidget injection confirmed:', injectionSite);
+            debugLog('💉 TasksWidget injection confirmed:', injectionSite, 'tasks');
             onToggle(injectionTask);
             setInjectionTask(null);
           }}
           onCancel={() => {
-            console.log('💉 TasksWidget injection cancelled');
+            debugLog('💉 TasksWidget injection cancelled', null, 'tasks');
             setInjectionTask(null);
           }}
           theme={theme}

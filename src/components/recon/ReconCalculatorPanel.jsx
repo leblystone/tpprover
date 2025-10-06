@@ -6,6 +6,7 @@ import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
+import { formatCurrency } from '../../utils/currencyUtils'
 import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
@@ -59,7 +60,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
     });
   }, [totalMg, form.water, form.peptides, form.peptides[0]?.dose, form.peptides[0]?.doseUnit])
   const costPerDose = useMemo(() => {
-    if (cost && calc.dosesPerVial > 0) return `$${(Number(cost) / calc.dosesPerVial).toFixed(2)}`
+    if (cost && calc.dosesPerVial > 0) return formatCurrency(Number(cost) / calc.dosesPerVial)
     return ''
   }, [cost, calc.dosesPerVial])
 

@@ -3,6 +3,8 @@
  * Stores and manages injection site data for user reference
  */
 
+import { isInjectionSiteTrackingEnabled } from './injectionSiteSettings';
+
 const INJECTION_HISTORY_KEY = 'tpprover_injection_history';
 const INJECTION_STATS_KEY = 'tpprover_injection_stats';
 
@@ -37,6 +39,18 @@ export function saveInjectionHistory(history) {
  * @param {string} timeSlot - Time slot (AM/PM)
  */
 export function recordInjectionSite(task, injectionSite, date = new Date(), timeSlot = 'AM') {
+  // Check if injection site tracking is enabled
+  if (!isInjectionSiteTrackingEnabled()) {
+    console.log('💉 Injection site tracking is disabled, skipping recording');
+    return null;
+  }
+
+  // Don't record if no injection site was provided
+  if (!injectionSite || injectionSite.trim() === '') {
+    console.log('💉 No injection site provided, skipping recording');
+    return null;
+  }
+
   const history = getInjectionHistory();
   
   const injectionRecord = {

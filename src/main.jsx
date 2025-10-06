@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom'
 import { router } from './routes'
 import { AppProvider } from './context/AppContext'
 import { FirebaseProvider } from './context/FirebaseContext'
+import { toggleDebugMode, getDebugMode } from './utils/debugMode'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -15,6 +16,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </FirebaseProvider>
   </React.StrictMode>,
 )
+
+// Expose debug controls to window
+if (typeof window !== 'undefined') {
+  window.toggleDebugMode = toggleDebugMode;
+  window.getDebugMode = getDebugMode;
+  
+  // Show current debug mode on load
+  console.log(`🔧 Debug mode: ${getDebugMode() ? 'ENABLED' : 'DISABLED'}`);
+  console.log('💡 Use toggleDebugMode() to enable/disable debug logging');
+}
 
 // TEMPORARILY DISABLED: Service worker for debugging caching issues
 if (false && 'serviceWorker' in navigator) {

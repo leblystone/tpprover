@@ -3,6 +3,7 @@ import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { CheckCircle, Clock, Truck, Paperclip, Upload, FileText, PlusCircle } from 'lucide-react';
 import { formatMMDDYYYY } from '../../utils/date';
+import { formatCurrency } from '../../utils/currencyUtils';
 import OrderItemSubForm from './OrderItemSubForm'; // Import the new sub-form
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
 import DocumentationUpload from '../common/DocumentationUpload';
@@ -187,7 +188,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             <div className="flex justify-end items-center pt-2">
                 <span className="text-sm font-medium" style={{ color: theme?.text }}>Total Cost:</span>
                 <span className="text-lg font-semibold ml-2" style={{ color: theme?.primaryDark }}>
-                    ${totalCost.toFixed(2)}
+                    {formatCurrency(totalCost)}
                 </span>
             </div>
         </div>

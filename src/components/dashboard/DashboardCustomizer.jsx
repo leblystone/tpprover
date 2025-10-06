@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Plus, RotateCcw, Save, X } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import Modal from '../common/Modal';
@@ -19,6 +19,14 @@ const DashboardCustomizer = ({
 }) => {
   const [activeTab, setActiveTab] = useState('layout');
   const [selectedWidget, setSelectedWidget] = useState(null);
+  const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
+  
+  // Check if group buys are enabled
+  useEffect(() => {
+    import('../../utils/featureSettings').then(({ areGroupBuysEnabled }) => {
+      setGroupBuysEnabled(areGroupBuysEnabled());
+    });
+  }, []);
 
   const handleAddWidget = (type) => {
     const newWidget = {
@@ -82,7 +90,15 @@ const DashboardCustomizer = ({
             Dashboard Widgets
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(WIDGET_METADATA).map(([type, meta]) => {
+            {Object.entries(WIDGET_METADATA)
+              .filter(([type]) => {
+                // Hide group buy widgets if group buys are disabled
+                if (type === WIDGET_TYPES.UPCOMING_BUYS && !groupBuysEnabled) {
+                  return false;
+                }
+                return true;
+              })
+              .map(([type, meta]) => {
               const existingWidget = widgets.find(w => w.type === type);
               const isActive = existingWidget?.enabled;
               const hasWidget = !!existingWidget;

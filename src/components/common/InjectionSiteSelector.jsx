@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, Clock } from 'lucide-react';
 import { recordInjectionSite, getInjectionSiteSuggestions } from '../../utils/injectionTracking';
+import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
 export default function InjectionSiteSelector({ 
   taskName, 
@@ -15,9 +16,18 @@ export default function InjectionSiteSelector({
   const [customSite, setCustomSite] = useState('');
   const [suggestions, setSuggestions] = useState([]);
 
-  // Load suggestions when component becomes visible
+  // Check if injection site tracking is enabled
   useEffect(() => {
-    if (isVisible && taskName) {
+    if (isVisible && !isInjectionSiteTrackingEnabled()) {
+      // If tracking is disabled, automatically complete the task without site selection
+      onConfirm(''); // Pass empty string to indicate no site was recorded
+      return;
+    }
+  }, [isVisible, onConfirm]);
+
+  // Load suggestions when component becomes visible (only if tracking is enabled)
+  useEffect(() => {
+    if (isVisible && taskName && isInjectionSiteTrackingEnabled()) {
       const siteSuggestions = getInjectionSiteSuggestions(taskName);
       setSuggestions(siteSuggestions);
     }

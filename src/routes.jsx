@@ -28,7 +28,7 @@ const LaunchComingSoon = lazy(() => import('./pages/LaunchComingSoon.jsx'))
 const CoverLanding = lazy(() => import('./pages/CoverLanding.jsx'))
 
 // Launch Configuration
-const IS_APP_BLOCKED = true; // Set to false when ready to launch
+const IS_APP_BLOCKED = false; // Set to false when ready to launch
 
 // Component to redirect blocked routes
 const LaunchRedirect = () => <Navigate to="/countdown" replace />;
@@ -56,6 +56,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/countdown',
+    element: <CoverLanding />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/test-countdown',
     element: <CoverLanding />,
     errorElement: <NotFound />,
   },

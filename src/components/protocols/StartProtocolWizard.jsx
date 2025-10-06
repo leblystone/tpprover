@@ -5,6 +5,7 @@ import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
 import { formatMMDDYYYY } from '../../utils/date';
+import { formatCurrency } from '../../utils/currencyUtils';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
 
@@ -19,8 +20,8 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
             .map(item => {
                 const cost = Number(item.cost) || 0;
                 const quantity = Number(item.quantity) || 1;
-                const costPerVial = quantity > 0 ? (cost / quantity).toFixed(2) : '0.00';
-                return { value: item.id, label: `${item.mg}mg from ${item.vendor} - $${costPerVial} per vial` };
+                const costPerVial = quantity > 0 ? (cost / quantity) : 0;
+                return { value: item.id, label: `${item.mg}mg from ${item.vendor} - ${formatCurrency(costPerVial)} per vial` };
             });
     }, [stockpile, peptide]);
 

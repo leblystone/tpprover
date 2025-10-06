@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Clock, Syringe, PenTool, Calendar } from 'lucide-react';
 import { getInjectionHistory } from '../../utils/injectionTracking';
+import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
 export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
     const [injectionHistory, setInjectionHistory] = useState([]);
@@ -93,6 +94,26 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                             <div className="text-sm" style={{ color: theme.textLight }}>
                                 Loading injection history...
                             </div>
+                        </div>
+                    ) : !isInjectionSiteTrackingEnabled() ? (
+                        <div className="text-center py-8">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
+                                <Syringe size={24} style={{ color: theme.primary }} />
+                            </div>
+                            <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                                Injection Site Tracking Disabled
+                            </h4>
+                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                                Injection site tracking is currently disabled in your settings. 
+                                Enable it in Settings → App Preferences to track injection sites.
+                            </p>
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+                                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                            >
+                                Close
+                            </button>
                         </div>
                     ) : injectionHistory.length === 0 ? (
                         <div className="text-center py-8">

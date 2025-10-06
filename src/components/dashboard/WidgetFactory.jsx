@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WIDGET_TYPES } from '../../utils/dashboardCustomization';
 import TasksWidget from './widgets/TasksWidget';
 import UpcomingOrderWidget from './widgets/UpcomingOrderWidget';
@@ -22,6 +22,20 @@ import NotesWidget from './widgets/NotesWidget';
 import InjectionHistoryWidget from './widgets/InjectionHistoryWidget';
 
 const WidgetFactory = ({ widget, theme, ...props }) => {
+  const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
+  
+  // Check if group buys are enabled
+  useEffect(() => {
+    import('../../utils/featureSettings').then(({ areGroupBuysEnabled }) => {
+      setGroupBuysEnabled(areGroupBuysEnabled());
+    });
+  }, []);
+  
+  // Don't render UpcomingBuysWidget if group buys are disabled
+  if (widget.type === WIDGET_TYPES.UPCOMING_BUYS && !groupBuysEnabled) {
+    return null;
+  }
+  
   switch (widget.type) {
     case WIDGET_TYPES.TASKS:
       return (

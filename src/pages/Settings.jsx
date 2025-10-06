@@ -10,6 +10,7 @@ import { useAppContext } from '../context/AppContext'
 import SuccessModal from '../components/ui/SuccessModal'
 import pwaNotificationService from '../services/pwaNotifications'
 import CollapsibleSection from '../components/common/CollapsibleSection'
+import { getCurrencyOptions } from '../utils/currencyUtils'
 import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2 } from 'lucide-react'
 
 // PWA Notification Toggle Component
@@ -72,7 +73,7 @@ function PWANotificationToggle({ checked, onChange, status, theme }) {
 }
 
 // Settings persistence (local-only)
-function loadSettings() {
+export function loadSettings() {
   try { return JSON.parse(localStorage.getItem('tpprover_settings') || 'null') } catch { return null }
 }
 function saveSettings(obj) {
@@ -87,6 +88,10 @@ function getDefaultSettings() {
       billing: true,
       researchReminders: true,
       groupBuys: true,
+      lowStockAlerts: true,
+      orderStatusUpdates: true,
+      washoutReminders: true,
+      cycleReminders: true,
     },
     appearance: {
       mode: 'system', // 'system' | 'light' | 'dark'
@@ -97,6 +102,38 @@ function getDefaultSettings() {
       language: 'en-US',
       timeZone: tz,
       weekStartsOn: 'monday', // 'sunday' | 'monday'
+      currency: 'USD', // 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY' | 'CHF'
+    },
+    tracking: {
+      injectionSites: true, // Track injection sites for rotation
+    },
+    features: {
+      groupBuys: true, // Enable group buy features
+      analytics: true, // Enable analytics dashboard
+      metricsTracking: true, // Track usage metrics and progress
+    },
+    calendar: {
+      defaultView: 'month', // 'month' | 'week' | 'day'
+      showWeekends: true, // Hide/show weekends in calendar
+      timeFormat: '12h', // '12h' | '24h'
+      reminderTime: 30, // Minutes before reminder (for notifications)
+    },
+    research: {
+      autoCompleteTasks: false, // Auto-complete tasks when marked done
+      showDosageWarnings: true, // Show dosage validation warnings
+      protocolReminders: true, // Remind about protocol changes
+      washoutReminders: true, // Remind about washout periods
+    },
+    orders: {
+      autoStockpileUpdate: true, // Auto-add delivered orders to stockpile
+      lowStockAlerts: true, // Alert when stock is low
+      expiryTracking: true, // Track expiration dates
+      costTracking: true, // Track cost per mg calculations
+      lowStockThreshold: 3, // Alert when stock drops to this number
+    },
+    ui: {
+      showTooltips: true, // Show helpful tooltips
+      animationsEnabled: true, // Enable/disable animations
     },
     privacy: {
       analytics: true,
@@ -119,6 +156,9 @@ export default function Settings() {
     enabled: false,
     loading: false
   })
+  
+  // Currency options for the dropdown
+  const currencyOptions = getCurrencyOptions()
     const [selectedTheme, setSelectedTheme] = useState(() => {
         try { 
             const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
@@ -366,14 +406,29 @@ export default function Settings() {
         {/* App Preferences */}
         <CollapsibleSection
           title="App Preferences"
-          description="Customize language, time, date, and other app settings"
+          description="Customize language, currency, tracking, and other app settings"
           icon={SettingsIcon}
           theme={theme}
         >
           <div className="space-y-4">
-            <SettingSelect label="Language" value={settings.region.language} onChange={e => update('region.language', e.target.value)} options={[{ value: 'en-US', label: 'English (US)' }, { value: 'en-GB', label: 'English (UK)' }, { value: 'es-ES', label: 'Español (ES)' }]} theme={theme} />
-            <SettingSelect label="Time Zone" value={settings.region.timeZone} onChange={e => update('region.timeZone', e.target.value)} options={tzList.map(tz => ({ value: tz, label: tz }))} theme={theme} />
+            <SettingToggle checked={settings.tracking?.injectionSites ?? true} onChange={v => update('tracking.injectionSites', v)} label="Injection Site Tracking" description="Track injection sites for better rotation and history" theme={theme} />
+            <SettingToggle checked={settings.features?.groupBuys ?? true} onChange={v => update('features.groupBuys', v)} label="Group Buy Features" description="Enable group buy functionality and related features" theme={theme} />
+            <SettingToggle checked={settings.features?.analytics ?? true} onChange={v => update('features.analytics', v)} label="Analytics Dashboard" description="Show analytics and metrics in dashboard" theme={theme} />
+            <SettingToggle checked={settings.research?.showDosageWarnings ?? true} onChange={v => update('research.showDosageWarnings', v)} label="Dosage Warnings" description="Show warnings for unusual dosages" theme={theme} />
+            <SettingToggle checked={settings.orders?.autoStockpileUpdate ?? true} onChange={v => update('orders.autoStockpileUpdate', v)} label="Auto Stockpile Updates" description="Automatically add delivered orders to stockpile" theme={theme} />
+            <SettingToggle checked={settings.orders?.lowStockAlerts ?? true} onChange={v => update('orders.lowStockAlerts', v)} label="Low Stock Alerts" description="Get notified when stock is running low" theme={theme} />
+            <SettingToggle checked={settings.notifications?.lowStockAlerts ?? true} onChange={v => update('notifications.lowStockAlerts', v)} label="Low Stock Notifications" description="Get notified when you're down to 3 or fewer vials" theme={theme} />
+            <SettingToggle checked={settings.notifications?.orderStatusUpdates ?? true} onChange={v => update('notifications.orderStatusUpdates', v)} label="Order Status Updates" description="Get notified about order arrivals and status changes" theme={theme} />
+            <SettingToggle checked={settings.notifications?.washoutReminders ?? true} onChange={v => update('notifications.washoutReminders', v)} label="Washout Reminders" description="Get reminded about washout periods between protocols" theme={theme} />
+            <SettingToggle checked={settings.notifications?.cycleReminders ?? true} onChange={v => update('notifications.cycleReminders', v)} label="Cycle Reminders" description="Get reminded about upcoming protocol cycles" theme={theme} />
+            <SettingToggle checked={settings.ui?.showTooltips ?? true} onChange={v => update('ui.showTooltips', v)} label="Show Tooltips" description="Display helpful tooltips throughout the app" theme={theme} />
+            <SettingToggle checked={settings.ui?.animationsEnabled ?? true} onChange={v => update('ui.animationsEnabled', v)} label="Animations" description="Enable smooth animations and transitions" theme={theme} />
             <SettingSelect label="Week Starts On" value={settings.region.weekStartsOn} onChange={e => update('region.weekStartsOn', e.target.value)} options={[{ value: 'sunday', label: 'Sunday' }, { value: 'monday', label: 'Monday' }]} theme={theme} />
+            <SettingSelect label="Language" value={settings.region.language} onChange={e => update('region.language', e.target.value)} options={[{ value: 'en-US', label: 'English (US)' }, { value: 'en-GB', label: 'English (UK)' }, { value: 'es-ES', label: 'Español (ES)' }]} theme={theme} />
+            <SettingSelect label="Currency" value={settings.region.currency} onChange={e => update('region.currency', e.target.value)} options={currencyOptions} theme={theme} />
+            <SettingSelect label="Time Zone" value={settings.region.timeZone} onChange={e => update('region.timeZone', e.target.value)} options={tzList.map(tz => ({ value: tz, label: tz }))} theme={theme} />
+            <SettingSelect label="Time Format" value={settings.calendar?.timeFormat ?? '12h'} onChange={e => update('calendar.timeFormat', e.target.value)} options={[{ value: '12h', label: '12 Hour (AM/PM)' }, { value: '24h', label: '24 Hour' }]} theme={theme} />
+            <SettingSelect label="Calendar Default View" value={settings.calendar?.defaultView ?? 'month'} onChange={e => update('calendar.defaultView', e.target.value)} options={[{ value: 'month', label: 'Month' }, { value: 'week', label: 'Week' }, { value: 'day', label: 'Day' }]} theme={theme} />
           </div>
         </CollapsibleSection>
 

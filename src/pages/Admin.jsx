@@ -32,6 +32,8 @@ import {
 } from 'firebase/functions';
 import LifetimeMigration from '../components/admin/LifetimeMigration';
 import AgreementTracking from '../components/admin/AgreementTracking';
+import NotificationTemplateEditor from '../components/admin/NotificationTemplateEditor';
+import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -295,6 +297,12 @@ function Admin() {
     category: 'General',
     date: new Date().toISOString().slice(0, 10)
   });
+  const [showNotificationEditor, setShowNotificationEditor] = useState(false);
+  
+  // Debug notification editor state
+  useEffect(() => {
+    console.log('showNotificationEditor state changed:', showNotificationEditor);
+  }, [showNotificationEditor]);
 
   // Simple admin authentication
   const ADMIN_PASSWORD = 'j&jm9102';
@@ -328,11 +336,20 @@ function Admin() {
   const loadLifetimeUsers = async () => {
     setLoading(prev => ({ ...prev, lifetimeUsers: true }));
     try {
+      console.log('🔍 Loading lifetime users from Firebase...');
       const users = await getAllLifetimeUsers();
       setLifetimeUsers(users);
-      console.log('✅ Loaded', users.length, 'lifetime users');
+      console.log('✅ Loaded', users.length, 'lifetime users:', users);
+      
+      // Debug: Also check localStorage for comparison
+      try {
+        const localStorageUsers = JSON.parse(localStorage.getItem('tpprover_lifetime_users') || '[]');
+        console.log('📱 localStorage lifetime users:', localStorageUsers.length, localStorageUsers);
+      } catch (e) {
+        console.log('📱 No localStorage lifetime users found');
+      }
     } catch (error) {
-      console.error('Error loading lifetime users:', error);
+      console.error('❌ Error loading lifetime users:', error);
     } finally {
       setLoading(prev => ({ ...prev, lifetimeUsers: false }));
     }
@@ -888,7 +905,8 @@ function Admin() {
               { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
               { id: 'whitelist', label: 'Access', icon: Mail, color: '#64748b' },
               { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
-              { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' }
+              { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
+              { id: 'notifications', label: 'Notifications', icon: Bell, color: '#8b5cf6' }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1111,6 +1129,7 @@ function Admin() {
                 {activeTab === 'whitelist' && 'Manage approved email addresses for beta access'}
                 {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
                 {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
+                {activeTab === 'notifications' && 'Customize notification templates and messaging with personality'}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -1122,6 +1141,19 @@ function Admin() {
                 >
                   <Plus size={18} />
                   New Announcement
+                </button>
+              )}
+              {activeTab === 'notifications' && (
+                <button
+                  onClick={() => {
+                    console.log('Edit Templates button clicked');
+                    setShowNotificationEditor(true);
+                  }}
+                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  <Bell size={18} />
+                  Edit Templates
                 </button>
               )}
               {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
@@ -2183,6 +2215,15 @@ function Admin() {
 
         {activeTab === 'lifetime' && (
           <div className="space-y-6">
+            {/* Manual Grant Tool */}
+            <ManualLifetimeGrant 
+              theme={theme} 
+              onUserAdded={() => {
+                loadLifetimeUsers();
+                console.log('User added, refreshing list');
+              }} 
+            />
+
             {/* Migration Tool */}
             <LifetimeMigration 
               theme={theme} 
@@ -2339,6 +2380,88 @@ function Admin() {
           <AgreementTracking theme={theme} />
         )}
 
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            {/* Notification Templates Overview */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
+                  <Bell size={24} style={{ color: theme.primary }} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Notification Templates</h2>
+                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                    Customize the messaging for all notifications sent to users. Add personality and adjust the tone to match your brand.
+                    Use variables like {'{peptideName}'}, {'{count}'}, {'{daysUntil}'} for dynamic content.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium" style={{ color: theme.text }}>Available Templates:</h4>
+                      <ul className="text-sm space-y-1" style={{ color: theme.textLight }}>
+                        <li>• Low Stock Alerts</li>
+                        <li>• Order Arrived Notifications</li>
+                        <li>• Order Status Updates</li>
+                        <li>• Washout Reminders</li>
+                        <li>• Cycle Reminders</li>
+                        <li>• Research Reminders</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="font-medium" style={{ color: theme.text }}>Variable Examples:</h4>
+                      <ul className="text-sm space-y-1" style={{ color: theme.textLight }}>
+                        <li>• {'{peptideName}'} - Name of peptide</li>
+                        <li>• {'{count}'} - Number of vials</li>
+                        <li>• {'{daysUntil}'} - Days until event</li>
+                        <li>• {'{protocolName}'} - Protocol name</li>
+                        <li>• {'{status}'} - Order status</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Template Examples */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <h3 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Example: Low Stock Alert</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Title:</p>
+                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
+                      🔬 Stock Running Low!
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Message:</p>
+                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
+                      You're down to 2 vials of BPC-157. Time to reorder?
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <h3 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Example: Cycle Reminder</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Title:</p>
+                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
+                      🔄 Cycle Coming Up!
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Message:</p>
+                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
+                      Your Growth Hormone cycle is starting in 3 days! Ready to confirm it for your schedule?
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         </div>
       </div>
       {isUserModalOpen && selectedUser && (
@@ -2347,6 +2470,16 @@ function Admin() {
           onClose={() => setIsUserModalOpen(false)}
           theme={theme}
         />
+      )}
+      {showNotificationEditor && (
+        <>
+          {console.log('Rendering NotificationTemplateEditor modal')}
+          <NotificationTemplateEditor
+            isOpen={showNotificationEditor}
+            onClose={() => setShowNotificationEditor(false)}
+            theme={theme}
+          />
+        </>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { formatMMDDYYYY } from '../../utils/date'
+import { renderCost as formatCurrency, renderCostPerMg as formatCostPerMg } from '../../utils/currencyUtils'
 import { Pencil, Truck, Package, Beaker, DollarSign, Calendar, Info, Edit } from 'lucide-react'
 
 const getNextStatus = (status) => {
@@ -133,24 +134,15 @@ const formatTotalCost = (order) => {
         const quantity = parseInt(item.quantity, 10) || 1;
         return sum + (price * quantity);
     }, 0);
-    return `$${total.toFixed(2)}`;
+    return formatCurrency(total);
 };
 
 function renderCost(cost) {
-  if (cost == null || cost === '') return '—'
-  const n = Number(cost)
-  if (!isNaN(n)) return `$${n.toFixed(2)}`
-  return String(cost)
+  return formatCurrency(cost)
 }
 
 function renderCostPerMg(order) {
-  const c = Number(order?.cost)
-  const mgPerVial = Number(order?.mg)
-  const qty = Math.max(1, Number(order?.quantity) || 1)
-  const unitMult = String(order?.unit || 'vial').toLowerCase() === 'kit' ? 10 : 1
-  const totalMg = (mgPerVial > 0 ? mgPerVial : NaN) * qty * unitMult
-  if (isNaN(c) || isNaN(totalMg) || totalMg <= 0) return '—'
-  return `$${(c / totalMg).toFixed(2)}`
+  return formatCostPerMg(order)
 }
 
 

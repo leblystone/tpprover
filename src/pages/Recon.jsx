@@ -8,6 +8,7 @@ import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import ReconHelpPanel from '../components/recon/ReconHelpPanel'
+import { formatCurrency } from '../utils/currencyUtils'
 import { getChromeGradient } from '../utils/recon'
 import { PEN_COLORS } from '../utils/penColors'
 import Tabs from '../components/common/Tabs'
@@ -264,7 +265,7 @@ export default function Recon() {
                                     : item.dose;
 
 								const calc = calculateRecon({ ...item, mg: totalMg, dose: totalDoseInMcg });
-								const costPerDose = item.cost ? `$${(item.cost / calc.dosesPerVial).toFixed(2)}` : null
+								const costPerDose = item.cost ? formatCurrency(item.cost / calc.dosesPerVial) : null
 								return (
 									<div key={item.id} className="rounded-lg border p-4 shadow-sm content-card flex flex-col justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
 										<div>
@@ -529,7 +530,7 @@ export default function Recon() {
             <Modal open={!!viewItem} onClose={() => setViewItem(null)} title="Recon History Details" theme={theme} variant="modern">
 				{viewItem && (() => {
 					const calc = calculateRecon(viewItem)
-					const costPerDose = viewItem.cost ? `$${(viewItem.cost / calc.dosesPerVial).toFixed(2)}` : null
+					const costPerDose = viewItem.cost ? formatCurrency(viewItem.cost / calc.dosesPerVial) : null
 					return (
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Date</div><div className="font-medium">{formatMMDDYYYY(viewItem.date)}</div></div>

@@ -24,6 +24,14 @@ export default function Orders() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true)
+	
+	// Check if group buys are enabled
+	useEffect(() => {
+		import('../utils/featureSettings').then(({ areGroupBuysEnabled }) => {
+			setGroupBuysEnabled(areGroupBuysEnabled());
+		});
+	}, []);
 	
 	// Auto save for orders data
 	const [ordersDraft, setOrdersDraft] = useState({})
@@ -56,7 +64,7 @@ export default function Orders() {
 		const tabs = [
 			{ value: 'domestic', label: 'Domestic' },
 			{ value: 'international', label: 'International' },
-			{ value: 'groupbuy', label: 'Group Buy' }
+			...(groupBuysEnabled ? [{ value: 'groupbuy', label: 'Group Buy' }] : [])
 		];
 		
 		const handleAddClick = () => {
@@ -80,7 +88,7 @@ export default function Orders() {
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 		};
-	}, [activeTab, isReadOnly])
+	}, [activeTab, isReadOnly, groupBuysEnabled])
 
 	// Set auto save indicator in topbar
 	useEffect(() => {
@@ -241,9 +249,11 @@ export default function Orders() {
 										vendors={vendors}
 									/>
 								</div>
-								<div>
-									<ScheduledBuysPanel theme={theme} />
-								</div>
+						{groupBuysEnabled && (
+							<div>
+								<ScheduledBuysPanel theme={theme} />
+							</div>
+						)}
 							</div>
 						) : (
 							<div className="flex flex-col items-center justify-center py-12 px-6 text-center">

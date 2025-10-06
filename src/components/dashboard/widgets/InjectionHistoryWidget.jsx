@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Syringe, Clock, Calendar, MapPin } from 'lucide-react';
 import { getInjectionHistory, getInjectionStats } from '../../../utils/injectionTracking';
+import { isInjectionSiteTrackingEnabled } from '../../../utils/injectionSiteSettings';
 
 export default function InjectionHistoryWidget({ theme }) {
   const [history, setHistory] = useState([]);
@@ -34,6 +35,31 @@ export default function InjectionHistoryWidget({ theme }) {
       default: return theme.textLight;
     }
   };
+
+  // Check if injection site tracking is disabled
+  if (!isInjectionSiteTrackingEnabled()) {
+    return (
+      <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
+        <div className="flex items-center gap-2 mb-4">
+          <Syringe size={20} style={{ color: theme.primary }} />
+          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            Injection History
+          </h3>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Syringe size={48} style={{ color: theme.textLight, opacity: 0.5 }} />
+            <p className="text-sm mt-2" style={{ color: theme.textLight }}>
+              Injection site tracking is disabled
+            </p>
+            <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+              Enable in Settings → App Preferences
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!history.length) {
     return (

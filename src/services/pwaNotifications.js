@@ -271,7 +271,10 @@ class PWANotificationService {
   async updateNotificationSettings(enabled) {
     try {
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      if (!user?.email) return;
+      if (!user?.email) {
+        console.log('📱 No authenticated user, skipping Firebase update');
+        return;
+      }
 
       const userRef = doc(db, 'users', user.email.toLowerCase());
       await setDoc(userRef, {
@@ -281,9 +284,20 @@ class PWANotificationService {
         }
       }, { merge: true });
 
-      console.log('Notification settings updated:', enabled);
+      console.log('✅ Notification settings updated in Firebase:', enabled);
     } catch (error) {
-      console.error('Failed to update notification settings:', error);
+      console.warn('⚠️ Failed to update notification settings in Firebase, using localStorage fallback:', error.message);
+      
+      // Fallback to localStorage for offline/local development
+      try {
+        const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+        settings.notifications = settings.notifications || {};
+        settings.notifications.push = enabled;
+        localStorage.setItem('tpprover_settings', JSON.stringify(settings));
+        console.log('✅ PWA notification settings saved to localStorage fallback');
+      } catch (fallbackError) {
+        console.error('❌ Failed to save to localStorage fallback:', fallbackError);
+      }
     }
   }
 

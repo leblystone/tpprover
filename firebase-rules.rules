@@ -59,6 +59,18 @@ service cloud.firestore {
       allow create: if true; // Admin can create notifications for users
     }
     
+    // User notification settings - users can manage their own settings
+    match /userNotificationSettings/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null; // Fallback for email-based auth
+    }
+    
+    // Push notification subscriptions - users can manage their own subscriptions
+    match /pushSubscriptions/{subscriptionId} {
+      allow read, write: if request.auth != null;
+      allow create: if true; // Allow creation for PWA setup
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

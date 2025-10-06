@@ -5,6 +5,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import Modal from '../components/common/Modal'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
+import { formatCurrency } from '../utils/currencyUtils'
 import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
@@ -474,7 +475,7 @@ export default function Stockpile() {
                                                         {(Number(item.cost) > 0 && Number(item.mg) > 0) && (
                                                             <div className="flex items-center gap-2 pl-5">
                                                                 <DollarSign size={12} />
-                                                                <span>${(Number(item.cost) / Number(item.mg)).toFixed(2)} / {item.mgUnit || 'mg'}</span>
+                                                                <span>{formatCurrency(Number(item.cost) / Number(item.mg))} / {item.mgUnit || 'mg'}</span>
                                                             </div>
                                                         )}
                                                     </>

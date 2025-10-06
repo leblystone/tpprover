@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { CheckCircle, DollarSign, Truck, Archive, TrendingUp, Users, Package, BarChart, GitBranch, AlertTriangle } from 'lucide-react'
 import Tabs from '../common/Tabs'
+import { formatCurrency } from '../../utils/currencyUtils'
 
 function useLocal(key, fallback) {
   const [state, setState] = useState(fallback)
@@ -66,7 +67,7 @@ export default function AnalyticsDashboard({ theme }) {
       <section>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard theme={theme} icon={<CheckCircle className="h-5 w-5 text-green-500" />} title="7d Research Consistency" value={`${stats.compliancePct}%`} />
-          <StatCard theme={theme} icon={<DollarSign className="h-5 w-5 text-blue-500" />} title="Last Month Spend" value={`$${stats.lastMonthSpend?.toFixed ? stats.lastMonthSpend.toFixed(2) : '0.00'}`} />
+          <StatCard theme={theme} icon={<DollarSign className="h-5 w-5 text-blue-500" />} title="Last Month Spend" value={formatCurrency(stats.lastMonthSpend || 0)} />
           <StatCard theme={theme} icon={<Truck className="h-5 w-5 text-purple-500" />} title="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} />
           <StatCard theme={theme} icon={<Archive className="h-5 w-5 text-red-500" />} title="Low Stock Items" value={stats.lowStock} />
         </div>
@@ -211,7 +212,7 @@ function TopVendors({ orders, theme }) {
     <div className="space-y-1">
       {rows.map(([name, val]) => (
         <div key={name}>
-          <div className="flex items-center justify-between text-xs text-gray-500"><span className="truncate pr-2">{name}</span><span>${val.toFixed(0)}</span></div>
+          <div className="flex items-center justify-between text-xs text-gray-500"><span className="truncate pr-2">{name}</span><span>{formatCurrency(val)}</span></div>
           <div className="h-2 rounded bg-gray-100 overflow-hidden"><div className="h-2" style={{ width: `${(val/max)*100}%`, backgroundColor: theme.primary }}></div></div>
         </div>
       ))}
@@ -362,7 +363,7 @@ function SpendByPeptide({ orders, theme }) {
     <div className="space-y-1">
       {rows.map(([name, val]) => (
         <div key={name}>
-          <div className="flex items-center justify-between text-xs text-gray-500"><span className="truncate pr-2">{name}</span><span>${val.toFixed(0)}</span></div>
+          <div className="flex items-center justify-between text-xs text-gray-500"><span className="truncate pr-2">{name}</span><span>{formatCurrency(val)}</span></div>
           <div className="h-2 rounded bg-gray-100 overflow-hidden"><div className="h-2" style={{ width: `${(val/max)*100}%`, backgroundColor: theme.primary }}></div></div>
         </div>
       ))}
@@ -393,7 +394,7 @@ function AvgCostPerMg({ orders, theme }) {
     <div className="space-y-1">
       {rows.map(r => (
         <div key={r.name}>
-          <div className="flex items-center justify-between text-xs text-gray-500"><span className="truncate pr-2">{r.name}</span><span>${r.rate.toFixed(2)}/mg</span></div>
+          <div className="flex items-center justify-between text-xs text-gray-500"><span className="truncate pr-2">{r.name}</span><span>{formatCurrency(r.rate)}/mg</span></div>
           <div className="h-2 rounded bg-gray-100 overflow-hidden"><div className="h-2" style={{ width: `${(r.rate/max)*100}%`, backgroundColor: theme.primary }}></div></div>
         </div>
       ))}
