@@ -17,7 +17,8 @@ export const WIDGET_TYPES = {
   WATER_TRACKER: 'water_tracker',
   GLOSSARY: 'glossary',
   FEEDBACK: 'feedback',
-  NOTES: 'notes'
+  NOTES: 'notes',
+  INJECTION_HISTORY: 'injection_history'
 };
 
 export const WIDGET_SIZES = {
@@ -374,6 +375,15 @@ export const WIDGET_METADATA = {
     icon: 'FileText',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: []
+  },
+  [WIDGET_TYPES.INJECTION_HISTORY]: {
+    title: 'Injection History',
+    description: 'Track your injection sites and history for better rotation',
+    icon: 'Syringe',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
+    settings: [
+      { key: 'showRecent', label: 'Number of recent injections to show', type: 'number', default: 5, min: 1, max: 20 }
+    ]
   }
 };
 

@@ -75,12 +75,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           
         {/* Tabs in Topbar - Right aligned */}
         {tabs && tabs.length > 0 && (
-          <div className="flex items-center gap-1 md:gap-2 px-2 py-1 rounded-lg" style={{ backgroundColor: `${theme.primary}08` }}>
+          <div className="flex items-center gap-1 md:gap-2 px-2 py-1 rounded-lg md:justify-between md:min-w-[380px] md:w-[420px] lg:w-[520px] xl:w-[640px]" style={{ backgroundColor: `${theme.primary}08` }}>
             {tabs.map(tab => (
               <button
                 key={tab.value}
                 onClick={() => onTabChange(tab.value)}
-                className={`px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm uppercase tracking-tight md:tracking-wider rounded-lg transition-all duration-200 relative whitespace-nowrap ${
+                className={`px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm uppercase tracking-tight md:tracking-wider rounded-lg transition-all duration-200 relative whitespace-nowrap md:flex-1 md:text-center ${
                   activeTab === tab.value 
                     ? 'shadow-sm' 
                     : 'hover:bg-gray-800 hover:text-white hover:shadow'

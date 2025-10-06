@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
-import { Droplet, Pill, Edit, Syringe, PenTool, Beaker, Target, CheckCircle, Check } from 'lucide-react'
+import { Droplet, Pill, Edit, Syringe, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
@@ -82,11 +82,111 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     const dayKey = toKey(date)
     const dayNotes = entries[dayKey]
     const dayScheduled = scheduled[dayKey]
+    
+    // Calculate actual task completion status
+    let totalTasks = 0;
+    let completedTasks = 0;
+    
+    if (dayScheduled?.bySlot) {
+      Object.keys(dayScheduled.bySlot).forEach(timeSlot => {
+        const slot = dayScheduled.bySlot[timeSlot];
+        if (slot.peptides) {
+          slot.peptides.forEach(peptide => {
+            const task = {
+              name: typeof peptide === 'object' ? peptide.name : peptide,
+              dose: typeof peptide === 'object' ? peptide.dose : '',
+              unit: typeof peptide === 'object' ? peptide.unit : '',
+              type: 'peptide',
+              time: timeSlot
+            };
+            const taskId = generateTaskId(task);
+            const dateKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+            totalTasks++;
+            if (isTaskCompleted(taskId, dateKey, timeSlot)) {
+              completedTasks++;
+            }
+          });
+        }
+        if (slot.supplements) {
+          slot.supplements.forEach(supplement => {
+            const task = {
+              name: typeof supplement === 'object' ? supplement.name : supplement,
+              dose: typeof supplement === 'object' ? supplement.dose : '',
+              unit: typeof supplement === 'object' ? supplement.unit : '',
+              type: 'supplement',
+              time: timeSlot
+            };
+            const taskId = generateTaskId(task);
+            const dateKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+            totalTasks++;
+            if (isTaskCompleted(taskId, dateKey, timeSlot)) {
+              completedTasks++;
+            }
+          });
+        }
+      });
+    }
+    
+    // Count group buys as tasks (they don't have completion status, so they're always "completed")
+    if (dayScheduled?.groupBuys && dayScheduled.groupBuys.length > 0) {
+      totalTasks += dayScheduled.groupBuys.length;
+      completedTasks += dayScheduled.groupBuys.length; // Group buys are always considered "completed" for display purposes
+    }
+    
+    const allTasksCompleted = totalTasks > 0 && completedTasks === totalTasks;
+
+    // Resolve Group Buy display info (name, vendor, price) from multiple sources
+    let groupBuyInfo = null;
+    try {
+      // Check if this day has a group buy scheduled
+      if (dayScheduled?.groupBuys && dayScheduled.groupBuys.length > 0) {
+        const gb = dayScheduled.groupBuys[0];
+        
+        if (gb && typeof gb === 'object') {
+          // Robust name/vendor/price extraction with multiple fallbacks
+          const name = `Group Buy For: ${gb.title || gb.name || gb.item || gb.peptide || gb.peptideName || (gb.group && gb.group.title) || 'Unknown Item'}`;
+          const vendor = gb.vendor || gb.seller || gb.source || (gb.group && (gb.group.vendor || gb.group.name)) || '';
+          const rawPrice = gb.cost ?? gb.price ?? gb.amount ?? '';
+          const price = rawPrice !== '' ? `$${String(rawPrice).toString().replace(/^\$/,'')}` : '';
+          groupBuyInfo = { name, vendor, price, source: 'scheduled' };
+        } else if (gb) {
+          // Group buy is just a string like "Group Buy"
+          // For now, we'll show a more descriptive fallback since we don't have detailed data
+          groupBuyInfo = { 
+            name: String(gb) === 'Group Buy' ? 'Group Buy For: Available' : `Group Buy For: ${String(gb)}`, 
+            vendor: '', 
+            price: '', 
+            source: 'scheduled' 
+          };
+        }
+      }
+      
+      // Also check orders for this specific day as a fallback
+      if (!groupBuyInfo) {
+        const rawOrders = localStorage.getItem('tpprover_orders');
+        const orders = rawOrders ? JSON.parse(rawOrders) : [];
+        const orderMatch = orders.find(o => {
+          try {
+            const d = (o.date || '').slice(0,10);
+            return d === dayKey && (!!o.group || !!o.vendor || !!o.cost || !!o.price);
+          } catch { return false; }
+        });
+        if (orderMatch) {
+          const name = `Group Buy For: ${(orderMatch.group && (orderMatch.group.title || orderMatch.group.name)) || orderMatch.peptide || orderMatch.item || 'Unknown Item'}`;
+          const vendor = orderMatch.vendor || orderMatch.seller || orderMatch.source || '';
+          const rawPrice = orderMatch.cost ?? orderMatch.price ?? orderMatch.amount ?? '';
+          const price = rawPrice !== '' ? `$${String(rawPrice).toString().replace(/^\$/,'')}` : '';
+          groupBuyInfo = { name, vendor, price, source: 'orders' };
+        }
+      }
+    } catch (error) {
+      console.error('WeekView - Error processing group buy:', error);
+    }
 
     return (
       <div key={date.toISOString()} className="w-full rounded border" style={{ borderColor: theme.border }}>
         <div className="p-2 border-b flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: isToday ? theme.primary : theme.accent }}>
-          <span className="font-semibold text-sm flex items-center gap-1" style={{ color: isToday ? theme.textOnPrimary : theme.primaryDark }}>{isToday ? 'Today' : dayOfWeek}{dayScheduled?.doneAll && <span title="All tasks done">✓</span>}</span>
+          <span className="font-semibold text-sm flex items-center gap-1" style={{ color: isToday ? theme.textOnPrimary : theme.primaryDark }}>{isToday ? 'Today' : dayOfWeek}{allTasksCompleted && <span title="All tasks done">✓</span>}</span>
           <span 
             className={`font-bold text-lg flex items-center justify-center rounded-full w-8 h-8`}
             style={{
@@ -126,6 +226,30 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 </div>
             </div>
 
+            {/* Group Buys - subtle single-line chip with link */}
+            {groupBuyInfo && (
+                <div className="mt-2">
+                    <button
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs max-w-full"
+                        style={{ backgroundColor: theme.secondary, color: theme.text }}
+                        onClick={() => {
+                            if (typeof window?.showGroupBuyDetails === 'function') {
+                                window.showGroupBuyDetails(groupBuyInfo);
+                            }
+                        }}
+                        title="View group buy details"
+                    >
+                        <ShoppingCart size={12} style={{ color: '#9B9B7A' }} />
+                        <span className="truncate max-w-[260px]">
+                            {groupBuyInfo.name}
+                            {(groupBuyInfo.vendor || groupBuyInfo.price) && (
+                                <span className="text-[10px] opacity-70"> {` — ${groupBuyInfo.vendor || ''}${groupBuyInfo.vendor && groupBuyInfo.price ? ' • ' : ''}${groupBuyInfo.price || ''}`}</span>
+                            )}
+                        </span>
+                    </button>
+                </div>
+            )}
+
             {/* Goals Section */}
             {dayScheduled?.goals && dayScheduled.goals.length > 0 && (
                 <div className="mt-2 p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.secondary + '40' }}>
@@ -156,8 +280,13 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             {dayNotes && (
               <div 
                 onClick={() => onNotesClick(date)}
-                className="p-1 rounded text-xs cursor-pointer hover:bg-gray-50 mt-1" 
-                style={{ backgroundColor: theme.cardBackground, color: dayNotes ? theme.text : theme.textLight }}
+                className="p-2 rounded-md border text-xs cursor-pointer mt-1 hover:opacity-90"
+                style={{ 
+                  backgroundColor: theme.secondary,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
+                title="View or edit notes"
               >
                 {dayNotes}
               </div>
@@ -170,14 +299,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                     </span>
                 </div>
             )}
-            {dayScheduled?.groupBuys?.length > 0 && (
-                <div className="p-1 rounded text-center mt-1" style={{ backgroundColor: theme.secondary }}>
-                    <span className="text-xs font-semibold flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                        Group Buy: {dayScheduled.groupBuys.join(', ')}
-                    </span>
-                </div>
-            )}
+            {/* Removed duplicate footer group buy banner */}
         </div>
       </div>
     )

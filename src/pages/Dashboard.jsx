@@ -588,12 +588,21 @@ export default function Dashboard() {
     return () => window.removeEventListener('tpp:openImport', handler)
   }, [])
 
+
   const toggleTask = (id) => {
     setTodaysTasks(ts => ts.map(t => {
       if (t.id === id) {
-        const newCompleted = !t.completed;
+        // Check if this is a syringe or pen delivery method
+        const deliveryMethod = t.deliveryMethod || t.delivery;
+        const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+        
+        // Injection confirmation is now handled inline in the task components
+        
         // Use the stable task ID that was generated during task creation
         const taskId = t.stableTaskId || generateTaskId(t);
+        // Always check actual completion status from localStorage
+        const currentlyCompleted = isTaskCompleted(taskId, undefined, t.time);
+        const newCompleted = !currentlyCompleted;
         console.log('🔄 Dashboard: Toggling task', {
           taskName: t.name,
           originalId: id,
@@ -741,7 +750,13 @@ export default function Dashboard() {
                         <li key={g.id} className="flex items-start justify-between p-1 rounded">
                             <div className="flex items-start gap-2">
                             <button 
-                                onClick={() => setGoals(prev => prev.map(x => x.id === g.id ? { ...x, completed: !x.completed } : x))}
+                                onClick={() => {
+                                  if (isReadOnly) {
+                                    setShowUpgradeModal(true);
+                                    return;
+                                  }
+                                  setGoals(prev => prev.map(x => x.id === g.id ? { ...x, completed: !x.completed } : x));
+                                }}
                                 className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5`}
                                 style={{borderColor: g.completed ? theme.success : theme.border, backgroundColor: g.completed ? theme.success : 'transparent'}}
                             >
@@ -787,7 +802,19 @@ export default function Dashboard() {
                                 }
                             </div>
                             </div>
-                            <button className="p-1 rounded hover:bg-gray-100" onClick={() => { setEditingGoal(g); setShowGoal(true) }}><Edit size={12} /></button>
+                            <button 
+                              className="p-1 rounded hover:bg-gray-100" 
+                              onClick={() => { 
+                                if (isReadOnly) {
+                                  setShowUpgradeModal(true);
+                                  return;
+                                }
+                                setEditingGoal(g); 
+                                setShowGoal(true);
+                              }}
+                            >
+                              <Edit size={12} />
+                            </button>
                         </li>
                         ))}
                     </ul>
@@ -829,7 +856,18 @@ export default function Dashboard() {
                   label="New Vendor" 
                   theme={theme} 
                 />
-                <ActionButton onClick={() => { setShowRecon(true) }} icon={<Droplet />} label="Recon Calculator" theme={theme} />
+                <ActionButton 
+                  onClick={() => { 
+                    if (isReadOnly) {
+                      setShowUpgradeModal(true);
+                      return;
+                    }
+                    setShowRecon(true);
+                  }} 
+                  icon={<Droplet />} 
+                  label="Recon Calculator" 
+                  theme={theme} 
+                />
                 <ActionButton 
                   onClick={() => { 
                     if (isReadOnly) {
@@ -879,7 +917,19 @@ export default function Dashboard() {
                                 <div className="flex items-center gap-2">
                                 <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: theme.infoBg, color: theme.info }}>{m.weight || '-'} lbs</span>
                                 <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: theme.successBg, color: theme.success }}>{m.bodyfat || '-'}%</span>
-                                <button className="p-1 rounded hover:opacity-80" onClick={() => { setEditingMetric(m); setShowMetrics(true) }}><Edit size={14} /></button>
+                                <button 
+                                  className="p-1 rounded hover:opacity-80" 
+                                  onClick={() => { 
+                                    if (isReadOnly) {
+                                      setShowUpgradeModal(true);
+                                      return;
+                                    }
+                                    setEditingMetric(m); 
+                                    setShowMetrics(true);
+                                  }}
+                                >
+                                  <Edit size={14} />
+                                </button>
                                 </div>
                             </div>
                             <div className="mt-1.5 flex items-center justify-between text-xs border-t pt-1.5" style={{borderColor: theme.border, color: theme.textLight}}>
@@ -910,15 +960,35 @@ export default function Dashboard() {
             <UpcomingOrderCard 
                 theme={theme}
                 order={incomingOrder}
-                onNewOrder={() => setShowNewOrder(true)}
+                onNewOrder={() => {
+                  if (isReadOnly) {
+                    setShowUpgradeModal(true);
+                    return;
+                  }
+                  setShowNewOrder(true);
+                }}
             />
-            <UpcomingBuys buys={upcomingBuys} theme={theme} onAdd={() => setShowAddBuyModal(true)} />
+            <UpcomingBuys 
+              buys={upcomingBuys} 
+              theme={theme} 
+              onAdd={() => {
+                if (isReadOnly) {
+                  setShowUpgradeModal(true);
+                  return;
+                }
+                setShowAddBuyModal(true);
+              }} 
+            />
             {pendingVendors.length > 0 && (
                 <PendingVendorsView 
                     vendors={pendingVendors} 
                     theme={theme} 
                     onViewAll={() => navigate('/app/vendors')}
                     onComplete={(vendor) => {
+                        if (isReadOnly) {
+                            setShowUpgradeModal(true);
+                            return;
+                        }
                         setEditingVendor(vendor);
                         setShowNewVendor(true);
                     }}
@@ -1022,12 +1092,17 @@ export default function Dashboard() {
         theme={theme}
         metric={editingMetric}
         onSave={(data) => {
-        setMetrics(prev => {
-            if (data.id) return prev.map(x => x.id === data.id ? { ...x, ...data } : x)
-            return [{ id: Date.now(), ...data }, ...prev]
-        })
-        setShowMetrics(false)
-        setEditingMetric(null)
+            if (isReadOnly) {
+                setShowUpgradeModal(true);
+                return;
+            }
+            
+            setMetrics(prev => {
+                if (data.id) return prev.map(x => x.id === data.id ? { ...x, ...data } : x)
+                return [{ id: Date.now(), ...data }, ...prev]
+            })
+            setShowMetrics(false)
+            setEditingMetric(null)
         }}
     />
     <GoalModal
@@ -1052,6 +1127,11 @@ export default function Dashboard() {
         theme={theme}
         supplement={editingSupplement}
         onSave={(data) => {
+          if (isReadOnly) {
+            setShowUpgradeModal(true);
+            return;
+          }
+          
           if (editingSupplement) {
             updateSupplement(data);
           } else {
@@ -1071,6 +1151,11 @@ export default function Dashboard() {
         onClose={() => setShowAddBuyModal(false)}
         theme={theme}
         onSave={(buy) => {
+            if (isReadOnly) {
+                setShowUpgradeModal(true);
+                return;
+            }
+            
             const newBuy = { ...buy, id: generateId() };
             setScheduledBuys(prev => [...prev, newBuy]);
             
@@ -1080,11 +1165,16 @@ export default function Dashboard() {
                 setUpcomingBuys(prev => [...prev, {
                     id: newBuy.id,
                     name: newBuy.item,
+                    peptideName: newBuy.item, // Keep backward compatibility
                     date: newBuy.openDate,
                     vendor: newBuy.vendor,
+                    location: newBuy.location,
+                    participants: newBuy.participants,
+                    price: newBuy.price,
                     openDate: newBuy.openDate,
                     closeDate: newBuy.closeDate,
-                    notes: newBuy.notes
+                    description: newBuy.notes,
+                    notes: newBuy.notes // Keep backward compatibility
                 }]);
             }
             

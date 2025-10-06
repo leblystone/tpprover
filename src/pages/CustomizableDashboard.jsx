@@ -172,6 +172,12 @@ export default function CustomizableDashboard() {
     const handleDashboardSettings = () => {
       setShowCustomizer(true);
     };
+    const handleGroupBuyDeleted = () => {
+      // Refresh the scheduled buys data from localStorage
+      const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
+      const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : [];
+      setScheduledBuys(scheduledBuys);
+    };
 
     window.addEventListener('tpp:openRecon', handleOpenRecon);
     window.addEventListener('tpp:openOrder', handleOpenOrder);
@@ -179,6 +185,7 @@ export default function CustomizableDashboard() {
     window.addEventListener('tpp:openProtocol', handleOpenProtocol);
     window.addEventListener('tpp:dashboard-customize', handleDashboardCustomize);
     window.addEventListener('tpp:dashboard-settings', handleDashboardSettings);
+    window.addEventListener('tpp:group-buy-deleted', handleGroupBuyDeleted);
 
     return () => {
       window.removeEventListener('tpp:openRecon', handleOpenRecon);
@@ -187,6 +194,7 @@ export default function CustomizableDashboard() {
       window.removeEventListener('tpp:openProtocol', handleOpenProtocol);
       window.removeEventListener('tpp:dashboard-customize', handleDashboardCustomize);
       window.removeEventListener('tpp:dashboard-settings', handleDashboardSettings);
+      window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeleted);
     };
   }, [isCustomizing]);
 
@@ -482,7 +490,14 @@ export default function CustomizableDashboard() {
   };
 
   // Task management - using unified completion system
+
   const handleTaskToggle = (task, date = new Date()) => {
+    // Check if this is a syringe or pen delivery method
+    const deliveryMethod = task.deliveryMethod || task.delivery;
+    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+    
+        // Injection confirmation is now handled inline in the task components
+    
     const dateKey = toKey(date);
     const taskId = task.stableTaskId || generateTaskId(task);
     const currentlyCompleted = isTaskCompleted(taskId, dateKey, task.time);
@@ -773,7 +788,13 @@ export default function CustomizableDashboard() {
         onClose={() => setShowAddBuyModal(false)}
         theme={theme}
         onSave={(buy) => {
-          setScheduledBuys(prev => [...prev, { ...buy, id: Date.now() }]);
+          const newBuy = { 
+            ...buy, 
+            id: Date.now(),
+            name: buy.item, // Map item to name for display
+            peptideName: buy.item // Also set peptideName for backward compatibility
+          };
+          setScheduledBuys(prev => [...prev, newBuy]);
           setShowAddBuyModal(false);
           addToast('Scheduled buy added', 'success');
         }}

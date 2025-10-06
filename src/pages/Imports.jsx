@@ -146,7 +146,7 @@ export default function Imports() {
               {items.map(imp => (
                 <li key={imp.id} className="py-3">
                   <div className="flex items-start gap-2">
-                    <input type="checkbox" className="mt-1" checked={selectedIds.includes(imp.id)} onChange={e => toggleSelect(imp.id, e.target.checked)} />
+                    <input type="checkbox" className="mt-1 h-4 w-4 rounded" checked={selectedIds.includes(imp.id)} onChange={e => toggleSelect(imp.id, e.target.checked)} style={{ accentColor: theme.primary }} />
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <span className="status-info">{(imp.status || 'Pending')}</span>

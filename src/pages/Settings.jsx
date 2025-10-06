@@ -8,6 +8,68 @@ import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useAppContext } from '../context/AppContext'
 import SuccessModal from '../components/ui/SuccessModal'
+import pwaNotificationService from '../services/pwaNotifications'
+import CollapsibleSection from '../components/common/CollapsibleSection'
+import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2 } from 'lucide-react'
+
+// PWA Notification Toggle Component
+function PWANotificationToggle({ checked, onChange, status, theme }) {
+  const getStatusText = () => {
+    if (!status.supported) return 'Not supported in this browser';
+    if (status.loading) return 'Updating...';
+    if (status.permission === 'denied') return 'Permission denied - enable in browser settings';
+    if (status.permission === 'default') return 'Click to enable native notifications';
+    if (checked) return 'Native notifications enabled';
+    return 'Click to enable native notifications';
+  };
+
+  const getStatusColor = () => {
+    if (!status.supported || status.permission === 'denied') return theme.error;
+    if (status.loading) return theme.warning;
+    if (checked) return theme.success;
+    return theme.textLight;
+  };
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium" style={{ color: theme.text }}>Push Notifications</h3>
+          {status.supported && (
+            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: theme.accent + '20', color: theme.text }}>
+              PWA
+            </span>
+          )}
+        </div>
+        <p className="text-sm mt-1" style={{ color: getStatusColor() }}>
+          {getStatusText()}
+        </p>
+        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+          Get notified in real-time on your devices, even when the app is closed.
+        </p>
+      </div>
+      <div className="ml-4">
+        <button
+          onClick={() => onChange(!checked)}
+          disabled={!status.supported || status.loading || status.permission === 'denied'}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+            checked ? 'bg-green-600' : 'bg-gray-200'
+          } ${status.loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          style={{
+            backgroundColor: checked ? theme.success : theme.border,
+            focusRingColor: theme.primary
+          }}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              checked ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // Settings persistence (local-only)
 function loadSettings() {
@@ -49,6 +111,14 @@ export default function Settings() {
   const { theme } = useOutletContext()
   const { refreshDataAfterClear } = useAppContext()
   const [pwaPrompted, setPWAPrompted] = useState(false)
+  
+  // PWA Notification state
+  const [pwaNotificationStatus, setPwaNotificationStatus] = useState({
+    supported: false,
+    permission: 'default',
+    enabled: false,
+    loading: false
+  })
     const [selectedTheme, setSelectedTheme] = useState(() => {
         try { 
             const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
@@ -83,6 +153,34 @@ export default function Settings() {
             document.documentElement.style.fontSize = `${parseFloat(scale) * 16}px`;
         } catch {}
     }, [settings?.appearance?.fontScale]);
+
+    // Initialize PWA notification status
+    useEffect(() => {
+        const updatePWAStatus = () => {
+            const status = pwaNotificationService.getStatus();
+            setPwaNotificationStatus({
+                supported: status.supported,
+                permission: status.permission,
+                enabled: status.enabled,
+                loading: false
+            });
+        };
+
+        // Initial status check
+        updatePWAStatus();
+
+        // Listen for PWA notification events
+        const handleEnabled = () => updatePWAStatus();
+        const handleDisabled = () => updatePWAStatus();
+
+        window.addEventListener('pwa-notifications-enabled', handleEnabled);
+        window.addEventListener('pwa-notifications-disabled', handleDisabled);
+
+        return () => {
+            window.removeEventListener('pwa-notifications-enabled', handleEnabled);
+            window.removeEventListener('pwa-notifications-disabled', handleDisabled);
+        };
+    }, []);
 
     const tzList = (() => {
       const common = ['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Paris','Europe/Berlin','Asia/Tokyo','Asia/Shanghai','Asia/Kolkata','Australia/Sydney']
@@ -186,24 +284,69 @@ export default function Settings() {
       saveSettings(next)
     }
 
+    // Handle PWA notification toggle
+    const handlePWANotificationToggle = async (enabled) => {
+      if (pwaNotificationStatus.loading) return;
+      
+      setPwaNotificationStatus(prev => ({ ...prev, loading: true }));
+      
+      try {
+        if (enabled) {
+          await pwaNotificationService.enable();
+          // Update local settings
+          update('notifications.push', true);
+        } else {
+          await pwaNotificationService.disable();
+          // Update local settings
+          update('notifications.push', false);
+        }
+      } catch (error) {
+        console.error('Failed to toggle PWA notifications:', error);
+        
+        // Show error message
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: error.message || 'Failed to update notification settings', 
+            type: 'error' 
+          } 
+        }));
+        
+        // Reset loading state
+        setPwaNotificationStatus(prev => ({ ...prev, loading: false }));
+      }
+    };
+
     return (
-      <section className="space-y-6">
+      <section className="space-y-4">
         {/* Notifications */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Notifications</h2>
-          <p className="text-sm text-gray-500 mb-4">Choose how you want to be notified.</p>
+        <CollapsibleSection
+          title="Notifications"
+          description="Choose how you want to be notified"
+          icon={Bell}
+          theme={theme}
+          defaultExpanded={true}
+        >
           <div className="space-y-3">
             <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />
-            <SettingToggle checked={settings.notifications.push} onChange={v => update('notifications.push', v)} label="Push Notifications" description="Get notified in real-time on your devices." theme={theme} />
+            <PWANotificationToggle 
+              checked={pwaNotificationStatus.enabled} 
+              onChange={handlePWANotificationToggle}
+              status={pwaNotificationStatus}
+              theme={theme}
+            />
             <SettingToggle checked={settings.notifications.billing} onChange={v => update('notifications.billing', v)} label="Billing Updates" description="Get notified about invoices and payment status." theme={theme} />
             <SettingToggle checked={settings.notifications.researchReminders} onChange={v => update('notifications.researchReminders', v)} label="Research Reminders" description="Stay on track with your research schedule." theme={theme} />
             <SettingToggle checked={settings.notifications.groupBuys} onChange={v => update('notifications.groupBuys', v)} label="Group Buy Updates" description="Get alerts for new group buy opportunities." theme={theme} />
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Theme & Appearance */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Appearance</h2>
+        <CollapsibleSection
+          title="Appearance"
+          description="Customize your app's look and feel"
+          icon={Palette}
+          theme={theme}
+        >
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Theme</label>
@@ -218,34 +361,43 @@ export default function Settings() {
             </div>
             <SettingSelect label="Font Size" value={settings.appearance.fontScale} onChange={e => update('appearance.fontScale', e.target.value)} options={[{ value: '0.9', label: 'Small' }, { value: '1.0', label: 'Default' }, { value: '1.1', label: 'Large' }, { value: '1.25', label: 'XL' }]} theme={theme} />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Region & Language */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Region & Language</h2>
-          <p className="text-sm text-gray-500 mb-4">Set your preferences for language, time, and date.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* App Preferences */}
+        <CollapsibleSection
+          title="App Preferences"
+          description="Customize language, time, date, and other app settings"
+          icon={SettingsIcon}
+          theme={theme}
+        >
+          <div className="space-y-4">
             <SettingSelect label="Language" value={settings.region.language} onChange={e => update('region.language', e.target.value)} options={[{ value: 'en-US', label: 'English (US)' }, { value: 'en-GB', label: 'English (UK)' }, { value: 'es-ES', label: 'Español (ES)' }]} theme={theme} />
             <SettingSelect label="Time Zone" value={settings.region.timeZone} onChange={e => update('region.timeZone', e.target.value)} options={tzList.map(tz => ({ value: tz, label: tz }))} theme={theme} />
             <SettingSelect label="Week Starts On" value={settings.region.weekStartsOn} onChange={e => update('region.weekStartsOn', e.target.value)} options={[{ value: 'sunday', label: 'Sunday' }, { value: 'monday', label: 'Monday' }]} theme={theme} />
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Privacy & Cookies */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Privacy</h2>
-          <p className="text-sm text-gray-500 mb-4">Manage your data and cookie preferences.</p>
+        <CollapsibleSection
+          title="Privacy"
+          description="Manage your data and cookie preferences"
+          icon={Shield}
+          theme={theme}
+        >
           <div className="space-y-3">
             <SettingToggle checked={settings.privacy.functional} onChange={v => update('privacy.functional', v)} label="Functional Cookies" description="Required for the app to work correctly." theme={theme} disabled />
             <SettingToggle checked={settings.privacy.analytics} onChange={v => update('privacy.analytics', v)} label="Analytics Cookies" description="Help us improve the app with usage data." theme={theme} />
             <SettingToggle checked={settings.privacy.dataSharing} onChange={v => update('privacy.dataSharing', v)} label="Anonymous Usage Metrics" description="Help us improve by sharing anonymous data." theme={theme} />
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Legal */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-1" style={{ color: theme.primaryDark }}>Legal & Privacy</h2>
-          <p className="text-sm text-gray-500 mb-4">Terms of Service, Privacy Policy, and other legal documents.</p>
+        <CollapsibleSection
+          title="Legal & Privacy"
+          description="Terms of Service, Privacy Policy, and other legal documents"
+          icon={FileText}
+          theme={theme}
+        >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -264,11 +416,15 @@ export default function Settings() {
               <button onClick={() => setShowPrivacy(true)} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }}>View</button>
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Data & App */}
-        <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <h2 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>Data Management</h2>
+        <CollapsibleSection
+          title="Data Management"
+          description="Export, import, and manage your app data"
+          icon={Trash2}
+          theme={theme}
+        >
           <div className="space-y-4">
             <div className="flex items-center gap-2 flex-wrap">
               <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={exportAll}>Export Backup (CSV)</button>
@@ -309,7 +465,7 @@ export default function Settings() {
               <p className="text-xs text-gray-500 mt-2">"Clear ALL" will permanently wipe all data in this browser. This cannot be undone.</p>
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
         <TermsOfServiceModal open={showTerms} onClose={() => setShowTerms(false)} onAgree={null} theme={theme} />
         <LandingPrivacyModal open={showPrivacy} onClose={() => setShowPrivacy(false)} />
         <SuccessModal

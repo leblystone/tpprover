@@ -149,6 +149,27 @@ if (typeof window !== 'undefined') {
     }
   };
 
+  // Load PWA notification testing utilities
+  import('./notificationTest.js').then(({ verifyPWANotifications, testPWANotifications, requestNotificationPermission, showPWANotification }) => {
+    window.verifyPWANotifications = verifyPWANotifications;
+    window.testPWANotifications = testPWANotifications;
+    window.requestNotificationPermission = requestNotificationPermission;
+    window.showPWANotification = showPWANotification;
+  }).catch(err => {
+    console.warn('Failed to load notification test utilities:', err);
+  });
+
+  // Load PWA notification service
+  import('../services/pwaNotifications.js').then(({ default: pwaService }) => {
+    window.pwaNotificationService = pwaService;
+    window.testPWAService = () => pwaService.test();
+    window.enablePWANotifications = () => pwaService.enable();
+    window.disablePWANotifications = () => pwaService.disable();
+    window.getPWAStatus = () => pwaService.getStatus();
+  }).catch(err => {
+    console.warn('Failed to load PWA notification service:', err);
+  });
+
   // Log that debug functions are available
   console.log('🛠️ TPP Debug functions loaded:');
   console.log('   - debugDashboardData() - Diagnose data issues');
@@ -161,6 +182,15 @@ if (typeof window !== 'undefined') {
   console.log('   - createExpiredLabAccess() - Create an expired lab access for testing');
   console.log('   - clearSubscription() - Remove current subscription');
   console.log('   - getCurrentSubscription() - View current subscription details');
+  console.log('🔔 PWA Notification Testing Functions:');
+  console.log('   - verifyPWANotifications() - Test if PWA notifications are working properly');
+  console.log('   - testPWANotifications() - Run detailed PWA notification tests');
+  console.log('   - requestNotificationPermission() - Request notification permission from user');
+  console.log('   - showPWANotification(title, options) - Show a test PWA notification');
+  console.log('   - testPWAService() - Test the PWA notification service');
+  console.log('   - enablePWANotifications() - Enable PWA notifications');
+  console.log('   - disablePWANotifications() - Disable PWA notifications');
+  console.log('   - getPWAStatus() - Get current PWA notification status');
 }
 
 export { diagnoseDashboardData, fixDataInconsistencies };

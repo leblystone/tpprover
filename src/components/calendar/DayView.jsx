@@ -5,7 +5,45 @@ import TaskDisplay from './TaskDisplay'
 
 export default function DayView({ open, onClose, date, theme, notes, onSave, scheduled = {}, done = {}, onToggleSlot }) {
   const [text, setText] = useState(notes || '')
+  const [forceRender, setForceRender] = useState(0)
+  
   useEffect(() => { setText(notes || '') }, [notes, date])
+  
+  // Listen for task completion events to force re-render
+  useEffect(() => {
+    const handleTaskCompletionChange = (e) => {
+      console.log('📡 DayView received task completion event:', e.detail);
+      setForceRender(prev => prev + 1);
+    };
+    
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    };
+  }, []);
+  
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (open) {
+        // Check if the click is outside the modal content
+        const modalContent = document.querySelector('[data-dayview-modal]');
+        if (modalContent && !modalContent.contains(event.target)) {
+          onClose();
+        }
+      }
+    };
+    
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onClose]);
+  
   const title = date ? `${date.toLocaleDateString('en-US', { weekday: 'long' })}, ${formatMMDDYYYY(date)}` : ''
   const times = scheduled.times || {}
   const [dayDetails, setDayDetails] = useState({ protocols: [], supplements: [], buys: [] })
@@ -70,7 +108,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
         <button onClick={() => onSave?.(text)} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
       </>
     )}>
-      <div className="space-y-4">
+      <div className="space-y-4" data-dayview-modal>
         
         <div>
           <div className="text-sm font-semibold mb-3" style={{ color: theme?.text }}>Today's Research</div>
@@ -94,7 +132,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
                     };
                     return (
                       <TaskDisplay
-                        key={`am-p-${i}`}
+                        key={`am-p-${i}-${forceRender}`}
                         task={task}
                         theme={theme}
                         date={date}
@@ -115,7 +153,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
                     };
                     return (
                       <TaskDisplay
-                        key={`am-s-${i}`}
+                        key={`am-s-${i}-${forceRender}`}
                         task={task}
                         theme={theme}
                         date={date}
@@ -148,7 +186,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
                     };
                     return (
                       <TaskDisplay
-                        key={`pm-p-${i}`}
+                        key={`pm-p-${i}-${forceRender}`}
                         task={task}
                         theme={theme}
                         date={date}
@@ -169,7 +207,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
                     };
                     return (
                       <TaskDisplay
-                        key={`pm-s-${i}`}
+                        key={`pm-s-${i}-${forceRender}`}
                         task={task}
                         theme={theme}
                         date={date}
@@ -202,7 +240,18 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
         </div>
         <div>
           <div className="text-xs mb-1" style={{ color: theme?.textLight }}>Notes</div>
-          <textarea className="w-full h-24 p-3 rounded-lg border text-sm" value={text} onChange={(e) => setText(e.target.value)} placeholder="Add daily notes, outcomes, etc." style={{ borderColor: theme?.border }} />
+          <textarea 
+            className="w-full h-24 p-3 rounded-lg border text-sm resize-none" 
+            value={text} 
+            onChange={(e) => setText(e.target.value)} 
+            placeholder="Add daily notes, outcomes, etc." 
+            style={{ 
+              borderColor: theme?.border,
+              backgroundColor: theme?.secondary,
+              color: theme?.text,
+              '::placeholder': { color: theme?.textLight }
+            }} 
+          />
         </div>
       </div>
     </Modal>

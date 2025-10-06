@@ -17,6 +17,7 @@ import TourController from './components/onboarding/TourController';
 import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
+import NotificationPermissionPrompt from './components/common/NotificationPermissionPrompt';
 import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
@@ -168,6 +169,10 @@ function App() {
             // Dispatch custom event for dashboard customize
             window.dispatchEvent(new CustomEvent('tpp:dashboard-customize'));
           } : undefined}
+          onDashboardSettings={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
+            // Dispatch custom event for dashboard settings
+            window.dispatchEvent(new CustomEvent('tpp:dashboard-settings'));
+          } : undefined}
           isCustomizing={false} // This will be managed by the dashboard component
           tabs={topbarTabs?.tabs}
           activeTab={topbarTabs?.activeTab}
@@ -228,6 +233,7 @@ function App() {
         open={false} 
         onAccept={() => {}} 
       />
+      <NotificationPermissionPrompt theme={theme} />
     </div>
   )
 }

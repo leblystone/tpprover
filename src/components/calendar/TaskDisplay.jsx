@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Pill, Syringe, Check, PenTool, Droplet, Beaker } from 'lucide-react';
+import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion';
@@ -55,15 +56,40 @@ const TaskDisplay = ({
   onToggle, 
   size = 'normal', // 'compact', 'normal', 'detailed'
   showCheckbox = true,
-  showPenDetails = true
+  showPenDetails = true,
+  dateKey: dateKeyOverride
 }) => {
-  const [forceRender, setForceRender] = useState(0);
+  // Prefer an explicit date key if provided to avoid timezone parsing issues
+  const dateKey = dateKeyOverride || (date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '');
+  const taskId = generateTaskId(task);
   
-  // Listen for task completion events to force re-render
+  // State to track completion status - this will trigger re-renders
+  const [isCompleted, setIsCompleted] = useState(() => {
+    return dateKey ? isTaskCompleted(taskId, dateKey, timeSlot) : (task.completed || false);
+  });
+  const [showInjectionSelector, setShowInjectionSelector] = useState(false);
+  
+  // Update completion status when props change or when global event fires
   useEffect(() => {
+    const checkCompletion = () => {
+      const completed = dateKey ? isTaskCompleted(taskId, dateKey, timeSlot) : (task.completed || false);
+      console.log('🔍 TaskDisplay checking completion:', {
+        taskName: task.name,
+        taskId,
+        dateKey,
+        timeSlot,
+        completed
+      });
+      setIsCompleted(completed);
+    };
+    
+    // Check immediately
+    checkCompletion();
+    
+    // Listen for task completion events to update
     const handleTaskCompletionChange = (e) => {
       console.log('📡 TaskDisplay received task completion event:', e.detail);
-      setForceRender(prev => prev + 1);
+      checkCompletion();
     };
     
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
@@ -71,15 +97,16 @@ const TaskDisplay = ({
     return () => {
       window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
     };
-  }, []);
-  
-  const dateKey = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '';
-  const taskId = generateTaskId(task);
-  // Always check completion status from localStorage for real-time updates
-  const isCompleted = dateKey ? isTaskCompleted(taskId, dateKey, timeSlot) : (task.completed || false);
+  }, [dateKey, taskId, timeSlot, task.completed, task.name]);
 
   const handleToggle = () => {
-    if (onToggle) {
+    // Check if this is an injection task that's not completed
+    const deliveryMethod = task.deliveryMethod || task.delivery;
+    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+    
+    if (isInjection && !isCompleted) {
+      setShowInjectionSelector(true);
+    } else if (onToggle) {
       onToggle(task, date);
     }
   };
@@ -163,41 +190,50 @@ const TaskDisplay = ({
           <DeliveryIcon task={task} theme={theme} size={size === 'compact' ? 10 : size === 'normal' ? 14 : 16} />
         </div>
 
-        {/* Checkbox - Moved to right side with modern toggle style */}
+        {/* Checkbox - Matching Today's Research widget design */}
         {showCheckbox && (
           <button
             onClick={handleToggle}
-            className={`relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 ${styles.checkbox}`}
+            className="relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer border-2 rounded-sm"
             style={{
-              width: size === 'compact' ? '32px' : size === 'normal' ? '40px' : '48px',
-              height: size === 'compact' ? '16px' : size === 'normal' ? '20px' : '24px',
-              borderRadius: '9999px',
-              backgroundColor: isCompleted ? '#4CAF50' : '#D1D5DB',
-              border: isCompleted ? '2px solid #4CAF50' : '2px solid #9CA3AF'
+              width: size === 'compact' ? '16px' : size === 'normal' ? '24px' : '24px',
+              height: size === 'compact' ? '16px' : size === 'normal' ? '24px' : '24px',
+              minWidth: size === 'compact' ? '16px' : '24px',
+              minHeight: size === 'compact' ? '16px' : '24px',
+              backgroundColor: isCompleted ? theme.primary : 'transparent',
+              borderColor: isCompleted ? theme.primary : theme.border,
+              borderRadius: '4px'
             }}
+            title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
           >
-            <div 
-              className="absolute rounded-full bg-white shadow-md transition-all"
-              style={{
-                width: size === 'compact' ? '12px' : size === 'normal' ? '16px' : '20px',
-                height: size === 'compact' ? '12px' : size === 'normal' ? '16px' : '20px',
-                left: isCompleted ? 'calc(100% - ' + (size === 'compact' ? '14px' : size === 'normal' ? '18px' : '22px') + ')' : '2px',
-                top: '50%',
-                transform: 'translateY(-50%)'
-              }}
-            >
-              {isCompleted && (
-                <Check 
-                  size={size === 'compact' ? 8 : size === 'normal' ? 10 : 12} 
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" 
-                  style={{ color: '#4CAF50' }}
-                  strokeWidth={3}
-                />
-              )}
-            </div>
+            {isCompleted && (
+              <Check 
+                size={size === 'compact' ? 14 : 18} 
+                className="absolute text-white" 
+                style={{ 
+                  strokeWidth: 2.5,
+                  top: '-3px',
+                  right: '-3px'
+                }}
+              />
+            )}
           </button>
         )}
       </div>
+      
+      <InjectionSiteSelector
+        taskName={task.name}
+        task={task}
+        onConfirm={(injectionSite) => {
+          if (onToggle) {
+            onToggle(task, date);
+          }
+          setShowInjectionSelector(false);
+        }}
+        onCancel={() => setShowInjectionSelector(false)}
+        theme={theme}
+        isVisible={showInjectionSelector}
+      />
     </div>
   );
 };

@@ -19,6 +19,7 @@ import WaterTrackerWidget from './widgets/WaterTrackerWidget';
 import GlossaryWidget from './widgets/GlossaryWidget';
 import FeedbackWidget from './widgets/FeedbackWidget';
 import NotesWidget from './widgets/NotesWidget';
+import InjectionHistoryWidget from './widgets/InjectionHistoryWidget';
 
 const WidgetFactory = ({ widget, theme, ...props }) => {
   switch (widget.type) {
@@ -196,6 +197,14 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
     case WIDGET_TYPES.NOTES:
       return (
         <NotesWidget 
+          widget={widget} 
+          theme={theme}
+        />
+      );
+      
+    case WIDGET_TYPES.INJECTION_HISTORY:
+      return (
+        <InjectionHistoryWidget 
           widget={widget} 
           theme={theme}
         />

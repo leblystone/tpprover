@@ -1,8 +1,11 @@
-import React from 'react';
-import { CheckSquare, Syringe, PenTool, Droplet, Check, Beaker, Pill } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { CheckSquare, Syringe, PenTool, Droplet, Check, Beaker, Pill, Clock, MapPin, History } from 'lucide-react';
 import TasksList from '../TasksList';
+import InjectionSiteSelector from '../../common/InjectionSiteSelector';
+import InjectionHistoryModal from '../../common/InjectionHistoryModal';
 import { penColors } from '../../../utils/penColors';
 import { getChromeGradient } from '../../../utils/recon';
+import { getInjectionHistory } from '../../../utils/injectionTracking';
 
 const DeliveryIcon = ({ task, theme }) => {
   // Handle peptide delivery methods
@@ -57,6 +60,18 @@ const getResolvedPenColor = (penColor) => {
 };
 
 const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
+  const [injectionTask, setInjectionTask] = useState(null);
+  const [showInjectionHistory, setShowInjectionHistory] = useState(false);
+  
+  // Check if there are any injection tasks
+  const hasInjectionTasks = useMemo(() => {
+    if (!tasks) return false;
+    return tasks.some(task => {
+      const deliveryMethod = task.deliveryMethod || task.delivery;
+      return deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+    });
+  }, [tasks]);
+  
   console.log('🎯 TasksWidget received:', { 
     tasksCount: tasks?.length || 0, 
     tasks: tasks?.slice(0, 3).map(t => ({ 
@@ -123,17 +138,6 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             {filteredTasks.map(task => (
               <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
                 <div className="flex items-center gap-3 flex-1">
-                  <button
-                    onClick={() => onToggle(task)}
-                    className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110"
-                    style={{
-                      borderColor: task.completed ? theme.primary : theme.border,
-                      backgroundColor: task.completed ? theme.primary : 'transparent'
-                    }}
-                  >
-                    {task.completed && <Check size={12} className="text-white" />}
-                  </button>
-                  
                   <div className="flex-1">
                     <div className={`font-semibold text-sm ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                       {task.name}
@@ -167,11 +171,93 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                   <div style={{ opacity: task.completed ? 0.5 : 1 }}>
                     <DeliveryIcon task={task} theme={theme} />
                   </div>
+                  
+                  <button
+                    onClick={() => {
+                      // Check if this is an injection task that's not completed
+                      const deliveryMethod = task.deliveryMethod || task.delivery;
+                      const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                      
+                      console.log('🔍 TasksWidget click debug:', {
+                        taskName: task.name,
+                        deliveryMethod,
+                        isInjection,
+                        completed: task.completed
+                      });
+                      
+                      if (isInjection && !task.completed) {
+                        console.log('💉 TasksWidget showing injection selector for:', task.name);
+                        setInjectionTask(task);
+                      } else {
+                        console.log('✅ TasksWidget direct toggle for:', task.name);
+                        onToggle(task);
+                      }
+                    }}
+                    className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer`}
+                    style={{
+                      borderColor: task.completed ? theme.primary : theme.border,
+                      backgroundColor: task.completed ? theme.primary : 'transparent',
+                      borderRadius: '4px',
+                      minWidth: '24px',
+                      minHeight: '24px'
+                    }}
+                    title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                  >
+                    {task.completed && (
+                      <Check 
+                        size={16} 
+                        className="text-white" 
+                        style={{ 
+                          strokeWidth: 3
+                        }}
+                      />
+                    )}
+                  </button>
                 </div>
               </div>
             ))}
           </div>
+          
+          {/* Injection History Button */}
+          {hasInjectionTasks && (
+            <div className="mt-3 flex justify-end">
+              <button
+                onClick={() => setShowInjectionHistory(true)}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors hover:opacity-80"
+                style={{ 
+                  backgroundColor: theme.secondary,
+                  color: theme.textLight
+                }}
+                title="View injection history"
+              >
+                <History size={12} />
+                <span>View Injection History</span>
+              </button>
+            </div>
+          )}
         </div>
+        
+        <InjectionSiteSelector
+          taskName={injectionTask?.name}
+          task={injectionTask}
+          onConfirm={(injectionSite) => {
+            console.log('💉 TasksWidget injection confirmed:', injectionSite);
+            onToggle(injectionTask);
+            setInjectionTask(null);
+          }}
+          onCancel={() => {
+            console.log('💉 TasksWidget injection cancelled');
+            setInjectionTask(null);
+          }}
+          theme={theme}
+          isVisible={!!injectionTask}
+        />
+        
+        <InjectionHistoryModal
+          isOpen={showInjectionHistory}
+          onClose={() => setShowInjectionHistory(false)}
+          theme={theme}
+        />
       </div>
     );
   }
@@ -194,6 +280,40 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           theme={theme} 
           onToggle={onToggle}
           groupByTime={groupByTime}
+        />
+        
+        {/* Injection History Button */}
+        {hasInjectionTasks && (
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() => setShowInjectionHistory(true)}
+              className="flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors hover:opacity-80"
+              style={{ 
+                backgroundColor: theme.secondary,
+                color: theme.textLight
+              }}
+              title="View injection history"
+            >
+              <History size={12} />
+              <span>View Injection History</span>
+            </button>
+          </div>
+        )}
+        
+        <InjectionSiteSelector
+          taskName={injectionTask?.name}
+          task={injectionTask}
+          onConfirm={(injectionSite) => {
+            console.log('💉 TasksWidget injection confirmed:', injectionSite);
+            onToggle(injectionTask);
+            setInjectionTask(null);
+          }}
+          onCancel={() => {
+            console.log('💉 TasksWidget injection cancelled');
+            setInjectionTask(null);
+          }}
+          theme={theme}
+          isVisible={!!injectionTask}
         />
       </div>
     </div>

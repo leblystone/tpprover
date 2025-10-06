@@ -443,10 +443,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
 
         {/* Step 3: Results */}
         <div>
-          {/* Section Banner - Results */}
-          <div className="mb-3 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>4. Results</h4>
-          </div>
+          {/* Page Break Divider replacing banner */}
+          <div className="my-3 border-t" style={{ borderColor: theme.border }} />
           <div className="rounded-lg border p-4" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
               <div>

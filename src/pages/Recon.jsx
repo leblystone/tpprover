@@ -16,10 +16,13 @@ import { calculateRecon } from '../utils/recon'
 import { formatMMDDYYYY } from '../utils/date'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Recon() {
 	const { theme } = useOutletContext()
     const { reconItems, setReconItems, vendors, reconHistory, setReconHistory } = useAppContext();
+    const { isReadOnly } = useSubscriptionAccess();
 	const [searchParams] = useSearchParams()
 	const [editingItem, setEditingItem] = useState(null)
 	const [showEditModal, setShowEditModal] = useState(false)
@@ -35,6 +38,7 @@ export default function Recon() {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
+	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
     useEffect(() => {
 		try {
@@ -90,23 +94,38 @@ export default function Recon() {
 
 	// Set topbar tabs via custom event
 	useEffect(() => {
-		const tabs = [
-			{ value: 'calculator', label: 'Calculator' },
-			{ value: 'reconstituted', label: 'On Hand' },
-			{ value: 'history', label: 'History' }
-		];
-		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
-			detail: { 
-				tabs, 
-				activeTab, 
-				onTabChange: setActiveTab,
-				onActionClick: () => setShowEditModal(true),
-				actionDisabled: false
-			} 
-		}));
-		
+		const updateTabs = () => {
+			const isMobile = window.matchMedia('(max-width: 767px)').matches;
+			const tabs = isMobile
+				? [
+					{ value: 'calculator', label: 'Calculator' },
+					{ value: 'reconstituted', label: 'On Hand' },
+					{ value: 'history', label: 'History' }
+				]
+				: [
+					{ value: 'reconstituted', label: 'On Hand' },
+					{ value: 'history', label: 'History' }
+				];
+			// Ensure we don't get stuck on a hidden tab on desktop
+			if (!isMobile && activeTab === 'calculator') {
+				setActiveTab('reconstituted');
+			}
+			window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
+				detail: { 
+					tabs, 
+					activeTab, 
+					onTabChange: setActiveTab,
+					onActionClick: () => setShowEditModal(true),
+					actionDisabled: false
+				} 
+			}));
+		};
+
+		updateTabs();
+		window.addEventListener('resize', updateTabs);
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+			window.removeEventListener('resize', updateTabs);
 		};
 	}, [activeTab]);
 
@@ -119,6 +138,11 @@ export default function Recon() {
 				<div className="flex justify-center">
 					<div className="w-full lg:max-w-2xl">
 						<ReconCalculatorPanel theme={theme} prefill={prefill} onSave={(data) => {
+							if (isReadOnly) {
+								setShowUpgradeModal(true);
+								return;
+							}
+							
 							const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
 							const totalMg = data.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
 							const totalDose = data.peptides.reduce((sum, p) => {
@@ -523,6 +547,12 @@ export default function Recon() {
 					)
 				})()}
 			</Modal>
+
+			<UpgradeModal
+				open={showUpgradeModal}
+				onClose={() => setShowUpgradeModal(false)}
+				theme={theme}
+			/>
 		</>
 	)
 }

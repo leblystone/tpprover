@@ -170,24 +170,95 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// Enhanced push notification handling
 self.addEventListener('push', event => {
-  const data = event.data.json();
+  console.log('📱 Service Worker: Push event received');
+  
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    console.error('📱 Service Worker: Failed to parse push data:', error);
+    data = {
+      title: 'The Pep Planner',
+      body: 'You have a new notification',
+      icon: '/tpp-logo.png'
+    };
+  }
+
   const options = {
-    body: data.body,
-    icon: '/tpp-logo.png', // Path to your app icon
-    badge: '/tpp-logo.png' // Path to a smaller badge icon
+    body: data.body || 'You have a new update',
+    icon: data.icon || '/tpp-logo.png',
+    badge: data.badge || '/tpp-logo.png',
+    tag: data.tag || 'tpp-notification',
+    data: data.data || {},
+    requireInteraction: data.requireInteraction || false,
+    silent: data.silent || false,
+    vibrate: data.vibrate || [200, 100, 200],
+    actions: data.actions || [],
+    timestamp: Date.now()
   };
 
+  console.log('📱 Service Worker: Showing notification:', data.title, options);
+
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(data.title || 'The Pep Planner', options)
   );
 });
 
+// Enhanced notification click handling
 self.addEventListener('notificationclick', event => {
+  console.log('📱 Service Worker: Notification clicked:', event.notification.tag);
+  
   event.notification.close();
+
+  // Handle action buttons if any
+  if (event.action) {
+    console.log('📱 Service Worker: Action clicked:', event.action);
+    // Handle specific actions here if needed
+    return;
+  }
+
+  // Get notification data for navigation
+  const notificationData = event.notification.data || {};
+  const urlToOpen = notificationData.url || '/';
+
   event.waitUntil(
-    clients.openWindow('/') // Open the app when notification is clicked
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Try to focus existing window first
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          console.log('📱 Service Worker: Focusing existing window');
+          client.focus();
+          
+          // Navigate to specific page if provided
+          if (notificationData.path && client.navigate) {
+            client.navigate(notificationData.path);
+          }
+          
+          return;
+        }
+      }
+      
+      // Open new window if no existing window found
+      if (clients.openWindow) {
+        console.log('📱 Service Worker: Opening new window to:', urlToOpen);
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', event => {
+  console.log('📱 Service Worker: Notification closed:', event.notification.tag);
+  
+  // Track notification dismissal if needed
+  const notificationData = event.notification.data || {};
+  if (notificationData.trackDismissal) {
+    // Send analytics event or update user preferences
+    console.log('📱 Service Worker: Tracking notification dismissal');
+  }
 });
 
 

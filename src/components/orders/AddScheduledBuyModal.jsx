@@ -3,7 +3,16 @@ import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 
 export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave }) {
-    const [form, setForm] = useState({ item: '', openDate: '', closeDate: '', vendor: '', notes: '' });
+    const [form, setForm] = useState({ 
+        item: '', 
+        openDate: '', 
+        closeDate: '', 
+        vendor: '', 
+        location: '',
+        participants: '',
+        price: '',
+        notes: '' 
+    });
 
     useEffect(() => {
         if (open) {
@@ -13,11 +22,23 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                     openDate: new Date().toISOString().slice(0, 10), 
                     closeDate: new Date().toISOString().slice(0, 10), 
                     vendor: '', 
+                    location: '',
+                    participants: '',
+                    price: '',
                     notes: '',
                     ...buy 
                 });
             } else {
-                setForm({ item: '', openDate: new Date().toISOString().slice(0, 10), closeDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), vendor: '', notes: '' });
+                setForm({ 
+                    item: '', 
+                    openDate: new Date().toISOString().slice(0, 10), 
+                    closeDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), 
+                    vendor: '', 
+                    location: '',
+                    participants: '',
+                    price: '',
+                    notes: '' 
+                });
             }
         }
     }, [buy, open]);
@@ -34,13 +55,72 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
             </>
         }>
             <div className="space-y-4">
-                <TextInput label="Item / Peptide" value={form.item} onChange={v => setForm({ ...form, item: v })} theme={theme} placeholder="e.g., Sema, Gluta, etc." />
+                <TextInput 
+                    label="Group Buy For:" 
+                    value={form.item} 
+                    onChange={v => setForm({ ...form, item: v })} 
+                    theme={theme} 
+                    placeholder="Product Name" 
+                />
+                
                 <div className="grid grid-cols-2 gap-4">
-                    <TextInput label="Open Buy Date" type="date" value={form.openDate} onChange={v => setForm({ ...form, openDate: v })} theme={theme} />
-                    <TextInput label="Payment Closing Date" type="date" value={form.closeDate} onChange={v => setForm({ ...form, closeDate: v })} theme={theme} />
+                    <TextInput 
+                        label="Open Date" 
+                        type="date" 
+                        value={form.openDate} 
+                        onChange={v => setForm({ ...form, openDate: v })} 
+                        theme={theme} 
+                    />
+                    <TextInput 
+                        label="Close Date" 
+                        type="date" 
+                        value={form.closeDate} 
+                        onChange={v => setForm({ ...form, closeDate: v })} 
+                        theme={theme} 
+                    />
                 </div>
-                <TextInput label="Vendor (Optional)" value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} theme={theme} placeholder="Vendor Name" />
-                <TextInput label="Notes" value={form.notes} onChange={v => setForm({ ...form, notes: v })} theme={theme} placeholder="Optional notes..." />
+                
+                <div className="grid grid-cols-2 gap-4">
+                <TextInput 
+                    label="Group Buy Host" 
+                    value={form.vendor} 
+                    onChange={v => setForm({ ...form, vendor: v })} 
+                    theme={theme} 
+                    placeholder="Name" 
+                />
+                    <TextInput 
+                        label="Platform" 
+                        value={form.location} 
+                        onChange={v => setForm({ ...form, location: v })} 
+                        theme={theme} 
+                        placeholder="e.g Discord, Telegram, ect." 
+                    />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <TextInput 
+                        label="Vendor" 
+                        value={form.participants} 
+                        onChange={v => setForm({ ...form, participants: v })} 
+                        theme={theme} 
+                        placeholder="Vendor Name" 
+                    />
+                    <TextInput 
+                        label="Price" 
+                        value={form.price} 
+                        onChange={v => setForm({ ...form, price: v })} 
+                        theme={theme} 
+                        placeholder="$" 
+                    />
+                </div>
+                
+                <TextInput 
+                    label="Notes" 
+                    value={form.notes} 
+                    onChange={v => setForm({ ...form, notes: v })} 
+                    theme={theme} 
+                    placeholder="Any further group buy details." 
+                />
             </div>
         </Modal>
     )

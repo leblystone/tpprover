@@ -4,73 +4,67 @@ import { useNavigate } from 'react-router-dom';
 
 const TOUR_STEPS = [
     {
-        target: '[data-tour="dashboard-welcome"]',
-        content: "Welcome to your Dashboard! This is your command center, giving you a complete overview of your research at a glance.",
-        title: 'Welcome to The Pep Planner!',
-        path: '/dashboard',
+        target: 'body',
+        content: "Welcome to The Pep Planner! 🧪\n\nLet's take a quick tour of your research management system. We'll visit each main page to show you what it does.",
+        title: 'Welcome!',
+        placement: 'center',
+        path: '/app/dashboard',
     },
-    {
-        target: '[data-tour="sidebar-recon"]',
-        content: "Here's where the magic happens! 🧪\n\n- Track every vial you reconstitute and link it to a vendor.\n- Choose your delivery method: syringe 💉 or pen 🖊️.\n- Pick a color for your pen to keep things organized!\n- Use the calculator to figure out your doses.",
-        title: 'Reconstitute',
-        path: '/recon',
-    },
-    {
-        target: '[data-tour="sidebar-protocols"]',
-        content: "This is where you plan your research! 🗓️\n\n- Create detailed schedules for **single peptides** or complex **stacks**.\n- Define dosages, durations, and frequencies (daily, weekly, or cycles).\n- Press the **▶️ Start Protocol** button to automatically schedule everything on your calendar.\n- You can also **share** your protocols with other researchers! 🤝",
-        title: 'Protocols',
-        path: '/protocols',
-    },
-    {
-        target: '[data-tour="sidebar-calendar"]',
-        content: "Your research, all in one place! 🗓️\n\n- **Monthly View:** Get a bird's-eye view of your schedule. See at a glance which days have planned doses, washouts, or group buys.\n- **Weekly View:** Zoom in for the details. See your specific doses for each day and mark them as complete as you go.\n- **Automatic Scheduling:** Everything is synced! Your active protocols, washouts, and group buys will appear here automatically.",
-        title: 'Calendar',
-        path: '/calendar',
-    },
-    {
-        target: '[data-tour="sidebar-stockpile"]',
-        content: "Your personal inventory system! 📦\n\n- Keep track of everything you have on hand, organized by **peptide** and **vendor**.\n- Delivered orders are **automatically added** here, so your inventory is always up-to-date.\n- Get alerts when you're **low on stock**.\n- Send any item directly to the **Recon Calculator** 💧 to plan your next vial.",
-        title: 'Stockpile',
-        path: '/stockpile',
-    },
-    {
-        target: '[data-tour="sidebar-orders"]',
-        content: "Track your orders from start to finish! 🚚\n\n- Manage **domestic**, **international**, and **group buys** all in one place.\n- When an order is **\"Delivered\"**, its items are automatically added to your **Stockpile**. 📦\n- Attach **receipts** or **lab results** to any order to keep your records organized. 📎",
-        title: 'Orders',
-        path: '/orders',
-    },
-    {
-        target: '[data-tour="sidebar-vendors"]',
-        content: "Your personal address book for every source. 👥\n\n- Keep track of contact info, accepted **payment methods** 💳, and your own private notes.\n- Use **labels** like \"Fast Shipping\" to remember your experiences.\n- Add their social media or email for **one-click access** to a DM or new message! 🚀\n- You can also **share** your trusted sources with fellow researchers. 🤫",
-        title: 'Vendors',
-        path: '/vendors',
-    },
-    {
-        target: '[data-tour="sidebar-announcements"]',
-        content: "Stay in the loop! 📣\n\n- Get the latest **news and updates** directly from The Pep Planner team.\n- Be the first to know about **new features** and improvements.\n- React to posts to **share your feedback** and help shape the future of the app! 👍",
-        title: 'Announcements',
-        path: '/announcements',
-    },
-    {
-        target: '[data-tour="topbar-glossary"]',
-        content: "Your research companion! 📖\n\n- Look up peptides for **detailed research information**.\n- Get **AI-powered research summaries** with dosage information.\n- This is for **research purposes only** and is not medical advice. 🚩",
-        title: 'Research',
-        path: '/dashboard',
-    },
-    /* Import feature temporarily hidden
-    {
-        target: '[data-tour="topbar-import"]',
-        content: "Save time on data entry! 📄\n\n- Use your camera to **scan images** of your research notes.\n- **Upload spreadsheets** to import data directly into your planner.\n- Perfect for migrating from an old tracking system!",
-        title: 'Import (OCR)',
-        path: '/dashboard',
-    },
-    */
     {
         target: 'body',
-        content: "That's the grand tour of The Pep Planner!\n\nFeel free to explore and start organizing your research.\nIf you ever need a refresher you can restart this tour from your Settings.\n\nHappy researching!",
+        content: "**Dashboard** - Your command center 📊\n\nGet a complete overview of your research at a glance. See your active protocols, upcoming doses, recent orders, and key metrics all in one place.",
+        title: 'Dashboard Overview',
         placement: 'center',
+        path: '/app/dashboard',
+    },
+    {
+        target: 'body',
+        content: "**Protocols** - Plan your research 🗓️\n\nCreate detailed schedules for single peptides or complex stacks. Define dosages, durations, and frequencies. Start protocols to automatically schedule everything on your calendar.",
+        title: 'Protocols',
+        placement: 'center',
+        path: '/app/protocols',
+    },
+    {
+        target: 'body',
+        content: "**Reconstitute** - Track your vials 🧪\n\nCalculate reconstitution doses, track every vial you prepare, and choose your delivery method (syringe or pen). Keep everything organized with color-coded pens.",
+        title: 'Reconstitute',
+        placement: 'center',
+        path: '/app/recon',
+    },
+    {
+        target: 'body',
+        content: "**Stockpile** - Your inventory 📦\n\nTrack everything you have on hand, organized by peptide and vendor. Get alerts when you're low on stock and easily send items to the recon calculator.",
+        title: 'Stockpile',
+        placement: 'center',
+        path: '/app/stockpile',
+    },
+    {
+        target: 'body',
+        content: "**Orders** - Track purchases 🚚\n\nManage domestic, international, and group buys all in one place. When orders are delivered, items automatically appear in your stockpile.",
+        title: 'Orders',
+        placement: 'center',
+        path: '/app/orders',
+    },
+    {
+        target: 'body',
+        content: "**Vendors** - Your source directory 👥\n\nKeep track of contact info, payment methods, and private notes for every source. Use labels to remember your experiences and share trusted sources.",
+        title: 'Vendors',
+        placement: 'center',
+        path: '/app/vendors',
+    },
+    {
+        target: 'body',
+        content: "**Calendar** - Your research schedule 🗓️\n\nSee your complete research schedule with monthly and weekly views. Everything syncs automatically from your active protocols and orders.",
+        title: 'Calendar',
+        placement: 'center',
+        path: '/app/calendar',
+    },
+    {
+        target: 'body',
+        content: "That's it! You're ready to start organizing your research. 🎉\n\nEach page has helpful tips and empty states to guide you. You can always restart this tour from Settings if you need a refresher.\n\nHappy researching!",
         title: "You're all set! ✅",
-        path: '/dashboard',
+        placement: 'center',
+        path: '/app/dashboard',
     }
 ];
 
@@ -194,3 +188,4 @@ export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
         />
     );
 }
+

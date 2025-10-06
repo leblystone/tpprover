@@ -523,7 +523,26 @@ export default function Stockpile() {
         {activeTab === 'incoming' && (
           <div>
             {incomingGroups.length === 0 ? (
-              <p className="text-sm" style={{ color: theme.textLight }}>No incoming orders with pending delivery.</p>
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                  <ShoppingCart size={32} style={{ color: theme.primary }} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Incoming Orders</h3>
+                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                  Orders that are placed but not yet delivered will appear here. Once delivered, they'll automatically move to your on-hand inventory.
+                </p>
+                <button
+                  onClick={() => {
+                    window.history.pushState({}, '', '/orders');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  <PlusCircle size={18} />
+                  Place Your First Order
+                </button>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
                 {incomingGroups.map(g => (
@@ -603,6 +622,11 @@ export default function Stockpile() {
         <>
           <button onClick={() => { setOpenAdd(false); clearSavedData(); }} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
           <button onClick={() => { 
+              if (isReadOnly) {
+                setShowUpgradeModal(true);
+                return;
+              }
+              
               // Auto-create new vendor if it doesn't exist
               if (form.vendor && !vendors.some(v => v.name.toLowerCase() === form.vendor.toLowerCase())) {
                   addVendor({ name: form.vendor, isStub: true });
@@ -709,7 +733,19 @@ export default function Stockpile() {
         footer={(
         <>
           <button onClick={() => { setManageName(null); setManageRows([]); clearManageSavedData(); }} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
-          <button onClick={saveManage} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
+          <button 
+            onClick={() => {
+              if (isReadOnly) {
+                setShowUpgradeModal(true);
+                return;
+              }
+              saveManage();
+            }} 
+            className="px-3 py-2 rounded-md" 
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            Save
+          </button>
         </>
       )}>
         <div className="space-y-3">
@@ -794,7 +830,19 @@ export default function Stockpile() {
               </div>
             </div>
           ))}
-          <button className="px-3 py-2 rounded-md text-sm font-semibold border-dashed border" style={{ borderColor: theme.primary, color: theme.primary }} onClick={addManageRow}>+ Add Row</button>
+          <button 
+            className="px-3 py-2 rounded-md text-sm font-semibold border-dashed border" 
+            style={{ borderColor: theme.primary, color: theme.primary }} 
+            onClick={() => {
+              if (isReadOnly) {
+                setShowUpgradeModal(true);
+                return;
+              }
+              addManageRow();
+            }}
+          >
+            + Add Row
+          </button>
         </div>
       </Modal>
       

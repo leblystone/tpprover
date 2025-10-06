@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pill, Syringe, Check, Info, PenTool, Droplet, Beaker } from 'lucide-react';
+import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 
@@ -45,27 +46,18 @@ const TaskIcon = ({ type, delivery, theme }) => {
 
 
 export default function TasksList({ tasks, theme, onToggle }) {
+  const [injectionTask, setInjectionTask] = useState(null);
     if (!tasks || tasks.length === 0) {
         return <p className="text-xs text-center py-3" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
 
-    // Debug: Log the first few tasks to see what data we have
-    console.log('🔍 TasksList received tasks:', tasks.length, 'total tasks');
-    console.log('🔍 First 3 tasks:', tasks.slice(0, 3).map(t => ({
-        name: t.name,
-        type: t.type,
-        deliveryMethod: t.deliveryMethod,
-        penColor: t.penColor,
-        dose: t.dose,
-        unit: t.unit
-    })));
 
     const amTasks = tasks.filter(t => t.time === 'AM');
     const pmTasks = tasks.filter(t => t.time === 'PM');
     const otherTasks = tasks.filter(t => t.time !== 'AM' && t.time !== 'PM');
 
     return (
-        <div className="space-y-2 overflow-hidden">
+        <div className="space-y-2 overflow-hidden relative">
             {otherTasks.length > 0 && (
                 <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} />
             )}
@@ -75,6 +67,18 @@ export default function TasksList({ tasks, theme, onToggle }) {
                      <TaskListSection title="PM" tasks={pmTasks} theme={theme} onToggle={onToggle} />
                 </div>
             </div>
+            
+            <InjectionSiteSelector
+              taskName={injectionTask?.name}
+              task={injectionTask}
+              onConfirm={(injectionSite) => {
+                onToggle(injectionTask);
+                setInjectionTask(null);
+              }}
+              onCancel={() => setInjectionTask(null)}
+              theme={theme}
+              isVisible={!!injectionTask}
+            />
         </div>
     );
 }
@@ -88,17 +92,6 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
                 {tasks.map(task => (
                     <li key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
                         <div className="flex items-center gap-3 flex-1">
-                            <button
-                                onClick={() => onToggle(task)}
-                                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all hover:scale-110`}
-                                style={{
-                                    borderColor: task.completed ? theme.primary : theme.border,
-                                    backgroundColor: task.completed ? theme.primary : 'transparent'
-                                }}
-                            >
-                                {task.completed && <Check size={12} className="text-white" />}
-                            </button>
-                            
                             <div className="flex-1">
                                 <div className={`font-semibold text-sm ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                                     {task.name}
@@ -138,6 +131,41 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
                             <div style={{ opacity: task.completed ? 0.5 : 1 }}>
                                 <DeliveryIcon task={task} theme={theme} />
                             </div>
+                            
+                            <button
+                                onClick={() => {
+                                  // Check if this is an injection task that's not completed
+                                  const deliveryMethod = task.deliveryMethod || task.delivery;
+                                  const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                                  
+                                  if (isInjection && !task.completed) {
+                                    setInjectionTask(task);
+                                  } else {
+                                    onToggle(task);
+                                  }
+                                }}
+                                className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer`}
+                                style={{
+                                    borderColor: task.completed ? theme.primary : theme.border,
+                                    backgroundColor: task.completed ? theme.primary : 'transparent',
+                                    borderRadius: '4px',
+                                    minWidth: '24px',
+                                    minHeight: '24px'
+                                }}
+                                title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                            >
+                                {task.completed && (
+                                    <Check 
+                                        size={18} 
+                                        className="absolute text-white" 
+                                        style={{ 
+                                            strokeWidth: 2.5,
+                                            top: '-3px',
+                                            right: '-3px'
+                                        }}
+                                    />
+                                )}
+                            </button>
                         </div>
                     </li>
                 ))}

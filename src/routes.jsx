@@ -25,12 +25,13 @@ const Badges = lazy(() => import('./pages/Badges.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const BetaEndedSurvey = lazy(() => import('./pages/BetaEndedSurvey.jsx'))
 const LaunchComingSoon = lazy(() => import('./pages/LaunchComingSoon.jsx'))
+const CoverLanding = lazy(() => import('./pages/CoverLanding.jsx'))
 
 // Launch Configuration
-const IS_APP_BLOCKED = false; // Set to false when ready to launch
+const IS_APP_BLOCKED = true; // Set to false when ready to launch
 
 // Component to redirect blocked routes
-const LaunchRedirect = () => <Navigate to="/launch-coming-soon" replace />;
+const LaunchRedirect = () => <Navigate to="/countdown" replace />;
 
 export const router = createBrowserRouter([
   {
@@ -51,6 +52,11 @@ export const router = createBrowserRouter([
   {
     path: '/launch-coming-soon',
     element: <LaunchComingSoon />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/countdown',
+    element: <CoverLanding />,
     errorElement: <NotFound />,
   },
   {

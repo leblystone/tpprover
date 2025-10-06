@@ -12,7 +12,7 @@ import CalendarIconKey from '../components/calendar/CalendarIconKey'
 import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
 import { calculateRecon } from '../utils/recon'
 import { useAppContext } from '../context/AppContext'
-import { getCalendarDone, toggleTaskCompletion, generateTaskId } from '../utils/taskCompletion'
+import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted } from '../utils/taskCompletion'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 
@@ -133,10 +133,17 @@ export default function Calendar() {
       setCalendarBump(Date.now());
     };
     
+    const handleCalendarSync = (e) => {
+      console.log('📡 Calendar received sync event:', e.detail);
+      setCalendarBump(Date.now());
+    };
+    
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    window.addEventListener('tpp:calendar-sync', handleCalendarSync);
     
     return () => {
       window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+      window.removeEventListener('tpp:calendar-sync', handleCalendarSync);
     };
   }, []);
   const [showIconKey, setShowIconKey] = useState(false);
@@ -713,10 +720,18 @@ export default function Calendar() {
   }, [loadData]);
 
   // Task completion handler - unified with Dashboard
+
   const handleTaskToggle = React.useCallback((task, date = new Date()) => {
+    // Check if this is a syringe or pen delivery method
+    const deliveryMethod = task.deliveryMethod || task.delivery;
+    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+    
+        // Injection confirmation is now handled inline in the task components
+    
     const dateKey = toKey(date);
     const taskId = task.stableTaskId || generateTaskId(task);
-    const currentlyCompleted = task.completed || false; // Get from task state if available
+    // Always check actual completion status from localStorage
+    const currentlyCompleted = isTaskCompleted(taskId, dateKey, task.time);
     const newCompletedState = !currentlyCompleted;
     
     console.log('🔄 Calendar: Toggling task', {
@@ -747,8 +762,7 @@ export default function Calendar() {
       setCalendarBump(Date.now());
     };
 
-    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
-    return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    // Event listeners are handled in the earlier useEffect
   }, []);
 
   // Expose refresh function globally for debugging

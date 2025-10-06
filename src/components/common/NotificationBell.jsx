@@ -4,6 +4,7 @@ import { Bell, X, MessageSquare, Megaphone, Sparkles, Wrench, Users, ChevronDown
 import ModernTooltip from '../ui/ModernTooltip';
 import { getUserNotifications, markNotificationAsRead, getAnnouncements } from '../../services/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
+import pwaNotificationService from '../../services/pwaNotifications';
 
 export default function NotificationBell({ theme }) {
   const { firebaseUser } = useFirebase();
@@ -166,6 +167,15 @@ export default function NotificationBell({ theme }) {
           if (existingNotification && existingNotification.isRead && !newNotification.isRead) {
             return existingNotification;
           }
+          
+          // Check if this is a new unread notification and show PWA notification
+          if (!existingNotification && !newNotification.isRead) {
+            // Show as PWA notification if enabled
+            if (pwaNotificationService.shouldReceivePWANotifications()) {
+              pwaNotificationService.sendPWANotification(newNotification);
+            }
+          }
+          
           return newNotification;
         });
         return merged;

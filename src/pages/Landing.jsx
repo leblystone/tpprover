@@ -183,9 +183,9 @@ export default function Landing() {
                 
                 <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-center" style={{ color: '#6B7D7A' }}>
                   <span className="block sm:hidden">
-                    Full 7-day research access<br />No payment needed
+                    Full 7-day research access
                   </span>
-                  <span className="hidden sm:inline">Full 7-day research access • No payment needed</span>
+                  <span className="hidden sm:inline">Full 7-day research access</span>
                 </div>
               </div>
             </div>
@@ -396,7 +396,7 @@ export default function Landing() {
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </button>
           <p className="text-sm mt-4" style={{ color: '#FFFFFF', opacity: 0.8 }}>
-            Full 7-day research access • No payment needed
+            Full 7-day research access
           </p>
         </div>
       </section>
@@ -418,7 +418,7 @@ export default function Landing() {
               <div className="flex-1">
                 <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Peptide Calculator</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  Calculate your next dose with a handy vial visual. Use pens? Pen info stays on your schedule as well.
+                  Calculate the next dose with a handy vial visual. Research pens? Pen info shows on the schedule as well.
                 </p>
               </div>
             </div>
@@ -430,7 +430,7 @@ export default function Landing() {
               <div className="flex-1">
                 <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Peptide Glossary</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  Built in search for easier research of your next peptide!
+                  Built in search for the next research peptide!
                 </p>
               </div>
             </div>
@@ -478,7 +478,7 @@ export default function Landing() {
               <div className="flex-1">
                 <h3 className="text-sm sm:text-lg font-bold mb-1 sm:mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>All-in-One</h3>
                 <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#6B7D7A' }}>
-                  More than just another shot app. Keep your entire research in one place!
+                  More than just another shot tracking app. Keep your entire research in one place!
                 </p>
               </div>
             </div>
