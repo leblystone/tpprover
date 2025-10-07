@@ -5,7 +5,11 @@ import { router } from './routes'
 import { AppProvider } from './context/AppContext'
 import { FirebaseProvider } from './context/FirebaseContext'
 import { toggleDebugMode, getDebugMode } from './utils/debugMode'
+import { initCacheBusting } from './utils/cacheBuster.js'
 import './index.css'
+
+// Initialize cache busting on app load
+initCacheBusting();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -27,8 +31,8 @@ if (typeof window !== 'undefined') {
   console.log('💡 Use toggleDebugMode() to enable/disable debug logging');
 }
 
-// TEMPORARILY DISABLED: Service worker for debugging caching issues
-if (false && 'serviceWorker' in navigator) {
+// Service worker enabled with cache busting for beta fix
+if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
         console.log('🔧 Registering service worker...');

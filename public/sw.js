@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tpp-cache-v4'; // Updated version for cache management  
-const STATIC_CACHE = 'tpp-static-v4';
-const DYNAMIC_CACHE = 'tpp-dynamic-v4';
+const CACHE_NAME = 'tpp-cache-v5'; // Updated version for cache management - BETA FIX
+const STATIC_CACHE = 'tpp-static-v5';
+const DYNAMIC_CACHE = 'tpp-dynamic-v5';
 
 // Essential assets to cache
 const STATIC_ASSETS = [
@@ -36,7 +36,7 @@ self.addEventListener('activate', (event) => {
       try {
         const cacheNames = await caches.keys();
         const deletePromises = cacheNames
-          .filter(name => !name.includes('v2')) // Delete old cache versions
+          .filter(name => !name.includes('v5')) // Delete old cache versions - FORCE CLEAR ALL OLD CACHES
           .map(name => {
             console.log('🗑️ Service Worker: Deleting old cache:', name);
             return caches.delete(name);
