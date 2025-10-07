@@ -33,43 +33,38 @@ export const themes = {
     infoBg: '#E4F2F1',
   },
 
-  mauve: {
-    name: 'Mauve',
+  researcher: {
+    name: 'Researcher',
     isDark: false,
     
-    // Core Palette - Visually sampled from the user's image, ignoring hex codes.
-    primary: '#9A8C94', // Visually-sampled Primary Mauve/Taupe
-    primaryDark: '#5A4D4C', // Visually-sampled Deep Espresso Brown
-    primaryLight: '#B5AAB0', // Lightened version of primary mauve
-    secondary: '#FBF8F0', // Visually-sampled Warm-White
-    accent: '#EDEAE2', // Lighter version of warm-white
+    // Core Palette - Visually sampled from the "Research Planner" image.
+    primary: '#9F8F95',       // The main dusty mauve color
+    primaryDark: '#7D6F74',    // Darker shade for gradients, hover states
+    primaryLight: '#BDB1B5',   // Lighter shade for accents
+    secondary: '#F8F7F7',      // Very light gray for backgrounds
+    accent: '#EDEAE2',         // A warm off-white accent
 
-    // Text - Using Dark Charcoal and Deep Espresso Brown
-    text: '#3D3530', // Visually-sampled Dark Charcoal
-    textLight: '#5A4D4C', // Visually-sampled Deep Espresso Brown for secondary text
+    // Text
+    text: '#4A4A4A',           // Dark gray for high contrast text
+    textLight: '#888888',      // Lighter gray for secondary text
     textOnPrimary: '#FFFFFF',
     
-    // Backgrounds - Using Warm-White
-    background: '#FBF8F0', // Visually-sampled Warm-White
+    // Backgrounds
+    background: '#F8F7F7',      // Main background
     cardBackground: '#FFFFFF', // Pure white for cards
     
-    // UI Elements - Using Cloud Gray
-    border: '#C7A4A5', // Visually-sampled Clusty Rose for high contrast
-    buttonDisabled: '#C8C8C8', // Visually-sampled Cloud Gray
+    // UI Elements
+    border: '#9F8F95',         // Using the primary color for high-contrast borders
+    buttonDisabled: '#D1CACD', // Muted version of the primary color
     
-    // Semantic Colors - Using Visually-sampled ACCENT & POP COLORS
-    success: '#9A8C94', // Using primary mauve for success
-    warning: '#B89B65', // Visually-sampled Muted Gold
-    error: '#C7A4A5', // Visually-sampled Clusty Rose
-    info: '#8B6F77', // Visually-sampled Smoky Plum
-    successBg: '#F5F3F4',
-    warningBg: '#F8F5EF',
-    infoBg: '#F3F0F1',
-    
-    // Pop Colors for high-visual elements
-    popRose: '#C7A4A5', // Visually-sampled Clusty Rose
-    popGold: '#B89B65', // Visually-sampled Muted Gold  
-    popPlum: '#8B6F77', // Visually-sampled Smoky Plum
+    // Semantic Colors
+    success: '#82A077',        // A muted, complementary green
+    warning: '#D4B26F',       // A muted gold
+    error: '#C78F90',         // A muted rose/red
+    info: '#9F8F95',           // The primary color for info states
+    successBg: '#F2F5F1',
+    warningBg: '#FAF7F0',
+    infoBg: '#F5F3F4',
   },
 };
 
