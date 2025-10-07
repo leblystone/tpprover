@@ -100,6 +100,40 @@ export const themes = {
     warningBg: '#FBF8F0',
     infoBg: '#F6F6F6',
   },
+
+  theAlchemist: {
+    name: 'The Alchemist',
+    isDark: true,
+    
+    // Core Palette - Visually sampled from "The Alchemist" rabbit image.
+    primary: '#D4AF37',       // The glowing gold from the vial ring
+    primaryDark: '#B89B65',    // A slightly deeper, less saturated gold
+    primaryLight: '#E8D5A3',   // A lighter, paler gold
+    secondary: '#1A1A1A',      // The very dark, near-black background
+    accent: '#3B4A54',         // The cool, bluish-gray from the vials
+
+    // Text
+    text: '#EAEAEA',           // Bright, off-white for high readability on dark backgrounds
+    textLight: '#A9B4BB',      // Lighter shade of the vial's bluish-gray
+    textOnPrimary: '#000000',  // Black text on gold buttons for high contrast
+    
+    // Backgrounds
+    background: '#121212',      // A deep, pure black main background
+    cardBackground: '#1E1E1E', // A slightly lighter charcoal for cards
+    
+    // UI Elements
+    border: '#3B4A54',         // Using the cool vial color for borders
+    buttonDisabled: '#555555', // A neutral dark gray for disabled states
+    
+    // Semantic Colors
+    success: '#82A077',        // A muted, complementary green that works on dark backgrounds
+    warning: '#D4AF37',       // The primary gold for warnings
+    error: '#C78F90',         // A muted rose/red that works on dark backgrounds
+    info: '#A9B4BB',           // The light bluish-gray for info states
+    successBg: '#2A3C24',
+    warningBg: '#4A3E24',
+    infoBg: '#343E45',
+  },
 };
 
 export const defaultThemeName = 'sage';
