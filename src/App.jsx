@@ -22,6 +22,7 @@ import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
 import UpgradeBanner from './components/common/UpgradeBanner';
+import SubscriptionModal from './components/common/SubscriptionModal';
 
 function App() {
   const location = useLocation();
@@ -44,7 +45,7 @@ function App() {
   });
   const theme = themes[themeName]
   const { hasMockData, user } = useAppContext();
-  const { daysRemaining, isTrialExpired, showUpgradePrompt } = useSubscriptionAccess();
+  const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ function App() {
   const [showUnsupportedModal, setShowUnsupportedModal] = useState(false);
   const [topbarTabs, setTopbarTabs] = useState(null);
   const [topbarAutoSave, setTopbarAutoSave] = useState(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // App is now live - no beta restrictions
 
@@ -161,7 +163,10 @@ function App() {
   return (
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
-      <div className="flex-1 flex flex-col md:ml-24 min-w-0">
+      <div className="flex-1 flex flex-col md:ml-24 min-w-0" style={{
+        // Add padding for mobile status bar
+        paddingTop: window.innerWidth <= 768 ? 'env(safe-area-inset-top, 24px)' : '0px'
+      }}>
         <Topbar 
           theme={theme} 
           onMenuClick={() => setMobileMenuOpen(true)}
@@ -183,9 +188,10 @@ function App() {
         />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
         {showUpgradePrompt && user && (
-          <UpgradeBanner 
-            daysRemaining={daysRemaining} 
+          <UpgradeBanner
+            daysRemaining={daysRemaining}
             isTrialExpired={isTrialExpired}
+            onUpgradeClick={() => setShowSubscriptionModal(true)}
           />
         )}
                <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0" style={{ backgroundColor: theme.background, color: theme.text }}>
@@ -234,6 +240,12 @@ function App() {
         onAccept={() => {}} 
       />
       <NotificationPermissionPrompt theme={theme} />
+      <SubscriptionModal 
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        theme={theme}
+        currentPlan={subscriptionInterval}
+      />
     </div>
   )
 }

@@ -1,13 +1,11 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Crown, X, ArrowRight } from 'lucide-react';
 
 /**
  * Banner displayed when trial is expired or subscription ended
  * Shows at top of all pages to prompt upgrade
  */
-export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss }) {
-  const navigate = useNavigate();
+export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss, onUpgradeClick }) {
   const [isDismissed, setIsDismissed] = React.useState(false);
 
   // Check if user dismissed this session
@@ -25,7 +23,9 @@ export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss
   };
 
   const handleUpgradeClick = () => {
-    navigate('/account');
+    if (onUpgradeClick) {
+      onUpgradeClick();
+    }
   };
 
   if (isDismissed) return null;
