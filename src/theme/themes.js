@@ -146,17 +146,17 @@ export const themes = {
     secondary: '#1A2025',      // The very dark, cool blue-charcoal background
     accent: '#5B6870',         // The muted blue-gray of the glass vials
 
-    // Text
+    // Text - Increased brightness for better contrast
     text: '#F0F0F0',           // Bright, clean off-white for text
-    textLight: '#A8B0B5',      // A lighter shade of the vial's blue-gray
+    textLight: '#C0C8CC',      // Brighter secondary text for readability
     textOnPrimary: '#000000',  // Black text on gold buttons for high contrast
     
-    // Backgrounds
-    background: '#14181C',      // The deepest cool shadow color for the main background
-    cardBackground: '#1A2025', // The slightly lighter blue-charcoal for cards
+    // Backgrounds - Increased contrast between main and card backgrounds
+    background: '#101214',      // Darker, cool-toned main background
+    cardBackground: '#242A2E', // Significantly lighter card background for separation
     
-    // UI Elements
-    border: '#3A444A',         // A darker shade of the vial color for subtle borders
+    // UI Elements - Lighter border for a subtle edge highlight
+    border: '#33393E',         // Subtle border, lighter than the card background
     buttonDisabled: '#4F585E', // A muted gray for disabled states
     
     // Semantic Colors
