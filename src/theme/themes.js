@@ -37,43 +37,39 @@ export const themes = {
     name: 'Mauve',
     isDark: false,
     
-    // Core Palette - Using the EXACT NEW TPP PALETTE (NO GREENS)
-    primary: '#9ABC94', // Primary Mauve/Taupe - EXACT hex from palette
-    primaryDark: '#3D3530', // Dark Charcoal - EXACT hex from palette
-    primaryLight: '#B8D1B3', // Lightened version of primary mauve
-    secondary: '#FB88EC', // Warm-White - EXACT hex from palette
-    accent: '#F7C7F0', // Lightened warm-white accent
+    // Core Palette - Visually sampled from the user's image, ignoring hex codes.
+    primary: '#9A8C94', // Visually-sampled Primary Mauve/Taupe
+    primaryDark: '#5A4D4C', // Visually-sampled Deep Espresso Brown
+    primaryLight: '#B5AAB0', // Lightened version of primary mauve
+    secondary: '#FBF8F0', // Visually-sampled Warm-White
+    accent: '#EDEAE2', // Lighter version of warm-white
 
-    // Text - Using Dark Charcoal and Cloud Gray
-    text: '#3D3530', // Dark Charcoal - EXACT hex from palette
-    textLight: '#270996', // Cloud Gray - EXACT hex from palette
+    // Text - Using Dark Charcoal and Deep Espresso Brown
+    text: '#3D3530', // Visually-sampled Dark Charcoal
+    textLight: '#5A4D4C', // Visually-sampled Deep Espresso Brown for secondary text
     textOnPrimary: '#FFFFFF',
     
-    // Backgrounds - Using Warm-White and Cloud Gray
-    background: '#FB88EC', // Warm-White - EXACT hex from palette
+    // Backgrounds - Using Warm-White
+    background: '#FBF8F0', // Visually-sampled Warm-White
     cardBackground: '#FFFFFF', // Pure white for cards
     
-    // UI Elements
-    border: '#F7C7F0', // Light warm-white for borders
-    buttonDisabled: '#270996', // Cloud Gray for disabled
+    // UI Elements - Using Cloud Gray
+    border: '#D9D9D9', // Lighter version of Cloud Gray
+    buttonDisabled: '#C8C8C8', // Visually-sampled Cloud Gray
     
-    // Semantic Colors - Using ACCENT & POP COLORS
-    success: '#9ABC94', // Using primary mauve for success
-    warning: '#D4AF37', // Muted Gold for warnings
-    error: '#C17B7B', // Clusty Rose for errors
-    info: '#8B7D9E', // Smoky Plum for info
-    successBg: '#F4F2F2', // Light success background
-    warningBg: '#FDF8E8', // Light warning background
-    infoBg: '#F4F2F7', // Light info background
+    // Semantic Colors - Using Visually-sampled ACCENT & POP COLORS
+    success: '#9A8C94', // Using primary mauve for success
+    warning: '#B89B65', // Visually-sampled Muted Gold
+    error: '#C7A4A5', // Visually-sampled Clusty Rose
+    info: '#8B6F77', // Visually-sampled Smoky Plum
+    successBg: '#F5F3F4',
+    warningBg: '#F8F5EF',
+    infoBg: '#F3F0F1',
     
     // Pop Colors for high-visual elements
-    popRose: '#C17B7B', // Clusty Rose
-    popGold: '#D4AF37', // Muted Gold  
-    popPlum: '#8B7D9E', // Smoky Plum
-    
-    // Additional palette colors
-    espressoBrown: '#5A42EC', // Deep Espresso Brown - EXACT hex from palette
-    cloudGray: '#270996', // Cloud Gray - EXACT hex from palette
+    popRose: '#C7A4A5', // Visually-sampled Clusty Rose
+    popGold: '#B89B65', // Visually-sampled Muted Gold  
+    popPlum: '#8B6F77', // Visually-sampled Smoky Plum
   },
 };
 
