@@ -18,12 +18,8 @@ export const REOPEN_DATE = new Date('2024-10-01T00:00:00'); // App went live
  * @returns {boolean} True if beta has ended
  */
 export function isBetaEnded() {
-  // Developer override for testing
-  if (localStorage.getItem('dev_bypass_beta_lock') === 'true') {
-    return false;
-  }
-  
-  return new Date() >= BETA_END_DATE;
+  // Always return false - beta system is disabled during app testing
+  return false;
 }
 
 /**
@@ -68,18 +64,8 @@ export function getTimeUntilBetaEnd() {
  * @returns {boolean} True if should show beta ended UI
  */
 export function shouldShowBetaEndedUI(user) {
-  // If beta hasn't ended yet, don't show ended UI
-  if (!isBetaEnded()) {
-    return false;
-  }
-  
-  // If user already has lifetime access, don't show ended UI
-  if (user?.subscription?.plan === 'lifetime' && user?.subscription?.status === 'active') {
-    return false;
-  }
-  
-  // Show ended UI for beta testers who haven't completed feedback
-  return true;
+  // Beta system disabled during app testing - never show beta ended UI
+  return false;
 }
 
 /**
