@@ -217,7 +217,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                   </div>
                 </button>
 
-                {/* Annual Plan - Most Chosen */}
+                {/* Annual Plan - Popular */}
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('annual')}
                   disabled={isProcessing}
@@ -227,8 +227,9 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                     backgroundColor: theme.cardBackground 
                   }}
                 >
-                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primary, fontSize: '10px' }}>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <div className="bg-yellow-400 text-yellow-900 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                      <Zap size={12} />
                       Popular
                     </div>
                   </div>

@@ -1,7 +1,7 @@
   import React from 'react'
   import { useOutletContext, useNavigate } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
-  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp } from 'lucide-react'
+  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp, Zap, Gift } from 'lucide-react'
   import Modal from '../components/common/Modal'
   import { useAppContext } from '../context/AppContext'
   import { useBadgeStats } from '../utils/badges'
