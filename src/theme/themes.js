@@ -33,8 +33,8 @@ export const themes = {
     infoBg: '#E4F2F1',
   },
 
-  researcher: {
-    name: 'Researcher',
+  mauve: {
+    name: 'Mauve',
     isDark: false,
     
     // Core Palette - Visually sampled from the "Research Planner" image.
@@ -54,7 +54,7 @@ export const themes = {
     cardBackground: '#FFFFFF', // Pure white for cards
     
     // UI Elements
-    border: '#9F8F95',         // Using the primary color for high-contrast borders
+    border: '#BDB1B5',         // Softer border using the light primary shade
     buttonDisabled: '#D1CACD', // Muted version of the primary color
     
     // Semantic Colors
