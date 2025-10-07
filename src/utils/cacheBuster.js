@@ -3,7 +3,7 @@
  * Automatically clears old cached data and forces fresh load
  */
 
-const CURRENT_APP_VERSION = 'beta-fix-v1';
+const CURRENT_APP_VERSION = 'beta-fix-v2-force';
 
 /**
  * Check if app needs cache clearing and perform it
@@ -18,10 +18,12 @@ export function checkAndClearCache() {
       clearAllCache();
       localStorage.setItem('tpp_app_version', CURRENT_APP_VERSION);
       
-      // Force reload if this is a major version change
-      if (storedVersion && !storedVersion.includes('beta-fix')) {
-        console.log('🚀 Major version change detected, forcing reload...');
-        window.location.reload(true);
+      // Force reload for any version change during beta fix
+      if (storedVersion !== CURRENT_APP_VERSION) {
+        console.log('🚀 Version change detected, forcing reload...');
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 100);
         return true;
       }
     }
@@ -84,6 +86,53 @@ export function forceServiceWorkerUpdate() {
 }
 
 /**
+ * Force clear all cache immediately - emergency function
+ */
+export function emergencyCacheClear() {
+  try {
+    console.log('🚨 EMERGENCY CACHE CLEAR - Starting...');
+    
+    // Clear all localStorage
+    localStorage.clear();
+    
+    // Clear all sessionStorage
+    sessionStorage.clear();
+    
+    // Clear all caches
+    if ('caches' in window) {
+      caches.keys().then(cacheNames => {
+        cacheNames.forEach(cacheName => {
+          caches.delete(cacheName);
+          console.log('🗑️ Deleted cache:', cacheName);
+        });
+      });
+    }
+    
+    // Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister();
+          console.log('🗑️ Unregistered service worker');
+        });
+      });
+    }
+    
+    console.log('🚨 EMERGENCY CACHE CLEAR - Complete, reloading...');
+    
+    // Force reload
+    setTimeout(() => {
+      window.location.href = window.location.href.split('?')[0] + '?cache_bust=' + Date.now();
+    }, 500);
+    
+  } catch (error) {
+    console.error('Error in emergency cache clear:', error);
+    // Fallback - just reload
+    window.location.reload(true);
+  }
+}
+
+/**
  * Initialize cache busting on app load
  */
 export function initCacheBusting() {
@@ -93,5 +142,11 @@ export function initCacheBusting() {
   // If no reload needed, we're good
   if (!needsReload) {
     console.log('✅ Cache is up to date');
+  }
+  
+  // Add emergency cache clear to window for debugging
+  if (typeof window !== 'undefined') {
+    window.emergencyCacheClear = emergencyCacheClear;
+    console.log('🚨 Emergency cache clear available: window.emergencyCacheClear()');
   }
 }
