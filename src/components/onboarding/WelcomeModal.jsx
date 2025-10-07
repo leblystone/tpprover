@@ -13,7 +13,7 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                 </h1>
                 
                 <p className="text-gray-600 mb-6">
-                    The Pep Planner helps you organize, track, and optimize your peptide research. Whether your a new research apprentice or a veteran bio-hacker, start organizing your research with a 7-day access trial to explore all features, then choose the plan that fits your research needs. Let's begin! 🧪
+                    The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 7 days and take a look around! Happy researching!
                 </p>
 
                 <div className="flex justify-center mb-6">
