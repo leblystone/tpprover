@@ -139,34 +139,34 @@ export const themes = {
     name: 'The Alchemist',
     isDark: true,
     
-    // Core Palette - Visually sampled from "The Alchemist" rabbit image.
-    primary: '#D4AF37',       // The glowing gold from the vial ring
-    primaryDark: '#B89B65',    // A slightly deeper, less saturated gold
-    primaryLight: '#E8D5A3',   // A lighter, paler gold
-    secondary: '#1A1A1A',      // The very dark, near-black background
-    accent: '#3B4A54',         // The cool, bluish-gray from the vials
+    // Core Palette - RE-SAMPLED from "The Alchemist" rabbit image for accuracy.
+    primary: '#D3A329',       // The glowing, saturated gold from the vial ring
+    primaryDark: '#B48B22',    // A deeper, richer gold
+    primaryLight: '#E8C46B',   // A lighter, brighter gold
+    secondary: '#1A2025',      // The very dark, cool blue-charcoal background
+    accent: '#5B6870',         // The muted blue-gray of the glass vials
 
     // Text
-    text: '#EAEAEA',           // Bright, off-white for high readability on dark backgrounds
-    textLight: '#A9B4BB',      // Lighter shade of the vial's bluish-gray
+    text: '#F0F0F0',           // Bright, clean off-white for text
+    textLight: '#A8B0B5',      // A lighter shade of the vial's blue-gray
     textOnPrimary: '#000000',  // Black text on gold buttons for high contrast
     
     // Backgrounds
-    background: '#121212',      // A deep, pure black main background
-    cardBackground: '#1E1E1E', // A slightly lighter charcoal for cards
+    background: '#14181C',      // The deepest cool shadow color for the main background
+    cardBackground: '#1A2025', // The slightly lighter blue-charcoal for cards
     
     // UI Elements
-    border: '#3B4A54',         // Using the cool vial color for borders
-    buttonDisabled: '#555555', // A neutral dark gray for disabled states
+    border: '#3A444A',         // A darker shade of the vial color for subtle borders
+    buttonDisabled: '#4F585E', // A muted gray for disabled states
     
     // Semantic Colors
-    success: '#82A077',        // A muted, complementary green that works on dark backgrounds
-    warning: '#D4AF37',       // The primary gold for warnings
-    error: '#C78F90',         // A muted rose/red that works on dark backgrounds
-    info: '#A9B4BB',           // The light bluish-gray for info states
+    success: '#6A9E66',        // A desaturated green that fits the cool palette
+    warning: '#D3A329',       // The primary gold for warnings
+    error: '#C77B7D',         // A desaturated red that fits the cool palette
+    info: '#A8B0B5',           // The light blue-gray for info states
     successBg: '#2A3C24',
     warningBg: '#4A3E24',
-    infoBg: '#343E45',
+    infoBg: '##343E45',
   },
 };
 
