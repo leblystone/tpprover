@@ -36,7 +36,7 @@ const LaunchRedirect = () => <Navigate to="/countdown" replace />;
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Landing />,
+    element: <CoverLanding />,
     errorElement: <NotFound />,
   },
   {
@@ -62,6 +62,11 @@ export const router = createBrowserRouter([
   {
     path: '/test-countdown',
     element: <CoverLanding />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/original-landing',
+    element: <Landing />,
     errorElement: <NotFound />,
   },
   {
