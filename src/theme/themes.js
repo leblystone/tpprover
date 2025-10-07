@@ -54,7 +54,7 @@ export const themes = {
     cardBackground: '#FFFFFF', // Pure white for cards
     
     // UI Elements - Using Cloud Gray
-    border: '#D9D9D9', // Lighter version of Cloud Gray
+    border: '#C7A4A5', // Visually-sampled Clusty Rose for high contrast
     buttonDisabled: '#C8C8C8', // Visually-sampled Cloud Gray
     
     // Semantic Colors - Using Visually-sampled ACCENT & POP COLORS
