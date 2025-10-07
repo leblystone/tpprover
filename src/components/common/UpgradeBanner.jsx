@@ -37,7 +37,7 @@ export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss
         <div className="max-w-7xl mx-auto px-2 py-2 sm:px-4 sm:py-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Crown size={18} className="hidden sm:block" />
+              <Crown size={18} />
               <div>
                 <span className="font-semibold text-xs sm:text-sm">Trial ending soon!</span>
               </div>
@@ -72,7 +72,7 @@ export default function UpgradeBanner({ daysRemaining, isTrialExpired, onDismiss
         <div className="max-w-7xl mx-auto px-2 py-2 sm:px-4 sm:py-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Crown size={18} className="hidden sm:block" />
+              <Crown size={18} />
               <div>
                 <span className="font-semibold text-xs sm:text-sm">Trial Expired - Read-only mode</span>
               </div>
