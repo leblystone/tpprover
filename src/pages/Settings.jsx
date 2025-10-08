@@ -364,7 +364,6 @@ export default function Settings() {
           description="Choose how you want to be notified"
           icon={Bell}
           theme={theme}
-          defaultExpanded={true}
         >
           <div className="space-y-3">
             <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />

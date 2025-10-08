@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "97564473391",
+    "project_id": "tpp-splendide",
+    "storage_bucket": "tpp-splendide.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97564473391:android:803adfac15c1a5bdaa6eda",
+        "android_client_info": {
+          "package_name": "com.thepepplanner.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh5GKIY0rdtUcBrN6Sg82fz5HqmVGv83I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

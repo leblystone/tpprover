@@ -4,6 +4,7 @@
   import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp, Gift } from 'lucide-react'
 import { Zap } from '../icons/lucide-safe'
   import Modal from '../components/common/Modal'
+import CollapsibleSection from '../components/common/CollapsibleSection'
   import { useAppContext } from '../context/AppContext'
   import { useBadgeStats } from '../utils/badges'
   import BadgeImage from '../components/badges/BadgeImage'
@@ -445,18 +446,13 @@ import { Zap } from '../icons/lucide-safe'
     return (
       <section className="space-y-6">
         {/* Profile */}
-        <div className="rounded-lg border p-6 content-card shadow-lg" style={{ 
-          borderColor: theme.border, 
-          backgroundColor: theme.cardBackground,
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
+        <CollapsibleSection
+          title="Profile"
+          description="Manage your account information and settings"
+          icon={User}
+          theme={theme}
+        >
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: theme.primary }}>
-                <User size={16} className="text-white" />
-              </div>
-              <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Profile</h2>
-            </div>
             {user && (
               <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={logout}>Log out</button>
             )}
@@ -495,30 +491,26 @@ import { Zap } from '../icons/lucide-safe'
           ) : (
             <div className="text-sm" style={{ color: theme.textLight }}>You are not signed in. Go to Login.</div>
           )}
-        </div>
+        </CollapsibleSection>
 
 
         {/* Subscription */}
-        <div className="rounded-lg border p-6 content-card shadow-lg" style={{ 
-          borderColor: theme.border, 
-          backgroundColor: theme.cardBackground,
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: theme.primary }}>
-              <TrendingUp size={16} className="text-white" />
-            </div>
-            <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Researcher Access</h2>
-          </div>
+        <CollapsibleSection
+          title="Research Subscription"
+          description="Manage your subscription and billing"
+          icon={TrendingUp}
+          theme={theme}
+          defaultExpanded={true}
+        >
               {sub ? (
                 // Regular user with subscription
                 <div className="space-y-4">
                   {/* Current Plan / Trial Card with Integrated Countdown */}
-                  <div className="p-6 rounded-xl shadow-sm" style={{ backgroundColor: theme.accent, border: `2px solid ${theme.primary}` }}>
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="p-4 rounded-lg shadow-sm" style={{ backgroundColor: theme.accent, border: `2px solid ${theme.primary}` }}>
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <Crown size={20} style={{ color: theme.primary }} />
-                        <span className="font-semibold text-lg" style={{ color: theme.primaryDark }}>
+                        <Crown size={18} style={{ color: theme.primary }} />
+                        <span className="font-semibold text-base" style={{ color: theme.primaryDark }}>
                           {sub?.status === 'trialing' ? '7-Day Researcher Access' : 'Your Research Status'}
                         </span>
                       </div>
@@ -535,11 +527,11 @@ import { Zap } from '../icons/lucide-safe'
                        <>
                          {/* Trial Countdown Progress Bar */}
                          {sub.currentPeriodEnd && (
-                           <div className="p-4 rounded-lg" style={{ backgroundColor: theme.infoBg, border: `2px solid ${theme.info}` }}>
-                             <div className="flex items-center justify-between mb-3">
+                           <div className="p-3 rounded-lg" style={{ backgroundColor: theme.infoBg, border: `2px solid ${theme.info}` }}>
+                             <div className="flex items-center justify-between mb-2">
                                <div className="flex items-center gap-2">
-                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.info }}></div>
-                                 <span className="font-semibold text-sm" style={{ color: theme.primaryDark }}>
+                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.info }}></div>
+                                 <span className="font-medium text-sm" style={{ color: theme.primaryDark }}>
                                    Time Remaining
                                  </span>
                                </div>
@@ -555,10 +547,10 @@ import { Zap } from '../icons/lucide-safe'
                                </span>
                              </div>
                              
-                             <div className="space-y-2">
-                               <div className="w-full bg-gray-200 rounded-full h-3">
+                             <div className="space-y-1">
+                               <div className="w-full bg-gray-200 rounded-full h-2">
                                  <div
-                                   className="h-3 rounded-full transition-all duration-500 ease-out"
+                                   className="h-2 rounded-full transition-all duration-500 ease-out"
                                    style={{
                                      width: `${(() => {
                                        const start = new Date(sub.startedAt);
@@ -569,7 +561,7 @@ import { Zap } from '../icons/lucide-safe'
                                        return Math.max(0, 100 - (elapsedTime / totalDuration * 100));
                                      })()}%`,
                                      background: `linear-gradient(90deg, ${theme.info} 0%, ${theme.primaryDark} 100%)`,
-                                     boxShadow: `0 2px 4px ${theme.info}30`
+                                     boxShadow: `0 1px 2px ${theme.info}30`
                                    }}
                                  ></div>
                                </div>
@@ -643,28 +635,23 @@ import { Zap } from '../icons/lucide-safe'
 
                    {/* Founder's Pricing Alert - Only show for non-lifetime users */}
                    {sub.interval !== 'lifetime' && (
-                   <div className="rounded-xl p-6 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
-                     <div className="flex items-center justify-center gap-3 mb-3">
-                       <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
-                         <Crown size={16} className="text-white" />
+                   <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
+                     <div className="flex items-center justify-center gap-2 mb-2">
+                       <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
+                         <Crown size={12} className="text-white" />
                        </div>
-                       <div className="text-xl font-bold" style={{ color: '#344E41' }}>
+                       <div className="text-lg font-bold" style={{ color: '#344E41' }}>
                          Founder's Pricing
                        </div>
                      </div>
                      
-                     <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
-                       <p className="text-sm leading-relaxed" style={{ color: '#3A5A40' }}>
+                     <div className="rounded-lg p-3 mb-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
+                       <p className="text-xs leading-relaxed" style={{ color: '#3A5A40' }}>
                          As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
                          even as we add new features and increase value as we grow!
                        </p>
                      </div>
                      
-                     <div className="flex items-center justify-center gap-2 text-xs" style={{ color: '#5C7659' }}>
-                       <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5C7659' }}></span>
-                       <span className="font-medium">Limited time founder benefits</span>
-                       <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5C7659' }}></span>
-                     </div>
                    </div>
                    )}
 
@@ -682,11 +669,12 @@ import { Zap } from '../icons/lucide-safe'
                      {/* Show different plan options based on current subscription */}
                      {sub?.status === 'trialing' ? (
                        // Trial users see all three plans
-                       <div>
-                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                       <div className="space-y-4">
+                         {/* Monthly and Annual in 2-column layout */}
+                         <div className="grid grid-cols-2 gap-3">
                       {/* Monthly Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
+                        className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
                         style={{ borderColor: sub?.interval === 'month' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={async () => {
                           try {
@@ -706,15 +694,15 @@ import { Zap } from '../icons/lucide-safe'
                         )}
 
                         {/* Plan Title */}
-                        <div className="text-center mb-6 flex-1 flex flex-col justify-center">
-                          <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Monthly</h3>
-                          <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$8.99</div>
-                          <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per month</div>
+                        <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                          <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
+                          <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$8.99</div>
+                          <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per month</div>
                         </div>
 
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
                           style={{ backgroundColor: sub?.interval === 'month' ? '#5C7659' : '#344E41' }}
                         >
                           {sub?.interval === 'month' ? 'Active Research' : 'Start Monthly'}
@@ -723,7 +711,7 @@ import { Zap } from '../icons/lucide-safe'
 
                       {/* Annual Plan */}
                       <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
+                        className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
                         style={{ borderColor: sub?.interval === 'year' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={async () => {
                           try {
@@ -753,13 +741,13 @@ import { Zap } from '../icons/lucide-safe'
 
                         {/* Plan Title */}
                         <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                          <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Annual</h3>
-                          <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$89.99</div>
-                          <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per year</div>
+                          <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Annual</h3>
+                          <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$89.99</div>
+                          <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per year</div>
                           
                           {/* Subtitle Badge */}
-                          <div className="text-center mt-4">
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                          <div className="text-center mt-1">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
                               Save $17.89
                             </span>
                           </div>
@@ -767,76 +755,53 @@ import { Zap } from '../icons/lucide-safe'
 
                         {/* Action Button */}
                         <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
+                          className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
                           style={{ backgroundColor: sub?.interval === 'year' ? '#5C7659' : '#3A5A40' }}
                         >
                           {sub?.interval === 'year' ? 'Active Research' : 'Start Annual'}
                         </button>
                       </div>
-
-                      {/* Lifetime Plan */}
-                      <div 
-                        className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
-                        style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
-                        onClick={async () => {
-                          try {
-                            await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user');
-                          } catch (error) {
-                            console.error('Stripe checkout error:', error);
-                          }
-                        }}
-                      >
-                        {/* Current Plan Badge */}
-                        {sub?.interval === 'lifetime' && (
-                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#5C7659' }}>
-                              Lifetime Researcher
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Limited Time Badge */}
-                        {sub?.interval !== 'lifetime' && (
-                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
-                              Limited Time Only
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Plan Title */}
-                        <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                          <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Lifetime</h3>
-                          <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$249.99</div>
-                          <div className="text-sm mt-1" style={{ color: '#5C7659' }}>one-time payment</div>
-                          
-                          {/* Subtitle Badge */}
-                          <div className="text-center mt-4">
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
-                              Never pay again
-                            </span>
-                          </div>
-
-                          {/* Limited Time Notice */}
-                          {sub?.interval !== 'lifetime' && (
-                            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(163, 177, 138, 0.2)', border: '1px solid #A3B18A' }}>
-                              <p className="text-xs text-center" style={{ color: '#344E41' }}>
-                                <strong>Forever a Researcher?</strong><br/>Purchase lifetime - only available for a short time
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action Button */}
-                        <button 
-                          className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-                          style={{ backgroundColor: sub?.interval === 'lifetime' ? '#5C7659' : '#344E41' }}
-                        >
-                          {sub?.interval === 'lifetime' ? 'Lifetime Researcher' : 'Join Forever'}
-                        </button>
-                      </div>
-                    </div>
-                      </div>
+                         </div>
+                         
+                         {/* Lifetime plan in compact single column */}
+                         <div 
+                           className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+                           style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
+                           onClick={async () => {
+                             try {
+                               await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                             } catch (error) {
+                               console.error('Stripe checkout error:', error);
+                             }
+                           }}
+                         >
+                           {/* Limited Time Badge */}
+                           {sub?.interval !== 'lifetime' && (
+                             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                               <div className="px-3 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
+                                 Limited Time Only
+                               </div>
+                             </div>
+                           )}
+                           <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-3">
+                               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
+                                 <Crown size={16} className="text-white" />
+                               </div>
+                               <div>
+                                 <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
+                                 <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
+                               </div>
+                             </div>
+                             <button 
+                               className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                               style={{ backgroundColor: '#344E41' }}
+                             >
+                               Join Forever
+                             </button>
+                           </div>
+                         </div>
+                       </div>
                      ) : sub.interval === 'month' ? (
                        // Monthly users see subtle Annual and Lifetime upgrade options
                        <div className="space-y-4">
@@ -953,21 +918,16 @@ import { Zap } from '../icons/lucide-safe'
                   </div>
                 </div>
               )}
-        </div>
+        </CollapsibleSection>
 
 
         {/* Security */}
-        <div className="rounded-lg border p-6 content-card shadow-lg" style={{ 
-          borderColor: theme.border, 
-          backgroundColor: 'rgba(248, 250, 252, 0.8)',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: theme.primary }}>
-              <Lock size={16} className="text-white" />
-            </div>
-            <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>Security</h2>
-          </div>
+        <CollapsibleSection
+          title="Security"
+          description="Manage your password and two-factor authentication"
+          icon={Lock}
+          theme={theme}
+        >
           <div className="space-y-4">
             <div>
               <div className="text-sm font-medium">Password</div>
@@ -1001,7 +961,7 @@ import { Zap } from '../icons/lucide-safe'
               )}
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Two-Factor modal */}
         <Modal 

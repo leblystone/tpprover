@@ -50,26 +50,21 @@ export default function DemoDataBanner({ theme, sticky = false }) {
 
     return (
         <div 
-            className="p-4 text-sm flex items-center justify-between gap-4 relative shadow-sm"
+            className="px-3 py-2 text-xs flex items-center justify-between gap-3 relative shadow-sm"
             style={bannerStyle}
         >
-            <div className="flex items-center gap-3">
-                <AlertTriangle size={20} className="flex-shrink-0" />
-                <div>
-                    <p className="font-medium">
-                        You are viewing <strong>demo data</strong> to explore the app's features.
-                    </p>
-                    <p className="text-xs opacity-90 mt-1">
-                        Remove demo content when you're ready to add your own data.
-                    </p>
-                </div>
+            <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="flex-shrink-0" />
+                <p className="font-medium">
+                    Viewing <strong>demo data</strong> • Remove when ready to add your own data.
+                </p>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
                 <button 
                     onClick={handleRemoveDemoData}
                     disabled={isRemoving}
-                    className="px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-2 py-1 text-xs rounded font-medium transition-all duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                         backgroundColor: '#8B5A3C',
                         color: '#F5F1EB',
@@ -87,8 +82,8 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                     }}
                     title="Remove all demo data"
                 >
-                    <Trash2 size={14} />
-                    {isRemoving ? 'Removing...' : 'Remove Demo Data'}
+                    <Trash2 size={12} />
+                    {isRemoving ? 'Removing...' : 'Remove'}
                 </button>
                 
                 {!sticky && (
@@ -97,7 +92,7 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                         className="p-1 hover:bg-white hover:bg-opacity-20 rounded transition-all duration-200"
                         title="Dismiss banner"
                     >
-                        <X size={16} />
+                        <X size={12} />
                     </button>
                 )}
             </div>

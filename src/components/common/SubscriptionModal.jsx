@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
 import { useAppContext } from '../../context/AppContext';
+import { Crown } from '../../icons/lucide-safe';
 
 export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
@@ -47,6 +48,7 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
       onClose={onClose}
       title="Choose Your Plan"
       theme={theme}
+      variant="modern"
       maxWidth="max-w-4xl"
       footer={
         <div className="flex justify-center w-full">
@@ -59,103 +61,103 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
         </div>
       }
     >
-      <div className="p-4">
-        <p className="text-center text-gray-600 mb-8">
-          Your trial has ended. Select a plan to continue with full access to The Pep Planner.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Monthly Plan */}
-          <div 
-            className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
-            style={{ borderColor: '#D4D7CD' }}
-            onClick={() => handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
-          >
-            {/* Plan Title */}
-            <div className="text-center mb-6 flex-1 flex flex-col justify-center">
-              <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Monthly</h3>
-              <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$8.99</div>
-              <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per month</div>
-            </div>
-
-            {/* Action Button */}
-            <button 
-              className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: '#344E41' }}
+      <div className="p-2">
+        <div className="text-center text-gray-600 mb-3">
+          <p>Your trial has ended.</p>
+          <p>Continue your research with a plan below.</p>
+        </div>
+        
+        <div className="space-y-4">
+          {/* Monthly and Annual in 2-column layout */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Monthly Plan */}
+            <div 
+              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+              style={{ borderColor: '#D4D7CD' }}
+              onClick={() => handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
             >
-              Start Monthly
-            </button>
-          </div>
-
-          {/* Annual Plan */}
-          <div 
-            className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
-            style={{ borderColor: '#D4D7CD' }}
-            onClick={() => handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
-          >
-            {/* Popular Badge */}
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-              <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
-                Popular
+              {/* Plan Title */}
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
+                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$8.99</div>
+                <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per month</div>
               </div>
+
+              {/* Action Button */}
+              <button 
+                className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
+                style={{ backgroundColor: '#344E41' }}
+              >
+                Start Monthly
+              </button>
             </div>
 
-            {/* Plan Title */}
-            <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-              <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Annual</h3>
-              <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$89.99</div>
-              <div className="text-sm mt-1" style={{ color: '#5C7659' }}>per year</div>
-              
-              {/* Subtitle Badge */}
-              <div className="text-center mt-4">
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
-                  Save $17.89
-                </span>
-              </div>
-            </div>
-
-            {/* Action Button */}
-            <button 
-              className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: '#3A5A40' }}
+            {/* Annual Plan */}
+            <div 
+              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+              style={{ borderColor: '#D4D7CD' }}
+              onClick={() => handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
             >
-              Start Annual
-            </button>
-          </div>
+              {/* Popular Badge */}
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
+                  Popular
+                </div>
+              </div>
 
-          {/* Lifetime Plan */}
+              {/* Plan Title */}
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Annual</h3>
+                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$89.99</div>
+                <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per year</div>
+                
+                {/* Subtitle Badge */}
+                <div className="text-center mt-1">
+                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                    Save $17.89
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <button 
+                className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
+                style={{ backgroundColor: '#3A5A40' }}
+              >
+                Start Annual
+              </button>
+            </div>
+          </div>
+          
+          {/* Lifetime plan in compact single column */}
           <div 
-            className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
+            className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
             style={{ borderColor: '#D4D7CD' }}
             onClick={() => handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
           >
             {/* Limited Time Badge */}
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-              <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
+            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+              <div className="px-3 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
                 Limited Time Only
               </div>
             </div>
-
-            {/* Plan Title */}
-            <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-              <h3 className="text-xl font-bold" style={{ color: '#344E41' }}>Lifetime</h3>
-              <div className="text-3xl font-bold mt-2" style={{ color: '#344E41' }}>$249.99</div>
-              <div className="text-sm mt-1" style={{ color: '#5C7659' }}>one-time payment</div>
-              
-              {/* Subtitle Badge */}
-              <div className="text-center mt-4">
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
-                  Never pay again
-                </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
+                  <Crown size={16} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
+                  <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
+                </div>
               </div>
+              <button 
+                className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                style={{ backgroundColor: '#344E41' }}
+              >
+                Join Forever
+              </button>
             </div>
-
-            {/* Action Button */}
-            <button 
-              className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: '#344E41' }}
-            >
-              Never pay again
-            </button>
           </div>
         </div>
       </div>
