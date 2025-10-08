@@ -23,8 +23,8 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         setIsRemoving(true);
         try {
             clearMockData();
-            // Reload the page to refresh the app state
-            window.location.reload();
+            // Dispatch event to notify AppContext instead of reloading
+            window.dispatchEvent(new CustomEvent('demo-data-cleared'));
         } catch (error) {
             console.error('Error removing demo data:', error);
             alert('Failed to remove demo data. Please try again or use the Settings page.');

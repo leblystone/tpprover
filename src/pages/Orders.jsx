@@ -12,8 +12,6 @@ import { syncOrderDocumentationToStockpile, updateSyncedDocumentation, removeSyn
 import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
-import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
-import { useAutoSave } from '../utils/useAutoSave'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
@@ -33,16 +31,6 @@ export default function Orders() {
 		});
 	}, []);
 	
-	// Auto save for orders data
-	const [ordersDraft, setOrdersDraft] = useState({})
-	const { isSaving, lastSaved, clearSavedData } = useAutoSave('tpprover_orders_draft', ordersDraft, setOrdersDraft, 2000)
-	
-	// Update auto save when orders change
-	useEffect(() => {
-		if (orders.length > 0) {
-			setOrdersDraft({ orders, lastUpdated: new Date().toISOString() })
-		}
-	}, [orders])
 
 	useEffect(() => {
 		if (location.state?.activeTab) {
@@ -90,25 +78,6 @@ export default function Orders() {
 		};
 	}, [activeTab, isReadOnly, groupBuysEnabled])
 
-	// Set auto save indicator in topbar
-	useEffect(() => {
-		const autoSaveIndicator = (
-			<AutoSaveIndicator 
-				isSaving={isSaving}
-				lastSaved={lastSaved}
-				theme={theme}
-				compact={true}
-			/>
-		);
-		
-		window.dispatchEvent(new CustomEvent('tpp:set-topbar-autosave', { 
-			detail: { autoSaveIndicator } 
-		}));
-		
-		return () => {
-			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-autosave'));
-		};
-	}, [isSaving, lastSaved, theme])
 
 	const filteredOrders = useMemo(() => {
 		return orders.filter(o => {

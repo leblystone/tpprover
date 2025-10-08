@@ -405,10 +405,18 @@ export function AppProvider({ children }) {
         };
         
         window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        // Listen for demo data cleared event
+        const handleDemoDataCleared = () => {
+            console.log('🧹 Demo data cleared event received, refreshing app state...');
+            refreshDataAfterClear();
+        };
+        window.addEventListener('demo-data-cleared', handleDemoDataCleared);
 
         return () => {
             if (unsubscribe) unsubscribe();
             window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('demo-data-cleared', handleDemoDataCleared);
         };
     }, []); // FIXED: Remove data dependencies to prevent infinite loops
 

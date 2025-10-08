@@ -18,29 +18,31 @@ const StockpileHelpPanel = ({ theme }) => {
 
   if (!isExpanded) {
     return (
-      <div className="mb-6 flex justify-center">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full border-2 text-sm font-medium transition-all hover:shadow-md hover:scale-105"
-            style={{ 
-              borderColor: theme.primary + '40', 
-              color: theme.primary,
-              backgroundColor: theme.primary + '08'
-            }}
-          >
-            <HelpCircle size={18} />
-            <span>How does stockpile work?</span>
-            <ChevronDown size={16} />
-          </button>
-          <button
-            onClick={handleDismiss}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            style={{ color: theme.textLight }}
-            title="Dismiss permanently"
-          >
-            <X size={18} />
-          </button>
+      <div className="mb-6 px-4">
+        <div className="flex justify-center">
+          <div className="flex items-center gap-2 max-w-sm w-full">
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-full border-2 text-xs font-medium transition-all hover:shadow-md hover:scale-105 flex-1 min-w-0"
+              style={{
+                borderColor: theme.primary + '40',
+                color: theme.primary,
+                backgroundColor: theme.primary + '08'
+              }}
+            >
+              <HelpCircle size={16} className="flex-shrink-0" />
+              <span className="truncate">How stockpile works?</span>
+              <ChevronDown size={14} className="flex-shrink-0" />
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
+              style={{ color: theme.textLight }}
+              title="Dismiss permanently"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
       </div>
     );
