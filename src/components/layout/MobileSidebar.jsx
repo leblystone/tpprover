@@ -46,14 +46,14 @@ export default function MobileSidebar({ open, onClose, theme }) {
       }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
+            <button onClick={onClose} className="text-gray-500" aria-label="Close Menu"><Menu className="h-5 w-5" /></button>
             <div>
               <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
               <p className="text-xs text-gray-500">Organize your research.</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <img src={logo} alt="The Pep Planner Logo" className="h-14 w-14 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-            <button onClick={onClose} className="text-gray-500" aria-label="Close Menu"><Menu className="h-5 w-5" /></button>
           </div>
         </div>
         <nav className="flex-1 bg-white overflow-y-auto flex flex-col">
