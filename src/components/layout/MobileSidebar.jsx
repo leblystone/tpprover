@@ -39,10 +39,10 @@ export default function MobileSidebar({ open, onClose, theme }) {
   const overlay = (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
-      <div className="absolute top-0 left-0 h-full w-full bg-white shadow-xl p-4 flex flex-col" style={{ 
+      <div className="absolute top-0 left-0 h-full w-full bg-white shadow-xl px-4 py-2 pb-4 flex flex-col" style={{ 
         transform: visible ? 'translateX(0%)' : 'translateX(-100%)', 
         transition: 'transform 240ms ease-in-out',
-        paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))'
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))'
       }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
