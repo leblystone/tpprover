@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp-logo.png';
+import { isNative } from '../utils/platform';
+import Login from './Login';
 
 export default function CoverLanding() {
   const theme = themes[defaultThemeName];
@@ -12,39 +14,49 @@ export default function CoverLanding() {
     seconds: 0
   });
 
+  // Auto-redirect native apps and local development to /app (only once)
   useEffect(() => {
-    // Set launch date to 10 days from now
-    const launchDate = new Date();
-    launchDate.setDate(launchDate.getDate() + 10);
-
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = launchDate.getTime() - now;
-
-      if (distance > 0) {
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        setTimeLeft({ days, hours, minutes, seconds });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
+    const hasRedirected = sessionStorage.getItem('tpp_redirected_from_landing');
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if ((isNative() || isLocalhost) && !hasRedirected) {
+      console.log('🚀 CoverLanding: Auto-redirecting to /app (native or localhost)');
+      sessionStorage.setItem('tpp_redirected_from_landing', 'true');
+      
+      // Use replace to avoid back button issues
+      window.location.replace('/app');
+    } else if ((isNative() || isLocalhost) && hasRedirected) {
+      console.log('⚠️ CoverLanding: Already redirected, forcing to /app');
+      // If we're back here after redirect, force to app page
+      window.location.replace('/app');
+    } else {
+      console.log('🌐 CoverLanding: Production web app detected, showing countdown');
+    }
   }, []);
 
+  // For native apps and localhost, show loading while redirecting
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isNative() || isLocalhost) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-2" style={{ borderColor: theme.primary }}></div>
+          <p className="text-sm" style={{ color: theme.textLight }}>Loading app...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show countdown interface for web users
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center" style={{ backgroundColor: theme.background }}>
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="mb-8">
-          <img 
-            src={logo} 
-            alt="The Pep Planner Logo" 
-            className="h-24 w-24 md:h-32 md:w-32 rounded-full shadow-lg object-cover mx-auto mb-6" 
+          <img
+            src={logo}
+            alt="The Pep Planner Logo"
+            className="h-24 w-24 md:h-32 md:w-32 rounded-full shadow-lg object-cover mx-auto mb-6"
           />
         </div>
 
@@ -60,11 +72,6 @@ export default function CoverLanding() {
 
         {/* Opening Soon Card */}
         <div className="p-8 md:p-12 rounded-2xl shadow-xl" style={{ backgroundColor: theme.white }}>
-          <div className="mb-8">
-            <p className="text-base md:text-lg" style={{ color: '#6B7D7A' }}>
-              Thank you for your interest in The Pep Planner! We're putting the finishing touches on your research companion.
-            </p>
-          </div>
 
           {/* Countdown Timer */}
           <div className="mb-8">
@@ -72,7 +79,7 @@ export default function CoverLanding() {
               <Clock size={20} />
               <span className="font-medium text-sm uppercase tracking-wider">Opening Countdown</span>
             </div>
-            
+
             <div className="grid grid-cols-4 gap-4 max-w-md mx-auto">
               {/* Days */}
               <div className="text-center">
@@ -124,4 +131,27 @@ export default function CoverLanding() {
       </div>
     </div>
   );
+
+  // Set launch date to 10/18/2025 at midnight
+  useEffect(() => {
+    const launchDate = new Date('2025-10-18T00:00:00');
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = launchDate.getTime() - now;
+
+      if (distance > 0) {
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        setTimeLeft({ days, hours, minutes, seconds });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 }

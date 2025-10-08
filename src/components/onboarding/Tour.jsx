@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import OverlayTour from './OverlayTour';
 import { useNavigate } from 'react-router-dom';
+import { isNative } from '../../utils/platform';
 
 const TOUR_STEPS = [
     {
@@ -138,11 +139,13 @@ export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
         const firstStep = tourSteps[0];
         const firstPath = getPathForStep(firstStep);
         if (window.location.pathname !== firstPath) {
-            navigate(firstPath);
+            // Use replace to avoid navigation stack issues
+            navigate(firstPath, { replace: true });
         }
-        // Start immediately after a frame to ensure any overlays unmount
-        requestAnimationFrame(() => setRun(true));
-    }, [startTour, tourSteps]);
+        // Start with longer delay to ensure DOM is stable
+        const timer = setTimeout(() => setRun(true), 100);
+        return () => clearTimeout(timer);
+    }, [startTour, tourSteps, navigate]);
 
     useEffect(() => {
         // Keep 'run' state in sync with prop in case it's toggled while mounted
@@ -155,11 +158,20 @@ export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
         const clamped = Math.max(0, Math.min(tourSteps.length - 1, nextIndex));
         const nextStep = tourSteps[clamped];
         const nextPath = getPathForStep(nextStep);
+        
+        // First, hide the tour to prevent render conflicts
+        setRun(false);
+        
         if (window.location.pathname !== nextPath) {
-            navigate(nextPath);
+            // Use replace to avoid navigation stack issues
+            navigate(nextPath, { replace: true });
         }
-        // Delay index update slightly to allow route to render targets
-        setTimeout(() => setStepIndex(clamped), 50);
+        
+        // Wait for navigation to complete and DOM to stabilize before showing tour again
+        setTimeout(() => {
+            setStepIndex(clamped);
+            setRun(true);
+        }, 150);
     };
     
     const getPathForStep = (step) => {
@@ -173,7 +185,8 @@ export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
             currentIndex={stepIndex}
             onIndexChange={goToStep}
             onFinish={() => { setRun(false); onTourEnd(); }}
-            onRequestInstall={() => {
+            // Only show install prompt for PWA (web), not for native apps
+            onRequestInstall={!isNative() ? () => {
                 try {
                     if (installPrompt) {
                         installPrompt.prompt();
@@ -183,7 +196,7 @@ export default function Tour({ theme, startTour, onTourEnd, installPrompt }) {
                 try {
                     alert('To install the app: use your browser menu and choose "Install App".');
                 } catch {}
-            }}
+            } : undefined}
             theme={theme}
         />
     );

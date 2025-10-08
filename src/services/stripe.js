@@ -103,17 +103,25 @@ function simulateSuccessfulCheckout(priceId) {
 export async function createPortalSession(customerId) {
   try {
     const auth = getAuth();
-    if (!auth.currentUser) {
-      console.log('🎭 Demo Mode: Opening Stripe Customer Portal...');
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { 
-          message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
-          type: 'info' 
-        }
-      }));
+    
+    // Try to create portal session through Firebase Functions first
+    try {
+      const functions = getFunctions();
+      const createPortalSessionFn = httpsCallable(functions, 'stripe-createPortalSession');
+      
+      const result = await createPortalSessionFn({
+        customerId,
+        returnUrl: `${window.location.origin}/account`,
+      });
+
+      // Redirect to Stripe Customer Portal
+      window.location.href = result.data.url;
       return;
+    } catch (functionsError) {
+      console.log('Firebase Functions not available, trying direct API...');
     }
 
+    // Fallback: Try direct API call
     const response = await fetch('/api/create-portal-session', {
       method: 'POST',
       headers: {
@@ -125,19 +133,21 @@ export async function createPortalSession(customerId) {
       }),
     });
 
-    if (!response.ok) {
-      // For demo - just show message
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { 
-          message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
-          type: 'info' 
-        }
-      }));
+    if (response.ok) {
+      const session = await response.json();
+      window.location.href = session.url;
       return;
     }
 
-    const session = await response.json();
-    window.location.href = session.url;
+    // If all else fails, show demo message
+    console.log('🎭 Demo Mode: Opening Stripe Customer Portal...');
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: { 
+        message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
+        type: 'info' 
+      }
+    }));
+    
   } catch (error) {
     console.error('Portal session error:', error);
     window.dispatchEvent(new CustomEvent('tpp:toast', {

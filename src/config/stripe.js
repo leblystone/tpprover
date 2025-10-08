@@ -9,11 +9,11 @@ export const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHA
 // Stripe configuration
 export const STRIPE_CONFIG = {
   publishableKey: STRIPE_PUBLISHABLE_KEY,
-  // Price IDs from Stripe Dashboard
+  // Price IDs from Stripe Dashboard (with fallback demo IDs for development)
   prices: {
-    monthly: import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID,
-    annual: import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID,
-    lifetime: import.meta.env.VITE_STRIPE_LIFETIME_PRICE_ID
+    monthly: import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID || 'price_demo_monthly',
+    annual: import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID || 'price_demo_annual',
+    lifetime: import.meta.env.VITE_STRIPE_LIFETIME_PRICE_ID || 'price_demo_lifetime'
   }
 };
 

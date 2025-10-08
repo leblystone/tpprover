@@ -76,8 +76,14 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Only show welcome modal for truly new users (not existing Firebase users)
     const hasOnboarded = localStorage.getItem('tpprover_has_onboarded');
-    if (hasOnboarded !== 'true') {
+    const isExistingUser = localStorage.getItem('tpprover_user') || localStorage.getItem('tpprover_demo_data_cleared');
+    
+    // Show welcome only if:
+    // 1. User hasn't onboarded AND
+    // 2. User doesn't have existing data (not an existing Firebase user)
+    if (hasOnboarded !== 'true' && !isExistingUser) {
       setShowWelcome(true);
     }
 
@@ -148,7 +154,9 @@ function App() {
 
   const startTour = () => {
     setShowWelcome(false);
-    navigate('/?tour=true');
+    localStorage.setItem('tpprover_has_onboarded', 'true');
+    // Navigate to dashboard with tour query param
+    navigate('/app/dashboard?tour=true', { replace: true });
   };
 
   const glossaryTerm = new URLSearchParams(window.location.search).get('glossary');

@@ -1,5 +1,6 @@
 import React from 'react';
-import { TrendingUp, Target, Award, Zap } from 'lucide-react';
+import { TrendingUp, Target, Award } from 'lucide-react';
+import { Zap } from '../../icons/lucide-safe';
 
 export default function BadgeProgressWidget({ stats, theme }) {
   const { earnedCount, totalBadges, progressPercentage } = stats;

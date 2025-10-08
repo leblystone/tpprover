@@ -510,6 +510,17 @@ export async function updateFeatureFlag(key, value) {
  */
 async function updateAnalytics(action, data = {}) {
   try {
+    // Skip analytics for native apps (only track PWA usage)
+    // Native apps have their own analytics through Google Play/App Store
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        return; // Silently skip analytics for native apps
+      }
+    } catch {
+      // Capacitor not available, continue with web analytics
+    }
+    
     const analyticsRef = doc(db, 'analytics', 'usage');
     
     const updates = {};

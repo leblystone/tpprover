@@ -1,5 +1,7 @@
 import React from 'react';
 import vialImage from '../../assets/vial.png';
+import mauveVialImage from '../../assets/mauve-vial.png';
+import taupeVialImage from '../../assets/taupe-vial.png';
 
 export default function VialLabelPreview({ 
   form, 
@@ -11,6 +13,16 @@ export default function VialLabelPreview({
   currentPeptideIndex = 0,
   compact = false
 }) {
+  // Select vial image based on theme
+  const getVialImage = () => {
+    if (theme.name === 'Mauve') {
+      return mauveVialImage;
+    } else if (theme.name === 'Taupe') {
+      return taupeVialImage;
+    }
+    return vialImage; // Default vial for all other themes
+  };
+
   // Get current peptide
   const currentPeptide = form.peptides?.[currentPeptideIndex];
 
@@ -58,7 +70,7 @@ export default function VialLabelPreview({
       <div className="relative inline-block" style={{ marginLeft: '-5%' }}>
         {/* Vial Image with subtle shadow - Size based on compact prop */}
         <img 
-          src={vialImage} 
+          src={getVialImage()} 
           alt="Vial" 
           className={compact ? "w-32 h-auto" : "w-full h-auto"}
           style={{ 

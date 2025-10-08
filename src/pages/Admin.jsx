@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
-  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Zap, Shield, AlertTriangle, RefreshCw, Info,
+  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award
 } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
+import { Zap } from '../icons/lucide-safe';
 import {
   getEmailWhitelist,
   updateEmailWhitelist,

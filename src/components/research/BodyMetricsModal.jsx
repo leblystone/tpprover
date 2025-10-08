@@ -3,7 +3,8 @@ import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
-import { Weight, Percent, Bed, Zap, Smile, ShieldAlert, Calendar, Activity } from 'lucide-react'
+import { Weight, Percent, Bed, Smile, ShieldAlert, Calendar, Activity } from 'lucide-react'
+import { Zap } from '../../icons/lucide-safe'
 
 const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type }) => {
     const getRatingOptions = (type) => {

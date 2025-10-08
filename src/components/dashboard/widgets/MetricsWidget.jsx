@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Bed, Zap, Smile, ShieldAlert, Activity, Weight, Percent, TrendingUp, Calendar, BarChart3, Eye } from 'lucide-react';
+import { Plus, Edit, Bed, Smile, ShieldAlert, Activity, Weight, Percent, TrendingUp, Calendar, BarChart3, Eye } from 'lucide-react';
+import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
 import { formatMMDDYYYY } from '../../../utils/date';

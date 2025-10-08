@@ -14,7 +14,6 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
       open={open}
       onClose={onClose}
       title="Your 7-Day Trial Has Ended"
-      titleExtra={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
       theme={theme}
       maxWidth="max-w-lg"
       footer={(

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Award, Trophy, Star, Target, Shield, PackageCheck, ClipboardList, FlaskConical, Archive, Pill, BookOpen, DollarSign, TrendingUp, Landmark, Flame, Zap, Gem, Beaker, Atom, Users, Crown } from 'lucide-react'
+import { Award, Trophy, Star, Target, Shield, PackageCheck, ClipboardList, FlaskConical, Archive, Pill, BookOpen, DollarSign, TrendingUp, Landmark, Flame, Gem, Beaker, Atom, Users, Crown } from 'lucide-react'
+import { Zap } from '../../icons/lucide-safe'
 
 function hashString(input) {
   let h = 0

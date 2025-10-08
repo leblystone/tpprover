@@ -8,9 +8,11 @@ export default function OverlayTour({ open, steps, currentIndex, onIndexChange, 
 	const svgRef = useRef(null)
 	const tooltipRef = useRef(null)
 
-	const step = steps[currentIndex]
-	const canPrev = currentIndex > 0
-	const canNext = currentIndex < steps.length - 1
+	// Safety check for invalid index
+	const safeIndex = Math.min(currentIndex, steps.length - 1);
+	const step = steps[safeIndex]
+	const canPrev = safeIndex > 0
+	const canNext = safeIndex < steps.length - 1
 
 	useEffect(() => {
 		if (!open) return
@@ -35,11 +37,21 @@ export default function OverlayTour({ open, steps, currentIndex, onIndexChange, 
 
 	useEffect(() => {
 		if (!open || !step) return
-		const el = document.querySelector(step.target)
-		if (el && el.scrollIntoView) {
-			try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }) } catch {}
-		}
-	}, [open, currentIndex, step])
+		
+		// Add delay to ensure DOM is ready after navigation
+		const timer = setTimeout(() => {
+			try {
+				const el = document.querySelector(step.target)
+				if (el && el.scrollIntoView) {
+					el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+				}
+			} catch (error) {
+				console.warn('Tour scroll error:', error);
+			}
+		}, 100);
+		
+		return () => clearTimeout(timer);
+	}, [open, safeIndex, step])
 
 	const from = step ? positions[step.target] : null
 	const getTargetPos = (pos, position) => {

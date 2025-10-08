@@ -57,16 +57,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
     <>
       <header className="backdrop-blur border-b h-12 md:h-16 flex items-center justify-between px-3 md:px-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="flex items-center gap-2 md:gap-4">
-          <button 
-            onClick={onMenuClick} 
-            className="md:hidden no-shadow" 
-            style={{ color: theme.text }}
-            aria-label="Open navigation menu"
-            aria-expanded="false"
-          >
-            <Menu size={20} className="md:hidden" />
-          </button>
-          {/* Show page title - responsive for some pages */}
+          {/* Show page title on the left - responsive for some pages */}
           <h1 className="text-lg md:text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
             <span className="md:hidden">{mobileTitle}</span>
             <span className="hidden md:inline">{desktopTitle}</span>
@@ -127,6 +118,16 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         )}
         
         <div className="flex items-center gap-1 md:gap-2">
+          {/* Mobile Menu Button - moved to right side */}
+          <button 
+            onClick={onMenuClick} 
+            className="md:hidden no-shadow" 
+            style={{ color: theme.text }}
+            aria-label="Open navigation menu"
+            aria-expanded="false"
+          >
+            <Menu size={20} className="md:hidden" />
+          </button>
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
             <div className="mr-2">

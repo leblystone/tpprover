@@ -1,7 +1,8 @@
   import React from 'react'
   import { useOutletContext, useNavigate } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
-  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp, Zap, Gift } from 'lucide-react'
+  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp, Gift } from 'lucide-react'
+import { Zap } from '../icons/lucide-safe'
   import Modal from '../components/common/Modal'
   import { useAppContext } from '../context/AppContext'
   import { useBadgeStats } from '../utils/badges'
@@ -369,7 +370,7 @@
           return;
         }
 
-        // Handle paid subscription with Stripe (real Stripe subscriptions only)
+        // Handle paid subscription with Stripe (redirect to Stripe for all users)
         try {
           let priceId = '';
           if (plan.interval === 'month') {
@@ -380,7 +381,8 @@
             priceId = STRIPE_CONFIG.prices.lifetime;
           }
 
-          await createCheckoutSession(priceId, user?.email, user?.uid);
+          // Always redirect to Stripe checkout, even for demo users
+          await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user');
           
         } catch (error) {
           console.error('Subscription creation error:', error);
@@ -686,14 +688,12 @@
                       <div 
                         className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
                         style={{ borderColor: sub?.interval === 'month' ? '#A3B18A' : '#D4D7CD' }}
-                        onClick={() => {
-                          setConfirmAction('switchPlan');
-                          setConfirmData({
-                            plan: { name: 'Pro Monthly', price: 8.99, interval: 'month' },
-                            isSwitching: sub?.status !== 'trialing',
-                            currentPlan: sub?.status === 'trialing' ? 'Free Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
-                          });
-                          setConfirmModalOpen(true);
+                        onClick={async () => {
+                          try {
+                            await createCheckoutSession(STRIPE_CONFIG.prices.monthly, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                          } catch (error) {
+                            console.error('Stripe checkout error:', error);
+                          }
                         }}
                       >
                         {/* Current Plan Badge */}
@@ -725,14 +725,12 @@
                       <div 
                         className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
                         style={{ borderColor: sub?.interval === 'year' ? '#A3B18A' : '#D4D7CD' }}
-                        onClick={() => {
-                          setConfirmAction('switchPlan');
-                          setConfirmData({
-                            plan: { name: 'Pro Annual', price: 89.99, interval: 'year' },
-                            isSwitching: sub?.status !== 'trialing',
-                            currentPlan: sub?.status === 'trialing' ? 'Free Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
-                          });
-                          setConfirmModalOpen(true);
+                        onClick={async () => {
+                          try {
+                            await createCheckoutSession(STRIPE_CONFIG.prices.annual, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                          } catch (error) {
+                            console.error('Stripe checkout error:', error);
+                          }
                         }}
                       >
                         {/* Current Plan Badge */}
@@ -748,7 +746,7 @@
                         {sub?.interval !== 'year' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
-                              Most Chosen
+                              Popular
                             </div>
                           </div>
                         )}
@@ -780,14 +778,12 @@
                       <div 
                         className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[200px]"
                         style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
-                        onClick={() => {
-                          setConfirmAction('switchPlan');
-                          setConfirmData({
-                            plan: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' },
-                            isSwitching: sub?.status !== 'trialing',
-                            currentPlan: sub?.status === 'trialing' ? 'Free Trial' : (sub?.interval === 'month' ? 'Monthly' : sub?.interval === 'year' ? 'Annual' : 'Lifetime')
-                          });
-                          setConfirmModalOpen(true);
+                        onClick={async () => {
+                          try {
+                            await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                          } catch (error) {
+                            console.error('Stripe checkout error:', error);
+                          }
                         }}
                       >
                         {/* Current Plan Badge */}
@@ -803,7 +799,7 @@
                         {sub?.interval !== 'lifetime' && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
-                              Limited Access
+                              Limited Time Only
                             </div>
                           </div>
                         )}
@@ -878,14 +874,12 @@
                            <div 
                              className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
                              style={{ borderColor: '#D4D7CD' }}
-                             onClick={() => {
-                               setConfirmAction('switchPlan');
-                               setConfirmData({
-                                 plan: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' },
-                                 isSwitching: true,
-                                 currentPlan: 'Monthly'
-                               });
-                               setConfirmModalOpen(true);
+                             onClick={async () => {
+                               try {
+                                 await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                               } catch (error) {
+                                 console.error('Stripe checkout error:', error);
+                               }
                              }}
                            >
                              <div className="text-center mb-4 flex-1 flex flex-col justify-center">
@@ -910,14 +904,12 @@
                          <div 
                            className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-row items-center gap-6"
                            style={{ borderColor: '#D4D7CD' }}
-                           onClick={() => {
-                             setConfirmAction('switchPlan');
-                             setConfirmData({
-                               plan: { name: 'Pro Lifetime', price: 249.99, interval: 'lifetime' },
-                               isSwitching: true,
-                               currentPlan: 'Annual'
-                             });
-                             setConfirmModalOpen(true);
+                           onClick={async () => {
+                             try {
+                               await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                             } catch (error) {
+                               console.error('Stripe checkout error:', error);
+                             }
                            }}
                          >
                            <div className="flex-1">
@@ -1015,8 +1007,7 @@
         <Modal 
           open={twoFAOpen} 
           onClose={() => setTwoFAOpen(false)} 
-          title="Two-Factor Authentication" 
-          titleExtra={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          title="Two-Factor Authentication"
           theme={theme} 
           maxWidth="max-w-md" 
           footer={(
@@ -1078,8 +1069,7 @@
         <Modal 
           open={editingEmail} 
           onClose={() => setEditingEmail(false)} 
-          title="Edit Email" 
-          titleExtra={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          title="Edit Email"
           theme={theme} 
           footer={
             <>
@@ -1117,8 +1107,7 @@
         <Modal 
           open={confirmModalOpen} 
           onClose={handleCancelAction} 
-          title={confirmAction === 'switchPlan' ? 'Confirm Lab Access Change' : 'Confirm Cancellation'} 
-          titleExtra={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          title={confirmAction === 'switchPlan' ? 'Confirm Lab Access Change' : 'Confirm Cancellation'}
           theme={theme} 
           maxWidth="max-w-md" 
           footer={(

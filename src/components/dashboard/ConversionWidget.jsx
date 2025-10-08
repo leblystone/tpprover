@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, X, Check, Clock } from 'lucide-react';
+import { Zap } from '../../icons/lucide-safe';
 import { useNavigate } from 'react-router-dom';
 import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
@@ -46,13 +47,20 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
       
       if (!priceId) {
         console.warn('⚠️ ConversionWidget: No price ID found for plan:', planType);
-        console.log('🎯 ConversionWidget: Running in demo mode - simulating checkout');
+        console.log('🎯 ConversionWidget: Falling back to demo mode for plan:', planType);
         
-        // Simulate checkout in demo mode
-        setTimeout(() => {
-          alert(`Demo Mode: ${planType.toUpperCase()} plan selected!\n\nIn production, this would redirect to Stripe checkout.`);
+        // Show demo message but still attempt Stripe checkout with fallback
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: `🎭 Demo: ${planType.toUpperCase()} plan selected. Attempting Stripe checkout...`, type: 'info' } 
+        }));
+        
+        // Still try to create checkout session even without price ID
+        try {
+          await createCheckoutSession('demo_price', user?.email || 'demo@example.com', user?.uid || 'demo_user');
+        } catch (error) {
+          console.error('❌ ConversionWidget: Demo checkout failed:', error);
           setIsProcessing(false);
-        }, 1000);
+        }
         return;
       }
       

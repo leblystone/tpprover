@@ -358,7 +358,11 @@ export default function Login() {
         if (mode === 'login') {
             setLoading(true);
             try {
-                await doLogin();
+                const success = await doLogin();
+                if (!success) {
+                    // Reset loading state if login failed
+                    setLoading(false);
+                }
             } catch (error) {
                 setLoading(false);
             }
@@ -372,7 +376,11 @@ export default function Login() {
         setLoading(true);
         setShowAgreementModal(false);
         try {
-            await doSignup();
+            const success = await doSignup();
+            if (!success) {
+                // Reset loading state if signup failed
+                setLoading(false);
+            }
         } catch (error) {
             setLoading(false);
         }

@@ -6,6 +6,7 @@ import { AppProvider } from './context/AppContext'
 import { FirebaseProvider } from './context/FirebaseContext'
 import { toggleDebugMode, getDebugMode } from './utils/debugMode'
 import { initCacheBusting } from './utils/cacheBuster.js'
+import { isNative } from './utils/platform'
 import './index.css'
 
 // Initialize cache busting on app load
@@ -31,32 +32,60 @@ if (typeof window !== 'undefined') {
   console.log('💡 Use toggleDebugMode() to enable/disable debug logging');
 }
 
-// Service worker enabled with cache busting for beta fix
+// Service worker: disable in native (Capacitor) to avoid stale cache issues
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
+        if (isNative()) {
+          console.log('📱 Native environment detected: disabling service worker and clearing caches');
+          
+          // Only clear caches if we haven't done this before
+          const hasCleared = sessionStorage.getItem('tpp_sw_cleared');
+          if (!hasCleared) {
+            console.log('🧹 First load: Clearing service worker caches...');
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              console.log('🗑️ Unregistering service worker:', registration.scope);
+              await registration.unregister();
+            }
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => {
+              console.log('🧹 Clearing cache:', name);
+              return caches.delete(name);
+            }));
+            
+            // Mark as cleared for this session
+            sessionStorage.setItem('tpp_sw_cleared', 'true');
+            console.log('✅ Service worker disabled and caches cleared for native app.');
+          } else {
+            console.log('✅ Service worker already cleared this session, skipping.');
+          }
+          
+          return; // Do not register a service worker in native
+        }
+
         console.log('🔧 Registering service worker...');
-        
-        // Unregister old service workers first to ensure clean slate
+
+        // Unregister old service workers first to ensure clean slate (web only)
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (let registration of registrations) {
           console.log('🗑️ Unregistering old service worker...');
           await registration.unregister();
         }
-        
-        // Register new service worker
+
+        // Register new service worker (web only)
         const registration = await navigator.serviceWorker.register('/sw.js', {
           // Force update check on every page load
           updateViaCache: 'none'
         });
-        
+
         console.log('✅ Service worker registered successfully');
-        
+
         // Listen for updates
         registration.addEventListener('updatefound', () => {
           console.log('🔄 Service worker update found');
           const newWorker = registration.installing;
-          
+
           newWorker?.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('🚀 New service worker installed, refreshing...');
@@ -65,7 +94,7 @@ if ('serviceWorker' in navigator) {
             }
           });
         });
-        
+
         // Add cache management functions to global scope for debugging
         window.clearAppCache = async () => {
           try {

@@ -1,6 +1,7 @@
 // Lab Access Expired Lockout Page
 import React from 'react';
-import { Clock, CreditCard, Zap } from 'lucide-react';
+import { Clock, CreditCard } from 'lucide-react';
+import { Zap } from '../icons/lucide-safe';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
 import { createCheckoutSession } from '../services/stripe';

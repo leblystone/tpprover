@@ -1,6 +1,5 @@
 import React from 'react';
 import logo from '../../assets/tpp-logo.png';
-import { Rocket, X } from 'lucide-react';
 
 export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
     if (!open) return null;
@@ -13,29 +12,20 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                 </h1>
                 
                 <p className="text-gray-600 mb-6">
-                    The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 7 days and take a look around! Happy researching!
+                    The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 7 days and take a look around! Happy researching! 🧪
                 </p>
 
                 <div className="flex justify-center mb-6">
                     <img src={logo} alt="The Pep Planner Logo" className="h-20 w-20 rounded-full shadow-lg object-cover" />
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <button 
-                        onClick={onStartTour}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md text-base font-semibold text-white" 
-                        style={{ backgroundColor: theme.primary }}
-                    >
-                        <Rocket size={18} />
-                        Start Lab Tour
-                    </button>
+                <div className="flex justify-center">
                     <button 
                         onClick={onClose}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md text-base font-semibold bg-gray-100"
-                        style={{ color: theme.text, borderColor: theme.border }}
+                        className="px-6 py-3 rounded-md text-base font-semibold text-white" 
+                        style={{ backgroundColor: theme.primary }}
                     >
-                         <X size={18} />
-                        Explore Dashboard
+                        Get Started
                     </button>
                 </div>
             </div>

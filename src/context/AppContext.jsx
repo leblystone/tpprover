@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, useMemo } from '
 import { seedInitialData } from '../utils/seed';
 import { logoutUser, onAuthChange } from '../services/firebase';
 import { useFirebase } from './FirebaseContext';
+import { isNative } from '../utils/platform';
 
 const AppContext = createContext();
 
@@ -24,6 +25,16 @@ export function AppProvider({ children }) {
     const [subscription, setSubscription] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    
+    // Native app bypass - disable loading state immediately
+    useEffect(() => {
+        if (isNative()) {
+            console.log('🚀 AppContext: Native app detected, disabling loading state');
+            setIsLoading(false);
+        } else {
+            console.log('🌐 AppContext: Web app detected, keeping loading state');
+        }
+    }, []);
     const [isClearingDemoData, setIsClearingDemoData] = useState(false);
     
     // Firebase sync integration
@@ -33,9 +44,20 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const loadAppData = () => {
             try {
-                // The seedInitialData function has its own internal checks to prevent overwriting user data.
-                // We can call it safely on every app load.
-                seedInitialData();
+                // Only seed demo data for truly new users (not existing Firebase users)
+                // Check if user has existing data or is a returning Firebase user
+                const hasExistingUser = localStorage.getItem('tpprover_user');
+                const hasExistingData = localStorage.getItem('tpprover_protocols') || 
+                                       localStorage.getItem('tpprover_vendors') || 
+                                       localStorage.getItem('tpprover_orders');
+                
+                // Only seed demo data if user has no existing data and no user profile
+                if (!hasExistingUser && !hasExistingData) {
+                    console.log('🌱 New user detected, seeding demo data');
+                    seedInitialData();
+                } else {
+                    console.log('👤 Existing user detected, skipping demo data seeding');
+                }
 
                 const savedProtocols = localStorage.getItem('tpprover_protocols');
                 if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
@@ -353,9 +375,14 @@ export function AppProvider({ children }) {
         } catch (error) {
             console.error("Critical error in auth change handler:", error);
         } finally {
-            // CRITICAL FIX: Always set loading to false in finally block
-            setIsLoading(false);
-            setIsInitialLoad(false);
+            // Don't override loading state for native apps (already handled above)
+            if (!isNative()) {
+                console.log('🌐 Web app: Setting loading to false in auth handler');
+                setIsLoading(false);
+                setIsInitialLoad(false);
+            } else {
+                console.log('📱 Native app: NOT overriding loading state in auth handler');
+            }
         }
         });
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Calculator, Package, Users, FlaskConical, Zap } from 'lucide-react';
+import { Calculator, Package, Users, FlaskConical } from 'lucide-react';
+import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
 
 const QuickActionsWidget = ({ widget, theme }) => {

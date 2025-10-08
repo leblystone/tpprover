@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Users, Plus, ShoppingCart, Droplet, Edit, Trash2, Pill, Syringe, TestTube, Info, Target, PlusCircle, Award, Check, CheckCircle, Clock, TrendingUp, TrendingDown, Bed, Zap, Smile, ShieldAlert, Beaker, Calendar } from 'lucide-react'
+import { Users, Plus, ShoppingCart, Droplet, Edit, Trash2, Pill, Syringe, TestTube, Info, Target, PlusCircle, Award, Check, CheckCircle, Clock, TrendingUp, TrendingDown, Bed, Smile, ShieldAlert, Beaker, Calendar } from 'lucide-react'
+import { Zap } from '../icons/lucide-safe'
 import BadgeImage from '../components/badges/BadgeImage'
 import { themes, defaultThemeName } from '../theme/themes'
 import ViewContainer from '../components/ui/ViewContainer'
