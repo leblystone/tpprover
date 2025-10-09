@@ -19,50 +19,26 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
     <Modal
       open={isOpen}
       onClose={onClose}
-      title=""
+      title="Choose Your Plan"
       theme={theme}
       variant="modern"
-      maxWidth="max-w-md"
+      maxWidth="max-w-4xl"
       footer={
-        <div className="w-full flex justify-between gap-3">
+        <div className="flex justify-center w-full">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-md text-sm font-medium transition-all"
-            style={{ backgroundColor: theme?.border || '#E5E7EB', color: theme?.text || '#000' }}
+            className="px-6 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all"
           >
             Maybe Later
-          </button>
-          <button
-            onClick={handleUpgradeClick}
-            className="px-6 py-2 rounded-md text-sm font-semibold transition-all flex items-center gap-2"
-            style={{ 
-              background: 'linear-gradient(135deg, #3A5A40 0%, #5C7659 100%)',
-              color: '#FFFFFF'
-            }}
-          >
-            Choose a Plan
-            <ArrowRight size={16} />
           </button>
         </div>
       }
     >
-      <div className="text-center py-6">
-        {/* Icon */}
-        <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, rgba(58, 90, 64, 0.1) 0%, rgba(92, 118, 89, 0.1) 100%)' }}
-        >
-          <Lock size={32} style={{ color: '#3A5A40' }} />
+      <div className="p-2">
+        <div className="text-center text-gray-600 mb-3">
+          <p>Your trial has ended.</p>
+          <p>To {actionAttempted}, please choose a subscription plan.</p>
         </div>
-
-        {/* Title */}
-        <h3 className="text-2xl font-bold mb-3" style={{ color: '#344E41' }}>
-          Upgrade to Continue
-        </h3>
-
-        {/* Message */}
-        <p className="text-base mb-4" style={{ color: '#5C7659' }}>
-          Your trial has ended. To {actionAttempted}, please choose a subscription plan.
-        </p>
 
         {/* Info about data access */}
         <div className="text-left bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
@@ -76,31 +52,101 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
           </p>
         </div>
 
-        {/* Features List */}
-        <div className="text-left bg-gray-50 rounded-lg p-4 mb-4">
-          <p className="text-sm font-semibold mb-3" style={{ color: '#344E41' }}>
-            With a subscription, you can:
-          </p>
-          <ul className="space-y-2 text-sm" style={{ color: '#5C7659' }}>
-            <li className="flex items-start gap-2">
-              <Crown size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#3A5A40' }} />
-              <span>Add and edit unlimited protocols</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Crown size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#3A5A40' }} />
-              <span>Track supplements and orders</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Crown size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#3A5A40' }} />
-              <span>Access all research tools</span>
-            </li>
-          </ul>
-        </div>
 
-        {/* Pricing Preview */}
-        <p className="text-xs" style={{ color: '#6B7280' }}>
-          Plans start at just <strong>$8.99/month</strong>
-        </p>
+        {/* Plan Selection */}
+        <div className="mt-6 space-y-4">
+          {/* Monthly and Annual in 2-column layout */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Monthly Plan */}
+            <div 
+              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+              style={{ borderColor: '#D4D7CD' }}
+              onClick={handleUpgradeClick}
+            >
+              {/* Plan Title */}
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
+                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$8.99</div>
+                <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per month</div>
+              </div>
+
+              {/* Action Button */}
+              <button 
+                className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
+                style={{ backgroundColor: '#344E41' }}
+              >
+                Start Monthly
+              </button>
+            </div>
+
+            {/* Annual Plan */}
+            <div 
+              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+              style={{ borderColor: '#D4D7CD' }}
+              onClick={handleUpgradeClick}
+            >
+              {/* Popular Badge */}
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
+                  Popular
+                </div>
+              </div>
+
+              {/* Plan Title */}
+              <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Annual</h3>
+                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$89.99</div>
+                <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per year</div>
+                
+                {/* Subtitle Badge */}
+                <div className="text-center mt-1">
+                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                    Save $17.89
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <button 
+                className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
+                style={{ backgroundColor: '#3A5A40' }}
+              >
+                Start Annual
+              </button>
+            </div>
+          </div>
+          
+          {/* Lifetime plan in compact single column */}
+          <div 
+            className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+            style={{ borderColor: '#D4D7CD' }}
+            onClick={handleUpgradeClick}
+          >
+            {/* Limited Time Badge */}
+            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+              <div className="px-3 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
+                Limited Time Only
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
+                  <Crown size={16} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
+                  <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
+                </div>
+              </div>
+              <button 
+                className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                style={{ backgroundColor: '#344E41' }}
+              >
+                Join Forever
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </Modal>
   );

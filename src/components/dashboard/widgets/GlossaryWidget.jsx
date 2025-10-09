@@ -1374,7 +1374,7 @@ async function getCuratedPeptideResearch(peptideName) {
   return null;
 }
 
-export default function GlossaryWidget({ widget, theme }) {
+export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUpgrade }) {
   const [favoriteEntries, setFavoriteEntries] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('search'); // 'search', 'browse'
@@ -1881,7 +1881,7 @@ export default function GlossaryWidget({ widget, theme }) {
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="relative h-full flex flex-col">
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
@@ -1908,6 +1908,30 @@ export default function GlossaryWidget({ widget, theme }) {
       <div className="flex-1 p-4 overflow-y-auto">
         {renderSearchTab()}
       </div>
+      
+      {/* Lockout Overlay */}
+      {isReadOnly && (
+        <div className="absolute inset-0 backdrop-blur-sm bg-white/70 flex items-center justify-center z-50 rounded-lg">
+          <div className="text-center p-4">
+            <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+              <BookOpen size={24} style={{ color: theme.primary }} />
+            </div>
+            <p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
+              Trial has ended
+            </p>
+            <button
+              onClick={() => {
+                if (onUpgrade) onUpgrade();
+                else window.location.href = '/app/account';
+              }}
+              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Upgrade
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

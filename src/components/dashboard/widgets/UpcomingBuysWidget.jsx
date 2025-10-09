@@ -1,8 +1,8 @@
 import React from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Lock } from 'lucide-react';
 import UpcomingBuys from '../UpcomingBuys';
 
-const UpcomingBuysWidget = ({ widget, theme, buys, onAdd }) => {
+const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, onUpgrade }) => {
   const { maxItems = 3 } = widget.settings;
   
   // Limit items based on settings
@@ -11,7 +11,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd }) => {
   // If no buys, show compact version
   if (!limitedBuys || limitedBuys.length === 0) {
     return (
-      <div className="h-full flex flex-col">
+      <div className="relative h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
@@ -33,17 +33,65 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd }) => {
             Schedule Buy
           </button>
         </div>
+        
+        {/* Lockout Overlay */}
+        {isReadOnly && (
+          <div className="absolute inset-0 backdrop-blur-sm bg-white/70 flex items-center justify-center z-50 rounded-lg">
+            <div className="text-center p-4">
+              <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+                <Lock size={24} style={{ color: theme.primary }} />
+              </div>
+              <p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
+                Trial has ended
+              </p>
+              <button
+                onClick={() => {
+                  if (onUpgrade) onUpgrade();
+                  else window.location.href = '/app/account';
+                }}
+                className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="h-full">
+    <div className="relative h-full">
       <UpcomingBuys 
         buys={limitedBuys} 
         theme={theme} 
         onAdd={onAdd}
       />
+      
+      {/* Lockout Overlay */}
+      {isReadOnly && (
+        <div className="absolute inset-0 backdrop-blur-sm bg-white/70 flex items-center justify-center z-50 rounded-lg">
+          <div className="text-center p-4">
+            <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+              <Lock size={24} style={{ color: theme.primary }} />
+            </div>
+            <p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
+              Trial has ended
+            </p>
+            <button
+              onClick={() => {
+                if (onUpgrade) onUpgrade();
+                else window.location.href = '/app/account';
+              }}
+              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Upgrade
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

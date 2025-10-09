@@ -95,8 +95,8 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
                     <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
                 </div>
                 <div className="mt-3 flex items-center justify-end gap-2">
-                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
-                     <button onClick={handleSaveNew} className="px-3 py-1.5 text-xs rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save & Link</button>
+                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-lg border font-medium transition-all" style={{ borderColor: theme.border }}>Cancel</button>
+                     <button onClick={handleSaveNew} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save & Link</button>
                 </div>
             </div>
         );
@@ -107,9 +107,9 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
         <div className="p-3 rounded-md border flex items-center justify-between" style={{ borderColor: theme.border }}>
             <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
             <div className="flex items-center gap-2">
-                <button onClick={() => onSkip(peptide.id)} className="px-3 py-1.5 text-xs rounded-md border" style={{ borderColor: theme.border }}>Skip</button>
-                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-md border" style={{ borderColor: theme.border }}>Add New</button>
-                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-md" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Select Vial</button>
+                <button onClick={() => onSkip(peptide.id)} className="px-3 py-1.5 text-xs rounded-lg border font-medium transition-all" style={{ borderColor: theme.border }}>Skip</button>
+                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg border font-medium transition-all" style={{ borderColor: theme.border }}>Add New</button>
+                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select Vial</button>
             </div>
         </div>
     );
@@ -343,8 +343,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
                 {/* Protocol Summary Card */}
                 <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                    <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Protocol Summary</div>
-                    <div className="space-y-2 text-xs" style={{ color: theme.textLight }}>
+                    <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Protocol Summary</div>
+                    <div className="space-y-3 text-xs" style={{ color: theme.textLight }}>
                         <div className="flex justify-between">
                             <span>Protocol Name:</span>
                             <span className="font-semibold" style={{ color: theme.text }}>{protocol.protocolName}</span>
@@ -357,40 +357,90 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 </span>
                             </div>
                         )}
-                        <div className="flex justify-between">
-                            <span>Compounds:</span>
-                            <span className="font-semibold" style={{ color: theme.text }}>{protocol.peptides?.length || 0}</span>
+                        <div>
+                            <div className="mb-2 font-medium" style={{ color: theme.text }}>Compounds ({protocol.peptides?.length || 0}):</div>
+                            <div className="space-y-2 ml-2">
+                                {protocol.peptides?.map((peptide, index) => (
+                                    <div key={peptide.id} className="flex items-start gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
+                                        <div className="flex-1">
+                                            <div className="font-medium" style={{ color: theme.text }}>{peptide.name}</div>
+                                            <div className="flex gap-3 mt-1">
+                                                {peptide.dosage && (
+                                                    <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                                                        {peptide.dosage.amount} {peptide.dosage.unit}
+                                                    </span>
+                                                )}
+                                                {peptide.frequency && (
+                                                    <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                                                        {peptide.frequency.type === 'daily' ? 'Daily' : 
+                                                         peptide.frequency.type === 'weekly' ? `Weekly (${peptide.frequency.days?.join(', ') || ''})` :
+                                                         peptide.frequency.type === 'cycle' ? `Cycle: ${peptide.frequency.onDays} on / ${peptide.frequency.offDays} off` :
+                                                         'Custom'}
+                                                    </span>
+                                                )}
+                                                {peptide.timing && (
+                                                    <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                                                        {peptide.timing}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) || <div className="text-xs italic">No compounds configured</div>}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* What Happens Next */}
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.secondary }}>
-                    <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>What Happens Next</div>
-                    <div className="space-y-2 text-xs" style={{ color: theme.textLight }}>
-                        <div className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
-                            <span>Daily tasks will appear on your Dashboard</span>
+                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div className="text-sm font-medium mb-4" style={{ color: theme.text }}>What Happens Next</div>
+                    <div className="grid grid-cols-1 gap-3">
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium" style={{ color: theme.text }}>Dashboard Integration</div>
+                                <div className="text-xs" style={{ color: theme.textLight }}>Daily research will appear on your Dashboard</div>
+                            </div>
                         </div>
-                        <div className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
-                            <span>Schedule will be visible in your Calendar</span>
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium" style={{ color: theme.text }}>Calendar Schedule</div>
+                                <div className="text-xs" style={{ color: theme.textLight }}>Research schedule will be visible in your Calendar</div>
+                            </div>
                         </div>
-                        <div className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
-                            <span>Track progress by marking tasks complete</span>
+                        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium" style={{ color: theme.text }}>Progress Tracking</div>
+                                <div className="text-xs" style={{ color: theme.textLight }}>Track progress by marking research complete</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-2 pt-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded-md border text-sm font-medium" style={{ borderColor: theme.border, color: theme.text }}>
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg border font-medium transition-all" style={{ borderColor: theme.border, color: theme.text }}>
                         Cancel
                     </button>
                     <button 
                         onClick={() => onStart({ ...protocol, startDate, active: true, linkedItems: linkedData })}
-                        className="px-4 py-2 rounded-md text-sm font-semibold"
+                        className="px-4 py-2 rounded-lg font-medium transition-all"
                         style={{ backgroundColor: theme.primary, color: '#ffffff' }}
                     >
                         Start Protocol
@@ -417,6 +467,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             onClose={onClose}
             title="Start Protocol"
             theme={theme}
+            variant="modern"
             maxWidth="max-w-2xl"
         >
             {renderContent()}

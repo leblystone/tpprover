@@ -63,17 +63,17 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={headerStyle}>
           <div className="flex items-center gap-3">
             {onBack && (
-              <button onClick={onBack} className="p-1 rounded-full -ml-2 text-white hover:bg-white/20 transition-colors">
+              <button onClick={onBack} className="p-1 rounded-full -ml-2 hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
                 <ChevronLeft size={20} />
               </button>
             )}
-            <h3 className={`${titleClass} text-white`}>{title}</h3>
+            <h3 className={titleClass} style={{ color: headerStyle.color }}>{title}</h3>
           </div>
           <div className="flex items-center gap-3">
             {titleExtra && (
               <div className={titleExtraClass}>{titleExtra}</div>
             )}
-            <button onClick={onClose} className="p-1 rounded-full text-white hover:bg-white/20 transition-colors">
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
               <X size={20} />
             </button>
           </div>

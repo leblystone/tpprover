@@ -36,7 +36,7 @@ Go to [Stripe Dashboard → Products](https://dashboard.stripe.com/products)
 3. **Description**: `One-time payment for lifetime access to TPP Splendide`
 4. **Statement descriptor**: `TPP Lifetime`
 5. **Pricing model**: `Standard pricing`
-6. **Price**: `$149.00`
+6. **Price**: `$249.99`
 7. **Billing period**: `One time` ⚠️ **Important: Choose "One time", not recurring**
 8. **Currency**: `USD`
 9. Click **"Save product"**
@@ -64,7 +64,7 @@ In Stripe Dashboard, go to **Products** and confirm:
 ✅ **Monthly shows "Recurring monthly"**
 ✅ **Annual shows "Recurring yearly"**  
 ✅ **Lifetime shows "One time"**
-✅ **All prices match your app ($9.99, $79.99, $149.00)**
+✅ **All prices match your app ($9.99, $79.99, $249.99)**
 
 ### 4. **Test Mode vs Live Mode**
 

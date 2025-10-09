@@ -28,7 +28,7 @@ This guide will help you set up a fully functional Stripe subscription system fo
 
 **Lifetime Plan:**
 - Name: "Lifetime Access"
-- Price: $149.00 USD
+- Price: $249.99 USD
 - Billing: One-time payment
 - Copy the Price ID
 

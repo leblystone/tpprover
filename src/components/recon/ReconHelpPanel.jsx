@@ -31,7 +31,7 @@ const ReconHelpPanel = ({ theme }) => {
               }}
             >
               <HelpCircle size={16} className="flex-shrink-0" />
-              <span className="truncate">How reconstitution works?</span>
+              <span className="truncate">What can this section do?</span>
               <ChevronDown size={14} className="flex-shrink-0" />
             </button>
             <button
@@ -57,7 +57,7 @@ const ReconHelpPanel = ({ theme }) => {
               <Beaker size={20} className="md:w-6 md:h-6" style={{ color: theme.primary }} />
             </div>
             <h3 className="text-base md:text-lg font-bold" style={{ color: theme.text }}>
-              How Reconstitution Works
+              Recon Section Features
             </h3>
           </div>
           <div className="flex items-center gap-1 md:gap-2">
@@ -87,9 +87,9 @@ const ReconHelpPanel = ({ theme }) => {
                 <Calculator size={16} className="md:w-5 md:h-5" style={{ color: theme.primary }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>1. Calculate Dosage</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Dosage Calculator</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Use the calculator to determine water volume based on peptide mg and desired dose
+                  Calculate units per dose, doses per vial, and cost per dose for research purposes. Supports single peptides or multi-peptide blends.
                 </div>
               </div>
             </div>
@@ -99,9 +99,9 @@ const ReconHelpPanel = ({ theme }) => {
                 <Droplet size={16} className="md:w-5 md:h-5" style={{ color: theme.info }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>2. Add Bacteriostatic Water</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Save Calculations</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Draw calculated amount of bac water and add to peptide vial
+                  Store calculated vial data with all details including water volume, dosage, vendor, and cost information.
                 </div>
               </div>
             </div>
@@ -111,9 +111,9 @@ const ReconHelpPanel = ({ theme }) => {
                 <Syringe size={16} className="md:w-5 md:h-5" style={{ color: theme.warning }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>3. Choose Delivery Method</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Delivery Method Tracking</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Select syringe, pen, or nasal spray and track with color-coded labels
+                  Track delivery methods including syringes or pens, with pen type and color-coding for easy identification.
                 </div>
               </div>
             </div>
@@ -125,9 +125,9 @@ const ReconHelpPanel = ({ theme }) => {
                 <Package size={16} className="md:w-5 md:h-5" style={{ color: theme.accent }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>4. Track On Hand Vials</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Vial Inventory</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Monitor current vials with dosing info, vendor, and pen colors
+                  View all current reconstituted vials at a glance with dosing calculations and vendor information.
                 </div>
               </div>
             </div>
@@ -137,9 +137,9 @@ const ReconHelpPanel = ({ theme }) => {
                 <Clock size={16} className="md:w-5 md:h-5" style={{ color: theme.success }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>5. Mark as Used</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Usage History</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Move finished vials to history for tracking usage patterns
+                  Archive completed vials to track usage patterns, vendor performance, and past reconstitutions.
                 </div>
               </div>
             </div>
@@ -149,9 +149,9 @@ const ReconHelpPanel = ({ theme }) => {
                 <Beaker size={16} className="md:w-5 md:h-5" style={{ color: theme.primary }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>6. View History</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Quick Access from Stockpile</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Review past reconstitutions and analyze vendor performance
+                  Jump directly from the stockpile with pre-filled peptide information to streamline the workflow.
                 </div>
               </div>
             </div>

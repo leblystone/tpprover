@@ -56,12 +56,9 @@ const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type })
     const selectedOption = options.find(opt => opt.value === value);
 
     return (
-        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center gap-2 mb-3">
-                <Icon size={16} style={{ color: color || theme.primary }} />
-                <label className="text-sm font-semibold" style={{ color: theme.text }}>{label}</label>
-            </div>
-            <div className="grid grid-cols-5 gap-2 mb-3">
+        <div>
+            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>{label}</label>
+            <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
                 {options.map((option) => {
                     const isSelected = value === option.value;
                     return (
@@ -69,28 +66,17 @@ const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type })
                             key={option.value}
                             type="button"
                             onClick={() => onChange(option.value)}
-                            className={`flex flex-col items-center justify-center min-h-[70px] min-w-[60px] p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
-                                isSelected ? 'scale-105 shadow-lg' : ''
+                            className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md text-sm font-medium transition-all ${
+                                isSelected ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-200'
                             }`}
-                            style={{
-                                borderColor: isSelected ? (color || theme.primary) : theme.border,
-                                backgroundColor: isSelected ? (color || theme.primary) + '15' : theme.background,
-                                color: theme.text
-                            }}
+                            style={isSelected ? { backgroundColor: color || theme.primary } : {}}
                         >
-                            <div className="text-xl mb-1 leading-none">{option.emoji}</div>
-                            <div className="text-xs font-medium leading-tight text-center">{option.label}</div>
+                            <span className="text-sm">{option.emoji}</span>
+                            <span className="text-xs hidden sm:inline">{option.label}</span>
                         </button>
                     );
                 })}
             </div>
-            {selectedOption && (
-                <div className="text-center">
-                    <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: (color || theme.primary) + '20', color: color || theme.primary }}>
-                        {selectedOption.emoji} {selectedOption.label}
-                    </span>
-                </div>
-            )}
         </div>
     );
 };
@@ -129,86 +115,103 @@ export default function BodyMetricsModal({ open, onClose, onSave, theme, metric 
           isSaving={isSaving} 
           lastSaved={lastSaved} 
           onClearForm={clearSavedData} 
-          theme={theme} 
+          theme={theme}
+          iconOnly={true}
         />
       }
-      theme={theme} 
+      theme={theme}
+      variant="modern"
       maxWidth="max-w-4xl"
       footer={(
         <>
           <button 
             onClick={onClose} 
-            className="px-4 py-2 rounded-lg border font-medium transition-colors" 
+            className="px-4 py-2 rounded-lg border font-medium transition-all" 
             style={{ borderColor: theme?.border, color: theme?.text }}
           >
             Cancel
           </button>
           <button 
             onClick={onOk} 
-            className="px-4 py-2 rounded-lg font-medium transition-colors" 
-            style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
+            className="px-4 py-2 rounded-lg font-medium transition-all" 
+            style={{ backgroundColor: theme?.primary, color: '#ffffff' }}
           >
             Save Entry
           </button>
         </>
       )}
     >
-      <div className="space-y-6 p-2">
-        {/* Date Selection Card */}
-        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar size={16} style={{ color: theme.primary }} />
-            <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Entry Date</h4>
-          </div>
-          <TextInput 
-            type="date" 
-            label="" 
-            value={form.date || ''} 
-            onChange={v => setForm({ ...form, date: v })} 
-            theme={theme} 
+      <div className="space-y-4">
+        {/* ENTRY DATE Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ENTRY DATE</h4>
+        </div>
+
+        {/* Date Selection */}
+        <div>
+          <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Date</label>
+          <input
+            type="date"
+            value={form.date || ''}
+            onChange={e => setForm({ ...form, date: e.target.value })}
+            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+            style={{
+              borderColor: theme.border,
+              backgroundColor: theme.cardBackground,
+              color: theme.text,
+              focusRingColor: theme.primary
+            }}
           />
         </div>
 
-        {/* Physical Measurements Card */}
-        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Weight size={16} style={{ color: theme.primary }} />
-            <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Physical Measurements</h4>
+        {/* PHYSICAL MEASUREMENTS Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>PHYSICAL MEASUREMENTS</h4>
+        </div>
+
+        {/* Physical Measurements */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Weight (lbs)</label>
+            <input
+              type="text"
+              value={form.weight || ''}
+              onChange={e => setForm({ ...form, weight: e.target.value })}
+              placeholder="e.g. 175"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+                color: theme.text,
+                focusRingColor: theme.primary
+              }}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Weight size={14} style={{ color: theme.primary }} />
-                <label className="text-sm font-medium" style={{ color: theme.text }}>Weight (lbs)</label>
-              </div>
-              <TextInput 
-                value={form.weight || ''} 
-                onChange={v => setForm({ ...form, weight: v })} 
-                theme={theme} 
-                placeholder="e.g. 175" 
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Percent size={14} style={{ color: theme.success }} />
-                <label className="text-sm font-medium" style={{ color: theme.text }}>Body Fat %</label>
-              </div>
-              <TextInput 
-                value={form.bodyfat || ''} 
-                onChange={v => setForm({ ...form, bodyfat: v })} 
-                theme={theme} 
-                placeholder="e.g. 15" 
-              />
-            </div>
+          <div>
+            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Body Fat %</label>
+            <input
+              type="text"
+              value={form.bodyfat || ''}
+              onChange={e => setForm({ ...form, bodyfat: e.target.value })}
+              placeholder="e.g. 15"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+                color: theme.text,
+                focusRingColor: theme.primary
+              }}
+            />
           </div>
+        </div>
+
+        {/* WELLNESS METRICS Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>WELLNESS METRICS</h4>
         </div>
 
         {/* Wellness Metrics */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Smile size={16} style={{ color: theme.success }} />
-            <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Wellness Metrics</h4>
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <RatingInput 
               label="Sleep Quality" 

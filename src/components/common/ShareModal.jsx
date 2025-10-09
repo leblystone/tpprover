@@ -87,6 +87,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             onClose={onClose}
             title={`Share ${title}`}
             theme={theme}
+            variant="modern"
             footer={
                 <div className="flex w-full gap-2">
                     <button onClick={handleShareImage} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" style={{ backgroundColor: theme.primary, color: theme.white }}>

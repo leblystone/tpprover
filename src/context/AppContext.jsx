@@ -409,7 +409,28 @@ export function AppProvider({ children }) {
         // Listen for demo data cleared event
         const handleDemoDataCleared = () => {
             console.log('🧹 Demo data cleared event received, refreshing app state...');
-            refreshDataAfterClear();
+
+            // Instead of full reload, just clear demo data and refresh state
+            try {
+                // Import and call clearMockData directly
+                import('../utils/seed').then(({ clearMockData }) => {
+                    clearMockData();
+                    console.log('✅ Demo data cleared successfully');
+
+                    // Refresh the hasMockData calculation without full reload
+                    // Force a re-render by updating a state variable
+                    setIsClearingDemoData(true);
+
+                    // Re-enable sync after brief delay
+                    setTimeout(() => {
+                        setIsClearingDemoData(false);
+                        console.log('✅ Demo data clearing complete');
+                    }, 500);
+                });
+            } catch (error) {
+                console.error('❌ Error during demo data clearing:', error);
+                setIsClearingDemoData(false);
+            }
         };
         window.addEventListener('demo-data-cleared', handleDemoDataCleared);
 

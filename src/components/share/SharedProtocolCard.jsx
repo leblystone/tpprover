@@ -3,17 +3,26 @@ import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Lay
 import { formatMMDDYYYY } from '../../utils/date';
 import logo from '../../assets/tpp-logo.png';
 
+// Sage theme colors - fixed for shared content
+const sageTheme = {
+    primary: '#4A7C70',        // Sage green
+    primaryDark: '#3A6B5F',    // Darker sage green
+    border: '#D1D5DB',         // Light gray border
+    text: '#374151',           // Dark gray text
+    textLight: '#6B7280'       // Medium gray text
+};
+
 export default function SharedProtocolCard({ item: p, theme }) {
     if (!p) return null;
 
-    const Icon = ({ I }) => <I size={16} className="mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />;
+    const Icon = ({ I }) => <I size={16} className="mt-0.5 flex-shrink-0" style={{ color: sageTheme.primary }} />;
 
     return (
-        <div className="p-6 rounded-xl border bg-white w-full max-w-md" style={{ borderColor: theme.border, fontFamily: 'sans-serif' }}>
+        <div className="p-6 rounded-xl border bg-white w-full max-w-md" style={{ borderColor: sageTheme.border, fontFamily: 'sans-serif' }}>
             <header className="flex items-center gap-3 mb-4">
                 <img src={logo} alt="The Pep Planner Logo" className="h-12 w-12 rounded-full shadow-md object-cover" />
                 <div>
-                    <h1 className="font-bold text-lg" style={{ color: theme.primaryDark }}>{p.protocolName || 'Research Protocol'}</h1>
+                    <h1 className="font-bold text-lg" style={{ color: sageTheme.primaryDark }}>{p.protocolName || 'Research Protocol'}</h1>
                     <p className="text-xs text-gray-500">Research Protocol</p>
                 </div>
             </header>
@@ -26,9 +35,9 @@ export default function SharedProtocolCard({ item: p, theme }) {
                 )}
             </div>
 
-            <hr className="my-4" style={{ borderColor: theme.border }} />
+            <hr className="my-4" style={{ borderColor: sageTheme.border }} />
             
-            <h2 className="font-semibold text-sm mb-2" style={{ color: theme.text }}>Included Peptides</h2>
+            <h2 className="font-semibold text-sm mb-2" style={{ color: sageTheme.text }}>Included Peptides</h2>
             <div className="space-y-2">
                 {p.peptides?.map((peptide, index) => (
                     <div key={peptide.id || index} className="text-sm p-2 rounded-md bg-gray-50 flex justify-between items-center">

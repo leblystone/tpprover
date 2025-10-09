@@ -106,7 +106,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Water Intake
+            Hydration Tracking
           </h3>
           <div className="flex items-center gap-2">
             <ModernTooltip text="Settings" position="top">
@@ -213,7 +213,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
       <Modal 
         open={showSettingsModal} 
         onClose={() => setShowSettingsModal(false)}
-        title="Water Intake Settings"
+        title="Hydration Tracking Settings"
         theme={theme}
         maxWidth="max-w-md"
         variant="modern"
@@ -250,7 +250,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
           {/* Custom Goal Setting */}
           <div>
             <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>
-              Daily Goal
+              Research Target
             </h4>
             <div className="flex items-center gap-3">
               <input
@@ -259,6 +259,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
                 step={currentUnit.increment}
                 value={todayData.goal}
                 onChange={(e) => updateCustomGoal(parseFloat(e.target.value) || 1)}
+                placeholder="Enter goal..."
                 className="flex-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
                 style={{
                   borderColor: theme.border,
@@ -272,13 +273,13 @@ const WaterTrackerWidget = ({ widget, theme }) => {
               </span>
             </div>
             <p className="text-xs mt-2" style={{ color: theme.textLight }}>
-              Set your daily water intake goal. Current: {todayData.goal} {currentUnit.abbrev}
+              Set hydration tracking target for research purposes. Current: {todayData.goal} {currentUnit.abbrev}
             </p>
           </div>
           
           <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
             <p className="text-xs" style={{ color: theme.textLight }}>
-              Note: Changing units will reset your daily intake to start fresh.
+              Note: Changing units will reset the tracking data to start fresh.
             </p>
           </div>
         </div>

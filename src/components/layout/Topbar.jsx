@@ -60,12 +60,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {/* Mobile Menu Button - back on left side for consistency */}
           <button 
             onClick={onMenuClick} 
-            className="md:hidden no-shadow" 
+            className="md:hidden no-shadow p-2" 
             style={{ color: theme.text }}
             aria-label="Open navigation menu"
             aria-expanded="false"
           >
-            <Menu size={20} className="md:hidden" />
+            <Menu size={28} className="md:hidden" />
           </button>
           {/* Show page title - responsive for some pages */}
           <h1 className="text-lg md:text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>

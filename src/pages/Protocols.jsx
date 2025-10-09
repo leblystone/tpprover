@@ -281,8 +281,8 @@ export default function Protocols() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Protocols Yet</h3>
                 <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Create your first protocol to track supplement schedules, dosing cycles, and timing. 
-                  Protocols help you maintain consistency and track adherence to your research plans.
+                  Create a protocol to track supplement schedules, dosing cycles, and timing for research purposes. 
+                  Protocols help maintain consistency and track adherence to research plans.
                 </p>
                 {!isReadOnly && (
                   <button
@@ -320,8 +320,8 @@ export default function Protocols() {
             </div>
             <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Protocol History</h3>
             <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-              Track your protocol completion history, adherence patterns, and past cycles. 
-              This feature will help you analyze your consistency and optimize your research approach over time.
+              Track protocol completion history, adherence patterns, and past cycles for research purposes. 
+              This feature helps analyze consistency and optimize research approaches over time.
             </p>
           </div>
         )}
@@ -414,38 +414,77 @@ export default function Protocols() {
         onClose={() => setManageConfirm(null)}
         title={`Manage "${manageConfirm?.protocolName || 'Protocol'}"`}
         theme={theme}
+        variant="modern"
+        maxWidth="max-w-md"
     >
         <div className="space-y-4">
-            <div>
-                <label className="block text-sm font-medium" style={{ color: theme.text }}>
-                    Start Date
-                    <input 
-                        type="date" 
-                        className="mt-1 p-2 rounded border w-full bg-gray-50" 
-                        value={manageConfirm?.startDate || ''} 
-                        onChange={e => setManageConfirm(p => ({...p, startDate: e.target.value}))}
-                        style={{ borderColor: theme.border }} 
-                    />
-                </label>
-                <p className="text-xs text-gray-500 mt-1">Changing this will reschedule all calendar events for this protocol.</p>
+            {/* PROTOCOL SETTINGS Section Header */}
+            <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>PROTOCOL SETTINGS</h4>
             </div>
-            <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
-                 <button
-                    className="w-full text-left px-3 py-2 rounded-md text-sm text-red-700 bg-red-50 hover:bg-red-100"
-                    onClick={() => {
-                        endProtocol(manageConfirm);
-                        setManageConfirm(null);
-                    }}
-                >
-                    End Protocol Early
-                </button>
-                <p className="text-xs text-gray-500 mt-1">This will end the protocol as of today and start any washout period.</p>
+
+            <div>
+                <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>
+                    Start Date
+                </label>
+                <input 
+                    type="date" 
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all" 
+                    value={manageConfirm?.startDate || ''} 
+                    onChange={e => setManageConfirm(p => ({...p, startDate: e.target.value}))}
+                    style={{ 
+                        borderColor: theme.border, 
+                        backgroundColor: theme.cardBackground,
+                        color: theme.text,
+                        focusRingColor: theme.primary
+                    }} 
+                />
+                <p className="text-xs mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all calendar events for this protocol.</p>
+            </div>
+
+            {/* Page Break */}
+            <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+            <div className="p-4 rounded-lg border" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
+                <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#ef4444' }}>
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                    </div>
+                    <div className="flex-1">
+                        <div className="text-sm font-medium mb-1" style={{ color: '#dc2626' }}>End Protocol Early</div>
+                        <div className="text-xs mb-3" style={{ color: '#991b1b' }}>This will end the protocol as of today and start any washout period.</div>
+                        <button
+                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+                            style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                            onClick={() => {
+                                endProtocol(manageConfirm);
+                                setManageConfirm(null);
+                            }}
+                        >
+                            End Protocol Now
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-         <div className="mt-6 flex justify-end gap-2">
-            <button className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }} onClick={() => setManageConfirm(null)}>Cancel</button>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 pt-4 mt-6 border-t" style={{ borderColor: theme.border }}>
             <button
-                className="px-3 py-2 rounded-md"
+                onClick={() => setManageConfirm(null)}
+                className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
+                style={{ 
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    border: `1px solid ${theme.border}`
+                }}
+            >
+                Cancel
+            </button>
+            <button
+                className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                 onClick={() => {
                     updateProtocol(manageConfirm);
@@ -521,6 +560,10 @@ export default function Protocols() {
             const toSave = explicitEnd ? { ...withTimes, endDate: explicitEnd } : withTimes;
 
             updateProtocol(toSave);
+
+            // Trigger dashboard and calendar refresh
+            window.dispatchEvent(new CustomEvent('tpp:calendar-sync', { detail: { protocolUpdated: true } }));
+            window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', { detail: { protocolStarted: true } }));
 
             // Close the modal after the update has been queued.
             setStartConfirm(null);

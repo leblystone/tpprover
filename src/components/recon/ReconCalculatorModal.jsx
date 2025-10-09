@@ -2,9 +2,11 @@ import React from 'react'
 import Modal from '../common/Modal'
 import { ReconCalculatorPanel } from './ReconCalculatorPanel'
 import { useAppContext } from '../../context/AppContext'
+import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess'
 
 export default function ReconCalculatorModal({ open, onClose, theme, prefill }) {
   const { setReconItems } = useAppContext();
+  const { isReadOnly } = useSubscriptionAccess();
 
   const handleSave = (data) => {
     const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
@@ -49,6 +51,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       <ReconCalculatorPanel 
         theme={theme} 
         prefill={prefill}
+        isReadOnly={isReadOnly}
         onSave={handleSave}
         noCard={true}
         compact={true}

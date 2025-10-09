@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
 import { clearMockData } from '../../utils/seed';
+import ConfirmationModal from './ConfirmationModal';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
     const [isRemoving, setIsRemoving] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const handleDismiss = () => {
         // Only allow dismissing when not sticky
@@ -13,18 +15,27 @@ export default function DemoDataBanner({ theme, sticky = false }) {
 
     const handleRemoveDemoData = async () => {
         if (isRemoving) return;
-        
+
         const confirmed = window.confirm(
             'Are you sure you want to remove all demo data? This will clear all sample protocols, orders, vendors, and other demo content. This action cannot be undone.'
         );
-        
+
         if (!confirmed) return;
-        
+
         setIsRemoving(true);
         try {
+            // Clear demo data directly and trigger state refresh
             clearMockData();
-            // Dispatch event to notify AppContext instead of reloading
+
+            // Dispatch custom event for demo data clearing
             window.dispatchEvent(new CustomEvent('demo-data-cleared'));
+
+            // Show success state briefly before hiding banner
+            setTimeout(() => {
+                setIsRemoving(false);
+                // The banner should disappear as the state updates
+            }, 1000);
+
         } catch (error) {
             console.error('Error removing demo data:', error);
             alert('Failed to remove demo data. Please try again or use the Settings page.');
@@ -48,8 +59,24 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         bannerStyle.borderTop = '1px solid #A67B5B';
     }
 
+    if (isRemoving) {
+        return (
+            <div
+                className="px-3 py-2 text-xs flex items-center justify-center gap-3 relative shadow-sm"
+                style={bannerStyle}
+            >
+                <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2" style={{ borderColor: '#8B5A3C' }}></div>
+                    <p className="font-medium">
+                        Removing demo data...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div 
+        <div
             className="px-3 py-2 text-xs flex items-center justify-between gap-3 relative shadow-sm"
             style={bannerStyle}
         >
@@ -59,9 +86,9 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                     Viewing <strong>demo data</strong> • Remove when ready to add your own data.
                 </p>
             </div>
-            
+
             <div className="flex items-center gap-1">
-                <button 
+                <button
                     onClick={handleRemoveDemoData}
                     disabled={isRemoving}
                     className="px-2 py-1 text-xs rounded font-medium transition-all duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -85,10 +112,10 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                     <Trash2 size={12} />
                     {isRemoving ? 'Removing...' : 'Remove'}
                 </button>
-                
+
                 {!sticky && (
-                    <button 
-                        onClick={handleDismiss} 
+                    <button
+                        onClick={handleDismiss}
                         className="p-1 hover:bg-white hover:bg-opacity-20 rounded transition-all duration-200"
                         title="Dismiss banner"
                     >

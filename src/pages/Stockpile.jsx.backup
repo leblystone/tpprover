@@ -368,8 +368,8 @@ export default function Stockpile() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Inventory On Hand</h3>
                 <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Add peptides to your stockpile to track quantities, vendors, batches, and documentation. 
-                  Delivered orders automatically sync here, or add items manually to maintain your inventory.
+                  Add peptides to the stockpile to track quantities, vendors, batches, and documentation for research purposes. 
+                  Delivered orders automatically sync here, or add items manually to maintain inventory records.
                 </p>
                 {!isReadOnly && (
                   <button
@@ -423,7 +423,7 @@ export default function Stockpile() {
                                                                 try {
                                                                     const payload = { peptide: g.name, mg: String(item.mg), vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, cost: item.cost };
                                                                     localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
-                                                                    window.history.pushState({}, '', '/recon');
+                                                                    window.history.pushState({}, '', '/app/recon');
                                                                     window.dispatchEvent(new PopStateEvent('popstate'));
                                                                 } catch { }
                                                             }}>
@@ -530,18 +530,18 @@ export default function Stockpile() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Incoming Orders</h3>
                 <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Orders that are placed but not yet delivered will appear here. Once delivered, they'll automatically move to your on-hand inventory.
+                  Orders that are placed but not yet delivered will appear here. Once delivered, they'll automatically move to the on-hand inventory.
                 </p>
                 <button
                   onClick={() => {
-                    window.history.pushState({}, '', '/app/orders?new=true');
+                    window.history.pushState({}, '', '/app/orders');
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
                   className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                 >
                   <PlusCircle size={18} />
-                  Place Your First Order
+                  Add an Order
                 </button>
               </div>
             ) : (
@@ -610,18 +610,9 @@ export default function Stockpile() {
         open={openAdd} 
         onClose={() => { setOpenAdd(false); clearSavedData(); }} 
         title="Add Peptide" 
-        titleExtra={
-          <AutoSaveIndicator 
-            isSaving={isSaving}
-            lastSaved={lastSaved}
-            theme={theme}
-            compact={true}
-            iconOnly={true}
-          />
-        }
         theme={theme}
         variant="modern"
-        maxWidth="max-w-2xl" 
+        maxWidth="max-w-2xl"
         footer={(
         <>
           <button onClick={() => { setOpenAdd(false); clearSavedData(); }} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
@@ -653,9 +644,14 @@ export default function Stockpile() {
         </>
       )}>
         <div className="space-y-6">
-          {/* VIAL DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VIAL DETAILS</h4>
+          {/* Auto-save indicator */}
+          <div className="flex justify-end">
+            <AutoSaveIndicator 
+              isSaving={isSaving}
+              lastSaved={lastSaved}
+              theme={theme}
+              compact={true}
+            />
           </div>
 
           {/* Main form */}
@@ -676,43 +672,33 @@ export default function Stockpile() {
                 }}
               />
             </div>
-          {/* Amount & Quantity in two columns */}
-          <div className="grid grid-cols-2 gap-3">
+
             <div>
-              <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Amount</label>
-              <div 
-                className="flex items-stretch border rounded-lg overflow-hidden"
-                style={{ borderColor: theme.border }}
-              >
-                <input 
+              <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Dosage</label>
+              <div className="flex items-center gap-2">
+                <input
                   type="text"
-                  value={form.mg || ''} 
-                  onChange={e => updateFormData({ ...form, mg: e.target.value })} 
-                  placeholder="10 or 0.5"
-                  className="flex-1 px-3 py-2 outline-none min-w-0"
+                  value={form.mg || ''}
+                  onChange={e => updateFormData({ ...form, mg: e.target.value })}
+                  placeholder="250, 0.5, or 2"
+                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
                   style={{
-                    backgroundColor: theme.inputBackground || '#fff',
-                    color: theme.text
+                    borderColor: theme.border,
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    focusRingColor: theme.primary
                   }}
                 />
-                <div 
-                  className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
-                  style={{ 
-                    borderColor: theme.border,
-                    backgroundColor: theme.cardBackground || '#f9fafb'
-                  }}
-                >
-                  {['mg', 'mL'].map(unit => (
-                    <button 
-                      key={unit} 
-                      type="button" 
+                <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: theme.border }}>
+                  {['mcg', 'mg', 'mL', 'units'].map(unit => (
+                    <button
+                      key={unit}
+                      type="button"
                       onClick={() => updateFormData({ ...form, mgUnit: unit })}
-                      className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                        (form.mgUnit || 'mg') === unit 
-                          ? 'text-white shadow-sm' 
-                          : 'text-gray-600 hover:bg-gray-200'
+                      className={`px-3 py-2 text-xs font-medium transition-all ${
+                        (form.mgUnit || 'mcg') === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-50'
                       }`}
-                      style={(form.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
+                      style={(form.mgUnit || 'mcg') === unit ? { backgroundColor: theme.primary } : {}}
                     >
                       {unit}
                     </button>
@@ -720,85 +706,151 @@ export default function Stockpile() {
                 </div>
               </div>
             </div>
+
             <div>
               <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Quantity</label>
-              <div 
-                className="flex items-stretch border rounded-lg overflow-hidden"
-                style={{ borderColor: theme.border }}
-              >
-                <input 
-                  type="text"
-                  value={form.quantity || ''} 
-                  onChange={e => updateFormData({ ...form, quantity: e.target.value })} 
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={form.quantity || ''}
+                  onChange={e => updateFormData({ ...form, quantity: e.target.value })}
                   placeholder="1"
-                  className="flex-1 px-3 py-2 outline-none min-w-0"
+                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
                   style={{
-                    backgroundColor: theme.inputBackground || '#fff',
-                    color: theme.text
+                    borderColor: theme.border,
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    focusRingColor: theme.primary
                   }}
                 />
-                <div 
-                  className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
-                  style={{ 
-                    borderColor: theme.border,
-                    backgroundColor: theme.cardBackground || '#f9fafb'
-                  }}
-                >
-                  {['vial','bottle','kit'].map(k => (
-                    <button 
-                      key={k} 
-                      type="button" 
-                      onClick={() => updateFormData({ ...form, unit: k })}
-                      className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                        ((form.unit || 'vial') === k) 
-                          ? 'text-white shadow-sm' 
-                          : 'text-gray-600 hover:bg-gray-200'
+                <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: theme.border }}>
+                  {['vial', 'bottle', 'kit'].map(unit => (
+                    <button
+                      key={unit}
+                      type="button"
+                      onClick={() => updateFormData({ ...form, unit })}
+                      className={`px-3 py-2 text-xs font-medium transition-all capitalize ${
+                        (form.unit || 'vial') === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-50'
                       }`}
-                      style={((form.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}
+                      style={(form.unit || 'vial') === unit ? { backgroundColor: theme.primary } : {}}
                     >
-                      {k.charAt(0).toUpperCase() + k.slice(1)}
+                      {unit}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
-          
-          <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => updateFormData({ ...form, capColor: v })} placeholder="Blue" theme={theme} />
-          
-          {/* ORDER DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ORDER DETAILS</h4>
-          </div>
-          
-          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
-          
-          {/* Purity & Batch Number in two columns */}
-          <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ ...form, purity: v })} placeholder="e.g., 98" theme={theme} />
-            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ ...form, batchNumber: v })} placeholder="#" theme={theme} />
-          </div>
-          
-          {/* Date Acquired & Use By Date in two columns */}
-          <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => updateFormData({ ...form, date: v })} theme={theme} />
-            <TextInput label="Use By (Optional)" type="date" value={form.useByDate} onChange={v => updateFormData({ ...form, useByDate: v })} theme={theme} />
-          </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Vendor</label>
+              <VendorSuggestInput 
+                value={form.vendor} 
+                onChange={v => updateFormData({ ...form, vendor: v })} 
+                placeholder="Vendor name" 
+                theme={theme} 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Purity %</label>
+                <input
+                  type="text"
+                  value={form.purity || ''}
+                  onChange={e => updateFormData({ ...form, purity: e.target.value })}
+                  placeholder="e.g., 98"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    focusRingColor: theme.primary
+                  }}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Cap Color</label>
+                <input
+                  type="text"
+                  value={form.capColor || ''}
+                  onChange={e => updateFormData({ ...form, capColor: e.target.value })}
+                  placeholder="Blue"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    focusRingColor: theme.primary
+                  }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Batch Number</label>
+              <input
+                type="text"
+                value={form.batchNumber || ''}
+                onChange={e => updateFormData({ ...form, batchNumber: e.target.value })}
+                placeholder="#"
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.cardBackground,
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+              />
+            </div>
           </div>
         </div>
-        
-        {/* Documentation Upload */}
-        <div className="mt-4">
-          <DocumentationUpload
-            documentation={form.documentation}
-            onChange={(documentation) => updateFormData({ ...form, documentation })}
-            theme={theme}
-            title="Post-Delivery Documentation"
-            description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
-            placeholder="Add photos of received vials, condition notes, quality check results, or other post-delivery documentation..."
-            allowImages={true}
-            allowLinks={true}
-          />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Date Acquired (Optional)</label>
+                <input
+                  type="date"
+                  value={form.date || ''}
+                  onChange={e => updateFormData({ ...form, date: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    focusRingColor: theme.primary
+                  }}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Use By (Optional)</label>
+                <input
+                  type="date"
+                  value={form.useByDate || ''}
+                  onChange={e => updateFormData({ ...form, useByDate: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    focusRingColor: theme.primary
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Documentation Upload */}
+            <div className="mt-4">
+              <DocumentationUpload
+                documentation={form.documentation}
+                onChange={(documentation) => updateFormData({ ...form, documentation })}
+                theme={theme}
+                title="Post-Delivery Documentation"
+                description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
+                placeholder="Add photos of received vials, condition notes, quality check results, or other post-delivery documentation..."
+                allowImages={true}
+                allowLinks={true}
+              />
+            </div>
+          </div>
         </div>
       </Modal>
 

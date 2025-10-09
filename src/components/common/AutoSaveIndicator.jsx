@@ -20,9 +20,9 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
     return (
       <div className="flex items-center gap-2">
         {isSaving ? (
-          <Clock size={16} className="animate-spin" style={{ color: theme.primary }} />
+          <Clock size={16} className="animate-spin" style={{ color: '#ffffff' }} />
         ) : (
-          <Save size={16} style={{ color: theme.success }} />
+          <Save size={16} style={{ color: '#ffffff' }} />
         )}
       </div>
     );

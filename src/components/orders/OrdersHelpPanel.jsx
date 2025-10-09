@@ -31,7 +31,7 @@ const OrdersHelpPanel = ({ theme }) => {
               }}
             >
               <HelpCircle size={16} className="flex-shrink-0" />
-              <span className="truncate">How order tracking works?</span>
+              <span className="truncate">What can this section do?</span>
               <ChevronDown size={14} className="flex-shrink-0" />
             </button>
             <button
@@ -57,7 +57,7 @@ const OrdersHelpPanel = ({ theme }) => {
               <Package size={20} className="md:w-6 md:h-6" style={{ color: theme.primary }} />
             </div>
             <h3 className="text-base md:text-lg font-bold" style={{ color: theme.text }}>
-              How Order Tracking Works
+              Order Section Features
             </h3>
           </div>
           <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ const OrdersHelpPanel = ({ theme }) => {
                 <ShoppingCart size={16} className="md:w-5 md:h-5" style={{ color: theme.primary }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>1. Place Order</div>
+                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>Order Creation</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
                   Add peptides, set quantities, choose vendor, and track order status
                 </div>
@@ -99,7 +99,7 @@ const OrdersHelpPanel = ({ theme }) => {
                 <FileText size={16} className="md:w-5 md:h-5" style={{ color: theme.info }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>2. Upload Documentation</div>
+                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>Document Management</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
                   Add COAs, vendor photos, and tracking info before delivery
                 </div>
@@ -113,7 +113,7 @@ const OrdersHelpPanel = ({ theme }) => {
                 <Truck size={16} className="md:w-5 md:h-5" style={{ color: theme.warning }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>3. Track Delivery</div>
+                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>Delivery Tracking</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
                   Monitor shipping status and receive notifications when delivered
                 </div>
@@ -125,9 +125,9 @@ const OrdersHelpPanel = ({ theme }) => {
                 <Archive size={16} className="md:w-5 md:h-5" style={{ color: theme.success }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>4. Auto-Transfer to Stockpile</div>
+                <div className="text-sm md:text-base font-semibold mb-0.5 md:mb-1" style={{ color: theme.text }}>Auto-Transfer to Stockpile</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Delivered items automatically move to your stockpile with all documentation
+                  Delivered items automatically move to the stockpile with all documentation
                 </div>
               </div>
             </div>

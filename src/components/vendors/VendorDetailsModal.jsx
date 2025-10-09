@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Lock } from 'lucide-react'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
 import { formatMMDDYYYY } from '../../utils/date'
@@ -7,7 +8,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
 const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Vetted', 'Puck Problem']
 
-export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, activeTab }) {
+export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, activeTab, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState(createEmptyVendor())
   
   // Auto-save functionality
@@ -56,9 +57,11 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           lastSaved={lastSaved}
           theme={theme}
           compact={true}
+          iconOnly={true}
         />
       }
       theme={theme} 
+      variant="modern"
       maxWidth="max-w-4xl" 
       footer={(
       <div className="w-full flex items-center justify-end gap-2">
@@ -77,10 +80,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             onClose(); // Close modal after save
         }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
       </div>
-    )}>
-      <div className="space-y-4">
-        {/* Header card: Name, Rating, Category */}
-        <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+    )}    >
+      <div className="relative space-y-4">
+        {/* VENDOR INFO Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VENDOR INFO</h4>
+        </div>
+
+        {/* Section: Name, Rating, Category */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
           <div className="sm:col-span-1"><TextInput label="Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Vendor" theme={theme} /></div>
           <div className="flex flex-col items-start sm:items-start gap-2">
@@ -106,42 +113,82 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             </div>
           </div>
         </div>
+
+        {/* CONTACT INFO Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>CONTACT INFO</h4>
         </div>
 
-        {/* Contacts card */}
-        <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-          <div className="font-semibold mb-2" style={{ color: theme.text }}>Contacts</div>
+        {/* Section: Contacts */}
+        <div>
           <div className="space-y-3">
             {form.contacts.map((c, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-3 items-center">
-                <select className="col-span-3 p-2 rounded border" value={c.type} onChange={e => updateContact(idx, 'type', e.target.value)} style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}>
-                  <option value="name">Name</option>
-                  <option value="email">Email</option>
-                  <option value="phone">Phone</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="discord">Discord</option>
-                  <option value="telegram">Telegram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="website">Website</option>
-                  <option value="other">Other</option>
-                </select>
-                <input
-                  className="col-span-8 p-2 rounded border"
-                  value={c.value}
-                  onChange={e => updateContact(idx, 'value', e.target.value)}
-                  placeholder={getContactPlaceholder(c.type)}
-                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
-                />
-                <button className="col-span-1 p-2 rounded hover:bg-gray-100" style={{ color: theme.text }} onClick={() => removeContact(idx)}>✕</button>
+              <div key={idx} className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div 
+                    className="flex items-stretch border rounded-lg overflow-hidden"
+                    style={{ borderColor: theme.border }}
+                  >
+                    <input 
+                      type="text"
+                      value={c.value} 
+                      onChange={e => updateContact(idx, 'value', e.target.value)} 
+                      placeholder={getContactPlaceholder(c.type)}
+                      className="flex-1 px-3 py-2 outline-none min-w-0"
+                      style={{
+                        backgroundColor: theme.inputBackground || '#fff',
+                        color: theme.text
+                      }}
+                    />
+                    <div 
+                      className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                      style={{ 
+                        borderColor: theme.border,
+                        backgroundColor: theme.cardBackground || '#f9fafb'
+                      }}
+                    >
+                      <select 
+                        value={c.type} 
+                        onChange={e => updateContact(idx, 'type', e.target.value)} 
+                        className="px-2 py-1 text-xs font-semibold rounded-md transition-all border-none outline-none cursor-pointer"
+                        style={{ 
+                          backgroundColor: theme.primary,
+                          color: '#ffffff'
+                        }}
+                      >
+                        <option value="name">Name</option>
+                        <option value="email">Email</option>
+                        <option value="phone">Phone</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="discord">Discord</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="website">Website</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  className="p-2 rounded hover:bg-gray-100 flex-shrink-0" 
+                  style={{ color: theme.text }} 
+                  onClick={() => removeContact(idx)}
+                >
+                  ✕
+                </button>
               </div>
             ))}
             <button className="px-3 py-2 rounded-md text-sm font-semibold border-dashed border" style={{ borderColor: theme.primary, color: theme.primary }} onClick={addContact}>+ Add Contact</button>
           </div>
         </div>
 
-        {/* Payment card */}
+        {/* PAYMENT INFO Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>PAYMENT INFO</h4>
+        </div>
 
-        <div className="rounded border p-4 content-card grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        {/* Section: Payment */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="block text-sm font-medium" style={{ color: theme.text }}>Payment Methods
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
               {['Card','Zelle','Crypto','PayPal','Wire', 'Venmo', 'CashApp', 'AliPay'].map(p => (
@@ -155,8 +202,13 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <TextInput label="Payment Notes" value={form.payments.notes} onChange={v => setForm(prev => ({ ...prev, payments: { ...prev.payments, notes: v } }))} placeholder="Preferences / fees / tips" theme={theme} />
         </div>
 
-        {/* Labels + Notes card */}
-        <div className="rounded border p-4 content-card grid grid-cols-1 sm:grid-cols-2 gap-4 items-start" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        {/* ADDITIONAL INFO Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ADDITIONAL INFO</h4>
+        </div>
+
+        {/* Section: Labels + Notes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           <label className="block text-sm font-medium" style={{ color: theme.text }}>Labels
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
               {labelOptions.map(l => (
@@ -172,12 +224,46 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           </label>
         </div>
 
-        {/* Order history card */}
-        <div className="rounded border p-4 content-card" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-          <div className="font-semibold mb-2" style={{ color: theme.text }}>Order History</div>
+        {/* ORDER HISTORY Section Header */}
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ORDER HISTORY</h4>
+        </div>
+
+        {/* Section: Order History */}
+        <div>
           <VendorOrderHistory vendorName={form.name} theme={theme} />
         </div>
       </div>
+      
+      {/* Lockout Overlay - Covers entire modal */}
+      {isReadOnly && (
+        <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
+          <div className="text-center p-6 max-w-md">
+            <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+              <Lock size={32} style={{ color: theme.primary }} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+              Trial has ended
+            </h3>
+            <p className="text-sm mb-4" style={{ color: theme.text }}>
+              Upgrade to continue adding and managing vendors
+            </p>
+            <button
+              onClick={() => {
+                if (onUpgrade) {
+                  onUpgrade();
+                } else {
+                  window.location.href = '/app/account';
+                }
+              }}
+              className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Choose a Plan
+            </button>
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }

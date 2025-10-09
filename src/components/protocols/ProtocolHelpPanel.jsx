@@ -13,7 +13,7 @@ const ProtocolHelpPanel = ({ theme }) => {
           style={{ borderColor: theme.border, color: theme.text }}
         >
           <HelpCircle size={16} />
-          <span>How do protocols schedule your research?</span>
+          <span>What can this section do?</span>
         </button>
       </div>
     );
@@ -25,7 +25,7 @@ const ProtocolHelpPanel = ({ theme }) => {
         <div className="flex items-center gap-2">
           <HelpCircle size={18} style={{ color: theme.info }} />
           <h3 className="font-semibold text-sm" style={{ color: theme.text }}>
-            🧬 How Protocols Work
+            🧬 Protocol Section Features
           </h3>
         </div>
         <button
@@ -42,9 +42,9 @@ const ProtocolHelpPanel = ({ theme }) => {
           <div className="flex items-start gap-2">
             <CheckSquare size={16} className="mt-0.5 flex-shrink-0" style={{ color: theme.success }} />
             <div>
-              <div className="font-medium" style={{ color: theme.text }}>1. Create Your Protocol</div>
+              <div className="font-medium" style={{ color: theme.text }}>Protocol Builder</div>
               <div className="text-xs" style={{ color: theme.textLight }}>
-                Set peptides, dosages, and frequency (daily, weekly, or cycling)
+                Define research protocols with specific peptides, dosages, and frequencies (daily, weekly, or cycling patterns).
               </div>
             </div>
           </div>
@@ -52,9 +52,9 @@ const ProtocolHelpPanel = ({ theme }) => {
           <div className="flex items-start gap-2">
             <Calendar size={16} className="mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />
             <div>
-              <div className="font-medium" style={{ color: theme.text }}>2. Start Protocol</div>
+              <div className="font-medium" style={{ color: theme.text }}>Schedule Management</div>
               <div className="text-xs" style={{ color: theme.textLight }}>
-                Choose start date and link to your stockpile vials
+                Set start dates and link protocols to stockpile inventory for automated tracking.
               </div>
             </div>
           </div>
@@ -64,9 +64,9 @@ const ProtocolHelpPanel = ({ theme }) => {
           <div className="flex items-start gap-2">
             <Clock size={16} className="mt-0.5 flex-shrink-0" style={{ color: theme.warning }} />
             <div>
-              <div className="font-medium" style={{ color: theme.text }}>3. Auto-Scheduling</div>
+              <div className="font-medium" style={{ color: theme.text }}>Automated Task Generation</div>
               <div className="text-xs" style={{ color: theme.textLight }}>
-                Tasks appear daily on your Dashboard and Calendar automatically
+                Tasks automatically populate in the Dashboard and Calendar based on protocol schedules.
               </div>
             </div>
           </div>
@@ -74,9 +74,9 @@ const ProtocolHelpPanel = ({ theme }) => {
           <div className="flex items-start gap-2">
             <BarChart3 size={16} className="mt-0.5 flex-shrink-0" style={{ color: theme.accent }} />
             <div>
-              <div className="font-medium" style={{ color: theme.text }}>4. Track Progress</div>
+              <div className="font-medium" style={{ color: theme.text }}>Progress Monitoring</div>
               <div className="text-xs" style={{ color: theme.textLight }}>
-                Mark tasks complete and monitor your protocol adherence
+                Track task completion and monitor protocol adherence throughout the research timeline.
               </div>
             </div>
           </div>
@@ -85,15 +85,16 @@ const ProtocolHelpPanel = ({ theme }) => {
 
       <div className="mt-4 pt-3 border-t" style={{ borderColor: theme.border }}>
         <div className="text-xs font-medium mb-2" style={{ color: theme.text }}>
-          💡 Key Benefits:
+          💡 Key Features:
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           {[
-            'Never miss a dose',
-            'Automatic scheduling',
+            'Automated scheduling',
+            'Task generation',
             'Progress tracking',
             'Calendar integration',
-            'Flexible frequencies'
+            'Flexible frequencies',
+            'Stockpile linking'
           ].map((benefit, index) => (
             <span
               key={index}

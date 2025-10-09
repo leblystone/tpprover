@@ -29,31 +29,31 @@ export default function VendorsHelpPanel({ theme }) {
 	if (isDismissed) return null;
 
 	const steps = [
-		{
-			icon: PlusCircle,
-			title: 'Add Vendors',
-			description: 'Create vendor profiles with contact information, payment methods, and shipping details.'
-		},
-		{
-			icon: Store,
-			title: 'Organize by Type',
-			description: 'Categorize vendors as domestic, international, or group buy for better organization.'
-		},
-		{
-			icon: FileText,
-			title: 'Track Information',
-			description: 'Store contact details, payment preferences, shipping methods, and order history.'
-		},
-		{
-			icon: Package,
-			title: 'Link to Orders',
-			description: 'Connect vendors to your orders for seamless tracking and management.'
-		},
-		{
-			icon: CheckCircle,
-			title: 'Manage Relationships',
-			description: 'Keep track of trusted suppliers, preferred payment methods, and shipping preferences.'
-		}
+			{
+				icon: PlusCircle,
+				title: 'Vendor Profiles',
+				description: 'Create vendor profiles with contact information, payment methods, and shipping details.'
+			},
+			{
+				icon: Store,
+				title: 'Type Organization',
+				description: 'Categorize vendors as domestic, international, or group buy for better organization.'
+			},
+			{
+				icon: FileText,
+				title: 'Information Tracking',
+				description: 'Store contact details, payment preferences, shipping methods, and order history.'
+			},
+			{
+				icon: Package,
+				title: 'Order Integration',
+				description: 'Connect vendors to orders for seamless tracking and management.'
+			},
+			{
+				icon: CheckCircle,
+				title: 'Relationship Management',
+				description: 'Keep track of trusted suppliers, preferred payment methods, and shipping preferences.'
+			}
 	];
 
 	const features = [
@@ -92,7 +92,7 @@ export default function VendorsHelpPanel({ theme }) {
 							}}
 						>
 							<HelpCircle size={16} className="flex-shrink-0" />
-							<span className="truncate">How vendor management works?</span>
+							<span className="truncate">What can this section do?</span>
 							<ChevronDown size={14} className="flex-shrink-0" />
 						</button>
 						<button
@@ -117,9 +117,9 @@ export default function VendorsHelpPanel({ theme }) {
 						<div className="p-2 rounded-lg" style={{ backgroundColor: theme.primary + '15' }}>
 							<Store size={20} className="md:w-6 md:h-6" style={{ color: theme.primary }} />
 						</div>
-						<h3 className="text-base md:text-lg font-bold" style={{ color: theme.text }}>
-							How Vendor Management Works
-						</h3>
+					<h3 className="text-base md:text-lg font-bold" style={{ color: theme.text }}>
+						Vendor Section Features
+					</h3>
 					</div>
 					<div className="flex items-center gap-2">
 						<button

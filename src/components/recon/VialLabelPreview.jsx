@@ -32,12 +32,16 @@ export default function VialLabelPreview({
     return currentPeptide.mg || '';
   };
 
-  // Get element symbol (first letter cap, second lowercase)
+  // Get element symbol (1st letter cap, 4th letter lowercase)
   const getElementSymbol = () => {
     if (!currentPeptide?.name) return '';
-    const firstTwo = currentPeptide.name.substring(0, 2);
-    if (firstTwo.length === 1) return firstTwo.toUpperCase();
-    return firstTwo[0].toUpperCase() + firstTwo[1].toLowerCase();
+    const name = currentPeptide.name;
+    if (name.length < 4) {
+      // If less than 4 characters, use first letter capitalized
+      return name[0].toUpperCase();
+    }
+    // Use 1st and 4th letter
+    return name[0].toUpperCase() + name[3].toLowerCase();
   };
 
   // Get current peptide name
@@ -72,22 +76,22 @@ export default function VialLabelPreview({
         <img 
           src={getVialImage()} 
           alt="Vial" 
-          className={compact ? "w-32 h-auto" : "w-full h-auto"}
+          className={compact ? "w-56 h-auto" : "w-full h-auto"}
           style={{ 
-            maxWidth: compact ? '128px' : '100%',
+            maxWidth: compact ? '224px' : '100%',
             filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08))'
           }}
         />
         
         {/* Text Overlay on White Label Area - Centered layout with hierarchy */}
         <div 
-          className="absolute flex flex-col items-center text-center px-4"
+          className="absolute flex flex-col items-center text-center px-3"
           style={{
-            top: '44%',
+            top: '42%',
             left: '53%',
             transform: 'translateX(-50%)',
-            width: '80%',
-            height: '32%',
+            width: '90%',
+            minHeight: '38%',
           }}
         >
           {/* Periodic Table Element Logo - Smaller, more compact */}
@@ -108,7 +112,7 @@ export default function VialLabelPreview({
                 {currentMg}mg
               </div>
               
-              {/* Element Symbol - First cap, second lowercase */}
+              {/* Element Symbol - 1st cap, 4th lowercase */}
               <div 
                 className="text-sm font-black text-center leading-none pt-0.5" 
                 style={{ 
@@ -138,10 +142,10 @@ export default function VialLabelPreview({
           {/* Peptide Name - LARGEST/MOST PROMINENT */}
           {peptideName && (
             <div 
-              className="text-sm font-bold mb-1.5 w-full overflow-hidden" 
+              className="text-sm font-bold mb-1.5 w-full overflow-visible" 
               style={{ 
                 color: '#374151',
-                lineHeight: '1.1',
+                lineHeight: '1.4',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}
@@ -150,20 +154,13 @@ export default function VialLabelPreview({
             </div>
           )}
           
-          {/* MG - Under peptide name - Larger with sage green */}
+          {/* MG - Under peptide name - Larger with theme color */}
           {currentMg && (
             <div 
               className="text-sm font-bold mb-0.5" 
-              style={{ color: '#84a98c', lineHeight: '1' }}
+              style={{ color: theme.primaryDark || theme.primary, lineHeight: '1' }}
             >
               {currentMg}mg
-            </div>
-          )}
-          
-          {/* Water Amount */}
-          {form.water && (
-            <div className="text-[0.6rem]" style={{ color: '#9ca3af', lineHeight: '1' }}>
-              💧 {form.water}mL
             </div>
           )}
         </div>

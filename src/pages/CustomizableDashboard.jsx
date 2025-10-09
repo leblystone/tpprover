@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Settings, Edit } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import ViewContainer from '../components/ui/ViewContainer';
 import DashboardWidget from '../components/dashboard/DashboardWidget';
 import DashboardCustomizer from '../components/dashboard/DashboardCustomizer';
@@ -34,10 +35,12 @@ import SupplementEditorModal from '../components/dashboard/SupplementEditorModal
 import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
 import ConversionWidget from '../components/dashboard/ConversionWidget';
+import UpgradeModal from '../components/common/UpgradeModal';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
   const navigate = useNavigate();
+  const { isReadOnly } = useSubscriptionAccess();
   const { 
     scheduledBuys,
     setScheduledBuys, 
@@ -87,6 +90,7 @@ export default function CustomizableDashboard() {
   const [editingSupplement, setEditingSupplement] = useState(null);
   const [showBadges, setShowBadges] = useState(false);
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [vendorNames] = useState(() => {
     try { 
@@ -627,6 +631,8 @@ export default function CustomizableDashboard() {
                       goals={goals}
                       metrics={metrics}
                       supplements={supplements}
+                      isReadOnly={isReadOnly}
+                      onUpgrade={() => setShowUpgradeModal(true)}
                       onTaskToggle={handleTaskToggle}
                       onNewOrder={() => setShowNewOrder(true)}
                       onAddBuy={() => setShowAddBuyModal(true)}
@@ -716,6 +722,8 @@ export default function CustomizableDashboard() {
         onClose={() => { setEditingVendor(null); setShowNewVendor(false); }}
         theme={theme}
         vendor={editingVendor}
+        isReadOnly={isReadOnly}
+        onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(v) => {
           setVendors(prev => {
             const existing = prev.find(p => p.id === v.id);
@@ -735,6 +743,8 @@ export default function CustomizableDashboard() {
         order={{}}
         theme={theme}
         vendorList={vendorNames}
+        isReadOnly={isReadOnly}
+        onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(o) => {
           const category = o.category || 'domestic';
           const newOrder = { ...o, id: o.id || Date.now(), category, type: category };
@@ -822,11 +832,20 @@ export default function CustomizableDashboard() {
         open={showNewProtocol}
         onClose={() => setShowNewProtocol(false)}
         theme={theme}
+        isReadOnly={isReadOnly}
+        onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(protocol) => {
           setProtocols(prev => [...prev, { ...protocol, id: Date.now() }]);
           setShowNewProtocol(false);
           addToast('Protocol created', 'success');
         }}
+      />
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        theme={theme}
+        actionAttempted="continue using this feature"
       />
 
       <ToastContainer 

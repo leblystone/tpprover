@@ -10,7 +10,7 @@ import DocumentationUpload from '../common/DocumentationUpload';
 import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 
-export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl" }) {
+export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   
@@ -105,11 +105,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           isSaving={isSaving} 
           lastSaved={lastSaved} 
           onClearForm={clearSavedData} 
-          theme={theme} 
+          theme={theme}
+          compact={true}
+          iconOnly={true}
         />
       }
       theme={theme}
-      maxWidth={maxWidth}
+      variant="modern"
+      maxWidth={isReadOnly ? "max-w-md" : maxWidth}
       footer={(
         <div className="w-full flex justify-between items-center">
           <div>
@@ -118,20 +121,25 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
+            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme?.border, color: theme?.text }}>Cancel</button>
             <button onClick={() => {
               console.log('💾 Saving order:', { ...form, attachments });
               markAsSubmitted();
               onSave?.({ ...form, attachments });
-            }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
+            }} className="px-4 py-2 rounded-lg text-sm font-medium transition-all" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}>Save</button>
           </div>
         </div>
       )}
     >
-      <div className="space-y-4">
-        
-        {/* Header card: Vendor & Category */}
-        <div className="rounded border p-4 bg-white content-card" style={{ borderColor: theme?.border }}>
+      <div className="space-y-6">
+        {/* Main form */}
+        <div className="space-y-4">
+          {/* Section: Vendor & Category */}
+          <div>
+            {/* Section Header */}
+            <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Order Details</h4>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="relative">
                   <VendorSuggestInput
@@ -149,10 +157,10 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>
                     Category <span className="text-red-500">*</span>
                   </div>
-                  <div className="grid grid-cols-3 rounded-md bg-gray-100 p-1 shadow-inner gap-1">
+                  <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
                     {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
-                        className={`px-2 py-1.5 text-xs sm:text-sm font-semibold rounded-md text-center ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                         style={form.category === k ? { backgroundColor: theme?.primary } : {}}>
                         {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
                       </button>
@@ -162,9 +170,12 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             </div>
         </div>
 
-        {/* Items card */}
-        <div className="rounded border p-4 bg-white content-card" style={{ borderColor: theme?.border }}>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: theme?.text }}>Items</h4>
+        {/* Section: Items */}
+        <div>
+            {/* Section Header */}
+            <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Items</h4>
+            </div>
             <div className="space-y-3">
                 {form.items?.map((item, index) => (
                     <OrderItemSubForm 
@@ -193,49 +204,84 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             </div>
         </div>
 
-        {/* Status & Dates card */}
-        <div className="rounded border p-4 bg-white content-card" style={{ borderColor: theme?.border }}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-            <div className="sm:col-span-3">
-              <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Status</div>
-              <div className="grid grid-cols-2 sm:flex w-full rounded-md bg-gray-100 p-1 shadow-inner gap-1">
-                {[
-                  { label: 'Order Placed', value: 'Order Placed' },
-                  { label: 'In Transit', value: 'Shipped' },
-                  { label: 'Delivered', value: 'Delivered' },
-                  { label: 'Delayed', value: 'Delayed' },
-                ].map(opt => (
-                  <button key={opt.value} type="button" onClick={() => setForm({ ...form, status: opt.value, shipDate: opt.value==='Shipped' ? (form.shipDate || new Date().toISOString().slice(0,10)) : form.shipDate, deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || new Date().toISOString().slice(0,10)) : form.deliveryDate })}
-                    className={`sm:flex-1 text-center px-2 py-1.5 text-xs sm:text-sm font-semibold rounded-md ${form.status === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                    style={form.status === opt.value ? { backgroundColor: theme?.primary } : {}}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+        {/* Section: Status & Dates */}
+        <div>
+          {/* Section Header */}
+          <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Order Status</h4>
+          </div>
+          <div className="space-y-3">
+            <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
+              {[
+                { label: 'Order Placed', value: 'Order Placed' },
+                { label: 'In Transit', value: 'Shipped' },
+                { label: 'Delivered', value: 'Delivered' },
+                { label: 'Delayed', value: 'Delayed' },
+              ].map(opt => (
+                <button key={opt.value} type="button" onClick={() => setForm({ ...form, status: opt.value, shipDate: opt.value==='Shipped' ? (form.shipDate || new Date().toISOString().slice(0,10)) : form.shipDate, deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || new Date().toISOString().slice(0,10)) : form.deliveryDate })}
+                  className={`flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap ${form.status === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                  style={form.status === opt.value ? { backgroundColor: theme?.primary } : {}}>
+                  {opt.label}
+                </button>
+              ))}
             </div>
             <TextInput label="Tracking #" value={form.tracking || ''} onChange={v => setForm({ ...form, tracking: v })} placeholder="Optional" theme={theme} />
-            <TextInput type="date" label="Date Ordered" value={form.date ? new Date(form.date).toISOString().slice(0,10) : ''} onChange={v => setForm({ ...form, date: v })} theme={theme} />
-            <TextInput type="date" label="Delivery Date" value={form.deliveryDate ? new Date(form.deliveryDate).toISOString().slice(0,10) : ''} onChange={v => setForm({ ...form, deliveryDate: v })} theme={theme} />
+            <div className="grid grid-cols-2 gap-3">
+              <TextInput type="date" label="Date Ordered" value={form.date ? new Date(form.date).toISOString().slice(0,10) : ''} onChange={v => setForm({ ...form, date: v })} theme={theme} />
+              <TextInput type="date" label="Delivery Date" value={form.deliveryDate ? new Date(form.deliveryDate).toISOString().slice(0,10) : ''} onChange={v => setForm({ ...form, deliveryDate: v })} theme={theme} />
+            </div>
           </div>
         </div>
 
-        {/* Notes & Documentation card */}
-        <div className="rounded border p-4 bg-white content-card" style={{ borderColor: theme?.border }}>
-          <div className="space-y-4">
-            <TextInput label="Notes" value={form.notes || ''} onChange={v => setForm({ ...form, notes: v })} placeholder="Order notes..." theme={theme} />
-            
-            <DocumentationUpload
-              documentation={attachments}
-              onChange={setAttachments}
-              theme={theme}
-              title="Pre-Delivery Documentation"
-              placeholder="Add COA links, vendor photos, or other documentation..."
-              allowImages={true}
-              allowLinks={true}
-            />
-          </div>
+        {/* Page Break */}
+        <div className="border-t" style={{ borderColor: theme.border }}></div>
+
+        {/* Section: Notes & Documentation */}
+        <div className="space-y-4">
+          <TextInput label="Notes" value={form.notes || ''} onChange={v => setForm({ ...form, notes: v })} placeholder="Order notes..." theme={theme} />
+          
+          <DocumentationUpload
+            documentation={attachments}
+            onChange={setAttachments}
+            theme={theme}
+            title="Pre-Delivery Documentation"
+            placeholder="Add COA links, vendor photos, or other documentation..."
+            allowImages={true}
+            allowLinks={true}
+          />
+        </div>
         </div>
       </div>
+      
+      {/* Lockout Overlay - Covers entire modal */}
+      {isReadOnly && (
+        <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
+          <div className="text-center p-6 max-w-md">
+            <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+              <PlusCircle size={32} style={{ color: theme.primary }} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+              Trial has ended
+            </h3>
+            <p className="text-sm mb-4" style={{ color: theme.text }}>
+              Upgrade to continue adding and managing orders
+            </p>
+            <button
+              onClick={() => {
+                if (onUpgrade) {
+                  onUpgrade();
+                } else {
+                  window.location.href = '/app/account';
+                }
+              }}
+              className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Choose a Plan
+            </button>
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }

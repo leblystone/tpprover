@@ -10,7 +10,7 @@ import { formatCurrency } from '../../utils/currencyUtils'
 import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
-export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, compact = false }) {
+export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, compact = false, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] })
   const [deliveryMethod, setDeliveryMethod] = useState('syringe');
   const [administrationRoute, setAdministrationRoute] = useState('subq'); // SubQ, IM, IV
@@ -85,7 +85,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   }
 
   const content = (
-    <div>
+    <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
       <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
         <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Vial Details</h4>
@@ -444,44 +444,55 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
 
         {/* Step 3: Results */}
         <div>
-          {/* Page Break Divider replacing banner */}
-          <div className="my-3 border-t" style={{ borderColor: theme.border }} />
-          <div className="rounded-lg border p-4" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div className="my-2 border-t" style={{ borderColor: theme.border }} />
+          <div className="rounded-lg border p-3" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
+            <div className="grid grid-cols-3 gap-2 text-center">
               <div>
-                <div className="text-xs" style={{ color: theme.textLight }}>Units per Dose</div>
-                <div className="text-2xl font-bold" style={{ color: theme.primary }}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</div>
+                <div className="text-xs mb-1" style={{ color: theme.textLight }}>Units/Dose</div>
+                <div className="text-lg font-bold" style={{ color: theme.primary }}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</div>
               </div>
               <div>
-                <div className="text-xs" style={{ color: theme.textLight }}>Doses per Vial</div>
-                <div className="text-2xl font-bold" style={{ color: theme.primary }}>{calc.dosesPerVial || '-'}</div>
+                <div className="text-xs mb-1" style={{ color: theme.textLight }}>Doses/Vial</div>
+                <div className="text-lg font-bold" style={{ color: theme.primary }}>{calc.dosesPerVial || '-'}</div>
               </div>
               <div>
-                <div className="text-xs" style={{ color: theme.textLight }}>Cost per Dose</div>
-                <div className="text-2xl font-bold" style={{ color: theme.primary }}>{costPerDose || '-'}</div>
+                <div className="text-xs mb-1" style={{ color: theme.textLight }}>Cost/Dose</div>
+                <div className="text-lg font-bold" style={{ color: theme.primary }}>{costPerDose || '-'}</div>
               </div>
             </div>
-            <p className="text-xs text-center mt-3" style={{ color: theme.textLight }}>
-                Based on {deliveryMethod === 'syringe' ? 'an insulin syringe (U-100, 1mL)' : deliveryMethod === 'pen' ? 'a dosage pen' : 'nasal spray delivery'}
+            <p className="text-xs text-center mt-2 opacity-75" style={{ color: theme.textLight }}>
+                {deliveryMethod === 'syringe' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
             </p>
           </div>
         </div>
         
         <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (!onSave) {
+              console.error('onSave function is not provided!');
+              return;
+            }
+            
             // Convert hex color to name before saving
             const selectedPenColor = penColors.find(p => p.hex === penColor);
             const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
-            onSave?.({ 
+            
+            const dataToSave = { 
               ...form, 
               deliveryMethod, 
               administrationRoute: deliveryMethod === 'syringe' ? administrationRoute : undefined,
               penType: deliveryMethod === 'pen' ? form.penType : undefined, 
               penColor: penColorName, 
               cost 
-            });
+            };
+            
+            onSave(dataToSave);
           }}
+          type="button"
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold hover:opacity-90 transition-all"
           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
         >
@@ -494,6 +505,37 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
         </div>
         </div>
       </div>
+      
+      {/* Lockout Overlay - Blur calculator when in read-only mode */}
+      {isReadOnly && (
+        <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
+          <div className="text-center p-6 max-w-md">
+            <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+              <FilePlus size={32} style={{ color: theme.primary }} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+              Trial has ended
+            </h3>
+            <p className="text-sm mb-4" style={{ color: theme.text }}>
+              Upgrade to continue using the calculator and save your reconstitutions
+            </p>
+            <button
+              onClick={() => {
+                if (onUpgrade) {
+                  onUpgrade();
+                } else {
+                  // Fallback: Navigate to account page
+                  window.location.href = '/app/account';
+                }
+              }}
+              className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Choose a Plan
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 

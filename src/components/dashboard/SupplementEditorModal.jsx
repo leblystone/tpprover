@@ -60,7 +60,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                     onSave({ ...supplement, _delete: true });
                                     onClose();
                                 }}
-                                className="px-3 py-2 rounded-md border text-red-600 hover:bg-red-50 transition-colors"
+                                className="px-4 py-2 rounded-lg border font-medium transition-all text-red-600 hover:bg-red-50"
                                 style={{ borderColor: '#ef4444' }}
                             >
                                 Delete
@@ -68,29 +68,57 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
-                        <button onClick={handleSave} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme.primary, color: theme.white }}>Save</button>
+                        <button onClick={onClose} className="px-4 py-2 rounded-lg border font-medium transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
+                        <button onClick={handleSave} className="px-4 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save</button>
                     </div>
                 </div>
             }
         >
-            <div className="space-y-3">
+            <div className="space-y-4">
+                {/* SUPPLEMENT DETAILS Section Header */}
+                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>SUPPLEMENT DETAILS</h4>
+                </div>
+
                 {/* Name and Dosage on same line */}
                 <div className="grid grid-cols-2 gap-3">
-                    <TextInput 
-                        label="Name" 
-                        value={form.name} 
-                        onChange={v => setForm({ ...form, name: v })} 
-                        theme={theme} 
-                        placeholder="Vitamin C, B12 Injection, Protein, etc." 
-                    />
-                    <TextInput 
-                        label="Dosage" 
-                        value={form.dose} 
-                        onChange={v => setForm({ ...form, dose: v })} 
-                        theme={theme} 
-                        placeholder="2 tablets, 1ml, 2 scoops, etc." 
-                    />
+                    <div>
+                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Name</label>
+                        <input
+                            type="text"
+                            value={form.name}
+                            onChange={e => setForm({ ...form, name: e.target.value })}
+                            placeholder="Vit C, B12 Injection, etc."
+                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                            style={{
+                                borderColor: theme.border,
+                                backgroundColor: theme.cardBackground,
+                                color: theme.text,
+                                focusRingColor: theme.primary
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Dosage</label>
+                        <input
+                            type="text"
+                            value={form.dose}
+                            onChange={e => setForm({ ...form, dose: e.target.value })}
+                            placeholder="2 tablets, 1ml, 2 scoops, etc."
+                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                            style={{
+                                borderColor: theme.border,
+                                backgroundColor: theme.cardBackground,
+                                color: theme.text,
+                                focusRingColor: theme.primary
+                            }}
+                        />
+                    </div>
+                </div>
+                
+                {/* SCHEDULE & DAYS Section Header */}
+                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>SCHEDULE & DAYS</h4>
                 </div>
                 
                 {/* Schedule and Days combined */}
@@ -98,13 +126,21 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                     <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Schedule & Days</div>
                     <div className="space-y-2">
                         {/* AM/PM Schedule */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600 w-12">Time:</span>
-                            <div className="inline-flex rounded-md bg-gray-100 p-1 shadow-inner">
+                        <div>
+                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Time</label>
+                            <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
                                 {['AM', 'PM'].map(time => (
-                                    <button key={time} type="button" onClick={() => toggleTime(time)}
-                                        className={`px-3 py-1.5 text-sm font-semibold rounded-md ${form.schedule.includes(time) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                                        style={form.schedule.includes(time) ? { backgroundColor: theme.primary } : {}}>
+                                    <button 
+                                        key={time} 
+                                        type="button" 
+                                        onClick={() => toggleTime(time)}
+                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                            form.schedule.includes(time) 
+                                                ? 'text-white shadow-sm' 
+                                                : 'text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                        style={form.schedule.includes(time) ? { backgroundColor: theme.primary } : {}}
+                                    >
                                         {time}
                                     </button>
                                 ))}
@@ -113,14 +149,14 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         
                         {/* Days */}
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600 w-12">Days:</span>
+                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Days</label>
                             <div className="flex flex-wrap items-center gap-1">
                                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                                     <button
                                         key={day}
                                         type="button"
                                         onClick={() => toggleDay(day)}
-                                        className={`px-2 py-1 text-xs rounded-md ${form.days.includes(day) ? 'text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${form.days.includes(day) ? 'text-white shadow-sm' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
                                         style={form.days.includes(day) ? {backgroundColor: theme.primary} : {}}
                                     >
                                         {day}
@@ -128,24 +164,28 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                 ))}
                             </div>
                         </div>
-                        <div className="text-xs text-gray-500 ml-14">Leave days blank to schedule for every day.</div>
+                        <div className="text-xs mt-2 text-center" style={{ color: theme.text, opacity: 0.7 }}>Leave days blank to schedule for every day.</div>
                     </div>
                 </div>
 
-                {/* Larger Delivery Method buttons */}
+                {/* DELIVERY METHOD Section Header */}
+                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>DELIVERY METHOD</h4>
+                </div>
+
+                {/* Delivery Method pills */}
                 <div>
-                    <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Delivery Method</div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
                         {deliveryOptions.map(({ value, label, Icon }) => (
                             <button 
                                 key={value} 
                                 type="button" 
                                 onClick={() => setForm({ ...form, delivery: value })} 
-                                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors ${form.delivery === value ? 'text-white border-transparent' : 'text-gray-700 border-gray-200 hover:border-gray-300 bg-white'}`}
-                                style={form.delivery === value ? { backgroundColor: theme.primary, borderColor: theme.primary } : {}}
+                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${form.delivery === value ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-200'}`}
+                                style={form.delivery === value ? { backgroundColor: theme.primary } : {}}
                             >
-                                <Icon size={20} />
-                                <span className="text-sm font-medium">{label}</span>
+                                <Icon size={16} />
+                                {label}
                             </button>
                         ))}
                     </div>
@@ -154,3 +194,4 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
         </Modal>
     );
 }
+

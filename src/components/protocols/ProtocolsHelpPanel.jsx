@@ -31,7 +31,7 @@ const ProtocolsHelpPanel = ({ theme }) => {
               }}
             >
               <HelpCircle size={16} className="flex-shrink-0" />
-              <span className="truncate">How protocols work?</span>
+              <span className="truncate">What can this section do?</span>
               <ChevronDown size={14} className="flex-shrink-0" />
             </button>
             <button
@@ -57,7 +57,7 @@ const ProtocolsHelpPanel = ({ theme }) => {
               <FileText size={20} className="md:w-6 md:h-6" style={{ color: theme.primary }} />
             </div>
             <h3 className="text-base md:text-lg font-bold" style={{ color: theme.text }}>
-              How Protocols Work
+              Protocol Section Features
             </h3>
           </div>
           <div className="flex items-center gap-1 md:gap-2">
@@ -87,9 +87,9 @@ const ProtocolsHelpPanel = ({ theme }) => {
                 <FileText size={16} className="md:w-5 md:h-5" style={{ color: theme.primary }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>1. Create Protocol</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Protocol Builder</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Define your supplement schedule, dosing cycles, and timing patterns
+                  Define research protocols with supplement schedules, dosing cycles, and timing patterns
                 </div>
               </div>
             </div>
@@ -99,9 +99,9 @@ const ProtocolsHelpPanel = ({ theme }) => {
                 <Play size={16} className="md:w-5 md:h-5" style={{ color: theme.info }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>2. Start Protocol</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Schedule Management</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Activate your protocol to begin tracking adherence and progress
+                  Activate protocols to begin tracking adherence and progress
                 </div>
               </div>
             </div>
@@ -111,7 +111,7 @@ const ProtocolsHelpPanel = ({ theme }) => {
                 <Calendar size={16} className="md:w-5 md:h-5" style={{ color: theme.warning }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>3. Track Schedule</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Schedule Tracking</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
                   Monitor daily dosing schedules, cycle timing, and rest periods
                 </div>
@@ -125,7 +125,7 @@ const ProtocolsHelpPanel = ({ theme }) => {
                 <CheckCircle size={16} className="md:w-5 md:h-5" style={{ color: theme.accent }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>4. Log Adherence</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Adherence Logging</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
                   Track when doses are taken and maintain consistency records
                 </div>
@@ -137,7 +137,7 @@ const ProtocolsHelpPanel = ({ theme }) => {
                 <TrendingUp size={16} className="md:w-5 md:h-5" style={{ color: theme.success }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>5. Monitor Progress</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Progress Monitoring</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
                   Review completion rates and identify patterns over time
                 </div>
@@ -149,9 +149,9 @@ const ProtocolsHelpPanel = ({ theme }) => {
                 <BarChart size={16} className="md:w-5 md:h-5" style={{ color: theme.primary }} />
               </div>
               <div>
-                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>6. View History</div>
+                <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>History Analysis</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Access past cycles and analyze your research approach
+                  Access past cycles and analyze research approaches
                 </div>
               </div>
             </div>

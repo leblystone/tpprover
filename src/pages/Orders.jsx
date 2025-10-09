@@ -45,7 +45,19 @@ export default function Orders() {
 				window.history.replaceState({}, document.title)
 			}
 		}
-	}, [location.state, orders])
+		
+		// Check for ?new=true query parameter to open new order modal
+		const params = new URLSearchParams(location.search);
+		if (params.get('new') === 'true') {
+			if (isReadOnly) {
+				setShowUpgradeModal(true);
+			} else {
+				setShowAddModal(true);
+			}
+			// Clear the query parameter
+			window.history.replaceState({}, document.title, location.pathname);
+		}
+	}, [location.state, location.search, location.pathname, orders, isReadOnly])
 
 	// Set topbar tabs via custom event
 	useEffect(() => {

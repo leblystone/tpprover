@@ -9,6 +9,7 @@ export default function SuccessModal({ open, onClose, title, message, theme }) {
             onClose={onClose} 
             title="" 
             theme={theme}
+            variant="modern"
             maxWidth="max-w-md"
         >
             <div className="text-center py-8 px-4">
@@ -65,18 +66,18 @@ export default function SuccessModal({ open, onClose, title, message, theme }) {
                         onClick={onClose}
                         className="px-8 py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg border"
                         style={{ 
-                            backgroundColor: theme.success,
+                            backgroundColor: theme.primary,
                             color: theme.textOnPrimary,
-                            borderColor: theme.success,
-                            boxShadow: `0 4px 12px ${theme.success}25`
+                            borderColor: theme.primary,
+                            boxShadow: `0 4px 12px ${theme.primary}25`
                         }}
                         onMouseEnter={(e) => {
                             e.target.style.backgroundColor = theme.primaryDark;
                             e.target.style.borderColor = theme.primaryDark;
                         }}
                         onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = theme.success;
-                            e.target.style.borderColor = theme.success;
+                            e.target.style.backgroundColor = theme.primary;
+                            e.target.style.borderColor = theme.primary;
                         }}
                     >
                         Perfect!

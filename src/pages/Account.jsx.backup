@@ -540,10 +540,10 @@
                   <PlanCard
                     theme={theme}
                     title="Lifetime"
-                    price="$149"
+                    price="$249.99"
                     interval="one-time"
                     current={sub?.interval === 'lifetime'}
-                    onSelect={() => createSubscription({ name: 'Lifetime', price: 149.00, interval: 'lifetime' })}
+                    onSelect={() => createSubscription({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
                   />
                 </div>
               </div>

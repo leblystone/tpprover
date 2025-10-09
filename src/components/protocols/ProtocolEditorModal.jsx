@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Lock } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import useAutoSave from '../../utils/useAutoSave';
 
-export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol }) {
+export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol, isReadOnly = false, onUpgrade }) {
 
     const createEmpty = () => ({
         protocolName: '',
@@ -271,6 +271,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 />
             }
             theme={theme}
+            variant="modern"
             maxWidth="max-w-4xl"
             footer={
                 <div className="flex items-center justify-between w-full">
@@ -685,6 +686,36 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     />
                 </div>
             </div>
+            
+            {/* Lockout Overlay - Covers entire modal */}
+            {isReadOnly && (
+                <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
+                    <div className="text-center p-6 max-w-md">
+                        <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+                            <Lock size={32} style={{ color: theme.primary }} />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+                            Trial has ended
+                        </h3>
+                        <p className="text-sm mb-4" style={{ color: theme.text }}>
+                            Upgrade to continue creating and managing protocols
+                        </p>
+                        <button
+                            onClick={() => {
+                                if (onUpgrade) {
+                                    onUpgrade();
+                                } else {
+                                    window.location.href = '/app/account';
+                                }
+                            }}
+                            className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90"
+                            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                        >
+                            Choose a Plan
+                        </button>
+                    </div>
+                </div>
+            )}
         </Modal>
     );
 }

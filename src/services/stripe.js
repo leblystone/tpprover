@@ -62,7 +62,7 @@ function simulateSuccessfulCheckout(priceId) {
   } else if (priceId === STRIPE_CONFIG.prices.annual) {
     planDetails = { name: 'Pro Annual', price: 79.99, interval: 'year' };
   } else if (priceId === STRIPE_CONFIG.prices.lifetime) {
-    planDetails = { name: 'Lifetime', price: 149.00, interval: 'lifetime' };
+    planDetails = { name: 'Lifetime', price: 249.99, interval: 'lifetime' };
   }
 
   // Simulate processing delay

@@ -32,11 +32,25 @@ if (typeof window !== 'undefined') {
   console.log('💡 Use toggleDebugMode() to enable/disable debug logging');
 }
 
-// Service worker: disable in native (Capacitor) to avoid stale cache issues
+// Service worker: disable in native (Capacitor) and development to avoid stale cache issues
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        if (isNative()) {
+        // Disable service worker in development to prevent cache issues
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (isDev || isNative()) {
+          console.log('💻 Development/Native environment detected: disabling service worker');
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (let registration of registrations) {
+            console.log('🗑️ Unregistering service worker:', registration.scope);
+            await registration.unregister();
+          }
+          console.log('✅ Service worker disabled for development');
+          return; // Exit early - no service worker in dev/native
+        }
+        
+        if (false && isNative()) { // This block is now unreachable but kept for reference
           console.log('📱 Native environment detected: disabling service worker and clearing caches');
           
           // Only clear caches if we haven't done this before
@@ -88,9 +102,10 @@ if ('serviceWorker' in navigator) {
 
           newWorker?.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('🚀 New service worker installed, refreshing...');
-              // Auto-refresh to get the new version
-              window.location.reload();
+              console.log('🚀 New service worker installed');
+              // Don't auto-reload - let user manually refresh if needed
+              // Auto-reload can cause React hooks errors during dev
+              // window.location.reload();
             }
           });
         });

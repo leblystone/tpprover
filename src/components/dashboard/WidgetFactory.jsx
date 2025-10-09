@@ -21,7 +21,7 @@ import FeedbackWidget from './widgets/FeedbackWidget';
 import NotesWidget from './widgets/NotesWidget';
 import InjectionHistoryWidget from './widgets/InjectionHistoryWidget';
 
-const WidgetFactory = ({ widget, theme, ...props }) => {
+const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
   const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
   
   // Check if group buys are enabled
@@ -54,6 +54,8 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
           theme={theme} 
           order={props.incomingOrder}
           onNewOrder={props.onNewOrder}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
         />
       );
       
@@ -64,6 +66,8 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
           theme={theme} 
           buys={props.upcomingBuys}
           onAdd={props.onAddBuy}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
         />
       );
       
@@ -161,6 +165,8 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
           metrics={props.metrics}
           onAddMetric={props.onAddMetric}
           onEditMetric={props.onEditMetric}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
         />
       );
       
@@ -173,6 +179,8 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
           onAddSupplement={props.onAddSupplement}
           onEditSupplement={props.onEditSupplement}
           onDeleteSupplement={props.onDeleteSupplement}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
         />
       );
 
@@ -197,6 +205,8 @@ const WidgetFactory = ({ widget, theme, ...props }) => {
         <GlossaryWidget 
           widget={widget} 
           theme={theme}
+          isReadOnly={isReadOnly}
+          onUpgrade={onUpgrade}
         />
       );
 

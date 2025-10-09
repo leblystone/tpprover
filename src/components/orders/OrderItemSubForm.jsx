@@ -22,35 +22,58 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
             <div className="space-y-3">
                 {/* Row 1: Name */}
                 <div>
-                    <TextInput 
-                        label="Peptide/Amino Name" 
-                        value={item.name || ''} 
-                        onChange={v => handleChange('name', v)} 
-                        theme={theme} 
-                        placeholder="e.g., BPC-157, Superhuman, Lipo-C" 
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Peptide/Amino Name</label>
+                    <input
+                        type="text"
+                        value={item.name || ''}
+                        onChange={e => handleChange('name', e.target.value)}
+                        placeholder="e.g., BPC-157, Superhuman, Lipo-C"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                        style={{
+                            borderColor: theme.border,
+                            backgroundColor: theme.cardBackground,
+                            color: theme.text,
+                            focusRingColor: theme.primary
+                        }}
                     />
                 </div>
                 
-                {/* Row 2: Amount/Unit and Price */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Row 2: Amount and Quantity */}
+                <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Amount & Unit</div>
-                        <div className="flex items-center p-0.5 rounded border" style={{ borderColor: theme.border }}>
+                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Amount</label>
+                        <div 
+                            className="flex items-stretch border rounded-lg overflow-hidden"
+                            style={{ borderColor: theme.border }}
+                        >
                             <input 
-                                className="flex-1 w-full border-none outline-none text-sm bg-transparent px-2 py-1.5" 
+                                type="text"
                                 value={item.mg || ''} 
                                 onChange={e => handleChange('mg', e.target.value)} 
-                                placeholder="10 or 0.5" 
-                                type="text"
-                                inputMode="decimal"
+                                placeholder="10 or 0.5"
+                                className="flex-1 px-3 py-2 outline-none min-w-0"
+                                style={{
+                                    backgroundColor: theme.inputBackground || '#fff',
+                                    color: theme.text
+                                }}
                             />
-                            <div className="inline-flex rounded-full bg-gray-100 p-0.5 shadow-inner">
+                            <div 
+                                className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                                style={{ 
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.cardBackground || '#f9fafb'
+                                }}
+                            >
                                 {['mg', 'mL'].map(unit => (
                                     <button 
                                         key={unit} 
                                         type="button" 
                                         onClick={() => handleChange('mgUnit', unit)}
-                                        className={`px-2 py-1 text-xs font-semibold rounded-full ${(item.mgUnit || 'mg') === unit ? 'text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+                                        className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
+                                            (item.mgUnit || 'mg') === unit 
+                                                ? 'text-white shadow-sm' 
+                                                : 'text-gray-600 hover:bg-gray-200'
+                                        }`}
                                         style={(item.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
                                     >
                                         {unit}
@@ -60,44 +83,65 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         </div>
                     </div>
                     <div>
-                        <TextInput 
-                            label="Price ($)" 
-                            value={item.price || ''} 
-                            onChange={v => handleChange('price', v)} 
-                            theme={theme} 
-                            placeholder="e.g., 45.00"
-                            type="text"
-                            inputMode="decimal"
-                        />
+                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Quantity</label>
+                        <div 
+                            className="flex items-stretch border rounded-lg overflow-hidden"
+                            style={{ borderColor: theme.border }}
+                        >
+                            <input 
+                                type="number"
+                                value={item.quantity || ''} 
+                                onChange={e => handleChange('quantity', e.target.value)} 
+                                placeholder="1"
+                                className="flex-1 px-3 py-2 outline-none min-w-0"
+                                style={{
+                                    backgroundColor: theme.inputBackground || '#fff',
+                                    color: theme.text
+                                }}
+                            />
+                            <div 
+                                className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                                style={{ 
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.cardBackground || '#f9fafb'
+                                }}
+                            >
+                                {['vial', 'bottle', 'kit'].map(unit => (
+                                    <button 
+                                        key={unit} 
+                                        type="button" 
+                                        onClick={() => handleChange('unit', unit)}
+                                        className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
+                                            (item.unit || 'vial') === unit 
+                                                ? 'text-white shadow-sm' 
+                                                : 'text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                        style={(item.unit || 'vial') === unit ? { backgroundColor: theme.primary } : {}}
+                                    >
+                                        {unit.charAt(0).toUpperCase() + unit.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                {/* Row 3: Quantity and Unit */}
+                {/* Row 3: Price */}
                 <div>
-                    <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Quantity & Unit</div>
-                    <div className="flex items-center p-2 rounded border" style={{ borderColor: theme.border }}>
-                        <input 
-                            className="flex-1 border-none outline-none text-sm bg-transparent" 
-                            value={item.quantity || ''} 
-                            onChange={e => handleChange('quantity', e.target.value)} 
-                            placeholder="1" 
-                            type="text"
-                            inputMode="numeric"
-                        />
-                        <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
-                            {['vial', 'kit'].map(unit => (
-                                <button 
-                                    key={unit} 
-                                    type="button" 
-                                    onClick={() => handleChange('unit', unit)}
-                                    className={`px-3 py-1.5 text-xs font-semibold rounded-full ${(item.unit || 'vial') === unit ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                                    style={(item.unit || 'vial') === unit ? { backgroundColor: theme.primary } : {}}
-                                >
-                                    {unit.charAt(0).toUpperCase() + unit.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Price ($)</label>
+                    <input
+                        type="text"
+                        value={item.price || ''}
+                        onChange={e => handleChange('price', e.target.value)}
+                        placeholder="e.g., 45.00"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                        style={{
+                            borderColor: theme.border,
+                            backgroundColor: theme.cardBackground,
+                            color: theme.text,
+                            focusRingColor: theme.primary
+                        }}
+                    />
                 </div>
             </div>
         </div>

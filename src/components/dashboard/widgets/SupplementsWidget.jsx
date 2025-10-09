@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Pill, Syringe, Beaker, Edit, Trash2 } from 'lucide-react';
+import { Plus, Pill, Syringe, Beaker, Edit, Trash2, Lock } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 
 const SupplementsWidget = ({ 
@@ -8,7 +8,9 @@ const SupplementsWidget = ({
   supplements = [], 
   onAddSupplement,
   onEditSupplement,
-  onDeleteSupplement 
+  onDeleteSupplement,
+  isReadOnly = false,
+  onUpgrade
 }) => {
   const { showSchedule = true } = widget.settings;
 
@@ -41,7 +43,7 @@ const SupplementsWidget = ({
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="relative h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
@@ -126,6 +128,30 @@ const SupplementsWidget = ({
           </div>
         )}
       </div>
+      
+      {/* Lockout Overlay */}
+      {isReadOnly && (
+        <div className="absolute inset-0 backdrop-blur-sm bg-white/70 flex items-center justify-center z-50 rounded-lg">
+          <div className="text-center p-4">
+            <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+              <Lock size={24} style={{ color: theme.primary }} />
+            </div>
+            <p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
+              Trial has ended
+            </p>
+            <button
+              onClick={() => {
+                if (onUpgrade) onUpgrade();
+                else window.location.href = '/app/account';
+              }}
+              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Upgrade
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

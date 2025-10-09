@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Bed, Smile, ShieldAlert, Activity, Weight, Percent, TrendingUp, Calendar, BarChart3, Eye } from 'lucide-react';
+import { Plus, Edit, Bed, Smile, ShieldAlert, Activity, Weight, Percent, TrendingUp, Calendar, BarChart3, Eye, Lock } from 'lucide-react';
 import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
@@ -366,7 +366,9 @@ const MetricsWidget = ({
   theme, 
   metrics = [], 
   onAddMetric,
-  onEditMetric
+  onEditMetric,
+  isReadOnly = false,
+  onUpgrade
 }) => {
   const [showAllEntries, setShowAllEntries] = useState(false);
   
@@ -375,7 +377,7 @@ const MetricsWidget = ({
   const recentMetrics = sortedMetrics.slice(0, 1); // Show only the most recent
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="relative h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
@@ -519,6 +521,30 @@ const MetricsWidget = ({
         theme={theme}
         onEditMetric={onEditMetric}
       />
+      
+      {/* Lockout Overlay */}
+      {isReadOnly && (
+        <div className="absolute inset-0 backdrop-blur-sm bg-white/70 flex items-center justify-center z-50 rounded-lg">
+          <div className="text-center p-4">
+            <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+              <Lock size={24} style={{ color: theme.primary }} />
+            </div>
+            <p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
+              Trial has ended
+            </p>
+            <button
+              onClick={() => {
+                if (onUpgrade) onUpgrade();
+                else window.location.href = '/app/account';
+              }}
+              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Upgrade
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

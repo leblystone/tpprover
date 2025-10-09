@@ -96,10 +96,10 @@ export default function Vendors() {
 					</h3>
 					<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
 						{activeTab === 'domestic' 
-							? 'Add domestic vendors to track contact information, payment methods, and order history. Keep your trusted suppliers organized and easily accessible.'
+							? 'Add domestic vendors to track contact information, payment methods, and order history for research purposes. Organize suppliers and maintain accessible records.'
 							: activeTab === 'international' 
-							? 'Add international vendors to manage overseas suppliers, shipping information, and customs details. Track your global supply chain effectively.'
-							: 'Add group buy vendors to coordinate bulk purchases, manage participant lists, and track group order status. Organize collaborative buying efforts.'
+							? 'Add international vendors to manage overseas suppliers, shipping information, and customs details for research purposes. Track global supply chain management.'
+							: 'Add group buy vendors to organize collaborative purchasing efforts.'
 						}
 					</p>
 					{!isReadOnly && (
