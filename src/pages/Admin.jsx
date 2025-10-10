@@ -35,6 +35,7 @@ import LifetimeMigration from '../components/admin/LifetimeMigration';
 import AgreementTracking from '../components/admin/AgreementTracking';
 import NotificationTemplateEditor from '../components/admin/NotificationTemplateEditor';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
+import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -907,7 +908,8 @@ function Admin() {
               { id: 'whitelist', label: 'Access', icon: Mail, color: '#64748b' },
               { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
               { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
-              { id: 'notifications', label: 'Notifications', icon: Bell, color: '#8b5cf6' }
+              { id: 'notifications', label: 'Notifications', icon: Bell, color: '#8b5cf6' },
+              { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4' }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1131,6 +1133,7 @@ function Admin() {
                 {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
                 {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
                 {activeTab === 'notifications' && 'Customize notification templates and messaging with personality'}
+                {activeTab === 'emails' && 'Design beautiful branded email templates - no coding required!'}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -2461,6 +2464,10 @@ function Admin() {
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === 'emails' && (
+          <EmailTemplateManager theme={theme} />
         )}
 
         </div>
