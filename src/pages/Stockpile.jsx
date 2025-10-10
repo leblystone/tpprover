@@ -171,6 +171,7 @@ export default function Stockpile() {
 
   const [manageName, setManageName] = useState(null)
   const [manageRows, setManageRows] = useState([])
+  const [outOfStockModalName, setOutOfStockModalName] = useState(null)
   
   // Auto-save functionality for manage modal
   const { isSaving: isManageSaving, lastSaved: lastManageSaved, clearSavedData: clearManageSavedData, markAsSubmitted: markManageSubmitted, updateFormData: updateManageData } = useAutoSave(
@@ -586,18 +587,36 @@ export default function Stockpile() {
             {groups.some(g => g.totalMg <= 0) && (
               <>
                 <div className="font-semibold" style={{ color: theme.primaryDark }}>Out of Stock</div>
-                <hr className="mb-3" style={{ borderColor: theme.border }} />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
+                <hr className="mb-2" style={{ borderColor: theme.border }} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
                   {groups.filter(g => g.totalMg <= 0).map(g => (
-                    <div key={`oos-${g.name}`} className="relative p-4 rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div key={`oos-${g.name}`} className="relative p-3 rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div style={{ fontSize: '64px', color: 'rgba(185,28,28,0.10)', fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
                       </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
-                        <div className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Out of Stock</div>
+                      <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
+                          <div className="flex items-center gap-1">
+                            <div className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Out of Stock</div>
+                            <button
+                              onClick={() => {
+                                if (isReadOnly) {
+                                  setShowUpgradeModal(true);
+                                  return;
+                                }
+                                setOutOfStockModalName(g.name);
+                              }}
+                              className="p-1 rounded hover:bg-gray-200 transition-colors"
+                              style={{ color: theme.primary }}
+                              title="Restore/Manage"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-500">No vials on hand.</div>
                       </div>
-                      <div className="text-sm text-gray-500">No vials on hand.</div>
                     </div>
                   ))}
                 </div>
@@ -665,7 +684,7 @@ export default function Stockpile() {
               <input
                 type="text"
                 value={form.name}
-                onChange={e => updateFormData({ ...form, name: e.target.value })}
+                onChange={e => updateFormData({ name: e.target.value })}
                 placeholder="e.g., BPC-157, Superhuman, Super Shredder, Lipo"
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
                 style={{
@@ -687,7 +706,7 @@ export default function Stockpile() {
                 <input 
                   type="text"
                   value={form.mg || ''} 
-                  onChange={e => updateFormData({ ...form, mg: e.target.value })} 
+                  onChange={e => updateFormData({ mg: e.target.value })} 
                   placeholder="10 or 0.5"
                   className="flex-1 px-3 py-2 outline-none min-w-0"
                   style={{
@@ -706,7 +725,7 @@ export default function Stockpile() {
                     <button 
                       key={unit} 
                       type="button" 
-                      onClick={() => updateFormData({ ...form, mgUnit: unit })}
+                      onClick={() => updateFormData({ mgUnit: unit })}
                       className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
                         (form.mgUnit || 'mg') === unit 
                           ? 'text-white shadow-sm' 
@@ -729,7 +748,7 @@ export default function Stockpile() {
                 <input 
                   type="text"
                   value={form.quantity || ''} 
-                  onChange={e => updateFormData({ ...form, quantity: e.target.value })} 
+                  onChange={e => updateFormData({ quantity: e.target.value })} 
                   placeholder="1"
                   className="flex-1 px-3 py-2 outline-none min-w-0"
                   style={{
@@ -748,7 +767,7 @@ export default function Stockpile() {
                     <button 
                       key={k} 
                       type="button" 
-                      onClick={() => updateFormData({ ...form, unit: k })}
+                      onClick={() => updateFormData({ unit: k })}
                       className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
                         ((form.unit || 'vial') === k) 
                           ? 'text-white shadow-sm' 
@@ -764,25 +783,25 @@ export default function Stockpile() {
             </div>
           </div>
           
-          <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => updateFormData({ ...form, capColor: v })} placeholder="Blue" theme={theme} />
+          <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Blue" theme={theme} />
           
           {/* ORDER DETAILS Section Header */}
           <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
             <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ORDER DETAILS</h4>
           </div>
           
-          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ ...form, vendor: v })} placeholder="Vendor" theme={theme} />
+          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="Vendor" theme={theme} />
           
           {/* Purity & Batch Number in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ ...form, purity: v })} placeholder="e.g., 98" theme={theme} />
-            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ ...form, batchNumber: v })} placeholder="#" theme={theme} />
+            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} />
+            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="#" theme={theme} />
           </div>
           
           {/* Date Acquired & Use By Date in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => updateFormData({ ...form, date: v })} theme={theme} />
-            <TextInput label="Use By (Optional)" type="date" value={form.useByDate} onChange={v => updateFormData({ ...form, useByDate: v })} theme={theme} />
+            <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => updateFormData({ date: v })} theme={theme} />
+            <TextInput label="Use By (Optional)" type="date" value={form.useByDate} onChange={v => updateFormData({ useByDate: v })} theme={theme} />
           </div>
           </div>
         </div>
@@ -791,7 +810,7 @@ export default function Stockpile() {
         <div className="mt-4">
           <DocumentationUpload
             documentation={form.documentation}
-            onChange={(documentation) => updateFormData({ ...form, documentation })}
+            onChange={(documentation) => updateFormData({ documentation })}
             theme={theme}
             title="Post-Delivery Documentation"
             description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
@@ -940,6 +959,106 @@ export default function Stockpile() {
         mergeData={mergeData}
         theme={theme}
       />
+
+      {/* Out of Stock Options Modal */}
+      <Modal
+        open={!!outOfStockModalName}
+        onClose={() => setOutOfStockModalName(null)}
+        title={`${outOfStockModalName || ''} - Out of Stock!`}
+        theme={theme}
+        variant="modern"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm" style={{ color: theme.text }}>
+            What would you like to do?
+          </p>
+
+          {/* Option Buttons */}
+          <div className="space-y-3">
+            {/* Found a Vial */}
+            <button
+              onClick={() => {
+                openManage(outOfStockModalName);
+                setOutOfStockModalName(null);
+              }}
+              className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md text-left"
+              style={{ 
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: `${theme.primary}20` }}>
+                  <Package size={20} style={{ color: theme.primary }} />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark }}>Found a Vial?</div>
+                  <div className="text-xs" style={{ color: theme.textLight }}>Add vials back to your inventory</div>
+                </div>
+              </div>
+            </button>
+
+            {/* Incoming Order */}
+            <button
+              onClick={() => {
+                setOutOfStockModalName(null);
+                navigate('/app/orders');
+              }}
+              className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md text-left"
+              style={{ 
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: `${theme.success}20` }}>
+                  <ShoppingCart size={20} style={{ color: theme.success }} />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark }}>Have an Incoming Order?</div>
+                  <div className="text-xs" style={{ color: theme.textLight }}>Track your order to automatically restock</div>
+                </div>
+              </div>
+            </button>
+
+            {/* Restore from History */}
+            <button
+              onClick={() => {
+                openManage(outOfStockModalName);
+                setOutOfStockModalName(null);
+                setShowHistory(true);
+              }}
+              className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md text-left"
+              style={{ 
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: `${theme.accent}20` }}>
+                  <FileText size={20} style={{ color: theme.accent }} />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold mb-1" style={{ color: theme.primaryDark }}>Restore from History</div>
+                  <div className="text-xs" style={{ color: theme.textLight }}>View usage history and restore if it was a mistake</div>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Cancel Button */}
+          <div className="pt-2">
+            <button
+              onClick={() => setOutOfStockModalName(null)}
+              className="w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all"
+              style={{ borderColor: theme.border, color: theme.text }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <UpgradeModal 
         isOpen={showUpgradeModal}

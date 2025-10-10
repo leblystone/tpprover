@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Droplet, Pill, Syringe, Beaker, ShoppingCart } from 'lucide-react';
+import { Check, X, Pill, Beaker, ShoppingCart, Pipette } from 'lucide-react';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCompletionStats } from '../../utils/taskCompletion';
 import TaskDisplay from './TaskDisplay';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
@@ -19,7 +19,7 @@ function labelForSlot(slot) {
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, size = 16) {
     switch (String(delivery || '').toLowerCase()) {
-        case 'injection': return <Syringe size={size} />;
+        case 'injection': return <Pipette size={size} />;
         case 'powder': return <Beaker size={size} />;
         case 'pill':
         case 'oral':
@@ -150,7 +150,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
         // Check if this is a syringe or pen delivery method
         if (taskData && !currentStatus) {
             const deliveryMethod = taskData.deliveryMethod || taskData.delivery;
-            const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+            const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
             
             // If it's an injection and currently not completed, show injection modal
             if (isInjection) {
@@ -228,7 +228,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
         if (slotData.peptides) {
             slotData.peptides.forEach(peptide => {
                 const deliveryMethod = peptide.deliveryMethod || peptide.delivery;
-                const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                 if (isInjection) {
                     injectionTasks.push(peptide);
                 }
@@ -239,7 +239,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
             slotData.supplements.forEach(supplement => {
                 const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
                 const deliveryMethod = suppData.deliveryMethod || suppData.delivery;
-                const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                 if (isInjection) {
                     injectionTasks.push(suppData);
                 }

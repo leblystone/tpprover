@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, Syringe, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
@@ -347,7 +347,7 @@ export default function Recon() {
 												<div className="text-sm space-y-2" style={{ color: theme.textLight }}>
 													<div className="flex items-center gap-2"><Beaker size={14} /> {totalMg} mg</div>
 													<div className="flex items-center gap-2"><Droplet size={14} /> {item.water} mL water</div>
-													<div className="flex items-center gap-2"><Syringe size={14} /> {totalDoseInMcg} mcg total dose</div>
+													<div className="flex items-center gap-2"><Droplet size={14} /> {totalDoseInMcg} mcg total dose</div>
 												</div>
 												<div className="text-sm space-y-2" style={{ color: theme.textLight }}>
 													<div><span className="font-medium text-base pr-1" style={{color: theme.text}}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</span> units/dose</div>
@@ -394,8 +394,8 @@ export default function Recon() {
 													</div>
 												) : (
                                                     <div className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                        <Syringe size={12} />
-                                                        <span>Syringe</span>
+                                                        <Pipette size={12} />
+                                                        <span>Pipette</span>
                                                     </div>
                                                 )}
 											</div>
@@ -564,15 +564,15 @@ export default function Recon() {
                     <div>
                         <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
                             <button 
-                                onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'syringe' }))}
+                                onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'pipette' }))}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                                    (editingItem?.deliveryMethod || 'syringe') === 'syringe' 
+                                    (editingItem?.deliveryMethod || 'pipette') === 'pipette' 
                                         ? 'text-white shadow-sm' 
                                         : 'text-gray-700 hover:bg-gray-200'
                                 }`}
-                                style={(editingItem?.deliveryMethod || 'syringe') === 'syringe' ? { backgroundColor: theme.primary } : {}}
+                                style={(editingItem?.deliveryMethod || 'pipette') === 'pipette' ? { backgroundColor: theme.primary } : {}}
                             >
-                                <Syringe size={16} /> Syringe
+                                <Pipette size={16} /> Pipette
                             </button>
                             <button 
                                 onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'pen' }))}
@@ -597,7 +597,7 @@ export default function Recon() {
                                 <Droplet size={16} /> Nasal
                             </button>
                         </div>
-                        {(editingItem?.deliveryMethod === 'syringe' || !editingItem?.deliveryMethod) && (
+                        {(editingItem?.deliveryMethod === 'pipette' || !editingItem?.deliveryMethod) && (
                             <div className="mt-3">
                                 <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
                                 <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
@@ -711,7 +711,7 @@ export default function Recon() {
 							<div><div className="text-xs" style={{ color: theme.textLight }}>mg</div><div className="font-medium">{viewItem.mg}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Water (mL)</div><div className="font-medium">{viewItem.water}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Dose (mcg)</div><div className="font-medium">{viewItem.dose}</div></div>
-							<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'syringe').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Syringe'}</div></div>
+							<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Pipette'}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Units</div><div>{calc.unitsPerDose ? `${calc.unitsPerDose.toFixed(0)} u` : '-'}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Doses/Vial</div><div>{calc.dosesPerVial || '-'}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Cost/Dose</div><div>{costPerDose || '-'}</div></div>

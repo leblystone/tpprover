@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { CheckSquare, Syringe, PenTool, Droplet, Check, Beaker, Pill, Clock, MapPin, History } from 'lucide-react';
+import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, History, Pipette } from 'lucide-react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -14,11 +14,11 @@ const DeliveryIcon = ({ task, theme }) => {
     if (task.deliveryMethod === 'pen') {
       return <PenTool size={14} style={{ color: theme.textLight }} />;
     }
-    if (task.deliveryMethod === 'syringe') {
-      return <Syringe size={14} style={{ color: theme.textLight }} />;
+    if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
+      return <Pipette size={14} style={{ color: theme.textLight }} />;
     }
     if (task.deliveryMethod === 'nasal') {
-      return <Droplet size={14} style={{ color: theme.textLight }} />;
+      return <Pipette size={14} style={{ color: theme.textLight }} />;
     }
   }
   
@@ -26,7 +26,7 @@ const DeliveryIcon = ({ task, theme }) => {
   if (task.type === 'supplement') {
     const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
     if (delivery === 'injection') {
-      return <Syringe size={14} style={{ color: theme.textLight }} />;
+      return <Pipette size={14} style={{ color: theme.textLight }} />;
     }
     if (delivery === 'powder') {
       return <Beaker size={14} style={{ color: theme.textLight }} />;
@@ -69,7 +69,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     if (!tasks) return false;
     return tasks.some(task => {
       const deliveryMethod = task.deliveryMethod || task.delivery;
-      return deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+      return deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
     });
   }, [tasks]);
   
@@ -105,7 +105,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
       <div className="h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Today's Research
             </h3>
             <CheckSquare size={20} style={{ color: theme.primary }} />
@@ -127,7 +127,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
       <div className="h-full flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Today's Research
             </h3>
             <CheckSquare size={20} style={{ color: theme.primary }} />
@@ -177,7 +177,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                     onClick={() => {
                       // Check if this is an injection task that's not completed
                       const deliveryMethod = task.deliveryMethod || task.delivery;
-                      const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                      const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                       
                       console.log('🔍 TasksWidget click debug:', {
                         taskName: task.name,
@@ -219,7 +219,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             ))}
           </div>
           
-          {/* Injection History Button */}
+          {/* Research Site History Button */}
           {hasInjectionTasks && (
             <div className="mt-3 flex justify-end">
               <button
@@ -229,10 +229,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                   backgroundColor: theme.secondary,
                   color: theme.textLight
                 }}
-                title="View injection history"
+                title="View site history"
               >
                 <History size={12} />
-                <span>View Injection History</span>
+                <span>View History</span>
               </button>
             </div>
           )}
@@ -268,7 +268,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             {widget.title}
           </h3>
           <CheckSquare size={20} style={{ color: theme.primary }} />
@@ -283,7 +283,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           groupByTime={groupByTime}
         />
         
-        {/* Injection History Button */}
+        {/* Research Site History Button */}
         {hasInjectionTasks && (
           <div className="mt-3 flex justify-end">
             <button
@@ -293,10 +293,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                 backgroundColor: theme.secondary,
                 color: theme.textLight
               }}
-              title="View injection history"
+              title="View site history"
             >
               <History size={12} />
-              <span>View Injection History</span>
+              <span>View History</span>
             </button>
           </div>
         )}

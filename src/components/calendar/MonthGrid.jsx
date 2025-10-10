@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Droplet, Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Syringe, Beaker, Target, CheckCircle, PenTool } from 'lucide-react'
+import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
@@ -8,7 +8,7 @@ import { penColors } from '../../utils/penColors'
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
     switch (String(delivery || '').toLowerCase()) {
-        case 'injection': return <Syringe className={className} />;
+        case 'injection': return <Pipette className={className} />;
         case 'powder': return <Beaker className={className} />;
         case 'pill':
         case 'oral':
@@ -35,12 +35,13 @@ function getPeptideDeliveryIcon(item, className = "h-3 w-3") {
     if (typeof item === 'object' && item.deliveryMethod) {
         switch (item.deliveryMethod) {
             case 'pen': return <PenTool className={className} />;
-            case 'syringe': return <Syringe className={className} />;
-            case 'nasal': return <Droplet className={className} />;
-            default: return <Syringe className={className} />;
+            case 'syringe':
+            case 'pipette': return <Pipette className={className} />;
+            case 'nasal': return <Pipette className={className} />;
+            default: return <Pipette className={className} />;
         }
     }
-    return <Syringe className={className} />;
+    return <Pipette className={className} />;
 }
 
 function getMonthDays(date) {
@@ -198,7 +199,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     
                     // Build icon elements for large screens (up to 4 slots)
                     const iconGridEls = [];
-                    if (peptideCount > 0) iconGridEls.push(<Syringe key="i-pep" className="w-4 h-4" style={{ color: '#73796D' }} />);
+                    if (peptideCount > 0) iconGridEls.push(<Pipette key="i-pep" className="w-4 h-4" style={{ color: '#73796D' }} />);
                     if (suppCount > 0) iconGridEls.push(<Pill key="i-sup" className="w-4 h-4" style={{ color: '#A4A897' }} />);
                     if (buyCount > 0) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" style={{ color: '#9B9B7A' }} />);
                     while (iconGridEls.length < 4) iconGridEls.push(<span key={`i-empty-${iconGridEls.length}`} />);
@@ -258,7 +259,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-8 h-8 sm:hidden mx-auto">
                                             {peptideCount > 0 && (
                                                 <div className="flex items-center justify-center">
-                                                    <Syringe size={12} style={{ color: '#73796D' }} />
+                                                    <Pipette size={12} style={{ color: '#73796D' }} />
                                                 </div>
                                             )}
                                             {suppCount > 0 && (
@@ -274,7 +275,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         </div>
                                         {/* Tablet/Desktop: single row (sm/md) and 4-col line on lg+ */}
                                         <div className="hidden sm:flex justify-center lg:hidden items-center gap-1 sm:gap-1.5">
-                                            {peptideCount > 0 && <Syringe className="w-3 h-3" style={{ color: '#73796D' }} />}
+                                            {peptideCount > 0 && <Pipette className="w-3 h-3" style={{ color: '#73796D' }} />}
                                             {suppCount > 0 && <Pill className="w-3 h-3" style={{ color: '#A4A897' }} />}
                                             {buyCount > 0 && <ShoppingCart className="w-3 h-3" style={{ color: '#9B9B7A' }} />}
                                         </div>

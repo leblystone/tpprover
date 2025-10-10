@@ -27,7 +27,7 @@ const TOUR_STEPS = [
     },
     {
         target: 'body',
-        content: "**Reconstitute** - Track your vials 🧪\n\nCalculate reconstitution doses, track every vial you prepare, and choose your delivery method (syringe or pen). Keep everything organized with color-coded pens.",
+        content: "**Reconstitute** - Track your vials 🧪\n\nCalculate reconstitution doses, track every vial you prepare, and choose your delivery method (pipette or pen). Keep everything organized with color-coded pens.",
         title: 'Reconstitute',
         placement: 'center',
         path: '/app/recon',

@@ -54,7 +54,8 @@ export default function VialLabelPreview({
   const getDeliveryText = () => {
     switch (deliveryMethod) {
       case 'syringe':
-        return administrationRoute ? administrationRoute.toUpperCase() : 'Syringe';
+      case 'pipette':
+        return administrationRoute ? administrationRoute.toUpperCase() : 'Pipette';
       case 'pen':
         return penType ? `Pen (${penType})` : 'Pen';
       case 'nasal':

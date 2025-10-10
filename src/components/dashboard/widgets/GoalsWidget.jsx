@@ -24,7 +24,7 @@ const GoalsWidget = ({
   return (
     <div className="relative h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
-        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+        <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
           {widget.title}
         </h3>
       </div>

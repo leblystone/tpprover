@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Helper - The Pep Planner</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4A7C70 0%, #3A6B5F 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 40px;
+            font-size: 18px;
+        }
+        
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+        
+        .instructions ol {
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        
+        .instructions code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .screenshot-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .screenshot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .screenshot-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .screenshot-card .icon {
+            font-size: 24px;
+        }
+        
+        .screenshot-card .description {
+            opacity: 0.9;
+            font-size: 14px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .screenshot-card .url {
+            background: rgba(0,0,0,0.3);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-bottom: 10px;
+        }
+        
+        .screenshot-card .btn {
+            display: inline-block;
+            background: white;
+            color: #4A7C70;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .screenshot-card .btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+        
+        .tips {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 30px;
+        }
+        
+        .tips h2 {
+            margin-top: 0;
+        }
+        
+        .tips ul {
+            line-height: 1.8;
+        }
+        
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Screenshot Helper</h1>
+        <p class="subtitle">Professional screenshots for The Pep Planner</p>
+        
+        <div class="instructions">
+            <h2>🎯 Quick Setup</h2>
+            <ol>
+                <li>Press <code>F12</code> to open Chrome DevTools</li>
+                <li>Click the device toggle button (📱) or press <code>Ctrl+Shift+M</code></li>
+                <li>Select <strong>"iPhone 12 Pro"</strong> from the device dropdown</li>
+                <li>Make sure your theme is set to <strong>Sage</strong> in the app</li>
+                <li>Click any card below to navigate to that screen</li>
+                <li>Press <code>Ctrl+Shift+P</code> and type "screenshot"</li>
+                <li>Select <strong>"Capture full size screenshot"</strong></li>
+                <li>Save with the suggested filename</li>
+            </ol>
+        </div>
+        
+        <h2 style="text-align: center; margin-bottom: 20px;">📱 Screenshots to Take</h2>
+        
+        <div class="screenshot-grid">
+            <div class="screenshot-card" onclick="navigateToScreen('/app/dashboard')">
+                <h3><span class="icon">📊</span> Dashboard</h3>
+                <p class="description">Main dashboard showing protocol overview, metrics, and quick actions. This is your hero screenshot.</p>
+                <div class="url">http://localhost:5174/app/dashboard</div>
+                <a href="/app/dashboard" class="btn" target="_blank">Open Screen →</a>
+            </div>
+            
+            <div class="screenshot-card" onclick="navigateToScreen('/app/protocols')">
+                <h3><span class="icon">🧬</span> Protocols</h3>
+                <p class="description">Protocol management interface showing protocol list and creation features.</p>
+                <div class="url">http://localhost:5174/app/protocols</div>
+                <a href="/app/protocols" class="btn" target="_blank">Open Screen →</a>
+            </div>
+            
+            <div class="screenshot-card" onclick="navigateToScreen('/app/recon')">
+                <h3><span class="icon">🧮</span> Recon Calculator</h3>
+                <p class="description">Reconstitution calculator with sample data showing precise calculations and vial preview.</p>
+                <div class="url">http://localhost:5174/app/recon</div>
+                <a href="/app/recon" class="btn" target="_blank">Open Screen →</a>
+            </div>
+            
+            <div class="screenshot-card" onclick="navigateToScreen('/app/orders')">
+                <h3><span class="icon">📦</span> Orders</h3>
+                <p class="description">Order tracking and management showing vendor integration and order status.</p>
+                <div class="url">http://localhost:5174/app/orders</div>
+                <a href="/app/orders" class="btn" target="_blank">Open Screen →</a>
+            </div>
+            
+            <div class="screenshot-card" onclick="navigateToScreen('/app/stockpile')">
+                <h3><span class="icon">📊</span> Stockpile</h3>
+                <p class="description">Inventory management showing on-hand and incoming items with detailed tracking.</p>
+                <div class="url">http://localhost:5174/app/stockpile</div>
+                <a href="/app/stockpile" class="btn" target="_blank">Open Screen →</a>
+            </div>
+            
+            <div class="screenshot-card" onclick="navigateToScreen('/app/vendors')">
+                <h3><span class="icon">🏢</span> Vendors</h3>
+                <p class="description">Vendor management system showing contact information and organization.</p>
+                <div class="url">http://localhost:5174/app/vendors</div>
+                <a href="/app/vendors" class="btn" target="_blank">Open Screen →</a>
+            </div>
+            
+            <div class="screenshot-card" onclick="navigateToScreen('/app/calendar')">
+                <h3><span class="icon">📅</span> Calendar</h3>
+                <p class="description">Calendar integration showing scheduled research activities and protocol events.</p>
+                <div class="url">http://localhost:5174/app/calendar</div>
+                <a href="/app/calendar" class="btn" target="_blank">Open Screen →</a>
+            </div>
+        </div>
+        
+        <div class="tips">
+            <h2>💡 Pro Tips</h2>
+            <ul>
+                <li><strong>Use Sage Theme:</strong> Make sure your app is set to the Sage theme for consistency</li>
+                <li><strong>Show Real Data:</strong> Have sample protocols, orders, and vendors visible (not empty states)</li>
+                <li><strong>Consistent Quality:</strong> Take all screenshots at the same device size (iPhone 12 Pro)</li>
+                <li><strong>File Naming:</strong> Save as: dashboard-hero.png, protocols-management.png, recon-calculator.png, etc.</li>
+                <li><strong>Full Page:</strong> Make sure to capture the full page including any scrollable content</li>
+                <li><strong>Clean UI:</strong> Close any debug tools or developer indicators before capturing</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="status" id="status">
+        Screen opened! Take your screenshot now.
+    </div>
+    
+    <script>
+        function navigateToScreen(path) {
+            const url = `http://localhost:5174${path}`;
+            window.open(url, '_blank');
+            showStatus('Screen opened! Take your screenshot now.');
+        }
+        
+        function showStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.classList.add('show');
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                e.preventDefault();
+                showStatus('Press Ctrl+Shift+P in DevTools and select "Capture screenshot"');
+            }
+        });
+    </script>
+</body>
+</html>
+
+

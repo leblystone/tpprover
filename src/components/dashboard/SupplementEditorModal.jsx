@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { Pill, Syringe, TestTube } from 'lucide-react';
+import { Pill, TestTube, Pipette } from 'lucide-react';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
     const [form, setForm] = useState({ name: '', dose: '', schedule: [], delivery: 'oral', days: [] });
@@ -40,7 +40,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
 
     const deliveryOptions = [
         { value: 'oral', label: 'Oral', Icon: Pill },
-        { value: 'injection', label: 'Injection', Icon: Syringe },
+        { value: 'injection', label: 'Injection', Icon: Pipette },
         { value: 'powder', label: 'Powder', Icon: TestTube },
     ];
 

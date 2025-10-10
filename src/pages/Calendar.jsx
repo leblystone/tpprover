@@ -464,7 +464,7 @@ export default function Calendar() {
                       const currentSlot = obj[normalizedTimeSlot] || { peptides: [], supplements: [] }
                       let deliveryInfo = '';
                       if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
-                      if (reconItem?.deliveryMethod === 'syringe') deliveryInfo = ' (Syringe)';
+                      if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Pipette)';
                       const peptideName = `${p.protocolName || 'Blended Protocol'}${doseDisplay}${deliveryInfo}`;
                       // For blended protocols, we'll use the first peptide's dose info
                       const firstPeptide = getNormalizedPeptides(p)[0];
@@ -560,7 +560,7 @@ export default function Calendar() {
 
                               let deliveryInfo = '';
                               if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
-                              if (reconItem?.deliveryMethod === 'syringe') deliveryInfo = ' (Syringe)';
+                              if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Pipette)';
 
                               const peptideName = `${pep.name || 'Peptide'} - ${doseInfo}${deliveryInfo}`;
                               // Parse dose and unit from doseInfo
@@ -724,7 +724,7 @@ export default function Calendar() {
   const handleTaskToggle = React.useCallback((task, date = new Date()) => {
     // Check if this is a syringe or pen delivery method
     const deliveryMethod = task.deliveryMethod || task.delivery;
-    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
     
         // Injection confirmation is now handled inline in the task components
     

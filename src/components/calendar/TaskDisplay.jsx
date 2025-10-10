@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, Syringe, Check, PenTool, Droplet, Beaker } from 'lucide-react';
+import { Pill, Check, PenTool, Beaker, Pipette } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -11,17 +11,17 @@ const DeliveryIcon = ({ task, theme, size = 14 }) => {
     if (task.deliveryMethod === 'pen') {
       return <PenTool size={size} style={{ color: theme.textLight }} />;
     }
-    if (task.deliveryMethod === 'syringe') {
-      return <Syringe size={size} style={{ color: theme.textLight }} />;
+    if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
+      return <Pipette size={size} style={{ color: theme.textLight }} />;
     }
     if (task.deliveryMethod === 'nasal') {
-      return <Droplet size={size} style={{ color: theme.textLight }} />;
+      return <Pipette size={size} style={{ color: theme.textLight }} />;
     }
   }
   
   if (task.type === 'supplement') {
     switch (String(task.delivery || '').toLowerCase()) {
-      case 'injection': return <Syringe size={size} style={{ color: theme.textLight }} />;
+      case 'injection': return <Droplet size={size} style={{ color: theme.textLight }} />;
       case 'powder': return <Beaker size={size} style={{ color: theme.textLight }} />;
       case 'pill':
       case 'oral':
@@ -102,7 +102,7 @@ const TaskDisplay = ({
   const handleToggle = () => {
     // Check if this is an injection task that's not completed
     const deliveryMethod = task.deliveryMethod || task.delivery;
-    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
     
     if (isInjection && !isCompleted) {
       setShowInjectionSelector(true);

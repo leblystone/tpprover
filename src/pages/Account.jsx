@@ -314,64 +314,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           detail: { message: '🔄 Processing your subscription...', type: 'info' } 
         }));
 
-        // Check if current subscription is demo/trial (no real Stripe subscription ID)
-        const isDemo = !sub?.subscriptionId || 
-                       sub?.subscriptionId?.startsWith('demo_') || 
-                       sub?.subscriptionId?.startsWith('sub_demo_') || 
-                       sub?.subscriptionId === 'trial_demo' || 
-                       sub?.status === 'trialing';
-        
-        console.log('🔍 Demo Detection:', { 
-          subscriptionId: sub?.subscriptionId, 
-          status: sub?.status, 
-          isDemo,
-          hasSubscriptionId: !!sub?.subscriptionId,
-          startsWithDemo: sub?.subscriptionId?.startsWith('demo_')
-        });
-        
-        if (isDemo) {
-          console.log('🎭 Demo/Trial: Simulating successful plan change');
-          
-          // Create new subscription with the selected plan
-          const now = new Date();
-          const endDate = new Date(now);
-          
-          if (plan.interval === 'lifetime') {
-            // Lifetime plan - set far future date
-            endDate.setFullYear(endDate.getFullYear() + 100);
-          } else if (plan.interval === 'year') {
-            endDate.setFullYear(endDate.getFullYear() + 1);
-          } else {
-            endDate.setMonth(endDate.getMonth() + 1);
-          }
-          
-          const newSubscription = {
-            id: String(Date.now()),
-            plan: plan.name,
-            price: plan.price,
-            interval: plan.interval,
-            currency: 'USD',
-            status: 'active',
-            startedAt: now.toISOString(),
-            currentPeriodEnd: endDate.toISOString(),
-            paymentMethod: {
-              brand: 'Visa',
-              last4: '4242'
-            },
-            subscriptionId: `demo_${Date.now()}`
-          };
-          
-          saveSubscription(newSubscription);
-          setSub(newSubscription);
-          
-          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { message: `✅ Successfully switched to ${plan.name}! (Demo Mode)`, type: 'success' } 
-          }));
-          
-          return;
-        }
-
-        // Handle paid subscription with Stripe (redirect to Stripe for all users)
+        // ALL users must go through Stripe checkout for ANY paid plan
         try {
           let priceId = '';
           if (plan.interval === 'month') {
@@ -933,16 +876,18 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   </div>
                    )}
 
-                  {/* Billing Management */}
-                  <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
-                    <button 
-                      className="px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-all" 
-                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                      onClick={() => createPortalSession(sub?.customerId || 'demo_customer')}
-                    >
-                      Manage Billing & Payment Methods
-                    </button>
-                  </div>
+                  {/* Billing Management - Only show for paid subscriptions with real Stripe customer ID */}
+                  {sub?.customerId && !sub.customerId.startsWith('cus_demo_') && sub.customerId !== 'demo_customer' && (
+                    <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
+                      <button 
+                        className="px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-all" 
+                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                        onClick={() => createPortalSession(sub.customerId)}
+                      >
+                        Manage Billing & Payment Methods
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 // Regular user without subscription

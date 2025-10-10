@@ -1,10 +1,10 @@
 import React from 'react';
-import { Droplet, Pill, ShoppingCart, Target, CheckCircle, Syringe, Beaker } from 'lucide-react';
+import { Pill, ShoppingCart, Target, CheckCircle, Beaker, Pipette } from 'lucide-react';
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-4 w-4") {
     switch (String(delivery || '').toLowerCase()) {
-        case 'injection': return <Syringe className={className} />;
+        case 'injection': return <Pipette className={className} />;
         case 'powder': return <Beaker className={className} />;
         case 'pill':
         case 'oral':

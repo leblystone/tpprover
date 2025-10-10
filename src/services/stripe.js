@@ -13,12 +13,12 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
   try {
     const auth = getAuth();
     if (!auth.currentUser) {
-      console.log('🎭 User not authenticated - running in demo mode');
-      return simulateSuccessfulCheckout(priceId);
+      console.error('🚫 User must be authenticated to create checkout session');
+      throw new Error('User must be authenticated to purchase a subscription');
     }
 
     const functions = getFunctions();
-    const createCheckoutSessionFn = httpsCallable(functions, 'stripe-createCheckoutSession');
+    const createCheckoutSessionFn = httpsCallable(functions, 'createCheckoutSession');
     
     const result = await createCheckoutSessionFn({
       priceId,
@@ -44,56 +44,19 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
     }
   } catch (error) {
     console.error('Stripe checkout error:', error);
-    // If there's an error (like no backend), fall back to demo mode
-    return simulateSuccessfulCheckout(priceId);
-  }
-}
-
-/**
- * Simulate successful checkout for demo purposes
- * @param {string} priceId - Stripe price ID
- */
-function simulateSuccessfulCheckout(priceId) {
-  // Determine plan details based on price ID
-  let planDetails = {};
-  
-  if (priceId === STRIPE_CONFIG.prices.monthly) {
-    planDetails = { name: 'Pro Monthly', price: 9.99, interval: 'month' };
-  } else if (priceId === STRIPE_CONFIG.prices.annual) {
-    planDetails = { name: 'Pro Annual', price: 79.99, interval: 'year' };
-  } else if (priceId === STRIPE_CONFIG.prices.lifetime) {
-    planDetails = { name: 'Lifetime', price: 249.99, interval: 'lifetime' };
-  }
-
-  // Simulate processing delay
-  setTimeout(() => {
-    // Dispatch custom event to update subscription
-    window.dispatchEvent(new CustomEvent('stripe:checkout:success', {
-      detail: {
-        priceId,
-        planDetails,
-        customerId: 'cus_demo_' + Date.now(),
-        subscriptionId: 'sub_demo_' + Date.now()
-      }
-    }));
-    
-    // Show success message
+    // Show error to user - DO NOT simulate success
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
-        message: `✅ Demo: ${planDetails.name} subscription activated!`, 
-        type: 'success' 
+        message: 'Failed to start checkout. Please ensure you\'re logged in and try again.', 
+        type: 'error' 
       }
     }));
-  }, 1500);
-
-  // Show processing message
-  window.dispatchEvent(new CustomEvent('tpp:toast', {
-    detail: { 
-      message: '🎭 Demo Mode: Processing Stripe checkout...', 
-      type: 'info' 
-    }
-  }));
+    throw error;
+  }
 }
+
+// simulateSuccessfulCheckout REMOVED FOR SECURITY
+// All subscription upgrades MUST go through Stripe checkout
 
 /**
  * Create a customer portal session
@@ -104,56 +67,69 @@ export async function createPortalSession(customerId) {
   try {
     const auth = getAuth();
     
-    // Try to create portal session through Firebase Functions first
-    try {
-      const functions = getFunctions();
-      const createPortalSessionFn = httpsCallable(functions, 'stripe-createPortalSession');
-      
-      const result = await createPortalSessionFn({
-        customerId,
-        returnUrl: `${window.location.origin}/account`,
-      });
-
-      // Redirect to Stripe Customer Portal
-      window.location.href = result.data.url;
-      return;
-    } catch (functionsError) {
-      console.log('Firebase Functions not available, trying direct API...');
-    }
-
-    // Fallback: Try direct API call
-    const response = await fetch('/api/create-portal-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        customerId,
-        returnUrl: `${window.location.origin}/account`,
-      }),
-    });
-
-    if (response.ok) {
-      const session = await response.json();
-      window.location.href = session.url;
+    // Validate we have a real customer ID (not demo)
+    if (!customerId || customerId === 'demo_customer' || customerId.startsWith('cus_demo_')) {
+      console.error('🚫 Cannot open portal: No real Stripe customer ID found');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: 'No payment method on file. Please subscribe to a plan first.', 
+          type: 'error' 
+        }
+      }));
       return;
     }
 
-    // If all else fails, show demo message
-    console.log('🎭 Demo Mode: Opening Stripe Customer Portal...');
+    // Require authentication
+    if (!auth.currentUser) {
+      console.error('🚫 User must be authenticated to access billing portal');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: 'Please log in to manage billing.', 
+          type: 'error' 
+        }
+      }));
+      return;
+    }
+    
+    console.log('🔄 Opening Stripe Customer Portal...');
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
-        message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
+        message: 'Opening billing portal...', 
         type: 'info' 
       }
     }));
+
+    const functions = getFunctions();
+    const createPortalSessionFn = httpsCallable(functions, 'createPortalSession');
+    
+    const result = await createPortalSessionFn({
+      customerId,
+      returnUrl: `${window.location.origin}/account`,
+    });
+
+    // Redirect to Stripe Customer Portal
+    console.log('✅ Portal session created, redirecting...');
+    window.location.href = result.data.url;
     
   } catch (error) {
-    console.error('Portal session error:', error);
+    console.error('❌ Portal session error:', error);
+    
+    // Show specific error message
+    let errorMessage = 'Unable to open billing portal. ';
+    if (error.code === 'unauthenticated') {
+      errorMessage += 'Please log in and try again.';
+    } else if (error.code === 'permission-denied') {
+      errorMessage += 'You do not have permission to access this.';
+    } else if (error.message?.includes('customer')) {
+      errorMessage += 'No payment method found. Please subscribe first.';
+    } else {
+      errorMessage += 'Please try again or contact support.';
+    }
+    
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
-        message: '🎭 Demo: Stripe Customer Portal would open here. In production, you\'d be redirected to manage billing, payment methods, and invoices.', 
-        type: 'info' 
+        message: errorMessage, 
+        type: 'error' 
       }
     }));
   }
@@ -179,7 +155,7 @@ export async function updatePaymentMethod(customerId) {
     }
 
     const functions = getFunctions();
-    const updatePaymentMethodFn = httpsCallable(functions, 'stripe-updatePaymentMethod');
+    const updatePaymentMethodFn = httpsCallable(functions, 'updatePaymentMethod');
     
     const result = await updatePaymentMethodFn({
       customerId,
@@ -225,7 +201,7 @@ export async function downloadInvoiceReceipt(invoiceId, customerId) {
     }
 
     const functions = getFunctions();
-    const generateReceiptFn = httpsCallable(functions, 'stripe-generateInvoiceReceipt');
+    const generateReceiptFn = httpsCallable(functions, 'generateInvoiceReceipt');
     
     const result = await generateReceiptFn({
       invoiceId,
@@ -340,7 +316,7 @@ export async function cancelSubscription(subscriptionId) {
     }
 
     const functions = getFunctions();
-    const cancelSubscriptionFn = httpsCallable(functions, 'stripe-cancelSubscription');
+    const cancelSubscriptionFn = httpsCallable(functions, 'cancelSubscription');
     
     const result = await cancelSubscriptionFn({
       subscriptionId,

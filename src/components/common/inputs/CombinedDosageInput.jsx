@@ -8,7 +8,7 @@ export default function CombinedDosageInput({
     value = { amount: '', unit: 'mcg' }, 
     onChange, 
     theme,
-    deliveryMethod = 'syringe',
+    deliveryMethod = 'pipette',
     placeholder = "250, 0.5, or 2",
     units = null // Optional: override default units
 }) {
@@ -16,7 +16,7 @@ export default function CombinedDosageInput({
     const displayUnits = units || (
         deliveryMethod === 'nasal' 
             ? ['sprays'] // Only sprays for nasal
-            : ['mcg', 'mg', 'mL'] // Default units for syringe/pen
+            : ['mcg', 'mg', 'mL'] // Default units for pipette/pen
     );
 
     const handleAmountChange = (newAmount) => {

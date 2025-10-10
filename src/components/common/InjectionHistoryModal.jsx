@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Clock, Syringe, PenTool, Calendar } from 'lucide-react';
+import { X, MapPin, Clock, PenTool, Calendar, Pipette } from 'lucide-react';
 import { getInjectionHistory } from '../../utils/injectionTracking';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
@@ -35,9 +35,9 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                 return <PenTool size={16} />;
             case 'syringe':
             case 'injection':
-                return <Syringe size={16} />;
+                return <Pipette size={16} />;
             default:
-                return <Syringe size={16} />;
+                return <Pipette size={16} />;
         }
     };
 
@@ -71,7 +71,7 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                         </div>
                         <div>
                             <h3 className="text-xl font-bold" style={{ color: theme.textOnPrimary }}>
-                                Injection History
+                                Research Site History
                             </h3>
                             <p className="text-sm opacity-90" style={{ color: theme.textOnPrimary }}>
                                 {injectionHistory.length} injection{injectionHistory.length !== 1 ? 's' : ''} recorded
@@ -92,13 +92,13 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="text-sm" style={{ color: theme.textLight }}>
-                                Loading injection history...
+                                Loading research site history...
                             </div>
                         </div>
                     ) : !isInjectionSiteTrackingEnabled() ? (
                         <div className="text-center py-8">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-                                <Syringe size={24} style={{ color: theme.primary }} />
+                                <Pipette size={24} style={{ color: theme.primary }} />
                             </div>
                             <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
                                 Injection Site Tracking Disabled
@@ -124,7 +124,7 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme }) {
                                 <MapPin size={24} style={{ color: theme.textLight }} />
                             </div>
                             <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-                                No Injection History
+                                No Research Site History
                             </h4>
                             <p className="text-sm" style={{ color: theme.textLight }}>
                                 Complete some injection tasks to see your history here.

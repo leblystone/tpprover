@@ -64,7 +64,7 @@ export const MOCK_RECON_ITEMS = [
         dose: 250, // mcg
         vendor: 'Example Labs',
         water: 2,
-        deliveryMethod: 'syringe',
+        deliveryMethod: 'pipette',
         cost: 55,
         date: new Date().toISOString(),
         notes: 'Demo vial',

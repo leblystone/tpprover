@@ -14,7 +14,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
       <div className="relative h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+            <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Upcoming Buys
             </h3>
             <Calendar size={20} style={{ color: theme.primary }} />

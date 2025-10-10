@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
-import { Droplet, Pill, Edit, Syringe, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart } from 'lucide-react'
+import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
@@ -10,7 +10,7 @@ const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, size = 12, color) {
     switch (String(delivery || '').toLowerCase()) {
-        case 'injection': return <Syringe size={size} style={{ color }} />;
+        case 'injection': return <Pipette size={size} style={{ color }} />;
         case 'powder': return <Beaker size={size} style={{ color }} />;
         case 'pill':
         case 'oral':
@@ -34,18 +34,18 @@ function DeliveryIndicator({ item, theme }) {
             </div>
         );
     }
-    if (item.deliveryMethod === 'syringe') {
+    if (item.deliveryMethod === 'syringe' || item.deliveryMethod === 'pipette') {
         return (
             <div 
                 className="w-5 h-5 rounded-md flex items-center justify-center" 
                 style={{ backgroundColor: theme.secondary }}
-                title="Syringe"
+                title="Pipette"
             >
-                <Syringe size={12} style={{ color: theme.textLight }} />
+                <Pipette size={12} style={{ color: theme.textLight }} />
             </div>
         );
     }
-    return <Droplet size={12} style={{ color: theme.primary }} />;
+      return <Pipette size={12} style={{ color: theme.primary }} />;
 }
 
 export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump }) {

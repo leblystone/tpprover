@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pep Planner - Feature Graphic</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .feature-graphic {
+            width: 1024px;
+            height: 500px;
+            background: linear-gradient(135deg, #4A7C70 0%, #3A6B5F 100%);
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .background-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255,255,255,0.05) 0%, transparent 50%);
+        }
+        
+        .content {
+            position: relative;
+            z-index: 2;
+            padding: 60px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .left-content {
+            flex: 1;
+            color: white;
+        }
+        
+        .app-name {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 0 0 16px 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .tagline {
+            font-size: 24px;
+            font-weight: 300;
+            margin: 0 0 24px 0;
+            opacity: 0.9;
+        }
+        
+        .features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .features li {
+            font-size: 16px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            opacity: 0.9;
+        }
+        
+        .features li::before {
+            content: "✓";
+            color: #4A7C70;
+            background: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .right-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .phone-mockup {
+            width: 200px;
+            height: 400px;
+            background: #1a1a1a;
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #4A7C70 0%, #3A6B5F 100%);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .phone-content {
+            padding: 20px;
+            color: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .phone-header {
+            text-align: center;
+        }
+        
+        .phone-logo {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .phone-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .phone-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .phone-features {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .phone-feature {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            text-align: center;
+        }
+        
+        .phone-footer {
+            text-align: center;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        
+        .badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+        
+        .download-buttons {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .download-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .logo-section {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+        
+        .main-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            padding: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .logo-text {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="feature-graphic">
+        <div class="background-pattern"></div>
+        <div class="logo-section">
+            <img src="/tpp-logo.png" alt="TPP Logo" class="main-logo" />
+            <span class="logo-text">The Pep Planner</span>
+        </div>
+        <div class="badge">Research Tool</div>
+        
+        <div class="content">
+            <div class="left-content">
+                <h1 class="app-name">The Pep Planner</h1>
+                <p class="tagline">Research Protocol Management</p>
+                <ul class="features">
+                    <li>Protocol Creation & Management</li>
+                    <li>Reconstitution Calculator</li>
+                    <li>Order & Vendor Tracking</li>
+                    <li>Inventory Management</li>
+                    <li>Calendar Integration</li>
+                </ul>
+            </div>
+            
+            <div class="right-content">
+                <div class="phone-mockup">
+                    <div class="phone-screen">
+                        <div class="phone-content">
+                            <div class="phone-header">
+                                <div class="phone-logo">
+                                    <img src="/tpp-logo.png" alt="TPP Logo" />
+                                </div>
+                                <h3 class="phone-title">The Pep Planner</h3>
+                            </div>
+                            
+                            <div class="phone-features">
+                                <div class="phone-feature">🧬 Protocols</div>
+                                <div class="phone-feature">🧮 Calculator</div>
+                                <div class="phone-feature">📦 Orders</div>
+                                <div class="phone-feature">📊 Stockpile</div>
+                                <div class="phone-feature">📅 Calendar</div>
+                            </div>
+                            
+                            <div class="phone-footer">
+                                Research Management
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="download-buttons">
+            <button class="download-btn">Google Play</button>
+            <button class="download-btn">App Store</button>
+        </div>
+    </div>
+    
+    <script>
+        // Add some interactive elements
+        document.querySelectorAll('.download-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.style.background = 'rgba(255,255,255,0.4)';
+                setTimeout(() => {
+                    btn.style.background = 'rgba(255,255,255,0.2)';
+                }, 200);
+            });
+        });
+        
+        // Add subtle animation
+        const phoneMockup = document.querySelector('.phone-mockup');
+        setInterval(() => {
+            phoneMockup.style.transform = 'translateY(-5px)';
+            setTimeout(() => {
+                phoneMockup.style.transform = 'translateY(0)';
+            }, 2000);
+        }, 4000);
+    </script>
+</body>
+</html>

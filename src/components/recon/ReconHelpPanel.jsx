@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, X, ChevronDown, Beaker, Calculator, Droplet, Syringe, Package, Clock } from 'lucide-react';
+import { HelpCircle, X, ChevronDown, Beaker, Calculator, Package, Clock, Pipette } from 'lucide-react';
 
 const ReconHelpPanel = ({ theme }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -108,7 +108,7 @@ const ReconHelpPanel = ({ theme }) => {
 
             <div className="flex items-start gap-2 md:gap-3 p-2 md:p-3 rounded-lg hover:shadow-md transition-shadow" style={{ backgroundColor: theme.warning + '05' }}>
               <div className="p-1.5 md:p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: theme.warning + '15' }}>
-                <Syringe size={16} className="md:w-5 md:h-5" style={{ color: theme.warning }} />
+                <Pipette size={16} className="md:w-5 md:h-5" style={{ color: theme.warning }} />
               </div>
               <div>
                 <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Delivery Method Tracking</div>

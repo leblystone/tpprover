@@ -2,7 +2,7 @@ import React from 'react';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
-import { X, Syringe, Pen, Droplets, Activity } from 'lucide-react';
+import { X, Pen, Droplets, Activity, Pipette } from 'lucide-react';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -132,7 +132,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 <button 
                                     type="button"
                                     onClick={() => {
-                                        handleChange('deliveryMethod', 'syringe');
+                                        handleChange('deliveryMethod', 'pipette');
                                         // Auto-set injection type to SubQ if not already set
                                         if (!item.injectionType) {
                                             handleChange('injectionType', 'SubQ');
@@ -140,21 +140,21 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     }}
                                     className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                                     style={{
-                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.secondary,
-                                        color: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.textOnPrimary : theme.text,
-                                        borderColor: (item.deliveryMethod || 'syringe') === 'syringe' ? theme.primary : theme.border
+                                        backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.border
                                     }}
                                 >
-                                    <Syringe size={16} /> Syringe
+                                    <Pipette size={16} /> Pipette
                                 </button>
                                 <button 
                                     type="button"
                                     onClick={() => handleChange('deliveryMethod', 'pen')}
                                     className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                                     style={{
-                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.secondary,
-                                        color: (item.deliveryMethod || 'syringe') === 'pen' ? theme.textOnPrimary : theme.text,
-                                        borderColor: (item.deliveryMethod || 'syringe') === 'pen' ? theme.primary : theme.border
+                                        backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'pipette') === 'pen' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.border
                                     }}
                                 >
                                     <Pen size={16} /> Pen
@@ -170,17 +170,17 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     }}
                                     className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                                     style={{
-                                        backgroundColor: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.primary : theme.secondary,
-                                        color: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.textOnPrimary : theme.text,
-                                        borderColor: (item.deliveryMethod || 'syringe') === 'nasal' ? theme.primary : theme.border
+                                        backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.secondary,
+                                        color: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.textOnPrimary : theme.text,
+                                        borderColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.border
                                     }}
                                 >
                                     <Droplets size={16} /> Nasal
                                 </button>
                             </div>
                             
-                            {/* Syringe Injection Type Options */}
-                            {(item.deliveryMethod || 'syringe') === 'syringe' && (
+                            {/* Pipette Injection Type Options */}
+                            {(item.deliveryMethod || 'pipette') === 'pipette' && (
                                 <div className="mt-3">
                                     <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Injection Type</label>
                                     <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
@@ -200,7 +200,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             )}
                             
                             {/* Pen Options */}
-                            {(item.deliveryMethod || 'syringe') === 'pen' && (
+                            {(item.deliveryMethod || 'pipette') === 'pen' && (
                                 <div className="mt-3 grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
                                     <div>

@@ -498,7 +498,7 @@ export default function CustomizableDashboard() {
   const handleTaskToggle = (task, date = new Date()) => {
     // Check if this is a syringe or pen delivery method
     const deliveryMethod = task.deliveryMethod || task.delivery;
-    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
     
         // Injection confirmation is now handled inline in the task components
     

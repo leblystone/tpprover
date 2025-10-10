@@ -8,8 +8,13 @@ const pushNotifications = require('./pushNotifications');
 
 admin.initializeApp();
 
-// Import and export the Stripe functions
-exports.stripe = stripe;
+// Import and export the Stripe functions individually
+exports.createCheckoutSession = stripe.createCheckoutSession;
+exports.createPortalSession = stripe.createPortalSession;
+exports.cancelSubscription = stripe.cancelSubscription;
+exports.updatePaymentMethod = stripe.updatePaymentMethod;
+exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
+exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
 
 // Scheduled Functions for Notifications
 exports.scheduledResearchReminders = onSchedule('0 8 * * *', {

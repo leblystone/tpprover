@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Pill, Syringe, Beaker, Edit, Trash2, Lock } from 'lucide-react';
+import { Plus, Pill, Beaker, Edit, Trash2, Lock, Pipette } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 
 const SupplementsWidget = ({ 
@@ -35,7 +35,7 @@ const SupplementsWidget = ({
 
   const getDeliveryIcon = (delivery) => {
     switch (String(delivery || '').toLowerCase()) {
-      case 'injection': return <Syringe size={16} style={{ color: theme.textLight }} />;
+      case 'injection': return <Pipette size={16} style={{ color: theme.textLight }} />;
       case 'powder': return <Beaker size={16} style={{ color: theme.textLight }} />;
       case 'pill':
       default: return <Pill size={16} style={{ color: theme.textLight }} />;
@@ -46,7 +46,7 @@ const SupplementsWidget = ({
     <div className="relative h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+          <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Supplements
           </h3>
           <div className="flex items-center gap-2">

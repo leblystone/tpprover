@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Users, Plus, ShoppingCart, Droplet, Edit, Trash2, Pill, Syringe, TestTube, Info, Target, PlusCircle, Award, Check, CheckCircle, Clock, TrendingUp, TrendingDown, Bed, Smile, ShieldAlert, Beaker, Calendar } from 'lucide-react'
+import { Users, Plus, ShoppingCart, Droplet, Edit, Trash2, Pill, TestTube, Info, Target, PlusCircle, Award, Check, CheckCircle, Clock, TrendingUp, TrendingDown, Bed, Smile, ShieldAlert, Beaker, Calendar, Pipette } from 'lucide-react'
 import { Zap } from '../icons/lucide-safe'
 import BadgeImage from '../components/badges/BadgeImage'
 import { themes, defaultThemeName } from '../theme/themes'
@@ -146,7 +146,7 @@ export default function Dashboard() {
 
   const getDeliveryIcon = (delivery) => {
     switch (String(delivery || '').toLowerCase()) {
-        case 'injection': return <Syringe size={16} className="text-gray-500" />;
+        case 'injection': return <Pipette size={16} className="text-gray-500" />;
         case 'powder': return <Beaker size={16} className="text-gray-500" />;
         case 'pill':
         default: return <Pill size={16} className="text-gray-500" />;

@@ -377,9 +377,9 @@ export const WIDGET_METADATA = {
     settings: []
   },
   [WIDGET_TYPES.INJECTION_HISTORY]: {
-    title: 'Injection History',
+    title: 'View History',
     description: 'Track your injection sites and history for better rotation',
-    icon: 'Syringe',
+    icon: 'Pipette',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
     settings: [
       { key: 'showRecent', label: 'Number of recent injections to show', type: 'number', default: 5, min: 1, max: 20 }

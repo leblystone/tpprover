@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pill, Syringe, Check, Info, PenTool, Droplet, Beaker } from 'lucide-react';
+import { Pill, Check, Info, PenTool, Beaker, Pipette } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -31,11 +31,11 @@ const penNameToHex = {
 
 const TaskIcon = ({ type, delivery, theme }) => {
     if (type === 'peptide') {
-        return <Droplet size={18} style={{ color: theme.text }} />;
+        return <Pipette size={18} style={{ color: theme.text }} />;
     }
     if (type === 'supplement') {
         switch (String(delivery || '').toLowerCase()) {
-            case 'injection': return <Syringe size={18} style={{ color: theme.text }} />;
+            case 'injection': return <Pipette size={18} style={{ color: theme.text }} />;
             case 'powder': return <Beaker size={18} style={{ color: theme.text }} />;
             case 'pill':
             default: return <Pill size={18} style={{ color: theme.text }} />;
@@ -136,7 +136,7 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
                                 onClick={() => {
                                   // Check if this is an injection task that's not completed
                                   const deliveryMethod = task.deliveryMethod || task.delivery;
-                                  const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                                  const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                                   
                                   if (isInjection && !task.completed) {
                                     setInjectionTask(task);
@@ -180,11 +180,11 @@ const DeliveryIcon = ({ task, theme }) => {
         if (task.deliveryMethod === 'pen') {
             return <PenTool size={14} style={{ color: theme.textLight }} />;
         }
-        if (task.deliveryMethod === 'syringe') {
-            return <Syringe size={14} style={{ color: theme.textLight }} />;
+        if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
+            return <Pipette size={14} style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'nasal') {
-            return <Droplet size={14} style={{ color: theme.textLight }} />;
+            return <Pipette size={14} style={{ color: theme.textLight }} />;
         }
     }
     
@@ -192,7 +192,7 @@ const DeliveryIcon = ({ task, theme }) => {
     if (task.type === 'supplement') {
         const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
         if (delivery === 'injection') {
-            return <Syringe size={14} style={{ color: theme.textLight }} />;
+            return <Pipette size={14} style={{ color: theme.textLight }} />;
         }
         if (delivery === 'powder') {
             return <Beaker size={14} style={{ color: theme.textLight }} />;

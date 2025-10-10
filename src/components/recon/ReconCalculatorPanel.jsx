@@ -7,12 +7,12 @@ import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Droplet, Syringe, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X } from 'lucide-react'
+import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, compact = false, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] })
-  const [deliveryMethod, setDeliveryMethod] = useState('syringe');
+  const [deliveryMethod, setDeliveryMethod] = useState('pipette');
   const [administrationRoute, setAdministrationRoute] = useState('subq'); // SubQ, IM, IV
   const [penColor, setPenColor] = useState('#9ca3af');
   const [cost, setCost] = useState('');
@@ -258,7 +258,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
           <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => {
-                        setDeliveryMethod('syringe');
+                        setDeliveryMethod('pipette');
                         // Reset to mcg when syringe is selected (default unit)
                         setForm(prev => ({
                             ...prev,
@@ -267,12 +267,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                     }}
                     className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                     style={{
-                        backgroundColor: deliveryMethod === 'syringe' ? theme.primary : theme.secondary,
-                        color: deliveryMethod === 'syringe' ? theme.textOnPrimary : theme.text,
-                        borderColor: deliveryMethod === 'syringe' ? theme.primary : theme.border
+                        backgroundColor: deliveryMethod === 'pipette' ? theme.primary : theme.secondary,
+                        color: deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
+                        borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border
                     }}
                 >
-                    <Syringe size={14} /> Syringe
+                    <Pipette size={14} /> Pipette
                 </button>
                 <button 
                     onClick={() => {
@@ -312,8 +312,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 </button>
             </div>
             
-            {/* Administration Route for Syringe */}
-            {deliveryMethod === 'syringe' && (
+            {/* Administration Route for Droplet */}
+            {deliveryMethod === 'pipette' && (
                 <div className="mt-3">
                     <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
                     <div className="flex items-center gap-1 p-1 rounded-md bg-gray-100" style={{ backgroundColor: theme.cardBackground || '#f9fafb' }}>
@@ -461,7 +461,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
               </div>
             </div>
             <p className="text-xs text-center mt-2 opacity-75" style={{ color: theme.textLight }}>
-                {deliveryMethod === 'syringe' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
+                {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
             </p>
           </div>
         </div>
@@ -484,7 +484,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
             const dataToSave = { 
               ...form, 
               deliveryMethod, 
-              administrationRoute: deliveryMethod === 'syringe' ? administrationRoute : undefined,
+              administrationRoute: deliveryMethod === 'pipette' ? administrationRoute : undefined,
               penType: deliveryMethod === 'pen' ? form.penType : undefined, 
               penColor: penColorName, 
               cost 

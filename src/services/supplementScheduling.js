@@ -80,8 +80,9 @@ export function getSupplementIcon(deliveryMethod, size = 16, color = null) {
   switch (String(deliveryMethod || '').toLowerCase()) {
     case 'injection':
     case 'syringe':
+    case 'pipette':
       // Return icon name for dynamic import
-      return { type: 'Syringe', props: iconProps };
+      return { type: 'Pipette', props: iconProps };
     case 'powder':
     case 'nasal':
       return { type: 'Beaker', props: iconProps };

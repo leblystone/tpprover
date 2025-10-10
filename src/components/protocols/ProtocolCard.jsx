@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Syringe, Pen } from 'lucide-react';
+import { Play, Calendar, Target, Clock, FileText, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -63,7 +63,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                 <div className="text-xs space-y-1 mt-1">
                                     {peptide.dosage?.amount > 0 && (
                                         <div className="flex items-center gap-1.5">
-                                            <Droplet size={12} />
+                                            <Pipette size={12} />
                                             <span>
                                                 {peptide.dosage.amount} {peptide.dosage.unit}
                                                 {peptide.unitValue && ` | ${peptide.unitValue} units`}
@@ -95,10 +95,10 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                             
                             return deliveryMethods.map(method => (
                                 <div key={method} className="flex items-start gap-2">
-                                    {method === 'pen' ? <Pen size={14} className="mt-0.5 flex-shrink-0" /> : <Syringe size={14} className="mt-0.5 flex-shrink-0" />}
+                                    {method === 'pen' ? <Pen size={14} className="mt-0.5 flex-shrink-0" /> : <Pipette size={14} className="mt-0.5 flex-shrink-0" />}
                                     <div className="flex flex-col gap-1">
                                         <span className="text-sm font-medium">
-                                            {method === 'pen' ? 'Pen Delivery' : 'Syringe Delivery'}
+                                            {method === 'pen' ? 'Pen Delivery' : 'Pipette Delivery'}
                                         </span>
                                         {method === 'pen' && penPeptides.map((pep, idx) => (
                                             <div key={idx} className="flex items-center gap-2 text-xs">

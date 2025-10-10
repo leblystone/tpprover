@@ -16,7 +16,7 @@ import {
   Download,
   Apple,
   Play,
-  Syringe,
+  Droplet,
   Pen,
   Package,
   ShoppingCart,
@@ -214,7 +214,7 @@ export default function Landing() {
                       </div>
                       <div className="flex items-center space-x-1 md:space-x-2">
                         <div className="text-xs md:text-sm" style={{ color: '#4A5A56' }}>1mL</div>
-                        <Syringe className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-200 hover:text-green-600" style={{ color: '#6B7280' }} />
+                        <Pipette className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-200 hover:text-green-600" style={{ color: '#6B7280' }} />
                       </div>
                     </div>
                     
@@ -246,7 +246,7 @@ export default function Landing() {
                       </div>
                       <div className="flex items-center space-x-1 md:space-x-2">
                         <div className="text-xs md:text-sm" style={{ color: '#4A5A56' }}>10 units</div>
-                        <Syringe className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-200 hover:text-green-600" style={{ color: '#6B7280' }} />
+                        <Pipette className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-200 hover:text-green-600" style={{ color: '#6B7280' }} />
                       </div>
                     </div>
                   </div>

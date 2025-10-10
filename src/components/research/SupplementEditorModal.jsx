@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { Pill, Syringe, TestTube } from 'lucide-react';
+import { Pill, TestTube, Pipette } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -54,7 +54,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
 
     const deliveryOptions = [
         { value: 'oral', label: 'Oral', icon: <Pill size={16} /> },
-        { value: 'injection', label: 'Injection', icon: <Syringe size={16} /> },
+        { value: 'injection', label: 'Injection', icon: <Pipette size={16} /> },
         { value: 'powder', label: 'Powder', icon: <TestTube size={16} /> },
     ];
 

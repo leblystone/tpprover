@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Icon Variations</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .icon-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 20px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .icon.primary {
+            background: linear-gradient(135deg, #4A7C70 0%, #3A6B5F 100%);
+        }
+        
+        .icon.mauve {
+            background: linear-gradient(135deg, #8B5A7C 0%, #6B4A5F 100%);
+        }
+        
+        .icon.taupe {
+            background: linear-gradient(135deg, #A0907C 0%, #8B7A6F 100%);
+        }
+        
+        .icon.sage {
+            background: linear-gradient(135deg, #4A7C70 0%, #3A6B5F 100%);
+        }
+        
+        .icon-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .icon-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .usage-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .usage-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .usage-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .usage-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .usage-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .platform {
+            font-weight: 600;
+            color: #4A7C70;
+        }
+        
+        .size {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 App Icon Variations</h1>
+        
+        <div class="icon-grid">
+            <div class="icon-card">
+                <div class="icon primary">TPP</div>
+                <div class="icon-name">Primary (Sage)</div>
+                <div class="icon-size">512x512px</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="icon mauve">TPP</div>
+                <div class="icon-name">Mauve Theme</div>
+                <div class="icon-size">512x512px</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="icon taupe">TPP</div>
+                <div class="icon-name">Taupe Theme</div>
+                <div class="icon-size">512x512px</div>
+            </div>
+            
+            <div class="icon-card">
+                <div class="icon sage">TPP</div>
+                <div class="icon-name">Sage Theme</div>
+                <div class="icon-size">512x512px</div>
+            </div>
+        </div>
+        
+        <div class="usage-section">
+            <h2>📋 Icon Usage Guide</h2>
+            <ul class="usage-list">
+                <li>
+                    <span class="platform">Google Play Store</span>
+                    <span class="size">512x512px</span>
+                </li>
+                <li>
+                    <span class="platform">App Store (iOS)</span>
+                    <span class="size">1024x1024px</span>
+                </li>
+                <li>
+                    <span class="platform">Android App</span>
+                    <span class="size">192x192px</span>
+                </li>
+                <li>
+                    <span class="platform">iOS App</span>
+                    <span class="size">180x180px</span>
+                </li>
+                <li>
+                    <span class="platform">PWA Manifest</span>
+                    <span class="size">512x512px</span>
+                </li>
+                <li>
+                    <span class="platform">Favicon</span>
+                    <span class="size">32x32px</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+
+
