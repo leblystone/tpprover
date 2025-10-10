@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Email Preview - The Pep Planner</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      background: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .preview-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .preview-title {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .preview-title h1 {
+      color: #344E41;
+      margin: 0 0 8px 0;
+    }
+    .preview-title p {
+      color: #6B7280;
+      margin: 0;
+    }
+    .email-preview {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 40px;
+    }
+    .email-preview h2 {
+      color: #344E41;
+      margin: 0 0 20px 0;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #D4D7CD;
+    }
+    iframe {
+      width: 100%;
+      height: 800px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+    }
+    .tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 12px 24px;
+      background: #F3F4F6;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #374151;
+      transition: all 0.2s;
+    }
+    .tab:hover {
+      background: #E5E7EB;
+    }
+    .tab.active {
+      background: #344E41;
+      color: white;
+    }
+    .email-content {
+      display: none;
+    }
+    .email-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    <div class="preview-title">
+      <h1>📧 Email Preview - The Pep Planner</h1>
+      <p>Preview your custom branded emails before sending</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showEmail('welcome')">Welcome Email</button>
+      <button class="tab" onclick="showEmail('verification')">Email Verification</button>
+      <button class="tab" onclick="showEmail('password-reset')">Password Reset</button>
+      <button class="tab" onclick="showEmail('trial-ending')">Trial Ending</button>
+      <button class="tab" onclick="showEmail('subscription')">Subscription Confirmed</button>
+    </div>
+
+    <!-- Welcome Email -->
+    <div id="welcome" class="email-content active">
+      <div class="email-preview">
+        <h2>📧 Welcome Email (Sent on Signup)</h2>
+        <iframe srcdoc='<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Pep Planner</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif; background-color: #D4D7CD;">
+  <div style="background-color: #D4D7CD; padding: 20px 0;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF;">
+      <div style="background: linear-gradient(135deg, #344E41 0%, #3A5A40 100%); padding: 40px 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">🧬 The Pep Planner</div>
+        <div style="color: #D4D7CD; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Research. Track. Optimize.</div>
+      </div>
+      <div style="padding: 40px 32px; color: #1F2937;">
+        <h1 style="color: #344E41; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner! 🎉</h1>
+        
+        <p style="font-size: 16px; line-height: 1.6; color: #1F2937;">
+          Hi there! We&apos;re thrilled to have you join our research community.
+        </p>
+        
+        <p style="font-size: 16px; line-height: 1.6; color: #1F2937;">
+          The Pep Planner is your complete research management platform, designed to help you organize protocols, 
+          track progress, and optimize your research journey.
+        </p>
+
+        <div style="background-color: #F0FDF4; border-left: 4px solid #A3B18A; padding: 16px; margin: 20px 0; border-radius: 4px;">
+          <p style="margin: 0; font-weight: 600; color: #344E41;">🎁 Your 7-Day Free Trial is Active!</p>
+          <p style="margin: 8px 0 0 0; font-size: 14px; color: #6B7280;">
+            Full access to all features. No credit card required.
+          </p>
+        </div>
+
+        <h2 style="color: #344E41; font-size: 20px; margin: 32px 0 16px 0;">What you can do:</h2>
+        
+        <ul style="list-style: none; padding: 0; margin: 20px 0;">
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            <strong>Create Custom Protocols</strong> – Build and manage research protocols
+          </li>
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            <strong>Track Your Progress</strong> – Calendar integration and task management
+          </li>
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            <strong>Reconstitution Calculator</strong> – Calculate dosages with precision
+          </li>
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            <strong>Inventory Management</strong> – Track orders, stockpile, and vendors
+          </li>
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            <strong>Research Notes</strong> – Document findings and observations
+          </li>
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            <strong>Data Analytics</strong> – Visualize trends and metrics
+          </li>
+        </ul>
+
+        <center>
+          <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 24px 0;">
+            Get Started →
+          </a>
+        </center>
+
+        <hr style="border: none; border-top: 2px solid #E5E7EB; margin: 24px 0;">
+
+        <h2 style="color: #344E41; font-size: 18px; margin: 24px 0 12px 0;">Quick Tips:</h2>
+        
+        <p style="font-size: 14px; line-height: 1.6; color: #6B7280;">
+          📱 <strong>Mobile App:</strong> Access from any device – desktop, tablet, or phone<br>
+          🎨 <strong>Themes:</strong> Customize your experience with multiple color themes<br>
+          📊 <strong>Dashboard:</strong> Personalize your dashboard with draggable widgets<br>
+          🔔 <strong>Reminders:</strong> Set up notifications for your research schedule
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6; color: #1F2937; margin-top: 24px;">
+          Need help getting started? Check out our <a href="https://thepepplanner.app/guide" style="color: #344E41;">Quick Start Guide</a> 
+          or reach out to our support team.
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6; color: #1F2937;">
+          Happy researching! 🧪
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6; color: #1F2937;">
+          Best,<br>
+          <strong style="color: #344E41;">The Pep Planner Team</strong>
+        </p>
+      </div>
+      <div style="background-color: #D4D7CD; padding: 32px; text-align: center; color: #6B7280; font-size: 13px;">
+        <p style="margin: 0 0 12px 0; font-weight: 600; color: #1F2937;">The Pep Planner</p>
+        <p style="margin: 0 0 16px 0;">Your research management platform</p>
+        <p style="margin: 0;">
+          <a href="https://thepepplanner.app" style="color: #344E41; text-decoration: none;">Visit Website</a> • 
+          <a href="https://thepepplanner.app/app/dashboard" style="color: #344E41; text-decoration: none;">Dashboard</a> • 
+          <a href="https://thepepplanner.app/support" style="color: #344E41; text-decoration: none;">Support</a>
+        </p>
+        <p style="margin: 16px 0 0 0; font-size: 11px; color: #6B7280;">
+          © 2025 The Pep Planner. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>'></iframe>
+      </div>
+    </div>
+
+    <!-- Email Verification -->
+    <div id="verification" class="email-content">
+      <div class="email-preview">
+        <h2>📧 Email Verification</h2>
+        <p style="color: #6B7280; margin-bottom: 20px;">Clean, simple verification with clear call-to-action</p>
+        <iframe srcdoc='<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif; background-color: #D4D7CD;">
+  <div style="background-color: #D4D7CD; padding: 20px 0;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF;">
+      <div style="background: linear-gradient(135deg, #344E41 0%, #3A5A40 100%); padding: 40px 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">🧬 The Pep Planner</div>
+        <div style="color: #D4D7CD; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Research. Track. Optimize.</div>
+      </div>
+      <div style="padding: 40px 32px;">
+        <h1 style="color: #344E41; font-size: 28px; margin: 0 0 16px 0;">Verify Your Email 📧</h1>
+        
+        <p style="font-size: 16px; line-height: 1.6;">
+          Thanks for signing up! Please verify your email address to ensure you can:
+        </p>
+        
+        <ul style="list-style: none; padding: 0; margin: 20px 0;">
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            Reset your password if needed
+          </li>
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            Receive important account notifications
+          </li>
+          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+            <span style="position: absolute; left: 0; color: #A3B18A; font-weight: bold; font-size: 18px;">✓</span>
+            Access all features securely
+          </li>
+        </ul>
+
+        <center>
+          <a href="#" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 24px 0;">
+            Verify Email Address
+          </a>
+        </center>
+
+        <div style="background-color: #F0FDF4; border-left: 4px solid #A3B18A; padding: 16px; margin: 20px 0; border-radius: 4px;">
+          <p style="margin: 0; font-size: 14px; color: #6B7280;">
+            ⚠️ If you didn&apos;t create an account with The Pep Planner, you can safely ignore this email.
+          </p>
+        </div>
+
+        <p style="font-size: 16px; line-height: 1.6; margin-top: 24px;">
+          Best,<br>
+          <strong style="color: #344E41;">The Pep Planner Team</strong>
+        </p>
+      </div>
+      <div style="background-color: #D4D7CD; padding: 32px; text-align: center; color: #6B7280; font-size: 13px;">
+        <p style="margin: 0 0 12px 0; font-weight: 600; color: #1F2937;">The Pep Planner</p>
+        <p style="margin: 0;">© 2025 The Pep Planner. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>'></iframe>
+      </div>
+    </div>
+
+    <!-- Password Reset -->
+    <div id="password-reset" class="email-content">
+      <div class="email-preview">
+        <h2>🔐 Password Reset Email</h2>
+        <p style="color: #6B7280; margin-bottom: 20px;">Secure password reset with clear expiration warning</p>
+        <iframe srcdoc='<!DOCTYPE html>
+<html lang="en">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif; background-color: #D4D7CD;">
+  <div style="background-color: #D4D7CD; padding: 20px 0;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF;">
+      <div style="background: linear-gradient(135deg, #344E41 0%, #3A5A40 100%); padding: 40px 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">🧬 The Pep Planner</div>
+        <div style="color: #D4D7CD; font-size: 14px; font-weight: 500;">Research. Track. Optimize.</div>
+      </div>
+      <div style="padding: 40px 32px;">
+        <h1 style="color: #344E41; font-size: 28px; margin: 0 0 16px 0;">Reset Your Password 🔐</h1>
+        
+        <p style="font-size: 16px; line-height: 1.6;">
+          We received a request to reset the password for your account (<strong>user@example.com</strong>).
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6;">
+          Click the button below to create a new password:
+        </p>
+
+        <center>
+          <a href="#" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 24px 0;">
+            Reset Password
+          </a>
+        </center>
+
+        <div style="background-color: #FEF2F2; border-left: 4px solid #DC2626; padding: 16px; margin: 20px 0; border-radius: 4px;">
+          <p style="margin: 0; font-weight: 600; color: #DC2626;">⏱️ This link expires in 1 hour</p>
+          <p style="margin: 8px 0 0 0; font-size: 14px; color: #6B7280;">
+            For your security, this password reset link is only valid for 60 minutes.
+          </p>
+        </div>
+
+        <p style="font-size: 14px; color: #6B7280; margin-top: 24px;">
+          If you didn&apos;t request a password reset, you can safely ignore this email. 
+          Your password won&apos;t change unless you click the link above.
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6; margin-top: 24px;">
+          Best,<br>
+          <strong style="color: #344E41;">The Pep Planner Team</strong>
+        </p>
+      </div>
+      <div style="background-color: #D4D7CD; padding: 32px; text-align: center; color: #6B7280; font-size: 13px;">
+        <p style="margin: 0;">© 2025 The Pep Planner. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>'></iframe>
+      </div>
+    </div>
+
+    <!-- Trial Ending -->
+    <div id="trial-ending" class="email-content">
+      <div class="email-preview">
+        <h2>⏰ Trial Ending Soon</h2>
+        <p style="color: #6B7280; margin-bottom: 20px;">Gentle reminder to subscribe before trial ends</p>
+        <iframe srcdoc='<!DOCTYPE html>
+<html lang="en">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif; background-color: #D4D7CD;">
+  <div style="background-color: #D4D7CD; padding: 20px 0;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF;">
+      <div style="background: linear-gradient(135deg, #344E41 0%, #3A5A40 100%); padding: 40px 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">🧬 The Pep Planner</div>
+        <div style="color: #D4D7CD; font-size: 14px; font-weight: 500;">Research. Track. Optimize.</div>
+      </div>
+      <div style="padding: 40px 32px;">
+        <h1 style="color: #344E41; font-size: 28px; margin: 0 0 16px 0;">Your Trial Ends in 2 Days ⏰</h1>
+        
+        <p style="font-size: 16px; line-height: 1.6;">
+          Hi there! We hope you&apos;re enjoying The Pep Planner.
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6;">
+          Your 7-day free trial will end in <strong>2 days</strong>. 
+          To continue accessing your research data and all features, please choose a subscription plan.
+        </p>
+
+        <div style="background-color: #F0FDF4; border-left: 4px solid #A3B18A; padding: 16px; margin: 20px 0; border-radius: 4px;">
+          <p style="margin: 0; font-weight: 600; color: #344E41;">✨ Continue Your Research Journey</p>
+          <p style="margin: 8px 0 0 0; font-size: 14px; color: #6B7280;">
+            Choose from flexible plans starting at $8.99/month
+          </p>
+        </div>
+
+        <center>
+          <a href="https://thepepplanner.app/app/account" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 24px 0;">
+            View Plans & Pricing
+          </a>
+        </center>
+
+        <p style="font-size: 14px; color: #6B7280; margin-top: 24px;">
+          After your trial ends, you&apos;ll still have read-only access to your data, 
+          but you won&apos;t be able to add new protocols or make changes until you subscribe.
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6; margin-top: 24px;">
+          Best,<br>
+          <strong style="color: #344E41;">The Pep Planner Team</strong>
+        </p>
+      </div>
+      <div style="background-color: #D4D7CD; padding: 32px; text-align: center; color: #6B7280; font-size: 13px;">
+        <p style="margin: 0;">© 2025 The Pep Planner. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>'></iframe>
+      </div>
+    </div>
+
+    <!-- Subscription Confirmed -->
+    <div id="subscription" class="email-content">
+      <div class="email-preview">
+        <h2>💳 Subscription Confirmed</h2>
+        <p style="color: #6B7280; margin-bottom: 20px;">Thank you email after successful payment</p>
+        <iframe srcdoc='<!DOCTYPE html>
+<html lang="en">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif; background-color: #D4D7CD;">
+  <div style="background-color: #D4D7CD; padding: 20px 0;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF;">
+      <div style="background: linear-gradient(135deg, #344E41 0%, #3A5A40 100%); padding: 40px 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">🧬 The Pep Planner</div>
+        <div style="color: #D4D7CD; font-size: 14px; font-weight: 500;">Research. Track. Optimize.</div>
+      </div>
+      <div style="padding: 40px 32px;">
+        <h1 style="color: #344E41; font-size: 28px; margin: 0 0 16px 0;">Welcome to Pro Annual! 🎉</h1>
+        
+        <p style="font-size: 16px; line-height: 1.6;">
+          Thank you for subscribing to The Pep Planner!
+        </p>
+
+        <div style="background-color: #F0FDF4; border-left: 4px solid #A3B18A; padding: 16px; margin: 20px 0; border-radius: 4px;">
+          <p style="margin: 0; font-weight: 600; color: #344E41;">Subscription Details</p>
+          <p style="margin: 8px 0 0 0; font-size: 14px;">
+            <strong>Plan:</strong> Pro Annual<br>
+            <strong>Price:</strong> $89.99/year<br>
+            <strong>Status:</strong> Active ✓
+          </p>
+        </div>
+
+        <p style="font-size: 16px; line-height: 1.6;">
+          You now have full access to all features. Your subscription will automatically renew, 
+          and you can manage your billing at any time from your account settings.
+        </p>
+
+        <center>
+          <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: #344E41; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 24px 0;">
+            Go to Dashboard
+          </a>
+        </center>
+
+        <p style="font-size: 14px; color: #6B7280; margin-top: 24px;">
+          Need to manage your subscription? Visit your 
+          <a href="https://thepepplanner.app/app/account" style="color: #344E41;">Account Settings</a> 
+          to update payment methods, view invoices, or make changes.
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6; margin-top: 24px;">
+          Happy researching! 🧪<br>
+          <strong style="color: #344E41;">The Pep Planner Team</strong>
+        </p>
+      </div>
+      <div style="background-color: #D4D7CD; padding: 32px; text-align: center; color: #6B7280; font-size: 13px;">
+        <p style="margin: 0;">© 2025 The Pep Planner. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>'></iframe>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function showEmail(emailType) {
+      // Hide all
+      document.querySelectorAll('.email-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      document.querySelectorAll('.tab').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Show selected
+      document.getElementById(emailType).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>
+

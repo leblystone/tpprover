@@ -1,10 +1,11 @@
-const {onDocumentUpdated} = require('firebase-functions/v2/firestore');
+const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
 const {onCall} = require('firebase-functions/v2/https');
 const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
 const stripe = require('./stripe');
 const pushNotifications = require('./pushNotifications');
+const emailService = require('./emailService');
 
 admin.initializeApp();
 
@@ -208,4 +209,73 @@ exports.sendTestNotification = onCall(async (request) => {
   };
 
   return pushNotifications.sendPushNotificationByType(userId, type, notificationData);
+});
+
+// 📧 Email Functions
+
+// Send welcome email when new user is created
+exports.onUserCreated = onDocumentCreated('users/{userId}', async (event) => {
+  const userData = event.data.data();
+  const userId = event.params.userId;
+  
+  logger.info(`👋 New user created: ${userId} (${userData.email})`);
+  
+  try {
+    // Send welcome email
+    await emailService.sendWelcomeEmail(userData.email, userData.displayName || null);
+    logger.info(`✅ Welcome email sent to: ${userData.email}`);
+  } catch (error) {
+    logger.error('❌ Failed to send welcome email:', error);
+    // Don't fail the function if email fails
+  }
+  
+  return null;
+});
+
+// Scheduled function to remind users about trial ending
+exports.scheduledTrialReminders = onSchedule('0 9 * * *', {
+  timeZone: 'America/New_York',
+}, async (event) => {
+  logger.info('🔔 Running scheduled trial ending reminders...');
+  
+  try {
+    const now = new Date();
+    const twoDaysFromNow = new Date(now);
+    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+    
+    // Find users whose trial ends in 2 days
+    const usersSnapshot = await admin.firestore()
+      .collection('users')
+      .where('subscription.status', '==', 'trialing')
+      .get();
+
+    const promises = [];
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      const subscription = userData.subscription || {};
+      
+      if (subscription.currentPeriodEnd) {
+        const endDate = new Date(subscription.currentPeriodEnd);
+        const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+        
+        // Send reminder if 2 days left
+        if (daysLeft === 2) {
+          promises.push(
+            emailService.sendTrialEndingEmail(userData.email, daysLeft)
+          );
+        }
+      }
+    }
+
+    const results = await Promise.allSettled(promises);
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
+    
+    logger.info(`✅ Trial ending emails sent: ${successful}/${results.length}`);
+    return { success: true, sent: successful, total: results.length };
+    
+  } catch (error) {
+    logger.error('❌ Error in scheduled trial reminders:', error);
+    return { success: false, error: error.message };
+  }
 });

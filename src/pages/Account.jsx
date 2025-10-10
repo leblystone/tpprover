@@ -10,7 +10,8 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   import BadgeImage from '../components/badges/BadgeImage'
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
   import { STRIPE_CONFIG } from '../config/stripe'
-  import { getAuth } from 'firebase/auth'
+  import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification, sendPasswordResetEmail, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
+  import { useFirebase } from '../context/FirebaseContext'
   import { verifyStripeConfig } from '../utils/stripe-verify'
   // Beta imports removed - beta phase concluded
 
@@ -228,29 +229,162 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Email updated', type: 'success' } }))
     }
 
-    // Security: change password
+    // Security: change password and email verification
+    const { firebaseUser } = useFirebase();
     const [pwForm, setPwForm] = React.useState({ current: '', next: '', confirm: '' })
-    const changePassword = () => {
-      if (!user?.email) { return }
-      const key = (user.email || '').toLowerCase()
-      const db = getAuthDb()
-      const rec = db[key]
-      if (!rec || rec.p !== enc(pwForm.current)) {
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Current password is incorrect', type: 'error' } }))
-        return
+    const [isUpdatingPassword, setIsUpdatingPassword] = React.useState(false)
+    const [isSendingVerification, setIsSendingVerification] = React.useState(false)
+    
+    // Email verification status
+    const isEmailVerified = React.useMemo(() => {
+      const auth = getAuth();
+      return auth.currentUser?.emailVerified || false;
+    }, [firebaseUser])
+    
+    // Send email verification
+    const sendVerificationEmail = async () => {
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'You must be logged in to verify your email', type: 'error' } 
+        }));
+        return;
       }
+      
+      if (auth.currentUser.emailVerified) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Your email is already verified!', type: 'success' } 
+        }));
+        return;
+      }
+      
+      setIsSendingVerification(true);
+      try {
+        await sendEmailVerification(auth.currentUser, {
+          url: window.location.origin + '/account',
+          handleCodeInApp: false
+        });
+        
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: '📧 Verification email sent! Check your inbox.', type: 'success' } 
+        }));
+      } catch (error) {
+        console.error('❌ Email verification error:', error);
+        
+        let errorMessage = 'Failed to send verification email. ';
+        if (error.code === 'auth/too-many-requests') {
+          errorMessage += 'Too many requests. Please try again later.';
+        } else {
+          errorMessage += error.message || 'Please try again.';
+        }
+        
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: errorMessage, type: 'error' } 
+        }));
+      } finally {
+        setIsSendingVerification(false);
+      }
+    }
+    
+    // Send password reset email
+    const sendPasswordReset = async () => {
+      if (!user?.email) return;
+      
+      try {
+        const auth = getAuth();
+        await sendPasswordResetEmail(auth, user.email, {
+          url: window.location.origin + '/login',
+          handleCodeInApp: false
+        });
+        
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: '📧 Password reset email sent! Check your inbox.', type: 'success' } 
+        }));
+      } catch (error) {
+        console.error('❌ Password reset error:', error);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Failed to send password reset email. Please try again.', type: 'error' } 
+        }));
+      }
+    }
+    
+    const changePassword = async () => {
+      if (!user?.email) { return }
+      
+      // Validate new password
       if (pwForm.next.length < 8 || !/[A-Z]/.test(pwForm.next) || !/[a-z]/.test(pwForm.next) || !/\d/.test(pwForm.next)) {
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'New password does not meet requirements', type: 'error' } }))
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'New password must be at least 8 characters with uppercase, lowercase, and number', type: 'error' } }))
         return
       }
       if (pwForm.next !== pwForm.confirm) {
         window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Passwords do not match', type: 'error' } }))
         return
       }
-      db[key] = { ...(rec || {}), p: enc(pwForm.next) }
-      setAuthDb(db)
-      setPwForm({ current: '', next: '', confirm: '' })
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Password updated', type: 'success' } }))
+      
+      setIsUpdatingPassword(true);
+      
+      try {
+        // Check if Firebase user
+        const auth = getAuth();
+        if (firebaseUser || auth.currentUser) {
+          console.log('🔐 Updating Firebase password...');
+          
+          // Reauthenticate first (required by Firebase)
+          const credential = EmailAuthProvider.credential(
+            user.email,
+            pwForm.current
+          );
+          
+          await reauthenticateWithCredential(auth.currentUser, credential);
+          
+          // Update password
+          await firebaseUpdatePassword(auth.currentUser, pwForm.next);
+          
+          setPwForm({ current: '', next: '', confirm: '' });
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: '✅ Password updated successfully!', type: 'success' } 
+          }));
+        } else {
+          // Legacy localStorage auth
+          console.log('🔐 Updating localStorage password...');
+          const key = user.email.toLowerCase();
+          const db = getAuthDb();
+          const rec = db[key];
+          
+          if (!rec || rec.p !== enc(pwForm.current)) {
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+              detail: { message: 'Current password is incorrect', type: 'error' } 
+            }));
+            return;
+          }
+          
+          db[key] = { ...(rec || {}), p: enc(pwForm.next) };
+          setAuthDb(db);
+          setPwForm({ current: '', next: '', confirm: '' });
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: '✅ Password updated successfully!', type: 'success' } 
+          }));
+        }
+      } catch (error) {
+        console.error('❌ Password update error:', error);
+        
+        let errorMessage = 'Failed to update password. ';
+        if (error.code === 'auth/wrong-password') {
+          errorMessage += 'Current password is incorrect.';
+        } else if (error.code === 'auth/weak-password') {
+          errorMessage += 'New password is too weak.';
+        } else if (error.code === 'auth/requires-recent-login') {
+          errorMessage += 'Please log out and log back in, then try again.';
+        } else {
+          errorMessage += error.message || 'Please try again.';
+        }
+        
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: errorMessage, type: 'error' } 
+        }));
+      } finally {
+        setIsUpdatingPassword(false);
+      }
     }
 
     // Subscription actions with Stripe integration
@@ -465,6 +599,47 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   </div>
                 </div>
               </div>
+
+              {/* Email Verification Status - Only show for Firebase users */}
+              {firebaseUser && (
+                <div className="p-4 rounded-lg border" style={{ 
+                  borderColor: isEmailVerified ? '#10b981' : '#f59e0b', 
+                  backgroundColor: isEmailVerified ? '#f0fdf4' : '#fffbeb' 
+                }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ 
+                        backgroundColor: isEmailVerified ? '#d1fae5' : '#fef3c7' 
+                      }}>
+                        <svg className="w-5 h-5" style={{ color: isEmailVerified ? '#10b981' : '#f59e0b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: isEmailVerified ? '#059669' : '#d97706' }}>
+                          Email Status
+                        </div>
+                        <div className="text-sm font-semibold" style={{ color: isEmailVerified ? '#10b981' : '#f59e0b' }}>
+                          {isEmailVerified ? '✓ Verified' : '⚠ Not Verified'}
+                        </div>
+                        <div className="text-xs mt-1" style={{ color: isEmailVerified ? '#059669' : '#d97706' }}>
+                          {isEmailVerified ? 'Your email is confirmed' : 'Please verify your email'}
+                        </div>
+                      </div>
+                    </div>
+                    {!isEmailVerified && (
+                      <button 
+                        onClick={sendVerificationEmail}
+                        disabled={isSendingVerification}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50"
+                        style={{ backgroundColor: '#f59e0b', color: 'white' }}
+                      >
+                        {isSendingVerification ? 'Sending...' : 'Send Email'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-sm" style={{ color: theme.textLight }}>You are not signed in. Go to Login.</div>
@@ -925,8 +1100,24 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                 <input type="password" className="p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} placeholder="New" value={pwForm.next} onChange={e => setPwForm({ ...pwForm, next: e.target.value })} />
                 <input type="password" className="p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} placeholder="Confirm" value={pwForm.confirm} onChange={e => setPwForm({ ...pwForm, confirm: e.target.value })} />
               </div>
-              <div className="mt-2 text-right">
-                <button className="px-3 py-2 rounded-md text-sm hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={changePassword}>Update Password</button>
+              <div className="mt-2 flex items-center justify-between">
+                {firebaseUser && (
+                  <button 
+                    onClick={sendPasswordReset}
+                    className="text-xs hover:underline"
+                    style={{ color: theme.primary }}
+                  >
+                    Forgot password? Send reset email
+                  </button>
+                )}
+                <button 
+                  className="px-3 py-2 rounded-md text-sm hover:opacity-90 disabled:opacity-50" 
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                  onClick={changePassword}
+                  disabled={isUpdatingPassword}
+                >
+                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                </button>
               </div>
             </div>
             <hr style={{ borderColor: theme.border }}/>

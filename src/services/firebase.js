@@ -17,7 +17,8 @@ import {
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signOut, 
+  signOut,
+  sendEmailVerification, 
   onAuthStateChanged,
   fetchSignInMethodsForEmail
 } from 'firebase/auth';
@@ -162,13 +163,26 @@ export async function registerUser(email, password, inviteCode) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
+    // Send email verification
+    try {
+      await sendEmailVerification(user, {
+        url: window.location.origin + '/app/dashboard',
+        handleCodeInApp: false
+      });
+      console.log('✉️ Verification email sent to:', email);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Don't block registration if email fails
+    }
+    
     // Create user document in Firestore
     const userData = {
       email: email.toLowerCase(),
       uid: user.uid,
       createdAt: serverTimestamp(),
       lastActive: serverTimestamp(),
-      isActive: true
+      isActive: true,
+      emailVerified: user.emailVerified
     };
     
     await setDoc(doc(db, 'users', user.uid), userData);
