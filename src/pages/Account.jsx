@@ -876,18 +876,26 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   </div>
                    )}
 
-                  {/* Billing Management - Only show for paid subscriptions with real Stripe customer ID */}
-                  {sub?.customerId && !sub.customerId.startsWith('cus_demo_') && sub.customerId !== 'demo_customer' && (
+                  {/* Billing Management - Show for paid subscriptions (active, not trial) */}
+                  {sub && (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'canceled') && 
+                   sub.status !== 'trialing' && sub.status !== 'lab_access' ? (
                     <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
-                      <button 
-                        className="px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-all" 
-                        style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                        onClick={() => createPortalSession(sub.customerId)}
-                      >
-                        Manage Billing & Payment Methods
-                      </button>
+                      {sub.customerId && !sub.customerId.startsWith('cus_demo_') && sub.customerId !== 'demo_customer' ? (
+                        <button 
+                          className="px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-all" 
+                          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                          onClick={() => createPortalSession(sub.customerId)}
+                        >
+                          Manage Billing & Payment Methods
+                        </button>
+                      ) : (
+                        <div className="text-sm p-3 rounded-md" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>
+                          <p className="mb-1 font-medium" style={{ color: theme.text }}>Payment History</p>
+                          <p>Your subscription was activated. To manage billing, please contact support.</p>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               ) : (
                 // Regular user without subscription
