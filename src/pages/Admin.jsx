@@ -879,7 +879,7 @@ function Admin() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="h-screen flex flex-col lg:flex-row overflow-hidden" style={{ backgroundColor: '#f8fafc' }}>
       {/* Mobile Header Navigation */}
       <div className="lg:hidden bg-white border-b" style={{ borderColor: theme.border }}>
         <div className="p-4">
@@ -968,9 +968,9 @@ function Admin() {
       </div>
 
       {/* Desktop Sidebar Navigation */}
-      <div className="hidden lg:flex lg:w-64 bg-white border-r flex-col lg:min-h-screen" style={{ borderColor: theme.border }}>
+      <div className="hidden lg:flex lg:w-64 bg-white border-r flex-col h-screen sticky top-0" style={{ borderColor: theme.border }}>
         {/* Header */}
-        <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+        <div className="p-6 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
               <Wrench size={20} style={{ color: theme.primary }} />
@@ -1127,9 +1127,9 @@ function Admin() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Header */}
-        <div className="bg-white border-b p-4 lg:p-6" style={{ borderColor: theme.border }}>
+        <div className="bg-white border-b p-4 lg:p-6 flex-shrink-0" style={{ borderColor: theme.border }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold capitalize" style={{ color: theme.primaryDark }}>
