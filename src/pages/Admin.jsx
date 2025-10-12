@@ -254,6 +254,64 @@ function Admin() {
     newTopic: '',
     newPenType: ''
   });
+
+  // Load content data from localStorage and defaults
+  const loadContentData = () => {
+    try {
+      // Load research topics from glossary
+      const glossary = JSON.parse(localStorage.getItem('tpprover_glossary') || '[]');
+      const topics = glossary.map(g => ({ id: g.id, name: g.name }));
+      
+      // Load pen types from localStorage or use defaults
+      const storedPenTypes = localStorage.getItem('tpprover_pen_types');
+      const penTypes = storedPenTypes ? JSON.parse(storedPenTypes) : [
+        { id: 'savvio', name: 'Savvio' },
+        { id: 'novo', name: 'Novo' },
+        { id: 'v1', name: 'V1' },
+        { id: 'v2', name: 'V2' },
+        { id: 'v3', name: 'V3' },
+        { id: 'bird-pen', name: 'Bird Pen' },
+        { id: 'luxura', name: 'Luxura' },
+        { id: 'gansulin', name: 'Gansulin' },
+        { id: 'other', name: 'Other' }
+      ];
+      
+      setContentData(prev => ({
+        ...prev,
+        topics,
+        penTypes
+      }));
+    } catch (error) {
+      console.error('Error loading content data:', error);
+    }
+  };
+
+  // Save content data back to localStorage
+  const saveContentData = () => {
+    try {
+      // Save topics back to glossary
+      const glossary = contentData.topics.map(t => ({
+        id: t.id,
+        name: t.name,
+        category: 'Custom',
+        description: '',
+        createdAt: new Date().toISOString()
+      }));
+      localStorage.setItem('tpprover_glossary', JSON.stringify(glossary));
+      
+      // Save pen types
+      localStorage.setItem('tpprover_pen_types', JSON.stringify(contentData.penTypes));
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Content updated successfully!', type: 'success' } 
+      }));
+    } catch (error) {
+      console.error('Error saving content data:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Error saving content data', type: 'error' } 
+      }));
+    }
+  };
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
@@ -339,6 +397,7 @@ function Admin() {
     loadFeedbackAnalysis();
     loadStripeData();
     loadLifetimeUsers();
+    loadContentData();
   }, []);
 
   const loadLifetimeUsers = async () => {
@@ -911,7 +970,6 @@ function Admin() {
               { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6' },
               { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6' },
               { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
-              { id: 'whitelist', label: 'Access', icon: Mail, color: '#64748b' },
               { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
               { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
               { id: 'notifications', label: 'Notifications', icon: Bell, color: '#8b5cf6' },
@@ -1048,14 +1106,6 @@ function Admin() {
               color: theme.primary 
             },
             { 
-              id: 'whitelist', 
-              label: 'Email Whitelist', 
-              icon: Mail, 
-              count: emailWhitelist.length,
-              desc: 'Approved emails',
-              color: '#64748b' 
-            },
-            { 
               id: 'features', 
               label: 'Feature Flags', 
               icon: Flag, 
@@ -1151,7 +1201,6 @@ function Admin() {
                 {activeTab === 'content' && 'Manage research topics and other in-app content'}
                 {activeTab === 'feedback' && 'User feedback management with keyword-based categorization'}
                 {activeTab === 'announcements' && 'Manage app-wide announcements and notifications'}
-                {activeTab === 'whitelist' && 'Manage approved email addresses for beta access'}
                 {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
                 {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
                 {activeTab === 'notifications' && 'Customize notification templates and messaging with personality'}
@@ -2110,135 +2159,6 @@ function Admin() {
           </div>
         )}
 
-        {activeTab === 'whitelist' && (
-          <div className="space-y-6">
-            <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="p-6 border-b" style={{ borderColor: theme.border }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Email Whitelist</h2>
-                    <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      Manage approved email addresses for beta access
-                    </p>
-                  </div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>
-                    {emailWhitelist.length} approved emails
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6 space-y-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                    Add Email Addresses
-                  </label>
-                  <textarea
-                    value={newEmails}
-                    onChange={(e) => setNewEmails(e.target.value)}
-                    placeholder="Enter email addresses (one per line, or comma-separated)"
-                    className="w-full p-3 border rounded-lg h-32 resize-none"
-                    style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                  />
-                  <div className="flex items-center gap-3 mt-3">
-                    <button
-                      onClick={() => updateEmailWhitelistFirebase(newEmails)}
-                      disabled={!newEmails.trim() || loading.emailWhitelist}
-                      className="px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                      style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
-                    >
-                      {loading.emailWhitelist ? (
-                        <>
-                          <Loader size={16} className="animate-spin mr-2" />
-                          Adding...
-                        </>
-                      ) : (
-                        'Add to Whitelist'
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium" style={{ color: theme.text }}>
-                      Approved Emails ({emailWhitelist.length})
-                    </h3>
-                    {emailWhitelist.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs">
-                        <div className="flex items-center gap-1">
-                          <CheckCircle size={14} style={{ color: theme.success }} />
-                          <span style={{ color: theme.success }}>{getSignupStats().signedUp} signed up</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock size={14} style={{ color: theme.textLight }} />
-                          <span style={{ color: theme.textLight }}>{getSignupStats().pending} pending</span>
-                        </div>
-                        <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ 
-                          backgroundColor: theme.success + '20', 
-                          color: theme.success 
-                        }}>
-                          {getSignupStats().signupRate.toFixed(0)}% signup rate
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {emailWhitelist.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Mail size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
-                      <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No emails whitelisted</h3>
-                      <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                        Add email addresses to allow beta access
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-2">
-                      {emailWhitelist.map((email, index) => {
-                        const signupStatus = getEmailSignupStatus(email);
-                        const StatusIcon = signupStatus.icon;
-                        
-                        return (
-                          <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <StatusIcon size={16} style={{ color: signupStatus.color }} />
-                              <span className="text-sm font-mono truncate" style={{ color: theme.text }}>
-                                {email}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between sm:justify-end gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs px-2 py-1 rounded-full font-medium" style={{
-                                  backgroundColor: signupStatus.color + '20',
-                                  color: signupStatus.color
-                                }}>
-                                  {signupStatus.text}
-                                </span>
-                                {signupStatus.signupDate && (
-                                  <span className="text-xs" style={{ color: theme.textLight }}>
-                                    Joined {signupStatus.signupDate.toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => removeFromWhitelistFirebase(email)}
-                                className="p-1 rounded hover:opacity-70 flex-shrink-0"
-                                style={{ color: theme.error }}
-                                title="Remove from whitelist"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'lifetime' && (
           <div className="space-y-6">
             {/* Manual Grant Tool */}
@@ -2379,12 +2299,31 @@ function Admin() {
 
         {activeTab === 'content' && (
           <div className="space-y-6">
+            {/* Save Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={saveContentData}
+                className="px-6 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
+              >
+                <Save size={18} />
+                Save All Changes
+              </button>
+            </div>
+
             {/* Research Topics Management */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Research Topics</h2>
-              <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                Manage common research topics that users can select when creating protocols.
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Research Topics (Glossary)</h2>
+                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                    Manage research topics shown in the glossary and global search.
+                  </p>
+                </div>
+                <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                  {contentData.topics.length} topics
+                </span>
+              </div>
               
               <div className="space-y-4">
                 {/* Add New Topic */}
@@ -2454,10 +2393,17 @@ function Admin() {
 
             {/* Pen Types Management */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Popular Pen Types</h2>
-              <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                Manage popular pen brands/types for quick selection in protocol forms.
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Pen Types</h2>
+                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                    Manage pen brands/types shown in protocol editor dropdown.
+                  </p>
+                </div>
+                <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                  {contentData.penTypes.length} types
+                </span>
+              </div>
               
               <div className="space-y-4">
                 {/* Add New Pen Type */}

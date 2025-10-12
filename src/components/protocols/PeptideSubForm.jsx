@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
@@ -8,6 +8,29 @@ import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 
 export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
+    // Load pen types from localStorage or use defaults
+    const [penTypes, setPenTypes] = useState([]);
+    
+    useEffect(() => {
+        try {
+            const storedPenTypes = localStorage.getItem('tpprover_pen_types');
+            const types = storedPenTypes ? JSON.parse(storedPenTypes) : [
+                { id: 'savvio', name: 'Savvio' },
+                { id: 'novo', name: 'Novo' },
+                { id: 'v1', name: 'V1' },
+                { id: 'v2', name: 'V2' },
+                { id: 'v3', name: 'V3' },
+                { id: 'bird-pen', name: 'Bird Pen' },
+                { id: 'luxura', name: 'Luxura' },
+                { id: 'gansulin', name: 'Gansulin' },
+                { id: 'other', name: 'Other' }
+            ];
+            setPenTypes(types);
+        } catch (error) {
+            console.error('Error loading pen types:', error);
+            setPenTypes([{ id: 'other', name: 'Other' }]);
+        }
+    }, []);
     
     const handleChange = (field, value) => {
         onChange({ ...item, [field]: value });
@@ -217,15 +240,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }}
                                         >
                                             <option value="">(Optional)</option>
-                                            <option value="savvio">Savvio</option>
-                                            <option value="novo">Novo</option>
-                                            <option value="v1">V1</option>
-                                            <option value="v2">V2</option>
-                                            <option value="v3">V3</option>
-                                            <option value="bird-pen">Bird Pen</option>
-                                            <option value="luxura">Luxura</option>
-                                            <option value="gansulin">Gansulin</option>
-                                            <option value="other">Other</option>
+                                            {penTypes.map(type => (
+                                                <option key={type.id} value={type.id}>{type.name}</option>
+                                            ))}
                                         </select>
                                     </div>
 

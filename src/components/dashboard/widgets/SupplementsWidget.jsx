@@ -79,7 +79,7 @@ const SupplementsWidget = ({
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
               <Plus size={16} className="inline mr-2" />
-              Add Your First Supplement
+              Add Supplement
             </button>
           </div>
         ) : (
