@@ -1065,6 +1065,22 @@ function Admin() {
               desc: 'User agreement tracking',
               color: '#ef4444' 
             },
+            { 
+              id: 'notifications', 
+              label: 'Notifications', 
+              icon: Bell, 
+              count: 0,
+              desc: 'Customize notification templates',
+              color: '#8b5cf6' 
+            },
+            { 
+              id: 'emails', 
+              label: 'Email Templates', 
+              icon: Mail, 
+              count: 0,
+              desc: 'Branded email editor',
+              color: '#06b6d4' 
+            },
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
