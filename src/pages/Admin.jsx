@@ -248,6 +248,12 @@ function Admin() {
   const [newEmails, setNewEmails] = useState('');
   const [userList, setUserList] = useState([]);
   const [feedback, setFeedback] = useState([]);
+  const [contentData, setContentData] = useState({
+    topics: [],
+    penTypes: [],
+    newTopic: '',
+    newPenType: ''
+  });
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
@@ -2373,23 +2379,148 @@ function Admin() {
 
         {activeTab === 'content' && (
           <div className="space-y-6">
+            {/* Research Topics Management */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Content Management</h2>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Research Topics</h2>
               <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                This section allows you to manage dynamic content within the application, such as research topics and popular pen types for protocols.
+                Manage common research topics that users can select when creating protocols.
               </p>
-              {/* Research Topics Management Placeholder */}
-              <div className="pt-4">
-                <h3 className="font-semibold mb-2" style={{ color: theme.text }}>Research Topics</h3>
-                <div className="p-4 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                  <p style={{ color: theme.textLight }}>A UI to add, edit, and delete research topics will be implemented here.</p>
+              
+              <div className="space-y-4">
+                {/* Add New Topic */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter a new research topic..."
+                    value={contentData.newTopic}
+                    onChange={(e) => setContentData(prev => ({ ...prev, newTopic: e.target.value }))}
+                    className="flex-1 p-3 rounded border"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && contentData.newTopic.trim()) {
+                        setContentData(prev => ({
+                          ...prev,
+                          topics: [...prev.topics, { id: Date.now(), name: contentData.newTopic.trim() }],
+                          newTopic: ''
+                        }));
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (contentData.newTopic.trim()) {
+                        setContentData(prev => ({
+                          ...prev,
+                          topics: [...prev.topics, { id: Date.now(), name: contentData.newTopic.trim() }],
+                          newTopic: ''
+                        }));
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    <Plus size={18} />
+                    Add
+                  </button>
+                </div>
+
+                {/* Topics List */}
+                <div className="space-y-2">
+                  {contentData.topics.length === 0 ? (
+                    <div className="text-center py-8" style={{ color: theme.textLight }}>
+                      <p>No research topics yet. Add some above!</p>
+                    </div>
+                  ) : (
+                    contentData.topics.map((topic) => (
+                      <div key={topic.id} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                        <span style={{ color: theme.text }}>{topic.name}</span>
+                        <button
+                          onClick={() => {
+                            setContentData(prev => ({
+                              ...prev,
+                              topics: prev.topics.filter(t => t.id !== topic.id)
+                            }));
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-              {/* Pen Types Management Placeholder */}
-              <div className="pt-4">
-                <h3 className="font-semibold mb-2" style={{ color: theme.text }}>Popular Pen Types</h3>
-                <div className="p-4 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                  <p style={{ color: theme.textLight }}>A UI to manage the list of popular pen types for the protocol form will be implemented here.</p>
+            </div>
+
+            {/* Pen Types Management */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Popular Pen Types</h2>
+              <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                Manage popular pen brands/types for quick selection in protocol forms.
+              </p>
+              
+              <div className="space-y-4">
+                {/* Add New Pen Type */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter a pen type (e.g., Omnipod, Mounjaro Pen)..."
+                    value={contentData.newPenType}
+                    onChange={(e) => setContentData(prev => ({ ...prev, newPenType: e.target.value }))}
+                    className="flex-1 p-3 rounded border"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && contentData.newPenType.trim()) {
+                        setContentData(prev => ({
+                          ...prev,
+                          penTypes: [...prev.penTypes, { id: Date.now(), name: contentData.newPenType.trim() }],
+                          newPenType: ''
+                        }));
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (contentData.newPenType.trim()) {
+                        setContentData(prev => ({
+                          ...prev,
+                          penTypes: [...prev.penTypes, { id: Date.now(), name: contentData.newPenType.trim() }],
+                          newPenType: ''
+                        }));
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    <Plus size={18} />
+                    Add
+                  </button>
+                </div>
+
+                {/* Pen Types List */}
+                <div className="space-y-2">
+                  {contentData.penTypes.length === 0 ? (
+                    <div className="text-center py-8" style={{ color: theme.textLight }}>
+                      <p>No pen types yet. Add some above!</p>
+                    </div>
+                  ) : (
+                    contentData.penTypes.map((pen) => (
+                      <div key={pen.id} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                        <span style={{ color: theme.text }}>{pen.name}</span>
+                        <button
+                          onClick={() => {
+                            setContentData(prev => ({
+                              ...prev,
+                              penTypes: prev.penTypes.filter(p => p.id !== pen.id)
+                            }));
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
