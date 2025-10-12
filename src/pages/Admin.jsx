@@ -259,8 +259,17 @@ function Admin() {
   const loadContentData = () => {
     try {
       // Load research topics from glossary
-      const glossary = JSON.parse(localStorage.getItem('tpprover_glossary') || '[]');
-      const topics = glossary.map(g => ({ id: g.id, name: g.name }));
+      const glossaryRaw = localStorage.getItem('tpprover_glossary') || '[]';
+      console.log('📚 Raw glossary data:', glossaryRaw);
+      const glossary = JSON.parse(glossaryRaw);
+      console.log('📚 Parsed glossary:', glossary);
+      console.log('📚 Glossary length:', glossary.length);
+      
+      const topics = glossary.map(g => ({ 
+        id: g.id || Date.now() + Math.random(), 
+        name: g.name || g.peptide || 'Unnamed'
+      }));
+      console.log('📚 Mapped topics:', topics);
       
       // Load pen types from localStorage or use defaults
       const storedPenTypes = localStorage.getItem('tpprover_pen_types');
@@ -275,6 +284,7 @@ function Admin() {
         { id: 'gansulin', name: 'Gansulin' },
         { id: 'other', name: 'Other' }
       ];
+      console.log('🖊️ Pen types:', penTypes);
       
       setContentData(prev => ({
         ...prev,
@@ -282,7 +292,7 @@ function Admin() {
         penTypes
       }));
     } catch (error) {
-      console.error('Error loading content data:', error);
+      console.error('❌ Error loading content data:', error);
     }
   };
 
@@ -2299,8 +2309,16 @@ function Admin() {
 
         {activeTab === 'content' && (
           <div className="space-y-6">
-            {/* Save Button */}
-            <div className="flex justify-end">
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={loadContentData}
+                className="px-6 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+              >
+                <RefreshCw size={18} />
+                Reload Data
+              </button>
               <button
                 onClick={saveContentData}
                 className="px-6 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"

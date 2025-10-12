@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Archive, AlertTriangle, Package } from 'lucide-react';
 
 function useLocal(key, fallback) {
@@ -11,6 +12,7 @@ function useLocal(key, fallback) {
 }
 
 const InventoryWidget = ({ widget, theme }) => {
+  const navigate = useNavigate();
   const stockpile = useLocal('tpprover_stockpile', []);
 
   const inventoryData = useMemo(() => {
@@ -23,8 +25,7 @@ const InventoryWidget = ({ widget, theme }) => {
       lowStock: lowStock.length, 
       outOfStock: outOfStock.length,
       totalItems,
-      wellStocked: wellStocked.length,
-      lowStockItems: lowStock.slice(0, 3) // Show top 3 low stock items
+      wellStocked: wellStocked.length
     };
   }, [stockpile]);
 
@@ -34,8 +35,16 @@ const InventoryWidget = ({ widget, theme }) => {
     return theme.error;
   };
 
+  const handleClick = () => {
+    navigate('/app/stockpile');
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div 
+      className="h-full flex flex-col cursor-pointer transition-all hover:shadow-lg" 
+      onClick={handleClick}
+      style={{ borderRadius: '12px' }}
+    >
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
@@ -93,35 +102,6 @@ const InventoryWidget = ({ widget, theme }) => {
                 </div>
               </div>
             </div>
-
-            {/* Low stock items */}
-            {inventoryData.lowStockItems.length > 0 && (
-              <div>
-                <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>
-                  Items needing restock:
-                </div>
-                <div className="space-y-1">
-                  {inventoryData.lowStockItems.map((item, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-center justify-between p-2 rounded text-sm"
-                      style={{ backgroundColor: theme.secondary }}
-                    >
-                      <span style={{ color: theme.text }}>{item.name}</span>
-                      <span 
-                        className="text-xs px-2 py-1 rounded-full"
-                        style={{ 
-                          backgroundColor: theme.errorBg || theme.error + '20', 
-                          color: theme.error 
-                        }}
-                      >
-                        {item.quantity} left
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
