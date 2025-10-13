@@ -30,13 +30,21 @@ const emailWrapper = (content) => `
     }
     .email-container {
       max-width: 600px;
-      margin: 0 auto;
+      margin: 20px auto;
       background-color: ${COLORS.white};
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .header {
       background: linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryLight} 100%);
       padding: 40px 20px;
       text-align: center;
+    }
+    .logo-image {
+      width: 200px;
+      height: auto;
+      margin: 0 auto 12px;
     }
     .logo {
       font-size: 32px;
@@ -60,13 +68,15 @@ const emailWrapper = (content) => `
       background-color: ${COLORS.primary};
       color: ${COLORS.white} !important;
       text-decoration: none;
-      border-radius: 8px;
+      border-radius: 12px;
       font-weight: 600;
       font-size: 16px;
       margin: 24px 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     .button:hover {
       background-color: ${COLORS.primaryLight};
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
     .footer {
       background-color: ${COLORS.sage};
@@ -85,7 +95,7 @@ const emailWrapper = (content) => `
       border-left: 4px solid ${COLORS.secondary};
       padding: 16px;
       margin: 20px 0;
-      border-radius: 4px;
+      border-radius: 12px;
     }
     .feature-list {
       list-style: none;
@@ -111,8 +121,8 @@ const emailWrapper = (content) => `
   <div style="background-color: ${COLORS.sage}; padding: 20px 0;">
     <div class="email-container">
       <div class="header">
-        <div class="logo">🧬 The Pep Planner</div>
-        <div class="tagline">Research. Track. Optimize.</div>
+        <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" width="200" />
+        <div class="tagline">Organize Your Research</div>
       </div>
       ${content}
       <div class="footer">
