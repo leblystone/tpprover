@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, X, ChevronDown, Beaker, Calculator, Package, Clock, Pipette } from 'lucide-react';
+import { HelpCircle, X, ChevronDown, Beaker, Calculator, Package, Clock, Pipette, Droplet } from 'lucide-react';
 
 const ReconHelpPanel = ({ theme }) => {
   const [isExpanded, setIsExpanded] = useState(false);

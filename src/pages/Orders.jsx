@@ -253,7 +253,7 @@ export default function Orders() {
 										style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
 									>
 										<PlusCircle size={18} />
-										Add Your First Group Buy Order
+										Add First Group Buy Order
 									</button>
 								)}
 							</div>
@@ -295,7 +295,7 @@ export default function Orders() {
 							</h3>
 							<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
 								{activeTab === 'domestic' 
-									? 'Track your domestic orders to monitor shipping status, delivery dates, and manage your research supply chain. Stay organized and never miss a delivery.'
+									? 'Track domestic orders to monitor shipping status, delivery dates, and manage research supply chain. Stay organized and never miss a delivery.'
 									: 'Track international orders with extended shipping times, customs clearance, and delivery updates.'
 								}
 							</p>
@@ -306,7 +306,7 @@ export default function Orders() {
 									style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
 								>
 									<PlusCircle size={18} />
-									{activeTab === 'domestic' ? 'Add Your First Domestic Order' : 'Add Your First International Order'}
+									{activeTab === 'domestic' ? 'Add First Domestic Order' : 'Add First International Order'}
 								</button>
 							)}
 						</div>

@@ -112,9 +112,9 @@ export default function Vendors() {
 							style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
 						>
 							<PlusCircle size={18} />
-							{activeTab === 'domestic' ? 'Add Your First Domestic Vendor' : 
-							 activeTab === 'international' ? 'Add Your First International Vendor' : 
-							 'Add Your First Group Buy Vendor'}
+							{activeTab === 'domestic' ? 'Add First Domestic Vendor' : 
+							 activeTab === 'international' ? 'Add First International Vendor' : 
+							 'Add First Group Buy Vendor'}
 						</button>
 					)}
 				</div>

@@ -123,90 +123,93 @@ const WaterTrackerWidget = ({ widget, theme }) => {
         </div>
       </div>
       
-      <div className="flex-1 p-4 flex flex-col justify-center space-y-4">
-        {/* Progress Circle - Compact */}
-        <div className="flex items-center justify-center">
-          <div className="relative w-16 h-16">
-            <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="35"
-                stroke={theme.border}
-                strokeWidth="6"
-                fill="none"
-                opacity="0.3"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="35"
-                stroke={theme.primary}
-                strokeWidth="6"
-                fill="none"
-                strokeDasharray={`${2 * Math.PI * 35}`}
-                strokeDashoffset={`${2 * Math.PI * 35 * (1 - progress)}`}
-                strokeLinecap="round"
-                className="transition-all duration-300 ease-in-out"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs font-bold" style={{ color: theme.text }}>
-                {Math.round(progress * 100)}%
-              </span>
+      <div className="flex-1 p-4 flex items-center justify-center">
+        <div className="w-full grid grid-cols-2 gap-4 items-center">
+          {/* Left Column: Progress Circle and Stats */}
+          <div className="flex flex-col items-center space-y-2">
+            {/* Progress Circle - Compact */}
+            <div className="relative w-20 h-20">
+              <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke={theme.border}
+                  strokeWidth="6"
+                  fill="none"
+                  opacity="0.3"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  stroke={theme.primary}
+                  strokeWidth="6"
+                  fill="none"
+                  strokeDasharray={`${2 * Math.PI * 35}`}
+                  strokeDashoffset={`${2 * Math.PI * 35 * (1 - progress)}`}
+                  strokeLinecap="round"
+                  className="transition-all duration-300 ease-in-out"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-bold" style={{ color: theme.text }}>
+                  {Math.round(progress * 100)}%
+                </span>
+              </div>
+            </div>
+
+            {/* Current Intake */}
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: theme.text }}>
+                {currentUnit.abbrev === 'liters' ? todayData.glasses.toFixed(1) : Math.round(todayData.glasses)}
+              </div>
+              <div className="text-xs" style={{ color: theme.textLight }}>
+                of {todayData.goal} {currentUnit.abbrev}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Current Intake */}
-        <div className="text-center">
-          <div className="text-xl font-bold" style={{ color: theme.text }}>
-            {currentUnit.abbrev === 'liters' ? todayData.glasses.toFixed(1) : Math.round(todayData.glasses)}
-          </div>
-          <div className="text-sm" style={{ color: theme.textLight }}>
-            {currentUnit.abbrev} of {todayData.goal}
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={() => updateWaterIntake(-1)}
-            disabled={todayData.glasses === 0}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-50"
-            style={{ 
-              backgroundColor: theme.error + '15', 
-              color: theme.error 
-            }}
-          >
-            <Minus size={14} />
-          </button>
-          
-          <button
-            onClick={() => updateWaterIntake(1)}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-            style={{ 
-              backgroundColor: theme.primary + '15', 
-              color: theme.primary 
-            }}
-          >
-            <Plus size={18} />
-          </button>
-        </div>
-
-        {/* Reset Button - Only show if has intake */}
-        {todayData.glasses > 0 && (
-          <div className="flex justify-center">
+          {/* Right Column: Controls */}
+          <div className="flex flex-col items-center space-y-3">
+            {/* Add Button */}
             <button
-              onClick={resetToday}
-              className="px-3 py-1 text-xs rounded-full border transition-colors hover:bg-gray-50"
-              style={{ borderColor: theme.border, color: theme.textLight }}
+              onClick={() => updateWaterIntake(1)}
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md"
+              style={{ 
+                backgroundColor: theme.primary, 
+                color: theme.textOnPrimary 
+              }}
             >
-              <RotateCcw size={10} className="inline mr-1" />
-              Reset
+              <Plus size={20} />
             </button>
+            
+            {/* Subtract Button */}
+            <button
+              onClick={() => updateWaterIntake(-1)}
+              disabled={todayData.glasses === 0}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-30"
+              style={{ 
+                backgroundColor: theme.error + '20', 
+                color: theme.error 
+              }}
+            >
+              <Minus size={16} />
+            </button>
+
+            {/* Reset Button - Only show if has intake */}
+            {todayData.glasses > 0 && (
+              <button
+                onClick={resetToday}
+                className="px-2 py-1 text-xs rounded-full border transition-colors hover:bg-gray-50"
+                style={{ borderColor: theme.border, color: theme.textLight }}
+              >
+                <RotateCcw size={10} className="inline mr-1" />
+                Reset
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Settings Modal */}

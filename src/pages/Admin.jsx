@@ -265,11 +265,29 @@ function Admin() {
       console.log('📚 Parsed glossary:', glossary);
       console.log('📚 Glossary length:', glossary.length);
       
-      const topics = glossary.map(g => ({ 
-        id: g.id || Date.now() + Math.random(), 
-        name: g.name || g.peptide || 'Unnamed'
-      }));
-      console.log('📚 Mapped topics:', topics);
+      // If glossary is empty, initialize with default popular peptides
+      let topics = [];
+      if (glossary.length === 0) {
+        console.log('📚 Glossary is empty - initializing with default topics');
+        const defaultTopics = [
+          'BPC-157', 'TB-500', 'Semaglutide', 'Tirzepatide', 'Retatrutide',
+          'Ipamorelin', 'CJC-1295', 'GHRP-2', 'GHRP-6', 'Sermorelin',
+          'GHK-Cu', 'Melanotan II', 'PT-141', 'Epitalon', 'AOD-9604',
+          'Selank', 'Semax', 'HGH', 'HCG', '5-Amino-1MQ',
+          'Tesofensine', 'Metformin', 'NMN', 'NAD+', 'Glutathione'
+        ];
+        topics = defaultTopics.map((name, index) => ({
+          id: Date.now() + index,
+          name: name
+        }));
+        console.log('📚 Created default topics:', topics);
+      } else {
+        topics = glossary.map(g => ({ 
+          id: g.id || Date.now() + Math.random(), 
+          name: g.name || g.peptide || 'Unnamed'
+        }));
+      }
+      console.log('📚 Final mapped topics:', topics);
       
       // Load pen types from localStorage or use defaults
       const storedPenTypes = localStorage.getItem('tpprover_pen_types');
