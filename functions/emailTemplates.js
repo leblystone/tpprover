@@ -381,3 +381,53 @@ exports.subscriptionConfirmedEmail = (plan, interval, price) => {
   return emailWrapper(content);
 };
 
+// 🎁 Lifetime Access Granted Email
+exports.lifetimeAccessGrantedEmail = (userEmail, reason) => {
+  const content = `
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">🎉 Lifetime Access Granted!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've been granted <strong>Lifetime Access</strong> to The Pep Planner.
+      </p>
+
+      <div class="highlight-box" style="background-color: #FEF3C7; border-left: 4px solid #F59E0B;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">✨ Your Lifetime Access</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Email:</strong> ${userEmail}<br>
+          <strong>Reason:</strong> ${reason}<br>
+          <strong>Access Level:</strong> Full Platform Access<br>
+          <strong>Expires:</strong> Never! 🎊
+        </p>
+      </div>
+
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you get:</h2>
+      <ul class="feature-list">
+        <li>✓ Unlimited access to all features - forever</li>
+        <li>✓ Priority support</li>
+        <li>✓ All future updates included</li>
+        <li>✓ No recurring payments ever</li>
+        <li>✓ Early access to new features</li>
+        <li>✓ VIP status in our community</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" class="button">
+          Access Your Dashboard
+        </a>
+      </center>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Thank you for being part of The Pep Planner family. We're excited to support your research journey! 🧬<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px; padding-top: 24px; border-top: 1px solid ${COLORS.border};">
+        Questions about your lifetime access? Reply to this email and we'll be happy to help!
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+

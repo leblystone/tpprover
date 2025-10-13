@@ -31,7 +31,6 @@ import {
   getFunctions, 
   httpsCallable 
 } from 'firebase/functions';
-import LifetimeMigration from '../components/admin/LifetimeMigration';
 import AgreementTracking from '../components/admin/AgreementTracking';
 import NotificationTemplateEditor from '../components/admin/NotificationTemplateEditor';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
@@ -254,6 +253,10 @@ function Admin() {
     newTopic: '',
     newPenType: ''
   });
+  const [editingTopic, setEditingTopic] = useState(null);
+  const [editingPenType, setEditingPenType] = useState(null);
+  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [showPenTypeModal, setShowPenTypeModal] = useState(false);
 
   // Load content data from localStorage and defaults
   const loadContentData = () => {
@@ -1224,7 +1227,7 @@ function Admin() {
               <p className="text-sm mt-1" style={{ color: theme.textLight }}>
                 {activeTab === 'analytics' && 'Real-time platform analytics and user insights'}
                 {activeTab === 'subscriptions' && 'User management, subscriptions, and account status'}
-                {activeTab === 'lifetime' && 'Manage beta tester lifetime access and migration from localStorage'}
+                {activeTab === 'lifetime' && 'Manage and grant lifetime access to users'}
                 {activeTab === 'billing' && 'Manage Stripe subscriptions, plans, and view revenue'}
                 {activeTab === 'content' && 'Manage research topics and other in-app content'}
                 {activeTab === 'feedback' && 'User feedback management with keyword-based categorization'}
@@ -2198,15 +2201,6 @@ function Admin() {
               }} 
             />
 
-            {/* Migration Tool */}
-            <LifetimeMigration 
-              theme={theme} 
-              onComplete={(result) => {
-                loadLifetimeUsers();
-                console.log('Migration complete:', result);
-              }} 
-            />
-
             {/* Lifetime Users List */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -2409,17 +2403,31 @@ function Admin() {
                     contentData.topics.map((topic) => (
                       <div key={topic.id} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
                         <span style={{ color: theme.text }}>{topic.name}</span>
-                        <button
-                          onClick={() => {
-                            setContentData(prev => ({
-                              ...prev,
-                              topics: prev.topics.filter(t => t.id !== topic.id)
-                            }));
-                          }}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingTopic(topic);
+                              setShowTopicModal(true);
+                            }}
+                            className="p-1 hover:opacity-70"
+                            style={{ color: theme.info }}
+                            title="Edit details"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setContentData(prev => ({
+                                ...prev,
+                                topics: prev.topics.filter(t => t.id !== topic.id)
+                              }));
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}

@@ -94,3 +94,12 @@ exports.sendSubscriptionConfirmationEmail = async (userEmail, plan, interval, pr
   return sendEmail(userEmail, subject, html);
 };
 
+/**
+ * Send lifetime access granted email
+ */
+exports.sendLifetimeAccessGrantedEmail = async (userEmail, reason = 'Beta tester') => {
+  const subject = '🎉 Lifetime Access Granted - The Pep Planner';
+  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, reason);
+  return sendEmail(userEmail, subject, html);
+};
+

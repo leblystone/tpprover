@@ -41,6 +41,18 @@ export default function AgreementTracking({ theme }) {
       setStatistics(statsData);
     } catch (error) {
       console.error('Error loading agreement data:', error);
+      // Set empty data on error so it doesn't load forever
+      setAgreements([]);
+      setStatistics({
+        totalAgreements: 0,
+        uniqueUsers: 0,
+        agreementTypes: {},
+        versions: {},
+        timeRange: { earliest: null, latest: null }
+      });
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'No agreement data found or error loading', type: 'info' }
+      }));
     } finally {
       setLoading(false);
     }
