@@ -24,6 +24,9 @@ export default function DemoDataBanner({ theme, sticky = false }) {
 
         setIsRemoving(true);
         try {
+            // Set flag to indicate demo data is being cleared (prevent unwanted navigation)
+            localStorage.setItem('tpprover_demo_data_cleared', 'true');
+            
             // Clear demo data directly and trigger state refresh
             clearMockData();
 

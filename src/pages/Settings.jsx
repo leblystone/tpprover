@@ -113,7 +113,7 @@ function getDefaultSettings() {
       metricsTracking: true, // Track usage metrics and progress
     },
     calendar: {
-      defaultView: 'month', // 'month' | 'week' | 'day'
+      defaultView: 'month', // 'month' | 'week'
       showWeekends: true, // Hide/show weekends in calendar
       timeFormat: '12h', // '12h' | '24h'
       reminderTime: 30, // Minutes before reminder (for notifications)
@@ -250,9 +250,17 @@ export default function Settings() {
     }
 
     const handleThemeChange = (e) => {
-      setSelectedTheme(e.target.value);
-      try { localStorage.setItem('tpprover_theme', e.target.value); } catch {}
-      window.location.reload();
+      const newTheme = e.target.value;
+      setSelectedTheme(newTheme);
+      try { 
+        localStorage.setItem('tpprover_theme', newTheme); 
+        // Set flag to prevent navigation during theme change reload
+        sessionStorage.setItem('tpp_theme_changing', 'true');
+      } catch {}
+      // Small delay to ensure localStorage is saved
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     };
 
     const exportAll = () => {
@@ -426,7 +434,7 @@ export default function Settings() {
             <SettingSelect label="Currency" value={settings.region.currency} onChange={e => update('region.currency', e.target.value)} options={currencyOptions} theme={theme} />
             <SettingSelect label="Time Zone" value={settings.region.timeZone} onChange={e => update('region.timeZone', e.target.value)} options={tzList.map(tz => ({ value: tz, label: tz }))} theme={theme} />
             <SettingSelect label="Time Format" value={settings.calendar?.timeFormat ?? '12h'} onChange={e => update('calendar.timeFormat', e.target.value)} options={[{ value: '12h', label: '12 Hour (AM/PM)' }, { value: '24h', label: '24 Hour' }]} theme={theme} />
-            <SettingSelect label="Calendar Default View" value={settings.calendar?.defaultView ?? 'month'} onChange={e => update('calendar.defaultView', e.target.value)} options={[{ value: 'month', label: 'Month' }, { value: 'week', label: 'Week' }, { value: 'day', label: 'Day' }]} theme={theme} />
+            <SettingSelect label="Calendar Default View" value={settings.calendar?.defaultView ?? 'month'} onChange={e => update('calendar.defaultView', e.target.value)} options={[{ value: 'month', label: 'Month' }, { value: 'week', label: 'Week' }]} theme={theme} />
           </div>
         </CollapsibleSection>
 

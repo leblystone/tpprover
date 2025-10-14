@@ -529,11 +529,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           icon={User}
           theme={theme}
         >
-          <div className="flex items-center justify-between mb-6">
-            {user && (
-              <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={logout}>Log out</button>
-            )}
-          </div>
           {user ? (
             <div className="space-y-6">
               <div className="flex items-center gap-4">
@@ -640,6 +635,17 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   </div>
                 </div>
               )}
+              
+              {/* Logout button at bottom */}
+              <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+                <button 
+                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold hover:opacity-90 transition-all" 
+                  style={{ backgroundColor: theme.error || '#DC2626', color: '#ffffff' }} 
+                  onClick={logout}
+                >
+                  Log Out
+                </button>
+              </div>
             </div>
           ) : (
             <div className="text-sm" style={{ color: theme.textLight }}>You are not signed in. Go to Login.</div>

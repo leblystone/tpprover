@@ -6,7 +6,7 @@ import { formatMMDDYYYY } from '../../utils/date'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
-const labelOptions = ['Reliable','Bad Test','Fast Shipping','Overfill','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Vetted', 'Puck Problem']
+const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Aminos','Oils','Pricey','Untested','Slow Shipping','Bad Test','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Puck Problem']
 
 export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, activeTab, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState(createEmptyVendor())
@@ -299,8 +299,8 @@ function getContactPlaceholder(type) {
     case 'discord': return 'user#1234'
     case 'website': return 'https://example.com'
     case 'facebook': return 'facebook.com/username'
-    case 'other': return 'value'
-    default: return 'value'
+    case 'other': return 'Enter contact information'
+    default: return 'Enter contact information'
   }
 }
 

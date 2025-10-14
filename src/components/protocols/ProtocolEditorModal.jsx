@@ -22,11 +22,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
     const [form, setForm] = useState(createEmpty);
     
-    // Auto-save functionality - only for existing protocols
+    // Auto-save functionality - for both new and existing protocols
     const storageKey = `tpprover_protocol_draft_${protocol?.id || 'new'}`;
     const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
         storageKey, 
-        protocol?.id ? form : {}, // Only autosave for existing protocols, not new ones
+        form, // Autosave for both new and existing protocols to prevent data loss
         setForm, 
         2000 // 2 second delay
     );

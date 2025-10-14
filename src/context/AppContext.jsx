@@ -44,18 +44,23 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const loadAppData = () => {
             try {
-                // Only seed demo data for truly new users (not existing Firebase users)
-                // Check if user has existing data or is a returning Firebase user
-                const hasExistingUser = localStorage.getItem('tpprover_user');
+                // Check if demo data was explicitly cleared
+                const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
+                const hasSeeded = localStorage.getItem('tpprover_has_seeded');
+                
+                // Check if user has existing data
                 const hasExistingData = localStorage.getItem('tpprover_protocols') || 
                                        localStorage.getItem('tpprover_vendors') || 
                                        localStorage.getItem('tpprover_orders');
                 
-                // Only seed demo data if user has no existing data and no user profile
-                if (!hasExistingUser && !hasExistingData) {
+                // ALWAYS seed demo data for new users who haven't explicitly cleared it
+                // This ensures new accounts always get demo data
+                if (!demoDataCleared && !hasSeeded && !hasExistingData) {
                     console.log('🌱 New user detected, seeding demo data');
                     seedInitialData();
-                } else {
+                } else if (demoDataCleared) {
+                    console.log('🚫 Demo data was cleared by user, skipping seeding');
+                } else if (hasSeeded || hasExistingData) {
                     console.log('👤 Existing user detected, skipping demo data seeding');
                 }
 

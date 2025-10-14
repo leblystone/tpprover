@@ -113,7 +113,7 @@ const ReconHelpPanel = ({ theme }) => {
               <div>
                 <div className="font-semibold mb-0.5 md:mb-1 text-sm md:text-base" style={{ color: theme.text }}>Delivery Method Tracking</div>
                 <div className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                  Track delivery methods including syringes or pens, with pen type and color-coding for easy identification.
+                  Track delivery methods including pipettes or pens, with pen type and color-coding for easy identification.
                 </div>
               </div>
             </div>

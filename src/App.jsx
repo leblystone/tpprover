@@ -76,16 +76,16 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Only show welcome modal for truly new users
+    // Show welcome modal for all new Firebase users
     const hasOnboarded = localStorage.getItem('tpprover_has_onboarded');
-    const isExistingUser = localStorage.getItem('tpprover_user') || localStorage.getItem('tpprover_demo_data_cleared');
     const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
+    const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
     
-    // Show welcome only if:
+    // Show welcome for new users:
     // 1. User hasn't onboarded AND
-    // 2. User is a Firebase user (new signup) AND
-    // 3. User doesn't have existing demo data
-    if (hasOnboarded !== 'true' && isFirebaseUser && !localStorage.getItem('tpprover_demo_data_cleared')) {
+    // 2. User is a Firebase user (authenticated) AND
+    // 3. Demo data hasn't been explicitly cleared
+    if (hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared) {
       setShowWelcome(true);
     }
 

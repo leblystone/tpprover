@@ -149,10 +149,12 @@ export default function Vendors() {
 					console.log('📝 Vendor save callback triggered:', { editingVendor, data }); // Debug log
 					if (editingVendor?.id) {
 						console.log('🔄 Updating existing vendor:', editingVendor.id);
-						updateVendor({ ...editingVendor, ...data });
+						// Preserve the original ID when updating
+						updateVendor({ ...data, id: editingVendor.id });
 					} else {
 						console.log('➕ Adding new vendor');
-						addVendor({ id: Date.now(), ...data });
+						// Generate new ID only for new vendors
+						addVendor({ ...data, id: data.id || Date.now() });
 					}
 					setShowAddModal(false)
 					setEditingVendor(null)
