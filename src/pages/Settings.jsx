@@ -289,13 +289,90 @@ export default function Settings() {
           ...data.reconHistory.map(d => ({ type: 'recon_history', ...d })),
           ...data.metrics.map(d => ({ type: 'metric', ...d })),
       ];
-      exportToCSV(allData, `tpprover-backup-${new Date().toISOString().slice(0,10)}.csv`);
+      // Export as JSON for better data integrity
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tpprover-backup-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Backup exported successfully!', type: 'success' } 
+      }));
     }
 
     const importBackup = async (file) => {
       try {
         const text = await file.text()
-        const data = JSON.parse(text)
+        let data;
+        
+        // Try to parse as JSON first, then fall back to CSV
+        try {
+          data = JSON.parse(text);
+        } catch (jsonError) {
+          // If JSON parsing fails, try to parse as CSV
+          console.log('Not JSON, trying CSV parsing...');
+          const lines = text.split('\n');
+          const headers = lines[0].split(',');
+          const rows = lines.slice(1).filter(line => line.trim()).map(line => {
+            const values = line.split(',');
+            const row = {};
+            headers.forEach((header, index) => {
+              row[header] = values[index] || '';
+            });
+            return row;
+          });
+          
+          // Group rows by type
+          data = {
+            protocols: rows.filter(r => r.type === 'protocol').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            orders: rows.filter(r => r.type === 'order').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            stockpile: rows.filter(r => r.type === 'stockpile').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            supplements: rows.filter(r => r.type === 'supplement').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            glossary: rows.filter(r => r.type === 'glossary').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            vendors: rows.filter(r => r.type === 'vendor').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            scheduledBuys: rows.filter(r => r.type === 'scheduled_buy').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            reconItems: rows.filter(r => r.type === 'recon_item').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            reconHistory: rows.filter(r => r.type === 'recon_history').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            }),
+            metrics: rows.filter(r => r.type === 'metric').map(r => {
+              const { type, ...rest } = r;
+              return rest;
+            })
+          };
+        }
+        
+        // Import data to localStorage
         if (data.protocols) localStorage.setItem('tpprover_protocols', JSON.stringify(data.protocols))
         if (data.orders) localStorage.setItem('tpprover_orders', JSON.stringify(data.orders))
         if (data.stockpile) localStorage.setItem('tpprover_stockpile', JSON.stringify(data.stockpile))

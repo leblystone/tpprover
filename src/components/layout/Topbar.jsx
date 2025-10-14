@@ -139,17 +139,20 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               <GlobalSearchInline theme={theme} onClose={() => setShowSearch(false)} onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} />
             </div>
           )}
-          <ModernTooltip text="Search" position="bottom">
-            <button 
-              className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
-              onClick={() => setShowSearch(s => !s)} 
-              style={{ color: theme.text }}
-              aria-label="Toggle global search"
-              aria-expanded={showSearch}
-            >
-              <Search className="h-5 w-5 md:h-5 md:w-5" />
-            </button>
-          </ModernTooltip>
+          {/* Hide search button on stockpile and protocols pages */}
+          {seg !== 'stockpile' && seg !== 'protocols' && (
+            <ModernTooltip text="Search" position="bottom">
+              <button 
+                className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
+                onClick={() => setShowSearch(s => !s)} 
+                style={{ color: theme.text }}
+                aria-label="Toggle global search"
+                aria-expanded={showSearch}
+              >
+                <Search className="h-5 w-5 md:h-5 md:w-5" />
+              </button>
+            </ModernTooltip>
+          )}
           {/* Import feature temporarily hidden - uncomment to re-enable
           {onDashboard && (
             <button data-tour="topbar-import" className="p-2 rounded-full no-shadow" title="Import (OCR)" onClick={() => window.dispatchEvent(new CustomEvent('tpp:openImport'))} style={{ color: theme.text }}><Upload className="h-5 w-5" /></button>
