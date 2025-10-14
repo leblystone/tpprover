@@ -8,7 +8,7 @@ import ViewContainer from '../components/ui/ViewContainer';
 import DashboardWidget from '../components/dashboard/DashboardWidget';
 import DashboardCustomizer from '../components/dashboard/DashboardCustomizer';
 import WidgetFactory from '../components/dashboard/WidgetFactory';
-import { ToastContainer } from '../components/ui/Toast';
+// Toast notifications now handled globally in App.jsx
 import useLocalStorage from '../utils/hooks';
 import { 
   loadDashboardLayout, 
@@ -69,7 +69,7 @@ export default function CustomizableDashboard() {
 
   // Dashboard data state
   const [todaysTasks, setTodaysTasks] = useState([]);
-  const [toasts, setToasts] = useState([]);
+  // Toast notifications now handled globally
   const [goals, setGoals] = useLocalStorage('tpprover_goals', []);
   const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', []);
   const [calendarBump, setCalendarBump] = useState(0);
@@ -402,11 +402,11 @@ export default function CustomizableDashboard() {
     saveDashboardLayout(widgets);
   }, [widgets]);
 
-  // Toast utility
+  // Toast utility - now uses global toast system
   const addToast = (message, type = 'success') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+      detail: { message, type } 
+    }));
   };
 
   // Widget management functions
@@ -848,10 +848,7 @@ export default function CustomizableDashboard() {
         actionAttempted="continue using this feature"
       />
 
-      <ToastContainer 
-        toasts={toasts} 
-        removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} 
-      />
+      {/* Toast notifications now handled globally in App.jsx */}
     </ViewContainer>
   );
 }

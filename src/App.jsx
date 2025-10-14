@@ -23,6 +23,7 @@ import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
 import UpgradeBanner from './components/common/UpgradeBanner';
 import SubscriptionModal from './components/common/SubscriptionModal';
+import { ModernToastContainer } from './components/ui/ModernToast';
 
 function App() {
   const location = useLocation();
@@ -256,6 +257,9 @@ function App() {
         theme={theme}
         currentPlan={subscriptionInterval}
       />
+      
+      {/* Modern Toast Notifications */}
+      <ModernToastContainer theme={theme} />
     </div>
   )
 }
