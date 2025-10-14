@@ -25,12 +25,70 @@ const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) 
 
 // Legacy localStorage functions removed - now using Firebase
 
-// Standard email validation for normal login/signup
+// Enhanced email validation with helpful tips
 function validateEmail(email) {
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { valid: false, error: 'Please enter a valid email address.' };
+  if (!email) {
+    return { valid: false, error: 'Email is required.' };
   }
+  
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { 
+      valid: false, 
+      error: 'Please enter a valid email address.',
+      tip: 'Email should be in format: yourname@example.com'
+    };
+  }
+  
+  if (email.length > 254) {
+    return { 
+      valid: false, 
+      error: 'Email address is too long.',
+      tip: 'Email should be less than 254 characters'
+    };
+  }
+  
   return { valid: true };
+}
+
+// Enhanced password validation with helpful tips
+function validatePassword(password) {
+  const errors = [];
+  const tips = [];
+  
+  if (!password) {
+    return { valid: false, errors: ['Password is required.'], tips: [] };
+  }
+  
+  if (password.length < 6) {
+    errors.push('Password must be at least 6 characters long.');
+    tips.push('Use at least 6 characters');
+  }
+  
+  if (password.length > 128) {
+    errors.push('Password is too long.');
+    tips.push('Use less than 128 characters');
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter.');
+    tips.push('Add lowercase letters (a-z)');
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter.');
+    tips.push('Add uppercase letters (A-Z)');
+  }
+  
+  if (!/\d/.test(password)) {
+    errors.push('Password must contain at least one number.');
+    tips.push('Add numbers (0-9)');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    tips
+  };
 }
 
 // markInviteUsed now handled by Firebase service
@@ -55,6 +113,8 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [needsPasswordForSync, setNeedsPasswordForSync] = useState(false);
     const [showAgreementModal, setShowAgreementModal] = useState(false);
+    const [passwordValidation, setPasswordValidation] = useState({ valid: true, errors: [], tips: [] });
+    const [emailValidation, setEmailValidation] = useState({ valid: true, error: '', tip: '' });
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -75,13 +135,30 @@ export default function Login() {
     }, [firebaseUser, isFirebaseLoading, setUser, navigate]);
 
 
+    // Real-time validation
+    useEffect(() => {
+      if (mode === 'signup' && email) {
+        const emailResult = validateEmail(email);
+        setEmailValidation(emailResult);
+      }
+    }, [email, mode]);
+
+    useEffect(() => {
+      if (mode === 'signup' && password) {
+        const passwordResult = validatePassword(password);
+        setPasswordValidation(passwordResult);
+      }
+    }, [password, mode]);
+
     const canSubmit = useMemo(() => {
       if (!email || !password) return false;
       if (mode === 'signup') {
-        return password === confirmPassword && password.length >= 6;
+        return password === confirmPassword && 
+               passwordValidation.valid && 
+               emailValidation.valid;
       }
       return true;
-    }, [email, password, confirmPassword, mode]);
+    }, [email, password, confirmPassword, mode, passwordValidation.valid, emailValidation.valid]);
 
     const doLogin = async () => {
       try {
@@ -203,24 +280,22 @@ export default function Login() {
 
     // Validate signup credentials without creating account
     const validateSignupCredentials = async () => {
-      if (pwErrors.length > 0) { setError('Please fix the password requirements.'); return false; }
+      if (!passwordValidation.valid) { 
+        setError('Please fix the password requirements.'); 
+        return false; 
+      }
       
-      try {
-        // Validate email whitelist for new users
-        if (!isReturningUser) {
-          const emailValidation = await validateEmail(email);
-          if (!emailValidation.valid) {
-            setError(emailValidation.error);
-            return false;
-          }
-        }
-        
-        return true; // All validations passed
-      } catch (error) {
-        console.error('Validation failed:', error);
-        setError('Validation failed. Please try again.');
+      if (!emailValidation.valid) {
+        setError(emailValidation.error);
         return false;
       }
+      
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+        return false;
+      }
+      
+      return true; // All validations passed
     };
 
     const doSignup = async () => {
@@ -432,8 +507,16 @@ export default function Login() {
                                     value={email} 
                                     onChange={e => setEmail(e.target.value)} 
                                     required 
-                                    className="w-full px-4 py-3 border rounded-lg bg-gray-50" 
-                                    style={{ borderColor: theme.border }} 
+                                    className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${
+                                        mode === 'signup' && email && !emailValidation.valid 
+                                            ? 'border-red-300 focus:border-red-500' 
+                                            : ''
+                                    }`}
+                                    style={{ 
+                                        borderColor: mode === 'signup' && email && !emailValidation.valid 
+                                            ? '#FCA5A5' 
+                                            : theme.border 
+                                    }} 
                                 />
                             </div>
                             
@@ -444,8 +527,16 @@ export default function Login() {
                                     value={password} 
                                     onChange={e => setPassword(e.target.value)} 
                                     required 
-                                    className="w-full px-4 py-3 border rounded-lg bg-gray-50" 
-                                    style={{ borderColor: theme.border }} 
+                                    className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${
+                                        mode === 'signup' && password && !passwordValidation.valid 
+                                            ? 'border-red-300 focus:border-red-500' 
+                                            : ''
+                                    }`}
+                                    style={{ 
+                                        borderColor: mode === 'signup' && password && !passwordValidation.valid 
+                                            ? '#FCA5A5' 
+                                            : theme.border 
+                                    }} 
                                 />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
                                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -460,12 +551,66 @@ export default function Login() {
                                         value={confirmPassword} 
                                         onChange={e => setConfirmPassword(e.target.value)} 
                                         required 
-                                        className="w-full px-4 py-3 border rounded-lg bg-gray-50" 
-                                        style={{ borderColor: theme.border }} 
+                                        className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${
+                                            password && confirmPassword && password !== confirmPassword 
+                                                ? 'border-red-300 focus:border-red-500' 
+                                                : ''
+                                        }`}
+                                        style={{ 
+                                            borderColor: password && confirmPassword && password !== confirmPassword 
+                                                ? '#FCA5A5' 
+                                                : theme.border 
+                                        }} 
                                     />
                                 </div>
                             )}
                             
+
+                            {/* Email validation errors */}
+                            {mode === 'signup' && email && !emailValidation.valid && (
+                                <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
+                                    <div className="font-medium mb-1">{emailValidation.error}</div>
+                                    {emailValidation.tip && (
+                                        <div className="text-red-500">💡 {emailValidation.tip}</div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Password validation errors */}
+                            {mode === 'signup' && password && !passwordValidation.valid && (
+                                <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
+                                    <div className="font-medium mb-2">Password requirements:</div>
+                                    <ul className="space-y-1">
+                                        {passwordValidation.errors.map((error, index) => (
+                                            <li key={index} className="flex items-center gap-2">
+                                                <span className="text-red-500">❌</span>
+                                                {error}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    {passwordValidation.tips.length > 0 && (
+                                        <div className="mt-2 pt-2 border-t border-red-200">
+                                            <div className="font-medium text-red-700 mb-1">💡 Tips:</div>
+                                            <ul className="space-y-1">
+                                                {passwordValidation.tips.map((tip, index) => (
+                                                    <li key={index} className="text-red-600">• {tip}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Password match validation */}
+                            {mode === 'signup' && password && confirmPassword && password !== confirmPassword && (
+                                <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-red-500">❌</span>
+                                        <span className="font-medium">Passwords do not match</span>
+                                    </div>
+                                    <div className="mt-1 text-red-500">💡 Make sure both password fields are identical</div>
+                                </div>
+                            )}
 
                             {needsPasswordForSync && mode === 'login' && (
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -481,12 +626,6 @@ export default function Login() {
 
                             {error && (
                                 <p className="text-sm text-red-600 text-center bg-red-50 p-2 rounded-md">{error}</p>
-                            )}
-
-                            {mode === 'signup' && password && confirmPassword && password !== confirmPassword && (
-                                <div className="text-xs text-red-600 p-2 rounded border border-red-200 bg-red-50">
-                                    Passwords do not match
-                                </div>
                             )}
 
                             

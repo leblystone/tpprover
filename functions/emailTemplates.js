@@ -42,9 +42,10 @@ const emailWrapper = (content) => `
       text-align: center;
     }
     .logo-image {
-      width: 200px;
+      width: 120px;
       height: auto;
       margin: 0 auto 12px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     }
     .logo {
       font-size: 32px;
@@ -121,7 +122,7 @@ const emailWrapper = (content) => `
   <div style="background-color: ${COLORS.sage}; padding: 20px 0;">
     <div class="email-container">
       <div class="header">
-        <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" width="200" />
+        <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" width="120" />
         <div class="tagline">Organize Your Research</div>
       </div>
       ${content}

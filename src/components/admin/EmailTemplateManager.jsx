@@ -173,7 +173,7 @@ export default function EmailTemplateManager({ theme }) {
   <div style="background-color: ${colors.sage}; padding: 20px 0;">
     <div style="max-width: 600px; margin: 20px auto; background-color: ${colors.white}; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
       <div style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); padding: 40px 20px; text-align: center;">
-        <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" style="width: 200px; height: auto; margin: 0 auto 12px;" />
+        <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" style="width: 120px; height: auto; margin: 0 auto 12px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));" />
         <div style="color: ${colors.sage}; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Organize Your Research</div>
       </div>
       <div style="padding: 40px 32px; color: ${colors.text};">
