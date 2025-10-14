@@ -40,12 +40,24 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             const blob = await (await fetch(dataUrl)).blob();
             const file = new File([blob], "shared-card.png", { type: blob.type });
 
-            if (navigator.share) {
-                await navigator.share({
-                    title: `Check out this ${title}`,
-                    text: `Shared from The Pep Planner`,
-                    files: [file],
-                });
+            // Check if Web Share API supports files
+            const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
+
+            if (navigator.share && canShareFiles) {
+                try {
+                    await navigator.share({
+                        title: `Check out this ${title}`,
+                        text: `Shared from The Pep Planner`,
+                        files: [file],
+                    });
+                } catch (shareErr) {
+                    // User cancelled or sharing failed, fall back to download
+                    console.log('Share cancelled or failed, downloading instead', shareErr);
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = 'shared-card.png';
+                    link.click();
+                }
             } else {
                 // Fallback for browsers that don't support navigator.share with files
                 const link = document.createElement('a');
@@ -54,7 +66,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                 link.click();
             }
         } catch (err) {
-            console.error('Oops, something went wrong!', err);
+            console.error('Error generating share image:', err);
             alert('Could not generate image. Please try copying the link instead.');
         }
     };
@@ -104,8 +116,10 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             <p className="text-sm text-center mb-4" style={{ color: theme.textLight }}>
                 Here is a preview of what will be shared.
             </p>
-            <div ref={cardRef} className="bg-white p-2 inline-block">
-                <ShareCard {...cardProps} isPublicView={true} />
+            <div className="flex justify-center w-full overflow-x-auto">
+                <div ref={cardRef} className="bg-white p-2 inline-block max-w-full">
+                    <ShareCard {...cardProps} isPublicView={true} />
+                </div>
             </div>
         </Modal>
     );

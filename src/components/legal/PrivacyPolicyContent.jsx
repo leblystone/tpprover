@@ -156,7 +156,7 @@ export const PrivacyPolicyContent = () => (
                 If you have any questions about this Privacy Policy or our privacy practices, please contact us at:
             </p>
             <ul className="list-none mt-2 text-gray-700">
-                <li><strong>Email:</strong> privacy@thepepplanner.com</li>
+                <li><strong>Email:</strong> contact@thepepplanner.com</li>
                 <li><strong>Subject Line:</strong> Privacy Policy Inquiry</li>
             </ul>
         </div>

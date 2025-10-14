@@ -23,6 +23,26 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [filters, setFilters] = useState({ payment: [], contact: [], label: [] })
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+	
+	// Check if there are any demo vendors
+	const hasDemoVendors = useMemo(() => vendors.some(v => v.isMock), [vendors]);
+	
+	const handleDeleteDemoVendors = () => {
+		const demoVendors = vendors.filter(v => v.isMock);
+		if (demoVendors.length === 0) {
+			window.dispatchEvent(new CustomEvent('tpp:toast', { 
+				detail: { message: 'No demo vendors to delete', type: 'info' } 
+			}));
+			return;
+		}
+		
+		if (window.confirm(`Delete ${demoVendors.length} demo vendor${demoVendors.length > 1 ? 's' : ''}? This cannot be undone.`)) {
+			demoVendors.forEach(v => deleteVendor(v.id));
+			window.dispatchEvent(new CustomEvent('tpp:toast', { 
+				detail: { message: `Deleted ${demoVendors.length} demo vendor${demoVendors.length > 1 ? 's' : ''}`, type: 'success' } 
+			}));
+		}
+	}
 
 	// DISABLED: Dangerous cleanup function that caused data loss
 	// This function has been permanently disabled due to critical data loss incident
@@ -77,6 +97,24 @@ export default function Vendors() {
 	return (
 		<>
 			<VendorsHelpPanel theme={theme} />
+			
+			{/* Delete Demo Vendors Button */}
+			{hasDemoVendors && !isReadOnly && (
+				<div className="mb-4 flex justify-end px-4">
+					<button
+						onClick={handleDeleteDemoVendors}
+						className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90 border"
+						style={{ 
+							color: theme.error || '#DC2626', 
+							borderColor: theme.error || '#DC2626',
+							backgroundColor: 'transparent'
+						}}
+					>
+						<X size={14} />
+						Delete Demo Vendors
+					</button>
+				</div>
+			)}
 			
 			{filteredVendors.length === 0 ? (
 				<div className="flex flex-col items-center justify-center py-12 px-6 text-center">

@@ -11,12 +11,32 @@ import { getAuth } from 'firebase/auth';
  */
 export async function createCheckoutSession(priceId, userEmail, userId) {
   try {
+    // Check if Stripe is configured
+    if (!STRIPE_CONFIG.publishableKey || STRIPE_CONFIG.publishableKey === 'undefined') {
+      console.error('🚫 Stripe publishable key not configured');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: 'Payment system not configured. Please contact support at contact@thepepplanner.com', 
+          type: 'error' 
+        }
+      }));
+      throw new Error('Stripe not configured - missing publishable key');
+    }
+
     const auth = getAuth();
     if (!auth.currentUser) {
       console.error('🚫 User must be authenticated to create checkout session');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: 'Please log in to subscribe. If you just created an account, try logging out and back in.', 
+          type: 'error' 
+        }
+      }));
       throw new Error('User must be authenticated to purchase a subscription');
     }
 
+    console.log('🔄 Creating Stripe checkout session...', { priceId, userEmail });
+    
     const functions = getFunctions();
     const createCheckoutSessionFn = httpsCallable(functions, 'createCheckoutSession');
     
@@ -28,11 +48,15 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
       cancelUrl: `${window.location.origin}/account`,
     });
 
+    console.log('✅ Checkout session created:', result.data);
+
     const stripe = await stripePromise;
     
     if (!stripe) {
-      throw new Error('Stripe not initialized');
+      throw new Error('Stripe not initialized - payment processor unavailable');
     }
+    
+    console.log('🔄 Redirecting to Stripe checkout...');
     
     // Redirect to Stripe Checkout
     const checkoutResult = await stripe.redirectToCheckout({
@@ -43,11 +67,26 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
       throw new Error(checkoutResult.error.message);
     }
   } catch (error) {
-    console.error('Stripe checkout error:', error);
-    // Show error to user - DO NOT simulate success
+    console.error('❌ Stripe checkout error:', error);
+    
+    // More specific error messages
+    let errorMessage = 'Failed to start checkout. ';
+    if (error.code === 'unauthenticated' || error.message?.includes('authenticated')) {
+      errorMessage += 'Please log in and try again.';
+    } else if (error.code === 'permission-denied') {
+      errorMessage += 'You do not have permission. Please contact support.';
+    } else if (error.message?.includes('not configured') || error.message?.includes('not initialized')) {
+      errorMessage += 'Payment system is not set up. Please contact support at contact@thepepplanner.com';
+    } else if (error.code === 'functions/not-found') {
+      errorMessage += 'Payment service unavailable. Please contact support.';
+    } else {
+      errorMessage += 'Please try again or contact support.';
+    }
+    
+    // Show error to user
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
-        message: 'Failed to start checkout. Please ensure you\'re logged in and try again.', 
+        message: errorMessage, 
         type: 'error' 
       }
     }));

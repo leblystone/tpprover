@@ -137,8 +137,26 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           {/* Section: Vendor & Category */}
           <div>
             {/* Section Header */}
-            <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
               <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Order Details</h4>
+              {form.vendorId && (
+                <button
+                  onClick={() => {
+                    const selectedVendor = vendors.find(v => v.id === form.vendorId);
+                    if (selectedVendor && selectedVendor.type) {
+                      setForm(prev => ({ ...prev, category: selectedVendor.type }));
+                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                        detail: { message: 'Category autofilled from vendor', type: 'success' } 
+                      }));
+                    }
+                  }}
+                  className="text-xs px-2 py-1 rounded-md transition-all hover:opacity-80"
+                  style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                  title="Autofill category from selected vendor"
+                >
+                  Autofill from Vendor
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="relative">

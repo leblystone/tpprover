@@ -1,7 +1,7 @@
   import React from 'react'
   import { useOutletContext, useNavigate } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
-  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp, Gift } from 'lucide-react'
+  import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp, Gift, FileText } from 'lucide-react'
 import { Zap } from '../icons/lucide-safe'
   import Modal from '../components/common/Modal'
 import CollapsibleSection from '../components/common/CollapsibleSection'
@@ -13,6 +13,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification, sendPasswordResetEmail, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
   import { useFirebase } from '../context/FirebaseContext'
   import { verifyStripeConfig } from '../utils/stripe-verify'
+  import { getLatestAgreement, AGREEMENT_TYPES } from '../services/agreementTracking'
   // Beta imports removed - beta phase concluded
 
   // Local helpers for auth + subscription data (local testing)
@@ -1144,6 +1145,84 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   <button className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={openTwoFA}>Enable 2FA</button>
                 </div>
               )}
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        {/* Legal & Privacy */}
+        <CollapsibleSection
+          title="Legal & Privacy"
+          description="View your agreement history and privacy information"
+          icon={FileText}
+          theme={theme}
+        >
+          <div className="space-y-4">
+            {/* Privacy Policy Agreement */}
+            <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.secondary }}>
+                  <Shield className="w-5 h-5" style={{ color: theme.primary }} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>Privacy Policy</div>
+                  <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                    {(() => {
+                      const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE);
+                      if (privacyAgreement) {
+                        const agreedDate = new Date(privacyAgreement.timestamp);
+                        return `Agreed on ${agreedDate.toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}`;
+                      }
+                      return 'Not recorded';
+                    })()}
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: theme.textLight }}>
+                    Version: {(() => {
+                      const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE);
+                      return privacyAgreement?.version || 'N/A';
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Terms of Service Agreement */}
+            <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.secondary }}>
+                  <FileText className="w-5 h-5" style={{ color: theme.primary }} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>Terms of Service</div>
+                  <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                    {(() => {
+                      const termsAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_TERMS) || getLatestAgreement(AGREEMENT_TYPES.TERMS_UPDATE);
+                      if (termsAgreement) {
+                        const agreedDate = new Date(termsAgreement.timestamp);
+                        return `Agreed on ${agreedDate.toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}`;
+                      }
+                      return 'Not recorded';
+                    })()}
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: theme.textLight }}>
+                    Version: {(() => {
+                      const termsAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_TERMS) || getLatestAgreement(AGREEMENT_TYPES.TERMS_UPDATE);
+                      return termsAgreement?.version || 'N/A';
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-xs p-3 rounded-md" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>
+              <p>Your agreement timestamps are securely stored for legal compliance. If you have questions about our privacy practices, please contact us at <a href="mailto:contact@thepepplanner.com" className="underline hover:opacity-80" style={{ color: theme.primary }}>contact@thepepplanner.com</a>.</p>
             </div>
           </div>
         </CollapsibleSection>

@@ -270,6 +270,12 @@ export default function Settings() {
         stockpile: JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'),
         supplements: JSON.parse(localStorage.getItem('tpprover_supplements') || '[]'),
         glossary: JSON.parse(localStorage.getItem('tpprover_glossary') || '[]'),
+        vendors: JSON.parse(localStorage.getItem('tpprover_vendors') || '[]'),
+        calendarNotes: JSON.parse(localStorage.getItem('tpprover_calendar_notes') || '{}'),
+        scheduledBuys: JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]'),
+        reconItems: JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]'),
+        reconHistory: JSON.parse(localStorage.getItem('tpprover_recon_history') || '[]'),
+        metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
       }
       const allData = [
           ...data.protocols.map(d => ({ type: 'protocol', ...d })),
@@ -277,6 +283,11 @@ export default function Settings() {
           ...data.stockpile.map(d => ({ type: 'stockpile', ...d })),
           ...data.supplements.map(d => ({ type: 'supplement', ...d })),
           ...data.glossary.map(d => ({ type: 'glossary', ...d })),
+          ...data.vendors.map(d => ({ type: 'vendor', ...d })),
+          ...data.scheduledBuys.map(d => ({ type: 'scheduled_buy', ...d })),
+          ...data.reconItems.map(d => ({ type: 'recon_item', ...d })),
+          ...data.reconHistory.map(d => ({ type: 'recon_history', ...d })),
+          ...data.metrics.map(d => ({ type: 'metric', ...d })),
       ];
       exportToCSV(allData, `tpprover-backup-${new Date().toISOString().slice(0,10)}.csv`);
     }
@@ -290,8 +301,19 @@ export default function Settings() {
         if (data.stockpile) localStorage.setItem('tpprover_stockpile', JSON.stringify(data.stockpile))
         if (data.supplements) localStorage.setItem('tpprover_supplements', JSON.stringify(data.supplements))
         if (data.glossary) localStorage.setItem('tpprover_glossary', JSON.stringify(data.glossary))
+        if (data.vendors) localStorage.setItem('tpprover_vendors', JSON.stringify(data.vendors))
+        if (data.calendarNotes) localStorage.setItem('tpprover_calendar_notes', JSON.stringify(data.calendarNotes))
+        if (data.scheduledBuys) localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(data.scheduledBuys))
+        if (data.reconItems) localStorage.setItem('tpprover_recon_items', JSON.stringify(data.reconItems))
+        if (data.reconHistory) localStorage.setItem('tpprover_recon_history', JSON.stringify(data.reconHistory))
+        if (data.metrics) localStorage.setItem('tpprover_metrics', JSON.stringify(data.metrics))
+        
+        // Trigger reload to refresh app state with imported data
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Backup imported successfully! Refreshing...', type: 'success' } }))
+        setTimeout(() => window.location.reload(), 1500)
       } catch (e) {
-        // silent
+        console.error('Error importing backup:', e)
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Error importing backup. Please check file format.', type: 'error' } }))
       }
     }
 

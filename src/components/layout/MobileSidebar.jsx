@@ -9,7 +9,7 @@ export default function MobileSidebar({ open, onClose, theme }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const durationMs = 240
+    const durationMs = 300
     if (open) {
       setMounted(true)
       // Use double RAF to ensure the DOM is painted before starting transition
@@ -41,12 +41,20 @@ export default function MobileSidebar({ open, onClose, theme }) {
   ]
   const overlay = (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+      <div 
+        className="absolute inset-0 bg-black/20" 
+        onClick={onClose}
+        style={{
+          opacity: visible ? 1 : 0,
+          transition: 'opacity 250ms ease-out'
+        }}
+      />
       <div className="absolute top-0 left-0 h-full w-full bg-white shadow-xl px-4 py-2 pb-4 flex flex-col" style={{ 
-        transform: visible ? 'translateX(0%)' : 'translateX(-20%)', 
+        transform: visible ? 'translateX(0%)' : 'translateX(-100%)', 
         opacity: visible ? 1 : 0,
-        transition: 'transform 240ms ease-in-out, opacity 200ms ease-in-out',
-        paddingTop: 'env(safe-area-inset-top, 1rem)'
+        transition: 'transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1), opacity 250ms ease-out',
+        paddingTop: 'env(safe-area-inset-top, 1rem)',
+        willChange: 'transform, opacity'
       }}>
         <div className="flex items-center justify-between mb-3">
           {/* Left side: Close button and Text */}
