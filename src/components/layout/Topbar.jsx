@@ -141,13 +141,13 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           )}
           <ModernTooltip text="Search" position="bottom">
             <button 
-              className="p-1.5 md:p-2 rounded-full no-shadow" 
+              className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
               onClick={() => setShowSearch(s => !s)} 
               style={{ color: theme.text }}
               aria-label="Toggle global search"
               aria-expanded={showSearch}
             >
-              <Search className="h-4 w-4 md:h-5 md:w-5" />
+              <Search className="h-5 w-5 md:h-5 md:w-5" />
             </button>
           </ModernTooltip>
           {/* Import feature temporarily hidden - uncomment to re-enable

@@ -461,7 +461,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
               </div>
             </div>
             <p className="text-xs text-center mt-2 opacity-75" style={{ color: theme.textLight }}>
-                {deliveryMethod === 'pipette' ? 'Insulin pipette (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
+                {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : 'Nasal spray'}
             </p>
           </div>
         </div>

@@ -56,7 +56,7 @@ const tips = {
   ],
   recon: [
     'Calculate dosages for one or more peptides in a single reconstitution.',
-    'Supports both standard insulin pipettes (U-100, 1mL) and dosage pens.',
+    'Supports both standard insulin syringes (U-100, 1mL) and dosage pens.',
     'You can select a color for your pens to help with organization.',
     'Use the "Save Calculation" button to add the reconstituted vial to a persistent list for tracking.',
     'Click the 💧 icon on a stockpile item to pre-fill the calculator with that peptide\'s details.',
