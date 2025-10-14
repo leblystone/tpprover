@@ -289,21 +289,43 @@ export default function Settings() {
           ...data.reconHistory.map(d => ({ type: 'recon_history', ...d })),
           ...data.metrics.map(d => ({ type: 'metric', ...d })),
       ];
-      // Export as JSON for better data integrity
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tpprover-backup-${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      // Export as CSV for user-friendly format
+      exportToCSV(allData, `tpprover-backup-${new Date().toISOString().slice(0,10)}.csv`);
       
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Backup exported successfully!', type: 'success' } 
+        detail: { message: 'Backup exported successfully as CSV!', type: 'success' } 
       }));
     }
+
+    // Helper function to parse CSV lines properly
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            // Escaped quote
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      result.push(current);
+      return result;
+    };
 
     const importBackup = async (file) => {
       try {
@@ -313,13 +335,21 @@ export default function Settings() {
         // Try to parse as JSON first, then fall back to CSV
         try {
           data = JSON.parse(text);
+          console.log('Successfully parsed as JSON');
         } catch (jsonError) {
           // If JSON parsing fails, try to parse as CSV
           console.log('Not JSON, trying CSV parsing...');
-          const lines = text.split('\n');
-          const headers = lines[0].split(',');
-          const rows = lines.slice(1).filter(line => line.trim()).map(line => {
-            const values = line.split(',');
+          const lines = text.split('\n').filter(line => line.trim());
+          
+          if (lines.length === 0) {
+            throw new Error('File is empty');
+          }
+          
+          // Remove BOM if present
+          const firstLine = lines[0].startsWith('\uFEFF') ? lines[0].slice(1) : lines[0];
+          const headers = parseCSVLine(firstLine);
+          const rows = lines.slice(1).map(line => {
+            const values = parseCSVLine(line);
             const row = {};
             headers.forEach((header, index) => {
               row[header] = values[index] || '';
@@ -385,12 +415,43 @@ export default function Settings() {
         if (data.reconHistory) localStorage.setItem('tpprover_recon_history', JSON.stringify(data.reconHistory))
         if (data.metrics) localStorage.setItem('tpprover_metrics', JSON.stringify(data.metrics))
         
+        // Count imported items for user feedback
+        const itemCounts = {
+          protocols: data.protocols?.length || 0,
+          orders: data.orders?.length || 0,
+          stockpile: data.stockpile?.length || 0,
+          supplements: data.supplements?.length || 0,
+          glossary: data.glossary?.length || 0,
+          vendors: data.vendors?.length || 0,
+          scheduledBuys: data.scheduledBuys?.length || 0,
+          reconItems: data.reconItems?.length || 0,
+          reconHistory: data.reconHistory?.length || 0,
+          metrics: data.metrics?.length || 0
+        };
+        
+        const totalItems = Object.values(itemCounts).reduce((sum, count) => sum + count, 0);
+        
         // Trigger reload to refresh app state with imported data
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Backup imported successfully! Refreshing...', type: 'success' } }))
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: `Backup imported successfully! ${totalItems} items restored. Refreshing...`, 
+            type: 'success' 
+          } 
+        }))
         setTimeout(() => window.location.reload(), 1500)
       } catch (e) {
         console.error('Error importing backup:', e)
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Error importing backup. Please check file format.', type: 'error' } }))
+        let errorMessage = 'Error importing backup. ';
+        if (e.message?.includes('empty')) {
+          errorMessage += 'The file appears to be empty.';
+        } else if (e.message?.includes('JSON')) {
+          errorMessage += 'Invalid file format. Please use a CSV or JSON backup file.';
+        } else {
+          errorMessage += 'Please check the file format and try again.';
+        }
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: errorMessage, type: 'error' } 
+        }))
       }
     }
 
