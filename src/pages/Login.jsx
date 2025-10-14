@@ -792,9 +792,8 @@ export default function Login() {
                 />
             )}
 
-            {/* DEVELOPMENT/TESTING: Force logout button */}
-            {process.env.NODE_ENV === 'development' && (
-                <div className="fixed bottom-4 right-4 z-50">
+            {/* DEVELOPMENT/TESTING: Force logout button - always visible for mobile testing */}
+            <div className="fixed bottom-4 right-4 z-50">
                     <div className="bg-red-100 border border-red-300 rounded-lg p-3 shadow-lg">
                         <div className="text-xs font-medium text-red-800 mb-2">🧪 Development Tools</div>
                         <div className="space-y-2">
@@ -827,7 +826,6 @@ export default function Login() {
                         </div>
                     </div>
                 </div>
-            )}
         </>
     );
 }
