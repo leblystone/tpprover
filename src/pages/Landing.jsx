@@ -45,7 +45,8 @@ export default function Landing() {
   // Calculate time left until October 23, 2025 at midnight
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const targetDate = new Date('2025-10-23T00:00:00');
+      // Set target to October 23, 2025 at midnight local time
+      const targetDate = new Date(2025, 9, 23, 0, 0, 0, 0); // Month is 0-indexed, so 9 = October
       const now = new Date();
       const difference = targetDate - now;
       

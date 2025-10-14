@@ -171,10 +171,10 @@ export default function EmailTemplateManager({ theme }) {
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: ${colors.sage};">
   <div style="background-color: ${colors.sage}; padding: 20px 0;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: ${colors.white};">
+    <div style="max-width: 600px; margin: 20px auto; background-color: ${colors.white}; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
       <div style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); padding: 40px 20px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: ${colors.white}; margin-bottom: 8px;">🧬 The Pep Planner</div>
-        <div style="color: ${colors.sage}; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Research. Track. Optimize.</div>
+        <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" style="width: 200px; height: auto; margin: 0 auto 12px;" />
+        <div style="color: ${colors.sage}; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Organize Your Research</div>
       </div>
       <div style="padding: 40px 32px; color: ${colors.text};">
         <h1 style="color: ${colors.primary}; font-size: 28px; margin: 0 0 16px 0;">${template.heading}</h1>
@@ -186,7 +186,7 @@ export default function EmailTemplateManager({ theme }) {
         ${template.mainMessage ? `<p style="font-size: 16px; line-height: 1.6; color: ${colors.text};">${template.mainMessage}</p>` : ''}
 
         ${template.highlightTitle ? `
-        <div style="background-color: #F0FDF4; border-left: 4px solid ${colors.secondary}; padding: 16px; margin: 20px 0; border-radius: 4px;">
+        <div style="background-color: #F0FDF4; border-left: 4px solid ${colors.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
           <p style="margin: 0; font-weight: 600; color: ${colors.primary};">${template.highlightTitle}</p>
           <p style="margin: 8px 0 0 0; font-size: 14px; color: ${colors.textLight};">
             ${template.highlightMessage}
@@ -207,7 +207,7 @@ export default function EmailTemplateManager({ theme }) {
         ` : ''}
 
         <center>
-          <a href="${template.ctaLink}" style="display: inline-block; padding: 16px 32px; background-color: ${colors.primary}; color: ${colors.white} !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 24px 0;">
+          <a href="${template.ctaLink}" style="display: inline-block; padding: 16px 32px; background-color: ${colors.primary}; color: ${colors.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
             ${template.ctaText}
           </a>
         </center>
