@@ -60,22 +60,8 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         const existing = loadSubscription();
         if (existing) return existing;
         
-        // Default to trial for local testing
-        const now = new Date();
-        const end = new Date(now);
-        end.setDate(end.getDate() + 7);
-        
-        return {
-            id: 'trial_demo',
-            plan: '7-Day Free Trial',
-            price: 0,
-            interval: 'trial',
-            currency: 'USD',
-            status: 'trialing',
-            startedAt: now.toISOString(),
-            currentPeriodEnd: end.toISOString(),
-            paymentMethod: null,
-        };
+        // Don't default to trial - let the useEffect handle new user trials
+        return null;
     })
     const [security, setSecurity] = React.useState(() => loadSecurity() || { twoFactorEnabled: false, twoFactorMethod: 'email', authSecret: '', emailVisible: true })
     const [timeLeft, setTimeLeft] = React.useState(null);
@@ -112,8 +98,13 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     }, []);
 
     React.useEffect(() => {
-        // Auto-start 7-day trial for new users (beta phase concluded)
-        if (user && !sub) {
+        // Auto-start 7-day trial for new users ONLY (beta phase concluded)
+        // Check if this is a truly new user by looking for existing subscription data
+        const existingSubscription = localStorage.getItem('tpprover_subscription');
+        const hasExistingSubscription = existingSubscription && existingSubscription !== 'null';
+        
+        if (user && !sub && !hasExistingSubscription) {
+            console.log('🆕 New user detected, creating 7-day trial');
             // Create trial that's exactly 7 days from NOW
             const now = new Date();
             const end = new Date(now);

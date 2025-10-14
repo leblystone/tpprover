@@ -215,6 +215,26 @@ export default function Login() {
           uid: firebaseUser.uid
         };
         
+        // CRITICAL SECURITY: Check for user change and clear data immediately
+        const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+        if (lastUserEmail && lastUserEmail !== user.email) {
+          console.log('🚨 SECURITY: User change detected during login, clearing localStorage data');
+          console.log('Previous user:', lastUserEmail, 'Current user:', user.email);
+          
+          // Clear all user data including subscription
+          const dataKeys = [
+            'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+            'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+            'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+            'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
+            'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder'
+          ];
+          dataKeys.forEach(key => localStorage.removeItem(key));
+        }
+        
+        // Update last user email
+        localStorage.setItem('tpprover_last_user_email', user.email);
+        
         // Set createdAt for account age tracking - use Firebase user creation date
         try {
           const existingUser = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
@@ -347,6 +367,26 @@ export default function Login() {
           createdAt: new Date().toISOString(),
           termsAgreed: { date: new Date().toISOString() }
         };
+        
+        // CRITICAL SECURITY: Check for user change and clear data immediately
+        const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+        if (lastUserEmail && lastUserEmail !== user.email) {
+          console.log('🚨 SECURITY: New user signup detected, clearing localStorage data');
+          console.log('Previous user:', lastUserEmail, 'New user:', user.email);
+          
+          // Clear all user data including subscription
+          const dataKeys = [
+            'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+            'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+            'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+            'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
+            'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder'
+          ];
+          dataKeys.forEach(key => localStorage.removeItem(key));
+        }
+        
+        // Update last user email
+        localStorage.setItem('tpprover_last_user_email', user.email);
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         try {

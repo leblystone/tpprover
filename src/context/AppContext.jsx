@@ -54,12 +54,13 @@ export function AppProvider({ children }) {
                     console.log('🚨 SECURITY: User changed, clearing localStorage data to prevent data bleeding');
                     console.log('Previous user:', lastUserEmail, 'Current user:', currentUserEmail);
                     
-                    // Clear all user data
+                    // Clear all user data including subscription
                     const dataKeys = [
                         'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
                         'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
                         'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-                        'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared'
+                        'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
+                        'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder'
                     ];
                     dataKeys.forEach(key => localStorage.removeItem(key));
                     
@@ -196,12 +197,13 @@ export function AppProvider({ children }) {
                             console.log('🚨 SECURITY: User changed in auth listener, clearing localStorage data');
                             console.log('Previous user:', lastUserEmail, 'Current user:', parsedUser.email);
                             
-                            // Clear all user data
+                            // Clear all user data including subscription
                             const dataKeys = [
                                 'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
                                 'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
                                 'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-                                'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared'
+                                'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
+                                'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder'
                             ];
                             dataKeys.forEach(key => localStorage.removeItem(key));
                         }
