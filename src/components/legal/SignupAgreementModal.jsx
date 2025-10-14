@@ -122,7 +122,13 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                         onClick={() => setCurrentTab('privacy')}
                     >
                         <div className="flex items-center justify-center gap-2">
-                            <Shield className="w-4 h-4" />
+                            <Shield 
+                                className={`w-4 h-4 ${
+                                    scrolledToBottom.terms && !scrolledToBottom.privacy 
+                                        ? 'animate-pulse' 
+                                        : ''
+                                }`} 
+                            />
                             Privacy Policy
                             {scrolledToBottom.privacy && <CheckCircle className="w-4 h-4" style={{ color: '#5FAF8B' }} />}
                         </div>
@@ -155,7 +161,7 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                     {/* Scroll indicator */}
                     {currentTab === 'terms' && !scrolledToBottom.terms && (
                         <div className="absolute bottom-4 right-4">
-                            <ModernTooltip text="Scroll down to read the complete Terms of Service" position="left">
+                            <ModernTooltip text="Scroll down" position="left">
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-110" style={{ backgroundColor: '#7F9E95' }}>
                                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -166,7 +172,7 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                     )}
                     {currentTab === 'privacy' && !scrolledToBottom.privacy && (
                         <div className="absolute bottom-4 right-4">
-                            <ModernTooltip text="Scroll down to read the complete Privacy Policy" position="left">
+                            <ModernTooltip text="Scroll down" position="left">
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-110" style={{ backgroundColor: '#7F9E95' }}>
                                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -209,7 +215,7 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                                     : { backgroundColor: '#B0C4BF', color: '#6B7D7A' }
                                 }
                             >
-                                I Agree & Create Account
+                                I Agree
                             </button>
                         </div>
                     </div>
