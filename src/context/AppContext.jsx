@@ -44,6 +44,32 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const loadAppData = () => {
             try {
+                // CRITICAL SECURITY FIX: Check if localStorage data belongs to current user
+                const currentUser = localStorage.getItem('tpprover_user');
+                const currentUserEmail = currentUser ? JSON.parse(currentUser).email : null;
+                const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+                
+                // If user changed, clear all data to prevent data bleeding
+                if (currentUserEmail && lastUserEmail && currentUserEmail !== lastUserEmail) {
+                    console.log('🚨 SECURITY: User changed, clearing localStorage data to prevent data bleeding');
+                    console.log('Previous user:', lastUserEmail, 'Current user:', currentUserEmail);
+                    
+                    // Clear all user data
+                    const dataKeys = [
+                        'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+                        'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+                        'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+                        'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared'
+                    ];
+                    dataKeys.forEach(key => localStorage.removeItem(key));
+                    
+                    // Update last user email
+                    localStorage.setItem('tpprover_last_user_email', currentUserEmail);
+                } else if (currentUserEmail) {
+                    // Update last user email for future checks
+                    localStorage.setItem('tpprover_last_user_email', currentUserEmail);
+                }
+                
                 // Check if demo data was explicitly cleared
                 const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
                 const hasSeeded = localStorage.getItem('tpprover_has_seeded');
@@ -161,7 +187,27 @@ export function AppProvider({ children }) {
                 try {
                     const savedUser = localStorage.getItem('tpprover_user');
                     if (savedUser) {
-                        setUser(JSON.parse(savedUser));
+                        const parsedUser = JSON.parse(savedUser);
+                        setUser(parsedUser);
+                        
+                        // CRITICAL SECURITY: Check if user changed and clear data if needed
+                        const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+                        if (lastUserEmail && lastUserEmail !== parsedUser.email) {
+                            console.log('🚨 SECURITY: User changed in auth listener, clearing localStorage data');
+                            console.log('Previous user:', lastUserEmail, 'Current user:', parsedUser.email);
+                            
+                            // Clear all user data
+                            const dataKeys = [
+                                'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+                                'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+                                'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+                                'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared'
+                            ];
+                            dataKeys.forEach(key => localStorage.removeItem(key));
+                        }
+                        
+                        // Update last user email
+                        localStorage.setItem('tpprover_last_user_email', parsedUser.email);
                     } else {
                         // Create user profile if it doesn't exist
                         const userProfile = {
@@ -171,6 +217,7 @@ export function AppProvider({ children }) {
                         };
                         setUser(userProfile);
                         localStorage.setItem('tpprover_user', JSON.stringify(userProfile));
+                        localStorage.setItem('tpprover_last_user_email', userProfile.email);
                     }
                     
                     // Try to load data from Firebase if user has password set
@@ -376,6 +423,7 @@ export function AppProvider({ children }) {
                 setUser(null);
                 localStorage.removeItem('tpprover_auth_token');
                 localStorage.removeItem('tpprover_user');
+                localStorage.removeItem('tpprover_last_user_email'); // Clear user tracking
             }
         } catch (error) {
             console.error("Critical error in auth change handler:", error);
@@ -545,6 +593,7 @@ export function AppProvider({ children }) {
             setUser(null);
             localStorage.removeItem('tpprover_auth_token');
             localStorage.removeItem('tpprover_user');
+            localStorage.removeItem('tpprover_last_user_email'); // Clear user tracking
             window.location.href = '/login';
         }
     };
