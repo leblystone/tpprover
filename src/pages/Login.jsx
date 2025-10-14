@@ -119,6 +119,33 @@ export default function Login() {
     // Check if user is already authenticated
     useEffect(() => {
         if (!isFirebaseLoading && firebaseUser) {
+            // DEVELOPMENT/TESTING: Check for force logout flag
+            const forceLogout = localStorage.getItem('tpp_force_logout');
+            if (forceLogout === 'true') {
+                console.log('🧪 DEVELOPMENT: Force logout detected, signing out user');
+                localStorage.removeItem('tpp_force_logout');
+                
+                // Clear all data and sign out
+                const dataKeys = [
+                    'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+                    'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+                    'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+                    'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
+                    'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
+                    'tpprover_user', 'tpprover_auth_token', 'tpprover_last_user_email'
+                ];
+                dataKeys.forEach(key => localStorage.removeItem(key));
+                
+                // Sign out from Firebase
+                import('../services/firebase').then(({ logoutUser }) => {
+                    logoutUser().then(() => {
+                        console.log('✅ Force logout completed');
+                        window.location.reload();
+                    });
+                });
+                return;
+            }
+            
             // User is already logged in, redirect to dashboard
             setUser({ email: firebaseUser.email, uid: firebaseUser.uid });
             startTransition(() => {
@@ -134,6 +161,34 @@ export default function Login() {
         }
     }, [firebaseUser, isFirebaseLoading, setUser, navigate]);
 
+    // DEVELOPMENT/TESTING: Add console command for force logout
+    useEffect(() => {
+        // Add global function for development testing
+        window.forceLogout = () => {
+            console.log('🧪 DEVELOPMENT: Setting force logout flag');
+            localStorage.setItem('tpp_force_logout', 'true');
+            window.location.reload();
+        };
+        
+        // Add global function to clear all data
+        window.clearAllData = () => {
+            console.log('🧪 DEVELOPMENT: Clearing all localStorage data');
+            const dataKeys = [
+                'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+                'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+                'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+                'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
+                'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
+                'tpprover_user', 'tpprover_auth_token', 'tpprover_last_user_email'
+            ];
+            dataKeys.forEach(key => localStorage.removeItem(key));
+            console.log('✅ All data cleared');
+        };
+        
+        console.log('🧪 DEVELOPMENT: Available commands:');
+        console.log('  - window.forceLogout() - Force logout and clear all data');
+        console.log('  - window.clearAllData() - Clear all localStorage data');
+    }, []);
 
     // Real-time validation
     useEffect(() => {
@@ -735,6 +790,43 @@ export default function Login() {
                     onClose={() => setShowAgreementModal(false)}
                     theme={theme}
                 />
+            )}
+
+            {/* DEVELOPMENT/TESTING: Force logout button */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="fixed bottom-4 right-4 z-50">
+                    <div className="bg-red-100 border border-red-300 rounded-lg p-3 shadow-lg">
+                        <div className="text-xs font-medium text-red-800 mb-2">🧪 Development Tools</div>
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => {
+                                    localStorage.setItem('tpp_force_logout', 'true');
+                                    window.location.reload();
+                                }}
+                                className="block w-full px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                            >
+                                Force Logout & Clear Data
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const dataKeys = [
+                                        'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
+                                        'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
+                                        'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
+                                        'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
+                                        'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
+                                        'tpprover_user', 'tpprover_auth_token', 'tpprover_last_user_email'
+                                    ];
+                                    dataKeys.forEach(key => localStorage.removeItem(key));
+                                    alert('All data cleared!');
+                                }}
+                                className="block w-full px-3 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                            >
+                                Clear All Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );
