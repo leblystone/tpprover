@@ -17,7 +17,6 @@ const PRESERVED_KEYS = [
   'tpprover_auth_token',
   'tpprover_user',
   'tpprover_theme',
-  'tpprover_has_onboarded',
   'tpprover_settings',
   'tpprover_last_user_email', // Track user changes for security
   'tpprover_auth_users',

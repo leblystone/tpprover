@@ -60,7 +60,8 @@ export function AppProvider({ children }) {
                         'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
                         'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
                         'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-                        'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder'
+                        'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
+                        'tpprover_has_onboarded'
                     ];
                     dataKeys.forEach(key => localStorage.removeItem(key));
                     
@@ -203,7 +204,8 @@ export function AppProvider({ children }) {
                                 'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
                                 'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
                                 'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-                                'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder'
+                                'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
+                                'tpprover_has_onboarded'
                             ];
                             dataKeys.forEach(key => localStorage.removeItem(key));
                         }
