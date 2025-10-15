@@ -77,12 +77,15 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Show welcome modal for all new Firebase users
+    // Show welcome modal for all new Firebase users - wait for user to be loaded
+    if (!user) return; // Wait for user to be loaded
+    
     const hasOnboarded = localStorage.getItem('tpprover_has_onboarded');
     const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
     const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
     
     console.log('🎉 Welcome Modal Debug:');
+    console.log('  user:', user?.email);
     console.log('  hasOnboarded:', hasOnboarded);
     console.log('  isFirebaseUser:', isFirebaseUser);
     console.log('  demoDataCleared:', demoDataCleared);
@@ -108,7 +111,7 @@ function App() {
     } else {
         setShowDemoBanner(false);
     }
-  }, [hasMockData]);
+  }, [hasMockData, user]);
 
   // Listen for demo data success events from banner
   useEffect(() => {

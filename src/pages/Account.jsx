@@ -98,41 +98,14 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     }, []);
 
     React.useEffect(() => {
-        // Auto-start 7-day trial for new users ONLY (beta phase concluded)
-        // Check if this is a truly new user by looking for existing subscription data
-        const existingSubscription = localStorage.getItem('tpprover_subscription');
-        const hasExistingSubscription = existingSubscription && existingSubscription !== 'null';
-        
-        if (user && !sub && !hasExistingSubscription) {
-            console.log('🆕 New user detected, creating 7-day trial');
-            // Create trial that's exactly 7 days from NOW
-            const now = new Date();
-            const end = new Date(now);
-            end.setDate(end.getDate() + 7); // Exactly 7 days from signup
-            
-            const trialSub = {
-                id: String(Date.now()),
-                plan: '7-Day Free Trial',
-                price: 0,
-                interval: 'trial',
-                currency: 'USD',
-                status: 'trialing',
-                startedAt: now.toISOString(),
-                currentPeriodEnd: end.toISOString(),
-                paymentMethod: null,
-            };
-            
-            saveSubscription(trialSub);
-            setSub(trialSub);
-            
-            window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                detail: { message: '🎉 7-day lab access granted! Continue your research journey.', type: 'success' } 
-            }));
-        } else if (user && !sub && hasExistingSubscription) {
-            // Load existing subscription
-            console.log('📋 Loading existing subscription for user');
-            const existingSub = JSON.parse(existingSubscription);
-            setSub(existingSub);
+        // Load existing subscription if available
+        if (user && !sub) {
+            const existingSubscription = localStorage.getItem('tpprover_subscription');
+            if (existingSubscription && existingSubscription !== 'null') {
+                console.log('📋 Loading existing subscription for user');
+                const existingSub = JSON.parse(existingSubscription);
+                setSub(existingSub);
+            }
         }
     }, [user, sub])
 

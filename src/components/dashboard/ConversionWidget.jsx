@@ -112,21 +112,12 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   // Show for: trial users, expired trials, canceled subscriptions, or no subscription
   const isActivePaidSubscription = subscription?.status === 'active' && subscription?.plan !== '7-Day Free Trial';
   
-  console.log('🎯 ConversionWidget Debug:', {
-    subscription,
-    subscriptionStatus: subscription?.status,
-    subscriptionPlan: subscription?.plan,
-    isActivePaidSubscription,
-    isDismissed,
-    willShow: !isActivePaidSubscription && !isDismissed
-  });
+  // Debug info available via devLog if needed
   
   if (isActivePaidSubscription || isDismissed) {
-    console.log('❌ ConversionWidget: HIDING because', { isActivePaidSubscription, isDismissed });
     return null;
   }
   
-  console.log('✅ ConversionWidget: SHOWING!');
 
   // Calculate trial days left
   const getTrialDaysLeft = () => {

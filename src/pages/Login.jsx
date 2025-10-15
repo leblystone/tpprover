@@ -115,6 +115,7 @@ export default function Login() {
     const [showAgreementModal, setShowAgreementModal] = useState(false);
     const [passwordValidation, setPasswordValidation] = useState({ valid: true, errors: [], tips: [] });
     const [emailValidation, setEmailValidation] = useState({ valid: true, error: '', tip: '' });
+    const [isReturningUser, setIsReturningUser] = useState(false);
     
     // Check if user is already authenticated
     useEffect(() => {
