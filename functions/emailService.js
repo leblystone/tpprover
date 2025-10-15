@@ -32,7 +32,7 @@ async function sendEmail(to, subject, html) {
     const msg = {
       to,
       from: {
-        email: 'noreply@thepepplanner.app', // This must be verified in SendGrid
+        email: 'contact@thepepplanner.com', // This must be verified in SendGrid
         name: 'The Pep Planner'
       },
       subject,
