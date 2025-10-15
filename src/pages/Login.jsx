@@ -811,40 +811,6 @@ export default function Login() {
                 />
             )}
 
-            {/* DEVELOPMENT/TESTING: Force logout button - always visible for mobile testing */}
-            <div className="fixed bottom-4 right-4 z-50">
-                    <div className="bg-red-100 border border-red-300 rounded-lg p-3 shadow-lg">
-                        <div className="text-xs font-medium text-red-800 mb-2">🧪 Development Tools</div>
-                        <div className="space-y-2">
-                            <button
-                                onClick={() => {
-                                    localStorage.setItem('tpp_force_logout', 'true');
-                                    window.location.reload();
-                                }}
-                                className="block w-full px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                            >
-                                Force Logout & Clear Data
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const dataKeys = [
-                                        'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
-                                        'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
-                                        'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-                                        'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-                                        'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
-                                        'tpprover_user', 'tpprover_auth_token', 'tpprover_last_user_email'
-                                    ];
-                                    dataKeys.forEach(key => localStorage.removeItem(key));
-                                    alert('All data cleared!');
-                                }}
-                                className="block w-full px-3 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-                            >
-                                Clear All Data
-                            </button>
-                        </div>
-                    </div>
-                </div>
         </>
     );
 }

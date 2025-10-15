@@ -82,12 +82,22 @@ function App() {
     const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
     const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
     
+    console.log('🎉 Welcome Modal Debug:', {
+      hasOnboarded,
+      isFirebaseUser,
+      demoDataCleared,
+      shouldShow: hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared
+    });
+    
     // Show welcome for new users:
     // 1. User hasn't onboarded AND
     // 2. User is a Firebase user (authenticated) AND
     // 3. Demo data hasn't been explicitly cleared
     if (hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared) {
+      console.log('🎉 Showing welcome modal!');
       setShowWelcome(true);
+    } else {
+      console.log('🎉 NOT showing welcome modal');
     }
 
     const bannerDismissed = localStorage.getItem('tpprover_demo_banner_dismissed');

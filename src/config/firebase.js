@@ -2,15 +2,17 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getEnvVar } from './appConfig.js';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDzGVtlnIk0QzUSgK6o41KGpYKk6opdgcE",
-  authDomain: "tpp-splendide.firebaseapp.com",
-  projectId: "tpp-splendide",
-  storageBucket: "tpp-splendide.firebasestorage.app",
-  messagingSenderId: "97564473391",
-  appId: "1:97564473391:web:71f235c49040e559aa6eda"
+  apiKey: getEnvVar('VITE_FIREBASE_API_KEY'),
+  authDomain: getEnvVar('VITE_FIREBASE_AUTH_DOMAIN'),
+  projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID'),
+  storageBucket: getEnvVar('VITE_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: getEnvVar('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+  appId: getEnvVar('VITE_FIREBASE_APP_ID'),
+  measurementId: getEnvVar('VITE_FIREBASE_MEASUREMENT_ID')
 };
 
 // Initialize Firebase
