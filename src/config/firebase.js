@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getEnvVar } from './appConfig.js';
 
 // Your web app's Firebase configuration
@@ -24,11 +25,15 @@ export const db = getFirestore(app);
 // Initialize Auth
 export const auth = getAuth(app);
 
+// Initialize Functions with correct region
+export const functions = getFunctions(app, 'us-central1');
+
 // Emulators disabled - using production Firebase services
 // if (import.meta.env.DEV && typeof window !== 'undefined') {
 //   try {
 //     connectFirestoreEmulator(db, 'localhost', 8080);
 //     connectAuthEmulator(auth, 'http://localhost:9099');
+//     connectFunctionsEmulator(functions, 'localhost', 5001);
 //   } catch (error) {
 //     console.log('Firebase emulators not connected:', error.message);
 //   }

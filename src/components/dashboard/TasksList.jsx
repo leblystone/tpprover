@@ -107,12 +107,7 @@ const TaskListSection = ({ title, tasks, theme, onToggle }) => {
                             </div>
                             {task.deliveryMethod === 'pen' && (
                                 <div className="flex items-center gap-1">
-                                    {console.log('🖊️ Pen display debug:', {
-                                        deliveryMethod: task.deliveryMethod,
-                                        penColor: task.penColor,
-                                        penType: task.penType,
-                                        resolvedColor: getResolvedPenColor(task.penColor)
-                                    })}
+                                    {/* Debug info available via devLog if needed */}
                                     <div 
                                         className="w-3 h-3 rounded-full border border-gray-300 shadow-sm flex-shrink-0" 
                                         style={{ 

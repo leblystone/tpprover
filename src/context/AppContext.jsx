@@ -29,10 +29,7 @@ export function AppProvider({ children }) {
     // Native app bypass - disable loading state immediately
     useEffect(() => {
         if (isNative()) {
-            console.log('🚀 AppContext: Native app detected, disabling loading state');
             setIsLoading(false);
-        } else {
-            console.log('🌐 AppContext: Web app detected, keeping loading state');
         }
     }, []);
     const [isClearingDemoData, setIsClearingDemoData] = useState(false);
@@ -51,8 +48,6 @@ export function AppProvider({ children }) {
                 
                 // If user changed, clear all data to prevent data bleeding
                 if (currentUserEmail && lastUserEmail && currentUserEmail !== lastUserEmail) {
-                    console.log('🚨 SECURITY: User changed, clearing localStorage data to prevent data bleeding');
-                    console.log('Previous user:', lastUserEmail, 'Current user:', currentUserEmail);
                     
                     // Clear all user data including subscription
                     const dataKeys = [
@@ -84,12 +79,9 @@ export function AppProvider({ children }) {
                 // ALWAYS seed demo data for new users who haven't explicitly cleared it
                 // This ensures new accounts always get demo data
                 if (!demoDataCleared && !hasSeeded && !hasExistingData) {
-                    console.log('🌱 New user detected, seeding demo data');
                     seedInitialData();
                 } else if (demoDataCleared) {
-                    console.log('🚫 Demo data was cleared by user, skipping seeding');
                 } else if (hasSeeded || hasExistingData) {
-                    console.log('👤 Existing user detected, skipping demo data seeding');
                 }
 
                 const savedProtocols = localStorage.getItem('tpprover_protocols');
@@ -120,14 +112,12 @@ export function AppProvider({ children }) {
                         );
                         
                         if (isContaminated) {
-                            console.log('🧹 Cleaning up contaminated supplement:', sup.name, sup.dose);
                             return false;
                         }
                         return true;
                     });
                     
                     if (cleanedSupplements.length !== supplements.length) {
-                        console.log(`🧹 Cleaned ${supplements.length - cleanedSupplements.length} contaminated supplements`);
                         // Save cleaned data back to localStorage
                         localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements));
                     }
@@ -147,7 +137,6 @@ export function AppProvider({ children }) {
                     // Migrate old 'group' category to 'groupbuy' for consistency
                     const migratedVendors = vendors.map(vendor => {
                         if (vendor.type === 'group') {
-                            console.log('🔄 Migrating vendor category from "group" to "groupbuy":', vendor.name);
                             return { ...vendor, type: 'groupbuy' };
                         }
                         return vendor;
@@ -156,7 +145,6 @@ export function AppProvider({ children }) {
                     // Save migrated vendors back to localStorage if any changes were made
                     if (migratedVendors.some((v, i) => v.type !== vendors[i].type)) {
                         localStorage.setItem('tpprover_vendors', JSON.stringify(migratedVendors));
-                        console.log('✅ Vendor category migration completed');
                     }
                     
                     setVendors(migratedVendors);
@@ -232,10 +220,8 @@ export function AppProvider({ children }) {
                     // CRITICAL: If user has empty localStorage but no password, they need to re-enter password
                     if (hasEmptyLocalStorage && !hasPassword) {
                         console.log('🔐 New device/browser detected - need password for data sync');
-                        console.log('💡 User should log out and log back in with their password to sync data');
                         
                         // Show helpful message in console
-                        console.log('🔧 SOLUTION: Log out and log back in with your password to sync your data from other devices');
                         
                         // Set a flag so the login page can show a helpful message
                         localStorage.setItem('tpp_need_password_for_sync', 'true');
@@ -243,7 +229,6 @@ export function AppProvider({ children }) {
                     
                     if (hasPassword || hasEmptyLocalStorage) {
                         try {
-                            console.log('🔄 Attempting Firebase data recovery...', { hasPassword, hasEmptyLocalStorage });
                             
                             // CRITICAL FIX: Add timeout to prevent infinite loading
                             const firebaseDataPromise = loadFromFirebase();
@@ -254,7 +239,6 @@ export function AppProvider({ children }) {
                             const firebaseData = await Promise.race([firebaseDataPromise, timeoutPromise]);
                             if (firebaseData) {
                                 // Load Firebase data if available, especially when localStorage is empty
-                                console.log('✅ User data loaded from Firebase');
                                 
                                 // Load Firebase data into state (Firebase takes precedence for authenticated users)
                                 if (firebaseData.protocols) setProtocols(firebaseData.protocols);
@@ -276,7 +260,6 @@ export function AppProvider({ children }) {
                                             sup.name === '5AMINO1MQ'
                                         );
                                         if (isContaminated) {
-                                            console.log('🧹 Cleaning up contaminated Firebase supplement:', sup.name, sup.dose);
                                         }
                                         return !isContaminated;
                                     });
@@ -288,7 +271,6 @@ export function AppProvider({ children }) {
                                     // Migrate old 'group' category to 'groupbuy' for consistency
                                     const migratedVendors = firebaseData.vendors.map(vendor => {
                                         if (vendor.type === 'group') {
-                                            console.log('🔄 Migrating Firebase vendor category from "group" to "groupbuy":', vendor.name);
                                             return { ...vendor, type: 'groupbuy' };
                                         }
                                         return vendor;
@@ -311,28 +293,23 @@ export function AppProvider({ children }) {
                                     localStorage.setItem('tpprover_calendar_notes', JSON.stringify(firebaseData.calendarNotes || {}));
                                     localStorage.setItem('tpprover_stockpile', JSON.stringify(firebaseData.stockpile || []));
                                     localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(firebaseData.scheduledBuys || []));
-                                    console.log('💾 Firebase data synced to localStorage backup');
                                 } catch (backupError) {
                                     console.error('❌ Failed to backup Firebase data to localStorage:', backupError);
                                 }
                             }
                         } catch (error) {
-                            console.log('📱 Using local data (Firebase sync unavailable):', error.message);
                             
                             // If Firebase sync failed and we have empty localStorage, provide recovery option
                             if (hasEmptyLocalStorage) {
                                 console.warn('🚨 CRITICAL: Empty localStorage detected with failed Firebase sync!');
-                                console.log('🔧 Recovery options available:');
                                 console.log('- window.recoverDataFromFirebase() - manual recovery function');
                                 console.log('- Check if you need to re-enter your password');
                                 
                                 // Make recovery function globally available
                                 window.recoverDataFromFirebase = async () => {
                                     try {
-                                        console.log('🔄 Attempting manual data recovery...');
                                         const firebaseData = await loadFromFirebase();
                                         if (firebaseData) {
-                                            console.log('✅ Data recovered! Reloading page...');
                                             window.location.reload();
                                         } else {
                                             console.error('❌ No data found in Firebase');
@@ -344,13 +321,11 @@ export function AppProvider({ children }) {
                                 
                                 // CRITICAL: Add emergency recovery for stuck loading
                                 window.emergencyRecovery = () => {
-                                    console.log('🚨 EMERGENCY RECOVERY: Clearing stuck authentication state...');
                                     
                                     // Clear potentially corrupted auth state
                                     localStorage.removeItem('tpprover_auth_token');
                                     
                                     // Force reload to reset app state
-                                    console.log('🔄 Forcing app reload...');
                                     window.location.href = '/login';
                                 };
                                 
@@ -360,7 +335,6 @@ export function AppProvider({ children }) {
                                         const backup = localStorage.getItem('tpprover_data_backup');
                                         if (backup) {
                                             const backupData = JSON.parse(backup);
-                                            console.log('💾 Restoring data from backup...');
                                             
                                             Object.keys(backupData).forEach(key => {
                                                 if (backupData[key]) {
@@ -368,10 +342,8 @@ export function AppProvider({ children }) {
                                                 }
                                             });
                                             
-                                            console.log('✅ Data restored from backup! Reloading...');
                                             window.location.reload();
                                         } else {
-                                            console.log('❌ No backup found');
                                         }
                                     } catch (err) {
                                         console.error('❌ Backup restore failed:', err);
@@ -381,7 +353,6 @@ export function AppProvider({ children }) {
                                 // Make supplement cleanup function globally available
                                 window.cleanupContaminatedSupplements = () => {
                                     try {
-                                        console.log('🧹 Cleaning up contaminated supplements...');
                                         const savedSupps = localStorage.getItem('tpprover_supplements');
                                         if (savedSupps) {
                                             const supplements = JSON.parse(savedSupps);
@@ -397,16 +368,12 @@ export function AppProvider({ children }) {
                                                     sup.name === '5AMINO1MQ'
                                                 );
                                                 if (isContaminated) {
-                                                    console.log('🧹 Removing contaminated supplement:', sup.name, sup.dose);
                                                 }
                                                 return !isContaminated;
                                             });
                                             localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements));
-                                            console.log(`✅ Cleaned ${supplements.length - cleanedSupplements.length} contaminated supplements`);
-                                            console.log('🔄 Reloading page to apply changes...');
                                             window.location.reload();
                                         } else {
-                                            console.log('ℹ️ No supplements found to clean');
                                         }
                                     } catch (err) {
                                         console.error('❌ Cleanup failed:', err);
@@ -434,11 +401,9 @@ export function AppProvider({ children }) {
         } finally {
             // Don't override loading state for native apps (already handled above)
             if (!isNative()) {
-                console.log('🌐 Web app: Setting loading to false in auth handler');
                 setIsLoading(false);
                 setIsInitialLoad(false);
             } else {
-                console.log('📱 Native app: NOT overriding loading state in auth handler');
             }
         }
         });
@@ -465,14 +430,12 @@ export function AppProvider({ children }) {
         
         // Listen for demo data cleared event
         const handleDemoDataCleared = () => {
-            console.log('🧹 Demo data cleared event received, refreshing app state...');
 
             // Instead of full reload, just clear demo data and refresh state
             try {
                 // Import and call clearMockData directly
                 import('../utils/seed').then(({ clearMockData }) => {
                     clearMockData();
-                    console.log('✅ Demo data cleared successfully');
 
                     // Refresh the hasMockData calculation without full reload
                     // Force a re-render by updating a state variable
@@ -481,7 +444,6 @@ export function AppProvider({ children }) {
                     // Re-enable sync after brief delay
                     setTimeout(() => {
                         setIsClearingDemoData(false);
-                        console.log('✅ Demo data clearing complete');
                     }, 500);
                 });
             } catch (error) {
@@ -502,12 +464,6 @@ export function AppProvider({ children }) {
     useEffect(() => {
         // Don't sync during initial load, demo data clearing, or if user isn't authenticated
         if (isInitialLoad || isClearingDemoData || !firebaseUser || !hasPassword) {
-            console.log('🛡️ SYNC BLOCKED:', { 
-                isInitialLoad, 
-                isClearingDemoData, 
-                hasFirebaseUser: !!firebaseUser, 
-                hasPassword 
-            });
             return;
         }
 
@@ -544,9 +500,7 @@ export function AppProvider({ children }) {
                 localStorage.setItem('tpprover_calendar_notes', JSON.stringify(calendarNotes));
                 localStorage.setItem('tpprover_stockpile', JSON.stringify(stockpile));
                 localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
-                console.log('💾 Data backed up to localStorage');
             } else {
-                console.log('🛡️ SAFETY: Prevented saving empty data arrays to localStorage');
             }
         } catch (error) {
             console.error('❌ Failed to backup to localStorage:', error);
@@ -558,7 +512,6 @@ export function AppProvider({ children }) {
         );
         
         if (hasData) {
-            console.log('🔄 Syncing data to Firebase...');
             debouncedSync(userData);
         }
     }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys]); // FIXED: Only include data dependencies, remove functions
@@ -567,7 +520,6 @@ export function AppProvider({ children }) {
         try {
             // CRITICAL: Force immediate sync before logout to prevent data loss
             if (firebaseUser && hasPassword) {
-                console.log('💾 Force syncing data before logout...');
                 const userData = {
                     protocols,
                     reconItems,
@@ -583,7 +535,6 @@ export function AppProvider({ children }) {
                 
                 // Use syncToFirebase directly (not debounced) for immediate sync
                 await syncToFirebase(userData);
-                console.log('✅ Data synced before logout');
             }
             
             // Sign out from Firebase - the auth state listener will handle the rest
@@ -610,7 +561,6 @@ export function AppProvider({ children }) {
                 // Check if there's existing data in localStorage before overwriting with empty array
                 const existingData = localStorage.getItem(key);
                 if (existingData && existingData !== '[]') {
-                    console.log(`🛡️ SAFETY: Prevented saving empty array to ${key} (existing data found)`);
                     return;
                 }
             }
@@ -625,7 +575,6 @@ export function AppProvider({ children }) {
     useEffect(() => { saveData('tpprover_recon_items', reconItems) }, [reconItems]);
     useEffect(() => { saveData('tpprover_recon_history', reconHistory) }, [reconHistory]);
     useEffect(() => { 
-        console.log('💾 Saving supplements to localStorage:', supplements);
         console.log('🔍 Current state during supplements save:', {
             isInitialLoad,
             hasFirebaseUser: !!firebaseUser,
@@ -681,7 +630,6 @@ export function AppProvider({ children }) {
             return;
         }
         
-        console.log('🗑️ Deleting vendor:', vendorExists.name);
         setVendors(prev => prev.filter(v => v.id !== vendorId));
     };
 
@@ -703,7 +651,6 @@ export function AppProvider({ children }) {
     const updateSupplement = (updatedSupplement) => {
         // Handle delete flag
         if (updatedSupplement._delete) {
-            console.log('🗑️ Deleting supplement:', updatedSupplement.name);
             setSupplements(prev => prev.filter(s => s.id !== updatedSupplement.id));
             return;
         }
@@ -760,7 +707,6 @@ export function AppProvider({ children }) {
             // Re-enable Firebase sync after a short delay
             setTimeout(() => {
                 setIsClearingDemoData(false);
-                console.log('✅ Demo data cleared and Firebase sync re-enabled');
             }, 1000);
         } catch (error) {
             console.error("Error refreshing data after clear:", error);
@@ -782,9 +728,7 @@ export function AppProvider({ children }) {
             if (data && data !== '[]' && data !== '{}') {
                 try {
                     const parsed = JSON.parse(data);
-                    console.log(`📊 ${key} parsed:`, Array.isArray(parsed) ? `${parsed.length} items` : typeof parsed);
                 } catch (e) {
-                    console.log(`❌ ${key} parse error:`, e.message);
                 }
             }
         });
@@ -796,7 +740,6 @@ export function AppProvider({ children }) {
             if (savedProtocols && savedProtocols !== '[]') {
                 const parsed = JSON.parse(savedProtocols);
                 setProtocols(parsed);
-                console.log(`✅ Recovered ${parsed.length} protocols`);
                 recoveredCount++;
             }
 
@@ -804,7 +747,6 @@ export function AppProvider({ children }) {
             if (savedRecon && savedRecon !== '[]') {
                 const parsed = JSON.parse(savedRecon);
                 setReconItems(parsed);
-                console.log(`✅ Recovered ${parsed.length} recon items`);
                 recoveredCount++;
             }
             
@@ -812,7 +754,6 @@ export function AppProvider({ children }) {
             if (savedHistory && savedHistory !== '[]') {
                 const parsed = JSON.parse(savedHistory);
                 setReconHistory(parsed);
-                console.log(`✅ Recovered ${parsed.length} recon history items`);
                 recoveredCount++;
             }
 
@@ -820,7 +761,6 @@ export function AppProvider({ children }) {
             if (savedSupps && savedSupps !== '[]') {
                 const parsed = JSON.parse(savedSupps);
                 setSupplements(parsed);
-                console.log(`✅ Recovered ${parsed.length} supplements`);
                 recoveredCount++;
             }
 
@@ -828,7 +768,6 @@ export function AppProvider({ children }) {
             if (savedOrders && savedOrders !== '[]') {
                 const parsed = JSON.parse(savedOrders);
                 setOrders(parsed);
-                console.log(`✅ Recovered ${parsed.length} orders`);
                 recoveredCount++;
             }
 
@@ -836,7 +775,6 @@ export function AppProvider({ children }) {
             if (savedMetrics && savedMetrics !== '[]') {
                 const parsed = JSON.parse(savedMetrics);
                 setMetrics(parsed);
-                console.log(`✅ Recovered ${parsed.length} metrics`);
                 recoveredCount++;
             }
 
@@ -844,7 +782,6 @@ export function AppProvider({ children }) {
             if (savedVendors && savedVendors !== '[]') {
                 const parsed = JSON.parse(savedVendors);
                 setVendors(parsed);
-                console.log(`✅ Recovered ${parsed.length} vendors`);
                 recoveredCount++;
             }
             
@@ -852,7 +789,6 @@ export function AppProvider({ children }) {
             if (savedNotes && savedNotes !== '{}') {
                 const parsed = JSON.parse(savedNotes);
                 setCalendarNotes(parsed);
-                console.log(`✅ Recovered ${Object.keys(parsed).length} calendar notes`);
                 recoveredCount++;
             }
 
@@ -860,7 +796,6 @@ export function AppProvider({ children }) {
             if (savedStockpile && savedStockpile !== '[]') {
                 const parsed = JSON.parse(savedStockpile);
                 setStockpile(parsed);
-                console.log(`✅ Recovered ${parsed.length} stockpile items`);
                 recoveredCount++;
             }
 

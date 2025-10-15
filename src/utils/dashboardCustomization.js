@@ -420,11 +420,8 @@ export const loadDashboardLayout = () => {
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     
     if (layoutVersion !== currentVersion) {
-      console.log('🔄 Dashboard layout version mismatch - updating Research Glossary widget size to MEDIUM');
-      console.log('🗑️ Clearing dashboard layout from localStorage');
       localStorage.setItem('tpprover_dashboard_version', currentVersion);
       localStorage.removeItem(STORAGE_KEY);
-      console.log('✅ Returning DEFAULT_WIDGETS with updated layout: Research Glossary now MEDIUM size to match Supplements card');
       return DEFAULT_WIDGETS;
     }
     
@@ -461,7 +458,6 @@ export const removeDuplicateWidgets = (widgets) => {
   return widgets.filter(widget => {
     // Remove duplicates by ID (primary check)
     if (seenIds.has(widget.id)) {
-      console.log(`🧹 Removing duplicate widget by ID: ${widget.id}`);
       return false;
     }
     seenIds.add(widget.id);
@@ -470,7 +466,6 @@ export const removeDuplicateWidgets = (widgets) => {
     if (duplicateTypes.has(widget.id) || duplicateTypes.has(widget.type)) {
       const key = widget.id || widget.type;
       if (seenTypes.has(key)) {
-        console.log(`🧹 Removing duplicate widget by type: ${key}`);
         return false;
       }
       seenTypes.add(key);

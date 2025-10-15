@@ -77,19 +77,9 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
     };
   });
 
-  // Debug: Log chart data to help diagnose issues
-  console.log('📊 Chart Debug Info:', {
-    totalMetrics: metrics.length,
-    last7Days: last7Days.map(d => d.toISOString().split('T')[0]),
-    chartData: chartData.map(d => ({
-      date: d.date.toISOString().split('T')[0],
-      hasData: Object.values(d).some(v => v !== null && typeof v === 'number')
-    })),
-    sampleMetrics: metrics.slice(0, 3).map(m => ({ date: m.date, weight: m.weight, sleep: m.sleep }))
-  });
+  // Debug info available via devLog if needed
 
   if (chartData.filter(d => Object.values(d).some(v => v !== null && typeof v === 'number')).length < 1) {
-    console.log('❌ No chart data found for last 7 days');
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -161,7 +151,6 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
     chartData.some(d => d[metric] != null)
   );
 
-  console.log('📈 Available metrics for chart:', availableMetrics);
 
   return (
     <div className="space-y-2">

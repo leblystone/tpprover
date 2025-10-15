@@ -27,12 +27,10 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
         priceId = STRIPE_CONFIG.prices.lifetime;
       }
 
-      console.log('🔍 SubscriptionModal: Attempting Stripe checkout with priceId:', priceId, 'for user:', user?.uid);
 
       // Close modal and redirect to Stripe checkout immediately
       onClose();
       await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user');
-      console.log('✅ SubscriptionModal: createCheckoutSession called successfully.');
       
     } catch (error) {
       console.error('❌ SubscriptionModal: Stripe checkout error:', error);

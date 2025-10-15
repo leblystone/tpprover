@@ -139,7 +139,6 @@ export default function Login() {
                 // Sign out from Firebase
                 import('../services/firebase').then(({ logoutUser }) => {
                     logoutUser().then(() => {
-                        console.log('✅ Force logout completed');
                         window.location.reload();
                     });
                 });
@@ -182,12 +181,9 @@ export default function Login() {
                 'tpprover_has_onboarded', 'tpprover_user', 'tpprover_auth_token', 'tpprover_last_user_email'
             ];
             dataKeys.forEach(key => localStorage.removeItem(key));
-            console.log('✅ All data cleared');
         };
         
-        console.log('🧪 DEVELOPMENT: Available commands:');
-        console.log('  - window.forceLogout() - Force logout and clear all data');
-        console.log('  - window.clearAllData() - Clear all localStorage data');
+        // Development commands available via window object
     }, []);
 
     // Real-time validation
@@ -350,7 +346,6 @@ export default function Login() {
             }
           });
           
-          console.log('✅ User data restored after login');
         }
         
         setUser(user);

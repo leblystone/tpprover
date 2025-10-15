@@ -163,7 +163,6 @@ export default function Dashboard() {
       };
       
       const handleTaskCompletionChange = (e) => {
-          console.log('📡 Dashboard received task completion event:', e.detail);
           setCalendarBump(Date.now());
       };
       

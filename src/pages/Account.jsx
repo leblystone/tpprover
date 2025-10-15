@@ -697,8 +697,33 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                                    const end = new Date(sub.currentPeriodEnd);
                                    const start = new Date(sub.startedAt);
                                    const diffTime = end - now;
-                                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                   return diffDays > 0 ? `${diffDays} day${diffDays !== 1 ? 's' : ''} of research` : 'Lab access expired';
+                                   
+                                   if (diffTime <= 0) {
+                                     return 'Lab access expired';
+                                   }
+                                   
+                                   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                   const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                   const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+                                   
+                                   let countdownText = '';
+                                   if (diffDays > 0) {
+                                     countdownText = `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+                                     if (diffHours > 0) {
+                                       countdownText += `, ${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
+                                     }
+                                     countdownText += ' remaining';
+                                   } else if (diffHours > 0) {
+                                     countdownText = `${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
+                                     if (diffMinutes > 0) {
+                                       countdownText += `, ${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''}`;
+                                     }
+                                     countdownText += ' remaining';
+                                   } else {
+                                     countdownText = `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} remaining`;
+                                   }
+                                   
+                                   return countdownText;
                                  })()}
                                </span>
                              </div>
@@ -724,6 +749,31 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                                <div className="flex justify-between text-xs" style={{ color: theme.textLight }}>
                                  <span>Started: {new Date(sub.startedAt).toLocaleDateString()}</span>
                                  <span>Ends: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</span>
+                               </div>
+                               <div className="text-center text-xs mt-2 p-2 rounded" style={{ backgroundColor: theme.infoBg, color: theme.primaryDark }}>
+                                 {(() => {
+                                   const now = new Date();
+                                   const end = new Date(sub.currentPeriodEnd);
+                                   const diffTime = end - now;
+                                   
+                                   if (diffTime <= 0) {
+                                     return '⏰ Your trial has ended';
+                                   }
+                                   
+                                   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                   const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                   const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+                                   
+                                   if (diffDays > 1) {
+                                     return `⏳ ${diffDays} days, ${diffHours} hours, and ${diffMinutes} minutes of research time left`;
+                                   } else if (diffDays === 1) {
+                                     return `⏳ 1 day, ${diffHours} hours, and ${diffMinutes} minutes of research time left`;
+                                   } else if (diffHours > 0) {
+                                     return `⏳ ${diffHours} hours and ${diffMinutes} minutes of research time left`;
+                                   } else {
+                                     return `⏳ ${diffMinutes} minutes of research time left`;
+                                   }
+                                 })()}
                                </div>
                              </div>
                            </div>
@@ -1502,12 +1552,14 @@ const TrialProgressBar = ({ theme, startDate, endDate }) => {
                 const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
                 
-                if (days > 0) {
-                    setTimeLeft(`${days} day${days !== 1 ? 's' : ''} left`);
+                if (days > 1) {
+                    setTimeLeft(`${days} days, ${hours} hours, and ${minutes} minutes left`);
+                } else if (days === 1) {
+                    setTimeLeft(`1 day, ${hours} hours, and ${minutes} minutes left`);
                 } else if (hours > 0) {
-                    setTimeLeft(`${hours} hour${hours !== 1 ? 's' : ''} left`);
+                    setTimeLeft(`${hours} hours and ${minutes} minutes left`);
                 } else {
-                    setTimeLeft(`${minutes} minute${minutes !== 1 ? 's' : ''} left`);
+                    setTimeLeft(`${minutes} minutes left`);
                 }
                 setIsExpired(false);
             }

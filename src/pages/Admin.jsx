@@ -101,7 +101,6 @@ const calculateUserGrowth = (users) => {
   
   // If we have users but no dates, distribute them over recent days for visualization
   if (totalUsers > 0 && usersWithDates === 0) {
-    console.log('📊 No user creation dates found, generating estimated growth pattern for', totalUsers, 'users');
     const usersPerDay = Math.max(1, Math.ceil(totalUsers / 15)); // Spread over 15 days
     let remainingUsers = totalUsers;
     for (let i = 14; i >= 0 && remainingUsers > 0; i--) {
@@ -305,7 +304,6 @@ function Admin() {
         { id: 'gansulin', name: 'Gansulin' },
         { id: 'other', name: 'Other' }
       ];
-      console.log('🖊️ Pen types:', penTypes);
       
       setContentData(prev => ({
         ...prev,
@@ -437,7 +435,6 @@ function Admin() {
       console.log('🔍 Loading lifetime users from Firebase...');
       const users = await getAllLifetimeUsers();
       setLifetimeUsers(users);
-      console.log('✅ Loaded', users.length, 'lifetime users:', users);
       
       // Debug: Also check localStorage for comparison
       try {
@@ -518,7 +515,6 @@ function Admin() {
   const loadRealAnalytics = async () => {
     setLoading(prev => ({ ...prev, analytics: true }));
     try {
-      console.log('📊 Loading real-time analytics from Firebase...');
       
       // Load user data first (this should work)
       const userData = await getUserList();
@@ -534,7 +530,6 @@ function Admin() {
       try {
         const firebaseAnalytics = await getAnalytics();
         analyticsData = { ...analyticsData, ...firebaseAnalytics };
-        console.log('📊 Analytics data loaded successfully:', analyticsData);
       } catch (analyticsError) {
         console.warn('⚠️ Analytics collection not accessible, using user-based estimates:', analyticsError.message);
         // Calculate realistic analytics estimates from user data
@@ -548,7 +543,6 @@ function Admin() {
           reconCalculations: Math.floor(userCount * 3.8),
           calendarEntries: Math.floor(userCount * 2.4)
         };
-        console.log('📊 Generated fallback analytics:', analyticsData);
       }
       
       const userGrowth = calculateUserGrowth(userData);
@@ -841,7 +835,6 @@ function Admin() {
       setRespondingToFeedback(null);
       setResponseText('');
       
-      console.log('✅ Response sent successfully');
     } catch (error) {
       console.error('❌ Failed to send response:', error);
     } finally {

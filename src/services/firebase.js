@@ -169,7 +169,6 @@ export async function registerUser(email, password, inviteCode) {
         url: window.location.origin + '/app/dashboard',
         handleCodeInApp: false
       });
-      console.log('✉️ Verification email sent to:', email);
     } catch (emailError) {
       console.error('Failed to send verification email:', emailError);
       // Don't block registration if email fails
@@ -583,14 +582,12 @@ export async function getAnalytics() {
     const docSnap = await getDoc(docRef);
     
     if (!docSnap.exists()) {
-      console.log('📊 Analytics collection does not exist, creating initial document...');
       
       // Get current user count to initialize with real data
       let currentUserCount = 0;
       try {
         const usersSnapshot = await getDocs(collection(db, 'users'));
         currentUserCount = usersSnapshot.size;
-        console.log(`📊 Found ${currentUserCount} existing users for analytics initialization`);
       } catch (userError) {
         console.warn('Could not get user count for analytics initialization:', userError.message);
       }
@@ -617,7 +614,6 @@ export async function getAnalytics() {
       
       try {
         await setDoc(docRef, initialData);
-        console.log('✅ Analytics collection initialized successfully');
         return initialData;
       } catch (createError) {
         console.warn('⚠️ Could not create analytics collection, returning default data:', createError.message);
@@ -677,7 +673,6 @@ export async function submitFeedback(feedbackData) {
       adminNotes: ''
     });
     
-    console.log('✅ Feedback submitted successfully with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
     console.error('❌ Failed to submit feedback:', error);
@@ -724,7 +719,6 @@ export async function updateFeedback(feedbackId, updates) {
       updatedAt: serverTimestamp()
     });
     
-    console.log('✅ Feedback updated successfully');
   } catch (error) {
     console.error('❌ Failed to update feedback:', error);
     throw error;
@@ -741,7 +735,6 @@ export async function deleteFeedback(feedbackId) {
     const feedbackRef = doc(db, 'feedback', feedbackId);
     await deleteDoc(feedbackRef);
     
-    console.log('✅ Feedback deleted successfully');
   } catch (error) {
     console.error('❌ Failed to delete feedback:', error);
     throw error;
@@ -781,13 +774,11 @@ export async function respondToFeedback(feedbackId, responseText, userEmail) {
         createdAt: serverTimestamp(),
         feedbackId: feedbackId
       });
-      console.log('✅ Notification created successfully');
     } catch (notificationError) {
       console.warn('⚠️ Could not create notification (permissions issue):', notificationError.message);
       console.log('📧 Feedback response saved but user notification failed - consider updating Firebase rules');
     }
 
-    console.log('✅ Feedback response sent successfully');
   } catch (error) {
     console.error('❌ Failed to send feedback response:', error);
     throw error;
@@ -910,7 +901,6 @@ export async function grantLifetimeAccessFirestore(userId, email, reason = 'Beta
       updatedAt: serverTimestamp()
     }, { merge: true });
     
-    console.log('✅ Lifetime access granted successfully');
     return true;
   } catch (error) {
     console.error('❌ Failed to grant lifetime access:', error);

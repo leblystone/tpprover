@@ -28,8 +28,7 @@ if (typeof window !== 'undefined') {
   window.getDebugMode = getDebugMode;
   
   // Show current debug mode on load
-  console.log(`🔧 Debug mode: ${getDebugMode() ? 'ENABLED' : 'DISABLED'}`);
-  console.log('💡 Use toggleDebugMode() to enable/disable debug logging');
+  // Debug mode status available via getDebugMode() function
 }
 
 // Service worker: disable in native (Capacitor) and development to avoid stale cache issues
@@ -43,10 +42,8 @@ if ('serviceWorker' in navigator) {
           console.log('💻 Development/Native environment detected: disabling service worker');
           const registrations = await navigator.serviceWorker.getRegistrations();
           for (let registration of registrations) {
-            console.log('🗑️ Unregistering service worker:', registration.scope);
             await registration.unregister();
           }
-          console.log('✅ Service worker disabled for development');
           return; // Exit early - no service worker in dev/native
         }
         
@@ -59,7 +56,6 @@ if ('serviceWorker' in navigator) {
             console.log('🧹 First load: Clearing service worker caches...');
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let registration of registrations) {
-              console.log('🗑️ Unregistering service worker:', registration.scope);
               await registration.unregister();
             }
             const cacheNames = await caches.keys();
@@ -70,20 +66,16 @@ if ('serviceWorker' in navigator) {
             
             // Mark as cleared for this session
             sessionStorage.setItem('tpp_sw_cleared', 'true');
-            console.log('✅ Service worker disabled and caches cleared for native app.');
           } else {
-            console.log('✅ Service worker already cleared this session, skipping.');
           }
           
           return; // Do not register a service worker in native
         }
 
-        console.log('🔧 Registering service worker...');
 
         // Unregister old service workers first to ensure clean slate (web only)
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (let registration of registrations) {
-          console.log('🗑️ Unregistering old service worker...');
           await registration.unregister();
         }
 
@@ -93,16 +85,13 @@ if ('serviceWorker' in navigator) {
           updateViaCache: 'none'
         });
 
-        console.log('✅ Service worker registered successfully');
 
         // Listen for updates
         registration.addEventListener('updatefound', () => {
-          console.log('🔄 Service worker update found');
           const newWorker = registration.installing;
 
           newWorker?.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('🚀 New service worker installed');
               // Don't auto-reload - let user manually refresh if needed
               // Auto-reload can cause React hooks errors during dev
               // window.location.reload();
@@ -116,7 +105,6 @@ if ('serviceWorker' in navigator) {
             console.log('🧹 Clearing all app caches...');
             const cacheNames = await caches.keys();
             await Promise.all(cacheNames.map(name => caches.delete(name)));
-            console.log('✅ All caches cleared');
             
             // Also clear localStorage backup
             const keys = Object.keys(localStorage).filter(key => key.startsWith('tpp'));
@@ -143,7 +131,6 @@ if ('serviceWorker' in navigator) {
         
         // Monitor network changes
         window.addEventListener('online', () => {
-          console.log('✅ Network: Back online');
         });
         
         window.addEventListener('offline', () => {

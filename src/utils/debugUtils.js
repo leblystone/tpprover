@@ -16,17 +16,7 @@ if (typeof window !== 'undefined') {
       if (issue.type === 'error') {
         console.error(`❌ ${issue.message}`);
       } else {
-        console.log(`📊 ${issue.type.toUpperCase()}:`, {
-          total: issue.total,
-          mock: issue.mock,
-          real: issue.real,
-          ...(issue.active !== undefined && { active: issue.active })
-        });
-        
-        if (issue.details) {
-          console.log(`   Mock data:`, issue.details.mockOrders);
-          console.log(`   Active orders:`, issue.details.activeOrders);
-        }
+        // Debug info available via devLog if needed
       }
     });
     
@@ -35,16 +25,12 @@ if (typeof window !== 'undefined') {
   
   window.fixDashboardData = (autoRefresh = false) => {
     const result = fixDataInconsistencies();
-    console.log('🔧 Dashboard Data Fix Result:', result);
     
     if (result.success) {
-      console.log('✅ Mock data cleared successfully!');
       
       if (autoRefresh) {
-        console.log('🔄 Refreshing page to show updated data...');
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        console.log('💡 Refresh the page manually to see updated data, or run fixDashboardData(true) to auto-refresh');
       }
     } else {
       console.error('❌ Failed to fix data:', result.error);
@@ -67,7 +53,6 @@ if (typeof window !== 'undefined') {
       }
     });
     
-    console.log('🗄️ TPP LocalStorage Data:', data);
     return data;
   };
 
@@ -75,7 +60,6 @@ if (typeof window !== 'undefined') {
     if (confirm('⚠️ This will delete ALL your TPP data. Are you sure?')) {
       const keys = Object.keys(localStorage).filter(key => key.startsWith('tpprover_'));
       keys.forEach(key => localStorage.removeItem(key));
-      console.log('🗑️ All TPP data cleared. Refreshing page...');
       window.location.reload();
     }
   };
@@ -101,7 +85,6 @@ if (typeof window !== 'undefined') {
     
     localStorage.setItem('tpprover_subscription', JSON.stringify(labAccessSubscription));
     console.log(`🧪 Created ${days}-day lab access subscription:`, labAccessSubscription);
-    console.log('🔄 Refresh the page to see the lab access in action');
     
     return labAccessSubscription;
   };
@@ -128,14 +111,12 @@ if (typeof window !== 'undefined') {
     
     localStorage.setItem('tpprover_subscription', JSON.stringify(expiredLabAccess));
     console.log('⏰ Created expired lab access subscription:', expiredLabAccess);
-    console.log('🔄 Refresh the page to see the expired lab access state');
     
     return expiredLabAccess;
   };
 
   window.clearSubscription = () => {
     localStorage.removeItem('tpprover_subscription');
-    console.log('🗑️ Subscription cleared. Refresh the page to see the no-subscription state');
   };
 
   window.getCurrentSubscription = () => {
@@ -144,7 +125,6 @@ if (typeof window !== 'undefined') {
       console.log('📋 Current subscription:', sub);
       return sub;
     } catch (error) {
-      console.log('❌ No subscription found or error reading:', error);
       return null;
     }
   };
@@ -171,7 +151,6 @@ if (typeof window !== 'undefined') {
   });
 
   // Log that debug functions are available
-  console.log('🛠️ TPP Debug functions loaded:');
   console.log('   - debugDashboardData() - Diagnose data issues');
   console.log('   - fixDashboardData() - Clean up mock/demo data (no auto-refresh)');
   console.log('   - fixDashboardData(true) - Clean up mock/demo data with auto-refresh');

@@ -1,18 +1,15 @@
-const functions = require("firebase-functions");
+const {onCall} = require("firebase-functions/v2/https");
 // For Firebase Functions v2, use environment variables
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder");
 
 // Create Stripe Checkout Session
-exports.createCheckoutSession = functions.https.onCall(
-    async (data, context) => {
-      if (!context.auth) {
-        throw new functions.https.HttpsError(
-            "unauthenticated",
-            "The function must be called while authenticated.",
-        );
+exports.createCheckoutSession = onCall(
+    async (request) => {
+      if (!request.auth) {
+        throw new Error("The function must be called while authenticated.");
       }
       try {
-        const {priceId, userEmail, userId, successUrl, cancelUrl} = data;
+        const {priceId, userEmail, userId, successUrl, cancelUrl} = request.data;
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ["card"],
           line_items: [{
@@ -30,24 +27,18 @@ exports.createCheckoutSession = functions.https.onCall(
         return {id: session.id};
       } catch (error) {
         console.error("Checkout session error:", error);
-        throw new functions.https.HttpsError(
-            "internal",
-            "Unable to create checkout session.",
-        );
+        throw new Error("Unable to create checkout session.");
       }
     });
 
 // Create Stripe Customer Portal Session
-exports.createPortalSession = functions.https.onCall(
-    async (data, context) => {
-      if (!context.auth) {
-        throw new functions.https.HttpsError(
-            "unauthenticated",
-            "The function must be called while authenticated.",
-        );
+exports.createPortalSession = onCall(
+    async (request) => {
+      if (!request.auth) {
+        throw new Error("The function must be called while authenticated.");
       }
       try {
-        const {customerId, returnUrl} = data;
+        const {customerId, returnUrl} = request.data;
         const session = await stripe.billingPortal.sessions.create({
           customer: customerId,
           return_url: returnUrl,
@@ -55,24 +46,18 @@ exports.createPortalSession = functions.https.onCall(
         return {url: session.url};
       } catch (error) {
         console.error("Portal session error:", error);
-        throw new functions.https.HttpsError(
-            "internal",
-            "Unable to create portal session.",
-        );
+        throw new Error("Unable to create portal session.");
       }
     });
 
 // Cancel Stripe Subscription
-exports.cancelSubscription = functions.https.onCall(
-    async (data, context) => {
-      if (!context.auth) {
-        throw new functions.https.HttpsError(
-            "unauthenticated",
-            "The function must be called while authenticated.",
-        );
+exports.cancelSubscription = onCall(
+    async (request) => {
+      if (!request.auth) {
+        throw new Error("The function must be called while authenticated.");
       }
       try {
-        const {subscriptionId} = data;
+        const {subscriptionId} = request.data;
         const subscription = await stripe.subscriptions.update(subscriptionId, {
           cancel_at_period_end: true,
         });
@@ -83,24 +68,18 @@ exports.cancelSubscription = functions.https.onCall(
         };
       } catch (error) {
         console.error("Cancel subscription error:", error);
-        throw new functions.https.HttpsError(
-            "internal",
-            "Unable to cancel subscription.",
-        );
+        throw new Error("Unable to cancel subscription.");
       }
     });
 
 // Update Payment Method
-exports.updatePaymentMethod = functions.https.onCall(
-    async (data, context) => {
-      if (!context.auth) {
-        throw new functions.https.HttpsError(
-            "unauthenticated",
-            "The function must be called while authenticated.",
-        );
+exports.updatePaymentMethod = onCall(
+    async (request) => {
+      if (!request.auth) {
+        throw new Error("The function must be called while authenticated.");
       }
       try {
-        const {customerId, returnUrl} = data;
+        const {customerId, returnUrl} = request.data;
         
         // Create a Stripe Checkout session for payment method update
         const session = await stripe.checkout.sessions.create({
@@ -110,7 +89,7 @@ exports.updatePaymentMethod = functions.https.onCall(
           success_url: returnUrl + "?session_id={CHECKOUT_SESSION_ID}",
           cancel_url: returnUrl,
           metadata: {
-            userId: context.auth.uid,
+            userId: request.auth.uid,
           },
         });
         

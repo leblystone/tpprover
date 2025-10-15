@@ -3,7 +3,10 @@
   "appName": "The Pep Planner",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "https://us-central1-the-pep-planner.cloudfunctions.net"
+    ]
   },
   "plugins": {
     "SplashScreen": {
@@ -17,6 +20,9 @@
       "style": "DARK",
       "backgroundColor": "#ffffff",
       "overlaysWebView": false
+    },
+    "CapacitorHttp": {
+      "enabled": true
     }
   }
 }

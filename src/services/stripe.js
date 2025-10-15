@@ -1,6 +1,7 @@
 import { stripePromise, STRIPE_CONFIG } from '../config/stripe.js';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
+import { functions } from '../config/firebase.js';
 
 /**
  * Create a Stripe Checkout session for subscription
@@ -37,7 +38,6 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
 
     console.log('🔄 Creating Stripe checkout session...', { priceId, userEmail });
     
-    const functions = getFunctions();
     const createCheckoutSessionFn = httpsCallable(functions, 'createCheckoutSession');
     
     const result = await createCheckoutSessionFn({
@@ -48,7 +48,6 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
       cancelUrl: `${window.location.origin}/account`,
     });
 
-    console.log('✅ Checkout session created:', result.data);
 
     const stripe = await stripePromise;
     
@@ -56,7 +55,6 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
       throw new Error('Stripe not initialized - payment processor unavailable');
     }
     
-    console.log('🔄 Redirecting to Stripe checkout...');
     
     // Redirect to Stripe Checkout
     const checkoutResult = await stripe.redirectToCheckout({
@@ -138,7 +136,6 @@ export async function createPortalSession(customerId) {
       }
     }));
 
-    const functions = getFunctions();
     const createPortalSessionFn = httpsCallable(functions, 'createPortalSession');
     
     const result = await createPortalSessionFn({
@@ -147,7 +144,6 @@ export async function createPortalSession(customerId) {
     });
 
     // Redirect to Stripe Customer Portal
-    console.log('✅ Portal session created, redirecting...');
     window.location.href = result.data.url;
     
   } catch (error) {
@@ -193,7 +189,6 @@ export async function updatePaymentMethod(customerId) {
       return;
     }
 
-    const functions = getFunctions();
     const updatePaymentMethodFn = httpsCallable(functions, 'updatePaymentMethod');
     
     const result = await updatePaymentMethodFn({
@@ -239,7 +234,6 @@ export async function downloadInvoiceReceipt(invoiceId, customerId) {
       return;
     }
 
-    const functions = getFunctions();
     const generateReceiptFn = httpsCallable(functions, 'generateInvoiceReceipt');
     
     const result = await generateReceiptFn({
@@ -354,7 +348,6 @@ export async function cancelSubscription(subscriptionId) {
       return true;
     }
 
-    const functions = getFunctions();
     const cancelSubscriptionFn = httpsCallable(functions, 'cancelSubscription');
     
     const result = await cancelSubscriptionFn({

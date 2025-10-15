@@ -25,9 +25,6 @@ export const toggleDebugMode = (enabled = null) => {
   const newState = enabled !== null ? enabled : !isDebugMode();
   localStorage.setItem('tpp_debug_mode', newState.toString());
   
-  // Show confirmation
-  console.log(`🔧 Debug mode ${newState ? 'enabled' : 'disabled'}`);
-  
   // Reload page to apply changes
   if (window.confirm(`Debug mode ${newState ? 'enabled' : 'disabled'}. Reload page to apply changes?`)) {
     window.location.reload();
@@ -53,6 +50,34 @@ export const debugLog = (message, data = null, category = 'general') => {
     console.log(message, data);
   } else {
     console.log(message);
+  }
+};
+
+// Production-safe logging - only logs in development or when debug mode is enabled
+export const devLog = (message, data = null) => {
+  if (process.env.NODE_ENV === 'development' || shouldLog()) {
+    if (data) {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
+  }
+};
+
+// Always log errors and warnings
+export const logError = (message, error = null) => {
+  if (error) {
+    console.error(message, error);
+  } else {
+    console.error(message);
+  }
+};
+
+export const logWarning = (message, data = null) => {
+  if (data) {
+    console.warn(message, data);
+  } else {
+    console.warn(message);
   }
 };
 

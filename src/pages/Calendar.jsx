@@ -129,12 +129,10 @@ export default function Calendar() {
   // Listen for task completion events to sync calendar views
   useEffect(() => {
     const handleTaskCompletionChange = (e) => {
-      console.log('📡 Calendar received task completion event:', e.detail);
       setCalendarBump(Date.now());
     };
     
     const handleCalendarSync = (e) => {
-      console.log('📡 Calendar received sync event:', e.detail);
       setCalendarBump(Date.now());
     };
     
@@ -160,7 +158,6 @@ export default function Calendar() {
   const loadData = React.useCallback(() => {
         try {
           const supps = supplements
-          console.log('📊 Calendar: Processing supplements', supps.map(s => ({ name: s.name, delivery: s.delivery, schedule: s.schedule })));
           // For the current month, mark days with supplement counts
           const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
           const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
@@ -183,7 +180,6 @@ export default function Calendar() {
               const bySlot = { ...(next[key]?.bySlot || {}) }
               for (const s of daySupps) {
                 const slots = Array.isArray(s.schedule) && s.schedule.length > 0 ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM'])
-                console.log(`🔧 Supplement "${s.name}" -> slots:`, slots);
                 for (const slot of slots) {
                   bySlot[slot] = {
                     peptides: bySlot[slot]?.peptides || [],

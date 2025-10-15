@@ -6,6 +6,7 @@ const admin = require('firebase-admin');
 const stripe = require('./stripe');
 const pushNotifications = require('./pushNotifications');
 const emailService = require('./emailService');
+const testEmailSystem = require('./testEmailSystem');
 
 admin.initializeApp();
 
@@ -210,6 +211,9 @@ exports.sendTestNotification = onCall(async (request) => {
 
   return pushNotifications.sendPushNotificationByType(userId, type, notificationData);
 });
+
+// Test email system function
+exports.testEmailSystem = testEmailSystem.testEmailSystem;
 
 // 📧 Email Functions
 

@@ -190,7 +190,6 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                         console.log('💉 TasksWidget showing injection selector for:', task.name);
                         setInjectionTask(task);
                       } else {
-                        console.log('✅ TasksWidget direct toggle for:', task.name);
                         onToggle(task);
                       }
                     }}

@@ -75,7 +75,29 @@ export default function ResearchStatusWidget({ theme, subscription }) {
                 7-Day Lab Access
               </div>
               <div className="text-sm" style={{ color: theme.textLight }}>
-                {trialDaysLeft > 0 ? `${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''} remaining` : 'Trial expired'}
+                {(() => {
+                  if (trialDaysLeft <= 0) return 'Trial expired';
+                  
+                  const now = new Date();
+                  const end = new Date(subscription.currentPeriodEnd);
+                  const diffTime = end - now;
+                  
+                  if (diffTime <= 0) return 'Trial expired';
+                  
+                  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                  const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+                  
+                  if (diffDays > 1) {
+                    return `${diffDays} days, ${diffHours} hours remaining`;
+                  } else if (diffDays === 1) {
+                    return `1 day, ${diffHours} hours remaining`;
+                  } else if (diffHours > 0) {
+                    return `${diffHours} hours, ${diffMinutes} minutes remaining`;
+                  } else {
+                    return `${diffMinutes} minutes remaining`;
+                  }
+                })()}
               </div>
             </div>
 
@@ -134,7 +156,21 @@ export default function ResearchStatusWidget({ theme, subscription }) {
             {/* Urgency message for last 2 days */}
             {trialDaysLeft <= 2 && trialDaysLeft > 0 && (
               <div className="p-2 rounded text-center text-xs font-medium" style={{ backgroundColor: 'rgba(199, 173, 149, 0.2)', color: '#A17B60' }}>
-                ⏰ Trial ending soon
+                {(() => {
+                  const now = new Date();
+                  const end = new Date(subscription.currentPeriodEnd);
+                  const diffTime = end - now;
+                  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                  const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  
+                  if (diffDays === 1) {
+                    return `⏰ 1 day and ${diffHours} hours left`;
+                  } else if (diffDays === 0) {
+                    return `⏰ ${diffHours} hours left`;
+                  } else {
+                    return `⏰ ${diffDays} days left`;
+                  }
+                })()}
               </div>
             )}
           </div>

@@ -455,7 +455,6 @@ export default function CustomizableDashboard() {
       console.log('📍 Indices:', { draggedIndex, targetIndex });
       
       if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
-        console.log('❌ Move cancelled:', { draggedIndex, targetIndex, same: draggedIndex === targetIndex });
         return prev;
       }
       
@@ -464,11 +463,9 @@ export default function CustomizableDashboard() {
       const [draggedWidget] = newWidgets.splice(draggedIndex, 1);
       newWidgets.splice(targetIndex, 0, draggedWidget);
       
-      console.log('✅ New widgets after move:', newWidgets.map(w => ({ id: w.id, type: w.type })));
       
       // Save the new layout
       saveDashboardLayout(newWidgets);
-      console.log('💾 Layout saved');
       
       return newWidgets;
     });
@@ -527,7 +524,6 @@ export default function CustomizableDashboard() {
   useEffect(() => {
     const handleTaskCompletionChange = (event) => {
       const { taskId, completed, date, timeSlot } = event.detail;
-      console.log('📡 Dashboard: Received task completion change', { taskId, completed, date, timeSlot });
       
       // Only refresh if this event came from another view (not from this Dashboard)
       // We can detect this by checking if the task is in our current todaysTasks
