@@ -314,7 +314,26 @@ export default function Login() {
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
-        try { localStorage.setItem('tpprover_has_onboarded', 'true') } catch {}
+        // Don't set has_onboarded here - let the welcome modal handle it
+        
+        // Create 7-day trial immediately for new users
+        const now = new Date();
+        const end = new Date(now);
+        end.setDate(end.getDate() + 7);
+        
+        const trialSub = {
+            id: String(Date.now()),
+            plan: '7-Day Free Trial',
+            price: 0,
+            interval: 'trial',
+            currency: 'USD',
+            status: 'trialing',
+            startedAt: now.toISOString(),
+            currentPeriodEnd: end.toISOString(),
+            paymentMethod: null,
+        };
+        
+        try { localStorage.setItem('tpprover_subscription', JSON.stringify(trialSub)) } catch {}
         
         // CRITICAL FIX: Restore existing data if it was backed up and Firebase sync might overwrite it
         if (hasExistingData) {

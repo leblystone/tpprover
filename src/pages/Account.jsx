@@ -128,6 +128,11 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
             window.dispatchEvent(new CustomEvent('tpp:toast', { 
                 detail: { message: '🎉 7-day lab access granted! Continue your research journey.', type: 'success' } 
             }));
+        } else if (user && !sub && hasExistingSubscription) {
+            // Load existing subscription
+            console.log('📋 Loading existing subscription for user');
+            const existingSub = JSON.parse(existingSubscription);
+            setSub(existingSub);
         }
     }, [user, sub])
 
