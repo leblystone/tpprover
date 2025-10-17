@@ -214,6 +214,9 @@ export default function Login() {
 
     const doLogin = async () => {
       try {
+        // Set flag to prevent auth token clearing during login
+        sessionStorage.setItem('tpp_login_in_progress', 'true');
+        
         // CRITICAL FIX: Backup existing localStorage data before login
         const existingData = {};
         const dataKeys = [
@@ -350,11 +353,17 @@ export default function Login() {
         }
         
         setUser(user);
+        
+        // Clear login flag
+        sessionStorage.removeItem('tpp_login_in_progress');
+        
         startTransition(() => {
             navigate('/app/dashboard');
         });
         return true;
       } catch (error) {
+        // Clear login flag on error too
+        sessionStorage.removeItem('tpp_login_in_progress');
         console.error('Login failed:', error);
         if (error.code === 'auth/user-not-found') {
           setError('No account found with this email. Please create a new account.');
