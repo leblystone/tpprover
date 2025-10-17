@@ -80,28 +80,40 @@ function App() {
     // Show welcome modal for all new Firebase users - wait for user to be loaded
     if (!user) return; // Wait for user to be loaded
     
-    const hasOnboarded = localStorage.getItem('tpprover_has_onboarded');
-    const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
-    const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
+    // Add a small delay to ensure auth token is set
+    const checkWelcomeModal = () => {
+      const hasOnboarded = localStorage.getItem('tpprover_has_onboarded');
+      const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
+      const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
+      
+      console.log('🎉 Welcome Modal Debug:');
+      console.log('  user:', user?.email);
+      console.log('  hasOnboarded:', hasOnboarded);
+      console.log('  authToken:', localStorage.getItem('tpprover_auth_token'));
+      console.log('  isFirebaseUser:', isFirebaseUser);
+      console.log('  demoDataCleared:', demoDataCleared);
+      console.log('  shouldShow:', hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared);
+      
+      // Show welcome for new users:
+      // 1. User hasn't onboarded AND
+      // 2. User is a Firebase user (authenticated) AND
+      // 3. Demo data hasn't been explicitly cleared
+      if (hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared) {
+        console.log('🎉 Showing welcome modal!');
+        setShowWelcome(true);
+      } else {
+        console.log('🎉 NOT showing welcome modal');
+      }
+    };
     
-    console.log('🎉 Welcome Modal Debug:');
-    console.log('  user:', user?.email);
-    console.log('  hasOnboarded:', hasOnboarded);
-    console.log('  isFirebaseUser:', isFirebaseUser);
-    console.log('  demoDataCleared:', demoDataCleared);
-    console.log('  shouldShow:', hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared);
+    // Check immediately and also after a short delay
+    checkWelcomeModal();
+    const timeoutId = setTimeout(checkWelcomeModal, 100);
     
-    // Show welcome for new users:
-    // 1. User hasn't onboarded AND
-    // 2. User is a Firebase user (authenticated) AND
-    // 3. Demo data hasn't been explicitly cleared
-    if (hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared) {
-      console.log('🎉 Showing welcome modal!');
-      setShowWelcome(true);
-    } else {
-      console.log('🎉 NOT showing welcome modal');
-    }
+    return () => clearTimeout(timeoutId);
+  }, [user]);
 
+  useEffect(() => {
     const bannerDismissed = localStorage.getItem('tpprover_demo_banner_dismissed');
     const dataCleared = localStorage.getItem('tpprover_demo_data_cleared');
     
@@ -111,7 +123,7 @@ function App() {
     } else {
         setShowDemoBanner(false);
     }
-  }, [hasMockData, user]);
+  }, [hasMockData]);
 
   // Listen for demo data success events from banner
   useEffect(() => {
