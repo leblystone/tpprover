@@ -481,11 +481,17 @@ export default function Login() {
         try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
         
         setUser(user);
+        
+        // Clear signup flag
+        sessionStorage.removeItem('tpp_signup_in_progress');
+        
         startTransition(() => {
             navigate('/app/dashboard');
         });
         return true;
       } catch (error) {
+        // Clear signup flag on error too
+        sessionStorage.removeItem('tpp_signup_in_progress');
         console.error('Signup failed:', error);
         if (error.code === 'auth/email-already-in-use') {
           setError('Account found! Switching to login form...');
