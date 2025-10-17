@@ -5,7 +5,7 @@
   "server": {
     "androidScheme": "https",
     "allowNavigation": [
-      "https://us-central1-the-pep-planner.cloudfunctions.net"
+      "https://us-central1-tpp-splendide.cloudfunctions.net"
     ]
   },
   "plugins": {

@@ -393,6 +393,9 @@ function Admin() {
     date: new Date().toISOString().slice(0, 10)
   });
   const [showNotificationEditor, setShowNotificationEditor] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState(null);
   
   // Debug notification editor state
   useEffect(() => {
@@ -923,6 +926,43 @@ function Admin() {
     } catch (error) {
       console.error('Error updating feature flag:', error);
       alert('Failed to update feature flag.');
+    }
+  };
+
+  const sendTestEmails = async () => {
+    if (!testEmail) {
+      setTestEmailResult({ success: false, message: 'Please enter a test email address' });
+      return;
+    }
+
+    setIsSendingTest(true);
+    setTestEmailResult(null);
+
+    try {
+      const functions = getFunctions();
+      const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
+      
+      const result = await testEmailSystem({ testEmail });
+      
+      if (result.data.success) {
+        setTestEmailResult({ 
+          success: true, 
+          message: `Test emails sent successfully to ${testEmail}! Check your inbox for welcome, trial ending, and lifetime access emails.` 
+        });
+      } else {
+        setTestEmailResult({ 
+          success: false, 
+          message: result.data.error || 'Failed to send test emails' 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test emails:', error);
+      setTestEmailResult({ 
+        success: false, 
+        message: `Error: ${error.message}` 
+      });
+    } finally {
+      setIsSendingTest(false);
     }
   };
 
@@ -2611,7 +2651,68 @@ function Admin() {
         )}
 
         {activeTab === 'emails' && (
-          <EmailTemplateManager theme={theme} />
+          <div className="space-y-6">
+            <EmailTemplateManager theme={theme} />
+            
+            {/* Test Email Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
+                  <Mail className="w-5 h-5" style={{ color: theme.primary }} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Test Email System</h3>
+                  <p className="text-sm text-gray-600">Send test emails to verify your email templates are working</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Test Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="Enter email address to send test emails to"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={testEmail || ''}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={sendTestEmails}
+                    disabled={!testEmail || isSendingTest}
+                    className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    {isSendingTest ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4" />
+                        Send Test Emails
+                      </>
+                    )}
+                  </button>
+                  
+                  {testEmailResult && (
+                    <div className={`px-3 py-2 rounded-lg text-sm ${
+                      testEmailResult.success 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {testEmailResult.message}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         </div>

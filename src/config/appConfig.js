@@ -9,13 +9,13 @@ export const APP_CONFIG = {
   STRIPE_ANNUAL_PRICE_ID: 'price_1RskKk50b3cktl9XlHxY0iXW',
   STRIPE_LIFETIME_PRICE_ID: 'price_1RskLS50b3cktl9XrGWvkFid',
   
-  // Firebase Configuration
-  FIREBASE_API_KEY: 'AIzaSyDpfiX4Nf0a9_P-qDbVP5Z6bOoz4R-PgLg',
-  FIREBASE_AUTH_DOMAIN: 'the-pep-planner.firebaseapp.com',
-  FIREBASE_PROJECT_ID: 'the-pep-planner',
-  FIREBASE_STORAGE_BUCKET: 'the-pep-planner.firebasestorage.app',
-  FIREBASE_MESSAGING_SENDER_ID: '436253240076',
-  FIREBASE_APP_ID: '1:436253240076:web:d94dd99ac681341ef4b729',
+  // Firebase Configuration - Updated to match tpp-splendide project
+  FIREBASE_API_KEY: 'AIzaSyDzGVtlnIk0QzUSgK6o41KGpYKk6opdgcE',
+  FIREBASE_AUTH_DOMAIN: 'tpp-splendide.firebaseapp.com',
+  FIREBASE_PROJECT_ID: 'tpp-splendide',
+  FIREBASE_STORAGE_BUCKET: 'tpp-splendide.firebasestorage.app',
+  FIREBASE_MESSAGING_SENDER_ID: '97564473391',
+  FIREBASE_APP_ID: '1:97564473391:web:71f235c49040e559aa6eda',
   FIREBASE_MEASUREMENT_ID: 'G-536N3PJ9EC'
 };
 
