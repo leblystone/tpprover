@@ -1,6 +1,10 @@
 const {onCall} = require("firebase-functions/v2/https");
-// For Firebase Functions v2, use environment variables
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder");
+const {defineSecret} = require("firebase-functions/params");
+
+// Use environment variable for Stripe secret key
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "sk_test_fallback_key";
+
+const stripe = require("stripe")(STRIPE_SECRET_KEY);
 
 // Create Stripe Checkout Session
 exports.createCheckoutSession = onCall(
@@ -8,15 +12,53 @@ exports.createCheckoutSession = onCall(
       if (!request.auth) {
         throw new Error("The function must be called while authenticated.");
       }
+      
+      // Debug logging
+      console.log("🔍 Stripe configuration check:");
+      console.log("Environment STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY ? "✅ Found" : "❌ Missing");
+      console.log("Using fallback key:", STRIPE_SECRET_KEY.substring(0, 20) + "...");
+      console.log("Request data keys:", Object.keys(request.data || {}));
+      console.log("Price ID:", request.data?.priceId);
+      console.log("User Email:", request.data?.userEmail);
+      
       try {
+        // Validate request data
+        if (!request.data) {
+          throw new Error("No request data provided");
+        }
+        
         const {priceId, userEmail, userId, successUrl, cancelUrl} = request.data;
+        
+        // Validate required fields
+        if (!priceId) {
+          throw new Error("priceId is required");
+        }
+        if (!userEmail) {
+          throw new Error("userEmail is required");
+        }
+        
+        console.log("✅ All required fields present, creating Stripe session...");
+        
+        // Log the exact price ID being used
+        console.log("🔍 Using price ID:", priceId);
+        console.log("🔍 Using secret key (first 20 chars):", STRIPE_SECRET_KEY.substring(0, 20));
+        
+        // Lifetime price ID (one-time payment, not recurring)
+        const LIFETIME_PRICE_ID = "price_1SJNIw50b3cktl9X7tr7Efox";
+        
+        // Determine if this is a one-time payment (lifetime) or subscription
+        const isLifetime = priceId === LIFETIME_PRICE_ID;
+        const sessionMode = isLifetime ? "payment" : "subscription";
+        
+        console.log("🔍 Session mode:", sessionMode, isLifetime ? "(Lifetime - one-time payment)" : "(Recurring subscription)");
+        
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ["card"],
           line_items: [{
             price: priceId,
             quantity: 1,
           }],
-          mode: priceId.includes("lifetime") ? "payment" : "subscription",
+          mode: sessionMode,
           success_url: successUrl,
           cancel_url: cancelUrl,
           customer_email: userEmail,
@@ -27,7 +69,15 @@ exports.createCheckoutSession = onCall(
         return {id: session.id};
       } catch (error) {
         console.error("Checkout session error:", error);
-        throw new Error("Unable to create checkout session.");
+        console.error("Error details:", {
+          message: error.message,
+          type: error.type,
+          code: error.code,
+          statusCode: error.statusCode,
+          raw: error.raw
+        });
+        // Return more detailed error for debugging
+        throw new Error(`Stripe Error: ${error.type || 'unknown'} - ${error.message || 'No message'}`);
       }
     });
 
@@ -131,6 +181,31 @@ exports.generateInvoiceReceipt = onCall(
         throw new Error("Unable to generate invoice receipt.");
       }
     });
+
+// Test function to verify Stripe configuration
+exports.testStripeConfig = onCall(async (request) => {
+  console.log("🧪 Testing Stripe configuration...");
+  
+  try {
+    // Test basic Stripe API call
+    const account = await stripe.accounts.retrieve();
+    console.log("✅ Stripe API working, account:", account.id);
+    
+    return {
+      success: true,
+      message: "Stripe configuration is working",
+      accountId: account.id,
+      keyUsed: STRIPE_SECRET_KEY.substring(0, 20) + "..."
+    };
+  } catch (error) {
+    console.error("❌ Stripe test failed:", error);
+    return {
+      success: false,
+      error: error.message,
+      keyUsed: STRIPE_SECRET_KEY.substring(0, 20) + "..."
+    };
+  }
+});
 
 exports.getStripeSubscriptions = onCall(async (request) => {
   // Check if the user is an authenticated admin

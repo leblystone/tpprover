@@ -3,6 +3,12 @@ import { seedInitialData } from '../utils/seed';
 import { logoutUser, onAuthChange } from '../services/firebase';
 import { useFirebase } from './FirebaseContext';
 import { isNative } from '../utils/platform';
+import { 
+  saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
+  saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
+  migrateLocalStorageToCloud, clearLocalStorageData, hasUserData
+} from '../services/cloudStorage';
+import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 
 const AppContext = createContext();
 
@@ -37,137 +43,103 @@ export function AppProvider({ children }) {
     // Firebase sync integration
     const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase, syncToFirebase } = useFirebase();
 
-    // Load initial data from localStorage on mount
+    // Load initial data from cloud storage
     useEffect(() => {
-        const loadAppData = () => {
+        const loadUserDataFromCloud = async () => {
             try {
-                // CRITICAL SECURITY FIX: Check if localStorage data belongs to current user
-                const currentUser = localStorage.getItem('tpprover_user');
-                const currentUserEmail = currentUser ? JSON.parse(currentUser).email : null;
-                const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
-                
-                // If user changed, clear all data to prevent data bleeding
-                if (currentUserEmail && lastUserEmail && currentUserEmail !== lastUserEmail) {
-                    
-                    // Clear all user data including subscription
-                    const dataKeys = [
-                        'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
-                        'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
-                        'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-                        'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-                        'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
-                        'tpprover_has_onboarded'
-                    ];
-                    dataKeys.forEach(key => localStorage.removeItem(key));
-                    
-                    // Update last user email
-                    localStorage.setItem('tpprover_last_user_email', currentUserEmail);
-                } else if (currentUserEmail) {
-                    // Update last user email for future checks
-                    localStorage.setItem('tpprover_last_user_email', currentUserEmail);
-                }
-                
-                // Check if demo data was explicitly cleared
-                const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
-                const hasSeeded = localStorage.getItem('tpprover_has_seeded');
-                
-                // Check if user has existing data
-                const hasExistingData = localStorage.getItem('tpprover_protocols') || 
-                                       localStorage.getItem('tpprover_vendors') || 
-                                       localStorage.getItem('tpprover_orders');
-                
-                // ALWAYS seed demo data for new users who haven't explicitly cleared it
-                // This ensures new accounts always get demo data
-                if (!demoDataCleared && !hasSeeded && !hasExistingData) {
-                    seedInitialData();
-                } else if (demoDataCleared) {
-                } else if (hasSeeded || hasExistingData) {
+                // Only load if we have a Firebase user
+                if (!firebaseUser) {
+                    console.log('☁️ No Firebase user, skipping cloud data load');
+                    return;
                 }
 
-                const savedProtocols = localStorage.getItem('tpprover_protocols');
-                if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
+                const userId = firebaseUser.uid;
+                console.log(`☁️ Loading data from cloud for user: ${userId}`);
 
-                const savedRecon = localStorage.getItem('tpprover_recon_items');
-                if (savedRecon) setReconItems(JSON.parse(savedRecon));
+                // Check if user has data in cloud storage
+                const hasCloudData = await hasUserData(userId);
                 
-                const savedHistory = localStorage.getItem('tpprover_recon_history');
-                if (savedHistory) setReconHistory(JSON.parse(savedHistory));
-
-                const savedSupps = localStorage.getItem('tpprover_supplements');
-                if (savedSupps) {
-                    const supplements = JSON.parse(savedSupps);
-                    // CRITICAL: Clean up any contaminated supplements that might have been auto-created from glossary
-                    const cleanedSupplements = supplements.filter(sup => {
-                        // Remove any supplements that look like they were auto-created from glossary
-                        // Check for dosage ranges text which indicates contamination from glossary
-                        const isContaminated = sup.dose && (
-                            sup.dose.includes('Research dosages typically') ||
-                            sup.dose.includes('Clinical dosages range') ||
-                            sup.dose.includes('Investigational dosages') ||
-                            sup.dose.includes('mcg daily') ||
-                            sup.dose.includes('mg weekly') ||
-                            sup.name === '5-Amino-1MQ' ||
-                            sup.name === '5-AMINO-1MQ' ||
-                            sup.name === '5AMINO1MQ'
-                        );
-                        
-                        if (isContaminated) {
-                            return false;
-                        }
-                        return true;
-                    });
+                if (!hasCloudData) {
+                    // New user - check if they have localStorage data to migrate
+                    const hasLocalData = Object.keys(localStorage).some(key => 
+                        key.startsWith('tpprover_') && 
+                        !['tpprover_auth_token', 'tpprover_user', 'tpprover_last_user_email'].includes(key)
+                    );
                     
-                    if (cleanedSupplements.length !== supplements.length) {
-                        // Save cleaned data back to localStorage
-                        localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements));
+                    if (hasLocalData) {
+                        console.log('🔄 Migrating localStorage data to cloud...');
+                        await migrateLocalStorageToCloud(userId);
+                        // Clear localStorage after successful migration
+                        clearLocalStorageData();
+                    } else {
+                        // Brand new user - seed demo data
+                        console.log('🌱 Seeding demo data for new user');
+                        seedInitialData();
+                        // Save seeded data to cloud
+                        const seededData = {
+                            protocols: JSON.parse(localStorage.getItem('tpprover_protocols') || '[]'),
+                            reconItems: JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]'),
+                            reconHistory: JSON.parse(localStorage.getItem('tpprover_recon_history') || '[]'),
+                            supplements: JSON.parse(localStorage.getItem('tpprover_supplements') || '[]'),
+                            orders: JSON.parse(localStorage.getItem('tpprover_orders') || '[]'),
+                            metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
+                            vendors: JSON.parse(localStorage.getItem('tpprover_vendors') || '[]'),
+                            calendarNotes: JSON.parse(localStorage.getItem('tpprover_calendar_notes') || '{}'),
+                            stockpile: JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'),
+                            scheduledBuys: JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]')
+                        };
+                        await saveAppData(userId, seededData);
+                        // Set demo data flags
+                        await saveUserState(userId, {
+                            hasSeeded: true,
+                            demoDataCleared: false,
+                            hasOnboarded: false
+                        });
                     }
-                    
-                    setSupplements(cleanedSupplements);
                 }
 
-                const savedOrders = localStorage.getItem('tpprover_orders');
-                if (savedOrders) setOrders(JSON.parse(savedOrders));
+                // Load app data from cloud
+                const cloudAppData = await loadAppData(userId);
+                if (cloudAppData) {
+                    if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
+                    if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
+                    if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
+                    if (cloudAppData.supplements) setSupplements(cloudAppData.supplements);
+                    if (cloudAppData.orders) setOrders(cloudAppData.orders);
+                    if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
+                    if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
+                    if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
+                    if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
+                    if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                }
 
-                const savedMetrics = localStorage.getItem('tpprover_metrics');
-                if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
+                // Load subscription from cloud
+                const cloudSubscription = await loadUserSubscription(userId);
+                if (cloudSubscription) {
+                    setSubscription(cloudSubscription);
+                }
 
-                const savedVendors = localStorage.getItem('tpprover_vendors');
-                if (savedVendors) {
-                    const vendors = JSON.parse(savedVendors);
-                    // Migrate old 'group' category to 'groupbuy' for consistency
-                    const migratedVendors = vendors.map(vendor => {
-                        if (vendor.type === 'group') {
-                            return { ...vendor, type: 'groupbuy' };
-                        }
-                        return vendor;
-                    });
-                    
-                    // Save migrated vendors back to localStorage if any changes were made
-                    if (migratedVendors.some((v, i) => v.type !== vendors[i].type)) {
-                        localStorage.setItem('tpprover_vendors', JSON.stringify(migratedVendors));
+                // Load user state from cloud
+                const cloudUserState = await loadUserState(userId);
+                if (cloudUserState) {
+                    // Set demo data flags for hasMockData calculation
+                    if (cloudUserState.hasSeeded !== undefined) {
+                        localStorage.setItem('tpprover_has_seeded', cloudUserState.hasSeeded.toString());
                     }
-                    
-                    setVendors(migratedVendors);
+                    if (cloudUserState.demoDataCleared !== undefined) {
+                        localStorage.setItem('tpprover_demo_data_cleared', cloudUserState.demoDataCleared.toString());
+                    }
+                    if (cloudUserState.hasOnboarded !== undefined) {
+                        localStorage.setItem('tpprover_has_onboarded', cloudUserState.hasOnboarded.toString());
+                    }
                 }
-                
-                const savedNotes = localStorage.getItem('tpprover_calendar_notes');
-                if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
 
-                const savedStockpile = localStorage.getItem('tpprover_stockpile');
-                if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
-
-                const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-                if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
-
-                // Load subscription data
-                const savedSubscription = localStorage.getItem('tpprover_subscription');
-                if (savedSubscription) setSubscription(JSON.parse(savedSubscription));
             } catch (error) {
-                console.error("Error loading data from localStorage", error);
+                console.error("❌ Error loading data from cloud storage:", error);
             }
         };
 
-        loadAppData();
+        loadUserDataFromCloud();
         
         // Listen to Firebase auth changes instead of just localStorage
         const unsubscribe = onAuthChange(async (firebaseUser) => {
@@ -179,6 +151,25 @@ export function AppProvider({ children }) {
                     if (savedUser) {
                         const parsedUser = JSON.parse(savedUser);
                         setUser(parsedUser);
+                        
+                        // Check if user needs initial agreement data (for existing users only)
+                        // Only run migration for users who don't have agreement data AND are not new signups
+                        if (!hasAnyAgreementData()) {
+                            // Check if this is a new signup by looking for recent user creation
+                            const userCreatedAt = parsedUser.createdAt;
+                            const isNewUser = userCreatedAt && (Date.now() - new Date(userCreatedAt).getTime()) < 60000; // Within last minute
+                            
+                            if (!isNewUser) {
+                                console.log('📝 Creating initial agreement data for existing user');
+                                try {
+                                    await createInitialAgreementsForExistingUser(parsedUser.email);
+                                } catch (error) {
+                                    console.error('Failed to create initial agreements:', error);
+                                }
+                            } else {
+                                console.log('📝 New user detected, skipping migration - agreements should be recorded during signup');
+                            }
+                        }
                         
                         // CRITICAL SECURITY: Check if user changed and clear data if needed
                         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
@@ -210,6 +201,25 @@ export function AppProvider({ children }) {
                         setUser(userProfile);
                         localStorage.setItem('tpprover_user', JSON.stringify(userProfile));
                         localStorage.setItem('tpprover_last_user_email', userProfile.email);
+                        
+                        // Check if user needs initial agreement data (for existing users only)
+                        // Only run migration for users who don't have agreement data AND are not new signups
+                        if (!hasAnyAgreementData()) {
+                            // Check if this is a new signup by looking for recent user creation
+                            const userCreatedAt = userProfile.createdAt;
+                            const isNewUser = userCreatedAt && (Date.now() - new Date(userCreatedAt).getTime()) < 60000; // Within last minute
+                            
+                            if (!isNewUser) {
+                                console.log('📝 Creating initial agreement data for existing user');
+                                try {
+                                    await createInitialAgreementsForExistingUser(userProfile.email);
+                                } catch (error) {
+                                    console.error('Failed to create initial agreements:', error);
+                                }
+                            } else {
+                                console.log('📝 New user detected, skipping migration - agreements should be recorded during signup');
+                            }
+                        }
                     }
                     
                     // Try to load data from Firebase if user has password set
@@ -460,13 +470,14 @@ export function AppProvider({ children }) {
         };
     }, []); // FIXED: Remove data dependencies to prevent infinite loops
 
-    // Auto-sync data to Firebase when it changes
+    // Auto-sync data to cloud storage when it changes
     useEffect(() => {
         // Don't sync during initial load, demo data clearing, or if user isn't authenticated
-        if (isInitialLoad || isClearingDemoData || !firebaseUser || !hasPassword) {
+        if (isInitialLoad || isClearingDemoData || !firebaseUser) {
             return;
         }
 
+        const userId = firebaseUser.uid;
         const userData = {
             protocols,
             reconItems,
@@ -480,41 +491,21 @@ export function AppProvider({ children }) {
             scheduledBuys
         };
         
-        // CRITICAL: Immediately save to localStorage as backup before Firebase sync
-        // SAFETY CHECK: Never save empty arrays that could overwrite existing data
-        try {
-            // Only save if we have actual data or if it's not empty
-            const hasAnyData = protocols.length > 0 || reconItems.length > 0 || reconHistory.length > 0 || 
-                              supplements.length > 0 || orders.length > 0 || metrics.length > 0 || 
-                              vendors.length > 0 || stockpile.length > 0 || scheduledBuys.length > 0 ||
-                              Object.keys(calendarNotes).length > 0;
-
-            if (hasAnyData) {
-                localStorage.setItem('tpprover_protocols', JSON.stringify(protocols));
-                localStorage.setItem('tpprover_recon_items', JSON.stringify(reconItems));
-                localStorage.setItem('tpprover_recon_history', JSON.stringify(reconHistory));
-                localStorage.setItem('tpprover_supplements', JSON.stringify(supplements));
-                localStorage.setItem('tpprover_orders', JSON.stringify(orders));
-                localStorage.setItem('tpprover_metrics', JSON.stringify(metrics));
-                localStorage.setItem('tpprover_vendors', JSON.stringify(vendors));
-                localStorage.setItem('tpprover_calendar_notes', JSON.stringify(calendarNotes));
-                localStorage.setItem('tpprover_stockpile', JSON.stringify(stockpile));
-                localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
-            } else {
-            }
-        } catch (error) {
-            console.error('❌ Failed to backup to localStorage:', error);
-        }
-        
         // Only sync if we have some data to sync
         const hasData = Object.values(userData).some(data => 
             Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
         );
         
         if (hasData) {
-            debouncedSync(userData);
+            // Save to cloud storage
+            saveAppData(userId, userData);
+            
+            // Also sync to Firebase for backup (if user has password)
+            if (hasPassword) {
+                debouncedSync(userData);
+            }
         }
-    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys]); // FIXED: Only include data dependencies, remove functions
+    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, firebaseUser, hasPassword]); // FIXED: Only include data dependencies, remove functions
 
     const logout = async () => {
         try {
@@ -1009,37 +1000,31 @@ export function AppProvider({ children }) {
         
     }, [protocols, vendors, stockpile, reconItems, orders, supplements]);
 
-    // Listen for subscription changes from localStorage (e.g., from Account page)
+    // Listen for subscription changes and save to cloud storage
     useEffect(() => {
-        const handleStorageChange = (e) => {
-            if (e.key === 'tpprover_subscription') {
-                try {
-                    const newSubscription = e.newValue ? JSON.parse(e.newValue) : null;
-                    setSubscription(newSubscription);
-                    console.log('🔄 Subscription updated from localStorage:', newSubscription);
-                } catch (error) {
-                    console.error('Error parsing subscription from localStorage:', error);
-                }
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        
-        // Also listen for custom events (same-tab updates)
-        const handleSubscriptionUpdate = (e) => {
-            if (e.detail && e.detail.subscription !== undefined) {
+        if (subscription && firebaseUser) {
+            const userId = firebaseUser.uid;
+            saveUserSubscription(userId, subscription);
+        }
+    }, [subscription, firebaseUser]);
+    
+    // Listen for subscription changes from custom events (e.g., from Account page)
+    useEffect(() => {
+        const handleSubscriptionUpdate = async (e) => {
+            if (e.detail && e.detail.subscription !== undefined && firebaseUser) {
+                const userId = firebaseUser.uid;
                 setSubscription(e.detail.subscription);
-                console.log('🔄 Subscription updated from custom event:', e.detail.subscription);
+                await saveUserSubscription(userId, e.detail.subscription);
+                console.log('🔄 Subscription updated and saved to cloud:', e.detail.subscription);
             }
         };
 
         window.addEventListener('subscription:updated', handleSubscriptionUpdate);
 
         return () => {
-            window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
         };
-    }, []);
+    }, [firebaseUser]);
 
     return (
         <AppContext.Provider value={value}>

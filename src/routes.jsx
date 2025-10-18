@@ -26,6 +26,13 @@ const Admin = lazy(() => import('./pages/Admin.jsx'))
 const BetaEndedSurvey = lazy(() => import('./pages/BetaEndedSurvey.jsx'))
 const LaunchComingSoon = lazy(() => import('./pages/LaunchComingSoon.jsx'))
 const CoverLanding = lazy(() => import('./pages/CoverLanding.jsx'))
+const About = lazy(() => import('./pages/About.jsx'))
+const Features = lazy(() => import('./pages/Features.jsx'))
+const Pricing = lazy(() => import('./pages/Pricing.jsx'))
+const Contact = lazy(() => import('./pages/Contact.jsx'))
+const Privacy = lazy(() => import('./pages/Privacy.jsx'))
+const Terms = lazy(() => import('./pages/Terms.jsx'))
+const Blog = lazy(() => import('./pages/Blog.jsx'))
 
 // Launch Configuration
 const IS_APP_BLOCKED = false; // Set to false when ready to launch
@@ -67,6 +74,46 @@ export const router = createBrowserRouter([
   {
     path: '/original-landing',
     element: <Landing />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/about',
+    element: <About />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/features',
+    element: <Features />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/pricing',
+    element: <Pricing />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/contact',
+    element: <Contact />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/privacy',
+    element: <Privacy />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/terms',
+    element: <Terms />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/blog',
+    element: <Blog />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/resources',
+    element: <Blog />,
     errorElement: <NotFound />,
   },
   {

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { PrivacyPolicyContent } from './PrivacyPolicyContent';
 
-export default function LandingPrivacyModal({ open, onClose }) {
+export default function LandingPrivacyModal({ open, onClose, onAgree }) {
     const [scrolledToBottom, setScrolledToBottom] = useState(false);
     const contentRef = useRef(null);
 
@@ -63,8 +63,17 @@ export default function LandingPrivacyModal({ open, onClose }) {
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                         >
-                            Close
+                            {onAgree ? 'Cancel' : 'Close'}
                         </button>
+                        {onAgree && (
+                            <button 
+                                onClick={onAgree} 
+                                disabled={!scrolledToBottom}
+                                className="px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                            >
+                                I Agree
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

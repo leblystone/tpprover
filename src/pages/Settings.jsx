@@ -7,10 +7,12 @@ import { clearMockData } from '../utils/seed'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useAppContext } from '../context/AppContext'
+import { useFirebase } from '../context/FirebaseContext'
 import SuccessModal from '../components/ui/SuccessModal'
 import pwaNotificationService from '../services/pwaNotifications'
 import CollapsibleSection from '../components/common/CollapsibleSection'
 import { getCurrencyOptions } from '../utils/currencyUtils'
+import { getLatestAgreement, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
 import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2 } from 'lucide-react'
 
 // PWA Notification Toggle Component
@@ -147,6 +149,7 @@ export default function Settings() {
   // Settings page component
   const { theme } = useOutletContext()
   const { refreshDataAfterClear } = useAppContext()
+  const { firebaseUser } = useFirebase()
   const [pwaPrompted, setPWAPrompted] = useState(false)
   
   // PWA Notification state
@@ -182,9 +185,101 @@ export default function Settings() {
     const [user, setUser] = useState(() => {
       try { return JSON.parse(localStorage.getItem('tpprover_user') || '{}') } catch { return {} }
     })
+    
+    // Agreement tracking state
+    const [agreementData, setAgreementData] = useState({
+      termsAgreement: null,
+      privacyAgreement: null
+    })
+    
+    // Agreement handlers
+    const handleTermsAgree = async () => {
+      try {
+        await recordAgreement(
+          AGREEMENT_TYPES.TERMS_UPDATE,
+          AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
+          { updatedFromSettings: true },
+          firebaseUser?.email
+        )
+        
+        // Reload agreement data
+        const termsAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_TERMS) || getLatestAgreement(AGREEMENT_TYPES.TERMS_UPDATE)
+        setAgreementData(prev => ({ ...prev, termsAgreement }))
+        
+        setShowTerms(false)
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Terms of Service agreement updated', type: 'success' } 
+        }))
+      } catch (error) {
+        console.error('Error recording terms agreement:', error)
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Error updating agreement', type: 'error' } 
+        }))
+      }
+    }
+    
+    const handlePrivacyAgree = async () => {
+      try {
+        await recordAgreement(
+          AGREEMENT_TYPES.PRIVACY_UPDATE,
+          AGREEMENT_VERSIONS.PRIVACY_POLICY,
+          { updatedFromSettings: true },
+          firebaseUser?.email
+        )
+        
+        // Reload agreement data
+        const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE)
+        setAgreementData(prev => ({ ...prev, privacyAgreement }))
+        
+        setShowPrivacy(false)
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Privacy Policy agreement updated', type: 'success' } 
+        }))
+      } catch (error) {
+        console.error('Error recording privacy agreement:', error)
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Error updating agreement', type: 'error' } 
+        }))
+      }
+    }
 
     // Settings state
     const [settings, setSettings] = useState(() => loadSettings() || getDefaultSettings())
+
+    // Load agreement data
+    useEffect(() => {
+      const loadAgreementData = () => {
+        try {
+          // Check for both signup and update agreements, preferring the most recent
+          const termsSignup = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_TERMS)
+          const termsUpdate = getLatestAgreement(AGREEMENT_TYPES.TERMS_UPDATE)
+          const privacySignup = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY)
+          const privacyUpdate = getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE)
+          
+          // Use the most recent agreement (either signup or update)
+          const termsAgreement = termsUpdate || termsSignup
+          const privacyAgreement = privacyUpdate || privacySignup
+          
+          console.log('🔍 Loading agreement data:', {
+            termsSignup,
+            termsUpdate,
+            privacySignup,
+            privacyUpdate,
+            finalTerms: termsAgreement,
+            finalPrivacy: privacyAgreement
+          })
+          
+          setAgreementData({
+            termsAgreement,
+            privacyAgreement
+          })
+        } catch (error) {
+          console.error('Error loading agreement data:', error)
+        }
+      }
+      
+      loadAgreementData()
+    }, [])
 
     useEffect(() => {
         // Apply font scaling from settings
@@ -623,18 +718,36 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium">Terms of Service</div>
-                {user.termsAgreed?.date && (
-                  <div className="text-xs text-gray-500">Agreed on {new Date(user.termsAgreed.date).toLocaleDateString()}</div>
+                {agreementData.termsAgreement ? (
+                  <div className="text-xs text-gray-500">Agreed on {new Date(agreementData.termsAgreement.timestamp).toLocaleDateString()}</div>
+                ) : (
+                  <div className="text-xs text-red-500">Agreement required - please review and agree</div>
                 )}
               </div>
-              <button onClick={() => setShowTerms(true)} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }}>View</button>
+              <button 
+                onClick={() => setShowTerms(true)} 
+                className="px-3 py-2 rounded-md text-sm font-semibold" 
+                style={{ backgroundColor: theme.accent, color: theme.accentText }}
+              >
+                {agreementData.termsAgreement ? 'View' : 'Agree'}
+              </button>
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium">Privacy Policy</div>
-                <div className="text-xs text-gray-500">How we collect, use, and protect your data</div>
+                {agreementData.privacyAgreement ? (
+                  <div className="text-xs text-gray-500">Agreed on {new Date(agreementData.privacyAgreement.timestamp).toLocaleDateString()}</div>
+                ) : (
+                  <div className="text-xs text-red-500">Agreement required - please review and agree</div>
+                )}
               </div>
-              <button onClick={() => setShowPrivacy(true)} className="px-3 py-2 rounded-md text-sm font-semibold" style={{ backgroundColor: theme.accent, color: theme.accentText }}>View</button>
+              <button 
+                onClick={() => setShowPrivacy(true)} 
+                className="px-3 py-2 rounded-md text-sm font-semibold" 
+                style={{ backgroundColor: theme.accent, color: theme.accentText }}
+              >
+                {agreementData.privacyAgreement ? 'View' : 'Agree'}
+              </button>
             </div>
           </div>
         </CollapsibleSection>
@@ -687,8 +800,17 @@ export default function Settings() {
             </div>
           </div>
         </CollapsibleSection>
-        <TermsOfServiceModal open={showTerms} onClose={() => setShowTerms(false)} onAgree={null} theme={theme} />
-        <LandingPrivacyModal open={showPrivacy} onClose={() => setShowPrivacy(false)} />
+        <TermsOfServiceModal 
+          open={showTerms} 
+          onClose={() => setShowTerms(false)} 
+          onAgree={agreementData.termsAgreement ? null : handleTermsAgree} 
+          theme={theme} 
+        />
+        <LandingPrivacyModal 
+          open={showPrivacy} 
+          onClose={() => setShowPrivacy(false)} 
+          onAgree={agreementData.privacyAgreement ? null : handlePrivacyAgree}
+        />
         <SuccessModal
           open={showDemoSuccessModal}
           onClose={() => setShowDemoSuccessModal(false)}

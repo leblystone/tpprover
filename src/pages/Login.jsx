@@ -334,7 +334,14 @@ export default function Login() {
             paymentMethod: null,
         };
         
-        try { localStorage.setItem('tpprover_subscription', JSON.stringify(trialSub)) } catch {}
+        // Save trial subscription to cloud storage
+        try {
+          const { saveUserSubscription } = await import('../services/cloudStorage');
+          await saveUserSubscription(firebaseUser.uid, trialSub);
+          console.log('☁️ Trial subscription saved to cloud storage');
+        } catch (error) {
+          console.error('❌ Failed to save trial subscription to cloud:', error);
+        }
         
         // CRITICAL FIX: Restore existing data if it was backed up and Firebase sync might overwrite it
         if (hasExistingData) {

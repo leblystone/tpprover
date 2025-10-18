@@ -4,10 +4,10 @@
 
 export const APP_CONFIG = {
   // Stripe Configuration
-  STRIPE_PUBLISHABLE_KEY: 'pk_test_51RsjE39js7CPqgp3rDbwa2wUhGSh4fqDcHD3SuQYAGpRjgF36YcnHAKLnPlBsSnIWG3FQDRxg29bOyuL6RYwq2w30081grdv60',
-  STRIPE_MONTHLY_PRICE_ID: 'price_1RskKD50b3cktl9X0DQF4vaG',
-  STRIPE_ANNUAL_PRICE_ID: 'price_1RskKk50b3cktl9XlHxY0iXW',
-  STRIPE_LIFETIME_PRICE_ID: 'price_1RskLS50b3cktl9XrGWvkFid',
+  STRIPE_PUBLISHABLE_KEY: 'pk_live_51RsjDx50b3cktl9XDlsC1BaeJr431KvkmtiKeCfSkvGcSTbzmCYvVbQcbE1R7Vku394xTuV8m9L1BD79lGg2XTeP004cs4mnJu',
+  STRIPE_MONTHLY_PRICE_ID: 'price_1SJNNJ50b3cktl9X3zVpkSM3',
+  STRIPE_ANNUAL_PRICE_ID: 'price_1SJNMK50b3cktl9XFWizExyk',
+  STRIPE_LIFETIME_PRICE_ID: 'price_1SJNIw50b3cktl9X7tr7Efox',
   
   // Firebase Configuration - Updated to match tpp-splendide project
   FIREBASE_API_KEY: 'AIzaSyDzGVtlnIk0QzUSgK6o41KGpYKk6opdgcE',

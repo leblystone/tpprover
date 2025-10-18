@@ -21,13 +21,35 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   function setAuthDb(db) { try { localStorage.setItem('tpprover_auth_users', JSON.stringify(db || {})) } catch {} }
   const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) } catch { return String(s) } }
 
-  function loadSubscription() { try { return JSON.parse(localStorage.getItem('tpprover_subscription') || 'null') } catch { return null } }
-  function saveSubscription(sub) { 
+  // Load subscription from cloud storage
+  async function loadSubscription() { 
     try { 
-      localStorage.setItem('tpprover_subscription', JSON.stringify(sub));
+      const { loadUserSubscription } = await import('../services/cloudStorage');
+      const { useFirebase } = await import('../context/FirebaseContext');
+      const { firebaseUser } = useFirebase();
+      if (firebaseUser) {
+        return await loadUserSubscription(firebaseUser.uid);
+      }
+      return null;
+    } catch { 
+      return null; 
+    } 
+  }
+  // Save subscription to cloud storage
+  async function saveSubscription(sub) { 
+    try { 
+      const { saveUserSubscription } = await import('../services/cloudStorage');
+      const { useFirebase } = await import('../context/FirebaseContext');
+      const { firebaseUser } = useFirebase();
+      if (firebaseUser) {
+        await saveUserSubscription(firebaseUser.uid, sub);
+        console.log('☁️ Subscription saved to cloud storage');
+      }
       // Dispatch custom event to notify AppContext of subscription change
       window.dispatchEvent(new CustomEvent('subscription:updated', { detail: { subscription: sub } }));
-    } catch {} 
+    } catch (error) {
+      console.error('❌ Failed to save subscription to cloud:', error);
+    }
   }
   function loadSecurity() { try { return JSON.parse(localStorage.getItem('tpprover_security') || 'null') } catch { return null } }
   function saveSecurity(sec) { try { localStorage.setItem('tpprover_security', JSON.stringify(sec)) } catch {} }
@@ -1085,7 +1107,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                         <button 
                           className="px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-all" 
                           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                          onClick={() => createPortalSession(sub.customerId)}
+                          onClick={() => window.open('https://billing.stripe.com/p/login/3cI00c99kd8w7y20qIebu00', '_blank')}
                         >
                           Manage Billing & Payment Methods
                         </button>

@@ -16,10 +16,24 @@ export const AGREEMENT_TYPES = {
 };
 
 // Agreement versions (update these when terms change)
+// Use SKU-style versioning: TOS-YYYY-MM-DD-REV or PP-YYYY-MM-DD-REV
 export const AGREEMENT_VERSIONS = {
-  TERMS_OF_SERVICE: '2025-01-01-v1',
-  PRIVACY_POLICY: '2025-01-01-v1'
+  TERMS_OF_SERVICE: 'TOS-2024-12-15-REV1',
+  PRIVACY_POLICY: 'PP-2024-12-15-REV1'
 };
+
+/**
+ * Helper function to update agreement versions when terms/privacy are updated
+ * Call this function when you update the terms or privacy policy content
+ */
+export function updateAgreementVersion(type, newVersion) {
+  if (type === 'TERMS_OF_SERVICE') {
+    AGREEMENT_VERSIONS.TERMS_OF_SERVICE = newVersion;
+  } else if (type === 'PRIVACY_POLICY') {
+    AGREEMENT_VERSIONS.PRIVACY_POLICY = newVersion;
+  }
+  console.log(`📝 Updated ${type} version to: ${newVersion}`);
+}
 
 /**
  * Get all agreement history
@@ -72,8 +86,14 @@ export async function recordAgreement(type, version = null, additionalData = {},
       version,
       timestamp: agreement.timestamp,
       id: agreement.id,
-      userEmail
+      userEmail,
+      additionalData
     });
+    
+    // Additional debugging for signup flow
+    if (additionalData.signupFlow) {
+      console.log('🔍 Signup agreement recorded for:', type, 'with version:', version);
+    }
 
     return agreement;
   } catch (error) {
@@ -120,6 +140,56 @@ export function getLatestAgreement(type) {
  */
 export function hasAgreedTo(type) {
   return getLatestAgreement(type) !== null;
+}
+
+/**
+ * Check if user has any agreement data at all
+ */
+export function hasAnyAgreementData() {
+  const history = getAgreementHistory();
+  return history.length > 0;
+}
+
+/**
+ * Create initial agreement records for existing users who don't have agreement data
+ * This should be called when a user first loads the app and has no agreement history
+ */
+export async function createInitialAgreementsForExistingUser(userEmail = null) {
+  try {
+    // Only create if user has no agreement data
+    if (hasAnyAgreementData()) {
+      return false; // User already has agreement data
+    }
+
+    // Create initial agreements with current timestamp
+    const now = new Date().toISOString();
+    
+    await recordAgreement(
+      AGREEMENT_TYPES.SIGNUP_TERMS,
+      AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
+      { 
+        migratedFromExistingUser: true,
+        originalSignupDate: now // Use current date as we don't know the original date
+      },
+      userEmail
+    );
+    
+    await recordAgreement(
+      AGREEMENT_TYPES.SIGNUP_PRIVACY,
+      AGREEMENT_VERSIONS.PRIVACY_POLICY,
+      { 
+        migratedFromExistingUser: true,
+        originalSignupDate: now
+      },
+      userEmail
+    );
+
+    console.log('📝 Created initial agreements for existing user:', userEmail);
+    return true;
+  } catch (error) {
+    console.error('Error creating initial agreements for existing user:', error);
+    throw error;
+  }
 }
 
 /**
