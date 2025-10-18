@@ -27,8 +27,17 @@ function getUserDoc(userId, collection = COLLECTIONS.USER_DATA) {
 export async function saveUserData(userId, data, collection = COLLECTIONS.USER_DATA) {
   try {
     const userDoc = getUserDoc(userId, collection);
+    
+    // Clean data to remove undefined values (Firestore doesn't allow undefined)
+    const cleanData = {};
+    Object.keys(data).forEach(key => {
+      if (data[key] !== undefined) {
+        cleanData[key] = data[key];
+      }
+    });
+    
     await setDoc(userDoc, {
-      ...data,
+      ...cleanData,
       userId,
       lastUpdated: new Date().toISOString(),
       version: '1.0'

@@ -334,6 +334,14 @@ export default function Login() {
             paymentMethod: null,
         };
         
+        // Set auth token first
+        try {
+          localStorage.setItem('tpprover_auth_token', 'firebase_token');
+          console.log('🔑 Auth token set to firebase_token');
+        } catch (e) {
+          console.error('❌ Failed to set auth token:', e);
+        }
+        
         // Save trial subscription to cloud storage
         try {
           const { saveUserSubscription } = await import('../services/cloudStorage');

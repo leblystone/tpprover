@@ -111,6 +111,38 @@ export function AppProvider({ children }) {
                     if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
                     if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
                     if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                } else {
+                    // No cloud data found, load from localStorage as fallback
+                    console.log('☁️ No cloud data found, loading from localStorage');
+                    const savedProtocols = localStorage.getItem('tpprover_protocols');
+                    if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
+
+                    const savedRecon = localStorage.getItem('tpprover_recon_items');
+                    if (savedRecon) setReconItems(JSON.parse(savedRecon));
+                    
+                    const savedHistory = localStorage.getItem('tpprover_recon_history');
+                    if (savedHistory) setReconHistory(JSON.parse(savedHistory));
+
+                    const savedSupps = localStorage.getItem('tpprover_supplements');
+                    if (savedSupps) setSupplements(JSON.parse(savedSupps));
+
+                    const savedOrders = localStorage.getItem('tpprover_orders');
+                    if (savedOrders) setOrders(JSON.parse(savedOrders));
+
+                    const savedMetrics = localStorage.getItem('tpprover_metrics');
+                    if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
+
+                    const savedVendors = localStorage.getItem('tpprover_vendors');
+                    if (savedVendors) setVendors(JSON.parse(savedVendors));
+                    
+                    const savedNotes = localStorage.getItem('tpprover_calendar_notes');
+                    if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
+
+                    const savedStockpile = localStorage.getItem('tpprover_stockpile');
+                    if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
+
+                    const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
+                    if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
                 }
 
                 // Load subscription from cloud
@@ -504,6 +536,21 @@ export function AppProvider({ children }) {
             if (hasPassword) {
                 debouncedSync(userData);
             }
+        } else {
+            // If no data, still try to save empty arrays to cloud for new users
+            const emptyData = {
+                protocols: protocols || [],
+                reconItems: reconItems || [],
+                reconHistory: reconHistory || [],
+                supplements: supplements || [],
+                orders: orders || [],
+                metrics: metrics || [],
+                vendors: vendors || [],
+                calendarNotes: calendarNotes || {},
+                stockpile: stockpile || [],
+                scheduledBuys: scheduledBuys || []
+            };
+            saveAppData(userId, emptyData);
         }
     }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, firebaseUser, hasPassword]); // FIXED: Only include data dependencies, remove functions
 
