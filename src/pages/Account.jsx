@@ -24,11 +24,31 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   // Load subscription from cloud storage
   async function loadSubscription() { 
     try { 
+      // First, check and clear any demo/debug subscription data from localStorage
+      const localSub = localStorage.getItem('tpprover_subscription');
+      if (localSub) {
+        try {
+          const parsedSub = JSON.parse(localSub);
+          // If it's demo/debug data, clear it
+          if (parsedSub.id?.includes('lab_access') || parsedSub.id?.includes('demo') || parsedSub.id?.includes('test') || parsedSub.status === 'lab_access') {
+            console.log('🧹 Clearing demo/debug subscription data from localStorage');
+            localStorage.removeItem('tpprover_subscription');
+          }
+        } catch (error) {
+          // If parsing fails, clear it anyway
+          localStorage.removeItem('tpprover_subscription');
+        }
+      }
+
       const { loadUserSubscription } = await import('../services/cloudStorage');
       const { useFirebase } = await import('../context/FirebaseContext');
       const { firebaseUser } = useFirebase();
       if (firebaseUser) {
-        return await loadUserSubscription(firebaseUser.uid);
+        const subscription = await loadUserSubscription(firebaseUser.uid);
+        // Only return subscription if it's a real subscription (not demo/debug data)
+        if (subscription && !subscription.id?.includes('lab_access') && !subscription.id?.includes('demo') && !subscription.id?.includes('test') && subscription.status !== 'lab_access') {
+          return subscription;
+        }
       }
       return null;
     } catch { 
@@ -78,15 +98,24 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     // const [user, setUser] = React.useState(() => {
     //   try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
     // })
-    const [sub, setSub] = React.useState(() => {
-        const existing = loadSubscription();
-        if (existing) return existing;
-        
-        // Don't default to trial - let the useEffect handle new user trials
-        return null;
-    })
+    const [sub, setSub] = React.useState(null)
     const [security, setSecurity] = React.useState(() => loadSecurity() || { twoFactorEnabled: false, twoFactorMethod: 'email', authSecret: '', emailVisible: true })
     const [timeLeft, setTimeLeft] = React.useState(null);
+
+    // Load subscription data on component mount
+    React.useEffect(() => {
+        const loadSubData = async () => {
+            try {
+                const subscription = await loadSubscription();
+                setSub(subscription);
+            } catch (error) {
+                console.error('Failed to load subscription:', error);
+                setSub(null);
+            }
+        };
+        
+        loadSubData();
+    }, []);
 
     React.useEffect(() => {
         const calculateTimeLeft = () => {

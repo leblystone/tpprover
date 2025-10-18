@@ -115,7 +115,7 @@ export function AppProvider({ children }) {
 
                 // Load subscription from cloud
                 const cloudSubscription = await loadUserSubscription(userId);
-                if (cloudSubscription) {
+                if (cloudSubscription && !cloudSubscription.id?.includes('lab_access') && !cloudSubscription.id?.includes('demo') && !cloudSubscription.id?.includes('test') && cloudSubscription.status !== 'lab_access') {
                     setSubscription(cloudSubscription);
                 }
 
