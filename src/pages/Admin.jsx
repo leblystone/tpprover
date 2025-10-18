@@ -930,38 +930,57 @@ function Admin() {
   };
 
   const sendTestEmails = async () => {
+    console.log('🧪 sendTestEmails called with testEmail:', testEmail);
+    
     if (!testEmail) {
+      console.log('❌ No test email provided');
       setTestEmailResult({ success: false, message: 'Please enter a test email address' });
       return;
     }
 
+    console.log('🚀 Starting test email process...');
     setIsSendingTest(true);
     setTestEmailResult(null);
 
     try {
+      console.log('📡 Getting Firebase functions...');
       const functions = getFunctions();
-      const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
+      console.log('📡 Functions object:', functions);
       
+      console.log('📞 Creating testEmailSystem callable...');
+      const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
+      console.log('📞 Callable created:', testEmailSystem);
+      
+      console.log('📤 Calling testEmailSystem with data:', { testEmail });
       const result = await testEmailSystem({ testEmail });
+      console.log('📥 Result received:', result);
       
       if (result.data.success) {
+        console.log('✅ Test emails sent successfully');
         setTestEmailResult({ 
           success: true, 
           message: `Test emails sent successfully to ${testEmail}! Check your inbox for welcome, trial ending, and lifetime access emails.` 
         });
       } else {
+        console.log('❌ Test emails failed:', result.data.error);
         setTestEmailResult({ 
           success: false, 
           message: result.data.error || 'Failed to send test emails' 
         });
       }
     } catch (error) {
-      console.error('Error sending test emails:', error);
+      console.error('❌ Error sending test emails:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
       setTestEmailResult({ 
         success: false, 
         message: `Error: ${error.message}` 
       });
     } finally {
+      console.log('🏁 Test email process completed');
       setIsSendingTest(false);
     }
   };
