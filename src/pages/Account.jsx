@@ -886,10 +886,10 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                    )}
 
                    {/* Plan Selection Options */}
-                   {sub.interval !== 'lifetime' && (
+                   {(sub?.interval !== 'lifetime' || !sub) && (
                    <div>
                      <h4 className="font-semibold mb-4" style={{ color: '#344E41' }}>
-                       {sub?.status === 'trialing' 
+                       {(sub?.status === 'trialing' || (sub?.status === 'inactive' && sub?.plan === '7-Day Free Trial') || !sub)
                          ? 'Continue Your Research' 
                          : sub.interval === 'month' 
                          ? 'Save with a Long-Term Plan' 
@@ -897,7 +897,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                      </h4>
                      
                      {/* Show different plan options based on current subscription */}
-                     {sub?.status === 'trialing' ? (
+                     {(sub?.status === 'trialing' || (sub?.status === 'inactive' && sub?.plan === '7-Day Free Trial') || !sub) ? (
                        // Trial users see all three plans
                        <div className="space-y-4">
                          {/* Monthly and Annual in 2-column layout */}
