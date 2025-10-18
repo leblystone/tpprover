@@ -33,6 +33,12 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     console.log('🎯 ConversionWidget: Plan selected:', planType);
     setIsProcessing(true);
     
+    // Set a timeout to reset processing state if something goes wrong
+    const timeoutId = setTimeout(() => {
+      console.warn('⚠️ ConversionWidget: Checkout timeout, resetting processing state');
+      setIsProcessing(false);
+    }, 10000); // 10 second timeout
+    
     try {
       // Map plan types to Stripe price IDs
       const priceIds = {
@@ -68,9 +74,21 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
       
       // Create Stripe checkout session
       await createCheckoutSession(priceId, user?.email, user?.uid);
+      
+      // Reset processing state after successful checkout creation
+      clearTimeout(timeoutId);
+      setIsProcessing(false);
     } catch (error) {
       console.error('❌ ConversionWidget: Error creating checkout:', error);
+      
+      // Always reset processing state on error
+      clearTimeout(timeoutId);
       setIsProcessing(false);
+      
+      // Show user-friendly error message
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Checkout failed. Please try again.', type: 'error' } 
+      }));
     }
   };
 

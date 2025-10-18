@@ -7,9 +7,11 @@ import { Crown } from '../../icons/lucide-safe';
 
 export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
   const handleSelectPlan = async (plan) => {
     console.log('🚀 SubscriptionModal: Selected plan:', plan);
+    setIsProcessing(true);
     
     // Show processing message
     window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -27,13 +29,19 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
         priceId = STRIPE_CONFIG.prices.lifetime;
       }
 
-
       // Close modal and redirect to Stripe checkout immediately
       onClose();
       await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user');
       
+      // Reset processing state
+      setIsProcessing(false);
+      
     } catch (error) {
       console.error('❌ SubscriptionModal: Stripe checkout error:', error);
+      
+      // Reset processing state on error
+      setIsProcessing(false);
+      
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
       }));
@@ -70,9 +78,9 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
           <div className="grid grid-cols-2 gap-3">
             {/* Monthly Plan */}
             <div 
-              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+              className={`relative bg-white rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
               style={{ borderColor: '#D4D7CD' }}
-              onClick={() => handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
+              onClick={() => !isProcessing && handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
             >
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
@@ -92,9 +100,9 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
 
             {/* Annual Plan */}
             <div 
-              className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+              className={`relative bg-white rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
               style={{ borderColor: '#D4D7CD' }}
-              onClick={() => handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
+              onClick={() => !isProcessing && handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
             >
               {/* Popular Badge */}
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -129,9 +137,9 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
           
           {/* Lifetime plan in compact single column */}
           <div 
-            className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+            className={`relative bg-white rounded-lg border-2 p-4 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
             style={{ borderColor: '#D4D7CD' }}
-            onClick={() => handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
+            onClick={() => !isProcessing && handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
           >
             {/* Limited Time Badge */}
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
