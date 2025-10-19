@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
 import { clearMockData } from '../../utils/seed';
 import ConfirmationModal from './ConfirmationModal';
+import { useAppContext } from '../../context/AppContext';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
+    const { user } = useAppContext();
     const [isRemoving, setIsRemoving] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -24,8 +26,13 @@ export default function DemoDataBanner({ theme, sticky = false }) {
 
         setIsRemoving(true);
         try {
-            // Set flag to indicate demo data is being cleared (prevent unwanted navigation)
-            localStorage.setItem('tpprover_demo_data_cleared', 'true');
+            // Save flag to cloud storage (NOT localStorage)
+            if (user?.uid) {
+                const { saveUserState, loadUserState } = await import('../../services/cloudStorage');
+                const currentState = await loadUserState(user.uid) || {};
+                await saveUserState(user.uid, { ...currentState, demoDataCleared: true });
+                console.log('☁️ Saved demo data cleared flag to cloud');
+            }
             
             // Clear demo data directly and trigger state refresh
             clearMockData();

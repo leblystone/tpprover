@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useAppContext } from '../context/AppContext';
 
 /**
  * Hook to check subscription access and trial status
+ * CLOUD-ONLY: Uses subscription from AppContext (loaded from cloud)
  * @returns {Object} Subscription access information
  */
 export function useSubscriptionAccess() {
+  const { subscription } = useAppContext();
   const [accessInfo, setAccessInfo] = useState({
     hasAccess: true,
     isTrialExpired: false,
@@ -18,10 +21,8 @@ export function useSubscriptionAccess() {
   useEffect(() => {
     const checkSubscriptionAccess = () => {
       try {
-        const subscriptionData = localStorage.getItem('tpprover_subscription');
-        
-        // No subscription = expired trial (after initial trial period)
-        if (!subscriptionData) {
+        // Use subscription from cloud storage (via AppContext)
+        if (!subscription) {
           setAccessInfo({
             hasAccess: false,
             isTrialExpired: true,
@@ -34,7 +35,6 @@ export function useSubscriptionAccess() {
           return;
         }
 
-        const subscription = JSON.parse(subscriptionData);
         const now = new Date();
         const endDate = new Date(subscription.currentPeriodEnd);
         const timeLeft = endDate - now;
@@ -125,7 +125,7 @@ export function useSubscriptionAccess() {
       window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
       clearInterval(interval);
     };
-  }, []);
+  }, [subscription]); // Re-check when subscription changes from cloud
 
   return accessInfo;
 }

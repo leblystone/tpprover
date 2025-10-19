@@ -71,6 +71,29 @@ service cloud.firestore {
       allow create: if true; // Allow creation for PWA setup
     }
     
+    // ===== CLOUD STORAGE COLLECTIONS (CRITICAL SECURITY) =====
+    // Users can ONLY access their own data - prevents data bleeding between accounts
+    
+    // User app data - protocols, vendors, orders, etc.
+    match /userData/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User preferences - theme, settings
+    match /userPreferences/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User subscriptions - trial, paid plans
+    match /userSubscriptions/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User state - onboarding, demo flags
+    match /userState/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

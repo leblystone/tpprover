@@ -9,6 +9,7 @@ import {
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData
 } from '../services/cloudStorage';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
+import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
 
 const AppContext = createContext();
 
@@ -151,19 +152,11 @@ export function AppProvider({ children }) {
                     setSubscription(cloudSubscription);
                 }
 
-                // Load user state from cloud
+                // Load user state from cloud (NO localStorage sync)
                 const cloudUserState = await loadUserState(userId);
                 if (cloudUserState) {
-                    // Set demo data flags for hasMockData calculation
-                    if (cloudUserState.hasSeeded !== undefined) {
-                        localStorage.setItem('tpprover_has_seeded', cloudUserState.hasSeeded.toString());
-                    }
-                    if (cloudUserState.demoDataCleared !== undefined) {
-                        localStorage.setItem('tpprover_demo_data_cleared', cloudUserState.demoDataCleared.toString());
-                    }
-                    if (cloudUserState.hasOnboarded !== undefined) {
-                        localStorage.setItem('tpprover_has_onboarded', cloudUserState.hasOnboarded.toString());
-                    }
+                    console.log('☁️ Loaded user state from cloud:', cloudUserState);
+                    // User state is now ONLY in cloud, no localStorage sync
                 }
 
             } catch (error) {
@@ -206,19 +199,15 @@ export function AppProvider({ children }) {
                         // CRITICAL SECURITY: Check if user changed and clear data if needed
                         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
                         if (lastUserEmail && lastUserEmail !== parsedUser.email) {
-                            console.log('🚨 SECURITY: User changed in auth listener, clearing localStorage data');
-                            console.log('Previous user:', lastUserEmail, 'Current user:', parsedUser.email);
+                            console.log('🚨 SECURITY: User changed in auth listener!');
+                            console.log('  Previous user:', lastUserEmail);
+                            console.log('  Current user:', parsedUser.email);
                             
-                            // Clear all user data including subscription
-                            const dataKeys = [
-                                'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
-                                'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
-                                'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-                                'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-                                'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
-                                'tpprover_has_onboarded'
-                            ];
-                            dataKeys.forEach(key => localStorage.removeItem(key));
+                            // Clear ALL user-specific data from localStorage
+                            clearAllUserData();
+                            verifyUserDataCleared();
+                            
+                            console.log('✅ Confirmed: Account data cleared for new user');
                         }
                         
                         // Update last user email
@@ -575,18 +564,34 @@ export function AppProvider({ children }) {
                 await syncToFirebase(userData);
             }
             
-            // Sign out from Firebase - the auth state listener will handle the rest
+            // Sign out from Firebase
             await logoutUser();
             
-            // Redirect to login (the auth state listener will clear user/localStorage)
+            // CRITICAL: Clear ALL user-specific localStorage data
+            clearAllUserData();
+            verifyUserDataCleared();
+            
+            // Clear app state
+            setUser(null);
+            setProtocols([]);
+            setReconItems([]);
+            setReconHistory([]);
+            setSupplements([]);
+            setOrders([]);
+            setMetrics([]);
+            setVendors([]);
+            setCalendarNotes({});
+            setStockpile([]);
+            setScheduledBuys([]);
+            setSubscription(null);
+            
+            // Redirect to login
             window.location.href = '/login';
         } catch (error) {
             console.error('Logout failed:', error);
             // If Firebase logout fails, force clear everything manually
+            clearAllUserData();
             setUser(null);
-            localStorage.removeItem('tpprover_auth_token');
-            localStorage.removeItem('tpprover_user');
-            localStorage.removeItem('tpprover_last_user_email'); // Clear user tracking
             window.location.href = '/login';
         }
     };

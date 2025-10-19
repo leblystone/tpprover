@@ -8,6 +8,7 @@ import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import SignupAgreementModal from '../components/legal/SignupAgreementModal';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
+import { clearAllUserData, clearAllLocalStorage } from '../utils/clearUserData';
 import { 
   registerUser, 
   loginUser, 
@@ -127,15 +128,7 @@ export default function Login() {
                 localStorage.removeItem('tpp_force_logout');
                 
                 // Clear all data and sign out
-                const dataKeys = [
-                    'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
-                    'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
-                    'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-                    'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-                    'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
-                    'tpprover_has_onboarded', 'tpprover_user', 'tpprover_auth_token', 'tpprover_last_user_email'
-                ];
-                dataKeys.forEach(key => localStorage.removeItem(key));
+                clearAllLocalStorage(); // Complete reset including auth
                 
                 // Sign out from Firebase
                 import('../services/firebase').then(({ logoutUser }) => {
@@ -173,15 +166,7 @@ export default function Login() {
         // Add global function to clear all data
         window.clearAllData = () => {
             console.log('🧪 DEVELOPMENT: Clearing all localStorage data');
-            const dataKeys = [
-                'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
-                'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
-                'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-                'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-                'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
-                'tpprover_has_onboarded', 'tpprover_user', 'tpprover_auth_token', 'tpprover_last_user_email'
-            ];
-            dataKeys.forEach(key => localStorage.removeItem(key));
+            clearAllLocalStorage();
         };
         
         // Development commands available via window object
@@ -273,19 +258,13 @@ export default function Login() {
         // CRITICAL SECURITY: Check for user change and clear data immediately
         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
         if (lastUserEmail && lastUserEmail !== user.email) {
-          console.log('🚨 SECURITY: User change detected during login, clearing localStorage data');
-          console.log('Previous user:', lastUserEmail, 'Current user:', user.email);
+          console.log('🚨 SECURITY: User change detected during login!');
+          console.log('  Previous user:', lastUserEmail);
+          console.log('  Current user:', user.email);
           
-          // Clear all user data including subscription
-          const dataKeys = [
-            'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
-            'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
-            'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-            'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-            'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
-            'tpprover_has_onboarded'
-          ];
-          dataKeys.forEach(key => localStorage.removeItem(key));
+          // Clear ALL user-specific data from localStorage
+          clearAllUserData();
+          console.log('✅ Confirmed: Account data cleared for new user');
         }
         
         // Update last user email
@@ -500,7 +479,7 @@ export default function Login() {
             currentPeriodEnd: end.toISOString(),
             paymentMethod: null,
           }
-          localStorage.setItem('tpprover_subscription', JSON.stringify(trial))
+          // DO NOT save to localStorage - cloud storage only
         } catch {}
         try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
         

@@ -80,29 +80,41 @@ function App() {
     // Show welcome modal for all new Firebase users - wait for user to be loaded
     if (!user) return; // Wait for user to be loaded
     
-    // Add a small delay to ensure auth token is set
-    const checkWelcomeModal = () => {
-      const hasOnboarded = localStorage.getItem('tpprover_has_onboarded');
-      const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
-      const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
-      
-      console.log('🎉 Welcome Modal Debug:');
-      console.log('  user:', user?.email);
-      console.log('  hasOnboarded:', hasOnboarded);
-      console.log('  authToken:', localStorage.getItem('tpprover_auth_token'));
-      console.log('  isFirebaseUser:', isFirebaseUser);
-      console.log('  demoDataCleared:', demoDataCleared);
-      console.log('  shouldShow:', hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared);
-      
-      // Show welcome for new users:
-      // 1. User hasn't onboarded AND
-      // 2. User is a Firebase user (authenticated) AND
-      // 3. Demo data hasn't been explicitly cleared
-      if (hasOnboarded !== 'true' && isFirebaseUser && !demoDataCleared) {
-        console.log('🎉 Showing welcome modal!');
-        setShowWelcome(true);
-      } else {
-        console.log('🎉 NOT showing welcome modal');
+    // Add a small delay to ensure auth token and cloud data is loaded
+    const checkWelcomeModal = async () => {
+      try {
+        const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
+        
+        // Load user state from cloud storage
+        const { loadUserState } = await import('./services/cloudStorage');
+        const { firebaseUser } = await import('./config/firebase').then(m => ({ firebaseUser: user }));
+        
+        if (user?.uid) {
+          const userState = await loadUserState(user.uid);
+          const hasOnboarded = userState?.hasOnboarded || false;
+          const demoDataCleared = userState?.demoDataCleared || false;
+          
+          console.log('🎉 Welcome Modal Debug (Cloud):');
+          console.log('  user:', user?.email);
+          console.log('  hasOnboarded:', hasOnboarded);
+          console.log('  authToken:', localStorage.getItem('tpprover_auth_token'));
+          console.log('  isFirebaseUser:', isFirebaseUser);
+          console.log('  demoDataCleared:', demoDataCleared);
+          console.log('  shouldShow:', !hasOnboarded && isFirebaseUser && !demoDataCleared);
+          
+          // Show welcome for new users:
+          // 1. User hasn't onboarded AND
+          // 2. User is a Firebase user (authenticated) AND
+          // 3. Demo data hasn't been explicitly cleared
+          if (!hasOnboarded && isFirebaseUser && !demoDataCleared) {
+            console.log('🎉 Showing welcome modal!');
+            setShowWelcome(true);
+          } else {
+            console.log('🎉 NOT showing welcome modal');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Failed to check welcome modal state:', error);
       }
     };
     
@@ -174,14 +186,34 @@ function App() {
     };
   }, []);
 
-  const handleCloseWelcome = () => {
+  const handleCloseWelcome = async () => {
     setShowWelcome(false);
-    localStorage.setItem('tpprover_has_onboarded', 'true');
+    // Save to cloud storage
+    if (user?.uid) {
+      try {
+        const { saveUserState, loadUserState } = await import('./services/cloudStorage');
+        const currentState = await loadUserState(user.uid) || {};
+        await saveUserState(user.uid, { ...currentState, hasOnboarded: true });
+        console.log('☁️ Saved onboarding state to cloud');
+      } catch (error) {
+        console.error('❌ Failed to save onboarding state:', error);
+      }
+    }
   };
 
-  const startTour = () => {
+  const startTour = async () => {
     setShowWelcome(false);
-    localStorage.setItem('tpprover_has_onboarded', 'true');
+    // Save to cloud storage
+    if (user?.uid) {
+      try {
+        const { saveUserState, loadUserState } = await import('./services/cloudStorage');
+        const currentState = await loadUserState(user.uid) || {};
+        await saveUserState(user.uid, { ...currentState, hasOnboarded: true });
+        console.log('☁️ Saved onboarding state to cloud');
+      } catch (error) {
+        console.error('❌ Failed to save onboarding state:', error);
+      }
+    }
     // Navigate to dashboard with tour query param
     navigate('/app/dashboard?tour=true', { replace: true });
   };
