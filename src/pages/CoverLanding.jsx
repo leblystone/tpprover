@@ -34,6 +34,29 @@ export default function CoverLanding() {
     }
   }, []);
 
+  // Set launch date to Halloween 2025 (10/31/2025) at midnight
+  useEffect(() => {
+    const launchDate = new Date('2025-10-31T00:00:00');
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = launchDate.getTime() - now;
+
+      if (distance > 0) {
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        setTimeLeft({ days, hours, minutes, seconds });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   // For native apps and localhost, show loading while redirecting
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isNative() || isLocalhost) {
@@ -131,27 +154,4 @@ export default function CoverLanding() {
       </div>
     </div>
   );
-
-  // Set launch date to Halloween 2025 (10/31/2025) at midnight
-  useEffect(() => {
-    const launchDate = new Date('2025-10-31T00:00:00');
-
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = launchDate.getTime() - now;
-
-      if (distance > 0) {
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        setTimeLeft({ days, hours, minutes, seconds });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 }
