@@ -2703,7 +2703,11 @@ function Admin() {
                 
                 <div className="flex gap-3">
                   <button
-                    onClick={sendTestEmails}
+                    onClick={() => {
+                      console.log('Button clicked directly!');
+                      alert('Direct button click works!');
+                      sendTestEmails();
+                    }}
                     disabled={!testEmail || isSendingTest}
                     className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
