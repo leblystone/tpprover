@@ -445,29 +445,33 @@ export default function Login() {
         // CRITICAL SECURITY: Check for user change and clear data immediately
         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
         if (lastUserEmail && lastUserEmail !== user.email) {
-          console.log('🚨 SECURITY: New user signup detected, clearing localStorage data');
-          console.log('Previous user:', lastUserEmail, 'New user:', user.email);
+          console.log('🚨 SECURITY: User change detected during signup!');
+          console.log('  Previous user:', lastUserEmail);
+          console.log('  New user:', user.email);
           
-          // Clear all user data including subscription
-          const dataKeys = [
-            'tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history',
-            'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
-            'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-            'tpprover_scheduled_buys', 'tpprover_has_seeded', 'tpprover_demo_data_cleared',
-            'tpprover_subscription', 'tpprover_security', 'tpprover_is_tester', 'tpprover_is_founder',
-            'tpprover_has_onboarded'
-          ];
-          dataKeys.forEach(key => localStorage.removeItem(key));
+          // Clear ALL user-specific data from localStorage
+          clearAllUserData();
+          console.log('✅ Confirmed: Account data cleared for new user');
         }
         
         // Update last user email
         localStorage.setItem('tpprover_last_user_email', user.email);
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
+        
+        // Set auth token FIRST before any async operations
+        try { 
+          localStorage.setItem('tpprover_auth_token', 'firebase_token');
+          console.log('🔑 Auth token set to firebase_token');
+        } catch (e) {
+          console.error('❌ Failed to set auth token:', e);
+        }
+        
+        // Create 7-day trial subscription and save to cloud
         try {
-          const now = new Date()
-          const end = new Date(now)
-          end.setDate(end.getDate() + 7)
+          const now = new Date();
+          const end = new Date(now);
+          end.setDate(end.getDate() + 7);
           const trial = {
             id: String(Date.now()),
             plan: '7-Day Free Trial',
@@ -478,10 +482,15 @@ export default function Login() {
             startedAt: now.toISOString(),
             currentPeriodEnd: end.toISOString(),
             paymentMethod: null,
-          }
-          // DO NOT save to localStorage - cloud storage only
-        } catch {}
-        try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
+          };
+          
+          // Save trial subscription to cloud storage
+          const { saveUserSubscription } = await import('../services/cloudStorage');
+          await saveUserSubscription(firebaseUser.uid, trial);
+          console.log('☁️ Trial subscription saved to cloud storage');
+        } catch (error) {
+          console.error('❌ Failed to create/save trial subscription:', error);
+        }
         
         setUser(user);
         
