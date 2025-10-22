@@ -79,16 +79,30 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
       clearTimeout(timeoutId);
       setIsProcessing(false);
     } catch (error) {
-      console.error('❌ ConversionWidget: Error creating checkout:', error);
-      
       // Always reset processing state on error
       clearTimeout(timeoutId);
       setIsProcessing(false);
       
-      // Show user-friendly error message
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Checkout failed. Please try again.', type: 'error' } 
-      }));
+      // Check if this is a user navigation error (abandoned cart)
+      const isUserNavigation = error?.message?.includes('Failed to redirect') || 
+                               error?.message?.includes('redirect');
+      
+      if (isUserNavigation) {
+        // User abandoned the cart - this is normal, don't log as error
+        console.log('ℹ️ ConversionWidget: User returned from checkout (normal behavior)');
+        return; // Silent return, no error needed
+      }
+      
+      // Only log and show errors for actual problems
+      console.error('❌ ConversionWidget: Error creating checkout:', error);
+      
+      // Only show toast if stripe service didn't already handle it
+      // (stripe service shows toasts for auth errors, config errors, etc.)
+      if (!error?.code && !error?.message?.includes('authenticated') && !error?.message?.includes('not configured')) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Checkout failed. Please try again.', type: 'error' } 
+        }));
+      }
     }
   };
 

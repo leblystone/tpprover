@@ -64,10 +64,25 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
     if (checkoutResult.error) {
       throw new Error(checkoutResult.error.message);
     }
+    
+    // If we reach here, redirect succeeded - any "return" is user navigation
+    console.log('✅ Redirected to Stripe checkout successfully');
   } catch (error) {
+    // Check if this is a user navigation/cancellation (not a real error)
+    const isUserNavigation = error.message?.includes('Failed to redirect') || 
+                             error.message?.includes('redirect') ||
+                             window.location.pathname === '/account' ||
+                             window.location.pathname === '/dashboard';
+    
+    // If user just navigated back (cancelled), don't show error
+    if (isUserNavigation && !error.code) {
+      console.log('ℹ️ User returned from checkout (likely abandoned cart) - this is normal');
+      return; // Silent return, no error needed
+    }
+    
     console.error('❌ Stripe checkout error:', error);
     
-    // More specific error messages
+    // More specific error messages for REAL errors
     let errorMessage = 'Failed to start checkout. ';
     if (error.code === 'unauthenticated' || error.message?.includes('authenticated')) {
       errorMessage += 'Please log in and try again.';
