@@ -394,7 +394,19 @@ export default function Login() {
 
     const doSignup = async () => {
       try {
-        // Set user data in localStorage FIRST (before Firebase registration)
+        // CRITICAL: Set session flag FIRST to prevent AppContext interference
+        sessionStorage.setItem('tpp_signup_in_progress', 'true');
+        console.log('🔒 Signup process started - AppContext will not interfere');
+        
+        // Set auth token IMMEDIATELY (before anything else)
+        try { 
+          localStorage.setItem('tpprover_auth_token', 'firebase_token');
+          console.log('🔑 Auth token set to firebase_token (FIRST)');
+        } catch (e) {
+          console.error('❌ Failed to set auth token:', e);
+        }
+        
+        // Set user data in localStorage (before Firebase registration)
         // This ensures AppContext can identify this as a new signup
         const tempUser = {
           email: email,
@@ -461,14 +473,6 @@ export default function Login() {
           console.error('❌ Error recording agreements:', error);
           console.error('Agreement recording failed, but continuing with signup');
           // Continue with signup even if agreement recording fails
-        }
-
-        // Set auth token IMMEDIATELY - before any other operations
-        try { 
-          localStorage.setItem('tpprover_auth_token', 'firebase_token');
-          console.log('🔑 Auth token set to firebase_token (FIRST)');
-        } catch (e) {
-          console.error('❌ Failed to set auth token:', e);
         }
         
         // Set user in app context
