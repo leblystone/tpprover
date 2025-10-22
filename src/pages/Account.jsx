@@ -1380,13 +1380,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           theme={theme}
         >
           <div className="space-y-4">
-            {/* Debug info - remove in production */}
-            {(() => {
-              const { getAgreementHistory } = require('../services/agreementTracking');
-              const allAgreements = getAgreementHistory();
-              console.log('🔍 Account page - All agreements:', allAgreements);
-              return null;
-            })()}
             {/* Privacy Policy Agreement */}
             <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="flex items-center gap-3">
