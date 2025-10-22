@@ -169,6 +169,14 @@ export function AppProvider({ children }) {
         // Listen to Firebase auth changes instead of just localStorage
         const unsubscribe = onAuthChange(async (firebaseUser) => {
             try {
+            // CRITICAL: Don't interfere with active signup/login processes
+            const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
+            const loginInProgress = sessionStorage.getItem('tpp_login_in_progress');
+            if (signupInProgress === 'true' || loginInProgress === 'true') {
+                console.log('⏸️ AppContext: Signup/login in progress, skipping auth change handling');
+                return; // Let Login.jsx handle everything
+            }
+            
             if (firebaseUser) {
                 // User is authenticated, load their profile from localStorage
                 try {
