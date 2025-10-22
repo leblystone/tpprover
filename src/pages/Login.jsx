@@ -415,21 +415,27 @@ export default function Login() {
         
         // Record agreement acceptance
         try {
-          await recordAgreement(
+          console.log('📝 Recording signup agreements for:', firebaseUser.email);
+          
+          const termsResult = await recordAgreement(
             AGREEMENT_TYPES.SIGNUP_TERMS,
             AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
             { signupFlow: true },
             firebaseUser.email
           );
+          console.log('✅ Terms agreement recorded:', termsResult);
           
-          await recordAgreement(
+          const privacyResult = await recordAgreement(
             AGREEMENT_TYPES.SIGNUP_PRIVACY,
             AGREEMENT_VERSIONS.PRIVACY_POLICY,
             { signupFlow: true },
             firebaseUser.email
           );
+          console.log('✅ Privacy agreement recorded:', privacyResult);
+          
         } catch (error) {
-          console.error('Error recording agreements:', error);
+          console.error('❌ Error recording agreements:', error);
+          console.error('Agreement recording failed, but continuing with signup');
           // Continue with signup even if agreement recording fails
         }
 

@@ -1148,11 +1148,125 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   ) : null}
                 </div>
               ) : (
-                // Regular user without subscription
+                // Regular user without subscription - show plans
                 <div className="space-y-4">
                   <div className="text-sm" style={{ color: theme.textLight }}>No active lab access</div>
                   <div className="text-xs mb-4" style={{ color: theme.textLight }}>
                     Choose a plan to start your research journey with The Pep Planner.
+                  </div>
+                  
+                  {/* Show subscription plans for users without subscription */}
+                  <div>
+                    <h4 className="font-semibold mb-4" style={{ color: '#344E41' }}>
+                      Continue Your Research
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      {/* Monthly and Annual in 2-column layout */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Monthly Plan */}
+                        <div 
+                          className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                          style={{ borderColor: '#D4D7CD' }}
+                          onClick={async () => {
+                            try {
+                              await createCheckoutSession(STRIPE_CONFIG.prices.monthly, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                            } catch (error) {
+                              console.error('Stripe checkout error:', error);
+                            }
+                          }}
+                        >
+                          <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                            <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
+                            <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$8.99</div>
+                            <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per month</div>
+                          </div>
+                          <button 
+                            className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
+                            style={{ backgroundColor: '#344E41' }}
+                          >
+                            Start Monthly
+                          </button>
+                        </div>
+
+                        {/* Annual Plan */}
+                        <div 
+                          className="relative bg-white rounded-lg border-2 p-3 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                          style={{ borderColor: '#D4D7CD' }}
+                          onClick={async () => {
+                            try {
+                              await createCheckoutSession(STRIPE_CONFIG.prices.annual, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                            } catch (error) {
+                              console.error('Stripe checkout error:', error);
+                            }
+                          }}
+                        >
+                          {/* Popular Badge */}
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
+                              Popular
+                            </div>
+                          </div>
+
+                          <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                            <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Annual</h3>
+                            <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$89.99</div>
+                            <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per year</div>
+                            
+                            {/* Subtitle Badge */}
+                            <div className="text-center mt-1">
+                              <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                                Save $17.89
+                              </span>
+                            </div>
+                          </div>
+
+                          <button 
+                            className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
+                            style={{ backgroundColor: '#3A5A40' }}
+                          >
+                            Start Annual
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Lifetime plan in compact single column */}
+                      <div 
+                        className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        style={{ borderColor: '#D4D7CD' }}
+                        onClick={async () => {
+                          try {
+                            await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                          } catch (error) {
+                            console.error('Stripe checkout error:', error);
+                          }
+                        }}
+                      >
+                        {/* Limited Time Badge */}
+                        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                          <div className="px-3 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
+                            Limited Time Only
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
+                              <Crown size={16} className="text-white" />
+                            </div>
+                            <div>
+                              <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
+                              <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
+                            </div>
+                          </div>
+                          <button 
+                            className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                            style={{ backgroundColor: '#344E41' }}
+                          >
+                            Join Forever
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

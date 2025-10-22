@@ -94,6 +94,14 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // User agreements - users can create their own agreements, admin can read all
+    match /user_agreements/{agreementId} {
+      allow create: if request.auth != null; // Authenticated users can create agreements
+      allow read: if request.auth != null && 
+        (request.auth.token.email == resource.data.userEmail || isAdmin()); // Users can read their own, admin can read all
+      allow update, delete: if false; // Agreements are immutable once created
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

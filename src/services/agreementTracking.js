@@ -36,6 +36,55 @@ export function updateAgreementVersion(type, newVersion) {
 }
 
 /**
+ * Debug function to check and fix agreement data issues
+ * This can be called from the browser console for debugging
+ */
+export function debugAgreementData() {
+  const history = getAgreementHistory();
+  console.log('🔍 Agreement Debug Information:');
+  console.log('Total agreements:', history.length);
+  console.log('All agreements:', history);
+  
+  // Check for future dates
+  const now = new Date();
+  const futureAgreements = history.filter(agreement => 
+    new Date(agreement.timestamp) > now
+  );
+  
+  if (futureAgreements.length > 0) {
+    console.warn('⚠️ Found agreements with future dates:', futureAgreements);
+  }
+  
+  // Check for missing privacy agreements
+  const privacyAgreements = history.filter(agreement => 
+    agreement.type === AGREEMENT_TYPES.SIGNUP_PRIVACY || 
+    agreement.type === AGREEMENT_TYPES.PRIVACY_UPDATE
+  );
+  
+  if (privacyAgreements.length === 0) {
+    console.warn('⚠️ No privacy policy agreements found');
+  }
+  
+  // Check for missing terms agreements
+  const termsAgreements = history.filter(agreement => 
+    agreement.type === AGREEMENT_TYPES.SIGNUP_TERMS || 
+    agreement.type === AGREEMENT_TYPES.TERMS_UPDATE
+  );
+  
+  if (termsAgreements.length === 0) {
+    console.warn('⚠️ No terms of service agreements found');
+  }
+  
+  return {
+    totalAgreements: history.length,
+    futureAgreements: futureAgreements.length,
+    privacyAgreements: privacyAgreements.length,
+    termsAgreements: termsAgreements.length,
+    hasIssues: futureAgreements.length > 0 || privacyAgreements.length === 0 || termsAgreements.length === 0
+  };
+}
+
+/**
  * Get all agreement history
  */
 export function getAgreementHistory() {
@@ -54,11 +103,13 @@ export function getAgreementHistory() {
 export async function recordAgreement(type, version = null, additionalData = {}, userEmail = null) {
   try {
     const history = getAgreementHistory();
+    const now = new Date();
     const agreement = {
       id: generateAgreementId(),
       type,
       version,
-      timestamp: new Date().toISOString(),
+      timestamp: now.toISOString(),
+      timestampLocal: now.toLocaleString(), // Add local timestamp for debugging
       userAgent: navigator.userAgent,
       ipAddress: null, // Could be populated from server if needed
       userEmail, // User's email for admin tracking
@@ -68,15 +119,27 @@ export async function recordAgreement(type, version = null, additionalData = {},
       agreementLanguage: 'English'
     };
 
-    // Store locally
+    // Store locally first (this should always work)
     history.push(agreement);
-    localStorage.setItem(AGREEMENT_STORAGE_KEY, JSON.stringify(history));
+    try {
+      localStorage.setItem(AGREEMENT_STORAGE_KEY, JSON.stringify(history));
+      console.log('✅ Agreement stored locally successfully');
+    } catch (localError) {
+      console.error('❌ Failed to store agreement locally:', localError);
+      throw new Error('Failed to store agreement locally: ' + localError.message);
+    }
 
     // Store in Firebase for admin access
     try {
       await storeAgreementInFirebase(agreement);
+      console.log('✅ Agreement stored in Firebase successfully');
     } catch (firebaseError) {
-      console.warn('Failed to store agreement in Firebase:', firebaseError);
+      console.error('❌ Failed to store agreement in Firebase:', firebaseError);
+      console.error('Firebase error details:', {
+        code: firebaseError.code,
+        message: firebaseError.message,
+        stack: firebaseError.stack
+      });
       // Continue with local storage even if Firebase fails
     }
 
@@ -411,6 +474,7 @@ if (process.env.NODE_ENV === 'development') {
     getSummary: getAgreementSummary,
     exportHistory: exportAgreementHistory,
     validate: validateAgreementHistory,
+    debug: debugAgreementData,
     clearHistory: () => {
       localStorage.removeItem(AGREEMENT_STORAGE_KEY);
       console.log('🗑️ Agreement history cleared');
