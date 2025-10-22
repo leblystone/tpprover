@@ -235,7 +235,6 @@ const adminTheme = {
 };
 
 function Admin() {
-  console.log('🔧 Admin component is loading...');
   const theme = adminTheme;
   const [announcements, setAnnouncements] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -931,59 +930,38 @@ function Admin() {
   };
 
   const sendTestEmails = async () => {
-    console.log('🧪 sendTestEmails called with testEmail:', testEmail);
-    console.log('🧪 Button clicked! Function is being called!');
-    alert('Button clicked! Check console for details.');
     
     if (!testEmail) {
-      console.log('❌ No test email provided');
       setTestEmailResult({ success: false, message: 'Please enter a test email address' });
       return;
     }
 
-    console.log('🚀 Starting test email process...');
     setIsSendingTest(true);
     setTestEmailResult(null);
 
     try {
-      console.log('📡 Getting Firebase functions...');
       const functions = getFunctions();
-      console.log('📡 Functions object:', functions);
-      
-      console.log('📞 Creating testEmailSystem callable...');
       const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
-      console.log('📞 Callable created:', testEmailSystem);
-      
-      console.log('📤 Calling testEmailSystem with data:', { testEmail });
       const result = await testEmailSystem({ testEmail });
-      console.log('📥 Result received:', result);
       
       if (result.data.success) {
-        console.log('✅ Test emails sent successfully');
         setTestEmailResult({ 
           success: true, 
           message: `Test emails sent successfully to ${testEmail}! Check your inbox for welcome, trial ending, and lifetime access emails.` 
         });
       } else {
-        console.log('❌ Test emails failed:', result.data.error);
         setTestEmailResult({ 
           success: false, 
           message: result.data.error || 'Failed to send test emails' 
         });
       }
     } catch (error) {
-      console.error('❌ Error sending test emails:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
+      console.error('Error sending test emails:', error);
       setTestEmailResult({ 
         success: false, 
         message: `Error: ${error.message}` 
       });
     } finally {
-      console.log('🏁 Test email process completed');
       setIsSendingTest(false);
     }
   };
@@ -2704,17 +2682,7 @@ function Admin() {
                 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => alert('TEST BUTTON WORKS!')}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg"
-                  >
-                    TEST BUTTON
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('Button clicked directly!');
-                      alert('Direct button click works!');
-                      sendTestEmails();
-                    }}
+                    onClick={sendTestEmails}
                     disabled={!testEmail || isSendingTest}
                     className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}

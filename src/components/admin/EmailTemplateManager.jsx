@@ -97,7 +97,6 @@ export default function EmailTemplateManager({ theme }) {
     return saved ? JSON.parse(saved) : DEFAULT_COLORS;
   });
   const [showPreview, setShowPreview] = useState(false);
-  const [testEmail, setTestEmail] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const currentTemplate = templates[selectedTemplate];
@@ -522,46 +521,6 @@ export default function EmailTemplateManager({ theme }) {
             )}
           </div>
 
-          {/* Test Email Section */}
-          <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
-              Send Test Email
-            </h3>
-            <p className="text-sm mb-3" style={{ color: theme.textLight }}>
-              Send a test email to yourself to see how it looks in your inbox
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
-                placeholder="your-email@example.com"
-              />
-              <button
-                onClick={() => {
-                  if (!testEmail) {
-                    window.dispatchEvent(new CustomEvent('tpp:toast', {
-                      detail: { message: 'Please enter an email address', type: 'error' }
-                    }));
-                    return;
-                  }
-                  window.dispatchEvent(new CustomEvent('tpp:toast', {
-                    detail: { message: '📧 Test email feature coming soon! For now, use the preview.', type: 'info' }
-                  }));
-                }}
-                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                <Send size={16} />
-                Send Test
-              </button>
-            </div>
-            <p className="text-xs mt-2" style={{ color: theme.textLight }}>
-              💡 Tip: Check your spam folder if you don't see the test email
-            </p>
-          </div>
         </div>
       </div>
 
