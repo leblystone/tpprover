@@ -195,10 +195,17 @@ export default function Settings() {
     // Agreement handlers
     const handleTermsAgree = async () => {
       try {
+        // Always use the current version when user agrees to updated terms
+        const currentVersion = AGREEMENT_VERSIONS.TERMS_OF_SERVICE
+        console.log('📝 User agreeing to Terms of Service version:', currentVersion)
+        
         await recordAgreement(
           AGREEMENT_TYPES.TERMS_UPDATE,
-          AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
-          { updatedFromSettings: true },
+          currentVersion,
+          { 
+            updatedFromSettings: true,
+            contentUpdateDate: currentVersion.split('-')[1] + '-' + currentVersion.split('-')[2] // Extract date from version
+          },
           firebaseUser?.email
         )
         
@@ -208,7 +215,7 @@ export default function Settings() {
         
         setShowTerms(false)
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Terms of Service agreement updated', type: 'success' } 
+          detail: { message: `Terms of Service agreement updated (${currentVersion})`, type: 'success' } 
         }))
       } catch (error) {
         console.error('Error recording terms agreement:', error)
@@ -220,10 +227,17 @@ export default function Settings() {
     
     const handlePrivacyAgree = async () => {
       try {
+        // Always use the current version when user agrees to updated privacy policy
+        const currentVersion = AGREEMENT_VERSIONS.PRIVACY_POLICY
+        console.log('📝 User agreeing to Privacy Policy version:', currentVersion)
+        
         await recordAgreement(
           AGREEMENT_TYPES.PRIVACY_UPDATE,
-          AGREEMENT_VERSIONS.PRIVACY_POLICY,
-          { updatedFromSettings: true },
+          currentVersion,
+          { 
+            updatedFromSettings: true,
+            contentUpdateDate: currentVersion.split('-')[1] + '-' + currentVersion.split('-')[2] // Extract date from version
+          },
           firebaseUser?.email
         )
         
@@ -233,7 +247,7 @@ export default function Settings() {
         
         setShowPrivacy(false)
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Privacy Policy agreement updated', type: 'success' } 
+          detail: { message: `Privacy Policy agreement updated (${currentVersion})`, type: 'success' } 
         }))
       } catch (error) {
         console.error('Error recording privacy agreement:', error)

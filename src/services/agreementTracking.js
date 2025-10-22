@@ -17,9 +17,10 @@ export const AGREEMENT_TYPES = {
 
 // Agreement versions (update these when terms change)
 // Use SKU-style versioning: TOS-YYYY-MM-DD-REV or PP-YYYY-MM-DD-REV
+// These should match the actual date when the content was last updated
 export const AGREEMENT_VERSIONS = {
-  TERMS_OF_SERVICE: 'TOS-2024-12-15-REV1',
-  PRIVACY_POLICY: 'PP-2024-12-15-REV1'
+  TERMS_OF_SERVICE: 'TOS-2025-10-22-REV1',
+  PRIVACY_POLICY: 'PP-2025-10-22-REV1'
 };
 
 /**
@@ -33,6 +34,34 @@ export function updateAgreementVersion(type, newVersion) {
     AGREEMENT_VERSIONS.PRIVACY_POLICY = newVersion;
   }
   console.log(`📝 Updated ${type} version to: ${newVersion}`);
+}
+
+/**
+ * Automatically generate a new version for updated terms/privacy
+ * This should be called when the content is updated, before users start agreeing to it
+ */
+export function generateNewVersion(type) {
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '-'); // YYYY-MM-DD format
+  
+  // Get current version to increment revision number
+  const currentVersion = type === 'TERMS_OF_SERVICE' ? 
+    AGREEMENT_VERSIONS.TERMS_OF_SERVICE : 
+    AGREEMENT_VERSIONS.PRIVACY_POLICY;
+  
+  // Extract current revision number and increment it
+  const match = currentVersion.match(/-REV(\d+)$/);
+  const currentRev = match ? parseInt(match[1]) : 0;
+  const newRev = currentRev + 1;
+  
+  const prefix = type === 'TERMS_OF_SERVICE' ? 'TOS' : 'PP';
+  const newVersion = `${prefix}-${dateStr}-REV${newRev}`;
+  
+  // Update the version
+  updateAgreementVersion(type, newVersion);
+  
+  console.log(`🔄 Generated new version for ${type}: ${newVersion}`);
+  return newVersion;
 }
 
 /**
@@ -479,6 +508,10 @@ if (process.env.NODE_ENV === 'development') {
       localStorage.removeItem(AGREEMENT_STORAGE_KEY);
       console.log('🗑️ Agreement history cleared');
     },
+    // Version management
+    generateNewVersion: generateNewVersion,
+    updateVersion: updateAgreementVersion,
+    getCurrentVersions: () => AGREEMENT_VERSIONS,
     // Admin functions
     getAllAgreements: getAllUserAgreements,
     getUserAgreements: getUserAgreements,

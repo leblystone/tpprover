@@ -416,11 +416,16 @@ export default function Login() {
         // Record agreement acceptance
         try {
           console.log('📝 Recording signup agreements for:', firebaseUser.email);
+          console.log('📝 Using Terms version:', AGREEMENT_VERSIONS.TERMS_OF_SERVICE);
+          console.log('📝 Using Privacy version:', AGREEMENT_VERSIONS.PRIVACY_POLICY);
           
           const termsResult = await recordAgreement(
             AGREEMENT_TYPES.SIGNUP_TERMS,
             AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
-            { signupFlow: true },
+            { 
+              signupFlow: true,
+              contentUpdateDate: AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[1] + '-' + AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[2]
+            },
             firebaseUser.email
           );
           console.log('✅ Terms agreement recorded:', termsResult);
@@ -428,7 +433,10 @@ export default function Login() {
           const privacyResult = await recordAgreement(
             AGREEMENT_TYPES.SIGNUP_PRIVACY,
             AGREEMENT_VERSIONS.PRIVACY_POLICY,
-            { signupFlow: true },
+            { 
+              signupFlow: true,
+              contentUpdateDate: AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[1] + '-' + AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[2]
+            },
             firebaseUser.email
           );
           console.log('✅ Privacy agreement recorded:', privacyResult);
@@ -439,6 +447,14 @@ export default function Login() {
           // Continue with signup even if agreement recording fails
         }
 
+        // Set auth token IMMEDIATELY - before any other operations
+        try { 
+          localStorage.setItem('tpprover_auth_token', 'firebase_token');
+          console.log('🔑 Auth token set to firebase_token (FIRST)');
+        } catch (e) {
+          console.error('❌ Failed to set auth token:', e);
+        }
+        
         // Set user in app context
         const user = { 
           email: firebaseUser.email, 
@@ -458,20 +474,20 @@ export default function Login() {
           // Clear ALL user-specific data from localStorage
           clearAllUserData();
           console.log('✅ Confirmed: Account data cleared for new user');
+          
+          // RE-SET auth token after clearing (it was cleared by clearAllUserData)
+          try { 
+            localStorage.setItem('tpprover_auth_token', 'firebase_token');
+            console.log('🔑 Auth token RE-SET after user change clear');
+          } catch (e) {
+            console.error('❌ Failed to re-set auth token:', e);
+          }
         }
         
         // Update last user email
         localStorage.setItem('tpprover_last_user_email', user.email);
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
-        
-        // Set auth token FIRST before any async operations
-        try { 
-          localStorage.setItem('tpprover_auth_token', 'firebase_token');
-          console.log('🔑 Auth token set to firebase_token');
-        } catch (e) {
-          console.error('❌ Failed to set auth token:', e);
-        }
         
         // Create 7-day trial subscription and save to cloud
         try {
