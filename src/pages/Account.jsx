@@ -22,11 +22,9 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   const enc = (s) => { try { return btoa(unescape(encodeURIComponent(String(s)))) } catch { return String(s) } }
 
   // Load subscription from cloud storage ONLY (no localStorage)
-  async function loadSubscription() { 
+  async function loadSubscription(firebaseUser) { 
     try { 
       const { loadUserSubscription } = await import('../services/cloudStorage');
-      const { useFirebase } = await import('../context/FirebaseContext');
-      const { firebaseUser } = useFirebase();
       if (firebaseUser) {
         const subscription = await loadUserSubscription(firebaseUser.uid);
         console.log('☁️ Loaded subscription from cloud:', subscription);
@@ -42,11 +40,9 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     } 
   }
   // Save subscription to cloud storage
-  async function saveSubscription(sub) { 
+  async function saveSubscription(sub, firebaseUser) { 
     try { 
       const { saveUserSubscription } = await import('../services/cloudStorage');
-      const { useFirebase } = await import('../context/FirebaseContext');
-      const { firebaseUser } = useFirebase();
       if (firebaseUser) {
         await saveUserSubscription(firebaseUser.uid, sub);
         console.log('☁️ Subscription saved to cloud storage');
@@ -92,7 +88,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     React.useEffect(() => {
         const loadSubData = async () => {
             try {
-                const subscription = await loadSubscription();
+                const subscription = await loadSubscription(firebaseUser);
                 
                 // CRITICAL: If no cloud subscription, fall back to localStorage (offline support)
                 if (!subscription) {
@@ -168,7 +164,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         // Load existing subscription from cloud ONLY
         if (user && !sub) {
             console.log('📋 Loading subscription from cloud for user:', user.email);
-            loadSubscription().then(cloudSub => {
+            loadSubscription(firebaseUser).then(cloudSub => {
                 if (cloudSub) {
                     setSub(cloudSub);
                 }
@@ -201,7 +197,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                 subscriptionId
             }
             
-            saveSubscription(next)
+            saveSubscription(next, firebaseUser)
             setSub(next)
             
             setManageOpen(false) // Close modal
@@ -210,7 +206,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         const handleStripeCancelled = (event) => {
             if (!sub) return
             const next = { ...sub, status: 'canceled', endedAt: new Date().toISOString() }
-            saveSubscription(next)
+            saveSubscription(next, firebaseUser)
             setSub(next)
         }
 
@@ -520,7 +516,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           } else {
             // Local cancellation for lab access/demo
             const next = { ...subscription, status: 'canceled', endedAt: new Date().toISOString() }
-            saveSubscription(next)
+            saveSubscription(next, firebaseUser)
             setSub(next)
             window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Lab access will end after your current research period.', type: 'success' } }))
           }
