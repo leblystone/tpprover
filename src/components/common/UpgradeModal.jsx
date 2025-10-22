@@ -35,11 +35,6 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
       }
     >
       <div className="p-2">
-        <div className="text-center text-gray-600 mb-3">
-          <p>Your trial has ended.</p>
-          <p>To {actionAttempted}, please choose a subscription plan.</p>
-        </div>
-
         {/* Info about data access */}
         <div className="text-left bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
           <p className="text-xs font-medium mb-1" style={{ color: '#1E40AF' }}>
@@ -118,7 +113,7 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
           
           {/* Lifetime plan in compact single column */}
           <div 
-            className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+            className="relative bg-white rounded-lg border-2 p-5 cursor-pointer hover:shadow-lg transition-all duration-200"
             style={{ borderColor: '#D4D7CD' }}
             onClick={handleUpgradeClick}
           >
@@ -129,17 +124,17 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
-                  <Crown size={16} className="text-white" />
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
+                  <Crown size={18} className="text-white" />
                 </div>
                 <div>
-                  <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
+                  <div className="font-bold text-base" style={{ color: '#344E41' }}>Lifetime Access</div>
                   <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
                 </div>
               </div>
               <button 
-                className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                className="px-3 py-2 rounded-lg text-white text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap"
                 style={{ backgroundColor: '#344E41' }}
               >
                 Join Forever

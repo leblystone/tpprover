@@ -68,11 +68,6 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
       }
     >
       <div className="p-2">
-        <div className="text-center text-gray-600 mb-3">
-          <p>Your trial has ended.</p>
-          <p>Continue your research with a plan below.</p>
-        </div>
-        
         <div className="space-y-4">
           {/* Monthly and Annual in 2-column layout */}
           <div className="grid grid-cols-2 gap-3">
@@ -137,7 +132,7 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
           
           {/* Lifetime plan in compact single column */}
           <div 
-            className={`relative bg-white rounded-lg border-2 p-4 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+            className={`relative bg-white rounded-lg border-2 p-5 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
             style={{ borderColor: '#D4D7CD' }}
             onClick={() => !isProcessing && handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
           >
@@ -148,17 +143,17 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
-                  <Crown size={16} className="text-white" />
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
+                  <Crown size={18} className="text-white" />
                 </div>
                 <div>
-                  <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
+                  <div className="font-bold text-base" style={{ color: '#344E41' }}>Lifetime Access</div>
                   <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
                 </div>
               </div>
               <button 
-                className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                className="px-3 py-2 rounded-lg text-white text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap"
                 style={{ backgroundColor: '#344E41' }}
               >
                 Join Forever
