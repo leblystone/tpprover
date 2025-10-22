@@ -235,6 +235,7 @@ const adminTheme = {
 };
 
 function Admin() {
+  console.log('🔧 Admin component is loading...');
   const theme = adminTheme;
   const [announcements, setAnnouncements] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -2702,6 +2703,12 @@ function Admin() {
                 </div>
                 
                 <div className="flex gap-3">
+                  <button
+                    onClick={() => alert('TEST BUTTON WORKS!')}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg"
+                  >
+                    TEST BUTTON
+                  </button>
                   <button
                     onClick={() => {
                       console.log('Button clicked directly!');
