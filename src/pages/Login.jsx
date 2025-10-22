@@ -423,8 +423,18 @@ export default function Login() {
         }
         
         // Create Firebase user
-        const { user: firebaseUser } = await registerUser(email, password, null);
-        console.log('✅ Firebase user created successfully:', firebaseUser.email);
+        console.log('🔥 About to call registerUser...');
+        let firebaseUser;
+        try {
+          const result = await registerUser(email, password, null);
+          firebaseUser = result.user;
+          console.log('✅ Firebase user created successfully:', firebaseUser.email);
+        } catch (regError) {
+          console.error('❌ registerUser FAILED:', regError);
+          console.error('❌ Error code:', regError.code);
+          console.error('❌ Error message:', regError.message);
+          throw regError; // Re-throw to be caught by outer catch
+        }
         
         // Store password for encryption
         setFirebasePassword(password);
