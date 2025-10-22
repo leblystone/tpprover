@@ -424,22 +424,28 @@ export default function Login() {
         
         // Create Firebase user
         const { user: firebaseUser } = await registerUser(email, password, null);
+        console.log('✅ Firebase user created successfully:', firebaseUser.email);
         
         // Store password for encryption
         setFirebasePassword(password);
+        console.log('🔐 Password set for encryption');
         
         // Set beta tester flag for all users during beta period
         localStorage.setItem('tpprover_is_tester', 'true');
+        console.log('🧪 Beta tester flag set');
         
         // Check and assign founder status (first 100 users)
+        console.log('🏁 About to check founder status...');
         try {
           const isFounder = await checkAndAssignFounderStatus(firebaseUser.uid);
+          console.log('🏁 Founder status check complete:', isFounder);
           if (isFounder) {
             localStorage.setItem('tpprover_is_founder', 'true');
           }
         } catch (error) {
-          console.error('Error checking founder status:', error);
+          console.error('❌ Error checking founder status:', error);
         }
+        console.log('🏁 After founder status check');
         
         // Record agreement acceptance
         try {
