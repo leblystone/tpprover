@@ -88,14 +88,44 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     const [security, setSecurity] = React.useState(() => loadSecurity() || { twoFactorEnabled: false, twoFactorMethod: 'email', authSecret: '', emailVisible: true })
     const [timeLeft, setTimeLeft] = React.useState(null);
 
-    // Load subscription data on component mount
+    // Load subscription data on component mount with localStorage fallback
     React.useEffect(() => {
         const loadSubData = async () => {
             try {
                 const subscription = await loadSubscription();
+                
+                // CRITICAL: If no cloud subscription, fall back to localStorage (offline support)
+                if (!subscription) {
+                    try {
+                        const localSub = localStorage.getItem('tpprover_subscription');
+                        if (localSub) {
+                            const parsedSub = JSON.parse(localSub);
+                            console.log('📦 Account: Using localStorage subscription fallback:', parsedSub);
+                            setSub(parsedSub);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse localStorage subscription:', e);
+                    }
+                }
+                
                 setSub(subscription);
             } catch (error) {
                 console.error('Failed to load subscription:', error);
+                
+                // Try localStorage fallback on error
+                try {
+                    const localSub = localStorage.getItem('tpprover_subscription');
+                    if (localSub) {
+                        const parsedSub = JSON.parse(localSub);
+                        console.log('📦 Account: Using localStorage subscription fallback after error:', parsedSub);
+                        setSub(parsedSub);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse localStorage subscription:', e);
+                }
+                
                 setSub(null);
             }
         };
@@ -1354,6 +1384,13 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           theme={theme}
         >
           <div className="space-y-4">
+            {/* Debug info - remove in production */}
+            {(() => {
+              const { getAgreementHistory } = require('../services/agreementTracking');
+              const allAgreements = getAgreementHistory();
+              console.log('🔍 Account page - All agreements:', allAgreements);
+              return null;
+            })()}
             {/* Privacy Policy Agreement */}
             <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="flex items-center gap-3">
@@ -1365,6 +1402,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   <div className="text-sm font-semibold" style={{ color: theme.text }}>
                     {(() => {
                       const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE);
+                      console.log('🔍 Account page - Privacy agreement data:', privacyAgreement);
                       if (privacyAgreement) {
                         const agreedDate = new Date(privacyAgreement.timestamp);
                         return `Agreed on ${agreedDate.toLocaleDateString('en-US', { 
@@ -1379,6 +1417,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   <div className="text-xs mt-1" style={{ color: theme.textLight }}>
                     Version: {(() => {
                       const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE);
+                      console.log('🔍 Account page - Privacy version:', privacyAgreement?.version);
                       return privacyAgreement?.version || 'N/A';
                     })()}
                   </div>

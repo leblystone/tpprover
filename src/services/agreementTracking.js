@@ -114,6 +114,40 @@ export function debugAgreementData() {
 }
 
 /**
+ * Fix missing privacy agreement for existing users
+ * This can be called manually to fix the privacy policy recording issue
+ */
+export async function fixMissingPrivacyAgreement(userEmail = null) {
+  try {
+    console.log('🔧 Fixing missing privacy agreement...');
+    
+    // Check if privacy agreement already exists
+    const existingPrivacy = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE);
+    if (existingPrivacy) {
+      console.log('✅ Privacy agreement already exists:', existingPrivacy);
+      return existingPrivacy;
+    }
+    
+    // Create missing privacy agreement
+    const privacyAgreement = await recordAgreement(
+      AGREEMENT_TYPES.SIGNUP_PRIVACY,
+      AGREEMENT_VERSIONS.PRIVACY_POLICY,
+      { 
+        fixedManually: true,
+        reason: 'Missing privacy agreement fix'
+      },
+      userEmail
+    );
+    
+    console.log('✅ Created missing privacy agreement:', privacyAgreement);
+    return privacyAgreement;
+  } catch (error) {
+    console.error('❌ Failed to fix missing privacy agreement:', error);
+    throw error;
+  }
+}
+
+/**
  * Get all agreement history
  */
 export function getAgreementHistory() {
@@ -504,6 +538,7 @@ if (process.env.NODE_ENV === 'development') {
     exportHistory: exportAgreementHistory,
     validate: validateAgreementHistory,
     debug: debugAgreementData,
+    fixPrivacy: fixMissingPrivacyAgreement,
     clearHistory: () => {
       localStorage.removeItem(AGREEMENT_STORAGE_KEY);
       console.log('🗑️ Agreement history cleared');
