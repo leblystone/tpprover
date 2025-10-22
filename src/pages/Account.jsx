@@ -993,7 +993,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                          
                          {/* Lifetime plan in compact single column */}
                          <div 
-                           className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+                           className="relative bg-white rounded-lg border-2 p-5 cursor-pointer hover:shadow-lg transition-all duration-200"
                            style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
                            onClick={async () => {
                              try {
@@ -1150,10 +1150,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
               ) : (
                 // Regular user without subscription - show plans
                 <div className="space-y-4">
-                  <div className="text-sm" style={{ color: theme.textLight }}>No active lab access</div>
-                  <div className="text-xs mb-4" style={{ color: theme.textLight }}>
-                    Choose a plan to continue your research.
-                  </div>
                   
                   {/* Founder's Pricing Alert - Show for users without subscription */}
                   <div className="rounded-lg p-4 text-center shadow-sm mb-4" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
@@ -1251,7 +1247,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                       
                       {/* Lifetime plan in compact single column */}
                       <div 
-                        className="relative bg-white rounded-lg border-2 p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        className="relative bg-white rounded-lg border-2 p-5 cursor-pointer hover:shadow-lg transition-all duration-200"
                         style={{ borderColor: '#D4D7CD' }}
                         onClick={async () => {
                           try {
