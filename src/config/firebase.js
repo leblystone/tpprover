@@ -1,10 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getEnvVar } from './appConfig.js';
-import { Capacitor } from '@capacitor/core';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -20,14 +19,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with proper settings for Capacitor
-// CRITICAL: Use longPolling for native apps to avoid WebChannel issues with CapacitorHttp
-export const db = Capacitor.isNativePlatform() 
-  ? initializeFirestore(app, {
-      experimentalForceLongPolling: true, // Use long polling instead of WebChannel on native
-      experimentalAutoDetectLongPolling: false
-    })
-  : getFirestore(app);
+// Initialize Firestore - now using standard WebChannel since CapacitorHttp is disabled
+export const db = getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);

@@ -22,7 +22,7 @@
       "overlaysWebView": false
     },
     "CapacitorHttp": {
-      "enabled": true
+      "enabled": false
     }
   }
 }
