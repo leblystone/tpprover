@@ -166,6 +166,49 @@ export function AppProvider({ children }) {
 
         loadUserDataFromCloud();
         
+        // Listen for demo data seeding events
+        const handleDemoDataSeeded = () => {
+            console.log('🔄 Demo data seeded - reloading from localStorage');
+            // Reload all data from localStorage
+            try {
+                const savedProtocols = localStorage.getItem('tpprover_protocols');
+                if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
+
+                const savedRecon = localStorage.getItem('tpprover_recon_items');
+                if (savedRecon) setReconItems(JSON.parse(savedRecon));
+                
+                const savedHistory = localStorage.getItem('tpprover_recon_history');
+                if (savedHistory) setReconHistory(JSON.parse(savedHistory));
+
+                const savedSupps = localStorage.getItem('tpprover_supplements');
+                if (savedSupps) setSupplements(JSON.parse(savedSupps));
+
+                const savedOrders = localStorage.getItem('tpprover_orders');
+                if (savedOrders) setOrders(JSON.parse(savedOrders));
+
+                const savedMetrics = localStorage.getItem('tpprover_metrics');
+                if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
+
+                const savedVendors = localStorage.getItem('tpprover_vendors');
+                if (savedVendors) setVendors(JSON.parse(savedVendors));
+                
+                const savedNotes = localStorage.getItem('tpprover_calendar_notes');
+                if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
+
+                const savedStockpile = localStorage.getItem('tpprover_stockpile');
+                if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
+
+                const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
+                if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
+                
+                console.log('✅ Demo data loaded into AppContext state');
+            } catch (error) {
+                console.error('❌ Error reloading demo data:', error);
+            }
+        };
+
+        window.addEventListener('demo-data-seeded', handleDemoDataSeeded);
+
         // Listen to Firebase auth changes instead of just localStorage
         const unsubscribe = onAuthChange(async (firebaseUser) => {
             try {
@@ -496,6 +539,7 @@ export function AppProvider({ children }) {
             if (unsubscribe) unsubscribe();
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('demo-data-cleared', handleDemoDataCleared);
+            window.removeEventListener('demo-data-seeded', handleDemoDataSeeded);
         };
     }, []); // FIXED: Remove data dependencies to prevent infinite loops
 

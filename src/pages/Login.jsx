@@ -600,6 +600,9 @@ export default function Login() {
           // Mark as seeded
           localStorage.setItem('tpprover_has_seeded', 'true');
           console.log('✅ Demo data seeded successfully');
+          
+          // CRITICAL: Trigger AppContext to reload data from localStorage
+          window.dispatchEvent(new CustomEvent('demo-data-seeded'));
         } catch (seedError) {
           console.error('❌ Failed to seed demo data:', seedError);
           // Non-critical - user can still use the app
