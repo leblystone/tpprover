@@ -931,6 +931,8 @@ function Admin() {
 
   const sendTestEmails = async () => {
     console.log('🧪 sendTestEmails called with testEmail:', testEmail);
+    console.log('🧪 Button clicked! Function is being called!');
+    alert('Button clicked! Check console for details.');
     
     if (!testEmail) {
       console.log('❌ No test email provided');
