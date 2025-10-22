@@ -40,12 +40,17 @@ async function sendEmail(to, subject, html) {
       html,
     };
 
-    await sgMail.send(msg);
-    logger.info('✅ Email sent successfully to:', to);
+    const result = await sgMail.send(msg);
+    logger.info('✅ Email sent successfully to:', to, 'Status:', result[0]?.statusCode);
     return true;
     
   } catch (error) {
     logger.error('❌ Failed to send email:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.body
+    });
     return false;
   }
 }

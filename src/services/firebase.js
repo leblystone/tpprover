@@ -163,18 +163,21 @@ export async function registerUser(email, password, inviteCode) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Send email verification
+    console.log('✅ Firebase Auth user created:', user.uid);
+    
+    // Send email verification (non-blocking)
     try {
       await sendEmailVerification(user, {
         url: window.location.origin + '/app/dashboard',
         handleCodeInApp: false
       });
+      console.log('📧 Verification email sent');
     } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
+      console.error('⚠️ Failed to send verification email:', emailError);
       // Don't block registration if email fails
     }
     
-    // Create user document in Firestore
+    // Try to create user document in Firestore (non-blocking)
     const userData = {
       email: email.toLowerCase(),
       uid: user.uid,
@@ -184,14 +187,29 @@ export async function registerUser(email, password, inviteCode) {
       emailVerified: user.emailVerified
     };
     
-    await setDoc(doc(db, 'users', user.uid), userData);
+    try {
+      console.log('🔥 Attempting to save user to Firestore...');
+      // Add timeout to prevent hanging
+      await Promise.race([
+        setDoc(doc(db, 'users', user.uid), userData),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 3000))
+      ]);
+      console.log('✅ User document saved to Firestore');
+    } catch (firestoreError) {
+      console.warn('⚠️ Firestore save failed (offline?), continuing anyway:', firestoreError.message);
+      // Don't block registration if Firestore is unavailable
+    }
     
-    // Track registration analytics
-    await updateAnalytics('userRegistration');
+    // Track registration analytics (non-blocking)
+    try {
+      await updateAnalytics('userRegistration');
+    } catch (analyticsError) {
+      console.warn('⚠️ Analytics tracking failed:', analyticsError);
+    }
     
     return { user, userData };
   } catch (error) {
-    console.error('Registration failed:', error);
+    console.error('❌ Registration failed:', error);
     throw error;
   }
 }

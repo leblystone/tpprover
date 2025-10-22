@@ -457,37 +457,45 @@ export default function Login() {
         }
         console.log('🏁 After founder status check');
         
-        // Record agreement acceptance
+        // Record agreement acceptance (non-blocking with timeout)
         try {
           console.log('📝 Recording signup agreements for:', firebaseUser.email);
           console.log('📝 Using Terms version:', AGREEMENT_VERSIONS.TERMS_OF_SERVICE);
           console.log('📝 Using Privacy version:', AGREEMENT_VERSIONS.PRIVACY_POLICY);
           
-          const termsResult = await recordAgreement(
-            AGREEMENT_TYPES.SIGNUP_TERMS,
-            AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
-            { 
-              signupFlow: true,
-              contentUpdateDate: AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[1] + '-' + AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[2]
-            },
-            firebaseUser.email
-          );
-          console.log('✅ Terms agreement recorded:', termsResult);
-          
-          const privacyResult = await recordAgreement(
-            AGREEMENT_TYPES.SIGNUP_PRIVACY,
-            AGREEMENT_VERSIONS.PRIVACY_POLICY,
-            { 
-              signupFlow: true,
-              contentUpdateDate: AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[1] + '-' + AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[2]
-            },
-            firebaseUser.email
-          );
-          console.log('✅ Privacy agreement recorded:', privacyResult);
+          // Add timeout to prevent hanging
+          await Promise.race([
+            (async () => {
+              const termsResult = await recordAgreement(
+                AGREEMENT_TYPES.SIGNUP_TERMS,
+                AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
+                { 
+                  signupFlow: true,
+                  contentUpdateDate: AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[1] + '-' + AGREEMENT_VERSIONS.TERMS_OF_SERVICE.split('-')[2]
+                },
+                firebaseUser.email
+              );
+              console.log('✅ Terms agreement recorded:', termsResult);
+              
+              const privacyResult = await recordAgreement(
+                AGREEMENT_TYPES.SIGNUP_PRIVACY,
+                AGREEMENT_VERSIONS.PRIVACY_POLICY,
+                { 
+                  signupFlow: true,
+                  contentUpdateDate: AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[1] + '-' + AGREEMENT_VERSIONS.PRIVACY_POLICY.split('-')[2]
+                },
+                firebaseUser.email
+              );
+              console.log('✅ Privacy agreement recorded:', privacyResult);
+            })(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Agreement recording timeout')), 3000)
+            )
+          ]);
           
         } catch (error) {
-          console.error('❌ Error recording agreements:', error);
-          console.error('Agreement recording failed, but continuing with signup');
+          console.warn('⚠️ Agreement recording timed out or failed (offline?), continuing with signup');
+          console.error('Agreement error:', error.message);
           // Continue with signup even if agreement recording fails
         }
         
@@ -550,13 +558,18 @@ export default function Login() {
             console.error('❌ Failed to save trial to localStorage:', e);
           }
           
-          // Save trial subscription to cloud storage (with retry)
+          // Save trial subscription to cloud storage (with timeout)
           try {
             const { saveUserSubscription } = await import('../services/cloudStorage');
-            await saveUserSubscription(firebaseUser.uid, trial);
+            await Promise.race([
+              saveUserSubscription(firebaseUser.uid, trial),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Cloud save timeout')), 3000)
+              )
+            ]);
             console.log('☁️ Trial subscription saved to cloud storage');
           } catch (cloudError) {
-            console.warn('⚠️ Cloud save failed, but localStorage has the trial:', cloudError);
+            console.warn('⚠️ Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
             // Don't throw - localStorage has the fallback
           }
         } catch (error) {
