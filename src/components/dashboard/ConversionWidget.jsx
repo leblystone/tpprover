@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
 import { useAppContext } from '../../context/AppContext';
+import { useFirebase } from '../../context/FirebaseContext';
 
 export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const [isDismissed, setIsDismissed] = useState(() => {
@@ -17,9 +18,45 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   
   const navigate = useNavigate();
   const { user } = useAppContext();
+  const { firebaseUser } = useFirebase();
   const [selectedPlan, setSelectedPlan] = useState('annual'); // Default to annual (most chosen)
   const [isProcessing, setIsProcessing] = useState(false);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [actualSubscription, setActualSubscription] = useState(null);
+
+  // Load subscription data the same way as Account page
+  useEffect(() => {
+    const loadSubscription = async (firebaseUser) => { 
+      try { 
+        const { loadUserSubscription } = await import('../../services/cloudStorage');
+        if (firebaseUser) {
+          const cloudSub = await loadUserSubscription(firebaseUser.uid);
+          if (cloudSub) {
+            return cloudSub;
+          }
+        }
+        
+        // Fallback to localStorage for offline support
+        try {
+          const localSub = localStorage.getItem('tpprover_subscription');
+          return localSub ? JSON.parse(localSub) : null;
+        } catch {
+          return null;
+        }
+      } catch (error) {
+        console.error('❌ Error loading subscription:', error);
+        return null;
+      }
+    };
+
+    if (firebaseUser && !actualSubscription) {
+      loadSubscription(firebaseUser).then(sub => {
+        if (sub) {
+          setActualSubscription(sub);
+        }
+      });
+    }
+  }, [firebaseUser, actualSubscription]);
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -109,13 +146,16 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   // Real-time countdown timer
   useEffect(() => {
     const updateCountdown = () => {
-      if (!subscription?.currentPeriodEnd) {
+      // Use actualSubscription first, fallback to subscription prop
+      const subData = actualSubscription || subscription;
+      
+      if (!subData?.currentPeriodEnd) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
 
       const now = new Date();
-      const end = new Date(subscription.currentPeriodEnd);
+      const end = new Date(subData.currentPeriodEnd);
       const diffTime = end.getTime() - now.getTime();
 
       if (diffTime <= 0) {
@@ -138,11 +178,14 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [subscription?.currentPeriodEnd]);
+  }, [actualSubscription?.currentPeriodEnd, subscription?.currentPeriodEnd]);
 
+  // Use actualSubscription first, fallback to subscription prop
+  const subData = actualSubscription || subscription;
+  
   // Don't show if user has active PAID subscription
   // Show for: trial users, expired trials, canceled subscriptions, or no subscription
-  const isActivePaidSubscription = subscription?.status === 'active' && subscription?.plan !== '7-Day Free Trial';
+  const isActivePaidSubscription = subData?.status === 'active' && subData?.plan !== '7-Day Free Trial';
   
   if (isActivePaidSubscription || isDismissed) {
     return null;
@@ -151,16 +194,16 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
 
   // Calculate trial days left
   const getTrialDaysLeft = () => {
-    if (!subscription?.currentPeriodEnd) return 0;
+    if (!subData?.currentPeriodEnd) return 0;
     const now = new Date();
-    const end = new Date(subscription.currentPeriodEnd);
+    const end = new Date(subData.currentPeriodEnd);
     const diffTime = end - now;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
   };
 
   const daysLeft = getTrialDaysLeft();
-  const isTrial = subscription?.status === 'trialing';
+  const isTrial = subData?.status === 'trialing';
 
   return (
     <div className="rounded border-2 p-3 content-card shadow-lg" style={{ borderColor: '#5C7659', backgroundColor: '#f8f9fa' }}>
