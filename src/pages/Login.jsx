@@ -398,6 +398,11 @@ export default function Login() {
         sessionStorage.setItem('tpp_signup_in_progress', 'true');
         console.log('🔒 Signup process started - AppContext will not interfere');
         
+        // Clear previous seeding flags for fresh demo data on new signup
+        localStorage.removeItem('tpprover_has_seeded');
+        localStorage.removeItem('tpprover_demo_seeded_at');
+        console.log('🧹 Cleared previous demo data flags for fresh signup');
+        
         // Set auth token IMMEDIATELY (before anything else)
         try { 
           localStorage.setItem('tpprover_auth_token', 'firebase_token');
@@ -591,21 +596,22 @@ export default function Login() {
         
         setUser(user);
         
-        // CRITICAL: Seed demo data for new users (with offline support)
+        // CRITICAL: Seed demo data for new users - NOW USING FIRESTORE
         try {
-          console.log('🌱 Seeding demo data for new signup...');
-          const { seedInitialData } = await import('../utils/seed');
-          seedInitialData();
+          console.log('☁️ Seeding demo data to Firestore for new signup...');
           
-          // Mark as seeded
-          localStorage.setItem('tpprover_has_seeded', 'true');
-          console.log('✅ Demo data seeded successfully');
+          const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
+          const seeded = await seedDemoDataToCloud(firebaseUser.uid, password);
           
-          // CRITICAL: Trigger AppContext to reload data from localStorage
-          window.dispatchEvent(new CustomEvent('demo-data-seeded'));
+          if (seeded) {
+            console.log('✅ Demo data seeded successfully to Firestore');
+            console.log('📡 AppContext will automatically load data from Firestore');
+          } else {
+            console.warn('⚠️ Demo data seeding had issues, but user can still use app');
+          }
         } catch (seedError) {
           console.error('❌ Failed to seed demo data:', seedError);
-          // Non-critical - user can still use the app
+          // Non-critical - user can still use the app with empty state
         }
         
         // Clear signup flag

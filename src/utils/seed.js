@@ -788,17 +788,30 @@ const DATA_KEYS = {
 
 export function seedInitialData() {
     try {
+        console.log('🔍 seedInitialData: Starting seed process...');
+        
         // Check if user has explicitly cleared demo data - if so, never re-seed
         const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
-        if (demoDataCleared === 'true') return;
+        if (demoDataCleared === 'true') {
+            console.log('❌ Seed aborted: Demo data was explicitly cleared');
+            return;
+        }
 
         // FAILSAFE: Check if any non-mock data exists. If so, abort immediately.
         const vendorsRaw = localStorage.getItem('tpprover_vendors');
-        if (vendorsRaw && JSON.parse(vendorsRaw).some(v => !v.isMock)) return;
+        if (vendorsRaw && JSON.parse(vendorsRaw).some(v => !v.isMock)) {
+            console.log('❌ Seed aborted: Real vendor data exists');
+            return;
+        }
         const ordersRaw = localStorage.getItem('tpprover_orders');
-        if (ordersRaw && JSON.parse(ordersRaw).some(o => !o.isMock)) return;
+        if (ordersRaw && JSON.parse(ordersRaw).some(o => !o.isMock)) {
+            console.log('❌ Seed aborted: Real order data exists');
+            return;
+        }
 
         const hasSeeded = localStorage.getItem('tpprover_has_seeded');
+        console.log(`🔍 Has seeded flag: ${hasSeeded}`);
+        
         // CRITICAL FIX: Always check if user has real data first, regardless of seeding status
         const protocolsRaw = localStorage.getItem('tpprover_protocols');
         const alreadyHasRealData = [vendorsRaw, ordersRaw, protocolsRaw].some(r => {
@@ -811,10 +824,18 @@ export function seedInitialData() {
         });
         
         // If user has any real data, never seed
-        if (alreadyHasRealData) return;
+        if (alreadyHasRealData) {
+            console.log('❌ Seed aborted: User has real data');
+            return;
+        }
         
         // If already seeded and user hasn't explicitly cleared demo data, don't re-seed
-        if (hasSeeded === 'true') return;
+        if (hasSeeded === 'true') {
+            console.log('❌ Seed aborted: Already seeded (hasSeeded=true)');
+            return;
+        }
+        
+        console.log('✅ All checks passed - proceeding with seed...');
 
         localStorage.setItem(DATA_KEYS.vendors, JSON.stringify(MOCK_VENDORS));
         localStorage.setItem(DATA_KEYS.orders, JSON.stringify(MOCK_ORDERS));

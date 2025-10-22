@@ -48,6 +48,26 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const loadUserDataFromCloud = async () => {
             try {
+                // CRITICAL: Don't interfere with active signup/login processes
+                const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
+                const loginInProgress = sessionStorage.getItem('tpp_login_in_progress');
+                if (signupInProgress === 'true' || loginInProgress === 'true') {
+                    console.log('⏸️ Initial cloud load: Signup/login in progress, skipping');
+                    return;
+                }
+                
+                // CRITICAL: Check if demo data was just seeded (within last 15 seconds)
+                // This prevents overwriting freshly seeded data with empty cloud data
+                const hasSeededTimestamp = localStorage.getItem('tpprover_demo_seeded_at');
+                if (hasSeededTimestamp) {
+                    const seededAt = parseInt(hasSeededTimestamp, 10);
+                    const timeSinceSeeded = Date.now() - seededAt;
+                    if (timeSinceSeeded < 15000) { // 15 seconds
+                        console.log(`⏸️ Initial cloud load: Demo data was just seeded ${Math.round(timeSinceSeeded/1000)}s ago, skipping to preserve it`);
+                        return;
+                    }
+                }
+                
                 // Only load if we have a Firebase user
                 if (!firebaseUser) {
                     console.log('☁️ No Firebase user, skipping cloud data load');
@@ -313,6 +333,7 @@ export function AppProvider({ children }) {
                                 console.log('📝 New user detected, skipping migration - agreements should be recorded during signup');
                             }
                         }
+                        parsedUser = userProfile; // Use the newly created profile for isNewUser check below
                     }
                     
                     // Try to load data from Firebase if user has password set
@@ -330,74 +351,87 @@ export function AppProvider({ children }) {
                         localStorage.setItem('tpp_need_password_for_sync', 'true');
                     }
                     
+                    // CRITICAL FIX: Check if this is a brand new signup with demo data
+                    // If demo data was just seeded, don't overwrite it with empty Firebase data!
+                    const hasSeededDemoData = localStorage.getItem('tpprover_has_seeded') === 'true';
+                    const isNewUser = parsedUser?.createdAt && (Date.now() - new Date(parsedUser.createdAt).getTime()) < 60000; // Within last minute
+                    
                     if (hasPassword || hasEmptyLocalStorage) {
                         try {
-                            
-                            // CRITICAL FIX: Add timeout to prevent infinite loading
-                            const firebaseDataPromise = loadFromFirebase();
-                            const timeoutPromise = new Promise((_, reject) => 
-                                setTimeout(() => reject(new Error('Firebase sync timeout')), 10000)
-                            );
-                            
-                            const firebaseData = await Promise.race([firebaseDataPromise, timeoutPromise]);
-                            if (firebaseData) {
-                                // Load Firebase data if available, especially when localStorage is empty
+                            // CRITICAL: Skip Firebase sync for brand new users with demo data
+                            // This prevents overwriting freshly seeded demo data with empty Firebase data
+                            if (isNewUser && hasSeededDemoData && !hasEmptyLocalStorage) {
+                                console.log('⏩ Skipping Firebase sync for new user with demo data');
+                                console.log('   Demo data will be synced to cloud on next state change');
+                                // Don't sync - let demo data remain in localStorage
+                                // It will automatically sync to Firebase via the auto-sync useEffect
+                            } else {
+                                // CRITICAL FIX: Add timeout to prevent infinite loading
+                                const firebaseDataPromise = loadFromFirebase();
+                                const timeoutPromise = new Promise((_, reject) => 
+                                    setTimeout(() => reject(new Error('Firebase sync timeout')), 10000)
+                                );
                                 
-                                // Load Firebase data into state (Firebase takes precedence for authenticated users)
-                                if (firebaseData.protocols) setProtocols(firebaseData.protocols);
-                                if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
-                                if (firebaseData.reconHistory) setReconHistory(firebaseData.reconHistory);
-                                
-                                // Clean up contaminated supplements from Firebase data
-                                let cleanedSupplements = firebaseData.supplements || [];
-                                if (firebaseData.supplements) {
-                                    cleanedSupplements = firebaseData.supplements.filter(sup => {
-                                        const isContaminated = sup.dose && (
-                                            sup.dose.includes('Research dosages typically') ||
-                                            sup.dose.includes('Clinical dosages range') ||
-                                            sup.dose.includes('Investigational dosages') ||
-                                            sup.dose.includes('mcg daily') ||
-                                            sup.dose.includes('mg weekly') ||
-                                            sup.name === '5-Amino-1MQ' ||
-                                            sup.name === '5-AMINO-1MQ' ||
-                                            sup.name === '5AMINO1MQ'
-                                        );
-                                        if (isContaminated) {
-                                        }
-                                        return !isContaminated;
-                                    });
-                                    setSupplements(cleanedSupplements);
-                                }
-                                if (firebaseData.orders) setOrders(firebaseData.orders);
-                                if (firebaseData.metrics) setMetrics(firebaseData.metrics);
-                                if (firebaseData.vendors) {
-                                    // Migrate old 'group' category to 'groupbuy' for consistency
-                                    const migratedVendors = firebaseData.vendors.map(vendor => {
-                                        if (vendor.type === 'group') {
-                                            return { ...vendor, type: 'groupbuy' };
-                                        }
-                                        return vendor;
-                                    });
-                                    setVendors(migratedVendors);
-                                }
-                                if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
-                                if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
-                                if (firebaseData.scheduledBuys) setScheduledBuys(firebaseData.scheduledBuys);
-                                
-                                // CRITICAL: Update localStorage with Firebase data to prevent future data loss
-                                try {
-                                    localStorage.setItem('tpprover_protocols', JSON.stringify(firebaseData.protocols || []));
-                                    localStorage.setItem('tpprover_recon_items', JSON.stringify(firebaseData.reconItems || []));
-                                    localStorage.setItem('tpprover_recon_history', JSON.stringify(firebaseData.reconHistory || []));
-                                    localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements || []));
-                                    localStorage.setItem('tpprover_orders', JSON.stringify(firebaseData.orders || []));
-                                    localStorage.setItem('tpprover_metrics', JSON.stringify(firebaseData.metrics || []));
-                                    localStorage.setItem('tpprover_vendors', JSON.stringify(firebaseData.vendors || []));
-                                    localStorage.setItem('tpprover_calendar_notes', JSON.stringify(firebaseData.calendarNotes || {}));
-                                    localStorage.setItem('tpprover_stockpile', JSON.stringify(firebaseData.stockpile || []));
-                                    localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(firebaseData.scheduledBuys || []));
-                                } catch (backupError) {
-                                    console.error('❌ Failed to backup Firebase data to localStorage:', backupError);
+                                const firebaseData = await Promise.race([firebaseDataPromise, timeoutPromise]);
+                                if (firebaseData) {
+                                    // Load Firebase data if available, especially when localStorage is empty
+                                    
+                                    // Load Firebase data into state (Firebase takes precedence for authenticated users)
+                                    if (firebaseData.protocols) setProtocols(firebaseData.protocols);
+                                    if (firebaseData.reconItems) setReconItems(firebaseData.reconItems);
+                                    if (firebaseData.reconHistory) setReconHistory(firebaseData.reconHistory);
+                                    
+                                    // Clean up contaminated supplements from Firebase data
+                                    let cleanedSupplements = firebaseData.supplements || [];
+                                    if (firebaseData.supplements) {
+                                        cleanedSupplements = firebaseData.supplements.filter(sup => {
+                                            const isContaminated = sup.dose && (
+                                                sup.dose.includes('Research dosages typically') ||
+                                                sup.dose.includes('Clinical dosages range') ||
+                                                sup.dose.includes('Investigational dosages') ||
+                                                sup.dose.includes('mcg daily') ||
+                                                sup.dose.includes('mg weekly') ||
+                                                sup.name === '5-Amino-1MQ' ||
+                                                sup.name === '5-AMINO-1MQ' ||
+                                                sup.name === '5AMINO1MQ'
+                                            );
+                                            if (isContaminated) {
+                                            }
+                                            return !isContaminated;
+                                        });
+                                        setSupplements(cleanedSupplements);
+                                    }
+                                    if (firebaseData.orders) setOrders(firebaseData.orders);
+                                    if (firebaseData.metrics) setMetrics(firebaseData.metrics);
+                                    if (firebaseData.vendors) {
+                                        // Migrate old 'group' category to 'groupbuy' for consistency
+                                        const migratedVendors = firebaseData.vendors.map(vendor => {
+                                            if (vendor.type === 'group') {
+                                                return { ...vendor, type: 'groupbuy' };
+                                            }
+                                            return vendor;
+                                        });
+                                        setVendors(migratedVendors);
+                                    }
+                                    if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
+                                    if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
+                                    if (firebaseData.scheduledBuys) setScheduledBuys(firebaseData.scheduledBuys);
+                                    
+                                    // CRITICAL: Update localStorage with Firebase data to prevent future data loss
+                                    try {
+                                        localStorage.setItem('tpprover_protocols', JSON.stringify(firebaseData.protocols || []));
+                                        localStorage.setItem('tpprover_recon_items', JSON.stringify(firebaseData.reconItems || []));
+                                        localStorage.setItem('tpprover_recon_history', JSON.stringify(firebaseData.reconHistory || []));
+                                        localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSupplements || []));
+                                        localStorage.setItem('tpprover_orders', JSON.stringify(firebaseData.orders || []));
+                                        localStorage.setItem('tpprover_metrics', JSON.stringify(firebaseData.metrics || []));
+                                        localStorage.setItem('tpprover_vendors', JSON.stringify(firebaseData.vendors || []));
+                                        localStorage.setItem('tpprover_calendar_notes', JSON.stringify(firebaseData.calendarNotes || {}));
+                                        localStorage.setItem('tpprover_stockpile', JSON.stringify(firebaseData.stockpile || []));
+                                        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(firebaseData.scheduledBuys || []));
+                                    } catch (backupError) {
+                                        console.error('❌ Failed to backup Firebase data to localStorage:', backupError);
+                                    }
                                 }
                             }
                         } catch (error) {
