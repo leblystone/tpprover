@@ -144,16 +144,6 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   // Show for: trial users, expired trials, canceled subscriptions, or no subscription
   const isActivePaidSubscription = subscription?.status === 'active' && subscription?.plan !== '7-Day Free Trial';
   
-  // Debug logging
-  console.log('🔍 ConversionWidget debug:', {
-    subscription,
-    status: subscription?.status,
-    plan: subscription?.plan,
-    isActivePaidSubscription,
-    isDismissed,
-    shouldShow: !(isActivePaidSubscription || isDismissed)
-  });
-  
   if (isActivePaidSubscription || isDismissed) {
     return null;
   }
