@@ -910,16 +910,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                      
                      {/* Show different plan options based on current subscription */}
                      {(() => {
-                       console.log('🔍 Account page subscription debug:', {
-                         sub,
-                         status: sub?.status,
-                         plan: sub?.plan,
-                         interval: sub?.interval,
-                         isTrialing: sub?.status === 'trialing',
-                         isInactiveTrial: sub?.status === 'inactive' && sub?.plan === '7-Day Free Trial',
-                         hasNoSub: !sub,
-                         shouldShowPlans: (sub?.status === 'trialing' || (sub?.status === 'inactive' && sub?.plan === '7-Day Free Trial') || !sub)
-                       });
                        return (sub?.status === 'trialing' || (sub?.status === 'inactive' && sub?.plan === '7-Day Free Trial') || !sub);
                      })() ? (
                        // Trial users see all three plans
@@ -1391,7 +1381,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   <div className="text-sm font-semibold" style={{ color: theme.text }}>
                     {(() => {
                       const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE);
-                      console.log('🔍 Account page - Privacy agreement data:', privacyAgreement);
                       if (privacyAgreement) {
                         const agreedDate = new Date(privacyAgreement.timestamp);
                         return `Agreed on ${agreedDate.toLocaleDateString('en-US', { 
@@ -1406,7 +1395,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   <div className="text-xs mt-1" style={{ color: theme.textLight }}>
                     Version: {(() => {
                       const privacyAgreement = getLatestAgreement(AGREEMENT_TYPES.SIGNUP_PRIVACY) || getLatestAgreement(AGREEMENT_TYPES.PRIVACY_UPDATE);
-                      console.log('🔍 Account page - Privacy version:', privacyAgreement?.version);
                       return privacyAgreement?.version || 'N/A';
                     })()}
                   </div>

@@ -57,24 +57,46 @@ export function AppProvider({ children }) {
                 const userId = firebaseUser.uid;
                 console.log(`☁️ Loading data from cloud for user: ${userId}`);
 
+                // Detect account switch and prevent data bleeding
+                try {
+                    const currentEmail = (firebaseUser.email || '').toLowerCase();
+                    const lastEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+                    if (lastEmail && lastEmail !== currentEmail) {
+                        console.log('🛡️ Account switch detected. Clearing local user data to prevent bleed.');
+                        clearAllUserData();
+                        // Ensure demo can seed for brand new account
+                        try { localStorage.removeItem('tpprover_has_seeded'); } catch {}
+                        try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                    }
+                    // Track current email for future comparisons
+                    try { localStorage.setItem('tpprover_last_user_email', currentEmail); } catch {}
+                } catch (e) {
+                    console.warn('⚠️ Account switch check failed:', e);
+                }
+
                 // Check if user has data in cloud storage
                 const hasCloudData = await hasUserData(userId);
                 
                 if (!hasCloudData) {
-                    // New user - check if they have localStorage data to migrate
+                    // New user - decide between migrating existing local data vs fresh demo seed
+                    const currentEmail = (firebaseUser.email || '').toLowerCase();
+                    const lastEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+
                     const hasLocalData = Object.keys(localStorage).some(key => 
                         key.startsWith('tpprover_') && 
                         !['tpprover_auth_token', 'tpprover_user', 'tpprover_last_user_email'].includes(key)
                     );
-                    
-                    if (hasLocalData) {
-                        console.log('🔄 Migrating localStorage data to cloud...');
+
+                    const canMigrateSafely = hasLocalData && lastEmail && lastEmail === currentEmail;
+
+                    if (canMigrateSafely) {
+                        console.log('🔄 Migrating existing local data for same account to cloud...');
                         await migrateLocalStorageToCloud(userId);
-                        // Clear localStorage after successful migration
+                        // Clear local cache after migration
                         clearLocalStorageData();
                     } else {
-                        // Brand new user - seed demo data
-                        console.log('🌱 Seeding demo data for new user');
+                        // Brand new user or account switched: seed fresh demo data
+                        console.log('🌱 Seeding fresh demo data for new account (no migration)');
                         seedInitialData();
                         // Save seeded data to cloud
                         const seededData = {
@@ -90,7 +112,6 @@ export function AppProvider({ children }) {
                             scheduledBuys: JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]')
                         };
                         await saveAppData(userId, seededData);
-                        // Set demo data flags
                         await saveUserState(userId, {
                             hasSeeded: true,
                             demoDataCleared: false,
