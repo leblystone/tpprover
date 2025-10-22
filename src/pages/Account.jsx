@@ -1152,7 +1152,26 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                 <div className="space-y-4">
                   <div className="text-sm" style={{ color: theme.textLight }}>No active lab access</div>
                   <div className="text-xs mb-4" style={{ color: theme.textLight }}>
-                    Choose a plan to start your research journey with The Pep Planner.
+                    Choose a plan to continue your research.
+                  </div>
+                  
+                  {/* Founder's Pricing Alert - Show for users without subscription */}
+                  <div className="rounded-lg p-4 text-center shadow-sm mb-4" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
+                        <Crown size={12} className="text-white" />
+                      </div>
+                      <div className="text-lg font-bold" style={{ color: '#344E41' }}>
+                        Founder's Pricing
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-lg p-3 mb-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
+                      <p className="text-xs leading-relaxed" style={{ color: '#3A5A40' }}>
+                        As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
+                        even as we add new features and increase value as we grow!
+                      </p>
+                    </div>
                   </div>
                   
                   {/* Show subscription plans for users without subscription */}
