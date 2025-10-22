@@ -394,6 +394,22 @@ export default function Login() {
 
     const doSignup = async () => {
       try {
+        // Set user data in localStorage FIRST (before Firebase registration)
+        // This ensures AppContext can identify this as a new signup
+        const tempUser = {
+          email: email,
+          name: email.split('@')[0],
+          createdAt: new Date().toISOString(),
+          isNewSignup: true,
+          termsAgreed: { date: new Date().toISOString() }
+        };
+        try {
+          localStorage.setItem('tpprover_user', JSON.stringify(tempUser));
+          console.log('👤 Pre-set user data for new signup');
+        } catch (e) {
+          console.error('❌ Failed to pre-set user data:', e);
+        }
+        
         // Create Firebase user
         const { user: firebaseUser } = await registerUser(email, password, null);
         
