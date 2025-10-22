@@ -115,28 +115,10 @@ export function AppProvider({ children }) {
                         // Clear local cache after migration
                         clearLocalStorageData();
                     } else {
-                        // Brand new user or account switched: seed fresh demo data
-                        console.log('🌱 Seeding fresh demo data for new account (no migration)');
-                        seedInitialData();
-                        // Save seeded data to cloud
-                        const seededData = {
-                            protocols: JSON.parse(localStorage.getItem('tpprover_protocols') || '[]'),
-                            reconItems: JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]'),
-                            reconHistory: JSON.parse(localStorage.getItem('tpprover_recon_history') || '[]'),
-                            supplements: JSON.parse(localStorage.getItem('tpprover_supplements') || '[]'),
-                            orders: JSON.parse(localStorage.getItem('tpprover_orders') || '[]'),
-                            metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
-                            vendors: JSON.parse(localStorage.getItem('tpprover_vendors') || '[]'),
-                            calendarNotes: JSON.parse(localStorage.getItem('tpprover_calendar_notes') || '{}'),
-                            stockpile: JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'),
-                            scheduledBuys: JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]')
-                        };
-                        await saveAppData(userId, seededData);
-                        await saveUserState(userId, {
-                            hasSeeded: true,
-                            demoDataCleared: false,
-                            hasOnboarded: false
-                        });
+                        // Brand new user - demo data is now seeded by Login.jsx directly to Firestore
+                        // No need to seed here, just wait for data to load from cloud
+                        console.log('☁️ New user detected - demo data should already be in Firestore from signup');
+                        console.log('⏳ Waiting for cloud data to load...');
                     }
                 }
 

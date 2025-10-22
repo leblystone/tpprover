@@ -606,6 +606,10 @@ export default function Login() {
           if (seeded) {
             console.log('✅ Demo data seeded successfully to Firestore');
             console.log('📡 AppContext will automatically load data from Firestore');
+            
+            // Small delay to ensure Firestore write propagates before AppContext loads
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('⏱️ Firestore propagation delay complete');
           } else {
             console.warn('⚠️ Demo data seeding had issues, but user can still use app');
           }
