@@ -439,7 +439,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           currentPeriodEnd: end.toISOString(),
           paymentMethod: null,
         }
-        saveSubscription(next)
+        saveSubscription(next, firebaseUser)
         setSub(next)
         window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Lab access started', type: 'success' } }))
         return
