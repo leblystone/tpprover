@@ -21,8 +21,23 @@ export function useSubscriptionAccess() {
   useEffect(() => {
     const checkSubscriptionAccess = () => {
       try {
-        // Use subscription from cloud storage (via AppContext)
-        if (!subscription) {
+        // Use subscription from cloud storage (via AppContext), with localStorage fallback
+        let effectiveSubscription = subscription;
+        
+        // CRITICAL: If no cloud subscription, fall back to localStorage (offline support)
+        if (!effectiveSubscription) {
+          try {
+            const localSub = localStorage.getItem('tpprover_subscription');
+            if (localSub) {
+              effectiveSubscription = JSON.parse(localSub);
+              console.log('📦 Using localStorage subscription fallback:', effectiveSubscription);
+            }
+          } catch (e) {
+            console.error('Failed to parse localStorage subscription:', e);
+          }
+        }
+        
+        if (!effectiveSubscription) {
           setAccessInfo({
             hasAccess: false,
             isTrialExpired: true,
@@ -36,26 +51,26 @@ export function useSubscriptionAccess() {
         }
 
         const now = new Date();
-        const endDate = new Date(subscription.currentPeriodEnd);
+        const endDate = new Date(effectiveSubscription.currentPeriodEnd);
         const timeLeft = endDate - now;
         const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
 
         // Active paid subscription (monthly, annual, lifetime)
-        if (subscription.status === 'active' && subscription.interval !== 'trial') {
+        if (effectiveSubscription.status === 'active' && effectiveSubscription.interval !== 'trial') {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
             isReadOnly: false,
             showUpgradePrompt: false,
-            daysRemaining: subscription.interval === 'lifetime' ? Infinity : daysLeft,
+            daysRemaining: effectiveSubscription.interval === 'lifetime' ? Infinity : daysLeft,
             subscriptionStatus: 'active',
-            subscriptionInterval: subscription.interval,
+            subscriptionInterval: effectiveSubscription.interval,
           });
           return;
         }
 
         // Lifetime subscription
-        if (subscription.interval === 'lifetime') {
+        if (effectiveSubscription.interval === 'lifetime') {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
@@ -69,7 +84,7 @@ export function useSubscriptionAccess() {
         }
 
         // Active trial
-        if (subscription.status === 'trialing' && daysLeft > 0) {
+        if (effectiveSubscription.status === 'trialing' && daysLeft > 0) {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
@@ -89,8 +104,8 @@ export function useSubscriptionAccess() {
           isReadOnly: true,
           showUpgradePrompt: true,
           daysRemaining: 0,
-          subscriptionStatus: subscription.status === 'canceled' ? 'canceled' : 'expired',
-          subscriptionInterval: subscription.interval,
+          subscriptionStatus: effectiveSubscription.status === 'canceled' ? 'canceled' : 'expired',
+          subscriptionInterval: effectiveSubscription.interval,
         });
 
       } catch (error) {

@@ -591,6 +591,20 @@ export default function Login() {
         
         setUser(user);
         
+        // CRITICAL: Seed demo data for new users (with offline support)
+        try {
+          console.log('🌱 Seeding demo data for new signup...');
+          const { seedInitialData } = await import('../utils/seed');
+          seedInitialData();
+          
+          // Mark as seeded
+          localStorage.setItem('tpprover_has_seeded', 'true');
+          console.log('✅ Demo data seeded successfully');
+        } catch (seedError) {
+          console.error('❌ Failed to seed demo data:', seedError);
+          // Non-critical - user can still use the app
+        }
+        
         // Clear signup flag
         sessionStorage.removeItem('tpp_signup_in_progress');
         
