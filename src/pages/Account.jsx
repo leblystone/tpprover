@@ -162,7 +162,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
 
     React.useEffect(() => {
         // Load existing subscription from cloud ONLY
-        if (user && !sub) {
+        if (user && !sub && firebaseUser) {
             console.log('📋 Loading subscription from cloud for user:', user.email);
             loadSubscription(firebaseUser).then(cloudSub => {
                 if (cloudSub) {
@@ -170,7 +170,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                 }
             });
         }
-    }, [user, sub])
+    }, [user, sub, firebaseUser])
 
     // Listen for Stripe events
     React.useEffect(() => {
