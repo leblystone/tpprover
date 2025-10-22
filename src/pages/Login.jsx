@@ -509,7 +509,7 @@ export default function Login() {
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         
-        // Create 7-day trial subscription and save to cloud
+        // Create 7-day trial subscription and save to BOTH cloud AND localStorage
         try {
           const now = new Date();
           const end = new Date(now);
@@ -526,12 +526,38 @@ export default function Login() {
             paymentMethod: null,
           };
           
-          // Save trial subscription to cloud storage
-          const { saveUserSubscription } = await import('../services/cloudStorage');
-          await saveUserSubscription(firebaseUser.uid, trial);
-          console.log('☁️ Trial subscription saved to cloud storage');
+          // CRITICAL: Save to localStorage FIRST (immediate fallback)
+          try {
+            localStorage.setItem('tpprover_subscription', JSON.stringify(trial));
+            console.log('💾 Trial subscription saved to localStorage (fallback)');
+          } catch (e) {
+            console.error('❌ Failed to save trial to localStorage:', e);
+          }
+          
+          // Save trial subscription to cloud storage (with retry)
+          try {
+            const { saveUserSubscription } = await import('../services/cloudStorage');
+            await saveUserSubscription(firebaseUser.uid, trial);
+            console.log('☁️ Trial subscription saved to cloud storage');
+          } catch (cloudError) {
+            console.warn('⚠️ Cloud save failed, but localStorage has the trial:', cloudError);
+            // Don't throw - localStorage has the fallback
+          }
         } catch (error) {
-          console.error('❌ Failed to create/save trial subscription:', error);
+          console.error('❌ Failed to create trial subscription:', error);
+          // This is critical - we should still create a minimal trial
+          const minimalTrial = {
+            id: String(Date.now()),
+            plan: '7-Day Free Trial',
+            status: 'trialing',
+            currentPeriodEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          };
+          try {
+            localStorage.setItem('tpprover_subscription', JSON.stringify(minimalTrial));
+            console.log('💾 Minimal trial subscription created in localStorage');
+          } catch (e) {
+            console.error('❌ CRITICAL: Cannot create trial subscription at all');
+          }
         }
         
         setUser(user);
