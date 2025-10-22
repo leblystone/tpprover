@@ -76,6 +76,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     const { theme } = useOutletContext()
     const navigate = useNavigate()
     const { user, logout } = useAppContext();
+    const { firebaseUser } = useFirebase(); // CRITICAL: Must be at component level, before any useEffect
     const { earnedBadges } = useBadgeStats();
     // const [user, setUser] = React.useState(() => {
     //   try { return JSON.parse(localStorage.getItem('tpprover_user') || 'null') } catch { return null }
@@ -263,7 +264,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     }
 
     // Security: change password and email verification
-    const { firebaseUser } = useFirebase();
     const [pwForm, setPwForm] = React.useState({ current: '', next: '', confirm: '' })
     const [isUpdatingPassword, setIsUpdatingPassword] = React.useState(false)
     const [isSendingVerification, setIsSendingVerification] = React.useState(false)
