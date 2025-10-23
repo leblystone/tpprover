@@ -10,8 +10,6 @@ const DuplicateDetection = ({
 }) => {
   const [duplicates, setDuplicates] = useState([]);
   const [dismissedSuggestions, setDismissedSuggestions] = useState(new Set());
-  const [showAll, setShowAll] = useState(false);
-  const [threshold, setThreshold] = useState(0.7);
 
   // Find duplicates when groups change
   useEffect(() => {
@@ -20,21 +18,15 @@ const DuplicateDetection = ({
       return;
     }
 
-    const foundDuplicates = findPotentialDuplicates(groups, threshold);
+    const foundDuplicates = findPotentialDuplicates(groups, 0.7);
     setDuplicates(foundDuplicates);
-  }, [groups, threshold]);
+  }, [groups]);
 
-  // Filter out dismissed suggestions
-  const visibleDuplicates = duplicates.filter(dup => 
-    !dismissedSuggestions.has(`${dup.group1.groupKey}-${dup.group2.groupKey}`)
+  // Filter out dismissed suggestions and show only high/medium confidence
+  const filteredDuplicates = duplicates.filter(dup => 
+    !dismissedSuggestions.has(`${dup.group1.groupKey}-${dup.group2.groupKey}`) &&
+    (dup.confidence === 'high' || dup.confidence === 'medium')
   );
-
-  // Show only high/medium confidence by default
-  const filteredDuplicates = showAll 
-    ? visibleDuplicates 
-    : visibleDuplicates.filter(dup => 
-        dup.confidence === 'high' || dup.confidence === 'medium'
-      );
 
   const handleMergeRequest = (duplicate) => {
     onMergeRequest?.(duplicate.group1, duplicate.group2);
@@ -76,50 +68,11 @@ const DuplicateDetection = ({
       borderColor: theme.border 
     }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={20} style={{ color: theme.primary }} />
-          <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Potential Duplicates Detected
-          </h3>
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-            {filteredDuplicates.length} suggestion{filteredDuplicates.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Threshold slider */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" style={{ color: theme.text }}>
-              Sensitivity:
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="0.9"
-              step="0.1"
-              value={threshold}
-              onChange={(e) => setThreshold(parseFloat(e.target.value))}
-              className="w-20"
-            />
-            <span className="text-xs text-gray-500 w-8">
-              {Math.round(threshold * 100)}%
-            </span>
-          </div>
-          
-          {/* Show all toggle */}
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: showAll ? theme.primary : theme.border,
-              color: showAll ? theme.textOnPrimary : theme.text
-            }}
-          >
-            {showAll ? <EyeOff size={14} /> : <Eye size={14} />}
-            {showAll ? 'Hide Low' : 'Show All'}
-          </button>
-        </div>
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle size={20} style={{ color: theme.primary }} />
+        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+          Potential Duplicates Detected
+        </h3>
       </div>
 
       {/* Duplicate suggestions */}
