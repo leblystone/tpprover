@@ -605,25 +605,28 @@ export default function Login() {
           
           if (seeded) {
             console.log('✅ Demo data seeded successfully to Firestore');
-            console.log('📡 AppContext will automatically load data from Firestore');
             
-            // Small delay to ensure Firestore write propagates before AppContext loads
-            await new Promise(resolve => setTimeout(resolve, 500));
-            console.log('⏱️ Firestore propagation delay complete');
+            // Wait for Firestore to propagate (subscription + demo data)
+            console.log('⏱️ Waiting 2 seconds for Firestore to propagate...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log('✅ Firestore propagation complete');
           } else {
-            console.warn('⚠️ Demo data seeding had issues, but user can still use app');
+            console.warn('⚠️ Demo data seeding had issues');
           }
         } catch (seedError) {
           console.error('❌ Failed to seed demo data:', seedError);
-          // Non-critical - user can still use the app with empty state
         }
         
-        // Clear signup flag
+        // Clear signup flag BEFORE navigating
+        console.log('✅ Clearing signup flag before navigation');
         sessionStorage.removeItem('tpp_signup_in_progress');
         
-        startTransition(() => {
-            navigate('/app/dashboard');
-        });
+        // Give a tiny delay to ensure flag is cleared
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Force a full page reload to trigger AppContext to load fresh data from Firestore
+        console.log('🚀 Forcing full page reload to load demo data from Firestore');
+        window.location.href = '/app/dashboard';
         return true;
       } catch (error) {
         // Clear signup flag on error too

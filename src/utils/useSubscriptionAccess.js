@@ -8,19 +8,28 @@ import { useAppContext } from '../context/AppContext';
  */
 export function useSubscriptionAccess() {
   const { subscription } = useAppContext();
+  const [isLoading, setIsLoading] = useState(true); // Track if we're still loading subscription data
   const [accessInfo, setAccessInfo] = useState({
     hasAccess: true,
     isTrialExpired: false,
     isReadOnly: false,
     showUpgradePrompt: false,
     daysRemaining: null,
-    subscriptionStatus: 'active',
+    subscriptionStatus: 'loading',
     subscriptionInterval: null,
   });
 
   useEffect(() => {
     const checkSubscriptionAccess = () => {
       try {
+        // CRITICAL: Don't show trial expired during signup flow
+        const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
+        if (signupInProgress === 'true') {
+          console.log('🔄 Signup in progress - skipping subscription check');
+          setIsLoading(true);
+          return;
+        }
+
         // Use subscription from cloud storage (via AppContext), with localStorage fallback
         let effectiveSubscription = subscription;
         
@@ -37,7 +46,17 @@ export function useSubscriptionAccess() {
           }
         }
         
+        // If still loading (no subscription yet), don't mark as expired
+        if (!effectiveSubscription && isLoading) {
+          console.log('⏳ Still loading subscription data - not marking as expired yet');
+          return;
+        }
+        
+        // Mark loading as complete once we've checked
+        setIsLoading(false);
+        
         if (!effectiveSubscription) {
+          console.log('❌ No subscription found after loading - marking as expired');
           setAccessInfo({
             hasAccess: false,
             isTrialExpired: true,
@@ -49,6 +68,9 @@ export function useSubscriptionAccess() {
           });
           return;
         }
+
+        // Mark loading as complete - we have subscription data
+        setIsLoading(false);
 
         const now = new Date();
         const endDate = new Date(effectiveSubscription.currentPeriodEnd);
@@ -123,7 +145,11 @@ export function useSubscriptionAccess() {
       }
     };
 
-    // Check on mount
+    // Check on mount, but give cloud data time to load first
+    const initialTimeout = setTimeout(() => {
+      setIsLoading(false); // After 2 seconds, stop loading state
+    }, 2000);
+
     checkSubscriptionAccess();
 
     // Listen for subscription updates
@@ -137,11 +163,12 @@ export function useSubscriptionAccess() {
     const interval = setInterval(checkSubscriptionAccess, 60000);
 
     return () => {
+      clearTimeout(initialTimeout);
       window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
       clearInterval(interval);
     };
   }, [subscription]); // Re-check when subscription changes from cloud
 
-  return accessInfo;
+  return { ...accessInfo, isLoading };
 }
 

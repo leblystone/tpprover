@@ -805,6 +805,40 @@ export default function Settings() {
                 <p className="text-xs text-gray-500 mt-1">Remove all sample orders, protocols, etc., to start with a clean slate.</p>
             </div>
             <div>
+                <button 
+                    onClick={async () => {
+                        if (window.confirm("This will seed 88 demo items to your Firestore account. Continue?")) {
+                            try {
+                                console.log('🔄 Manually triggering demo data seed...');
+                                const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
+                                
+                                if (firebaseUser) {
+                                    const seeded = await seedDemoDataToCloud(firebaseUser.uid, null);
+                                    if (seeded) {
+                                        console.log('✅ Demo data seeded - reloading page...');
+                                        // Clear the "cleared" flag so demo data shows
+                                        localStorage.removeItem('tpprover_demo_data_cleared');
+                                        localStorage.removeItem('tpprover_demo_banner_dismissed');
+                                        window.location.reload();
+                                    } else {
+                                        alert('Failed to seed demo data. Check console for details.');
+                                    }
+                                } else {
+                                    alert('You must be logged in to seed demo data.');
+                                }
+                            } catch (error) {
+                                console.error('❌ Manual seed failed:', error);
+                                alert('Error seeding demo data: ' + error.message);
+                            }
+                        }
+                    }}
+                    className="px-3 py-2 rounded-md text-sm font-semibold bg-green-100 text-green-700 hover:bg-green-200"
+                >
+                    Re-seed Demo Data (88 items)
+                </button>
+                <p className="text-xs text-gray-500 mt-1">Populate your account with sample data for testing. Works for new or existing accounts.</p>
+            </div>
+            <div>
               <div className="font-semibold text-red-600 mb-2">Danger Zone</div>
               <div className="flex items-center gap-2 flex-wrap">
                 <button className="px-3 py-2 rounded-md text-sm font-semibold bg-red-100 text-red-700 hover:bg-red-200" onClick={clearSessionOnly}>Clear Session Only</button>

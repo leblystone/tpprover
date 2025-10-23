@@ -46,7 +46,7 @@ function App() {
   });
   const theme = themes[themeName]
   const { hasMockData, user } = useAppContext();
-  const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval } = useSubscriptionAccess();
+  const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval, isLoading } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -80,9 +80,21 @@ function App() {
     // Show welcome modal for all new Firebase users - wait for user to be loaded
     if (!user) return; // Wait for user to be loaded
     
+    // Prevent showing modal multiple times in the same session
+    const welcomeShownThisSession = sessionStorage.getItem('tpp_welcome_shown');
+    if (welcomeShownThisSession === 'true') {
+      console.log('🎉 Welcome modal already shown this session - skipping');
+      return;
+    }
+    
     // Add a small delay to ensure auth token and cloud data is loaded
     const checkWelcomeModal = async () => {
       try {
+        // Double check the session flag in case another render beat us here
+        if (sessionStorage.getItem('tpp_welcome_shown') === 'true') {
+          return;
+        }
+        
         const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
         
         // Load user state from cloud storage
@@ -105,9 +117,11 @@ function App() {
           // Show welcome for new users:
           // 1. User hasn't onboarded AND
           // 2. User is a Firebase user (authenticated) AND
-          // 3. Demo data hasn't been explicitly cleared
+          // 3. Demo data hasn't been explicitly cleared AND
+          // 4. Modal hasn't been shown yet this session
           if (!hasOnboarded && isFirebaseUser && !demoDataCleared) {
             console.log('🎉 Showing welcome modal!');
+            sessionStorage.setItem('tpp_welcome_shown', 'true');
             setShowWelcome(true);
           } else {
             console.log('🎉 NOT showing welcome modal');
@@ -118,9 +132,8 @@ function App() {
       }
     };
     
-    // Check immediately and also after a short delay
-    checkWelcomeModal();
-    const timeoutId = setTimeout(checkWelcomeModal, 100);
+    // Only check once with a small delay for Firestore to sync
+    const timeoutId = setTimeout(checkWelcomeModal, 300);
     
     return () => clearTimeout(timeoutId);
   }, [user]);
@@ -254,7 +267,7 @@ function App() {
           autoSaveIndicator={topbarAutoSave}
         />
         {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
-        {showUpgradePrompt && user && (
+        {showUpgradePrompt && user && !isLoading && (
           <UpgradeBanner
             daysRemaining={daysRemaining}
             isTrialExpired={isTrialExpired}

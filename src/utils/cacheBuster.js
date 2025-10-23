@@ -3,7 +3,7 @@
  * Automatically clears old cached data and forces fresh load
  */
 
-const CURRENT_APP_VERSION = 'beta-fix-v2-force';
+const CURRENT_APP_VERSION = '2.0.1';
 
 /**
  * Check if app needs cache clearing and perform it
@@ -12,20 +12,13 @@ export function checkAndClearCache() {
   try {
     const storedVersion = localStorage.getItem('tpp_app_version');
     
-    // If version changed or doesn't exist, clear cache
+    // If version changed or doesn't exist, clear cache ONCE (no reload)
     if (storedVersion !== CURRENT_APP_VERSION) {
       console.log('🔄 App version changed, clearing cache...');
       clearAllCache();
       localStorage.setItem('tpp_app_version', CURRENT_APP_VERSION);
-      
-      // Force reload for any version change during beta fix
-      if (storedVersion !== CURRENT_APP_VERSION) {
-        console.log('🚀 Version change detected, forcing reload...');
-        setTimeout(() => {
-          window.location.reload(true);
-        }, 100);
-        return true;
-      }
+      console.log('✅ Cache cleared, version updated to', CURRENT_APP_VERSION);
+      return true;
     }
     
     return false;
@@ -41,7 +34,13 @@ export function checkAndClearCache() {
 function clearAllCache() {
   try {
     // Clear localStorage (except essential items)
-    const essentialKeys = ['tpp_app_version', 'tpprover_theme'];
+    const essentialKeys = [
+      'tpp_app_version', 
+      'tpprover_theme',
+      'tpprover_auth_token',
+      'tpprover_user',
+      'tpprover_settings'
+    ];
     const allKeys = Object.keys(localStorage);
     
     allKeys.forEach(key => {
@@ -50,8 +49,12 @@ function clearAllCache() {
       }
     });
     
-    // Clear sessionStorage
+    // Don't clear sessionStorage entirely - preserve signup flag
+    const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
     sessionStorage.clear();
+    if (signupInProgress) {
+      sessionStorage.setItem('tpp_signup_in_progress', signupInProgress);
+    }
     
     // Clear IndexedDB if it exists
     if ('indexedDB' in window) {

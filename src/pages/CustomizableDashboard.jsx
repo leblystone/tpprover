@@ -100,6 +100,11 @@ export default function CustomizableDashboard() {
     }
   });
 
+  // Don't do anything special on mount - Login.jsx handles everything
+  useEffect(() => {
+    console.log('✅ Dashboard mounted successfully');
+  }, []); // Run once on mount
+
   // Compute dashboard data
   const incomingOrder = useMemo(() => {
     if (!orders || orders.length === 0) return null;

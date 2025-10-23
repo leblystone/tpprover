@@ -212,7 +212,7 @@ export default function Calendar() {
               next[key] = {
                 ...(next[key] || {}),
                 buys: (next[key]?.buys || 0) + 1,
-                buyDetails: [ ...(next[key]?.buyDetails || []), label ].slice(0, 3),
+                buyDetails: [ ...(Array.isArray(next[key]?.buyDetails) ? next[key].buyDetails : []), label ].slice(0, 3),
               }
             }
           }
@@ -699,7 +699,7 @@ export default function Calendar() {
 
           // Force complete refresh instead of merging to prevent stale data
           console.log('🔄 Calendar: Refreshing with new data', { supplements: supps.length, goals: goals.length });
-          console.log('📋 Final scheduled data sample:', Object.keys(next).slice(0, 5).map(key => ({
+          console.log('📋 Final scheduled data sample:', Object.keys(next || {}).slice(0, 5).map(key => ({
             date: key,
             hasSupplements: !!next[key]?.supplements?.length,
             bySlot: next[key]?.bySlot ? Object.keys(next[key].bySlot) : [],
@@ -768,8 +768,8 @@ export default function Calendar() {
       const supps = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]');
       console.log('🔍 DEBUG: Supplements in localStorage:', supps);
       console.log('🔍 DEBUG: Current supplements state:', supplements);
-      console.log('🔍 DEBUG: Current scheduled state keys:', Object.keys(scheduled).slice(0, 10));
-      return { localStorage: supps, state: supplements, scheduled: Object.keys(scheduled).length };
+      console.log('🔍 DEBUG: Current scheduled state keys:', Object.keys(scheduled || {}).slice(0, 10));
+      return { localStorage: supps, state: supplements, scheduled: Object.keys(scheduled || {}).length };
     };
     return () => { 
       delete window.refreshCalendar; 

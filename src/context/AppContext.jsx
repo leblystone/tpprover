@@ -135,6 +135,45 @@ export function AppProvider({ children }) {
                     if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
                     if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
                     if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                    
+                    // Check if account is completely empty and needs demo data seeded
+                    const totalItems = (cloudAppData.protocols?.length || 0) + 
+                                      (cloudAppData.orders?.length || 0) + 
+                                      (cloudAppData.vendors?.length || 0) + 
+                                      (cloudAppData.supplements?.length || 0);
+                    
+                    if (totalItems === 0) {
+                        console.log('📭 Account has 0 items - auto-seeding demo data to Firestore...');
+                        try {
+                            const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
+                            const seeded = await seedDemoDataToCloud(userId, null);
+                            
+                            if (seeded) {
+                                console.log('✅ Demo data auto-seeded for empty account');
+                                console.log('🔄 Reloading data from Firestore...');
+                                
+                                // Reload data from Firestore after seeding
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                const freshData = await loadAppData(userId);
+                                
+                                if (freshData) {
+                                    if (freshData.protocols) setProtocols(freshData.protocols);
+                                    if (freshData.reconItems) setReconItems(freshData.reconItems);
+                                    if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                                    if (freshData.supplements) setSupplements(freshData.supplements);
+                                    if (freshData.orders) setOrders(freshData.orders);
+                                    if (freshData.metrics) setMetrics(freshData.metrics);
+                                    if (freshData.vendors) setVendors(freshData.vendors);
+                                    if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                                    if (freshData.stockpile) setStockpile(freshData.stockpile);
+                                    if (freshData.scheduledBuys) setScheduledBuys(freshData.scheduledBuys);
+                                    console.log('✅ Fresh demo data loaded into app state');
+                                }
+                            }
+                        } catch (seedError) {
+                            console.error('❌ Failed to auto-seed demo data:', seedError);
+                        }
+                    }
                 } else {
                     // No cloud data found, load from localStorage as fallback
                     console.log('☁️ No cloud data found, loading from localStorage');
@@ -578,7 +617,7 @@ export function AppProvider({ children }) {
             window.removeEventListener('demo-data-cleared', handleDemoDataCleared);
             window.removeEventListener('demo-data-seeded', handleDemoDataSeeded);
         };
-    }, []); // FIXED: Remove data dependencies to prevent infinite loops
+    }, [firebaseUser]); // Re-run when Firebase auth initializes to load cloud data
 
     // Auto-sync data to cloud storage when it changes
     useEffect(() => {
