@@ -559,8 +559,14 @@ export default function Dashboard() {
 
     var combined = [...peptideTasks, ...supplementTasks];
     combined.sort((a, b) => {
+      // First, sort by completion status (unchecked first, then checked)
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      // Then by type (peptides first)
       if (a.type === 'peptide' && b.type !== 'peptide') return -1
       if (a.type !== 'peptide' && b.type === 'peptide') return 1
+      // Finally by name
       return a.name.localeCompare(b.name)
     })
 
@@ -650,7 +656,7 @@ export default function Dashboard() {
                 </button>
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
-            <div className="flex-1">
+            <div className="flex-1 overflow-y-auto max-h-96">
                 <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
             </div>
             {washoutReminders.length > 0 && (
