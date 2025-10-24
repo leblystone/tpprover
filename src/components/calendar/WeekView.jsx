@@ -288,7 +288,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 }}
                 title="View or edit notes"
               >
-                {dayNotes}
+                {typeof dayNotes === 'string' ? dayNotes : 
+                 typeof dayNotes === 'object' && dayNotes.text ? dayNotes.text : 
+                 String(dayNotes)}
               </div>
             )}
           </div>
