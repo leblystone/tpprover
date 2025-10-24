@@ -658,7 +658,7 @@ export default function Dashboard() {
                 </button>
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
-            <div className="flex-1 overflow-y-auto max-h-96" style={{ maxHeight: '24rem' }}>
+            <div className="max-h-48 overflow-y-auto pr-2">
                 <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
             </div>
             {washoutReminders.length > 0 && (

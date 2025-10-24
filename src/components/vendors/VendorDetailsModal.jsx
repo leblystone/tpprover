@@ -224,15 +224,19 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           </label>
         </div>
 
-        {/* ORDER HISTORY Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ORDER HISTORY</h4>
-        </div>
+        {/* ORDER HISTORY Section Header - Only show for existing vendors */}
+        {vendor && (
+          <>
+            <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ORDER HISTORY</h4>
+            </div>
 
-        {/* Section: Order History */}
-        <div>
-          <VendorOrderHistory vendorName={form.name} theme={theme} />
-        </div>
+            {/* Section: Order History */}
+            <div>
+              <VendorOrderHistory vendorName={form.name} theme={theme} />
+            </div>
+          </>
+        )}
       </div>
       
       {/* Lockout Overlay - Covers entire modal */}
