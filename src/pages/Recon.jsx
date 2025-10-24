@@ -614,7 +614,7 @@ export default function Recon() {
                                 }`}
                                 style={(editingItem?.deliveryMethod || 'pipette') === 'pipette' ? { backgroundColor: theme.primary } : {}}
                             >
-                                <Pipette size={16} /> Pipette
+                                <Pipette size={16} /> Syringe
                             </button>
                             <button 
                                 onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'pen' }))}
