@@ -215,7 +215,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     }
 
     return (
-      <div key={date.toISOString()} className="w-full rounded border" style={{ borderColor: theme.border }}>
+      <div key={date.toISOString()} data-day-key={dayKey} className="w-full rounded border" style={{ borderColor: theme.border }}>
         <div className="p-2 border-b flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: isToday ? theme.primary : theme.accent }}>
           <span className="font-semibold text-sm flex items-center gap-1" style={{ color: isToday ? theme.textOnPrimary : theme.primaryDark }}>{isToday ? 'Today' : dayOfWeek}{allTasksCompleted && <span title="All tasks done">✓</span>}</span>
           <span 
