@@ -17,7 +17,8 @@ const emailTemplates = require('./emailTemplates');
 async function sendEmail(to, subject, html) {
   try {
     // Check if SendGrid is configured
-    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const functions = require('firebase-functions');
+    const sendgridApiKey = functions.config().sendgrid?.api_key;
     
     if (!sendgridApiKey) {
       logger.warn('⚠️ SendGrid not configured - email not sent');

@@ -580,6 +580,8 @@ export default function Dashboard() {
       penColor: t.penColor
     })));
     
+    console.log('📋 Task sorting - unchecked first:', combined.filter(t => !t.completed).length, 'unchecked,', combined.filter(t => t.completed).length, 'checked');
+    
     console.log('📋 TasksList will receive:', combined.length, 'tasks');
     setTodaysTasks(combined)
     setWashoutReminders(reminders);
@@ -656,7 +658,7 @@ export default function Dashboard() {
                 </button>
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
-            <div className="flex-1 overflow-y-auto max-h-96">
+            <div className="flex-1 overflow-y-auto max-h-96" style={{ maxHeight: '24rem' }}>
                 <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
             </div>
             {washoutReminders.length > 0 && (

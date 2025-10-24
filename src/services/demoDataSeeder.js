@@ -44,7 +44,7 @@ export async function seedDemoDataToCloud(userId, password) {
       _metadata: {
         isDemoData: true,
         seededAt: new Date().toISOString(),
-        version: '2.0', // Track demo data version
+        version: '2.1', // Track demo data version - streamlined
         itemCount: {
           vendors: MOCK_VENDORS.length,
           orders: MOCK_ORDERS.length,

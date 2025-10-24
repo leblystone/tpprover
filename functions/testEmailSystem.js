@@ -9,9 +9,7 @@ const emailService = require('./emailService');
  * Test function to verify email system is working
  * Call this from Firebase Console or client app
  */
-exports.testEmailSystem = onCall({
-  env: ['SENDGRID_API_KEY']
-}, async (request) => {
+exports.testEmailSystem = onCall(async (request) => {
   // Verify user is authenticated
   if (!request.auth) {
     throw new Error('User must be authenticated');

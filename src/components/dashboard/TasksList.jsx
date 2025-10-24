@@ -57,13 +57,13 @@ export default function TasksList({ tasks, theme, onToggle }) {
     const otherTasks = tasks.filter(t => t.time !== 'AM' && t.time !== 'PM');
 
     return (
-        <div className="space-y-2 overflow-hidden relative">
+        <div className="space-y-2 relative">
             {otherTasks.length > 0 && (
                 <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} />
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-3 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-3">
                 <TaskListSection title="AM" tasks={amTasks} theme={theme} onToggle={onToggle} />
-                <div className="mt-2 border-t pt-2 md:mt-0 md:border-t-0 md:border-l md:pl-3 overflow-hidden" style={{ borderColor: theme.border }}>
+                <div className="mt-2 border-t pt-2 md:mt-0 md:border-t-0 md:border-l md:pl-3" style={{ borderColor: theme.border }}>
                      <TaskListSection title="PM" tasks={pmTasks} theme={theme} onToggle={onToggle} />
                 </div>
             </div>
@@ -86,9 +86,9 @@ export default function TasksList({ tasks, theme, onToggle }) {
 const TaskListSection = ({ title, tasks, theme, onToggle }) => {
     if (!tasks || tasks.length === 0) return null;
     return (
-        <div className="overflow-hidden">
+        <div>
             <h4 className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>{title}</h4>
-            <ul className="space-y-1.5 overflow-hidden">
+            <ul className="space-y-1.5">
                 {tasks.map(task => (
                     <li key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
                         <div className="flex items-center gap-3 flex-1">
