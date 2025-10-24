@@ -90,6 +90,15 @@ function App() {
     // Add a small delay to ensure auth token and cloud data is loaded
     const checkWelcomeModal = async () => {
       try {
+        // Wait for initial data load to complete to prevent interference
+        const initialLoadInProgress = sessionStorage.getItem('tpp_initial_data_loading');
+        if (initialLoadInProgress === 'true') {
+          console.log('⏸️ Welcome modal check: Waiting for initial data load to complete');
+          // Retry after a short delay
+          setTimeout(checkWelcomeModal, 200);
+          return;
+        }
+        
         // Double check the session flag in case another render beat us here
         if (sessionStorage.getItem('tpp_welcome_shown') === 'true') {
           return;
@@ -117,11 +126,10 @@ function App() {
           // Show welcome for new users:
           // 1. User hasn't onboarded AND
           // 2. User is a Firebase user (authenticated) AND
-          // 3. Demo data hasn't been explicitly cleared AND
-          // 4. Modal hasn't been shown yet this session
+          // 3. Demo data hasn't been explicitly cleared
           if (!hasOnboarded && isFirebaseUser && !demoDataCleared) {
             console.log('🎉 Showing welcome modal!');
-            sessionStorage.setItem('tpp_welcome_shown', 'true');
+            // Don't set session flag here - let user dismiss the modal first
             setShowWelcome(true);
           } else {
             console.log('🎉 NOT showing welcome modal');
@@ -201,6 +209,8 @@ function App() {
 
   const handleCloseWelcome = async () => {
     setShowWelcome(false);
+    // Set session flag to prevent showing modal again this session
+    sessionStorage.setItem('tpp_welcome_shown', 'true');
     // Save to cloud storage
     if (user?.uid) {
       try {
@@ -216,6 +226,8 @@ function App() {
 
   const startTour = async () => {
     setShowWelcome(false);
+    // Set session flag to prevent showing modal again this session
+    sessionStorage.setItem('tpp_welcome_shown', 'true');
     // Save to cloud storage
     if (user?.uid) {
       try {

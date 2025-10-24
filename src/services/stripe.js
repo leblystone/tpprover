@@ -38,15 +38,31 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
 
     console.log('🔄 Creating Stripe checkout session...', { priceId, userEmail });
     
+    // Check if Functions are available
+    if (!functions) {
+      console.error('🚫 Firebase Functions not initialized');
+      throw new Error('Payment service not available. Please contact support.');
+    }
+    
     const createCheckoutSessionFn = httpsCallable(functions, 'createCheckoutSession');
     
-    const result = await createCheckoutSessionFn({
-      priceId,
-      userEmail,
-      userId,
-      successUrl: `${window.location.origin}/account?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${window.location.origin}/account`,
-    });
+    let result;
+    try {
+      result = await createCheckoutSessionFn({
+        priceId,
+        userEmail,
+        userId,
+        successUrl: `${window.location.origin}/account?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/account`,
+      });
+    } catch (funcError) {
+      // Check if this is a "function not deployed" error
+      if (funcError.code === 'functions/not-found' || funcError.message?.includes('INTERNAL') || funcError.message?.includes('not-found')) {
+        console.error('🚫 Firebase Functions not deployed:', funcError);
+        throw new Error('Payment service is currently unavailable. Please try again later or contact support at contact@thepepplanner.com');
+      }
+      throw funcError; // Re-throw other errors
+    }
 
 
     const stripe = await stripePromise;
@@ -90,8 +106,8 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
       errorMessage += 'You do not have permission. Please contact support.';
     } else if (error.message?.includes('not configured') || error.message?.includes('not initialized')) {
       errorMessage += 'Payment system is not set up. Please contact support at contact@thepepplanner.com';
-    } else if (error.code === 'functions/not-found') {
-      errorMessage += 'Payment service unavailable. Please contact support.';
+    } else if (error.code === 'functions/not-found' || error.message?.includes('not-found') || error.message?.includes('unavailable') || error.message?.includes('INTERNAL')) {
+      errorMessage = '⚠️ Payment service is currently unavailable. Please try again later or contact support at contact@thepepplanner.com';
     } else {
       errorMessage += 'Please try again or contact support.';
     }

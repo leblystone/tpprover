@@ -189,7 +189,6 @@ export default function Calendar() {
                       dose: s.dose
                     }],
                   }
-                  console.log(`✅ Added "${s.name}" (${s.delivery}) to ${slot} slot`);
                 }
               }
               next[key] = {

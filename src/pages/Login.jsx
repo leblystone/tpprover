@@ -604,12 +604,12 @@ export default function Login() {
           const seeded = await seedDemoDataToCloud(firebaseUser.uid, password);
           
           if (seeded) {
-            console.log('✅ Demo data seeded successfully to Firestore');
+            console.log('✅ Demo data seeded successfully (localStorage + Firestore)');
             
-            // Wait for Firestore to propagate (subscription + demo data)
-            console.log('⏱️ Waiting 2 seconds for Firestore to propagate...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            console.log('✅ Firestore propagation complete');
+            // Tiny delay for subscription to save (demo data loads instantly from localStorage)
+            console.log('⏱️ Waiting 100ms for subscription to save...');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('✅ Subscription saved');
           } else {
             console.warn('⚠️ Demo data seeding had issues');
           }

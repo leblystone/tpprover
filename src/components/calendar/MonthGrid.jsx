@@ -97,7 +97,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
     };
   }, []);
   
-  const days = getMonthDays(date)
+  const days = Array.isArray(getMonthDays(date)) ? getMonthDays(date) : [];
   const weeks = [];
   for (let i = 0; i < days.length; i += 7) {
       weeks.push(days.slice(i, i + 7));
@@ -119,7 +119,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
 
                 {week.map((d, i) => {
                     const key = d ? toKey(d) : ''
-                    const entryText = d && entries[key] ? entries[key].slice(0, 40) : ''
+                    const entryText = d && entries[key] ? (typeof entries[key] === 'string' ? entries[key].slice(0, 40) : String(entries[key]).slice(0, 40)) : ''
                     const sched = (d && scheduled[key]) || {}
                     const peptides = Array.from(new Set([
                         ...(sched.bySlot?.AM?.peptides || []), 

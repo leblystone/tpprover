@@ -41,6 +41,55 @@ export function AppProvider({ children }) {
     }, []);
     const [isClearingDemoData, setIsClearingDemoData] = useState(false);
     
+    // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
+    useEffect(() => {
+        console.log('⚡ Loading localStorage data immediately on mount');
+        
+        // Set flag to prevent welcome modal interference during initial load
+        sessionStorage.setItem('tpp_initial_data_loading', 'true');
+        
+        try {
+            const savedProtocols = localStorage.getItem('tpprover_protocols');
+            if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
+
+            const savedRecon = localStorage.getItem('tpprover_recon_items');
+            if (savedRecon) setReconItems(JSON.parse(savedRecon));
+            
+            const savedReconHistory = localStorage.getItem('tpprover_recon_history');
+            if (savedReconHistory) setReconHistory(JSON.parse(savedReconHistory));
+            
+            const savedSupplements = localStorage.getItem('tpprover_supplements');
+            if (savedSupplements) setSupplements(JSON.parse(savedSupplements));
+
+            const savedOrders = localStorage.getItem('tpprover_orders');
+            if (savedOrders) setOrders(JSON.parse(savedOrders));
+
+            const savedMetrics = localStorage.getItem('tpprover_metrics');
+            if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
+
+            const savedVendors = localStorage.getItem('tpprover_vendors');
+            if (savedVendors) setVendors(JSON.parse(savedVendors));
+            
+            const savedNotes = localStorage.getItem('tpprover_calendar_notes');
+            if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
+
+            const savedStockpile = localStorage.getItem('tpprover_stockpile');
+            if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
+
+            const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
+            if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
+            
+            console.log('⚡ localStorage data loaded instantly');
+        } catch (error) {
+            console.error('❌ Failed to load localStorage data on mount:', error);
+        } finally {
+            // Clear flag after 500ms to allow welcome modal to check
+            setTimeout(() => {
+                sessionStorage.removeItem('tpp_initial_data_loading');
+            }, 500);
+        }
+    }, []); // Run ONCE on mount, no dependencies
+    
     // Firebase sync integration
     const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase, syncToFirebase } = useFirebase();
 

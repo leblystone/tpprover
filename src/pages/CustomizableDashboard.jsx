@@ -278,14 +278,6 @@ export default function CustomizableDashboard() {
         console.warn('Failed to load autosaved data for protocol:', protocol.id);
       }
       
-      console.log('🔍 Processing protocol:', {
-        name: protocolData.protocolName,
-        id: protocolData.id,
-        peptides: protocolData.peptides?.length || 0,
-        firstPeptide: protocolData.peptides?.[0],
-        hasAutosavedData: protocolData !== protocol
-      });
-      
       const startDate = protocolData.startDate ? new Date(protocolData.startDate) : null;
       const endDate = protocolData.endDate ? new Date(protocolData.endDate) : null;
       
@@ -295,18 +287,6 @@ export default function CustomizableDashboard() {
       
       const peptides = Array.isArray(protocolData.peptides) ? protocolData.peptides : [];
       
-      // Debug: Log protocol data to see structure
-      console.log('🔍 CustomizableDashboard protocol:', {
-        id: protocolData.id,
-        name: protocolData.protocolName,
-        peptides: peptides.map(p => ({
-          name: p.name,
-          dosage: p.dosage,
-          frequency: p.frequency,
-          fullPeptide: p // Show the complete peptide object
-        }))
-      });
-      
       // Find matching recon item for this protocol (optional - for users who use recon calculator)
       // Try multiple matching strategies
       const reconItem = reconItems.find(r => {
@@ -315,15 +295,6 @@ export default function CustomizableDashboard() {
                r.name.startsWith(protocolData.protocolName) ||
                protocolData.protocolName.includes(r.name);
       });
-      
-      // Debug: Log recon item search
-      console.log('🔍 Recon item search debug:');
-      console.log('  Protocol Name:', protocolData.protocolName);
-      console.log('  Available Recon Items:', reconItems.length);
-      reconItems.forEach((r, i) => {
-        console.log(`    ${i}: ${r.name} - ${r.deliveryMethod} - ${r.penColor} - ${r.penType}`);
-      });
-      console.log('  Found Recon Item:', reconItem ? `${reconItem.name} - ${reconItem.deliveryMethod} - ${reconItem.penColor} - ${reconItem.penType}` : 'None');
       
       peptides.forEach((peptide, peptideIndex) => {
         const frequency = peptide.frequency || {};
@@ -355,14 +326,6 @@ export default function CustomizableDashboard() {
           const penType = reconItem?.penType || peptide.penType;
           const administrationRoute = reconItem?.administrationRoute || peptide.injectionType;
           
-          // Debug: Log the source of pen data
-          console.log('🖊️ Pen data source debug:');
-          console.log('  Protocol:', protocolData.protocolName);
-          console.log('  Peptide:', peptide.name);
-          console.log('  Recon Item Data:', reconItem ? `${reconItem.deliveryMethod} - ${reconItem.penColor} - ${reconItem.penType}` : 'None');
-          console.log('  Protocol Data:', `${peptide.deliveryMethod} - ${peptide.penColor} - ${peptide.penType}`);
-          console.log('  Final Values:', `${deliveryMethod} - ${penColor} - ${penType}`);
-          
           const task = {
             id: `protocol_${protocolData.id}_${peptideIndex}_${time}`,
             name: peptide.name || 'Unknown Peptide',
@@ -378,16 +341,6 @@ export default function CustomizableDashboard() {
             administrationRoute: administrationRoute,
             completed: false
           };
-          
-          // Debug: Log task being created
-          console.log('🔍 CustomizableDashboard creating task:');
-          console.log('  Name:', task.name);
-          console.log('  Dose:', task.dose);
-          console.log('  Unit:', task.unit);
-          console.log('  Delivery Method:', task.deliveryMethod);
-          console.log('  Pen Color:', task.penColor);
-          console.log('  Pen Type:', task.penType);
-          console.log('  Administration Route:', task.administrationRoute);
           
           // Generate stable task ID and check completion status
           const taskId = generateTaskId(task);

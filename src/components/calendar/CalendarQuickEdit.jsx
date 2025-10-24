@@ -290,7 +290,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
         }
         
         // Move to next injection task or finish
-        if (pendingInjectionTasks.length > 1) {
+        if (Array.isArray(pendingInjectionTasks) && pendingInjectionTasks.length > 1) {
             const remainingTasks = pendingInjectionTasks.slice(1);
             setPendingInjectionTasks(remainingTasks);
             setInjectionTask(remainingTasks[0]);

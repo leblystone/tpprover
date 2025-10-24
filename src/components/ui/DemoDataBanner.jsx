@@ -5,7 +5,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { useAppContext } from '../../context/AppContext';
 
 export default function DemoDataBanner({ theme, sticky = false }) {
-    const { user } = useAppContext();
+    const { user, refreshDataAfterClear } = useAppContext();
     const [isRemoving, setIsRemoving] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -19,14 +19,21 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         if (isRemoving) return;
 
         const confirmed = window.confirm(
-            'Are you sure you want to remove all demo data? This will clear all sample protocols, orders, vendors, and other demo content. This action cannot be undone.'
+            'Are you sure you want to remove all demo data? This will clear all sample protocols, orders, vendors, and other demo content. Your own entries will not be affected.'
         );
 
         if (!confirmed) return;
 
         setIsRemoving(true);
         try {
-            // Save flag to cloud storage (NOT localStorage)
+            // Clear demo data from localStorage (removes items with isMock: true)
+            clearMockData();
+            
+            // Set flags to prevent re-seeding and hide banner
+            localStorage.setItem('tpprover_demo_data_cleared', 'true');
+            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+            
+            // Save flag to cloud storage
             if (user?.uid) {
                 const { saveUserState, loadUserState } = await import('../../services/cloudStorage');
                 const currentState = await loadUserState(user.uid) || {};
@@ -34,8 +41,8 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                 console.log('☁️ Saved demo data cleared flag to cloud');
             }
             
-            // Clear demo data directly and trigger state refresh
-            clearMockData();
+            // CRITICAL: Refresh the React state from localStorage (like Settings page does)
+            refreshDataAfterClear();
 
             // Dispatch custom event for demo data clearing
             window.dispatchEvent(new CustomEvent('demo-data-cleared'));

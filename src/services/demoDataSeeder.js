@@ -25,7 +25,7 @@ import {
  */
 export async function seedDemoDataToCloud(userId, password) {
   try {
-    console.log('☁️ Seeding demo data to Firestore for user:', userId);
+    console.log('☁️ Seeding demo data (OPTIMISTIC: localStorage + Firestore)');
     
     // Create the demo dataset
     const demoData = {
@@ -58,11 +58,28 @@ export async function seedDemoDataToCloud(userId, password) {
     
     console.log('📊 Demo data prepared:', demoData._metadata.itemCount);
     
-    // Save to Firestore under user's userData collection (existing cloud storage)
+    // 🚀 OPTIMISTIC UI: Seed to localStorage FIRST for instant display on reload
+    try {
+      localStorage.setItem('tpprover_vendors', JSON.stringify(demoData.vendors));
+      localStorage.setItem('tpprover_orders', JSON.stringify(demoData.orders));
+      localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(demoData.scheduledBuys));
+      localStorage.setItem('tpprover_protocols', JSON.stringify(demoData.protocols));
+      localStorage.setItem('tpprover_supplements', JSON.stringify(demoData.supplements));
+      localStorage.setItem('tpprover_recon_items', JSON.stringify(demoData.reconItems));
+      localStorage.setItem('tpprover_metrics', JSON.stringify(demoData.metrics));
+      localStorage.setItem('tpprover_calendar_notes', JSON.stringify(demoData.calendarNotes));
+      localStorage.setItem('tpprover_stockpile', JSON.stringify(demoData.stockpile));
+      localStorage.setItem('tpprover_demo_seeded_at', new Date().toISOString());
+      console.log('⚡ Demo data seeded to localStorage for instant display');
+    } catch (localError) {
+      console.error('❌ Failed to seed to localStorage:', localError);
+    }
+    
+    // Save to Firestore under user's userData collection (for cloud backup)
     const userDataRef = doc(db, 'userData', userId);
     await setDoc(userDataRef, demoData, { merge: true });
     
-    console.log('✅ Demo data successfully seeded to Firestore');
+    console.log('✅ Demo data successfully seeded to Firestore (cloud backup)');
     console.log(`📦 Total items: ${Object.values(demoData._metadata.itemCount).reduce((a, b) => a + b, 0)}`);
     
     return true;
