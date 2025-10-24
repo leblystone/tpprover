@@ -134,6 +134,9 @@ function App() {
             setShowWelcome(true);
           } else {
             console.log('🎉 NOT showing welcome modal');
+            console.log('  hasOnboarded:', hasOnboarded);
+            console.log('  isFirebaseUser:', isFirebaseUser);
+            console.log('  demoDataCleared:', demoDataCleared);
           }
         }
       } catch (error) {
