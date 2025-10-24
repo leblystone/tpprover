@@ -55,6 +55,11 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
   useEffect(() => {
     setForceRender(prev => prev + 1);
   }, [calendarBump]);
+
+  // Force re-render when startDate changes (Today button navigation)
+  useEffect(() => {
+    setForceRender(prev => prev + 1);
+  }, [startDate]);
   
   // Listen for task completion events to sync with dashboard
   useEffect(() => {

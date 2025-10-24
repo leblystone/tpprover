@@ -17,11 +17,6 @@ export default function CalendarIconKey({ theme, isVisible, onClose }) {
 
     const iconItems = [
         {
-            icon: <div className="inline-flex relative"><Droplet className="h-4 w-4" /><Droplet className="h-4 w-4 -ml-1.5" /></div>,
-            label: 'Peptides',
-            description: 'Number indicates how many peptides scheduled'
-        },
-        {
             icon: getSupplementIcon('pill', 'h-4 w-4'),
             label: 'Oral Supplements',
             description: 'Pills, capsules, or oral medications'
@@ -32,38 +27,15 @@ export default function CalendarIconKey({ theme, isVisible, onClose }) {
             description: 'Injectable supplements or peptides'
         },
         {
-            icon: getSupplementIcon('powder', 'h-4 w-4'),
-            label: 'Powder/Research',
-            description: 'Powder forms or research compounds'
-        },
-        {
             icon: <ShoppingCart className="h-4 w-4" />,
             label: 'Orders & Buys',
             description: 'Scheduled purchases or group buys'
         },
         {
-            icon: <Target className="h-4 w-4" />,
-            label: 'Goals (Incomplete)',
-            description: 'Daily goals not yet completed',
-            color: 'warning'
-        },
-        {
-            icon: <CheckCircle className="h-4 w-4" />,
-            label: 'Goals (Complete)',
-            description: 'All daily goals completed',
-            color: 'success'
-        },
-        {
-            icon: <span className="text-xs font-bold px-1 py-0.5 rounded">W</span>,
+            icon: <span className="text-xs font-bold px-1.5 py-0.5 rounded border-2 border-gray-600 text-white bg-gray-600">W</span>,
             label: 'Washout Period',
             description: 'Protocol washout or break period',
             color: 'secondary'
-        },
-        {
-            icon: <span className="text-green-500 text-base">✓</span>,
-            label: 'All Done',
-            description: 'All tasks completed for the day',
-            color: 'success'
         }
     ];
 

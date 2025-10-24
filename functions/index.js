@@ -215,6 +215,94 @@ exports.sendTestNotification = onCall(async (request) => {
 // Test email system function
 exports.testEmailSystem = testEmailSystem.testEmailSystem;
 
+// Custom email verification function
+exports.sendCustomVerificationEmail = onCall(async (request) => {
+  // Verify user is authenticated
+  if (!request.auth) {
+    throw new Error('User must be authenticated');
+  }
+
+  const { userEmail } = request.data;
+  const userId = request.auth.uid;
+
+  logger.info(`📧 Sending custom verification email to: ${userEmail}`);
+
+  try {
+    // Generate a custom verification token
+    const verificationToken = require('crypto').randomBytes(32).toString('hex');
+    
+    // Store the token in Firestore with expiration (1 hour)
+    const tokenRef = admin.firestore().collection('verificationTokens').doc(verificationToken);
+    await tokenRef.set({
+      userId,
+      userEmail,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      used: false
+    });
+
+    // Send custom verification email via SendGrid
+    await emailService.sendCustomVerificationEmail(userEmail, verificationToken);
+    
+    logger.info(`✅ Custom verification email sent to: ${userEmail}`);
+    return { success: true, message: 'Verification email sent' };
+    
+  } catch (error) {
+    logger.error('❌ Failed to send custom verification email:', error);
+    throw new Error('Failed to send verification email');
+  }
+});
+
+// Verify email with custom token
+exports.verifyEmailWithToken = onCall(async (request) => {
+  const { token } = request.data;
+
+  if (!token) {
+    throw new Error('Verification token is required');
+  }
+
+  logger.info(`🔍 Verifying email with token: ${token}`);
+
+  try {
+    // Get the token from Firestore
+    const tokenRef = admin.firestore().collection('verificationTokens').doc(token);
+    const tokenDoc = await tokenRef.get();
+
+    if (!tokenDoc.exists) {
+      throw new Error('Invalid verification token');
+    }
+
+    const tokenData = tokenDoc.data();
+    
+    // Check if token is expired
+    if (new Date() > tokenData.expiresAt.toDate()) {
+      throw new Error('Verification token has expired');
+    }
+
+    // Check if token is already used
+    if (tokenData.used) {
+      throw new Error('Verification token has already been used');
+    }
+
+    // Mark token as used
+    await tokenRef.update({ used: true, usedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+    // Update user's email verification status in Firestore
+    const userRef = admin.firestore().collection('users').doc(tokenData.userId);
+    await userRef.update({ 
+      emailVerified: true,
+      emailVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    logger.info(`✅ Email verified for user: ${tokenData.userId}`);
+    return { success: true, message: 'Email verified successfully' };
+    
+  } catch (error) {
+    logger.error('❌ Failed to verify email:', error);
+    throw error;
+  }
+});
+
 // 📧 Email Functions
 
 // Send welcome email when new user is created
@@ -228,8 +316,26 @@ exports.onUserCreated = onDocumentCreated('users/{userId}', async (event) => {
     // Send welcome email
     await emailService.sendWelcomeEmail(userData.email, userData.displayName || null);
     logger.info(`✅ Welcome email sent to: ${userData.email}`);
+    
+    // Send custom verification email
+    const verificationToken = require('crypto').randomBytes(32).toString('hex');
+    
+    // Store the token in Firestore with expiration (1 hour)
+    const tokenRef = admin.firestore().collection('verificationTokens').doc(verificationToken);
+    await tokenRef.set({
+      userId,
+      userEmail: userData.email,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      used: false
+    });
+
+    // Send custom verification email via SendGrid
+    await emailService.sendCustomVerificationEmail(userData.email, verificationToken);
+    logger.info(`✅ Custom verification email sent to: ${userData.email}`);
+    
   } catch (error) {
-    logger.error('❌ Failed to send welcome email:', error);
+    logger.error('❌ Failed to send emails:', error);
     // Don't fail the function if email fails
   }
   

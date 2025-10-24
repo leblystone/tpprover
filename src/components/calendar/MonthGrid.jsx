@@ -80,7 +80,7 @@ function MetricIndicator({ metric, theme }) {
     return <div className="w-2 h-2 rounded-full" style={{ backgroundColor: indicatorColor }} title={`${metric.type}: ${metric.value}`} />;
 }
 
-export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayClick, theme, protocolTimelines = [], calendarBump = 0 }) {
+export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayClick, theme, protocolTimelines = [], calendarBump = 0, todayPulse = false }) {
   const [forceRender, setForceRender] = useState(0);
   
   // Listen for task completion events to force re-render
@@ -213,14 +213,15 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const simpleTaskNames = [...peptideNames, ...supplementNames].slice(0, 6);
 
                     return (
-                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] ${allTasksCompleted ? 'opacity-60' : ''}`} style={{ 
-                            borderColor: allTasksCompleted ? '#D1D5DB' : theme.border,
+                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] ${allTasksCompleted ? 'opacity-60' : ''} ${isToday && todayPulse ? 'animate-pulse' : ''}`} style={{ 
+                            borderColor: allTasksCompleted ? '#D1D5DB' : (isToday && todayPulse ? theme.primary : theme.border),
                             backgroundColor: d ? (
                                 isToday ? theme.primary + '15' :
                                 allTasksCompleted ? '#F3F4F6' : 
                                 hasActivity ? theme.primary + '05' :
                                 theme.cardBackground
-                            ) : 'transparent'
+                            ) : 'transparent',
+                            boxShadow: isToday && todayPulse ? `0 0 0 3px ${theme.primary}40` : 'none'
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             {/* Mobile-first layout */}
                             <div className="flex flex-col h-full relative">
@@ -307,7 +308,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                 {/* Washout indicator */}
                                 {sched.washout && sched.washout.length > 0 && (
                                     <div className="mt-1">
-                                        <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded" style={{backgroundColor: theme.secondary, color: theme.textLight}} title={`Washout: ${sched.washout.join(', ')}`}>
+                                        <span className="px-1.5 py-0.5 text-[8px] sm:text-[9px] rounded border-2 border-gray-600 text-white bg-gray-600 font-bold" title={`Washout: ${sched.washout.join(', ')}`}>
                                             W
                                         </span>
                                     </div>

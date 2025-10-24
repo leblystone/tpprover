@@ -165,17 +165,9 @@ export async function registerUser(email, password, inviteCode) {
     
     console.log('✅ Firebase Auth user created:', user.uid);
     
-    // Send email verification (non-blocking)
-    try {
-      await sendEmailVerification(user, {
-        url: window.location.origin + '/app/dashboard',
-        handleCodeInApp: false
-      });
-      console.log('📧 Verification email sent');
-    } catch (emailError) {
-      console.error('⚠️ Failed to send verification email:', emailError);
-      // Don't block registration if email fails
-    }
+    // DISABLED: Firebase automatic email verification (replaced with custom SendGrid emails)
+    // The onUserCreated Firebase Function will send a custom verification email via SendGrid
+    console.log('📧 Custom verification email will be sent via SendGrid');
     
     // Try to create user document in Firestore (non-blocking)
     const userData = {

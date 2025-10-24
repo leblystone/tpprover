@@ -147,6 +147,7 @@ export default function Calendar() {
   const [showIconKey, setShowIconKey] = useState(false);
   const [quickEditDate, setQuickEditDate] = useState(null);
   const [quickEditData, setQuickEditData] = useState(null);
+  const [todayPulse, setTodayPulse] = useState(false);
   // Load persisted notes (entries) and done slots
   useEffect(() => {
     try { const raw = localStorage.getItem('tpprover_calendar_notes'); if (raw) setEntries(JSON.parse(raw)) } catch {}
@@ -874,7 +875,12 @@ export default function Calendar() {
         weekStart={weekStart}
         onPrev={handlePrev}
         onNext={handleNext}
-        onToday={() => setCurrentDate(new Date())}
+        onToday={() => {
+          setCurrentDate(new Date());
+          setTodayPulse(true);
+          // Reset pulse after animation
+          setTimeout(() => setTodayPulse(false), 2000);
+        }}
         viewMode={viewMode}
         onChangeView={setViewMode}
         onShowIconKey={() => setShowIconKey(true)}
@@ -888,6 +894,7 @@ export default function Calendar() {
             scheduled={scheduled}
             theme={theme}
             calendarBump={calendarBump}
+            todayPulse={todayPulse}
             onDayClick={(d) => {
               if (!d) return
               // Check if the day has scheduled tasks - if so, open quick edit
