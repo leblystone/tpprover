@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pill, ShoppingCart, Target, CheckCircle, Beaker, Pipette } from 'lucide-react';
+import { Pill, ShoppingCart, Target, CheckCircle, Beaker, Pipette, Droplet } from 'lucide-react';
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-4 w-4") {

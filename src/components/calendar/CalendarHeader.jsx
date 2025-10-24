@@ -32,7 +32,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         {viewMode === 'month' && onShowIconKey && (
           <ModernTooltip text="Icon guide" position="bottom">
             <button onClick={onShowIconKey} className="p-2 rounded-full hover:bg-gray-100">
-              <HelpCircle className="h-5 w-5" style={{ color: theme.accent }} />
+              <HelpCircle className="h-5 w-5" style={{ color: theme.primaryDark }} />
             </button>
           </ModernTooltip>
         )}
@@ -58,7 +58,7 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
               {viewMode === 'month' && onShowIconKey && (
                 <ModernTooltip text="Icon guide" position="bottom">
                   <button onClick={onShowIconKey} className="p-1.5 rounded-full border" style={{ borderColor: theme.border }}>
-                    <HelpCircle className="h-4 w-4" style={{ color: theme.accent }} />
+                    <HelpCircle className="h-4 w-4" style={{ color: theme.primaryDark }} />
                   </button>
                 </ModernTooltip>
               )}
