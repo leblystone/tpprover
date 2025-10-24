@@ -645,7 +645,7 @@ export default function Dashboard() {
       <ViewContainer theme={theme} transparent noMinHeight>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-1 md:gap-2 mb-0 items-start">
           {/* Today's Research taking up 3/4 of the space */}
-          <div className="lg:col-span-3 p-2 rounded-xl content-card h-full flex flex-col" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
+          <div className="lg:col-span-3 p-2 rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
             <div className="flex justify-between items-center mb-1">
                 <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Today's Research</h3>
                 <button 
@@ -658,7 +658,7 @@ export default function Dashboard() {
                 </button>
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
-            <div className="max-h-48 overflow-y-auto pr-2">
+            <div className="max-h-48 overflow-y-auto pr-2" style={{ border: '2px solid red', minHeight: '200px' }}>
                 <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
             </div>
             {washoutReminders.length > 0 && (

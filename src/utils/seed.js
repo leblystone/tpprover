@@ -135,8 +135,8 @@ export const MOCK_PROTOCOLS = [
         id: 301,
         protocolName: 'Recovery & Healing Protocol',
         peptides: [
-            { name: 'BPC-157', dosage: { amount: '250', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } },
-            { name: 'TB-500', dosage: { amount: '2.5', unit: 'mg' }, frequency: { type: 'weekly', time: ['Monday', 'Thursday'] } }
+            { name: 'BPC-157', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } },
+            { name: 'TB-500', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', time: ['Monday', 'Thursday'] } }
         ],
         startDate: new Date().toISOString().slice(0, 10),
         duration: { count: '8', unit: 'week' },
@@ -149,8 +149,8 @@ export const MOCK_PROTOCOLS = [
         id: 302,
         protocolName: 'Weight Management Stack',
         peptides: [
-            { name: 'Semaglutide', dosage: { amount: '0.25', unit: 'mg' }, frequency: { type: 'weekly', time: ['Sunday'] } },
-            { name: 'Tirzepatide', dosage: { amount: '2.5', unit: 'mg' }, frequency: { type: 'weekly', time: ['Wednesday'] } }
+            { name: 'Semaglutide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', time: ['Sunday'] } },
+            { name: 'Tirzepatide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', time: ['Wednesday'] } }
         ],
         startDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
         duration: { count: '12', unit: 'week' },
@@ -163,8 +163,8 @@ export const MOCK_PROTOCOLS = [
         id: 303,
         protocolName: 'Longevity Research Protocol',
         peptides: [
-            { name: 'Epithalon', dosage: { amount: '10', unit: 'mg' }, frequency: { type: 'daily', time: ['Evening'] } },
-            { name: 'Thymalin', dosage: { amount: '10', unit: 'mg' }, frequency: { type: 'daily', time: ['Morning'] } }
+            { name: 'Epithalon', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['Evening'] } },
+            { name: 'Thymalin', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['Morning'] } }
         ],
         startDate: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10),
         duration: { count: '20', unit: 'day' },
@@ -177,8 +177,8 @@ export const MOCK_PROTOCOLS = [
         id: 304,
         protocolName: 'Cognitive Enhancement Stack',
         peptides: [
-            { name: 'Semax', dosage: { amount: '600', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning'] } },
-            { name: 'Selank', dosage: { amount: '500', unit: 'mcg' }, frequency: { type: 'daily', time: ['Afternoon'] } }
+            { name: 'Semax', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning'] } },
+            { name: 'Selank', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Afternoon'] } }
         ],
         startDate: new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10),
         duration: { count: '12', unit: 'week' },
@@ -191,8 +191,8 @@ export const MOCK_PROTOCOLS = [
         id: 305,
         protocolName: 'Growth Hormone Enhancement',
         peptides: [
-            { name: 'Ipamorelin', dosage: { amount: '200', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } },
-            { name: 'CJC-1295', dosage: { amount: '200', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } }
+            { name: 'Ipamorelin', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } },
+            { name: 'CJC-1295', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } }
         ],
         startDate: new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10),
         duration: { count: '6', unit: 'week' },
@@ -204,14 +204,14 @@ export const MOCK_PROTOCOLS = [
 ];
 
 export const MOCK_SUPPLEMENTS = [
-    { id: 401, name: 'Magnesium Glycinate', dose: '400mg', schedule: 'Nightly', notes: 'Sleep quality and muscle recovery', isMock: true },
-    { id: 402, name: 'Vitamin D3', dose: '5000 IU', schedule: 'Daily', notes: 'Immune support and bone health', isMock: true },
-    { id: 403, name: 'Omega-3 Fish Oil', dose: '1000mg', schedule: 'Twice Daily', notes: 'Anti-inflammatory and heart health', isMock: true },
-    { id: 404, name: 'NMN (Nicotinamide Mononucleotide)', dose: '250mg', schedule: 'Daily', notes: 'NAD+ precursor for longevity', isMock: true },
-    { id: 405, name: 'Creatine Monohydrate', dose: '5g', schedule: 'Daily', notes: 'Muscle strength and cognitive support', isMock: true },
-    { id: 406, name: 'Ashwagandha', dose: '600mg', schedule: 'Daily', notes: 'Stress reduction and cortisol management', isMock: true },
-    { id: 407, name: 'L-Theanine', dose: '200mg', schedule: 'Twice Daily', notes: 'Focus and calm without drowsiness', isMock: true },
-    { id: 408, name: 'Lions Mane Mushroom', dose: '1000mg', schedule: 'Daily', notes: 'Nerve growth factor support', isMock: true },
+    { id: 401, name: 'Magnesium Glycinate', dose: 'XXXmg', schedule: 'Nightly', notes: 'Sleep quality and muscle recovery', isMock: true },
+    { id: 402, name: 'Vitamin D3', dose: 'XXX IU', schedule: 'Daily', notes: 'Immune support and bone health', isMock: true },
+    { id: 403, name: 'Omega-3 Fish Oil', dose: 'XXXmg', schedule: 'Twice Daily', notes: 'Anti-inflammatory and heart health', isMock: true },
+    { id: 404, name: 'NMN (Nicotinamide Mononucleotide)', dose: 'XXXmg', schedule: 'Daily', notes: 'NAD+ precursor for longevity', isMock: true },
+    { id: 405, name: 'Creatine Monohydrate', dose: 'XXXg', schedule: 'Daily', notes: 'Muscle strength and cognitive support', isMock: true },
+    { id: 406, name: 'Ashwagandha', dose: 'XXXmg', schedule: 'Daily', notes: 'Stress reduction and cortisol management', isMock: true },
+    { id: 407, name: 'L-Theanine', dose: 'XXXmg', schedule: 'Twice Daily', notes: 'Focus and calm without drowsiness', isMock: true },
+    { id: 408, name: 'Lions Mane Mushroom', dose: 'XXXmg', schedule: 'Daily', notes: 'Nerve growth factor support', isMock: true },
 ];
 
 export const MOCK_RECON_ITEMS = [
@@ -219,7 +219,7 @@ export const MOCK_RECON_ITEMS = [
         id: 501,
         peptide: 'BPC-157',
         mg: 5,
-        dose: 250,
+        dose: 'XXX',
         vendor: 'Peptide Research Co',
         water: 2,
         deliveryMethod: 'syringe',
@@ -232,7 +232,7 @@ export const MOCK_RECON_ITEMS = [
         id: 502,
         peptide: 'TB-500',
         mg: 5,
-        dose: 2500,
+        dose: 'XXX',
         vendor: 'Peptide Research Co',
         water: 2,
         deliveryMethod: 'syringe',
@@ -245,7 +245,7 @@ export const MOCK_RECON_ITEMS = [
         id: 503,
         peptide: 'Semaglutide',
         mg: 5,
-        dose: 250,
+        dose: 'XXX',
         vendor: 'BioTech Solutions',
         water: 2,
         deliveryMethod: 'syringe',
@@ -258,7 +258,7 @@ export const MOCK_RECON_ITEMS = [
         id: 504,
         peptide: 'Ipamorelin',
         mg: 5,
-        dose: 200,
+        dose: 'XXX',
         vendor: 'Elite Bio Research',
         water: 2.5,
         deliveryMethod: 'syringe',
@@ -271,7 +271,7 @@ export const MOCK_RECON_ITEMS = [
         id: 505,
         peptide: 'CJC-1295',
         mg: 5,
-        dose: 200,
+        dose: 'XXX',
         vendor: 'Elite Bio Research',
         water: 2.5,
         deliveryMethod: 'syringe',
@@ -284,7 +284,7 @@ export const MOCK_RECON_ITEMS = [
         id: 506,
         peptide: 'Epithalon',
         mg: 10,
-        dose: 10,
+        dose: 'XXX',
         vendor: 'Research Labs Pro',
         water: 1,
         deliveryMethod: 'syringe',
@@ -297,7 +297,7 @@ export const MOCK_RECON_ITEMS = [
         id: 507,
         peptide: 'Semax',
         mg: 30,
-        dose: 600,
+        dose: 'XXX',
         vendor: 'Peptide Research Co',
         water: 3,
         deliveryMethod: 'nasal',
@@ -310,7 +310,7 @@ export const MOCK_RECON_ITEMS = [
         id: 508,
         peptide: 'Selank',
         mg: 30,
-        dose: 500,
+        dose: 'XXX',
         vendor: 'BioTech Solutions',
         water: 3,
         deliveryMethod: 'nasal',

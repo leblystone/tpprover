@@ -59,6 +59,32 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
   // Force re-render when startDate changes (Today button navigation)
   useEffect(() => {
     setForceRender(prev => prev + 1);
+    
+    // Scroll to today's day when startDate changes (Today button clicked)
+    const today = new Date();
+    const todayKey = toKey(today);
+    const weekDays = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+    
+    // Check if today is in this week
+    const isTodayInWeek = weekDays.some(day => toKey(day) === todayKey);
+    
+    if (isTodayInWeek) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        const todayElement = document.querySelector(`[data-day-key="${todayKey}"]`);
+        if (todayElement) {
+          todayElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+      }, 100);
+    }
   }, [startDate]);
   
   // Listen for task completion events to sync with dashboard
