@@ -39,6 +39,23 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                 const currentState = await loadUserState(user.uid) || {};
                 await saveUserState(user.uid, { ...currentState, demoDataCleared: true });
                 console.log('☁️ Saved demo data cleared flag to cloud');
+                
+                // Also sync the cleared data to cloud storage to ensure consistency
+                const { saveAppData } = await import('../../services/cloudStorage');
+                const clearedAppData = {
+                    protocols: JSON.parse(localStorage.getItem('tpprover_protocols') || '[]'),
+                    reconItems: JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]'),
+                    reconHistory: JSON.parse(localStorage.getItem('tpprover_recon_history') || '[]'),
+                    supplements: JSON.parse(localStorage.getItem('tpprover_supplements') || '[]'),
+                    orders: JSON.parse(localStorage.getItem('tpprover_orders') || '[]'),
+                    metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
+                    vendors: JSON.parse(localStorage.getItem('tpprover_vendors') || '[]'),
+                    calendarNotes: JSON.parse(localStorage.getItem('tpprover_calendar_notes') || '{}'),
+                    stockpile: JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'),
+                    scheduledBuys: JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]')
+                };
+                await saveAppData(user.uid, clearedAppData);
+                console.log('☁️ Synced cleared data to cloud storage');
             }
             
             // CRITICAL: Refresh the React state from localStorage (like Settings page does)

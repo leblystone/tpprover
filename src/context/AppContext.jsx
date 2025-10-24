@@ -146,6 +146,20 @@ export function AppProvider({ children }) {
                 // Check if user has data in cloud storage
                 const hasCloudData = await hasUserData(userId);
                 
+                // CRITICAL: Check if demo data was cleared on another platform
+                const userState = await loadUserState(userId);
+                const demoDataClearedInCloud = userState?.demoDataCleared === true;
+                const demoDataClearedLocally = localStorage.getItem('tpprover_demo_data_cleared') === 'true';
+                
+                if (demoDataClearedInCloud && !demoDataClearedLocally) {
+                    console.log('🔄 Demo data was cleared on another platform - syncing local data');
+                    // Clear demo data locally to match cloud state
+                    const { clearMockData } = await import('../utils/seed');
+                    clearMockData();
+                    localStorage.setItem('tpprover_demo_data_cleared', 'true');
+                    localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+                }
+                
                 if (!hasCloudData) {
                     // New user - decide between migrating existing local data vs fresh demo seed
                     const currentEmail = (firebaseUser.email || '').toLowerCase();
