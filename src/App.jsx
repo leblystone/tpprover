@@ -129,8 +129,7 @@ function App() {
           // 3. Demo data hasn't been explicitly cleared
           if (!hasOnboarded && isFirebaseUser && !demoDataCleared) {
             console.log('🎉 Showing welcome modal!');
-            // Set session flag immediately to prevent double modal after page reload
-            sessionStorage.setItem('tpp_welcome_shown', 'true');
+            // Don't set session flag here - let the modal component set it when actually displayed
             setShowWelcome(true);
           } else {
             console.log('🎉 NOT showing welcome modal');

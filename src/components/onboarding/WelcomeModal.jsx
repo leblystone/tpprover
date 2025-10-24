@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import logo from '../../assets/tpp-logo.png';
 
 export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
+    // Set session flag when modal is actually displayed
+    useEffect(() => {
+        if (open) {
+            console.log('🎉 Welcome modal displayed - setting session flag');
+            sessionStorage.setItem('tpp_welcome_shown', 'true');
+        }
+    }, [open]);
+
     if (!open) return null;
 
     return (
