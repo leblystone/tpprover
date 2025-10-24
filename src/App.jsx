@@ -129,7 +129,8 @@ function App() {
           // 3. Demo data hasn't been explicitly cleared
           if (!hasOnboarded && isFirebaseUser && !demoDataCleared) {
             console.log('🎉 Showing welcome modal!');
-            // Don't set session flag here - let user dismiss the modal first
+            // Set session flag immediately to prevent double modal after page reload
+            sessionStorage.setItem('tpp_welcome_shown', 'true');
             setShowWelcome(true);
           } else {
             console.log('🎉 NOT showing welcome modal');
@@ -209,8 +210,7 @@ function App() {
 
   const handleCloseWelcome = async () => {
     setShowWelcome(false);
-    // Set session flag to prevent showing modal again this session
-    sessionStorage.setItem('tpp_welcome_shown', 'true');
+    // Session flag already set when modal was shown - no need to set again
     // Save to cloud storage
     if (user?.uid) {
       try {
@@ -226,8 +226,7 @@ function App() {
 
   const startTour = async () => {
     setShowWelcome(false);
-    // Set session flag to prevent showing modal again this session
-    sessionStorage.setItem('tpp_welcome_shown', 'true');
+    // Session flag already set when modal was shown - no need to set again
     // Save to cloud storage
     if (user?.uid) {
       try {
