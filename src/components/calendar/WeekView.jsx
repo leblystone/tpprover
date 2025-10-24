@@ -39,7 +39,7 @@ function DeliveryIndicator({ item, theme }) {
             <div 
                 className="w-5 h-5 rounded-md flex items-center justify-center" 
                 style={{ backgroundColor: theme.secondary }}
-                title="Pipette"
+                title="Syringe"
             >
                 <Pipette size={12} style={{ color: theme.textLight }} />
             </div>

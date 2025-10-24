@@ -168,7 +168,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                         borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.border
                                     }}
                                 >
-                                    <Pipette size={16} /> Pipette
+                                    <Pipette size={16} /> Syringe
                                 </button>
                                 <button 
                                     type="button"

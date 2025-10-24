@@ -98,7 +98,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                     {method === 'pen' ? <Pen size={14} className="mt-0.5 flex-shrink-0" /> : <Pipette size={14} className="mt-0.5 flex-shrink-0" />}
                                     <div className="flex flex-col gap-1">
                                         <span className="text-sm font-medium">
-                                            {method === 'pen' ? 'Pen Delivery' : 'Pipette Delivery'}
+                                            {method === 'pen' ? 'Pen Delivery' : 'Syringe Delivery'}
                                         </span>
                                         {method === 'pen' && penPeptides.map((pep, idx) => (
                                             <div key={idx} className="flex items-center gap-2 text-xs">

@@ -87,6 +87,48 @@ export default function Recon() {
 
 	const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
 
+	// Helper functions to extract data from editing item
+	const getEditingPeptideName = () => {
+		if (!editingItem) return draft.peptide || '';
+		if (editingItem.peptide) return editingItem.peptide;
+		if (Array.isArray(editingItem.peptides) && editingItem.peptides.length > 0) {
+			return editingItem.peptides.map(p => p.name || 'Unnamed').join(' + ');
+		}
+		return '';
+	};
+
+	const getEditingMg = () => {
+		if (!editingItem) return draft.mg || '';
+		if (editingItem.mg) return editingItem.mg;
+		if (Array.isArray(editingItem.peptides) && editingItem.peptides.length > 0) {
+			return editingItem.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
+		}
+		return '';
+	};
+
+	const getEditingDose = () => {
+		if (!editingItem) return draft.dose || '';
+		if (editingItem.dose) return editingItem.dose;
+		if (Array.isArray(editingItem.peptides) && editingItem.peptides.length > 0) {
+			return editingItem.peptides.reduce((sum, p) => {
+				const dose = Number(p.dose) || 0;
+				return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
+			}, 0);
+		}
+		return '';
+	};
+
+	const getEditingDoseUnit = () => {
+		if (!editingItem) return draft.doseUnit || 'mcg';
+		if (editingItem.doseUnit) return editingItem.doseUnit;
+		if (Array.isArray(editingItem.peptides) && editingItem.peptides.length > 0) {
+			// If all peptides use the same unit, return that unit, otherwise default to mcg
+			const units = [...new Set(editingItem.peptides.map(p => p.doseUnit || 'mcg'))];
+			return units.length === 1 ? units[0] : 'mcg';
+		}
+		return 'mcg';
+	};
+
 	const filteredItems = reconItems.filter(i => {
 		const vendorName = i.vendorId ? vendorMap[i.vendorId] || '' : (i.vendor || '');
 		return (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || vendorName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -395,7 +437,7 @@ export default function Recon() {
 												) : (
                                                     <div className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.text }}>
                                                         <Pipette size={12} />
-                                                        <span>Pipette</span>
+                                                        <span>Syringe</span>
                                                     </div>
                                                 )}
 											</div>
@@ -489,7 +531,7 @@ export default function Recon() {
                         <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VIAL DETAILS</h4>
                     </div>
 
-                    <TextInput label="Peptide Name" value={editingItem?.peptide || draft.peptide || ''} onChange={v => { setEditingItem(i => ({ ...i, peptide: v })); updateFormData({ peptide: v }); }} theme={theme} />
+                    <TextInput label="Peptide Name" value={getEditingPeptideName()} onChange={v => { setEditingItem(i => ({ ...i, peptide: v })); updateFormData({ peptide: v }); }} theme={theme} />
                     <VendorSuggestInput 
                         label="Vendor" 
                         value={editingItem?.vendorId ? vendorMap[editingItem.vendorId] : (editingItem?.vendor || draft.vendor || '')} 
@@ -502,7 +544,7 @@ export default function Recon() {
                     />
                     {/* mg and water in one row */}
                     <div className="grid grid-cols-2 gap-3">
-                        <TextInput label="mg" type="number" value={editingItem?.mg || draft.mg || ''} onChange={v => { setEditingItem(i => ({ ...i, mg: v })); updateFormData({ mg: v }); }} theme={theme} />
+                        <TextInput label="mg" type="number" value={getEditingMg()} onChange={v => { setEditingItem(i => ({ ...i, mg: v })); updateFormData({ mg: v }); }} theme={theme} />
                         <TextInput label="Water (mL)" type="number" value={editingItem?.water || draft.water || ''} onChange={v => { setEditingItem(i => ({ ...i, water: v })); updateFormData({ water: v }); }} theme={theme} />
                     </div>
                     
@@ -515,7 +557,7 @@ export default function Recon() {
                         >
                             <input 
                                 type="number"
-                                value={editingItem?.dose || draft.dose || ''} 
+                                value={getEditingDose()} 
                                 onChange={e => { 
                                     setEditingItem(i => ({ ...i, dose: e.target.value })); 
                                     updateFormData({ dose: e.target.value }); 
@@ -543,11 +585,11 @@ export default function Recon() {
                                             updateFormData({ doseUnit: unit }); 
                                         }}
                                         className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                                            (editingItem?.doseUnit || 'mcg') === unit 
+                                            getEditingDoseUnit() === unit 
                                                 ? 'text-white shadow-sm' 
                                                 : 'text-gray-600 hover:bg-gray-200'
                                         }`}
-                                        style={(editingItem?.doseUnit || 'mcg') === unit ? { backgroundColor: theme.primary } : {}}
+                                        style={getEditingDoseUnit() === unit ? { backgroundColor: theme.primary } : {}}
                                     >
                                         {unit}
                                     </button>
@@ -711,7 +753,7 @@ export default function Recon() {
 							<div><div className="text-xs" style={{ color: theme.textLight }}>mg</div><div className="font-medium">{viewItem.mg}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Water (mL)</div><div className="font-medium">{viewItem.water}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Dose (mcg)</div><div className="font-medium">{viewItem.dose}</div></div>
-							<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Pipette'}</div></div>
+							<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Syringe'}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Units</div><div>{calc.unitsPerDose ? `${calc.unitsPerDose.toFixed(0)} u` : '-'}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Doses/Vial</div><div>{calc.dosesPerVial || '-'}</div></div>
 							<div><div className="text-xs" style={{ color: theme.textLight }}>Cost/Dose</div><div>{costPerDose || '-'}</div></div>

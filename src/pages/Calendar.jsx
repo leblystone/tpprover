@@ -459,7 +459,7 @@ export default function Calendar() {
                       const currentSlot = obj[normalizedTimeSlot] || { peptides: [], supplements: [] }
                       let deliveryInfo = '';
                       if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
-                      if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Pipette)';
+                      if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Syringe)';
                       const peptideName = `${p.protocolName || 'Blended Protocol'}${doseDisplay}${deliveryInfo}`;
                       // For blended protocols, we'll use the first peptide's dose info
                       const firstPeptide = getNormalizedPeptides(p)[0];
@@ -555,7 +555,7 @@ export default function Calendar() {
 
                               let deliveryInfo = '';
                               if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
-                              if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Pipette)';
+                              if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Syringe)';
 
                               const peptideName = `${pep.name || 'Peptide'} - ${doseInfo}${deliveryInfo}`;
                               // Parse dose and unit from doseInfo

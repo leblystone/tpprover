@@ -272,7 +272,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                         borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border
                     }}
                 >
-                    <Pipette size={14} /> Pipette
+                    <Pipette size={14} /> Syringe
                 </button>
                 <button 
                     onClick={() => {
