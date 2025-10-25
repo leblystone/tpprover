@@ -57,10 +57,32 @@ export default function TasksList({ tasks, theme, onToggle }) {
         return <p className="text-xs text-center py-3" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
 
+    // Smart timestamping logic: 2am-1:59pm shows AM, 2pm-1:59am shows PM
+    // NOTE: This is ONLY for task list display - does not affect underlying data or calendar sync
+    const getCurrentTimeSlot = () => {
+        const now = new Date();
+        const hour = now.getHours();
+        // 2am (2) to 1:59pm (13) = AM time
+        // 2pm (14) to 1:59am (1) = PM time
+        return (hour >= 2 && hour <= 13) ? 'AM' : 'PM';
+    };
 
-    const amTasks = tasks.filter(t => t.time === 'AM');
-    const pmTasks = tasks.filter(t => t.time === 'PM');
-    const otherTasks = tasks.filter(t => t.time !== 'AM' && t.time !== 'PM');
+    const currentTimeSlot = getCurrentTimeSlot();
+    
+    // Filter tasks based on current time slot
+    const currentTasks = tasks.filter(t => {
+        if (t.time === currentTimeSlot) return true;
+        if (t.scheduledTimes && t.scheduledTimes.includes(currentTimeSlot)) return true;
+        if (t.time && t.time.includes(currentTimeSlot)) return true;
+        return false;
+    });
+    
+    const otherTasks = tasks.filter(t => {
+        if (t.time === currentTimeSlot) return false;
+        if (t.scheduledTimes && t.scheduledTimes.includes(currentTimeSlot)) return false;
+        if (t.time && t.time.includes(currentTimeSlot)) return false;
+        return t.time !== 'AM' && t.time !== 'PM';
+    });
 
     return (
         <div className="space-y-2 relative">
@@ -68,23 +90,19 @@ export default function TasksList({ tasks, theme, onToggle }) {
                 <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} />
             )}
             
-            {amTasks.length > 0 && (
+            {currentTasks.length > 0 && (
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium text-gray-500">AM</span>
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ 
+                            backgroundColor: theme.primary + '20', 
+                            color: theme.primary 
+                        }}>
+                            {currentTimeSlot} ({currentTimeSlot === 'AM' ? '2am-1:59pm' : '2pm-1:59am'})
+                        </span>
                         <div className="flex-1 h-px bg-gray-200"></div>
                     </div>
-                    <TaskListSection tasks={amTasks} theme={theme} onToggle={onToggle} />
-                </div>
-            )}
-            
-            {pmTasks.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium text-gray-500">PM</span>
-                        <div className="flex-1 h-px bg-gray-200"></div>
-                    </div>
-                    <TaskListSection tasks={pmTasks} theme={theme} onToggle={onToggle} />
+                    <div className="mb-4"></div> {/* Line break between header and tasks */}
+                    <TaskListSection tasks={currentTasks} theme={theme} onToggle={onToggle} />
                 </div>
             )}
             
