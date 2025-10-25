@@ -373,7 +373,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                 )}
                                                 {peptide.frequency && (
                                                     <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                        {peptide.frequency.type === 'daily' ? 'Daily' : 
+                                                        {peptide.frequency.type === 'daily' ? 
+                                                         (peptide.frequency.time && Array.isArray(peptide.frequency.time) && peptide.frequency.time.length > 0 ? 
+                                                          `Daily (${peptide.frequency.time.join(', ')})` : 'Daily') :
                                                          peptide.frequency.type === 'weekly' ? `Weekly (${peptide.frequency.days?.join(', ') || ''})` :
                                                          peptide.frequency.type === 'cycle' ? `Cycle: ${peptide.frequency.onDays} on / ${peptide.frequency.offDays} off` :
                                                          'Custom'}

@@ -11,6 +11,9 @@ const SchedulingPreview = ({ protocol, theme }) => {
     
     switch (frequency.type) {
       case 'daily':
+        if (frequency.time && Array.isArray(frequency.time) && frequency.time.length > 0) {
+          return `Every day (${frequency.time.join(', ')})`;
+        }
         return 'Every day';
       case 'weekly':
         const days = frequency.days || [];
