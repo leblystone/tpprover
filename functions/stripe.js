@@ -1,26 +1,19 @@
 const {onCall} = require("firebase-functions/v2/https");
-const {defineSecret} = require("firebase-functions/params");
-const functions = require("firebase-functions");
 
-// Use Firebase config for Stripe secret key (supports both old and new config)
-let STRIPE_SECRET_KEY;
-try {
-  // Try new environment variable first (v2 functions)
-  STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-  
-  // Fall back to Firebase config (v1 functions) - use live key for production
-  if (!STRIPE_SECRET_KEY) {
-    const config = functions.config();
-    STRIPE_SECRET_KEY = config.stripe?.key || config.stripe?.secret || "sk_test_fallback_key";
-  }
-} catch (error) {
-  console.error("⚠️ Error loading Stripe key:", error);
-  STRIPE_SECRET_KEY = "sk_test_fallback_key";
+// Load environment variables from .env file (Firebase Functions v2)
+require('dotenv').config();
+
+// Use environment variable for Stripe secret key (v2 functions)
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+
+if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY === 'sk_test_fallback_key') {
+  console.error("❌ STRIPE_SECRET_KEY not found in environment variables!");
+  console.error("Please create functions/.env file with STRIPE_SECRET_KEY");
+} else {
+  console.log("✅ Stripe key loaded:", STRIPE_SECRET_KEY.substring(0, 20) + "...");
 }
 
-console.log("🔑 Stripe key loaded:", STRIPE_SECRET_KEY ? STRIPE_SECRET_KEY.substring(0, 20) + "..." : "❌ MISSING");
-
-const stripe = require("stripe")(STRIPE_SECRET_KEY);
+const stripe = require("stripe")(STRIPE_SECRET_KEY || "sk_test_fallback_key");
 
 // Create Stripe Checkout Session
 exports.createCheckoutSession = onCall(
