@@ -29,9 +29,9 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
         priceId = STRIPE_CONFIG.prices.lifetime;
       }
 
-      // Close modal and redirect to Stripe checkout immediately
+      // Close modal and redirect to Stripe checkout immediately - return to dashboard
       onClose();
-      await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+      await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user', '/dashboard');
       
       // Reset processing state
       setIsProcessing(false);

@@ -8,9 +8,10 @@ import { functions } from '../config/firebase.js';
  * @param {string} priceId - Stripe price ID
  * @param {string} userEmail - User's email
  * @param {string} userId - User's ID for metadata
+ * @param {string} returnPath - Path to return to after checkout (default: '/account')
  * @returns {Promise<void>}
  */
-export async function createCheckoutSession(priceId, userEmail, userId) {
+export async function createCheckoutSession(priceId, userEmail, userId, returnPath = '/account') {
   try {
     // Check if Stripe is configured
     if (!STRIPE_CONFIG.publishableKey || STRIPE_CONFIG.publishableKey === 'undefined') {
@@ -46,14 +47,17 @@ export async function createCheckoutSession(priceId, userEmail, userId) {
     
     const createCheckoutSessionFn = httpsCallable(functions, 'createCheckoutSession');
     
+    // Ensure returnPath starts with /
+    const normalizedPath = returnPath.startsWith('/') ? returnPath : `/${returnPath}`;
+    
     let result;
     try {
       result = await createCheckoutSessionFn({
         priceId,
         userEmail,
         userId,
-        successUrl: `${window.location.origin}/account?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/account`,
+        successUrl: `${window.location.origin}${normalizedPath}?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}${normalizedPath}`,
       });
     } catch (funcError) {
       // Check if this is a "function not deployed" error

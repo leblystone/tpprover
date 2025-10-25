@@ -399,6 +399,9 @@ export function AppProvider({ children }) {
                         localStorage.setItem('tpprover_user', JSON.stringify(userProfile));
                         localStorage.setItem('tpprover_last_user_email', userProfile.email);
                         
+                        // Set parsedUser for use below (CRITICAL: must be set before isNewUser check)
+                        parsedUser = userProfile;
+                        
                         // Check if user needs initial agreement data (for existing users only)
                         // Only run migration for users who don't have agreement data AND are not new signups
                         if (!hasAnyAgreementData()) {
@@ -417,7 +420,6 @@ export function AppProvider({ children }) {
                                 console.log('📝 New user detected, skipping migration - agreements should be recorded during signup');
                             }
                         }
-                        parsedUser = userProfile; // Use the newly created profile for isNewUser check below
                     }
                     
                     // Try to load data from Firebase if user has password set

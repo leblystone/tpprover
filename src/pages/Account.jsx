@@ -492,8 +492,8 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
             priceId = STRIPE_CONFIG.prices.lifetime;
           }
 
-          // Always redirect to Stripe checkout, even for demo users
-          await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+          // Always redirect to Stripe checkout, even for demo users - return to account page
+          await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user', '/account');
           
         } catch (error) {
           console.error('Subscription creation error:', error);
@@ -922,7 +922,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                         style={{ borderColor: sub?.interval === 'month' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={async () => {
                           try {
-                            await createCheckoutSession(STRIPE_CONFIG.prices.monthly, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                            await createCheckoutSession(STRIPE_CONFIG.prices.monthly, user?.email || 'demo@example.com', user?.uid || 'demo_user', '/account');
                           } catch (error) {
                             console.error('Stripe checkout error:', error);
                           }
@@ -959,7 +959,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                         style={{ borderColor: sub?.interval === 'year' ? '#A3B18A' : '#D4D7CD' }}
                         onClick={async () => {
                           try {
-                            await createCheckoutSession(STRIPE_CONFIG.prices.annual, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                            await createCheckoutSession(STRIPE_CONFIG.prices.annual, user?.email || 'demo@example.com', user?.uid || 'demo_user', '/account');
                           } catch (error) {
                             console.error('Stripe checkout error:', error);
                           }
@@ -1267,7 +1267,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                         style={{ borderColor: '#D4D7CD' }}
                         onClick={async () => {
                           try {
-                            await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+                            await createCheckoutSession(STRIPE_CONFIG.prices.lifetime, user?.email || 'demo@example.com', user?.uid || 'demo_user', '/account');
                           } catch (error) {
                             console.error('Stripe checkout error:', error);
                           }
