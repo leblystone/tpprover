@@ -43,9 +43,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
         scheduledData,
         bySlot: scheduledData?.bySlot,
         amSlot: scheduledData?.bySlot?.AM,
-        pmSlot: scheduledData?.bySlot?.PM,
-        morningSlot: scheduledData?.bySlot?.Morning,
-        eveningSlot: scheduledData?.bySlot?.Evening
+        pmSlot: scheduledData?.bySlot?.PM
     });
 
     // Listen for task completion events to force re-render

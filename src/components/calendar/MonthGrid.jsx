@@ -126,20 +126,14 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const sched = (d && scheduled[key]) || {}
                     const peptides = Array.from(new Set([
                         ...(sched.bySlot?.AM?.peptides || []), 
-                        ...(sched.bySlot?.PM?.peptides || []),
-                        // Legacy support
-                        ...(sched.bySlot?.Morning?.peptides || []), 
-                        ...(sched.bySlot?.Evening?.peptides || [])
+                        ...(sched.bySlot?.PM?.peptides || [])
                     ]))
                     const peptideCount = peptides.length
                     const suppCount = sched.supplements?.length || 0
                     // Get all supplements from bySlot to determine delivery methods
                     const allSupplements = [
                         ...(sched.bySlot?.AM?.supplements || []),
-                        ...(sched.bySlot?.PM?.supplements || []),
-                        // Legacy support
-                        ...(sched.bySlot?.Morning?.supplements || []),
-                        ...(sched.bySlot?.Evening?.supplements || [])
+                        ...(sched.bySlot?.PM?.supplements || [])
                     ];
                     // Get unique delivery methods for icon display
                     const deliveryMethods = [...new Set(allSupplements.map(s => typeof s === 'object' ? s.delivery : 'oral'))];

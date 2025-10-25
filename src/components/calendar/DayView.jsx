@@ -93,13 +93,13 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
   }, [date])
   const classifyTime = (label) => {
     const s = String(label || '').toLowerCase()
-    if (s.includes('pm') || s.includes('evening') || s.includes('night') || s.includes('afternoon')) return 'evening'
-    return 'morning'
+    if (s.includes('pm') || s.includes('evening') || s.includes('night') || s.includes('afternoon')) return 'PM'
+    return 'AM'
   }
-  const morningItems = []
-  const eveningItems = []
-  for (const p of dayDetails.protocols) (classifyTime(p.time) === 'morning' ? morningItems : eveningItems).push({ type: 'protocol', name: p.name, time: p.time })
-  for (const s of dayDetails.supplements) (classifyTime(s.time) === 'morning' ? morningItems : eveningItems).push({ type: 'supplement', name: s.name, time: s.time })
+  const amItems = []
+  const pmItems = []
+  for (const p of dayDetails.protocols) (classifyTime(p.time) === 'AM' ? amItems : pmItems).push({ type: 'protocol', name: p.name, time: p.time })
+  for (const s of dayDetails.supplements) (classifyTime(s.time) === 'AM' ? amItems : pmItems).push({ type: 'supplement', name: s.name, time: s.time })
 
   return (
     <Modal open={open} onClose={onClose} title={`Day • ${title}`} theme={theme} footer={(

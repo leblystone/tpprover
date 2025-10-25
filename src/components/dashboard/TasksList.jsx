@@ -71,9 +71,16 @@ export default function TasksList({ tasks, theme, onToggle }) {
     
     // Filter tasks based on current time slot
     const currentTasks = tasks.filter(t => {
+        // Handle single time slot
         if (t.time === currentTimeSlot) return true;
+        
+        // Handle multi-time tasks
         if (t.scheduledTimes && t.scheduledTimes.includes(currentTimeSlot)) return true;
         if (t.time && t.time.includes(currentTimeSlot)) return true;
+        
+        // Handle 'daily' or undefined schedule - default to AM
+        if ((!t.time || t.time === 'daily' || t.time === 'Daily') && currentTimeSlot === 'AM') return true;
+        
         return false;
     });
     

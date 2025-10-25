@@ -234,7 +234,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
                     <div className="text-xs font-semibold mb-1" style={{ color: theme.textLight }}>AM</div>
                     <SlotContent 
-                        scheduled={dayScheduled?.bySlot?.AM || dayScheduled?.bySlot?.Morning} 
+                        scheduled={dayScheduled?.bySlot?.AM} 
                         theme={theme} 
                         date={date}
                         timeSlot="AM"
@@ -247,7 +247,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                     <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
                         <div className="text-xs font-semibold mb-1" style={{ color: theme.textLight }}>PM</div>
                         <SlotContent 
-                            scheduled={dayScheduled?.bySlot?.PM || dayScheduled?.bySlot?.Evening} 
+                            scheduled={dayScheduled?.bySlot?.PM} 
                             theme={theme} 
                             date={date}
                             timeSlot="PM"

@@ -74,49 +74,6 @@ export default function MonthModal({
           }
         }
         
-        // Legacy Morning tasks (mapped to AM)
-        if (dayScheduled.bySlot.Morning) {
-          if (dayScheduled.bySlot.Morning.peptides?.length > 0) {
-            dayScheduled.bySlot.Morning.peptides.forEach((p, i) => {
-              const task = {
-                name: typeof p === 'object' ? p.name : p,
-                dose: typeof p === 'object' ? p.dose : '',
-                unit: typeof p === 'object' ? p.unit : '',
-                type: 'peptide',
-                time: 'AM',
-                delivery: typeof p === 'object' ? p.delivery : 'injection',
-                deliveryMethod: typeof p === 'object' ? p.deliveryMethod : 'injection',
-                penColor: typeof p === 'object' ? p.penColor : undefined,
-                penType: typeof p === 'object' ? p.penType : undefined
-              };
-              tasks.push({
-                ...task,
-                date: currentDate,
-                dateKey: dateKey,
-                timeSlot: 'AM'
-              });
-            });
-          }
-          
-          if (dayScheduled.bySlot.Morning.supplements?.length > 0) {
-            dayScheduled.bySlot.Morning.supplements.forEach((s, i) => {
-              const task = {
-                name: typeof s === 'object' ? s.name : s,
-                dose: typeof s === 'object' ? s.dose : '',
-                unit: typeof s === 'object' ? s.unit : '',
-                type: 'supplement',
-                time: 'AM',
-                delivery: typeof s === 'object' ? s.delivery : 'oral'
-              };
-              tasks.push({
-                ...task,
-                date: currentDate,
-                dateKey: dateKey,
-                timeSlot: 'AM'
-              });
-            });
-          }
-        }
         
         // PM tasks
         if (dayScheduled.bySlot.PM) {
@@ -162,49 +119,6 @@ export default function MonthModal({
           }
         }
         
-        // Legacy Evening tasks (mapped to PM)
-        if (dayScheduled.bySlot.Evening) {
-          if (dayScheduled.bySlot.Evening.peptides?.length > 0) {
-            dayScheduled.bySlot.Evening.peptides.forEach((p, i) => {
-              const task = {
-                name: typeof p === 'object' ? p.name : p,
-                dose: typeof p === 'object' ? p.dose : '',
-                unit: typeof p === 'object' ? p.unit : '',
-                type: 'peptide',
-                time: 'PM',
-                delivery: typeof p === 'object' ? p.delivery : 'injection',
-                deliveryMethod: typeof p === 'object' ? p.deliveryMethod : 'injection',
-                penColor: typeof p === 'object' ? p.penColor : undefined,
-                penType: typeof p === 'object' ? p.penType : undefined
-              };
-              tasks.push({
-                ...task,
-                date: currentDate,
-                dateKey: dateKey,
-                timeSlot: 'PM'
-              });
-            });
-          }
-          
-          if (dayScheduled.bySlot.Evening.supplements?.length > 0) {
-            dayScheduled.bySlot.Evening.supplements.forEach((s, i) => {
-              const task = {
-                name: typeof s === 'object' ? s.name : s,
-                dose: typeof s === 'object' ? s.dose : '',
-                unit: typeof s === 'object' ? s.unit : '',
-                type: 'supplement',
-                time: 'PM',
-                delivery: typeof s === 'object' ? s.delivery : 'oral'
-              };
-              tasks.push({
-                ...task,
-                date: currentDate,
-                dateKey: dateKey,
-                timeSlot: 'PM'
-              });
-            });
-          }
-        }
       }
     }
     
