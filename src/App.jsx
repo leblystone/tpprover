@@ -150,8 +150,8 @@ function App() {
   }, [user]);
 
   useEffect(() => {
-    const bannerDismissed = localStorage.getItem('tpprover_demo_banner_dismissed');
-    const dataCleared = localStorage.getItem('tpprover_demo_data_cleared');
+    const bannerDismissed = localStorage.getItem('tpprover_sample_banner_dismissed');
+    const dataCleared = localStorage.getItem('tpprover_sample_data_cleared');
     
     // Show banner if there's mock data and it hasn't been dismissed or cleared
     if (hasMockData && bannerDismissed !== 'true' && dataCleared !== 'true') {
@@ -166,8 +166,8 @@ function App() {
     const handleDemoSuccess = () => {
       setShowDemoSuccessModal(true);
     };
-    window.addEventListener('demo-data-cleared', handleDemoSuccess);
-    return () => window.removeEventListener('demo-data-cleared', handleDemoSuccess);
+    window.addEventListener('sample-data-cleared', handleDemoSuccess);
+    return () => window.removeEventListener('sample-data-cleared', handleDemoSuccess);
   }, []);
 
 
@@ -308,7 +308,7 @@ function App() {
       <SuccessModal
         open={showDemoSuccessModal}
         onClose={() => setShowDemoSuccessModal(false)}
-        title="Demo Data Removed!"
+        title="Sample Data Removed!"
         message="All sample data has been successfully removed. Your personal entries remain safe and intact."
         theme={theme}
       />
