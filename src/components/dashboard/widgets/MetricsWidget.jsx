@@ -419,12 +419,12 @@ const MetricsWidget = ({
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-semibold" style={{ color: theme.text }}>Latest Entry</h4>
                   <button 
-                    onClick={() => onEditMetric?.(recentMetrics[0])}
-                    className="p-1 rounded hover:bg-gray-100 transition-colors"
+                    onClick={() => setShowAllEntries(true)}
+                    className="px-2 py-1 rounded hover:bg-gray-100 transition-colors flex items-center gap-1 text-xs"
                     style={{ color: theme.textLight }}
-                    title="Edit entry"
                   >
-                    <Edit size={10} />
+                    <Eye size={12} />
+                    View All
                   </button>
                 </div>
                 

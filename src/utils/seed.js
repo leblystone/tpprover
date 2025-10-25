@@ -204,14 +204,14 @@ export const MOCK_PROTOCOLS = [
 ];
 
 export const MOCK_SUPPLEMENTS = [
-    { id: 401, name: 'Magnesium Glycinate', dose: 'XXXmg', schedule: 'Nightly', isMock: true },
-    { id: 402, name: 'Vitamin D3', dose: 'XXX IU', schedule: 'Daily', isMock: true },
-    { id: 403, name: 'Omega-3 Fish Oil', dose: 'XXXmg', schedule: 'Twice Daily', isMock: true },
-    { id: 404, name: 'NMN', dose: 'XXXmg', schedule: 'Daily', isMock: true },
-    { id: 405, name: 'Creatine Monohydrate', dose: 'XXXg', schedule: 'Daily', isMock: true },
-    { id: 406, name: 'Ashwagandha', dose: 'XXXmg', schedule: 'Daily', isMock: true },
-    { id: 407, name: 'L-Theanine', dose: 'XXXmg', schedule: 'Twice Daily', isMock: true },
-    { id: 408, name: 'Lions Mane', dose: 'XXXmg', schedule: 'Daily', isMock: true },
+    { id: 401, name: 'Magnesium Glycinate', dose: 'XXXmg', schedule: 'Nightly', delivery: 'oral', isMock: true },
+    { id: 402, name: 'Vitamin D3', dose: 'XXX IU', schedule: 'Daily', delivery: 'oral', isMock: true },
+    { id: 403, name: 'Omega-3 Fish Oil', dose: 'XXXmg', schedule: 'Twice Daily', delivery: 'oral', isMock: true },
+    { id: 404, name: 'NMN', dose: 'XXXmg', schedule: 'Daily', delivery: 'powder', isMock: true },
+    { id: 405, name: 'Creatine Monohydrate', dose: 'XXXg', schedule: 'Daily', delivery: 'powder', isMock: true },
+    { id: 406, name: 'Ashwagandha', dose: 'XXXmg', schedule: 'Daily', delivery: 'oral', isMock: true },
+    { id: 407, name: 'L-Theanine', dose: 'XXXmg', schedule: 'Twice Daily', delivery: 'oral', isMock: true },
+    { id: 408, name: 'Lions Mane', dose: 'XXXmg', schedule: 'Daily', delivery: 'powder', isMock: true },
 ];
 
 export const MOCK_RECON_ITEMS = [

@@ -10,6 +10,7 @@ import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import SuccessModal from '../components/ui/SuccessModal'
 import SampleDataModal from '../components/ui/SampleDataModal'
+import RemoveSampleDataModal from '../components/ui/RemoveSampleDataModal'
 import pwaNotificationService from '../services/pwaNotifications'
 import CollapsibleSection from '../components/common/CollapsibleSection'
 import { getCurrencyOptions } from '../utils/currencyUtils'
@@ -184,7 +185,9 @@ export default function Settings() {
     const [showPrivacy, setShowPrivacy] = useState(false)
     const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false)
     const [showSampleDataModal, setShowSampleDataModal] = useState(false)
+    const [showRemoveSampleDataModal, setShowRemoveSampleDataModal] = useState(false)
     const [isAddingSampleData, setIsAddingSampleData] = useState(false)
+    const [isRemovingSampleData, setIsRemovingSampleData] = useState(false)
     const [user, setUser] = useState(() => {
       try { return JSON.parse(localStorage.getItem('tpprover_user') || '{}') } catch { return {} }
     })
@@ -646,12 +649,17 @@ export default function Settings() {
         if (firebaseUser) {
           const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
           if (seeded) {
-            console.log('✅ Sample data added - reloading page...');
+            console.log('✅ Sample data added - refreshing data...');
             // Clear the "cleared" flag so sample data shows
             localStorage.removeItem('tpprover_sample_data_cleared');
             localStorage.removeItem('tpprover_sample_banner_dismissed');
             setShowSampleDataModal(false);
-            window.location.reload();
+            
+            // Refresh the app context data instead of reloading the page
+            refreshDataAfterClear();
+            
+            // Show success message
+            setShowDemoSuccessModal(true);
           } else {
             alert('Failed to add sample data. Check console for details.');
           }
@@ -663,6 +671,35 @@ export default function Settings() {
         alert('Error adding sample data: ' + error.message);
       } finally {
         setIsAddingSampleData(false);
+      }
+    };
+
+    // Handle removing sample data
+    const handleRemoveSampleData = async () => {
+      setIsRemovingSampleData(true);
+      try {
+        console.log('🔄 Removing sample data...');
+        
+        // Clear sample data from localStorage
+        clearMockData();
+        
+        // Set flags to prevent re-seeding and hide banner
+        localStorage.setItem('tpprover_sample_data_cleared', 'true');
+        localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
+        
+        // Refresh the app context data instead of reloading the page
+        refreshDataAfterClear();
+        
+        // Close modal and show success
+        setShowRemoveSampleDataModal(false);
+        setShowDemoSuccessModal(true);
+        
+        console.log('✅ Sample data removed successfully');
+      } catch (error) {
+        console.error('❌ Removing sample data failed:', error);
+        alert('Error removing sample data: ' + error.message);
+      } finally {
+        setIsRemovingSampleData(false);
       }
     };
 
@@ -816,28 +853,15 @@ export default function Settings() {
               {pwaPrompted && <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={handleInstall}>Install App</button>}
             </div>
             <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <button 
-                        onClick={() => {
-                            if (window.confirm("Remove all sample data?\n\nThis will remove all example protocols, orders, and other sample content. Your own data will not be affected.")) {
-                                clearMockData();
-                                // Set a flag to prevent re-seeding on next load
-                                localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                                // Hide the banner permanently
-                                localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
-                                // Refresh the app context data instead of reloading the page
-                                refreshDataAfterClear();
-                                
-                                // Show modern success modal
-                                setShowDemoSuccessModal(true);
-                            }
-                        }}
-                        className="w-full px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
-                    >
-                        Remove Sample Data
-                    </button>
-                    <p className="text-xs text-gray-500 mt-1">Remove sample content</p>
-                </div>
+                 <div>
+                     <button 
+                         onClick={() => setShowRemoveSampleDataModal(true)}
+                         className="w-full px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
+                     >
+                         Remove Sample Data
+                     </button>
+                     <p className="text-xs text-gray-500 mt-1">Remove sample content</p>
+                 </div>
                 <div>
                     <button 
                         onClick={() => setShowSampleDataModal(true)}
@@ -869,21 +893,28 @@ export default function Settings() {
           onClose={() => setShowPrivacy(false)} 
           onAgree={agreementData.privacyAgreement ? null : handlePrivacyAgree}
         />
-        <SuccessModal
-          open={showDemoSuccessModal}
-          onClose={() => setShowDemoSuccessModal(false)}
-          title="Demo Data Removed!"
-          message="All sample data has been successfully removed. Your personal entries remain safe and intact."
-          theme={theme}
-        />
-        <SampleDataModal
-          open={showSampleDataModal}
-          onClose={() => setShowSampleDataModal(false)}
-          onAddSampleData={handleAddSampleData}
-          theme={theme}
-          isLoading={isAddingSampleData}
-        />
-      </section>
+         <SuccessModal
+           open={showDemoSuccessModal}
+           onClose={() => setShowDemoSuccessModal(false)}
+           title="Sample Data Removed!"
+           message="All sample data has been successfully removed. Your personal entries remain safe and intact."
+           theme={theme}
+         />
+         <SampleDataModal
+           open={showSampleDataModal}
+           onClose={() => setShowSampleDataModal(false)}
+           onAddSampleData={handleAddSampleData}
+           theme={theme}
+           isLoading={isAddingSampleData}
+         />
+         <RemoveSampleDataModal
+           open={showRemoveSampleDataModal}
+           onClose={() => setShowRemoveSampleDataModal(false)}
+           onRemoveSampleData={handleRemoveSampleData}
+           theme={theme}
+           isLoading={isRemovingSampleData}
+         />
+       </section>
     )
   }
 

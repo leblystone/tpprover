@@ -12,7 +12,9 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 schedule: [],
                 delivery: 'oral',
                 days: [],
-                ...supplement
+                ...supplement,
+                // Ensure delivery is never undefined
+                delivery: supplement.delivery || 'oral'
             });
         } else {
             setForm({ name: '', dose: '', schedule: [], delivery: 'oral', days: [] });

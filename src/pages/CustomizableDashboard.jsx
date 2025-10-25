@@ -813,7 +813,7 @@ export default function CustomizableDashboard() {
         supplement={editingSupplement}
         onSave={(supplement) => {
           if (editingSupplement) {
-            updateSupplement(editingSupplement.id, supplement);
+            updateSupplement(supplement);
           } else {
             addSupplement(supplement);
           }
