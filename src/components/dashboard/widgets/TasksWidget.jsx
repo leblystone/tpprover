@@ -85,11 +85,6 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     })) || []
   }, 'tasks');
   
-  // Debug the first task to see its structure
-  if (tasks && tasks.length > 0) {
-    console.log('🔍 DEBUG: First task in TasksWidget:', tasks[0]);
-    console.log('🔍 DEBUG: First task type:', typeof tasks[0]);
-  }
   
   const { showCompleted, groupByTime } = widget.settings;
   
@@ -152,10 +147,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                       </div>
                       {/* Time chip - moved to right of peptide name */}
                       <div 
-                        className="px-2 py-1 rounded-md text-xs font-bold text-white"
+                        className="px-2 py-1 rounded-md text-xs text-white"
                         style={{ 
-                          backgroundColor: task.completed ? '#9ca3af' : theme.primary,
-                          opacity: task.completed ? 0.6 : 1
+                          backgroundColor: task.completed ? '#9ca3af' : `${theme.primary}40`,
+                          opacity: task.completed ? 0.6 : 0.8
                         }}
                       >
                         {task.time}

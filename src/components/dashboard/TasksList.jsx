@@ -118,10 +118,10 @@ const TaskListSection = ({ tasks, theme, onToggle }) => {
                                     {/* Time chip - moved to right of task name */}
                                     {task.time && (
                                         <div 
-                                            className="px-2 py-1 rounded-md text-xs font-bold text-white"
+                                            className="px-2 py-1 rounded-md text-xs text-white"
                                             style={{ 
-                                                backgroundColor: task.completed ? '#9ca3af' : theme.primary,
-                                                opacity: task.completed ? 0.6 : 1
+                                                backgroundColor: task.completed ? '#9ca3af' : `${theme.primary}40`,
+                                                opacity: task.completed ? 0.6 : 0.8
                                             }}
                                         >
                                             {task.time}
@@ -168,7 +168,7 @@ const TaskListSection = ({ tasks, theme, onToggle }) => {
                                   if (isInjection && !task.completed) {
                                     setInjectionTask(task);
                                   } else {
-                                    onToggle(task.id);
+                                    onToggle(task);
                                   }
                                 }}
                                 className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer`}

@@ -9,7 +9,11 @@ const emailService = require('./emailService');
  * Test function to verify email system is working
  * Call this from Firebase Console or client app
  */
-exports.testEmailSystem = onCall(async (request) => {
+exports.testEmailSystem = onCall(
+    {
+      cors: true
+    },
+    async (request) => {
   // For admin testing, we'll allow unauthenticated calls but log it
   const userId = request.auth ? request.auth.uid : 'admin-test';
   

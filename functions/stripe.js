@@ -117,6 +117,9 @@ exports.createPortalSession = onCall(
 
 // Cancel Stripe Subscription
 exports.cancelSubscription = onCall(
+    {
+      cors: true
+    },
     async (request) => {
       if (!request.auth) {
         throw new Error("The function must be called while authenticated.");
@@ -139,6 +142,9 @@ exports.cancelSubscription = onCall(
 
 // Update Payment Method
 exports.updatePaymentMethod = onCall(
+    {
+      cors: true
+    },
     async (request) => {
       if (!request.auth) {
         throw new Error("The function must be called while authenticated.");
@@ -167,6 +173,9 @@ exports.updatePaymentMethod = onCall(
 
 // Generate and download invoice receipt
 exports.generateInvoiceReceipt = onCall(
+    {
+      cors: true
+    },
     async (request) => {
       if (!request.auth) {
         throw new Error("The function must be called while authenticated.");
@@ -198,7 +207,11 @@ exports.generateInvoiceReceipt = onCall(
     });
 
 // Test function to verify Stripe configuration
-exports.testStripeConfig = onCall(async (request) => {
+exports.testStripeConfig = onCall(
+    {
+      cors: true
+    },
+    async (request) => {
   console.log("🧪 Testing Stripe configuration...");
   
   try {
@@ -222,7 +235,11 @@ exports.testStripeConfig = onCall(async (request) => {
   }
 });
 
-exports.getStripeSubscriptions = onCall(async (request) => {
+exports.getStripeSubscriptions = onCall(
+    {
+      cors: true
+    },
+    async (request) => {
   // Check if the user is an authenticated admin
   if (!request.auth) {
     throw new Error("The function must be called while authenticated.");
