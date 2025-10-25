@@ -357,10 +357,10 @@ export function seedInitialData() {
     try {
         console.log('🔍 seedInitialData: Starting seed process...');
         
-        // Check if user has explicitly cleared demo data - if so, never re-seed
-        const demoDataCleared = localStorage.getItem('tpprover_demo_data_cleared');
-        if (demoDataCleared === 'true') {
-            console.log('❌ Seed aborted: Demo data was explicitly cleared');
+        // Check if user has explicitly cleared sample data - if so, never re-seed
+        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared');
+        if (sampleDataCleared === 'true') {
+            console.log('❌ Seed aborted: Sample data was explicitly cleared');
             return;
         }
 
@@ -396,7 +396,7 @@ export function seedInitialData() {
             return;
         }
         
-        // If already seeded and user hasn't explicitly cleared demo data, don't re-seed
+        // If already seeded and user hasn't explicitly cleared sample data, don't re-seed
         if (hasSeeded === 'true') {
             console.log('❌ Seed aborted: Already seeded (hasSeeded=true)');
             return;

@@ -788,9 +788,9 @@ export default function Settings() {
                         if (window.confirm("Remove all sample data?\n\nThis will remove all example protocols, orders, and other sample content. Your own data will not be affected.")) {
                             clearMockData();
                             // Set a flag to prevent re-seeding on next load
-                            localStorage.setItem('tpprover_demo_data_cleared', 'true');
+                            localStorage.setItem('tpprover_sample_data_cleared', 'true');
                             // Hide the banner permanently
-                            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+                            localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
                             // Refresh the app context data instead of reloading the page
                             refreshDataAfterClear();
                             
@@ -816,9 +816,9 @@ export default function Settings() {
                                     const seeded = await seedDemoDataToCloud(firebaseUser.uid, null);
                                     if (seeded) {
                                         console.log('✅ Sample data added - reloading page...');
-                                        // Clear the "cleared" flag so demo data shows
-                                        localStorage.removeItem('tpprover_demo_data_cleared');
-                                        localStorage.removeItem('tpprover_demo_banner_dismissed');
+                                        // Clear the "cleared" flag so sample data shows
+                                        localStorage.removeItem('tpprover_sample_data_cleared');
+                                        localStorage.removeItem('tpprover_sample_banner_dismissed');
                                         window.location.reload();
                                     } else {
                                         alert('Failed to add sample data. Check console for details.');

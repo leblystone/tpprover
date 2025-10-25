@@ -1,6 +1,6 @@
 /**
- * Cloud-based demo data seeding service
- * Seeds demo data directly to Firestore on new user signup
+ * Cloud-based sample data seeding service
+ * Seeds sample data directly to Firestore on new user signup
  * This replaces the fragile localStorage-based approach
  */
 
@@ -18,12 +18,12 @@ import {
 } from '../utils/seed';
 
 /**
- * Seeds demo data directly to Firestore for a new user
+ * Seeds sample data directly to Firestore for a new user
  * @param {string} userId - Firebase user ID
  * @param {string} password - User password for encryption
  * @returns {Promise<boolean>} - Success status
  */
-export async function seedDemoDataToCloud(userId, password) {
+export async function seedSampleDataToCloud(userId, password) {
   try {
     console.log('☁️ Adding sample data (OPTIMISTIC: localStorage + Firestore)');
     
@@ -46,8 +46,8 @@ export async function seedDemoDataToCloud(userId, password) {
       throw new Error('Cannot add sample data when you have existing data. Please remove your existing data first if you want to start with sample data.');
     }
     
-    // Create the demo dataset
-    const demoData = {
+    // Create the sample dataset
+    const sampleData = {
       vendors: MOCK_VENDORS,
       orders: MOCK_ORDERS,
       scheduledBuys: MOCK_SCHEDULED_BUYS,

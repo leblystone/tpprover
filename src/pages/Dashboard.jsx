@@ -647,7 +647,7 @@ export default function Dashboard() {
           {/* Today's Research taking up 3/4 of the space */}
           <div className="lg:col-span-3 p-2 rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
             <div className="flex justify-between items-center mb-1">
-                <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Today's Research</h3>
+                <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark, backgroundColor: 'red', color: 'white', padding: '10px' }}>Today's Research - DEBUG MODE</h3>
                 <button 
                     onClick={() => navigate('/app/calendar')}
                     className="px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5" 

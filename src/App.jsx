@@ -8,7 +8,7 @@ import './styles/App.css';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
 import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
-import DemoDataBanner from './components/ui/DemoDataBanner';
+import SampleDataBanner from './components/ui/DemoDataBanner';
 import SuccessModal from './components/ui/SuccessModal';
 // Beta pages no longer needed - app is live
 // import BetaEnded from './pages/BetaEnded';
@@ -279,7 +279,7 @@ function App() {
           actionDisabled={topbarTabs?.actionDisabled}
           autoSaveIndicator={topbarAutoSave}
         />
-        {showDemoBanner && <DemoDataBanner theme={theme} sticky />}
+        {showDemoBanner && <SampleDataBanner theme={theme} sticky />}
         {showUpgradePrompt && user && !isLoading && (
           <UpgradeBanner
             daysRemaining={daysRemaining}

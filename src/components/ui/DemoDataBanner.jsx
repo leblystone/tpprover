@@ -4,7 +4,7 @@ import { clearMockData } from '../../utils/seed';
 import ConfirmationModal from './ConfirmationModal';
 import { useAppContext } from '../../context/AppContext';
 
-export default function DemoDataBanner({ theme, sticky = false }) {
+export default function SampleDataBanner({ theme, sticky = false }) {
     const { user, refreshDataAfterClear } = useAppContext();
     const [isRemoving, setIsRemoving] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -12,10 +12,10 @@ export default function DemoDataBanner({ theme, sticky = false }) {
     const handleDismiss = () => {
         // Only allow dismissing when not sticky
         if (sticky) return;
-        try { localStorage.setItem('tpprover_demo_banner_dismissed', 'true'); } catch {}
+        try { localStorage.setItem('tpprover_sample_banner_dismissed', 'true'); } catch {}
     };
 
-    const handleRemoveDemoData = async () => {
+    const handleRemoveSampleData = async () => {
         if (isRemoving) return;
 
         const confirmed = window.confirm(
@@ -26,19 +26,19 @@ export default function DemoDataBanner({ theme, sticky = false }) {
 
         setIsRemoving(true);
         try {
-            // Clear demo data from localStorage (removes items with isMock: true)
+            // Clear sample data from localStorage (removes items with isMock: true)
             clearMockData();
             
             // Set flags to prevent re-seeding and hide banner
-            localStorage.setItem('tpprover_demo_data_cleared', 'true');
-            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+            localStorage.setItem('tpprover_sample_data_cleared', 'true');
+            localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
             
             // Save flag to cloud storage
             if (user?.uid) {
                 const { saveUserState, loadUserState } = await import('../../services/cloudStorage');
                 const currentState = await loadUserState(user.uid) || {};
-                await saveUserState(user.uid, { ...currentState, demoDataCleared: true });
-                console.log('☁️ Saved demo data cleared flag to cloud');
+                await saveUserState(user.uid, { ...currentState, sampleDataCleared: true });
+                console.log('☁️ Saved sample data cleared flag to cloud');
                 
                 // Also sync the cleared data to cloud storage to ensure consistency
                 const { saveAppData } = await import('../../services/cloudStorage');
@@ -61,8 +61,8 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             // CRITICAL: Refresh the React state from localStorage (like Settings page does)
             refreshDataAfterClear();
 
-            // Dispatch custom event for demo data clearing
-            window.dispatchEvent(new CustomEvent('demo-data-cleared'));
+            // Dispatch custom event for sample data clearing
+            window.dispatchEvent(new CustomEvent('sample-data-cleared'));
 
             // Show success state briefly before hiding banner
             setTimeout(() => {
@@ -71,8 +71,8 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             }, 1000);
 
         } catch (error) {
-            console.error('Error removing demo data:', error);
-            alert('Failed to remove demo data. Please try again or use the Settings page.');
+            console.error('Error removing sample data:', error);
+            alert('Failed to remove sample data. Please try again or use the Settings page.');
             setIsRemoving(false);
         }
     };
@@ -102,7 +102,7 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                 <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-3 w-3 border-b-2" style={{ borderColor: '#8B5A3C' }}></div>
                     <p className="font-medium">
-                        Removing demo data...
+                        Removing sample data...
                     </p>
                 </div>
             </div>
@@ -117,13 +117,13 @@ export default function DemoDataBanner({ theme, sticky = false }) {
             <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="flex-shrink-0" />
                 <p className="font-medium">
-                    Viewing <strong>demo data</strong> • Remove when ready to add your own data.
+                    Viewing <strong>sample data</strong> • Remove when ready to add your own data.
                 </p>
             </div>
 
             <div className="flex items-center gap-1">
                 <button
-                    onClick={handleRemoveDemoData}
+                    onClick={handleRemoveSampleData}
                     disabled={isRemoving}
                     className="px-2 py-1 text-xs rounded font-medium transition-all duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
@@ -141,7 +141,7 @@ export default function DemoDataBanner({ theme, sticky = false }) {
                             e.target.style.backgroundColor = '#8B5A3C';
                         }
                     }}
-                    title="Remove all demo data"
+                    title="Remove all sample data"
                 >
                     <Trash2 size={12} />
                     {isRemoving ? 'Removing...' : 'Remove'}

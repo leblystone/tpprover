@@ -134,8 +134,13 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           </div>
         </div>
         
-        <div className="flex-1 p-4 overflow-hidden">
-          <div className="space-y-2 overflow-hidden">
+        <div className="flex-1 p-4 overflow-hidden max-h-48 overflow-y-auto pr-2" style={{ 
+          border: '3px solid red', 
+          minHeight: '300px',
+          backgroundColor: 'yellow',
+          padding: '10px'
+        }}>
+          <div className="space-y-2 overflow-hidden" style={{ border: '2px solid blue', padding: '5px' }}>
             {filteredTasks.map(task => (
               <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
                 <div className="flex items-center gap-3 flex-1">
@@ -274,13 +279,20 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
         </div>
       </div>
       
-      <div className="flex-1 p-4 overflow-hidden">
-        <TasksList 
-          tasks={filteredTasks} 
-          theme={theme} 
-          onToggle={onToggle}
-          groupByTime={groupByTime}
-        />
+      <div className="flex-1 p-4 overflow-hidden max-h-48 overflow-y-auto pr-2" style={{ 
+        border: '3px solid red', 
+        minHeight: '300px',
+        backgroundColor: 'yellow',
+        padding: '10px'
+      }}>
+        <div style={{ border: '2px solid blue', padding: '5px' }}>
+          <TasksList 
+            tasks={filteredTasks} 
+            theme={theme} 
+            onToggle={onToggle}
+            groupByTime={groupByTime}
+          />
+        </div>
         
         {/* Research Site History Button */}
         {hasInjectionTasks && (
