@@ -99,6 +99,8 @@ export default function EmailTemplateManager({ theme }) {
   });
   const [showPreview, setShowPreview] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState(null);
 
   const currentTemplate = templates[selectedTemplate];
 
@@ -113,6 +115,43 @@ export default function EmailTemplateManager({ theme }) {
     }));
     
     setTimeout(() => setIsSaving(false), 1000);
+  };
+
+  // Send test email for current template
+  const sendTestEmail = async () => {
+    setIsSendingTest(true);
+    setTestResult(null);
+
+    try {
+      const functions = getFunctions();
+      const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
+      
+      // Send specific template based on current selection
+      const result = await testEmailSystem({ 
+        testEmail: 'thepepplanner@gmail.com',
+        templateType: selectedTemplate 
+      });
+      
+      if (result.data.success) {
+        setTestResult({ 
+          success: true, 
+          message: `${currentTemplate.name} sent successfully to thepepplanner@gmail.com!` 
+        });
+      } else {
+        setTestResult({ 
+          success: false, 
+          message: result.data.error || 'Failed to send test email' 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      setTestResult({ 
+        success: false, 
+        message: `Error: ${error.message}` 
+      });
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   // Reset to defaults
@@ -258,6 +297,24 @@ export default function EmailTemplateManager({ theme }) {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={sendTestEmail}
+            disabled={isSendingTest}
+            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            {isSendingTest ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send size={16} />
+                Test {currentTemplate.name}
+              </>
+            )}
+          </button>
+          <button
             onClick={resetToDefaults}
             className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all"
             style={{ backgroundColor: theme.secondary, color: theme.text }}
@@ -276,6 +333,17 @@ export default function EmailTemplateManager({ theme }) {
           </button>
         </div>
       </div>
+
+      {/* Test Result */}
+      {testResult && (
+        <div className={`px-4 py-3 rounded-lg text-sm ${
+          testResult.success 
+            ? 'bg-green-100 text-green-800 border border-green-200' 
+            : 'bg-red-100 text-red-800 border border-red-200'
+        }`}>
+          {testResult.message}
+        </div>
+      )}
 
       {/* Template Selector */}
       <div className="flex gap-2 overflow-x-auto pb-2">

@@ -270,3 +270,12 @@ exports.sendLifetimeAccessGrantedEmail = async (userEmail, reason = 'Beta tester
   return sendEmail(userEmail, subject, html);
 };
 
+/**
+ * Send subscription confirmed email (alias for testEmailSystem)
+ */
+exports.sendSubscriptionConfirmedEmail = async (userEmail, plan) => {
+  const subject = 'Subscription Confirmed - The Pep Planner';
+  const html = emailTemplates.subscriptionConfirmationEmail(plan, 'month', '$8.99');
+  return sendEmail(userEmail, subject, html);
+};
+

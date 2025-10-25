@@ -175,6 +175,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                   
                   <button
                     onClick={() => {
+                      console.log('🔍 TasksWidget button click - full task object:', task);
+                      console.log('🔍 TasksWidget button click - task type:', typeof task);
+                      console.log('🔍 TasksWidget button click - onToggle function:', typeof onToggle);
+                      
                       // Check if this is an injection task that's not completed
                       const deliveryMethod = task.deliveryMethod || task.delivery;
                       const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
@@ -190,6 +194,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                         console.log('💉 TasksWidget showing injection selector for:', task.name);
                         setInjectionTask(task);
                       } else {
+                        console.log('🔄 TasksWidget calling onToggle with task:', task);
                         onToggle(task);
                       }
                     }}

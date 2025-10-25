@@ -465,6 +465,7 @@ export default function CustomizableDashboard() {
 
   const handleTaskToggle = (task, date = new Date()) => {
     console.log('🔍 DEBUG: Full task object received:', task);
+    console.log('🔍 DEBUG: Task type:', typeof task);
     console.log('🔍 DEBUG: Task properties:', {
       id: task.id,
       name: task.name,
@@ -474,6 +475,12 @@ export default function CustomizableDashboard() {
       deliveryMethod: task.deliveryMethod,
       time: task.time
     });
+    
+    // Check if task is just a string (ID) instead of an object
+    if (typeof task === 'string') {
+      console.error('❌ ERROR: Task is a string instead of object:', task);
+      return;
+    }
     
     // Check if this is a syringe or pen delivery method
     const deliveryMethod = task.deliveryMethod || task.delivery;

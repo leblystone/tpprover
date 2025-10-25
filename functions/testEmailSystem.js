@@ -16,7 +16,7 @@ exports.testEmailSystem = onCall(async (request) => {
   if (!request.auth) {
     logger.warn('⚠️ testEmailSystem called without authentication - allowing for admin testing');
   }
-  const { testEmail } = request.data;
+  const { testEmail, templateType } = request.data;
 
   if (!testEmail) {
     throw new Error('testEmail parameter is required');
@@ -28,50 +28,86 @@ exports.testEmailSystem = onCall(async (request) => {
     timestamp: new Date().toISOString(),
     userId,
     testEmail,
+    templateType,
     tests: {}
   };
 
   try {
-    // Test 1: Welcome Email
-    logger.info('Testing welcome email...');
-    const welcomeResult = await emailService.sendWelcomeEmail(testEmail, 'Test User');
-    results.tests.welcomeEmail = {
-      success: welcomeResult,
-      message: welcomeResult ? 'Email sent successfully' : 'Email failed to send'
+    let emailResult = false;
+    let emailName = '';
+
+    // Send specific template based on templateType
+    if (templateType === 'welcome') {
+      logger.info('Testing welcome email...');
+      emailResult = await emailService.sendWelcomeEmail(testEmail, 'Test User');
+      emailName = 'Welcome Email';
+    } else if (templateType === 'trialEnding') {
+      logger.info('Testing trial ending email...');
+      emailResult = await emailService.sendTrialEndingEmail(testEmail, 2);
+      emailName = 'Trial Ending Email';
+    } else if (templateType === 'verification') {
+      logger.info('Testing verification email...');
+      emailResult = await emailService.sendVerificationEmail(testEmail, 'test-verification-link');
+      emailName = 'Verification Email';
+    } else if (templateType === 'passwordReset') {
+      logger.info('Testing password reset email...');
+      emailResult = await emailService.sendPasswordResetEmail(testEmail, 'test-reset-link');
+      emailName = 'Password Reset Email';
+    } else if (templateType === 'subscription') {
+      logger.info('Testing subscription email...');
+      emailResult = await emailService.sendSubscriptionConfirmedEmail(testEmail, 'Pro Plan');
+      emailName = 'Subscription Confirmed Email';
+    } else {
+      // Default: send all emails for general testing
+      logger.info('Testing all email types...');
+      
+      const welcomeResult = await emailService.sendWelcomeEmail(testEmail, 'Test User');
+      const trialResult = await emailService.sendTrialEndingEmail(testEmail, 2);
+      const lifetimeResult = await emailService.sendLifetimeAccessGrantedEmail(testEmail, 'System Test');
+      
+      results.tests.welcomeEmail = {
+        success: welcomeResult,
+        message: welcomeResult ? 'Email sent successfully' : 'Email failed to send'
+      };
+      results.tests.trialEndingEmail = {
+        success: trialResult,
+        message: trialResult ? 'Email sent successfully' : 'Email failed to send'
+      };
+      results.tests.lifetimeAccessEmail = {
+        success: lifetimeResult,
+        message: lifetimeResult ? 'Email sent successfully' : 'Email failed to send'
+      };
+
+      const successCount = Object.values(results.tests).filter(test => test.success).length;
+      const totalTests = Object.keys(results.tests).length;
+      
+      results.summary = {
+        totalTests,
+        successfulTests: successCount,
+        failedTests: totalTests - successCount,
+        overallSuccess: successCount === totalTests
+      };
+
+      logger.info(`✅ Email system test completed: ${successCount}/${totalTests} tests passed`);
+      
+      return {
+        success: true,
+        message: `Email system test completed: ${successCount}/${totalTests} tests passed`,
+        results
+      };
+    }
+
+    // Single template test
+    results.tests[templateType] = {
+      success: emailResult,
+      message: emailResult ? 'Email sent successfully' : 'Email failed to send'
     };
 
-    // Test 2: Trial Ending Email
-    logger.info('Testing trial ending email...');
-    const trialResult = await emailService.sendTrialEndingEmail(testEmail, 2);
-    results.tests.trialEndingEmail = {
-      success: trialResult,
-      message: trialResult ? 'Email sent successfully' : 'Email failed to send'
-    };
-
-    // Test 3: Lifetime Access Email
-    logger.info('Testing lifetime access email...');
-    const lifetimeResult = await emailService.sendLifetimeAccessGrantedEmail(testEmail, 'System Test');
-    results.tests.lifetimeAccessEmail = {
-      success: lifetimeResult,
-      message: lifetimeResult ? 'Email sent successfully' : 'Email failed to send'
-    };
-
-    // Summary
-    const successCount = Object.values(results.tests).filter(test => test.success).length;
-    const totalTests = Object.keys(results.tests).length;
-    
-    results.summary = {
-      totalTests,
-      successfulTests: successCount,
-      failedTests: totalTests - successCount,
-      overallSuccess: successCount === totalTests
-    };
-
-    logger.info(`✅ Email system test completed: ${successCount}/${totalTests} tests passed`);
+    logger.info(`✅ ${emailName} test completed: ${emailResult ? 'SUCCESS' : 'FAILED'}`);
     
     return {
-      success: true,
-      message: `Email system test completed: ${successCount}/${totalTests} tests passed`,
+      success: emailResult,
+      message: emailResult ? `${emailName} sent successfully` : `${emailName} failed to send`,
       results
     };
 
