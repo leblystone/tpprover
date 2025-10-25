@@ -46,60 +46,78 @@ export async function seedSampleDataToCloud(userId, password) {
       throw new Error('Cannot add sample data when you have existing data. Please remove your existing data first if you want to start with sample data.');
     }
     
-    // Create the sample dataset
-    const sampleData = {
-      vendors: MOCK_VENDORS,
-      orders: MOCK_ORDERS,
-      scheduledBuys: MOCK_SCHEDULED_BUYS,
-      protocols: MOCK_PROTOCOLS,
-      supplements: MOCK_SUPPLEMENTS,
-      reconItems: MOCK_RECON_ITEMS,
-      reconHistory: [], // Start with empty history
-      metrics: MOCK_METRICS,
-      calendarNotes: MOCK_NOTES,
-      stockpile: generateStockpileFromOrders(MOCK_ORDERS),
-      
-      // Metadata
-      _metadata: {
-        isSampleData: true,
-        seededAt: new Date().toISOString(),
-        version: '2.1', // Track sample data version - streamlined
-        itemCount: {
-          vendors: MOCK_VENDORS.length,
-          orders: MOCK_ORDERS.length,
-          protocols: MOCK_PROTOCOLS.length,
-          supplements: MOCK_SUPPLEMENTS.length,
-          reconItems: MOCK_RECON_ITEMS.length,
-          metrics: MOCK_METRICS.length
-        }
-      }
-    };
+     // Create the sample dataset - clean any undefined values
+     const sampleData = {
+       vendors: MOCK_VENDORS,
+       orders: MOCK_ORDERS,
+       scheduledBuys: MOCK_SCHEDULED_BUYS,
+       protocols: MOCK_PROTOCOLS,
+       supplements: MOCK_SUPPLEMENTS,
+       reconItems: MOCK_RECON_ITEMS,
+       reconHistory: [], // Start with empty history
+       metrics: MOCK_METRICS,
+       calendarNotes: MOCK_NOTES,
+       stockpile: generateStockpileFromOrders(MOCK_ORDERS),
+       
+       // Metadata
+       _metadata: {
+         isSampleData: true,
+         seededAt: new Date().toISOString(),
+         version: '2.1', // Track sample data version - streamlined
+         itemCount: {
+           vendors: MOCK_VENDORS.length,
+           orders: MOCK_ORDERS.length,
+           protocols: MOCK_PROTOCOLS.length,
+           supplements: MOCK_SUPPLEMENTS.length,
+           reconItems: MOCK_RECON_ITEMS.length,
+           metrics: MOCK_METRICS.length
+         }
+       }
+     };
+     
+     // Clean any undefined values that could cause Firebase errors
+     const cleanData = (obj) => {
+       if (obj === null || obj === undefined) return null;
+       if (typeof obj !== 'object') return obj;
+       if (Array.isArray(obj)) {
+         return obj.map(cleanData).filter(item => item !== undefined);
+       }
+       const cleaned = {};
+       for (const [key, value] of Object.entries(obj)) {
+         if (value !== undefined) {
+           cleaned[key] = cleanData(value);
+         }
+       }
+       return cleaned;
+     };
+     
+     const cleanedSampleData = cleanData(sampleData);
     
-    console.log('📊 Sample data prepared:', sampleData._metadata.itemCount);
-    
-    // 🚀 OPTIMISTIC UI: Seed to localStorage FIRST for instant display on reload
-    try {
-      localStorage.setItem('tpprover_vendors', JSON.stringify(sampleData.vendors));
-      localStorage.setItem('tpprover_orders', JSON.stringify(sampleData.orders));
-      localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(sampleData.scheduledBuys));
-      localStorage.setItem('tpprover_protocols', JSON.stringify(sampleData.protocols));
-      localStorage.setItem('tpprover_supplements', JSON.stringify(sampleData.supplements));
-      localStorage.setItem('tpprover_recon_items', JSON.stringify(sampleData.reconItems));
-      localStorage.setItem('tpprover_metrics', JSON.stringify(sampleData.metrics));
-      localStorage.setItem('tpprover_calendar_notes', JSON.stringify(sampleData.calendarNotes));
-      localStorage.setItem('tpprover_stockpile', JSON.stringify(sampleData.stockpile));
-      localStorage.setItem('tpprover_sample_seeded_at', new Date().toISOString());
-      console.log('⚡ Sample data seeded to localStorage for instant display');
-    } catch (localError) {
-      console.error('❌ Failed to seed to localStorage:', localError);
-    }
-    
-    // Save to Firestore under user's userData collection (for cloud backup)
-    const userDataRef = doc(db, 'userData', userId);
-    await setDoc(userDataRef, sampleData, { merge: true });
-    
-    console.log('✅ Sample data successfully seeded to Firestore (cloud backup)');
-    console.log(`📦 Total items: ${Object.values(sampleData._metadata.itemCount).reduce((a, b) => a + b, 0)}`);
+     console.log('📊 Sample data prepared:', cleanedSampleData._metadata.itemCount);
+     
+     // 🚀 OPTIMISTIC UI: Seed to localStorage FIRST for instant display on reload
+     try {
+       localStorage.setItem('tpprover_vendors', JSON.stringify(cleanedSampleData.vendors));
+       localStorage.setItem('tpprover_orders', JSON.stringify(cleanedSampleData.orders));
+       localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(cleanedSampleData.scheduledBuys));
+       localStorage.setItem('tpprover_protocols', JSON.stringify(cleanedSampleData.protocols));
+       localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSampleData.supplements));
+       localStorage.setItem('tpprover_recon_items', JSON.stringify(cleanedSampleData.reconItems));
+       localStorage.setItem('tpprover_metrics', JSON.stringify(cleanedSampleData.metrics));
+       localStorage.setItem('tpprover_calendar_notes', JSON.stringify(cleanedSampleData.calendarNotes));
+       localStorage.setItem('tpprover_stockpile', JSON.stringify(cleanedSampleData.stockpile));
+       localStorage.setItem('tpprover_sample_seeded_at', new Date().toISOString());
+       console.log('⚡ Sample data seeded to localStorage for instant display');
+     } catch (localError) {
+       console.error('❌ Failed to seed to localStorage:', localError);
+     }
+     
+     // Save to Firestore under user's userData collection (for cloud backup)
+     const userDataRef = doc(db, 'userData', userId);
+     await setDoc(userDataRef, cleanedSampleData, { merge: true });
+     
+     console.log('✅ Sample data successfully seeded to Firestore (cloud backup)');
+     console.log(`📦 Total items: ${Object.values(cleanedSampleData._metadata.itemCount).reduce((a, b) => a + b, 0)}`);
     
     return true;
   } catch (error) {
