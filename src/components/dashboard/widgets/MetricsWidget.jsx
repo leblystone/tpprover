@@ -484,18 +484,6 @@ const MetricsWidget = ({
                     </div>
                   </div>
                 </div>
-                
-                {/* View All Entries - Right under Latest Entry */}
-                <div className="flex justify-center mt-2">
-                  <button
-                    onClick={() => setShowAllEntries(true)}
-                    className="text-xs px-2 py-1 rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
-                    style={{ color: theme.textLight }}
-                  >
-                    <Eye size={12} />
-                    View All Entries ({metrics.length})
-                  </button>
-                </div>
               </div>
             </div>
           </div>
