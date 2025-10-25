@@ -34,11 +34,18 @@ const SupplementsWidget = ({
   };
 
   const getDeliveryIcon = (delivery) => {
-    switch (String(delivery || '').toLowerCase()) {
-      case 'injection': return <Pipette size={16} style={{ color: theme.textLight }} />;
-      case 'powder': return <Beaker size={16} style={{ color: theme.textLight }} />;
+    const deliveryLower = String(delivery || 'oral').toLowerCase();
+    console.log('🔍 SupplementsWidget getDeliveryIcon:', { delivery, deliveryLower });
+    switch (deliveryLower) {
+      case 'injection':
+      case 'syringe':
+        return <Pipette size={16} style={{ color: theme.textLight }} />;
+      case 'powder':
+        return <Beaker size={16} style={{ color: theme.textLight }} />;
+      case 'oral':
       case 'pill':
-      default: return <Pill size={16} style={{ color: theme.textLight }} />;
+      default:
+        return <Pill size={16} style={{ color: theme.textLight }} />;
     }
   };
 
@@ -92,7 +99,7 @@ const SupplementsWidget = ({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1">
-                    {getDeliveryIcon(supplement.delivery)}
+                    {getDeliveryIcon(supplement.delivery || supplement.deliveryMethod)}
                     
                     <div className="flex-1">
                       <div className="font-medium text-sm" style={{ color: theme.text }}>

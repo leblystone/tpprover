@@ -9,6 +9,7 @@ import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import SuccessModal from '../components/ui/SuccessModal'
+import SampleDataModal from '../components/ui/SampleDataModal'
 import pwaNotificationService from '../services/pwaNotifications'
 import CollapsibleSection from '../components/common/CollapsibleSection'
 import { getCurrencyOptions } from '../utils/currencyUtils'
@@ -182,6 +183,8 @@ export default function Settings() {
     const [showTerms, setShowTerms] = useState(false)
     const [showPrivacy, setShowPrivacy] = useState(false)
     const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false)
+    const [showSampleDataModal, setShowSampleDataModal] = useState(false)
+    const [isAddingSampleData, setIsAddingSampleData] = useState(false)
     const [user, setUser] = useState(() => {
       try { return JSON.parse(localStorage.getItem('tpprover_user') || '{}') } catch { return {} }
     })
@@ -633,6 +636,36 @@ export default function Settings() {
       }
     };
 
+    // Handle adding sample data
+    const handleAddSampleData = async () => {
+      setIsAddingSampleData(true);
+      try {
+        console.log('🔄 Adding sample data...');
+        const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
+        
+        if (firebaseUser) {
+          const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
+          if (seeded) {
+            console.log('✅ Sample data added - reloading page...');
+            // Clear the "cleared" flag so sample data shows
+            localStorage.removeItem('tpprover_sample_data_cleared');
+            localStorage.removeItem('tpprover_sample_banner_dismissed');
+            setShowSampleDataModal(false);
+            window.location.reload();
+          } else {
+            alert('Failed to add sample data. Check console for details.');
+          }
+        } else {
+          alert('You must be logged in to add sample data.');
+        }
+      } catch (error) {
+        console.error('❌ Adding sample data failed:', error);
+        alert('Error adding sample data: ' + error.message);
+      } finally {
+        setIsAddingSampleData(false);
+      }
+    };
+
     return (
       <section className="space-y-4">
         {/* Notifications */}
@@ -807,32 +840,7 @@ export default function Settings() {
                 </div>
                 <div>
                     <button 
-                        onClick={async () => {
-                            if (window.confirm("Add sample data to help you explore the app features?\n\nThis will add example protocols, orders, and other sample content to help you learn how to use The Pep Planner. Your existing data will not be affected.")) {
-                                try {
-                                    console.log('🔄 Adding sample data...');
-                                    const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
-                                    
-                                    if (firebaseUser) {
-                                        const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
-                                        if (seeded) {
-                                            console.log('✅ Sample data added - reloading page...');
-                                            // Clear the "cleared" flag so sample data shows
-                                            localStorage.removeItem('tpprover_sample_data_cleared');
-                                            localStorage.removeItem('tpprover_sample_banner_dismissed');
-                                            window.location.reload();
-                                        } else {
-                                            alert('Failed to add sample data. Check console for details.');
-                                        }
-                                    } else {
-                                        alert('You must be logged in to add sample data.');
-                                    }
-                                } catch (error) {
-                                    console.error('❌ Adding sample data failed:', error);
-                                    alert('Error adding sample data: ' + error.message);
-                                }
-                            }
-                        }}
+                        onClick={() => setShowSampleDataModal(true)}
                         className="w-full px-3 py-2 rounded-md text-sm font-semibold bg-green-100 text-green-700 hover:bg-green-200"
                     >
                         Add Sample Data
@@ -867,6 +875,13 @@ export default function Settings() {
           title="Demo Data Removed!"
           message="All sample data has been successfully removed. Your personal entries remain safe and intact."
           theme={theme}
+        />
+        <SampleDataModal
+          open={showSampleDataModal}
+          onClose={() => setShowSampleDataModal(false)}
+          onAddSampleData={handleAddSampleData}
+          theme={theme}
+          isLoading={isAddingSampleData}
         />
       </section>
     )

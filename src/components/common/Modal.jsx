@@ -18,6 +18,9 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     
+    // Dispatch modal open event to hide tooltips
+    window.dispatchEvent(new CustomEvent('tpp:modal-open'));
+    
     document.addEventListener('keydown', handleKeyDown);
     
     return () => {

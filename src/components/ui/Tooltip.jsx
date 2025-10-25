@@ -36,6 +36,41 @@ const Tooltip = ({
     setIsVisible(false);
   };
 
+  // Global tooltip hiding when modals open or user clicks elsewhere
+  useEffect(() => {
+    const handleGlobalClick = (event) => {
+      // Hide tooltip if user clicks anywhere (except on the tooltip itself)
+      if (isVisible && !event.target.closest('.tooltip-overlay')) {
+        hideTooltip();
+      }
+    };
+
+    const handleModalOpen = () => {
+      // Hide tooltip when any modal opens
+      if (isVisible) {
+        hideTooltip();
+      }
+    };
+
+    const handleMouseDown = () => {
+      // Hide tooltip on any mouse down (more aggressive)
+      if (isVisible) {
+        hideTooltip();
+      }
+    };
+
+    // Listen for modal open events and clicks
+    window.addEventListener('tpp:modal-open', handleModalOpen);
+    window.addEventListener('click', handleGlobalClick, true);
+    window.addEventListener('mousedown', handleMouseDown, true);
+    
+    return () => {
+      window.removeEventListener('tpp:modal-open', handleModalOpen);
+      window.removeEventListener('click', handleGlobalClick, true);
+      window.removeEventListener('mousedown', handleMouseDown, true);
+    };
+  }, [isVisible]);
+
   const updatePosition = () => {
     if (!triggerRef.current || !tooltipRef.current) return;
 

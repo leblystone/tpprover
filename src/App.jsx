@@ -23,7 +23,7 @@ import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
 import UpgradeBanner from './components/common/UpgradeBanner';
 import SubscriptionModal from './components/common/SubscriptionModal';
-import { JournalToastContainer } from './components/ui/JournalToast';
+import { LabBeakerContainer } from './components/ui/JournalToast';
 
 function App() {
   const location = useLocation();
@@ -340,8 +340,9 @@ function App() {
         currentPlan={subscriptionInterval}
       />
       
-      {/* Journal Toast Notifications */}
-      <JournalToastContainer theme={theme} />
+      {/* Lab Beaker Notifications */}
+      <LabBeakerContainer theme={theme} />
+      
     </div>
   )
 }

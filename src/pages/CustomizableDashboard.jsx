@@ -352,6 +352,21 @@ export default function CustomizableDashboard() {
       });
     });
 
+    // Sort tasks: unchecked first, then checked, then by type, then by name
+    tasks.sort((a, b) => {
+      // First, sort by completion status (unchecked first, then checked)
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      // Then by type (peptides first)
+      if (a.type === 'peptide' && b.type !== 'peptide') return -1
+      if (a.type !== 'peptide' && b.type === 'peptide') return 1
+      // Finally by name
+      return a.name.localeCompare(b.name)
+    });
+
+    console.log('📋 CustomizableDashboard task sorting - unchecked first:', tasks.filter(t => !t.completed).length, 'unchecked,', tasks.filter(t => t.completed).length, 'checked');
+    
     setTodaysTasks(tasks);
   }, [supplements, protocols, calendarBump]);
 

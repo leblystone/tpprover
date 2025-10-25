@@ -34,11 +34,17 @@ const TaskIcon = ({ type, delivery, theme }) => {
         return <Pipette size={18} style={{ color: theme.text }} />;
     }
     if (type === 'supplement') {
-        switch (String(delivery || '').toLowerCase()) {
-            case 'injection': return <Pipette size={18} style={{ color: theme.text }} />;
-            case 'powder': return <Beaker size={18} style={{ color: theme.text }} />;
+        const deliveryLower = String(delivery || '').toLowerCase();
+        switch (deliveryLower) {
+            case 'injection':
+            case 'syringe':
+                return <Pipette size={18} style={{ color: theme.text }} />;
+            case 'powder':
+                return <Beaker size={18} style={{ color: theme.text }} />;
+            case 'oral':
             case 'pill':
-            default: return <Pill size={18} style={{ color: theme.text }} />;
+            default:
+                return <Pill size={18} style={{ color: theme.text }} />;
         }
     }
     return <div className="w-4 h-4" />;
@@ -186,7 +192,7 @@ const DeliveryIcon = ({ task, theme }) => {
     // Handle supplement delivery methods
     if (task.type === 'supplement') {
         const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
-        if (delivery === 'injection') {
+        if (delivery === 'injection' || delivery === 'syringe') {
             return <Pipette size={14} style={{ color: theme.textLight }} />;
         }
         if (delivery === 'powder') {

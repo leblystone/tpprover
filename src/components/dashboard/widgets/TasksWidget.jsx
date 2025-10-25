@@ -25,7 +25,7 @@ const DeliveryIcon = ({ task, theme }) => {
   // Handle supplement delivery methods
   if (task.type === 'supplement') {
     const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
-    if (delivery === 'injection') {
+    if (delivery === 'injection' || delivery === 'syringe') {
       return <Pipette size={14} style={{ color: theme.textLight }} />;
     }
     if (delivery === 'powder') {
