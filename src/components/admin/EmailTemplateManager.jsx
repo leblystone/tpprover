@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const DEFAULT_TEMPLATES = {
   welcome: {
