@@ -9,6 +9,12 @@ const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
     if (freq.type === 'weekly' && freq.days?.length > 0) return `Weekly: ${freq.days.join(', ')}`;
     if (freq.type === 'cycle') return `Cycle: ${freq.onDays || '-'} on / ${freq.offDays || '-'} off`;
+    if (freq.type === 'daily') {
+        if (freq.time && Array.isArray(freq.time) && freq.time.length > 0) {
+            return `Daily: ${freq.time.join(', ')}`;
+        }
+        return 'Daily';
+    }
     return 'Daily';
 };
 
