@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal Toast Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f0;
+        }
+        .test-button {
+            background: #7F9E95;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #6a8a7f;
+        }
+    </style>
+</head>
+<body>
+    <h1>Journal Toast Test</h1>
+    <p>Click the buttons below to test the new journal-style toast notifications:</p>
+    
+    <button class="test-button" onclick="testSuccess()">Test Success Toast</button>
+    <button class="test-button" onclick="testError()">Test Error Toast</button>
+    <button class="test-button" onclick="testWarning()">Test Warning Toast</button>
+    <button class="test-button" onclick="testInfo()">Test Info Toast</button>
+    
+    <script>
+        function testSuccess() {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: {
+                    message: 'Protocol completed successfully! Research data has been logged.',
+                    type: 'success'
+                }
+            }));
+        }
+        
+        function testError() {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: {
+                    message: 'Protocol error detected. Please check your research parameters.',
+                    type: 'error'
+                }
+            }));
+        }
+        
+        function testWarning() {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: {
+                    message: 'Protocol attention needed. Review your research schedule.',
+                    type: 'warning'
+                }
+            }));
+        }
+        
+        function testInfo() {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: {
+                    message: 'New research protocol available. Check your dashboard for updates.',
+                    type: 'info'
+                }
+            }));
+        }
+    </script>
+</body>
+</html>

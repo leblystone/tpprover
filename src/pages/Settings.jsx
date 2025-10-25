@@ -782,61 +782,63 @@ export default function Settings() {
               </label>
               {pwaPrompted && <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={handleInstall}>Install App</button>}
             </div>
-            <div>
-                <button 
-                    onClick={() => {
-                        if (window.confirm("Remove all sample data?\n\nThis will remove all example protocols, orders, and other sample content. Your own data will not be affected.")) {
-                            clearMockData();
-                            // Set a flag to prevent re-seeding on next load
-                            localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                            // Hide the banner permanently
-                            localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
-                            // Refresh the app context data instead of reloading the page
-                            refreshDataAfterClear();
-                            
-                            // Show modern success modal
-                            setShowDemoSuccessModal(true);
-                        }
-                    }}
-                    className="px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
-                >
-                    Remove Sample Data
-                </button>
-                <p className="text-xs text-gray-500 mt-1">Remove all example protocols, orders, and other sample content. Your own data will not be affected.</p>
-            </div>
-            <div>
-                <button 
-                    onClick={async () => {
-                        if (window.confirm("Add sample data to help you explore the app features?\n\nThis will add example protocols, orders, and other sample content to help you learn how to use The Pep Planner. Your existing data will not be affected.")) {
-                            try {
-                                console.log('🔄 Adding sample data...');
-                                const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <button 
+                        onClick={() => {
+                            if (window.confirm("Remove all sample data?\n\nThis will remove all example protocols, orders, and other sample content. Your own data will not be affected.")) {
+                                clearMockData();
+                                // Set a flag to prevent re-seeding on next load
+                                localStorage.setItem('tpprover_sample_data_cleared', 'true');
+                                // Hide the banner permanently
+                                localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
+                                // Refresh the app context data instead of reloading the page
+                                refreshDataAfterClear();
                                 
-                                if (firebaseUser) {
-                                    const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
-                                    if (seeded) {
-                                        console.log('✅ Sample data added - reloading page...');
-                                        // Clear the "cleared" flag so sample data shows
-                                        localStorage.removeItem('tpprover_sample_data_cleared');
-                                        localStorage.removeItem('tpprover_sample_banner_dismissed');
-                                        window.location.reload();
-                                    } else {
-                                        alert('Failed to add sample data. Check console for details.');
-                                    }
-                                } else {
-                                    alert('You must be logged in to add sample data.');
-                                }
-                            } catch (error) {
-                                console.error('❌ Adding sample data failed:', error);
-                                alert('Error adding sample data: ' + error.message);
+                                // Show modern success modal
+                                setShowDemoSuccessModal(true);
                             }
-                        }
-                    }}
-                    className="px-3 py-2 rounded-md text-sm font-semibold bg-green-100 text-green-700 hover:bg-green-200"
-                >
-                    Add Sample Data
-                </button>
-                <p className="text-xs text-gray-500 mt-1">Add example protocols, orders, and other sample content to help you explore the app features. Your existing data will not be affected.</p>
+                        }}
+                        className="w-full px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    >
+                        Remove Sample Data
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1">Remove sample content</p>
+                </div>
+                <div>
+                    <button 
+                        onClick={async () => {
+                            if (window.confirm("Add sample data to help you explore the app features?\n\nThis will add example protocols, orders, and other sample content to help you learn how to use The Pep Planner. Your existing data will not be affected.")) {
+                                try {
+                                    console.log('🔄 Adding sample data...');
+                                    const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
+                                    
+                                    if (firebaseUser) {
+                                        const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
+                                        if (seeded) {
+                                            console.log('✅ Sample data added - reloading page...');
+                                            // Clear the "cleared" flag so sample data shows
+                                            localStorage.removeItem('tpprover_sample_data_cleared');
+                                            localStorage.removeItem('tpprover_sample_banner_dismissed');
+                                            window.location.reload();
+                                        } else {
+                                            alert('Failed to add sample data. Check console for details.');
+                                        }
+                                    } else {
+                                        alert('You must be logged in to add sample data.');
+                                    }
+                                } catch (error) {
+                                    console.error('❌ Adding sample data failed:', error);
+                                    alert('Error adding sample data: ' + error.message);
+                                }
+                            }
+                        }}
+                        className="w-full px-3 py-2 rounded-md text-sm font-semibold bg-green-100 text-green-700 hover:bg-green-200"
+                    >
+                        Add Sample Data
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1">Add examples to explore</p>
+                </div>
             </div>
             <div>
               <div className="font-semibold text-red-600 mb-2">Danger Zone</div>
