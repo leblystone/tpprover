@@ -35,7 +35,6 @@ const SupplementsWidget = ({
 
   const getDeliveryIcon = (delivery) => {
     const deliveryLower = String(delivery || 'oral').toLowerCase();
-    console.log('🔍 SupplementsWidget getDeliveryIcon:', { delivery, deliveryLower });
     switch (deliveryLower) {
       case 'injection':
       case 'syringe':
@@ -92,7 +91,6 @@ const SupplementsWidget = ({
         ) : (
                      <div className="space-y-3">
              {supplements.map(supplement => {
-               console.log('📦 Full supplement object:', supplement);
                return (
                <div 
                  key={supplement.id} 

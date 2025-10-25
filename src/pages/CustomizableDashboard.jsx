@@ -464,6 +464,17 @@ export default function CustomizableDashboard() {
   // Task management - using unified completion system
 
   const handleTaskToggle = (task, date = new Date()) => {
+    console.log('🔍 DEBUG: Full task object received:', task);
+    console.log('🔍 DEBUG: Task properties:', {
+      id: task.id,
+      name: task.name,
+      stableTaskId: task.stableTaskId,
+      type: task.type,
+      delivery: task.delivery,
+      deliveryMethod: task.deliveryMethod,
+      time: task.time
+    });
+    
     // Check if this is a syringe or pen delivery method
     const deliveryMethod = task.deliveryMethod || task.delivery;
     const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
