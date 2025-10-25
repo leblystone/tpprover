@@ -115,6 +115,11 @@ const TaskListSection = ({ tasks, theme, onToggle }) => {
                                 <div className={`font-semibold text-sm ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
                                     {task.name}
                                 </div>
+                                {task.time && (
+                                    <div className="text-xs mt-1" style={{ color: task.completed ? '#9ca3af' : theme.textLight }}>
+                                        {task.time}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         

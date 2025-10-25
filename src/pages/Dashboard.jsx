@@ -441,37 +441,42 @@ export default function Dashboard() {
                 unit = 'units';
               }
 
-              pep.frequency.time.forEach(t => {
-                const timeSlot = t; // Already using AM/PM format
-                const task = {
-                  id: `${p.id}-${pep.name || 'Peptide'}-${t}`,
-                  type: 'peptide',
-                  name: pep.name || 'Peptide',
-                  dose: dose,
-                  unit: unit,
-                  time: timeSlot,
-                  completed: false,
-                  deliveryMethod: reconItem?.deliveryMethod,
-                  penColor: reconItem?.penColor,
-                  protocolName: p.protocolName,
-                  administrationRoute: reconItem?.administrationRoute
-                };
-                
-                console.log('🔍 Individual peptide task created:', {
-                  name: task.name,
-                  dose: task.dose,
-                  unit: task.unit,
-                  deliveryMethod: task.deliveryMethod,
-                  penColor: task.penColor,
-                  reconItem: reconItem
-                });
-                // Generate stable task ID and check completion status
-                const taskId = generateTaskId(task);
-                const wasCompleted = isTaskCompleted(taskId, undefined, timeSlot);
-                task.completed = wasCompleted;
-                task.stableTaskId = taskId; // Store for debugging
-                peptideTasks.push(task);
-              })
+              // Create a single task entry for this peptide with all its scheduled times
+              const scheduledTimes = pep.frequency.time || [];
+              const task = {
+                id: `${p.id}-${pep.name || 'Peptide'}`,
+                type: 'peptide',
+                name: pep.name || 'Peptide',
+                dose: dose,
+                unit: unit,
+                time: scheduledTimes.length === 1 ? scheduledTimes[0] : scheduledTimes.join(', '),
+                scheduledTimes: scheduledTimes, // Store all times for completion tracking
+                completed: false,
+                deliveryMethod: reconItem?.deliveryMethod,
+                penColor: reconItem?.penColor,
+                protocolName: p.protocolName,
+                administrationRoute: reconItem?.administrationRoute
+              };
+              
+              console.log('🔍 Peptide task created:', {
+                name: task.name,
+                dose: task.dose,
+                unit: task.unit,
+                time: task.time,
+                scheduledTimes: task.scheduledTimes,
+                deliveryMethod: task.deliveryMethod,
+                penColor: task.penColor,
+                reconItem: reconItem
+              });
+              
+              // Check completion status for all scheduled times
+              const allCompleted = scheduledTimes.every(timeSlot => {
+                const taskId = generateTaskId({ ...task, time: timeSlot });
+                return isTaskCompleted(taskId, undefined, timeSlot);
+              });
+              task.completed = allCompleted;
+              task.stableTaskId = `${p.id}-${pep.name || 'Peptide'}`; // Store for debugging
+              peptideTasks.push(task);
             })
         }
       })
@@ -606,23 +611,45 @@ export default function Dashboard() {
         
         // Injection confirmation is now handled inline in the task components
         
-        // Use the stable task ID that was generated during task creation
-        const taskId = t.stableTaskId || generateTaskId(t);
-        // Always check actual completion status from localStorage
-        const currentlyCompleted = isTaskCompleted(taskId, undefined, t.time);
-        const newCompleted = !currentlyCompleted;
-        console.log('🔄 Dashboard: Toggling task', {
-          taskName: t.name,
-          originalId: id,
-          stableTaskId: taskId,
-          newCompleted
-        });
-        toggleTaskCompletion(taskId, newCompleted, undefined, t.time);
-        
-        // Trigger calendar sync by updating calendarBump
-        setCalendarBump(Date.now());
-        
-        return { ...t, completed: newCompleted };
+        // Handle tasks with multiple scheduled times
+        if (t.scheduledTimes && t.scheduledTimes.length > 1) {
+          // For multi-time tasks, toggle all scheduled times
+          const newCompleted = !t.completed;
+          console.log('🔄 Dashboard: Toggling multi-time task', {
+            taskName: t.name,
+            originalId: id,
+            scheduledTimes: t.scheduledTimes,
+            newCompleted
+          });
+          
+          // Toggle completion for all scheduled times
+          t.scheduledTimes.forEach(timeSlot => {
+            const taskId = generateTaskId({ ...t, time: timeSlot });
+            toggleTaskCompletion(taskId, newCompleted, undefined, timeSlot);
+          });
+          
+          // Trigger calendar sync by updating calendarBump
+          setCalendarBump(Date.now());
+          
+          return { ...t, completed: newCompleted };
+        } else {
+          // Handle single-time tasks (original logic)
+          const taskId = t.stableTaskId || generateTaskId(t);
+          const currentlyCompleted = isTaskCompleted(taskId, undefined, t.time);
+          const newCompleted = !currentlyCompleted;
+          console.log('🔄 Dashboard: Toggling single-time task', {
+            taskName: t.name,
+            originalId: id,
+            stableTaskId: taskId,
+            newCompleted
+          });
+          toggleTaskCompletion(taskId, newCompleted, undefined, t.time);
+          
+          // Trigger calendar sync by updating calendarBump
+          setCalendarBump(Date.now());
+          
+          return { ...t, completed: newCompleted };
+        }
       }
       return t;
     }));
