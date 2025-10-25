@@ -443,7 +443,7 @@ export function AppProvider({ children }) {
                     // CRITICAL FIX: Check if this is a brand new signup with demo data
                     // If demo data was just seeded, don't overwrite it with empty Firebase data!
                     const hasSeededDemoData = localStorage.getItem('tpprover_has_seeded') === 'true';
-                    const isNewUser = parsedUser?.createdAt && (Date.now() - new Date(parsedUser.createdAt).getTime()) < 60000; // Within last minute
+                    const isNewUser = parsedUser && parsedUser.createdAt && (Date.now() - new Date(parsedUser.createdAt).getTime()) < 60000; // Within last minute
                     
                     if (hasPassword || hasEmptyLocalStorage) {
                         try {

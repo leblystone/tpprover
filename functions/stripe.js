@@ -17,6 +17,9 @@ const stripe = require("stripe")(STRIPE_SECRET_KEY || "sk_test_fallback_key");
 
 // Create Stripe Checkout Session
 exports.createCheckoutSession = onCall(
+    {
+      cors: true
+    },
     async (request) => {
       if (!request.auth) {
         throw new Error("The function must be called while authenticated.");
@@ -92,6 +95,9 @@ exports.createCheckoutSession = onCall(
 
 // Create Stripe Customer Portal Session
 exports.createPortalSession = onCall(
+    {
+      cors: true
+    },
     async (request) => {
       if (!request.auth) {
         throw new Error("The function must be called while authenticated.");

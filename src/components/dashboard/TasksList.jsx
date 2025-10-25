@@ -111,14 +111,23 @@ const TaskListSection = ({ tasks, theme, onToggle }) => {
                     <li key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
                         <div className="flex items-center gap-3 flex-1">
                             <div className="flex-1">
-                                <div className={`font-semibold text-sm ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
-                                    {task.name}
-                                </div>
-                                {task.time && (
-                                    <div className="text-xs mt-1" style={{ color: task.completed ? '#9ca3af' : theme.textLight }}>
-                                        {task.time}
+                                <div className="flex items-center gap-2">
+                                    <div className={`font-semibold text-sm ${task.completed ? 'line-through decoration-2 text-gray-400' : ''}`} style={{ color: task.completed ? '#9ca3af' : theme.text }}>
+                                        {task.name}
                                     </div>
-                                )}
+                                    {/* Time chip - moved to right of task name */}
+                                    {task.time && (
+                                        <div 
+                                            className="px-2 py-1 rounded-md text-xs font-bold text-white"
+                                            style={{ 
+                                                backgroundColor: task.completed ? '#9ca3af' : theme.primary,
+                                                opacity: task.completed ? 0.6 : 1
+                                            }}
+                                        >
+                                            {task.time}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         
