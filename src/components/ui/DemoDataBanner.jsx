@@ -19,7 +19,7 @@ export default function DemoDataBanner({ theme, sticky = false }) {
         if (isRemoving) return;
 
         const confirmed = window.confirm(
-            'Are you sure you want to remove all demo data? This will clear all sample protocols, orders, vendors, and other demo content. Your own entries will not be affected.'
+            'Remove all sample data?\n\nThis will remove all example protocols, orders, vendors, and other sample content. Your own data will not be affected.'
         );
 
         if (!confirmed) return;

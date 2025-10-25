@@ -25,7 +25,26 @@ import {
  */
 export async function seedDemoDataToCloud(userId, password) {
   try {
-    console.log('☁️ Seeding demo data (OPTIMISTIC: localStorage + Firestore)');
+    console.log('☁️ Adding sample data (OPTIMISTIC: localStorage + Firestore)');
+    
+    // SAFETY CHECK: Verify no real user data exists before adding sample data
+    const vendorsRaw = localStorage.getItem('tpprover_vendors');
+    const ordersRaw = localStorage.getItem('tpprover_orders');
+    const protocolsRaw = localStorage.getItem('tpprover_protocols');
+    
+    const hasRealData = [vendorsRaw, ordersRaw, protocolsRaw].some(r => {
+      try { 
+        const data = JSON.parse(r);
+        return Array.isArray(data) && data.some(item => !item.isMock);
+      } catch { 
+        return false 
+      }
+    });
+    
+    if (hasRealData) {
+      console.log('❌ Cannot add sample data: User has real data that would be affected');
+      throw new Error('Cannot add sample data when you have existing data. Please remove your existing data first if you want to start with sample data.');
+    }
     
     // Create the demo dataset
     const demoData = {

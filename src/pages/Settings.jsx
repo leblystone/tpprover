@@ -785,7 +785,7 @@ export default function Settings() {
             <div>
                 <button 
                     onClick={() => {
-                        if (window.confirm("Are you sure you want to remove all demo data? Your own entries will not be affected.")) {
+                        if (window.confirm("Remove all sample data?\n\nThis will remove all example protocols, orders, and other sample content. Your own data will not be affected.")) {
                             clearMockData();
                             // Set a flag to prevent re-seeding on next load
                             localStorage.setItem('tpprover_demo_data_cleared', 'true');
@@ -800,43 +800,43 @@ export default function Settings() {
                     }}
                     className="px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
                 >
-                    Remove demo data
+                    Remove Sample Data
                 </button>
-                <p className="text-xs text-gray-500 mt-1">Remove all sample orders, protocols, etc., to start with a clean slate.</p>
+                <p className="text-xs text-gray-500 mt-1">Remove all example protocols, orders, and other sample content. Your own data will not be affected.</p>
             </div>
             <div>
                 <button 
                     onClick={async () => {
-                        if (window.confirm("This will seed 88 demo items to your Firestore account. Continue?")) {
+                        if (window.confirm("Add sample data to help you explore the app features?\n\nThis will add example protocols, orders, and other sample content to help you learn how to use The Pep Planner. Your existing data will not be affected.")) {
                             try {
-                                console.log('🔄 Manually triggering demo data seed...');
+                                console.log('🔄 Adding sample data...');
                                 const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
                                 
                                 if (firebaseUser) {
                                     const seeded = await seedDemoDataToCloud(firebaseUser.uid, null);
                                     if (seeded) {
-                                        console.log('✅ Demo data seeded - reloading page...');
+                                        console.log('✅ Sample data added - reloading page...');
                                         // Clear the "cleared" flag so demo data shows
                                         localStorage.removeItem('tpprover_demo_data_cleared');
                                         localStorage.removeItem('tpprover_demo_banner_dismissed');
                                         window.location.reload();
                                     } else {
-                                        alert('Failed to seed demo data. Check console for details.');
+                                        alert('Failed to add sample data. Check console for details.');
                                     }
                                 } else {
-                                    alert('You must be logged in to seed demo data.');
+                                    alert('You must be logged in to add sample data.');
                                 }
                             } catch (error) {
-                                console.error('❌ Manual seed failed:', error);
-                                alert('Error seeding demo data: ' + error.message);
+                                console.error('❌ Adding sample data failed:', error);
+                                alert('Error adding sample data: ' + error.message);
                             }
                         }
                     }}
                     className="px-3 py-2 rounded-md text-sm font-semibold bg-green-100 text-green-700 hover:bg-green-200"
                 >
-                    Re-seed Demo Data (88 items)
+                    Add Sample Data
                 </button>
-                <p className="text-xs text-gray-500 mt-1">Populate your account with sample data for testing. Works for new or existing accounts.</p>
+                <p className="text-xs text-gray-500 mt-1">Add example protocols, orders, and other sample content to help you explore the app features. Your existing data will not be affected.</p>
             </div>
             <div>
               <div className="font-semibold text-red-600 mb-2">Danger Zone</div>

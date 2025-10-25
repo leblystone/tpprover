@@ -658,8 +658,16 @@ export default function Dashboard() {
                 </button>
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
-            <div className="max-h-48 overflow-y-auto pr-2" style={{ border: '2px solid red', minHeight: '200px' }}>
-                <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
+            <div className="max-h-48 overflow-y-auto pr-2" style={{ 
+                border: '3px solid red', 
+                minHeight: '300px',
+                backgroundColor: 'yellow',
+                padding: '10px'
+            }}>
+                <div style={{ border: '2px solid blue', padding: '5px' }}>
+                    {console.log('🔍 Today\'s Research widget rendering with', todaysTasks.length, 'tasks')}
+                    <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
+                </div>
             </div>
             {washoutReminders.length > 0 && (
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>
