@@ -135,83 +135,199 @@ export const MOCK_PROTOCOLS = [
         id: 301,
         protocolName: 'Recovery & Healing Protocol',
         peptides: [
-            { name: 'BPC-157', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM', 'PM'] } },
-            { name: 'TB-500', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', days: ['Monday', 'Thursday'], time: ['AM'] } }
+            { 
+                name: 'BPC-157', 
+                dosage: { amount: 'XXX', unit: 'mcg' }, 
+                frequency: { type: 'daily', time: ['AM', 'PM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            },
+            { 
+                name: 'TB-500', 
+                dosage: { amount: 'XXX', unit: 'mg' }, 
+                frequency: { type: 'weekly', days: ['Monday', 'Thursday'], time: ['AM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            }
         ],
         startDate: new Date().toISOString().slice(0, 10),
         duration: { count: '8', unit: 'week' },
         washout: { enabled: true, count: '4', unit: 'week' },
         active: true,
-        notes: 'Post-injury recovery and tissue healing',
+        notes: 'Post-injury recovery and tissue healing. Subcutaneous injections for optimal bioavailability.',
         isMock: true
     },
     {
         id: 302,
-        protocolName: 'Weight Management Stack',
+        protocolName: 'Cognitive Enhancement Stack',
         peptides: [
-            { name: 'Semaglutide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', days: ['Sunday'], time: ['AM'] } },
-            { name: 'Tirzepatide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', days: ['Wednesday'], time: ['AM'] } }
+            { 
+                name: 'Semax', 
+                dosage: { amount: 'XXX', unit: 'mcg' }, 
+                frequency: { type: 'daily', time: ['AM'] },
+                deliveryMethod: 'nasal',
+                administrationRoute: 'intranasal'
+            },
+            { 
+                name: 'Selank', 
+                dosage: { amount: 'XXX', unit: 'mcg' }, 
+                frequency: { type: 'daily', time: ['PM'] },
+                deliveryMethod: 'nasal',
+                administrationRoute: 'intranasal'
+            }
         ],
         startDate: new Date().toISOString().slice(0, 10),
         duration: { count: '12', unit: 'week' },
-        washout: { enabled: true, count: '6', unit: 'week' },
+        washout: { enabled: true, count: '4', unit: 'week' },
         active: true,
-        notes: 'Metabolic optimization and appetite control',
+        notes: 'Focus, memory, and neuroprotection research. Intranasal delivery for direct brain access.',
         isMock: true
     },
     {
         id: 303,
         protocolName: 'Longevity Research Protocol',
         peptides: [
-            { name: 'Epithalon', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['PM'] } },
-            { name: 'Thymalin', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['AM'] } }
+            { 
+                name: 'Epithalon', 
+                dosage: { amount: 'XXX', unit: 'mg' }, 
+                frequency: { type: 'cycle', onDays: '10', offDays: '5', time: ['PM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            },
+            { 
+                name: 'Thymalin', 
+                dosage: { amount: 'XXX', unit: 'mg' }, 
+                frequency: { type: 'daily', time: ['AM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            }
         ],
         startDate: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10),
         duration: { count: '20', unit: 'day' },
         washout: { enabled: true, count: '3', unit: 'month' },
         active: true,
-        notes: 'Telomere length and immune system optimization',
+        notes: 'Telomere length and immune system optimization. Cyclic dosing pattern for optimal results.',
         isMock: true
     },
     {
         id: 304,
-        protocolName: 'Cognitive Enhancement Stack',
+        protocolName: 'Performance Enhancement Stack',
         peptides: [
-            { name: 'Semax', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM'] } },
-            { name: 'Selank', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['PM'] } }
-        ],
-        startDate: new Date().toISOString().slice(0, 10),
-        duration: { count: '12', unit: 'week' },
-        washout: { enabled: true, count: '4', unit: 'week' },
-        active: true,
-        notes: 'Focus, memory, and neuroprotection research',
-        isMock: true
-    },
-    {
-        id: 305,
-        protocolName: 'Growth Hormone Enhancement',
-        peptides: [
-            { name: 'Ipamorelin', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM', 'PM'] } },
-            { name: 'CJC-1295', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM', 'PM'] } }
+            { 
+                name: 'Ipamorelin', 
+                dosage: { amount: 'XXX', unit: 'mcg' }, 
+                frequency: { type: 'daily', time: ['AM', 'PM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            },
+            { 
+                name: 'CJC-1295', 
+                dosage: { amount: 'XXX', unit: 'mcg' }, 
+                frequency: { type: 'daily', time: ['AM', 'PM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            }
         ],
         startDate: new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10),
         duration: { count: '6', unit: 'week' },
         washout: { enabled: true, count: '2', unit: 'week' },
         active: true,
-        notes: 'Muscle growth and recovery enhancement',
+        notes: 'Muscle growth and recovery enhancement. Dual daily dosing for sustained GH release.',
+        isMock: true
+    },
+    {
+        id: 305,
+        protocolName: 'Weight Management Protocol',
+        peptides: [
+            { 
+                name: 'Semaglutide', 
+                dosage: { amount: 'XXX', unit: 'mg' }, 
+                frequency: { type: 'weekly', days: ['Sunday'], time: ['AM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            },
+            { 
+                name: 'Tirzepatide', 
+                dosage: { amount: 'XXX', unit: 'mg' }, 
+                frequency: { type: 'weekly', days: ['Wednesday'], time: ['AM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            }
+        ],
+        startDate: new Date().toISOString().slice(0, 10),
+        duration: { count: '12', unit: 'week' },
+        washout: { enabled: true, count: '6', unit: 'week' },
+        active: true,
+        notes: 'Metabolic optimization and appetite control. Weekly dosing for sustained effects.',
+        isMock: true
+    },
+    {
+        id: 306,
+        protocolName: 'Sleep & Recovery Protocol',
+        peptides: [
+            { 
+                name: 'DSIP', 
+                dosage: { amount: 'XXX', unit: 'mcg' }, 
+                frequency: { type: 'daily', time: ['PM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            },
+            { 
+                name: 'Delta Sleep Inducing Peptide', 
+                dosage: { amount: 'XXX', unit: 'mcg' }, 
+                frequency: { type: 'cycle', onDays: '5', offDays: '2', time: ['PM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            }
+        ],
+        startDate: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
+        duration: { count: '4', unit: 'week' },
+        washout: { enabled: false, count: '0', unit: 'week' },
+        active: true,
+        notes: 'Deep sleep optimization and recovery. Evening dosing for natural sleep cycle alignment.',
+        isMock: true
+    },
+    {
+        id: 307,
+        protocolName: 'Anti-Aging Research Stack',
+        peptides: [
+            { 
+                name: 'Epitalon', 
+                dosage: { amount: 'XXX', unit: 'mg' }, 
+                frequency: { type: 'daily', time: ['PM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            },
+            { 
+                name: 'Thymalin', 
+                dosage: { amount: 'XXX', unit: 'mg' }, 
+                frequency: { type: 'weekly', days: ['Monday', 'Wednesday', 'Friday'], time: ['AM'] },
+                deliveryMethod: 'injection',
+                administrationRoute: 'subcutaneous'
+            }
+        ],
+        startDate: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
+        duration: { count: '16', unit: 'week' },
+        washout: { enabled: true, count: '8', unit: 'week' },
+        active: true,
+        notes: 'Cellular rejuvenation and immune system support. Long-term protocol for comprehensive benefits.',
         isMock: true
     }
 ];
 
 export const MOCK_SUPPLEMENTS = [
-    { id: 401, name: 'Magnesium Glycinate', dose: 'XXXmg', schedule: 'Nightly', delivery: 'oral', isMock: true },
-    { id: 402, name: 'Vitamin D3', dose: 'XXX IU', schedule: 'Daily', delivery: 'oral', isMock: true },
-    { id: 403, name: 'Omega-3 Fish Oil', dose: 'XXXmg', schedule: 'Twice Daily', delivery: 'oral', isMock: true },
-    { id: 404, name: 'NMN', dose: 'XXXmg', schedule: 'Daily', delivery: 'powder', isMock: true },
-    { id: 405, name: 'Creatine Monohydrate', dose: 'XXXg', schedule: 'Daily', delivery: 'powder', isMock: true },
-    { id: 406, name: 'Ashwagandha', dose: 'XXXmg', schedule: 'Daily', delivery: 'oral', isMock: true },
-    { id: 407, name: 'L-Theanine', dose: 'XXXmg', schedule: 'Twice Daily', delivery: 'oral', isMock: true },
-    { id: 408, name: 'Lions Mane', dose: 'XXXmg', schedule: 'Daily', delivery: 'powder', isMock: true },
+    { id: 401, name: 'Magnesium Glycinate', dose: 'XXXmg', schedule: ['PM'], delivery: 'oral', isMock: true },
+    { id: 402, name: 'Vitamin D3', dose: 'XXX IU', schedule: ['AM'], delivery: 'oral', isMock: true },
+    { id: 403, name: 'Omega-3 Fish Oil', dose: 'XXXmg', schedule: ['AM', 'PM'], delivery: 'oral', isMock: true },
+    { id: 404, name: 'NMN', dose: 'XXXmg', schedule: ['AM'], delivery: 'powder', isMock: true },
+    { id: 405, name: 'Creatine Monohydrate', dose: 'XXXg', schedule: ['AM'], delivery: 'powder', isMock: true },
+    { id: 406, name: 'Ashwagandha', dose: 'XXXmg', schedule: ['PM'], delivery: 'oral', isMock: true },
+    { id: 407, name: 'L-Theanine', dose: 'XXXmg', schedule: ['AM', 'PM'], delivery: 'oral', isMock: true },
+    { id: 408, name: 'Lions Mane', dose: 'XXXmg', schedule: ['AM'], delivery: 'powder', isMock: true },
+    { id: 409, name: 'Melatonin', dose: 'XXXmg', schedule: ['PM'], delivery: 'oral', isMock: true },
+    { id: 410, name: 'Zinc Picolinate', dose: 'XXXmg', schedule: ['AM'], delivery: 'oral', isMock: true },
+    { id: 411, name: 'B-Complex', dose: 'XXXmg', schedule: ['AM'], delivery: 'oral', isMock: true },
+    { id: 412, name: 'Vitamin C', dose: 'XXXmg', schedule: ['AM', 'PM'], delivery: 'oral', isMock: true }
 ];
 
 export const MOCK_RECON_ITEMS = [
@@ -223,9 +339,11 @@ export const MOCK_RECON_ITEMS = [
         vendor: 'Peptide Research Co',
         water: 2,
         deliveryMethod: 'syringe',
+        penColor: 'blue',
+        administrationRoute: 'subcutaneous',
         cost: 45,
         date: new Date(Date.now() - 2 * 86400000).toISOString(),
-        notes: 'Reconstituted for morning/evening dosing',
+        notes: 'Subcutaneous injection - dual daily dosing',
         isMock: true,
     },
     {
@@ -236,9 +354,11 @@ export const MOCK_RECON_ITEMS = [
         vendor: 'Peptide Research Co',
         water: 2,
         deliveryMethod: 'syringe',
+        penColor: 'green',
+        administrationRoute: 'subcutaneous',
         cost: 55,
         date: new Date(Date.now() - 1 * 86400000).toISOString(),
-        notes: 'Weekly injection protocol',
+        notes: 'Weekly subcutaneous injection protocol',
         isMock: true,
     },
     {
@@ -248,10 +368,12 @@ export const MOCK_RECON_ITEMS = [
         dose: 'XXX',
         vendor: 'BioTech Solutions',
         water: 2,
-        deliveryMethod: 'syringe',
+        deliveryMethod: 'pen',
+        penColor: 'red',
+        administrationRoute: 'subcutaneous',
         cost: 110,
         date: new Date(Date.now() - 5 * 86400000).toISOString(),
-        notes: 'Weekly weight management dose',
+        notes: 'Weekly weight management - pen delivery',
         isMock: true,
     },
     {
@@ -262,9 +384,11 @@ export const MOCK_RECON_ITEMS = [
         vendor: 'Elite Bio Research',
         water: 2.5,
         deliveryMethod: 'syringe',
+        penColor: 'purple',
+        administrationRoute: 'subcutaneous',
         cost: 65,
         date: new Date(Date.now() - 10 * 86400000).toISOString(),
-        notes: 'Twice daily growth hormone support',
+        notes: 'Growth hormone enhancement - dual daily',
         isMock: true,
     },
     {
@@ -275,9 +399,11 @@ export const MOCK_RECON_ITEMS = [
         vendor: 'Elite Bio Research',
         water: 2.5,
         deliveryMethod: 'syringe',
+        penColor: 'orange',
+        administrationRoute: 'subcutaneous',
         cost: 70,
         date: new Date(Date.now() - 10 * 86400000).toISOString(),
-        notes: 'Combined with Ipamorelin for synergy',
+        notes: 'Growth hormone releasing hormone - dual daily',
         isMock: true,
     },
     {
@@ -288,9 +414,11 @@ export const MOCK_RECON_ITEMS = [
         vendor: 'Research Labs Pro',
         water: 1,
         deliveryMethod: 'syringe',
+        penColor: 'yellow',
+        administrationRoute: 'subcutaneous',
         cost: 95,
         date: new Date(Date.now() - 12 * 86400000).toISOString(),
-        notes: 'Full vial dose for longevity protocol',
+        notes: 'Telomere length optimization - cyclic dosing',
         isMock: true,
     },
     {
@@ -301,9 +429,11 @@ export const MOCK_RECON_ITEMS = [
         vendor: 'Peptide Research Co',
         water: 3,
         deliveryMethod: 'nasal',
+        penColor: 'indigo',
+        administrationRoute: 'intranasal',
         cost: 65,
         date: new Date(Date.now() - 18 * 86400000).toISOString(),
-        notes: 'Nasal administration for cognitive enhancement',
+        notes: 'Cognitive enhancement - nasal spray delivery',
         isMock: true,
     },
     {
@@ -314,9 +444,11 @@ export const MOCK_RECON_ITEMS = [
         vendor: 'BioTech Solutions',
         water: 3,
         deliveryMethod: 'nasal',
+        penColor: 'pink',
+        administrationRoute: 'intranasal',
         cost: 60,
         date: new Date(Date.now() - 20 * 86400000).toISOString(),
-        notes: 'Anxiety reduction and focus',
+        notes: 'Anxiety support - evening nasal spray',
         isMock: true,
     }
 ];
