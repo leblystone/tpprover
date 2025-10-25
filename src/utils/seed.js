@@ -136,7 +136,7 @@ export const MOCK_PROTOCOLS = [
         protocolName: 'Recovery & Healing Protocol',
         peptides: [
             { name: 'BPC-157', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM', 'PM'] } },
-            { name: 'TB-500', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', time: ['Monday', 'Thursday'] } }
+            { name: 'TB-500', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', days: ['Monday', 'Thursday'], time: ['AM'] } }
         ],
         startDate: new Date().toISOString().slice(0, 10),
         duration: { count: '8', unit: 'week' },
@@ -149,13 +149,13 @@ export const MOCK_PROTOCOLS = [
         id: 302,
         protocolName: 'Weight Management Stack',
         peptides: [
-            { name: 'Semaglutide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', time: ['Sunday'] } },
-            { name: 'Tirzepatide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', time: ['Wednesday'] } }
+            { name: 'Semaglutide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', days: ['Sunday'], time: ['AM'] } },
+            { name: 'Tirzepatide', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', days: ['Wednesday'], time: ['AM'] } }
         ],
-        startDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+        startDate: new Date().toISOString().slice(0, 10),
         duration: { count: '12', unit: 'week' },
         washout: { enabled: true, count: '6', unit: 'week' },
-        active: false,
+        active: true,
         notes: 'Metabolic optimization and appetite control',
         isMock: true
     },
@@ -180,10 +180,10 @@ export const MOCK_PROTOCOLS = [
             { name: 'Semax', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM'] } },
             { name: 'Selank', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['PM'] } }
         ],
-        startDate: new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10),
+        startDate: new Date().toISOString().slice(0, 10),
         duration: { count: '12', unit: 'week' },
         washout: { enabled: true, count: '4', unit: 'week' },
-        active: false,
+        active: true,
         notes: 'Focus, memory, and neuroprotection research',
         isMock: true
     },

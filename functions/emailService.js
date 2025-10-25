@@ -20,6 +20,8 @@ async function sendEmail(to, subject, html) {
     // Check if SendGrid is configured
     const sendgridApiKey = process.env.SENDGRID_API_KEY;
     
+    logger.info('🔑 API Key being used:', sendgridApiKey ? `${sendgridApiKey.substring(0, 10)}...` : 'undefined');
+    
     if (!sendgridApiKey) {
       logger.warn('⚠️ SendGrid not configured - email not sent');
       logger.info('📧 Would have sent email to:', to, 'Subject:', subject);

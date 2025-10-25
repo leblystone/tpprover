@@ -96,7 +96,7 @@ export default function EmailTemplateManager({ theme }) {
     const saved = localStorage.getItem('tpp_email_colors');
     return saved ? JSON.parse(saved) : DEFAULT_COLORS;
   });
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const currentTemplate = templates[selectedTemplate];
@@ -293,10 +293,10 @@ export default function EmailTemplateManager({ theme }) {
         ))}
       </div>
 
-      {/* Editor Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Editor Layout - Desktop Optimized */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Left: Editor */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
               Edit Template
@@ -445,31 +445,31 @@ export default function EmailTemplateManager({ theme }) {
             </div>
           </div>
 
-          {/* Color Customization */}
-          <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
+          {/* Color Customization - Compact */}
+          <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
               Brand Colors
             </h3>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               {Object.entries(colors).map(([key, value]) => (
                 <div key={key}>
                   <label className="block text-xs font-medium mb-1 capitalize" style={{ color: theme.textLight }}>
                     {key.replace(/([A-Z])/g, ' $1')}
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <input
                       type="color"
                       value={value}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                      className="w-12 h-10 rounded border cursor-pointer"
+                      className="w-8 h-8 rounded border cursor-pointer"
                       style={{ borderColor: theme.border }}
                     />
                     <input
                       type="text"
                       value={value}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                      className="flex-1 px-2 py-2 rounded border text-xs font-mono"
+                      className="flex-1 px-2 py-1 rounded border text-xs font-mono"
                       style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
                     />
                   </div>
@@ -479,67 +479,33 @@ export default function EmailTemplateManager({ theme }) {
           </div>
         </div>
 
-        {/* Right: Preview */}
-        <div className="space-y-4">
+        {/* Right: Preview - Always Visible */}
+        <div className="sticky top-4">
           <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
                 Live Preview
               </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={copyHTML}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:opacity-90"
-                  style={{ backgroundColor: theme.secondary, color: theme.text }}
-                >
-                  <Copy size={14} />
-                  Copy HTML
-                </button>
-                <button
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:opacity-90"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                >
-                  <Eye size={14} />
-                  {showPreview ? 'Hide' : 'Show'} Full Preview
-                </button>
-              </div>
+              <button
+                onClick={copyHTML}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:opacity-90"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <Copy size={14} />
+                Copy HTML
+              </button>
             </div>
 
-            {showPreview ? (
-              <iframe
-                srcDoc={generatePreviewHTML()}
-                className="w-full rounded-lg border"
-                style={{ height: '600px', borderColor: theme.border }}
-                title="Email Preview"
-              />
-            ) : (
-              <div className="text-center py-12" style={{ color: theme.textLight }}>
-                <Eye size={48} className="mx-auto mb-4 opacity-50" />
-                <p>Click "Show Full Preview" to see your email</p>
-              </div>
-            )}
+            <iframe
+              srcDoc={generatePreviewHTML()}
+              className="w-full rounded-lg border"
+              style={{ height: '700px', borderColor: theme.border }}
+              title="Email Preview"
+            />
           </div>
-
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: '#EFF6FF' }}>
-        <h3 className="text-lg font-semibold mb-3" style={{ color: '#1E40AF' }}>
-          📝 How to Use
-        </h3>
-        <ol className="space-y-2 text-sm" style={{ color: '#1E40AF' }}>
-          <li><strong>1. Select a template</strong> from the tabs above</li>
-          <li><strong>2. Edit the content</strong> in the form fields (text, colors, features)</li>
-          <li><strong>3. Preview</strong> your changes in real-time on the right</li>
-          <li><strong>4. Save</strong> your templates when you're happy with them</li>
-          <li><strong>5. Copy HTML</strong> and paste into your email service (SendGrid, Mailchimp, etc.)</li>
-        </ol>
-        <p className="text-xs mt-3" style={{ color: '#3B82F6' }}>
-          💡 Changes are saved locally. To use these in production, you'll need to update the <code>functions/emailTemplates.js</code> file or integrate with your email service.
-        </p>
-      </div>
     </div>
   );
 }
