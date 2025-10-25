@@ -134,9 +134,9 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           </div>
         </div>
         
-        <div className="flex-1 p-4 overflow-hidden max-h-48 overflow-y-auto pr-2" style={{ 
+        <div className="flex-1 p-4 overflow-hidden max-h-64 overflow-y-auto pr-2" style={{ 
           border: '3px solid red', 
-          minHeight: '300px',
+          minHeight: '400px',
           backgroundColor: 'yellow',
           padding: '10px'
         }}>
@@ -279,9 +279,9 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
         </div>
       </div>
       
-      <div className="flex-1 p-4 overflow-hidden max-h-48 overflow-y-auto pr-2" style={{ 
+      <div className="flex-1 p-4 overflow-hidden max-h-64 overflow-y-auto pr-2" style={{ 
         border: '3px solid red', 
-        minHeight: '300px',
+        minHeight: '400px',
         backgroundColor: 'yellow',
         padding: '10px'
       }}>

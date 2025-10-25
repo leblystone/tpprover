@@ -810,10 +810,10 @@ export default function Settings() {
                         if (window.confirm("Add sample data to help you explore the app features?\n\nThis will add example protocols, orders, and other sample content to help you learn how to use The Pep Planner. Your existing data will not be affected.")) {
                             try {
                                 console.log('🔄 Adding sample data...');
-                                const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
+                                const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
                                 
                                 if (firebaseUser) {
-                                    const seeded = await seedDemoDataToCloud(firebaseUser.uid, null);
+                                    const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
                                     if (seeded) {
                                         console.log('✅ Sample data added - reloading page...');
                                         // Clear the "cleared" flag so sample data shows

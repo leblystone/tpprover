@@ -61,9 +61,9 @@ export async function seedSampleDataToCloud(userId, password) {
       
       // Metadata
       _metadata: {
-        isDemoData: true,
+        isSampleData: true,
         seededAt: new Date().toISOString(),
-        version: '2.1', // Track demo data version - streamlined
+        version: '2.1', // Track sample data version - streamlined
         itemCount: {
           vendors: MOCK_VENDORS.length,
           orders: MOCK_ORDERS.length,
@@ -75,35 +75,35 @@ export async function seedSampleDataToCloud(userId, password) {
       }
     };
     
-    console.log('📊 Demo data prepared:', demoData._metadata.itemCount);
+    console.log('📊 Sample data prepared:', sampleData._metadata.itemCount);
     
     // 🚀 OPTIMISTIC UI: Seed to localStorage FIRST for instant display on reload
     try {
-      localStorage.setItem('tpprover_vendors', JSON.stringify(demoData.vendors));
-      localStorage.setItem('tpprover_orders', JSON.stringify(demoData.orders));
-      localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(demoData.scheduledBuys));
-      localStorage.setItem('tpprover_protocols', JSON.stringify(demoData.protocols));
-      localStorage.setItem('tpprover_supplements', JSON.stringify(demoData.supplements));
-      localStorage.setItem('tpprover_recon_items', JSON.stringify(demoData.reconItems));
-      localStorage.setItem('tpprover_metrics', JSON.stringify(demoData.metrics));
-      localStorage.setItem('tpprover_calendar_notes', JSON.stringify(demoData.calendarNotes));
-      localStorage.setItem('tpprover_stockpile', JSON.stringify(demoData.stockpile));
-      localStorage.setItem('tpprover_demo_seeded_at', new Date().toISOString());
-      console.log('⚡ Demo data seeded to localStorage for instant display');
+      localStorage.setItem('tpprover_vendors', JSON.stringify(sampleData.vendors));
+      localStorage.setItem('tpprover_orders', JSON.stringify(sampleData.orders));
+      localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(sampleData.scheduledBuys));
+      localStorage.setItem('tpprover_protocols', JSON.stringify(sampleData.protocols));
+      localStorage.setItem('tpprover_supplements', JSON.stringify(sampleData.supplements));
+      localStorage.setItem('tpprover_recon_items', JSON.stringify(sampleData.reconItems));
+      localStorage.setItem('tpprover_metrics', JSON.stringify(sampleData.metrics));
+      localStorage.setItem('tpprover_calendar_notes', JSON.stringify(sampleData.calendarNotes));
+      localStorage.setItem('tpprover_stockpile', JSON.stringify(sampleData.stockpile));
+      localStorage.setItem('tpprover_sample_seeded_at', new Date().toISOString());
+      console.log('⚡ Sample data seeded to localStorage for instant display');
     } catch (localError) {
       console.error('❌ Failed to seed to localStorage:', localError);
     }
     
     // Save to Firestore under user's userData collection (for cloud backup)
     const userDataRef = doc(db, 'userData', userId);
-    await setDoc(userDataRef, demoData, { merge: true });
+    await setDoc(userDataRef, sampleData, { merge: true });
     
-    console.log('✅ Demo data successfully seeded to Firestore (cloud backup)');
-    console.log(`📦 Total items: ${Object.values(demoData._metadata.itemCount).reduce((a, b) => a + b, 0)}`);
+    console.log('✅ Sample data successfully seeded to Firestore (cloud backup)');
+    console.log(`📦 Total items: ${Object.values(sampleData._metadata.itemCount).reduce((a, b) => a + b, 0)}`);
     
     return true;
   } catch (error) {
-    console.error('❌ Failed to seed demo data to Firestore:', error);
+    console.error('❌ Failed to seed sample data to Firestore:', error);
     
     // Fallback to localStorage if Firestore fails (offline mode)
     console.log('🔄 Falling back to localStorage seeding...');
@@ -148,11 +148,11 @@ function generateStockpileFromOrders(orders) {
 }
 
 /**
- * Check if user has demo data in Firestore
+ * Check if user has sample data in Firestore
  * @param {string} userId - Firebase user ID
- * @returns {Promise<boolean>} - Whether user has demo data
+ * @returns {Promise<boolean>} - Whether user has sample data
  */
-export async function hasDemoData(userId) {
+export async function hasSampleData(userId) {
   try {
     const userDataRef = doc(db, 'userData', userId);
     const snapshot = await getDoc(userDataRef);
@@ -160,9 +160,9 @@ export async function hasDemoData(userId) {
     if (!snapshot.exists()) return false;
     
     const data = snapshot.data();
-    return data._metadata?.isDemoData === true;
+    return data._metadata?.isSampleData === true;
   } catch (error) {
-    console.error('Error checking for demo data:', error);
+    console.error('Error checking for sample data:', error);
     return false;
   }
 }
