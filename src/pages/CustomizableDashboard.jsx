@@ -342,6 +342,8 @@ export default function CustomizableDashboard() {
             completed: false
           };
           
+          console.log('🔍 DEBUG: Created task object:', task);
+          
           // Generate stable task ID and check completion status
           const taskId = generateTaskId(task);
           task.stableTaskId = taskId;

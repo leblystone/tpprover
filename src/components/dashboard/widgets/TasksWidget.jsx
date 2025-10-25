@@ -85,6 +85,12 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
     })) || []
   }, 'tasks');
   
+  // Debug the first task to see its structure
+  if (tasks && tasks.length > 0) {
+    console.log('🔍 DEBUG: First task in TasksWidget:', tasks[0]);
+    console.log('🔍 DEBUG: First task type:', typeof tasks[0]);
+  }
+  
   const { showCompleted, groupByTime } = widget.settings;
   
   // Filter tasks based on settings
