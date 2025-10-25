@@ -174,7 +174,7 @@ export function validateSupplement(supplement) {
   }
 
   if (supplement.schedule && Array.isArray(supplement.schedule)) {
-    const validSlots = ['AM', 'PM', 'Morning', 'Evening']; // Include legacy for compatibility
+    const validSlots = ['AM', 'PM']; // Standardized to AM/PM only
     const invalidSlots = supplement.schedule.filter(slot => !validSlots.includes(slot));
     if (invalidSlots.length > 0) {
       errors.push(`Invalid time slots: ${invalidSlots.join(', ')}`);
@@ -208,7 +208,7 @@ export function migrateLegacySupplement(supplement) {
 
   const migrated = { ...supplement };
 
-  // Convert legacy Morning/Evening to AM/PM
+  // Ensure schedule uses AM/PM format
   if (migrated.schedule && Array.isArray(migrated.schedule)) {
     migrated.schedule = migrated.schedule.map(slot => {
       if (slot === 'Morning') return 'AM';

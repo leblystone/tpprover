@@ -219,7 +219,7 @@ export const WIDGET_METADATA = {
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: [
       { key: 'showCompleted', label: 'Show completed tasks', type: 'boolean', default: true },
-      { key: 'groupByTime', label: 'Group by AM/PM', type: 'boolean', default: true }
+      { key: 'groupByTime', label: 'Group by time slot', type: 'boolean', default: true }
     ]
   },
   [WIDGET_TYPES.UPCOMING_ORDER]: {

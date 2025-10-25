@@ -24,7 +24,7 @@ export default function StackEditorModal({ open, onClose, theme, protocols = [],
       if (!selectedIds.includes(exact.id)) setSelectedIds(prev => [...prev, exact.id])
     } else {
       const trimmed = (text || '').trim()
-      if (trimmed) setManualItems(prev => [...prev, { id: Date.now(), name: trimmed, time: 'Morning' }])
+      if (trimmed) setManualItems(prev => [...prev, { id: Date.now(), name: trimmed, time: 'AM' }])
     }
     setQuery('')
   }
@@ -55,7 +55,7 @@ export default function StackEditorModal({ open, onClose, theme, protocols = [],
       </>
     )}>
       <div className="space-y-4">
-        <TextInput label="Stack Name" value={name} onChange={setName} placeholder="e.g., Morning Boost" theme={theme} />
+        <TextInput label="Stack Name" value={name} onChange={setName} placeholder="e.g., AM Boost" theme={theme} />
 
         <div>
           <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Include Peptides</div>

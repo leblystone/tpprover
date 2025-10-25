@@ -192,7 +192,7 @@ export default function Protocols() {
           const count = countIdx>=0 ? Number(cols[countIdx])||1 : 1
           const per = perIdx>=0 ? (cols[perIdx]||'Day') : 'Day'
           const timeVal = (timeIdx>=0 ? cols[timeIdx] : 'AM').toUpperCase()
-          const times = timeVal.includes('AM') && timeVal.includes('PM') ? ['Morning','Evening'] : (timeVal.includes('PM') ? ['Evening'] : ['Morning'])
+          const times = timeVal.includes('AM') && timeVal.includes('PM') ? ['AM','PM'] : (timeVal.includes('PM') ? ['PM'] : ['AM'])
           const dCount = durCountIdx>=0 ? Number(cols[durCountIdx])||0 : 0
           const dUnit = durUnitIdx>=0 ? (cols[durUnitIdx]||'Week') : 'Week'
           const noEnd = noEndIdx>=0 ? /true|1|yes/i.test(cols[noEndIdx]) : false
@@ -550,7 +550,7 @@ export default function Protocols() {
                 ...p,
                 peptides: (p.peptides || []).map(pep => {
                     const f = pep.frequency || {};
-                    const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['Morning'];
+                    const time = Array.isArray(f.time) && f.time.length > 0 ? f.time : ['AM'];
                     return { ...pep, frequency: { ...f, time } };
                 })
             });
@@ -584,8 +584,8 @@ const formatFrequency = (freq) => {
   if (!freq) return 'Not set';
   const timeChoice = (() => {
     const times = freq.time || [];
-    const hasAM = times.includes('AM') || times.includes('Morning');
-    const hasPM = times.includes('PM') || times.includes('Evening');
+    const hasAM = times.includes('AM');
+    const hasPM = times.includes('PM');
     if (hasAM && hasPM) return 'AM/PM';
     if (hasAM) return 'AM';
     if (hasPM) return 'PM';

@@ -237,7 +237,7 @@ export default function Dashboard() {
         return base.map(pep => {
           const f = pep?.frequency || {}
           const type = f.type || 'daily'
-          const time = Array.isArray(f?.time) && f.time.length > 0 ? f.time : ['Morning']
+          const time = Array.isArray(f?.time) && f.time.length > 0 ? f.time : ['AM']
           return { ...pep, frequency: { ...f, type, time } }
         })
       }
@@ -333,9 +333,9 @@ export default function Dashboard() {
                 }
 
                 // Create one task per scheduled time
-                const times = freq.time || ['Morning'];
+                const times = freq.time || ['AM'];
                 times.forEach(t => {
-                    const timeSlot = t === 'Morning' ? 'AM' : 'PM';
+                    const timeSlot = t; // Already using AM/PM format
                     
                     // For complex dose displays, keep the full string as dose and extract primary unit
                     let dose = doseDisplay;
@@ -442,7 +442,7 @@ export default function Dashboard() {
               }
 
               pep.frequency.time.forEach(t => {
-                const timeSlot = t === 'Morning' ? 'AM' : 'PM';
+                const timeSlot = t; // Already using AM/PM format
                 const task = {
                   id: `${p.id}-${pep.name || 'Peptide'}-${t}`,
                   type: 'peptide',
@@ -647,7 +647,7 @@ export default function Dashboard() {
           {/* Today's Research taking up 3/4 of the space */}
           <div className="lg:col-span-3 p-2 rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
             <div className="flex justify-between items-center mb-1">
-                <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark, backgroundColor: 'red', color: 'white', padding: '10px' }}>Today's Research - DEBUG MODE</h3>
+                <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Today's Research</h3>
                 <button 
                     onClick={() => navigate('/app/calendar')}
                     className="px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5" 
@@ -658,16 +658,8 @@ export default function Dashboard() {
                 </button>
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
-            <div className="max-h-48 overflow-y-auto pr-2" style={{ 
-                border: '3px solid red', 
-                minHeight: '300px',
-                backgroundColor: 'yellow',
-                padding: '10px'
-            }}>
-                <div style={{ border: '2px solid blue', padding: '5px' }}>
-                    {console.log('🔍 Today\'s Research widget rendering with', todaysTasks.length, 'tasks')}
-                    <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
-                </div>
+            <div className="max-h-48 overflow-y-auto pr-2">
+                <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
             </div>
             {washoutReminders.length > 0 && (
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>

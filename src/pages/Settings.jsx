@@ -184,6 +184,7 @@ export default function Settings() {
     const [showTerms, setShowTerms] = useState(false)
     const [showPrivacy, setShowPrivacy] = useState(false)
     const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false)
+    const [sampleDataAction, setSampleDataAction] = useState('removed') // 'added' or 'removed'
     const [showSampleDataModal, setShowSampleDataModal] = useState(false)
     const [showRemoveSampleDataModal, setShowRemoveSampleDataModal] = useState(false)
     const [isAddingSampleData, setIsAddingSampleData] = useState(false)
@@ -264,7 +265,56 @@ export default function Settings() {
     }
 
     // Settings state
-    const [settings, setSettings] = useState(() => loadSettings() || getDefaultSettings())
+    const [settings, setSettings] = useState(() => {
+      const loadedSettings = loadSettings()
+      const defaultSettings = getDefaultSettings()
+      
+      // Ensure all required properties exist with proper structure
+      return {
+        ...defaultSettings,
+        ...loadedSettings,
+        appearance: {
+          ...defaultSettings.appearance,
+          ...(loadedSettings?.appearance || {})
+        },
+        notifications: {
+          ...defaultSettings.notifications,
+          ...(loadedSettings?.notifications || {})
+        },
+        region: {
+          ...defaultSettings.region,
+          ...(loadedSettings?.region || {})
+        },
+        tracking: {
+          ...defaultSettings.tracking,
+          ...(loadedSettings?.tracking || {})
+        },
+        features: {
+          ...defaultSettings.features,
+          ...(loadedSettings?.features || {})
+        },
+        calendar: {
+          ...defaultSettings.calendar,
+          ...(loadedSettings?.calendar || {})
+        },
+        research: {
+          ...defaultSettings.research,
+          ...(loadedSettings?.research || {})
+        },
+        orders: {
+          ...defaultSettings.orders,
+          ...(loadedSettings?.orders || {})
+        },
+        ui: {
+          ...defaultSettings.ui,
+          ...(loadedSettings?.ui || {})
+        },
+        privacy: {
+          ...defaultSettings.privacy,
+          ...(loadedSettings?.privacy || {})
+        }
+      }
+    })
 
     // Load agreement data
     useEffect(() => {
@@ -601,8 +651,17 @@ export default function Settings() {
       const next = { ...settings }
       const segs = path.split('.')
       let ref = next
-      for (let i=0; i<segs.length-1; i++) ref = ref[segs[i]]
-      ref[segs[segs.length-1]] = value
+      
+      // Ensure nested objects exist
+      for (let i = 0; i < segs.length - 1; i++) {
+        if (!ref[segs[i]] || typeof ref[segs[i]] !== 'object') {
+          ref[segs[i]] = {}
+        }
+        ref = ref[segs[i]]
+      }
+      
+      // Set the final value
+      ref[segs[segs.length - 1]] = value
       setSettings(next)
       saveSettings(next)
     }
@@ -658,7 +717,8 @@ export default function Settings() {
             // Refresh the app context data instead of reloading the page
             refreshDataAfterClear();
             
-            // Show success message
+            // Show success modal for adding
+            setSampleDataAction('added');
             setShowDemoSuccessModal(true);
           } else {
             alert('Failed to add sample data. Check console for details.');
@@ -692,6 +752,7 @@ export default function Settings() {
         
         // Close modal and show success
         setShowRemoveSampleDataModal(false);
+        setSampleDataAction('removed');
         setShowDemoSuccessModal(true);
         
         console.log('✅ Sample data removed successfully');
@@ -745,7 +806,7 @@ export default function Settings() {
                 {Object.keys(themes).map(t => <option key={t} value={t}>{themes[t].name}</option>)}
               </select>
             </div>
-            <SettingSelect label="Font Size" value={settings.appearance.fontScale} onChange={e => update('appearance.fontScale', e.target.value)} options={[{ value: '0.9', label: 'Small' }, { value: '1.0', label: 'Default' }, { value: '1.1', label: 'Large' }, { value: '1.25', label: 'XL' }]} theme={theme} />
+            <SettingSelect label="Font Size" value={settings?.appearance?.fontScale || '1.0'} onChange={e => update('appearance.fontScale', e.target.value)} options={[{ value: '0.9', label: 'Small' }, { value: '1.0', label: 'Default' }, { value: '1.1', label: 'Large' }, { value: '1.25', label: 'XL' }]} theme={theme} />
           </div>
         </CollapsibleSection>
 
@@ -896,8 +957,11 @@ export default function Settings() {
          <SuccessModal
            open={showDemoSuccessModal}
            onClose={() => setShowDemoSuccessModal(false)}
-           title="Sample Data Removed!"
-           message="All sample data has been successfully removed. Your personal entries remain safe and intact."
+           title={sampleDataAction === 'added' ? "Sample Data Added!" : "Sample Data Removed!"}
+           message={sampleDataAction === 'added' 
+             ? "Sample data has been successfully added to help you explore the app features. Your personal entries remain safe and intact."
+             : "All sample data has been successfully removed. Your personal entries remain safe and intact."
+           }
            theme={theme}
          />
          <SampleDataModal

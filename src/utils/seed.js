@@ -135,7 +135,7 @@ export const MOCK_PROTOCOLS = [
         id: 301,
         protocolName: 'Recovery & Healing Protocol',
         peptides: [
-            { name: 'BPC-157', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } },
+            { name: 'BPC-157', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM', 'PM'] } },
             { name: 'TB-500', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'weekly', time: ['Monday', 'Thursday'] } }
         ],
         startDate: new Date().toISOString().slice(0, 10),
@@ -163,8 +163,8 @@ export const MOCK_PROTOCOLS = [
         id: 303,
         protocolName: 'Longevity Research Protocol',
         peptides: [
-            { name: 'Epithalon', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['Evening'] } },
-            { name: 'Thymalin', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['Morning'] } }
+            { name: 'Epithalon', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['PM'] } },
+            { name: 'Thymalin', dosage: { amount: 'XXX', unit: 'mg' }, frequency: { type: 'daily', time: ['AM'] } }
         ],
         startDate: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10),
         duration: { count: '20', unit: 'day' },
@@ -177,8 +177,8 @@ export const MOCK_PROTOCOLS = [
         id: 304,
         protocolName: 'Cognitive Enhancement Stack',
         peptides: [
-            { name: 'Semax', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning'] } },
-            { name: 'Selank', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Afternoon'] } }
+            { name: 'Semax', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM'] } },
+            { name: 'Selank', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['PM'] } }
         ],
         startDate: new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10),
         duration: { count: '12', unit: 'week' },
@@ -191,8 +191,8 @@ export const MOCK_PROTOCOLS = [
         id: 305,
         protocolName: 'Growth Hormone Enhancement',
         peptides: [
-            { name: 'Ipamorelin', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } },
-            { name: 'CJC-1295', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['Morning', 'Evening'] } }
+            { name: 'Ipamorelin', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM', 'PM'] } },
+            { name: 'CJC-1295', dosage: { amount: 'XXX', unit: 'mcg' }, frequency: { type: 'daily', time: ['AM', 'PM'] } }
         ],
         startDate: new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10),
         duration: { count: '6', unit: 'week' },
@@ -466,7 +466,17 @@ export function clearMockData() {
                 let filteredData;
 
                 if (Array.isArray(data)) {
-                    filteredData = data.filter(item => !item.isMock);
+                    filteredData = data.filter(item => {
+                        // Remove items with isMock: true
+                        if (item.isMock) return false;
+                        
+                        // Also remove items that are clearly mock data based on content
+                        if (item.vendor === 'Community Round' && item.peptide === 'BPC-157' && item.cost === '200') {
+                            return false;
+                        }
+                        
+                        return true;
+                    });
                 } else if (typeof data === 'object' && data !== null) {
                     // Handle calendar notes and other object structures
                     filteredData = Object.entries(data).reduce((acc, [itemKey, value]) => {

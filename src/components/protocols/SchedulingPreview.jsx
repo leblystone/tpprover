@@ -27,7 +27,7 @@ const SchedulingPreview = ({ protocol, theme }) => {
   };
 
   const getTimeDescription = (frequency) => {
-    if (!frequency || !frequency.time) return 'Morning';
+    if (!frequency || !frequency.time) return 'AM';
     const times = Array.isArray(frequency.time) ? frequency.time : [frequency.time];
     return times.join(' & ');
   };

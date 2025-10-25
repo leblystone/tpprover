@@ -32,7 +32,18 @@ export async function saveUserData(userId, data, collection = COLLECTIONS.USER_D
     const cleanData = {};
     Object.keys(data).forEach(key => {
       if (data[key] !== undefined) {
-        cleanData[key] = data[key];
+        // Recursively clean nested objects
+        if (typeof data[key] === 'object' && data[key] !== null && !Array.isArray(data[key])) {
+          const cleanedNested = {};
+          Object.keys(data[key]).forEach(nestedKey => {
+            if (data[key][nestedKey] !== undefined) {
+              cleanedNested[nestedKey] = data[key][nestedKey];
+            }
+          });
+          cleanData[key] = cleanedNested;
+        } else {
+          cleanData[key] = data[key];
+        }
       }
     });
     

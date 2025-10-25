@@ -27,23 +27,12 @@ export async function seedSampleDataToCloud(userId, password) {
   try {
     console.log('☁️ Adding sample data (OPTIMISTIC: localStorage + Firestore)');
     
-    // SAFETY CHECK: Verify no real user data exists before adding sample data
-    const vendorsRaw = localStorage.getItem('tpprover_vendors');
-    const ordersRaw = localStorage.getItem('tpprover_orders');
-    const protocolsRaw = localStorage.getItem('tpprover_protocols');
+    // SAFETY CHECK: Only prevent adding sample data if user explicitly cleared it
+    const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
     
-    const hasRealData = [vendorsRaw, ordersRaw, protocolsRaw].some(r => {
-      try { 
-        const data = JSON.parse(r);
-        return Array.isArray(data) && data.some(item => !item.isMock);
-      } catch { 
-        return false 
-      }
-    });
-    
-    if (hasRealData) {
-      console.log('❌ Cannot add sample data: User has real data that would be affected');
-      throw new Error('Cannot add sample data when you have existing data. Please remove your existing data first if you want to start with sample data.');
+    if (sampleDataCleared) {
+      console.log('❌ Cannot add sample data: User has explicitly cleared sample data');
+      throw new Error('Sample data was previously removed. Please refresh the page and try again if you want to add sample data.');
     }
     
      // Create the sample dataset - clean any undefined values
@@ -95,19 +84,63 @@ export async function seedSampleDataToCloud(userId, password) {
     
      console.log('📊 Sample data prepared:', cleanedSampleData._metadata.itemCount);
      
-     // 🚀 OPTIMISTIC UI: Seed to localStorage FIRST for instant display on reload
+     // 🚀 OPTIMISTIC UI: Merge sample data with existing data in localStorage
      try {
-       localStorage.setItem('tpprover_vendors', JSON.stringify(cleanedSampleData.vendors));
-       localStorage.setItem('tpprover_orders', JSON.stringify(cleanedSampleData.orders));
-       localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(cleanedSampleData.scheduledBuys));
-       localStorage.setItem('tpprover_protocols', JSON.stringify(cleanedSampleData.protocols));
-       localStorage.setItem('tpprover_supplements', JSON.stringify(cleanedSampleData.supplements));
-       localStorage.setItem('tpprover_recon_items', JSON.stringify(cleanedSampleData.reconItems));
-       localStorage.setItem('tpprover_metrics', JSON.stringify(cleanedSampleData.metrics));
-       localStorage.setItem('tpprover_calendar_notes', JSON.stringify(cleanedSampleData.calendarNotes));
-       localStorage.setItem('tpprover_stockpile', JSON.stringify(cleanedSampleData.stockpile));
+       // Helper function to merge arrays, avoiding duplicates
+       const mergeArrays = (existing, newItems, keyField = 'id') => {
+         if (!existing || !Array.isArray(existing)) return newItems;
+         const existingIds = new Set(existing.map(item => item[keyField]));
+         const uniqueNewItems = newItems.filter(item => !existingIds.has(item[keyField]));
+         return [...existing, ...uniqueNewItems];
+       };
+       
+       // Merge vendors
+       const existingVendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]');
+       const mergedVendors = mergeArrays(existingVendors, cleanedSampleData.vendors);
+       localStorage.setItem('tpprover_vendors', JSON.stringify(mergedVendors));
+       
+       // Merge orders
+       const existingOrders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
+       const mergedOrders = mergeArrays(existingOrders, cleanedSampleData.orders);
+       localStorage.setItem('tpprover_orders', JSON.stringify(mergedOrders));
+       
+       // Merge scheduled buys
+       const existingScheduledBuys = JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]');
+       const mergedScheduledBuys = mergeArrays(existingScheduledBuys, cleanedSampleData.scheduledBuys);
+       localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(mergedScheduledBuys));
+       
+       // Merge protocols
+       const existingProtocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
+       const mergedProtocols = mergeArrays(existingProtocols, cleanedSampleData.protocols);
+       localStorage.setItem('tpprover_protocols', JSON.stringify(mergedProtocols));
+       
+       // Merge supplements
+       const existingSupplements = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]');
+       const mergedSupplements = mergeArrays(existingSupplements, cleanedSampleData.supplements);
+       localStorage.setItem('tpprover_supplements', JSON.stringify(mergedSupplements));
+       
+       // Merge recon items
+       const existingReconItems = JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]');
+       const mergedReconItems = mergeArrays(existingReconItems, cleanedSampleData.reconItems);
+       localStorage.setItem('tpprover_recon_items', JSON.stringify(mergedReconItems));
+       
+       // Merge metrics
+       const existingMetrics = JSON.parse(localStorage.getItem('tpprover_metrics') || '[]');
+       const mergedMetrics = mergeArrays(existingMetrics, cleanedSampleData.metrics);
+       localStorage.setItem('tpprover_metrics', JSON.stringify(mergedMetrics));
+       
+       // Merge calendar notes (object merge)
+       const existingCalendarNotes = JSON.parse(localStorage.getItem('tpprover_calendar_notes') || '{}');
+       const mergedCalendarNotes = { ...existingCalendarNotes, ...cleanedSampleData.calendarNotes };
+       localStorage.setItem('tpprover_calendar_notes', JSON.stringify(mergedCalendarNotes));
+       
+       // Merge stockpile
+       const existingStockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
+       const mergedStockpile = mergeArrays(existingStockpile, cleanedSampleData.stockpile);
+       localStorage.setItem('tpprover_stockpile', JSON.stringify(mergedStockpile));
+       
        localStorage.setItem('tpprover_sample_seeded_at', new Date().toISOString());
-       console.log('⚡ Sample data seeded to localStorage for instant display');
+       console.log('⚡ Sample data merged with existing data in localStorage');
      } catch (localError) {
        console.error('❌ Failed to seed to localStorage:', localError);
      }

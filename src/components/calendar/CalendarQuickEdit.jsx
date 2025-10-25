@@ -7,13 +7,13 @@ import InjectionSiteSelector from '../common/InjectionSiteSelector';
 // Normalize timeslot labels for consistent storage/IDs
 function normalizeSlot(slot) {
     const s = String(slot || '').toLowerCase();
-    if (s === 'am' || s === 'morning') return 'AM';
-    if (s === 'pm' || s === 'evening') return 'PM';
+    if (s === 'am') return 'AM';
+    if (s === 'pm') return 'PM';
     return slot;
 }
 
 function labelForSlot(slot) {
-    return normalizeSlot(slot) === 'AM' ? 'Morning' : 'Evening';
+    return normalizeSlot(slot) === 'AM' ? 'AM' : 'PM';
 }
 
 // Helper function to get supplement icon based on delivery method

@@ -14,7 +14,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         protocolName: '',
         purpose: '',
         protocolType: 'separate', // 'separate' | 'blended'
-        peptides: [{ id: Date.now(), frequency: { type: 'daily', time: ['Morning'] }, unitValue: '' }],
+        peptides: [{ id: Date.now(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }],
         duration: { count: '', unit: 'weeks', noEnd: false },
         washout: { enabled: false, duration: '', unit: 'weeks' },
         notes: ''
@@ -48,7 +48,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 id: initialData.id || Date.now(),
                 name: initialData.name,
                 dosage: initialData.dosage,
-                frequency: initialData.frequency || { type: 'daily', time: ['Morning'] },
+                frequency: initialData.frequency || { type: 'daily', time: ['AM'] },
                 titration: initialData.titration,
             };
             initialData.peptides = [legacyPeptide];
@@ -61,7 +61,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         }
 
         if (!initialData.peptides || initialData.peptides.length === 0) {
-            initialData.peptides = [{ id: Date.now(), frequency: { type: 'daily', time: ['Morning'] }, unitValue: '' }];
+            initialData.peptides = [{ id: Date.now(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }];
         }
 
         // Map blendMode to protocolType for form state
@@ -140,7 +140,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         setForm(prev => {
             const newState = {
                 ...prev,
-                peptides: [...(prev.peptides || []), { id: Date.now(), frequency: { type: 'daily', time: ['Morning'] }, unitValue: '' }]
+                peptides: [...(prev.peptides || []), { id: Date.now(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }]
             };
             
             // Update auto-save data
@@ -402,7 +402,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 These settings apply to all peptides since they'll be mixed together
                             </p>
                             <DosingScheduleEditor
-                                frequency={form.peptides[0]?.frequency || { type: 'daily', time: ['Morning'] }}
+                                frequency={form.peptides[0]?.frequency || { type: 'daily', time: ['AM'] }}
                                 onChange={(newFreq) => {
                                     const updatedPeptides = form.peptides.map(p => ({ ...p, frequency: newFreq }));
                                     handleChange('peptides', updatedPeptides);

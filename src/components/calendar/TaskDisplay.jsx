@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, Check, PenTool, Beaker, Pipette } from 'lucide-react';
+import { Pill, Check, PenTool, Beaker, Pipette, Droplet } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
