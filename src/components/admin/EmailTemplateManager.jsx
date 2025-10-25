@@ -287,14 +287,6 @@ export default function EmailTemplateManager({ theme }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold" style={{ color: theme.text }}>
-            Email Template Manager
-          </h2>
-          <p className="text-sm" style={{ color: theme.textLight }}>
-            Customize your transactional emails - no coding required!
-          </p>
-        </div>
         <div className="flex gap-2">
           <button
             onClick={sendTestEmail}
