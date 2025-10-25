@@ -113,21 +113,21 @@ function App() {
         if (user?.uid) {
           const userState = await loadUserState(user.uid);
           const hasOnboarded = userState?.hasOnboarded || false;
-          const demoDataCleared = userState?.demoDataCleared || false;
+          const sampleDataCleared = userState?.sampleDataCleared || false;
           
           console.log('🎉 Welcome Modal Debug (Cloud):');
           console.log('  user:', user?.email);
           console.log('  hasOnboarded:', hasOnboarded);
           console.log('  authToken:', localStorage.getItem('tpprover_auth_token'));
           console.log('  isFirebaseUser:', isFirebaseUser);
-          console.log('  demoDataCleared:', demoDataCleared);
-          console.log('  shouldShow:', !hasOnboarded && isFirebaseUser && !demoDataCleared);
+          console.log('  sampleDataCleared:', sampleDataCleared);
+          console.log('  shouldShow:', !hasOnboarded && isFirebaseUser && !sampleDataCleared);
           
           // Show welcome for new users:
           // 1. User hasn't onboarded AND
           // 2. User is a Firebase user (authenticated) AND
-          // 3. Demo data hasn't been explicitly cleared
-          if (!hasOnboarded && isFirebaseUser && !demoDataCleared) {
+          // 3. Sample data hasn't been explicitly cleared
+          if (!hasOnboarded && isFirebaseUser && !sampleDataCleared) {
             console.log('🎉 Showing welcome modal!');
             // Don't set session flag here - let the modal component set it when actually displayed
             setShowWelcome(true);
@@ -135,7 +135,7 @@ function App() {
             console.log('🎉 NOT showing welcome modal');
             console.log('  hasOnboarded:', hasOnboarded);
             console.log('  isFirebaseUser:', isFirebaseUser);
-            console.log('  demoDataCleared:', demoDataCleared);
+            console.log('  sampleDataCleared:', sampleDataCleared);
           }
         }
       } catch (error) {
