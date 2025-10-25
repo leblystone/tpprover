@@ -185,18 +185,34 @@ export default function EmailTemplateManager({ theme }) {
 
   // Send test email for current template
   const sendTestEmail = async () => {
+    console.log('🧪 Test email button clicked!');
+    console.log('📧 Selected template:', selectedTemplate);
+    console.log('📧 Current template:', currentTemplate);
+    
     setIsSendingTest(true);
     setTestResult(null);
 
     try {
+      console.log('🔧 Getting Firebase functions...');
       const functions = getFunctions();
+      console.log('🔧 Functions object:', functions);
+      
+      console.log('📞 Creating testEmailSystem callable...');
       const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
+      console.log('📞 Callable created:', testEmailSystem);
+      
+      console.log('📤 Calling testEmailSystem with data:', { 
+        testEmail: 'thepepplanner@gmail.com',
+        templateType: selectedTemplate 
+      });
       
       // Send specific template based on current selection
       const result = await testEmailSystem({ 
         testEmail: 'thepepplanner@gmail.com',
         templateType: selectedTemplate 
       });
+      
+      console.log('📥 Result received:', result);
       
       if (result.data.success) {
         setTestResult({ 
@@ -355,7 +371,10 @@ export default function EmailTemplateManager({ theme }) {
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           <button
-            onClick={sendTestEmail}
+            onClick={() => {
+              console.log('🔘 Test email button clicked directly!');
+              sendTestEmail();
+            }}
             disabled={isSendingTest}
             className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
