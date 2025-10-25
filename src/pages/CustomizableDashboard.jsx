@@ -353,14 +353,10 @@ export default function CustomizableDashboard() {
     });
 
     // Sort tasks: unchecked first, then checked, then by type, then by name
-    console.log('🔍 BEFORE SORTING - Tasks:', tasks.map(t => ({ name: t.name, completed: t.completed, type: t.type })));
-    
     tasks.sort((a, b) => {
       // First, sort by completion status (unchecked first, then checked)
       if (a.completed !== b.completed) {
-        const result = a.completed ? 1 : -1;
-        console.log(`🔄 Sorting by completion: ${a.name} (${a.completed}) vs ${b.name} (${b.completed}) = ${result}`);
-        return result;
+        return a.completed ? 1 : -1;
       }
       // Then by type (peptides first)
       if (a.type === 'peptide' && b.type !== 'peptide') return -1
@@ -368,9 +364,6 @@ export default function CustomizableDashboard() {
       // Finally by name
       return a.name.localeCompare(b.name)
     });
-
-    console.log('🔍 AFTER SORTING - Tasks:', tasks.map(t => ({ name: t.name, completed: t.completed, type: t.type })));
-    console.log('📋 CustomizableDashboard task sorting - unchecked first:', tasks.filter(t => !t.completed).length, 'unchecked,', tasks.filter(t => t.completed).length, 'checked');
     
     setTodaysTasks(tasks);
   }, [supplements, protocols, calendarBump]);
@@ -512,8 +505,6 @@ export default function CustomizableDashboard() {
           // Finally by name
           return a.name.localeCompare(b.name)
         });
-        
-        console.log('🔄 After task toggle - re-sorted tasks:', sortedTasks.map(t => ({ name: t.name, completed: t.completed, type: t.type })));
         
         return sortedTasks;
       });

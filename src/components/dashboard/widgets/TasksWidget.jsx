@@ -134,13 +134,8 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           </div>
         </div>
         
-        <div className="flex-1 p-4 overflow-hidden overflow-y-auto pr-2" style={{ 
-          border: '3px solid red', 
-          backgroundColor: 'yellow',
-          padding: '10px',
-          height: '100%'
-        }}>
-          <div className="space-y-2 overflow-hidden" style={{ border: '2px solid blue', padding: '5px' }}>
+        <div className="flex-1 p-4 overflow-hidden overflow-y-auto pr-2">
+          <div className="space-y-2 overflow-hidden">
             {filteredTasks.map(task => (
               <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
                 <div className="flex items-center gap-3 flex-1">
@@ -279,13 +274,8 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
         </div>
       </div>
       
-      <div className="flex-1 p-4 overflow-hidden overflow-y-auto pr-2" style={{ 
-        border: '3px solid red', 
-        backgroundColor: 'yellow',
-        padding: '10px',
-        height: '100%'
-      }}>
-        <div style={{ border: '2px solid blue', padding: '5px' }}>
+      <div className="flex-1 p-4 overflow-hidden overflow-y-auto pr-2">
+        <div>
           <TasksList 
             tasks={filteredTasks} 
             theme={theme} 
