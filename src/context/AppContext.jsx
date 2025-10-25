@@ -348,9 +348,12 @@ export function AppProvider({ children }) {
             if (firebaseUser) {
                 // User is authenticated, load their profile from localStorage
                 try {
+                    // Declare parsedUser at function level so it's available throughout
+                    let parsedUser = null;
+                    
                     const savedUser = localStorage.getItem('tpprover_user');
                     if (savedUser) {
-                        const parsedUser = JSON.parse(savedUser);
+                        parsedUser = JSON.parse(savedUser);
                         setUser(parsedUser);
                         
                         // Check if user needs initial agreement data (for existing users only)
