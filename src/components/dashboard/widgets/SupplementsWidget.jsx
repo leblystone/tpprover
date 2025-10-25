@@ -90,16 +90,18 @@ const SupplementsWidget = ({
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {supplements.map(supplement => (
-              <div 
-                key={supplement.id} 
-                className="p-3 rounded-lg border" 
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    {getDeliveryIcon(supplement.delivery || supplement.deliveryMethod)}
+                     <div className="space-y-3">
+             {supplements.map(supplement => {
+               console.log('📦 Full supplement object:', supplement);
+               return (
+               <div 
+                 key={supplement.id} 
+                 className="p-3 rounded-lg border" 
+                 style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
+               >
+                 <div className="flex items-start justify-between">
+                   <div className="flex items-start gap-3 flex-1">
+                     {getDeliveryIcon(supplement.delivery || supplement.deliveryMethod)}
                     
                     <div className="flex-1">
                       <div className="font-medium text-sm" style={{ color: theme.text }}>
@@ -128,13 +130,14 @@ const SupplementsWidget = ({
                         <Edit size={14} />
                       </button>
                     </ModernTooltip>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                                     </div>
+                 </div>
+               </div>
+               );
+             })}
+           </div>
+         )}
+       </div>
       
       {/* Lockout Overlay */}
       {isReadOnly && (

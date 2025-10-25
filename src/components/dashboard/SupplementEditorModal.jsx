@@ -20,7 +20,10 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
     }, [supplement, open]);
 
     const handleSave = () => {
-        onSave({ ...form, id: supplement?.id || Date.now() });
+        const dataToSave = { ...form, id: supplement?.id || Date.now() };
+        console.log('💾 SupplementsWidget handleSave - saving:', dataToSave);
+        console.log('💾 Delivery field in saved data:', dataToSave.delivery);
+        onSave(dataToSave);
         onClose();
     };
     
@@ -180,7 +183,11 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                             <button 
                                 key={value} 
                                 type="button" 
-                                onClick={() => setForm({ ...form, delivery: value })} 
+                                onClick={() => {
+                                    console.log('🖱️ Delivery method clicked:', value);
+                                    setForm({ ...form, delivery: value });
+                                    console.log('📋 Form state after update:', { ...form, delivery: value });
+                                }} 
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${form.delivery === value ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-200'}`}
                                 style={form.delivery === value ? { backgroundColor: theme.primary } : {}}
                             >

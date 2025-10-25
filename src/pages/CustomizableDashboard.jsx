@@ -492,29 +492,32 @@ export default function CustomizableDashboard() {
     // Toggle in the unified system (this will dispatch the global event)
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
     
-    // Update local state to reflect the change immediately and re-sort
-    setTodaysTasks(prev => {
-      const updatedTasks = prev.map(t => 
-        t.id === task.id ? { ...t, completed: newCompletedState } : t
-      );
-      
-      // Re-sort the tasks: unchecked first, then checked, then by type, then by name
-      updatedTasks.sort((a, b) => {
-        // First, sort by completion status (unchecked first, then checked)
-        if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1;
-        }
-        // Then by type (peptides first)
-        if (a.type === 'peptide' && b.type !== 'peptide') return -1
-        if (a.type !== 'peptide' && b.type === 'peptide') return 1
-        // Finally by name
-        return a.name.localeCompare(b.name)
+    // Update local state to reflect the change immediately (for visual feedback)
+    setTodaysTasks(prev => prev.map(t => 
+      t.id === task.id ? { ...t, completed: newCompletedState } : t
+    ));
+    
+    // Add a slight delay before re-sorting to let user see the check mark
+    setTimeout(() => {
+      setTodaysTasks(prev => {
+        // Re-sort the tasks: unchecked first, then checked, then by type, then by name
+        const sortedTasks = [...prev].sort((a, b) => {
+          // First, sort by completion status (unchecked first, then checked)
+          if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+          }
+          // Then by type (peptides first)
+          if (a.type === 'peptide' && b.type !== 'peptide') return -1
+          if (a.type !== 'peptide' && b.type === 'peptide') return 1
+          // Finally by name
+          return a.name.localeCompare(b.name)
+        });
+        
+        console.log('🔄 After task toggle - re-sorted tasks:', sortedTasks.map(t => ({ name: t.name, completed: t.completed, type: t.type })));
+        
+        return sortedTasks;
       });
-      
-      console.log('🔄 After task toggle - re-sorted tasks:', updatedTasks.map(t => ({ name: t.name, completed: t.completed, type: t.type })));
-      
-      return updatedTasks;
-    });
+    }, 800); // 800ms delay - enough to see the check mark but not too long
   };
 
   // Listen for task completion changes from other views
