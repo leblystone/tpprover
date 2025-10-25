@@ -512,25 +512,25 @@ export default function EmailTemplateManager({ theme }) {
               Brand Colors
             </h3>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {Object.entries(colors).map(([key, value]) => (
                 <div key={key}>
-                  <label className="block text-xs font-medium mb-1 capitalize" style={{ color: theme.textLight }}>
+                  <label className="block text-xs font-medium mb-2 capitalize" style={{ color: theme.textLight }}>
                     {key.replace(/([A-Z])/g, ' $1')}
                   </label>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     <input
                       type="color"
                       value={value}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                      className="w-8 h-8 rounded border cursor-pointer"
+                      className="w-12 h-10 rounded border cursor-pointer"
                       style={{ borderColor: theme.border }}
                     />
                     <input
                       type="text"
                       value={value}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-                      className="flex-1 px-2 py-1 rounded border text-xs font-mono"
+                      className="flex-1 px-3 py-2 rounded border text-sm font-mono"
                       style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
                     />
                   </div>
