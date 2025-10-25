@@ -178,7 +178,7 @@ const TaskListSection = ({ tasks, theme, onToggle }) => {
                                   if (isInjection && !task.completed) {
                                     setInjectionTask(task);
                                   } else {
-                                    onToggle(task);
+                                    onToggle(task.id);
                                   }
                                 }}
                                 className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer`}
