@@ -73,6 +73,72 @@ const DEFAULT_TEMPLATES = {
     highlightTitle: 'Subscription Details',
     highlightMessage: 'Plan: Pro Plan • Status: Active ✓',
     features: []
+  },
+  paymentFailed: {
+    name: 'Payment Failed',
+    subject: 'Payment Failed - Action Required - The Pep Planner',
+    heading: 'Payment Failed - Action Required ⚠️',
+    greeting: 'We were unable to process your recent payment for The Pep Planner.',
+    mainMessage: 'Your subscription is at risk of being suspended. Please update your payment method to continue accessing your research data and all features.',
+    ctaText: 'Update Payment Method',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: '⚠️ Immediate Action Required',
+    highlightMessage: 'Your subscription will be suspended in 3 days if payment is not updated. Don\'t lose access to your research data!',
+    features: []
+  },
+  weeklyReminder: {
+    name: 'Weekly Research Reminder',
+    subject: 'Your Research Progress - Weekly Update - The Pep Planner',
+    heading: 'Your Research Progress 📊',
+    greeting: 'Hi there! Here\'s your weekly research update.',
+    mainMessage: 'Track your progress, log your protocols, and stay organized with your research journey. Every small step counts!',
+    ctaText: 'Continue Research',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: '💡 Research Tip',
+    highlightMessage: 'Consistent logging helps identify patterns and optimize your research outcomes.',
+    features: [
+      'Log your daily protocols',
+      'Track your progress metrics',
+      'Update your research notes',
+      'Review your inventory levels',
+      'Plan your next research phase'
+    ]
+  },
+  paymentSuccessful: {
+    name: 'Payment Successful',
+    subject: 'Payment Confirmed - The Pep Planner',
+    heading: 'Payment Confirmed ✅',
+    greeting: 'Great news! Your payment has been successfully processed.',
+    mainMessage: 'Your subscription is now active and you have full access to all features. Thank you for continuing your research journey with us.',
+    ctaText: 'Access Dashboard',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: '🎉 Subscription Active',
+    highlightMessage: 'Your research data is safe and all features are unlocked.',
+    features: []
+  },
+  renewalReminder: {
+    name: 'Subscription Renewal Reminder',
+    subject: 'Your subscription renews in 3 days - The Pep Planner',
+    heading: 'Subscription Renewal in 3 Days ⏰',
+    greeting: 'Your The Pep Planner subscription will automatically renew in 3 days.',
+    mainMessage: 'No action needed - your payment method will be charged automatically. You can manage your subscription or update payment details anytime.',
+    ctaText: 'Manage Subscription',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: '💳 Automatic Renewal',
+    highlightMessage: 'Your subscription will continue seamlessly. Update payment method if needed.',
+    features: []
+  },
+  subscriptionCancelled: {
+    name: 'Subscription Cancelled',
+    subject: 'Subscription Cancelled - The Pep Planner',
+    heading: 'Subscription Cancelled 📋',
+    greeting: 'We\'re sorry to see you go! Your subscription has been cancelled.',
+    mainMessage: 'You\'ll continue to have access to your research data until the end of your current billing period. We hope you\'ll consider rejoining us in the future.',
+    ctaText: 'Reactivate Subscription',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: '📊 Your Research Data',
+    highlightMessage: 'Your data remains accessible until [END_DATE]. Export your research if needed.',
+    features: []
   }
 };
 
