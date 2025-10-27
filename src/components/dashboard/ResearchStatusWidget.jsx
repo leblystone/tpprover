@@ -16,7 +16,8 @@ export default function ResearchStatusWidget({ theme, subscription }) {
     const now = new Date();
     const end = new Date(subscription.currentPeriodEnd);
     const diffTime = end - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Use Math.floor() so 7-day trial shows as 7 days initially, not 8
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
   };
 

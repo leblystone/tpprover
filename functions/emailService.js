@@ -279,3 +279,48 @@ exports.sendSubscriptionConfirmedEmail = async (userEmail, plan) => {
   return sendEmail(userEmail, subject, html);
 };
 
+/**
+ * Send payment failed email
+ */
+exports.sendPaymentFailedEmail = async (userEmail, amount, currency, invoiceUrl) => {
+  const subject = 'Payment Failed - The Pep Planner';
+  const html = emailTemplates.paymentFailedEmail(amount, currency, invoiceUrl);
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send payment successful email
+ */
+exports.sendPaymentSuccessfulEmail = async (userEmail, amount, currency, receiptUrl) => {
+  const subject = 'Payment Confirmed - The Pep Planner';
+  const html = emailTemplates.paymentSuccessfulEmail(amount, currency, receiptUrl);
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send subscription cancelled email
+ */
+exports.sendSubscriptionCancelledEmail = async (userEmail, planName, endDate) => {
+  const subject = 'Subscription Cancelled - The Pep Planner';
+  const html = emailTemplates.subscriptionCancelledEmail(planName, endDate);
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send renewal reminder email
+ */
+exports.sendRenewalReminderEmail = async (userEmail, planName) => {
+  const subject = 'Your subscription renews in 3 days - The Pep Planner';
+  const html = emailTemplates.renewalReminderEmail(planName);
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send weekly research reminder email
+ */
+exports.sendWeeklyResearchReminderEmail = async (userEmail, firstName) => {
+  const subject = 'Weekly Research Check-in - The Pep Planner';
+  const html = emailTemplates.weeklyResearchReminderEmail(firstName);
+  return sendEmail(userEmail, subject, html);
+};
+

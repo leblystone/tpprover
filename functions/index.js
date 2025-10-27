@@ -7,6 +7,7 @@ const stripe = require('./stripe');
 const pushNotifications = require('./pushNotifications');
 const emailService = require('./emailService');
 const testEmailSystem = require('./testEmailSystem');
+const emailAutomation = require('./emailAutomation');
 
 admin.initializeApp();
 
@@ -214,6 +215,17 @@ exports.sendTestNotification = onCall(async (request) => {
 
 // Test email system function
 exports.testEmailSystem = testEmailSystem.testEmailSystem;
+
+// Email Automation Functions
+exports.onSubscriptionConfirmed = emailAutomation.onSubscriptionConfirmed;
+exports.onPaymentFailed = emailAutomation.onPaymentFailed;
+exports.onPaymentSuccessful = emailAutomation.onPaymentSuccessful;
+exports.onSubscriptionCancelled = emailAutomation.onSubscriptionCancelled;
+exports.checkTrialEndingSoon = emailAutomation.checkTrialEndingSoon;
+exports.checkRenewalReminders = emailAutomation.checkRenewalReminders;
+exports.sendWeeklyResearchReminders = emailAutomation.sendWeeklyResearchReminders;
+exports.testEmailAutomation = emailAutomation.testEmailAutomation;
+exports.getEmailStats = emailAutomation.getEmailStats;
 
 // Custom email verification function
 exports.sendCustomVerificationEmail = onCall(async (request) => {

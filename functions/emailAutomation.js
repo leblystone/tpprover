@@ -8,8 +8,8 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const emailService = require('./emailService');
 
-// Initialize Firestore
-const db = admin.firestore();
+// Get Firestore instance (admin is initialized in index.js)
+const getDb = () => admin.firestore();
 
 // 🎯 IMMEDIATE TRIGGERS (User Actions)
 
@@ -49,7 +49,7 @@ exports.onSubscriptionConfirmed = onCall(
       
       if (success) {
         // Log the email event
-        await db.collection('emailLogs').add({
+        await getDb().collection('emailLogs').add({
           type: 'subscription_confirmed',
           userEmail,
           planName,
@@ -89,7 +89,7 @@ exports.onPaymentFailed = onCall(
       
       if (success) {
         // Log the email event
-        await db.collection('emailLogs').add({
+        await getDb().collection('emailLogs').add({
           type: 'payment_failed',
           userEmail,
           amount,
@@ -129,7 +129,7 @@ exports.onPaymentSuccessful = onCall(
       
       if (success) {
         // Log the email event
-        await db.collection('emailLogs').add({
+        await getDb().collection('emailLogs').add({
           type: 'payment_successful',
           userEmail,
           amount,
@@ -169,7 +169,7 @@ exports.onSubscriptionCancelled = onCall(
       
       if (success) {
         // Log the email event
-        await db.collection('emailLogs').add({
+        await getDb().collection('emailLogs').add({
           type: 'subscription_cancelled',
           userEmail,
           planName,
@@ -212,7 +212,7 @@ exports.checkTrialEndingSoon = onSchedule(
       threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 1);
 
       // Query users whose trial ends in 2 days
-      const usersSnapshot = await db.collection('users')
+      const usersSnapshot = await getDb().collection('users')
         .where('trialEndDate', '>=', twoDaysFromNow)
         .where('trialEndDate', '<', threeDaysFromNow)
         .where('subscriptionStatus', '==', 'trial')
@@ -233,7 +233,7 @@ exports.checkTrialEndingSoon = onSchedule(
               .then(success => {
                 if (success) {
                   // Log the email event
-                  return db.collection('emailLogs').add({
+                  return getDb().collection('emailLogs').add({
                     type: 'trial_ending_soon',
                     userEmail,
                     userId: doc.id,
@@ -281,7 +281,7 @@ exports.checkRenewalReminders = onSchedule(
       fourDaysFromNow.setDate(fourDaysFromNow.getDate() + 1);
 
       // Query users whose subscription renews in 3 days
-      const usersSnapshot = await db.collection('users')
+      const usersSnapshot = await getDb().collection('users')
         .where('subscriptionRenewalDate', '>=', threeDaysFromNow)
         .where('subscriptionRenewalDate', '<', fourDaysFromNow)
         .where('subscriptionStatus', 'in', ['active', 'trialing'])
@@ -302,7 +302,7 @@ exports.checkRenewalReminders = onSchedule(
               .then(success => {
                 if (success) {
                   // Log the email event
-                  return db.collection('emailLogs').add({
+                  return getDb().collection('emailLogs').add({
                     type: 'renewal_reminder',
                     userEmail,
                     userId: doc.id,
@@ -345,7 +345,7 @@ exports.sendWeeklyResearchReminders = onSchedule(
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const usersSnapshot = await db.collection('users')
+      const usersSnapshot = await getDb().collection('users')
         .where('lastLoginDate', '>=', thirtyDaysAgo)
         .where('subscriptionStatus', 'in', ['active', 'trial', 'lifetime'])
         .get();
@@ -365,7 +365,7 @@ exports.sendWeeklyResearchReminders = onSchedule(
               .then(success => {
                 if (success) {
                   // Log the email event
-                  return db.collection('emailLogs').add({
+                  return getDb().collection('emailLogs').add({
                     type: 'weekly_research_reminder',
                     userEmail,
                     userId: doc.id,
@@ -468,7 +468,7 @@ exports.getEmailStats = onCall(
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const emailLogsSnapshot = await db.collection('emailLogs')
+      const emailLogsSnapshot = await getDb().collection('emailLogs')
         .where('timestamp', '>=', startDate)
         .get();
 

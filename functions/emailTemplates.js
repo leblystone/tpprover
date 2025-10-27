@@ -442,3 +442,245 @@ exports.lifetimeAccessGrantedEmail = (userEmail, reason) => {
   return emailWrapper(content);
 };
 
+/**
+ * Payment Failed Email Template
+ */
+exports.paymentFailedEmail = (amount, currency, invoiceUrl) => {
+  const formattedAmount = amount ? `${currency.toUpperCase()} ${(amount / 100).toFixed(2)}` : 'N/A';
+  
+  const content = `
+    <div class="email-container">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 24px; text-align: center;">
+        Payment Failed ⚠️
+      </h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        We were unable to process your payment for The Pep Planner subscription.
+      </p>
+
+      <div class="highlight-box" style="background-color: #FEE2E2; border-left: 4px solid #EF4444;">
+        <p style="margin: 0; font-weight: 600; color: #DC2626;">💳 Payment Details</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Amount:</strong> ${formattedAmount}<br>
+          <strong>Status:</strong> Failed<br>
+          <strong>Next Action:</strong> Update payment method
+        </p>
+      </div>
+
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What happens next:</h2>
+      <ul class="feature-list">
+        <li>• Your account remains active for now</li>
+        <li>• Update your payment method to continue service</li>
+        <li>• We'll retry the payment automatically</li>
+        <li>• No interruption to your research data</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/account" class="button">
+          Update Payment Method
+        </a>
+      </center>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Need help? Our support team is here to assist you.<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Payment Successful Email Template
+ */
+exports.paymentSuccessfulEmail = (amount, currency, receiptUrl) => {
+  const formattedAmount = amount ? `${currency.toUpperCase()} ${(amount / 100).toFixed(2)}` : 'N/A';
+  
+  const content = `
+    <div class="email-container">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 24px; text-align: center;">
+        Payment Confirmed ✅
+      </h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Great news! Your payment has been successfully processed.
+      </p>
+
+      <div class="highlight-box" style="background-color: #D1FAE5; border-left: 4px solid #10B981;">
+        <p style="margin: 0; font-weight: 600; color: #059669;">🎉 Subscription Active</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Amount:</strong> ${formattedAmount}<br>
+          <strong>Status:</strong> Paid<br>
+          <strong>Access:</strong> All features unlocked
+        </p>
+      </div>
+
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">Your research data is safe:</h2>
+      <ul class="feature-list">
+        <li>✓ Full access to all features</li>
+        <li>✓ Unlimited protocol creation</li>
+        <li>✓ Advanced analytics</li>
+        <li>✓ Priority support</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" class="button">
+          Access Dashboard
+        </a>
+      </center>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Thank you for continuing your research journey with us! 🧬<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Subscription Cancelled Email Template
+ */
+exports.subscriptionCancelledEmail = (planName, endDate) => {
+  const content = `
+    <div class="email-container">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 24px; text-align: center;">
+        Subscription Cancelled 📋
+      </h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        We're sorry to see you go! Your subscription has been cancelled.
+      </p>
+
+      <div class="highlight-box" style="background-color: #FEF3C7; border-left: 4px solid #F59E0B;">
+        <p style="margin: 0; font-weight: 600; color: #D97706;">📊 Your Research Data</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Plan:</strong> ${planName || 'Pro Plan'}<br>
+          <strong>Access Until:</strong> ${endDate || 'End of billing period'}<br>
+          <strong>Data:</strong> Remains accessible until then
+        </p>
+      </div>
+
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What happens next:</h2>
+      <ul class="feature-list">
+        <li>• You'll continue to have access until ${endDate || 'the end of your billing period'}</li>
+        <li>• Export your research data if needed</li>
+        <li>• Reactivate anytime before access expires</li>
+        <li>• Your data will be safely stored for 90 days after expiration</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/account" class="button">
+          Reactivate Subscription
+        </a>
+      </center>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        We hope you'll consider rejoining us in the future. Thank you for being part of our research community! 🧬<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Renewal Reminder Email Template
+ */
+exports.renewalReminderEmail = (planName) => {
+  const content = `
+    <div class="email-container">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 24px; text-align: center;">
+        Subscription Renewal in 3 Days ⏰
+      </h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Your The Pep Planner subscription will automatically renew in 3 days.
+      </p>
+
+      <div class="highlight-box" style="background-color: #DBEAFE; border-left: 4px solid #3B82F6;">
+        <p style="margin: 0; font-weight: 600; color: #1D4ED8;">💳 Automatic Renewal</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Plan:</strong> ${planName || 'Pro Plan'}<br>
+          <strong>Renewal Date:</strong> In 3 days<br>
+          <strong>Action Required:</strong> None - automatic renewal
+        </p>
+      </div>
+
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">No action needed:</h2>
+      <ul class="feature-list">
+        <li>✓ Your payment method will be charged automatically</li>
+        <li>✓ Your subscription will continue seamlessly</li>
+        <li>✓ All your research data remains safe</li>
+        <li>✓ Update payment method if needed</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/account" class="button">
+          Manage Subscription
+        </a>
+      </center>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Thank you for continuing your research journey with us! 🧬<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Weekly Research Reminder Email Template
+ */
+exports.weeklyResearchReminderEmail = (firstName) => {
+  const content = `
+    <div class="email-container">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 24px; text-align: center;">
+        Weekly Research Check-in 🧬
+      </h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${firstName || 'Researcher'}! Time for your weekly research check-in.
+      </p>
+
+      <div class="highlight-box" style="background-color: #F3E8FF; border-left: 4px solid #8B5CF6;">
+        <p style="margin: 0; font-weight: 600; color: #7C3AED;">📊 This Week's Focus</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          Review your protocols, update your progress, and plan ahead for optimal research outcomes.
+        </p>
+      </div>
+
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">Quick weekly tasks:</h2>
+      <ul class="feature-list">
+        <li>📋 Review and update your active protocols</li>
+        <li>📈 Check your progress metrics</li>
+        <li>📦 Review upcoming orders and inventory</li>
+        <li>📝 Document any new findings or observations</li>
+        <li>🎯 Set goals for the upcoming week</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" class="button">
+          View Dashboard
+        </a>
+      </center>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Consistency is key to successful research. Keep up the great work! 🚀<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px; padding-top: 24px; border-top: 1px solid ${COLORS.border};">
+        Don't want weekly reminders? <a href="https://thepepplanner.app/app/settings" style="color: ${COLORS.primary};">Update your preferences</a>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+

@@ -90,7 +90,8 @@ export function useSubscriptionAccess() {
         const now = new Date();
         const endDate = new Date(effectiveSubscription.currentPeriodEnd);
         const timeLeft = endDate - now;
-        const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+        // Use Math.floor() so 7-day trial shows as 7 days initially, not 8
+        const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
         
         console.log('🔍 [TRIAL DEBUG] Time calculations:', {
           now: now.toISOString(),
