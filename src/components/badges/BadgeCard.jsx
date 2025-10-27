@@ -10,12 +10,12 @@ export default function BadgeCard({ badge, isEarned, theme, showProgress = true,
     borderColor: isEarned ? theme.primary : theme.border,
     color: theme.text,
     opacity: isEarned ? 1 : 0.7,
-    transform: isHovered && isEarned ? 'translateY(-2px)' : 'translateY(0)',
+    transform: isHovered && isEarned ? 'translateY(-1px)' : 'translateY(0)',
     boxShadow: isEarned 
       ? isHovered 
-        ? `0 8px 25px ${theme.primary}30` 
-        : `0 4px 15px ${theme.primary}20`
-      : '0 2px 8px rgba(0,0,0,0.1)',
+        ? `0 4px 12px ${theme.primary}20` 
+        : `0 2px 8px ${theme.primary}15`
+      : '0 1px 4px rgba(0,0,0,0.1)',
   };
 
   const progress = badge.progress ? badge.progress(stats) : 0;
@@ -23,67 +23,56 @@ export default function BadgeCard({ badge, isEarned, theme, showProgress = true,
 
   return (
     <div 
-      className={`p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer relative overflow-hidden ${
-        isEarned ? 'hover:scale-105 badge-card-earned' : ''
+      className={`p-3 md:p-4 rounded-lg border transition-all duration-300 cursor-pointer relative overflow-hidden ${
+        isEarned ? 'badge-card-earned' : ''
       } ${className}`}
       style={cardStyle}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Status indicator */}
-      <div className="absolute top-3 right-3">
+      <div className="absolute top-2 right-2">
         {isEarned ? (
-          <CheckCircle className="w-5 h-5" style={{ color: theme.primary }} />
+          <CheckCircle className="w-4 h-4" style={{ color: theme.primary }} />
         ) : (
-          <Lock className="w-5 h-5 opacity-50" style={{ color: theme.text }} />
+          <Lock className="w-4 h-4 opacity-50" style={{ color: theme.text }} />
         )}
       </div>
 
       {/* Badge image and content */}
-      <div className="flex flex-col items-center text-center space-y-4">
+      <div className="flex flex-col items-center text-center space-y-2 md:space-y-3">
         <div className="relative">
-          <div className="w-20 h-20">
-            <BadgeImage name={badge.name} isEarned={isEarned} theme={theme} caption={false} />
+          <div className="w-12 h-12 md:w-14 md:h-14">
+            <BadgeImage name={badge.name} isEarned={isEarned} theme={theme} caption={false} size={48} />
           </div>
-          
-          {/* Glow effect for earned badges */}
-          {isEarned && (
-            <div 
-              className="absolute inset-0 rounded-full blur-md opacity-30"
-              style={{ 
-                background: `radial-gradient(circle, ${theme.primary}40, transparent 70%)`,
-                transform: 'scale(1.2)'
-              }}
-            />
-          )}
         </div>
 
-        <div className="space-y-2">
-          <h3 className={`font-bold text-lg leading-tight ${
+        <div className="space-y-1 md:space-y-1.5">
+          <h3 className={`font-bold text-sm md:text-base leading-tight line-clamp-2 ${
             isEarned ? '' : 'opacity-60'
           }`} style={{ color: isEarned ? theme.primaryDark : theme.text }}>
             {badge.name}
           </h3>
-          <p className="text-sm leading-relaxed opacity-80" style={{ color: theme.text }}>
+          <p className="text-xs md:text-sm leading-relaxed opacity-80 line-clamp-2" style={{ color: theme.text }}>
             {badge.description}
           </p>
         </div>
 
         {/* Progress bar for unearned badges */}
         {!isEarned && showProgress && progress > 0 && (
-          <div className="w-full space-y-2">
+          <div className="w-full space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="flex items-center gap-1" style={{ color: theme.accent }}>
-                <TrendingUp className="w-3 h-3" />
-                Progress
+                <TrendingUp className="w-2.5 h-2.5" />
+                <span className="hidden sm:inline">Progress</span>
               </span>
               <span className="font-medium" style={{ color: theme.accent }}>
                 {progressPercentage}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
               <div 
-                className="h-2 rounded-full transition-all duration-500 badge-progress-bar" 
+                className="h-1.5 rounded-full transition-all duration-500 badge-progress-bar" 
                 style={{ 
                   backgroundColor: theme.accent, 
                   width: `${progressPercentage}%`,
@@ -97,7 +86,7 @@ export default function BadgeCard({ badge, isEarned, theme, showProgress = true,
         {/* Earned badge celebration */}
         {isEarned && (
           <div className="flex items-center gap-1 text-xs font-medium" style={{ color: theme.primary }}>
-            <Star className="w-3 h-3" />
+            <Star className="w-2.5 h-2.5" />
             <span>Earned!</span>
           </div>
         )}

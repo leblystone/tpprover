@@ -99,7 +99,7 @@ const BadgeBackgroundPattern = ({ name, color }) => {
 }
 
 
-export default function BadgeImage({ name, size = 72, theme, caption = true, iconUrl, iconSizeFactor = 0.6 }) {
+export default function BadgeImage({ name, size = 72, theme, caption = true, iconUrl, iconSizeFactor = 0.6, isEarned = false }) {
   // Failsafe for missing name prop
   if (typeof name !== 'string' || !name) {
     return null; // or a placeholder component
@@ -107,9 +107,6 @@ export default function BadgeImage({ name, size = 72, theme, caption = true, ico
 
   const Icon = pickIcon(name)
   const finish = chooseFinish(name, theme)
-  const clip = pickShape(name)
-  const patternId = `pattern-${name.replace(/[^a-z0-9]/gi, '')}`;
-
   const w = size
   const h = size
   
@@ -121,35 +118,68 @@ export default function BadgeImage({ name, size = 72, theme, caption = true, ico
     }
   } catch {}
 
+  // Modern badge design
+  const badgeStyle = {
+    width: w,
+    height: h,
+    borderRadius: '50%',
+    background: isEarned 
+      ? `linear-gradient(135deg, ${finish.start} 0%, ${finish.mid} 50%, ${finish.end} 100%)`
+      : `linear-gradient(135deg, ${theme.border} 0%, #f3f4f6 50%, #e5e7eb 100%)`,
+    border: `2px solid ${isEarned ? finish.border : theme.border}`,
+    boxShadow: isEarned 
+      ? `0 4px 12px ${finish.border}30, inset 0 1px 3px rgba(255,255,255,0.3)`
+      : '0 2px 6px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    transition: 'all 0.3s ease'
+  }
+
+  const iconColor = isEarned ? '#ffffff' : theme.text + '80'
+
   return (
     <div className="flex flex-col items-center gap-1" style={{ width: w }} title={name}>
-      <div style={{ position: 'relative', width: w, height: h }}>
-        <BadgeBackgroundPattern name={name} color={finish.border} />
+      <div style={badgeStyle}>
+        {/* Subtle inner glow for earned badges */}
+        {isEarned && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: '4px',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${finish.start}20 0%, transparent 70%)`,
+              pointerEvents: 'none'
+            }}
+          />
+        )}
         
-        <div style={{ position: 'absolute', inset: 0, clipPath: clip, backgroundColor: finish.border }} />
-        
-        <div
-          style={{
-            position: 'absolute',
-            top: 2, left: 2, right: 2, bottom: 2,
-            clipPath: clip,
-            background: `radial-gradient(circle, ${finish.start} 0%, ${finish.mid} 60%, ${finish.end} 100%)`,
-            boxShadow: 'inset 0 4px 12px rgba(255,255,255,0.4), inset 0 -4px 12px rgba(0,0,0,0.2)',
-          }}
-        />
-
-         <svg width={w} height={h} style={{ position: 'absolute', top: 2, left: 2, right: 2, bottom: 2, clipPath: clip }}>
-            <rect width="100%" height="100%" fill={`url(#${patternId})`} />
-        </svg>
-
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {customIcon ? (
-            <img src={customIcon} alt="" style={{ width: Math.round(size * iconSizeFactor), height: Math.round(size * iconSizeFactor), objectFit: 'contain', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.4))' }} />
-          ) : (
-            <Icon color="#ffffff" size={Math.round(size * iconSizeFactor)} strokeWidth={1.5} style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.4))' }}/>
-          )}
-        </div>
+        {customIcon ? (
+          <img 
+            src={customIcon} 
+            alt="" 
+            style={{ 
+              width: Math.round(size * iconSizeFactor), 
+              height: Math.round(size * iconSizeFactor), 
+              objectFit: 'contain',
+              filter: isEarned ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' : 'grayscale(60%) opacity(70%)',
+              transition: 'all 0.3s ease'
+            }} 
+          />
+        ) : (
+          <Icon 
+            color={iconColor} 
+            size={Math.round(size * iconSizeFactor)} 
+            strokeWidth={1.5} 
+            style={{ 
+              filter: isEarned ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' : 'none',
+              transition: 'all 0.3s ease'
+            }}
+          />
+        )}
       </div>
+      
       {caption && (
         <div
           className="text-center font-semibold"

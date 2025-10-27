@@ -19,14 +19,17 @@ exports.updatePaymentMethod = stripe.updatePaymentMethod;
 exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
 
-// Scheduled Functions for Notifications
-exports.scheduledResearchReminders = onSchedule('0 8 * * *', {
-  timeZone: 'America/New_York',
+// Scheduled Functions for Notifications - Now runs hourly to check all timezones
+exports.scheduledResearchReminders = onSchedule('0 * * * *', {
+  timeZone: 'UTC', // Use UTC as base, calculate user-specific times
 }, async (event) => {
-  logger.info('🔬 Running scheduled research reminders...');
+  logger.info('🔬 Running scheduled research reminders (hourly check)...');
   
   try {
-    const today = new Date();
+    const now = new Date();
+    const currentHourUTC = now.getUTCHours();
+    
+    // Get all users who have notifications enabled
     const usersSnapshot = await admin.firestore()
       .collection('users')
       .where('notificationSettings.researchReminders', '==', true)
@@ -37,6 +40,24 @@ exports.scheduledResearchReminders = onSchedule('0 8 * * *', {
     for (const userDoc of usersSnapshot.docs) {
       const userId = userDoc.id;
       const userData = userDoc.data();
+      
+      // Get user's timezone settings (default to America/New_York if not set)
+      const userSettings = userData.settings || {};
+      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
+      
+      // Check if it's 8 AM in the user's timezone
+      const userTime = new Date().toLocaleString("en-US", {
+        timeZone: userTimezone,
+        hour12: false,
+        hour: '2-digit'
+      });
+      
+      // Only send reminders if it's 8 AM in user's timezone (allow 8-9 AM window)
+      if (userTime !== '08') {
+        continue; // Skip this user, not their reminder time yet
+      }
+      
+      logger.info(`⏰ Sending reminder for user ${userId} in timezone ${userTimezone}`);
       
       // Get user's protocols and check for scheduled tasks today
       const protocolsSnapshot = await admin.firestore()
@@ -354,27 +375,45 @@ exports.onUserCreated = onDocumentCreated('users/{userId}', async (event) => {
   return null;
 });
 
-// Scheduled function to remind users about trial ending
-exports.scheduledTrialReminders = onSchedule('0 9 * * *', {
-  timeZone: 'America/New_York',
+// Scheduled function to remind users about trial ending - Now timezone-aware
+exports.scheduledTrialReminders = onSchedule('0 * * * *', {
+  timeZone: 'UTC', // Use UTC as base, calculate user-specific times
 }, async (event) => {
-  logger.info('🔔 Running scheduled trial ending reminders...');
+  logger.info('🔔 Running scheduled trial ending reminders (hourly check)...');
   
   try {
-    const now = new Date();
-    const twoDaysFromNow = new Date(now);
-    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-    
-    // Find users whose trial ends in 2 days
+    // Find all users (we'll filter by timezone later)
     const usersSnapshot = await admin.firestore()
       .collection('users')
       .where('subscription.status', '==', 'trialing')
       .get();
 
+    const now = new Date();
+    const twoDaysFromNow = new Date(now);
+    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+    
     const promises = [];
     
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
+      const userId = userDoc.id;
+      
+      // Get user's timezone settings (default to America/New_York if not set)
+      const userSettings = userData.settings || {};
+      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
+      
+      // Check if it's 9 AM in the user's timezone
+      const userTime = new Date().toLocaleString("en-US", {
+        timeZone: userTimezone,
+        hour12: false,
+        hour: '2-digit'
+      });
+      
+      // Only send reminders if it's 9 AM in user's timezone
+      if (userTime !== '09') {
+        continue; // Skip this user, not their reminder time yet
+      }
+      
       const subscription = userData.subscription || {};
       
       if (subscription.currentPeriodEnd) {

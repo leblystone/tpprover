@@ -53,8 +53,10 @@
   animation: fadeInScale 0.6s ease-out;
 }
 
-.badge-card-earned:hover {
-  animation: badgePulse 2s ease-in-out infinite;
+@media (min-width: 768px) {
+  .badge-card-earned:hover {
+    transform: translateY(-1px) scale(1.02) !important;
+  }
 }
 
 .badge-progress-bar {
@@ -143,5 +145,22 @@
 @media (max-width: 640px) {
   .recently-earned-badge {
     min-height: 60px;
+  }
+}
+
+/* Modern badge card spacing */
+.badge-card-modern {
+  min-height: 140px;
+}
+
+@media (max-width: 768px) {
+  .badge-card-modern {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 640px) {
+  .badge-card-modern {
+    min-height: 100px;
   }
 }

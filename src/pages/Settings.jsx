@@ -11,11 +11,13 @@ import { useFirebase } from '../context/FirebaseContext'
 import SuccessModal from '../components/ui/SuccessModal'
 import SampleDataModal from '../components/ui/SampleDataModal'
 import RemoveSampleDataModal from '../components/ui/RemoveSampleDataModal'
+import TimezoneChangeModal from '../components/ui/TimezoneChangeModal'
 import pwaNotificationService from '../services/pwaNotifications'
 import CollapsibleSection from '../components/common/CollapsibleSection'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getLatestAgreement, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
-import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2 } from 'lucide-react'
+import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
+import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2, Clock, AlertTriangle } from 'lucide-react'
 
 // PWA Notification Toggle Component
 function PWANotificationToggle({ checked, onChange, status, theme }) {
@@ -164,6 +166,39 @@ export default function Settings() {
   
   // Currency options for the dropdown
   const currencyOptions = getCurrencyOptions()
+  
+  // Handle timezone change with warning for active protocols
+  const handleTimezoneChange = (newTimezone) => {
+    const oldTimezone = settings.region.timeZone;
+    
+    if (oldTimezone === newTimezone) return;
+    
+    // Get protocols to check for impact
+    const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
+    const impactData = checkTimezoneChangeImpact(protocols, oldTimezone, newTimezone);
+    
+    if (impactData.hasImpact) {
+      // Show warning modal
+      setTimezoneChangeData({
+        oldTimezone,
+        newTimezone,
+        impactData
+      });
+      setShowTimezoneWarning(true);
+    } else {
+      // No impact, change immediately
+      update('region.timeZone', newTimezone);
+    }
+  };
+  
+  const confirmTimezoneChange = () => {
+    if (timezoneChangeData) {
+      update('region.timeZone', timezoneChangeData.newTimezone);
+      setShowTimezoneWarning(false);
+      setTimezoneChangeData(null);
+    }
+  };
+  
     const [selectedTheme, setSelectedTheme] = useState(() => {
         try { 
             const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
@@ -189,6 +224,8 @@ export default function Settings() {
     const [showRemoveSampleDataModal, setShowRemoveSampleDataModal] = useState(false)
     const [isAddingSampleData, setIsAddingSampleData] = useState(false)
     const [isRemovingSampleData, setIsRemovingSampleData] = useState(false)
+    const [showTimezoneWarning, setShowTimezoneWarning] = useState(false)
+    const [timezoneChangeData, setTimezoneChangeData] = useState(null)
     const [user, setUser] = useState(() => {
       try { return JSON.parse(localStorage.getItem('tpprover_user') || '{}') } catch { return {} }
     })
@@ -387,12 +424,10 @@ export default function Settings() {
         };
     }, []);
 
-    const tzList = (() => {
-      const common = ['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Paris','Europe/Berlin','Asia/Tokyo','Asia/Shanghai','Asia/Kolkata','Australia/Sydney']
-      const cur = settings?.region?.timeZone
-      const all = Array.from(new Set([cur, ...common].filter(Boolean)))
-      return all
-    })()
+    // Get comprehensive timezone list organized by region
+    const timezoneGroups = getTimezoneGroups()
+    const allTimezones = Object.values(timezoneGroups).flat()
+    const tzList = Array.from(new Set([settings?.region?.timeZone, ...allTimezones].filter(Boolean)))
 
     useEffect(() => {
       const handler = (e) => {
@@ -832,7 +867,13 @@ export default function Settings() {
             <SettingSelect label="Week Starts On" value={settings.region.weekStartsOn} onChange={e => update('region.weekStartsOn', e.target.value)} options={[{ value: 'sunday', label: 'Sunday' }, { value: 'monday', label: 'Monday' }]} theme={theme} />
             <SettingSelect label="Language" value={settings.region.language} onChange={e => update('region.language', e.target.value)} options={[{ value: 'en-US', label: 'English (US)' }, { value: 'en-GB', label: 'English (UK)' }, { value: 'es-ES', label: 'Español (ES)' }]} theme={theme} />
             <SettingSelect label="Currency" value={settings.region.currency} onChange={e => update('region.currency', e.target.value)} options={currencyOptions} theme={theme} />
-            <SettingSelect label="Time Zone" value={settings.region.timeZone} onChange={e => update('region.timeZone', e.target.value)} options={tzList.map(tz => ({ value: tz, label: tz }))} theme={theme} />
+            <SettingSelect 
+              label="Time Zone" 
+              value={settings.region.timeZone} 
+              onChange={e => handleTimezoneChange(e.target.value)} 
+              options={tzList.map(tz => ({ value: tz, label: getTimezoneDisplayName(tz) }))} 
+              theme={theme} 
+            />
             <SettingSelect label="Time Format" value={settings.calendar?.timeFormat ?? '12h'} onChange={e => update('calendar.timeFormat', e.target.value)} options={[{ value: '12h', label: '12 Hour (AM/PM)' }, { value: '24h', label: '24 Hour' }]} theme={theme} />
             <SettingSelect label="Calendar Default View" value={settings.calendar?.defaultView ?? 'month'} onChange={e => update('calendar.defaultView', e.target.value)} options={[{ value: 'month', label: 'Month' }, { value: 'week', label: 'Week' }]} theme={theme} />
           </div>
@@ -978,6 +1019,21 @@ export default function Settings() {
            theme={theme}
            isLoading={isRemovingSampleData}
          />
+
+         {showTimezoneWarning && timezoneChangeData && (
+           <TimezoneChangeModal
+             open={showTimezoneWarning}
+             onClose={() => {
+               setShowTimezoneWarning(false);
+               setTimezoneChangeData(null);
+             }}
+             onConfirm={confirmTimezoneChange}
+             oldTimezone={timezoneChangeData.oldTimezone}
+             newTimezone={timezoneChangeData.newTimezone}
+             impactData={timezoneChangeData.impactData}
+             theme={theme}
+           />
+         )}
        </section>
     )
   }

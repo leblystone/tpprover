@@ -196,8 +196,8 @@ exports.onSubscriptionCancelled = onCall(
  */
 exports.checkTrialEndingSoon = onSchedule(
   {
-    schedule: '0 14 * * *', // 9 AM EST (14:00 UTC)
-    timeZone: 'America/New_York'
+    schedule: '0 * * * *', // Run hourly to check all user timezones
+    timeZone: 'UTC' // Use UTC as base timezone
   },
   async (event) => {
     logger.info('🔍 Checking for trials ending in 2 days...');
