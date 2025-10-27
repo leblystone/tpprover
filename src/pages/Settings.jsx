@@ -52,7 +52,7 @@ function PWANotificationToggle({ checked, onChange, status, theme }) {
           {getStatusText()}
         </p>
         <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-          Get notified in real-time on your devices, even when the app is closed.
+          Get notified in real-time on all your devices (desktop PWA + mobile), even when the app is closed.
         </p>
       </div>
       <div className="ml-4">

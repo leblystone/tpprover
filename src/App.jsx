@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect } from 'react'
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileSidebar'
 import Topbar from './components/layout/Topbar'
@@ -20,13 +20,15 @@ import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
 import NotificationPermissionPrompt from './components/common/NotificationPermissionPrompt';
 import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
-import { useSubscriptionAccess } from './utils/useSubscriptionAccess';
+import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
+import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import UpgradeBanner from './components/common/UpgradeBanner';
 import SubscriptionModal from './components/common/SubscriptionModal';
 import { LabBeakerContainer } from './components/ui/JournalToast';
 
 function App() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [themeName] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
@@ -75,6 +77,11 @@ function App() {
         setIsPwaInstalled(true);
     }
   }, []);
+
+  // Handle checkout return navigation at the App level
+  useEffect(() => {
+    handleCheckoutReturn(navigate, searchParams);
+  }, [navigate, searchParams]);
 
   useEffect(() => {
     // Show welcome modal for all new Firebase users - wait for user to be loaded

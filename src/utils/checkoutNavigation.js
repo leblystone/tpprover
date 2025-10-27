@@ -20,7 +20,7 @@ export function storeCheckoutReturnPath(currentPath = null) {
     console.log('🔖 Stored checkout return path:', pathToStore);
   } else {
     // If we're on an excluded path, default to dashboard
-    localStorage.setItem(CHECKOUT_RETURN_PATH_KEY, '/dashboard');
+    localStorage.setItem(CHECKOUT_RETURN_PATH_KEY, '/app/dashboard');
     console.log('🔖 Excluded path, storing dashboard as return path');
   }
 }
@@ -28,7 +28,7 @@ export function storeCheckoutReturnPath(currentPath = null) {
 /**
  * Get the stored return path and optionally clear it
  * @param {boolean} clearAfterGet - Whether to clear the stored path after retrieving it
- * @returns {string} The stored return path or '/dashboard' as fallback
+ * @returns {string} The stored return path or '/app/dashboard' as fallback
  */
 export function getCheckoutReturnPath(clearAfterGet = true) {
   const storedPath = localStorage.getItem(CHECKOUT_RETURN_PATH_KEY);
@@ -38,7 +38,7 @@ export function getCheckoutReturnPath(clearAfterGet = true) {
     console.log('🔖 Retrieved and cleared checkout return path:', storedPath);
   }
   
-  return storedPath || '/dashboard';
+  return storedPath || '/app/dashboard';
 }
 
 /**
@@ -56,6 +56,13 @@ export function clearCheckoutReturnPath() {
  * @param {URLSearchParams} searchParams - Current URL search parameters
  */
 export function handleCheckoutReturn(navigate, searchParams) {
+  console.log('🔍 handleCheckoutReturn called', {
+    currentPath: window.location.pathname,
+    currentSearch: window.location.search,
+    hasSessionId: searchParams.has('session_id'),
+    sessionId: searchParams.get('session_id')
+  });
+  
   const sessionId = searchParams.get('session_id');
   
   if (sessionId) {
@@ -63,6 +70,12 @@ export function handleCheckoutReturn(navigate, searchParams) {
     
     // Get the return path and clear it
     const returnPath = getCheckoutReturnPath(true);
+    
+    console.log('🔄 Checkout return details:', {
+      sessionId,
+      returnPath,
+      currentPath: window.location.pathname
+    });
     
     // Clean up the URL by removing session_id
     const cleanPath = window.location.pathname;
@@ -78,6 +91,8 @@ export function handleCheckoutReturn(navigate, searchParams) {
     if (returnPath !== cleanPath) {
       console.log('🔄 Navigating back to:', returnPath);
       navigate(returnPath, { replace: true });
+    } else {
+      console.log('📍 Already on return path, no navigation needed');
     }
     
     // Show success message
@@ -91,7 +106,41 @@ export function handleCheckoutReturn(navigate, searchParams) {
     }, 100);
     
     return true; // Indicates we handled a checkout return
+  } else {
+    console.log('📋 No checkout session detected in URL parameters');
   }
   
   return false; // No checkout return to handle
+}
+
+/**
+ * Debug function to check checkout navigation state
+ * Call this in console: window.debugCheckoutNavigation()
+ */
+export function debugCheckoutNavigation() {
+  const storedPath = localStorage.getItem(CHECKOUT_RETURN_PATH_KEY);
+  const currentUrl = window.location.href;
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  console.log('🔍 Checkout Navigation Debug:', {
+    storedReturnPath: storedPath,
+    currentUrl,
+    currentPath: window.location.pathname,
+    currentSearch: window.location.search,
+    hasSessionId: urlParams.has('session_id'),
+    sessionId: urlParams.get('session_id'),
+    allParams: Object.fromEntries(urlParams.entries())
+  });
+  
+  return {
+    storedPath,
+    currentUrl,
+    hasSessionId: urlParams.has('session_id'),
+    sessionId: urlParams.get('session_id')
+  };
+}
+
+// Make debug function available globally
+if (typeof window !== 'undefined') {
+  window.debugCheckoutNavigation = debugCheckoutNavigation;
 }
