@@ -293,29 +293,8 @@ export default function Login() {
         }
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
-        try { localStorage.setItem('tpprover_auth_token', 'firebase_token') } catch {}
-        // Don't set has_onboarded here - let the welcome modal handle it
         
-        // Create 7-day trial immediately for new users
-        const now = new Date();
-        const end = new Date(now);
-        end.setDate(end.getDate() + 7);
-        
-        const trialSub = {
-            id: String(Date.now()),
-            plan: '7-Day Free Trial',
-            price: 0,
-            interval: 'trial',
-            currency: 'USD',
-            status: 'trialing',
-            startedAt: now.toISOString(),
-            currentPeriodEnd: end.toISOString(),
-            paymentMethod: null,
-        };
-        
-        console.log('🔥 [TRIAL DEBUG] LOGIN: Created trial subscription object:', trialSub);
-        
-        // Set auth token first
+        // Set auth token  
         try {
           localStorage.setItem('tpprover_auth_token', 'firebase_token');
           console.log('🔑 Auth token set to firebase_token');
@@ -323,15 +302,10 @@ export default function Login() {
           console.error('❌ Failed to set auth token:', e);
         }
         
-        // Save trial subscription to cloud storage
-        try {
-          console.log('🔍 [TRIAL DEBUG] LOGIN: Saving trial subscription to cloud storage for user:', firebaseUser.uid);
-          const { saveUserSubscription } = await import('../services/cloudStorage');
-          const saveResult = await saveUserSubscription(firebaseUser.uid, trialSub);
-          console.log('☁️ [TRIAL DEBUG] LOGIN: Trial subscription saved to cloud storage, result:', saveResult);
-        } catch (error) {
-          console.error('❌ [TRIAL DEBUG] LOGIN: Failed to save trial subscription to cloud:', error);
-        }
+        // Don't set has_onboarded here - let the welcome modal handle it
+        
+        // DON'T create trial subscriptions on login - only on signup!
+        // Existing users should keep their original trial subscription
         
         // CRITICAL FIX: Restore existing data if it was backed up and Firebase sync might overwrite it
         if (hasExistingData) {

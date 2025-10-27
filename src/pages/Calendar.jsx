@@ -217,8 +217,8 @@ export default function Calendar() {
             }
           }
           // Scheduled group buys: mark all days in [openDate, closeDate]
-          const rawScheduled = localStorage.getItem('tpprover_scheduled_buys')
-          const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : []
+          // Use scheduledBuys from context instead of reading directly from localStorage
+          const contextScheduledBuys = scheduledBuys || []
           // Protocol indicators: count by time-of-day occurrences + wash-out chips
           const prots = protocols
           const metricsByKey = (metrics || []).reduce((map, m) => {
@@ -274,7 +274,7 @@ export default function Calendar() {
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const key = toKey(d)
             // Mark scheduled group buys covering this day
-            for (const gb of scheduledBuys) {
+            for (const gb of contextScheduledBuys) {
               if (!gb?.openDate || !gb?.closeDate) continue
               const od = parseDateString(gb.openDate)
               const cd = parseDateString(gb.closeDate)
@@ -651,7 +651,7 @@ export default function Calendar() {
               }
             }
             // Scheduled Group Buys
-            const dayBuys = (scheduledBuys || []).filter(b => {
+            const dayBuys = (contextScheduledBuys || []).filter(b => {
                 if (!b?.openDate || !b?.closeDate) return false;
                 const open = parseDateString(b.openDate);
                 const close = parseDateString(b.closeDate);

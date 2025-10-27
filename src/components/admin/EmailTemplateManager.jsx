@@ -213,6 +213,9 @@ export default function EmailTemplateManager({ theme }) {
       });
       
       console.log('📥 Result received:', result);
+      console.log('📊 Result data:', result.data);
+      console.log('✅ Success status:', result.data.success);
+      console.log('📝 Message:', result.data.message);
       
       if (result.data.success) {
         setTestResult({ 
