@@ -313,6 +313,8 @@ export default function Login() {
             paymentMethod: null,
         };
         
+        console.log('🔥 [TRIAL DEBUG] LOGIN: Created trial subscription object:', trialSub);
+        
         // Set auth token first
         try {
           localStorage.setItem('tpprover_auth_token', 'firebase_token');
@@ -323,11 +325,12 @@ export default function Login() {
         
         // Save trial subscription to cloud storage
         try {
+          console.log('🔍 [TRIAL DEBUG] LOGIN: Saving trial subscription to cloud storage for user:', firebaseUser.uid);
           const { saveUserSubscription } = await import('../services/cloudStorage');
-          await saveUserSubscription(firebaseUser.uid, trialSub);
-          console.log('☁️ Trial subscription saved to cloud storage');
+          const saveResult = await saveUserSubscription(firebaseUser.uid, trialSub);
+          console.log('☁️ [TRIAL DEBUG] LOGIN: Trial subscription saved to cloud storage, result:', saveResult);
         } catch (error) {
-          console.error('❌ Failed to save trial subscription to cloud:', error);
+          console.error('❌ [TRIAL DEBUG] LOGIN: Failed to save trial subscription to cloud:', error);
         }
         
         // CRITICAL FIX: Restore existing data if it was backed up and Firebase sync might overwrite it
@@ -557,16 +560,20 @@ export default function Login() {
             paymentMethod: null,
           };
           
+          console.log('🔥 [TRIAL DEBUG] SIGNUP: Created trial subscription object:', trial);
+          
           // CRITICAL: Save to localStorage FIRST (immediate fallback)
           try {
+            console.log('🔍 [TRIAL DEBUG] SIGNUP: Saving trial to localStorage as fallback');
             localStorage.setItem('tpprover_subscription', JSON.stringify(trial));
-            console.log('💾 Trial subscription saved to localStorage (fallback)');
+            console.log('💾 [TRIAL DEBUG] SIGNUP: Trial subscription saved to localStorage (fallback)');
           } catch (e) {
-            console.error('❌ Failed to save trial to localStorage:', e);
+            console.error('❌ [TRIAL DEBUG] SIGNUP: Failed to save trial to localStorage:', e);
           }
           
           // Save trial subscription to cloud storage (with timeout)
           try {
+            console.log('🔍 [TRIAL DEBUG] SIGNUP: Saving trial to cloud storage for user:', firebaseUser.uid);
             const { saveUserSubscription } = await import('../services/cloudStorage');
             await Promise.race([
               saveUserSubscription(firebaseUser.uid, trial),
@@ -574,9 +581,9 @@ export default function Login() {
                 setTimeout(() => reject(new Error('Cloud save timeout')), 3000)
               )
             ]);
-            console.log('☁️ Trial subscription saved to cloud storage');
+            console.log('☁️ [TRIAL DEBUG] SIGNUP: Trial subscription saved to cloud storage successfully');
           } catch (cloudError) {
-            console.warn('⚠️ Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
+            console.warn('⚠️ [TRIAL DEBUG] SIGNUP: Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
             // Don't throw - localStorage has the fallback
           }
         } catch (error) {

@@ -130,8 +130,16 @@ export function AppProvider({ children }) {
                 try {
                     const currentEmail = (firebaseUser.email || '').toLowerCase();
                     const lastEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+                    
+                    console.log('🔍 [TRIAL DEBUG] Account switch check:', {
+                        currentEmail,
+                        lastEmail,
+                        isAccountSwitch: lastEmail && lastEmail !== currentEmail
+                    });
+                    
                     if (lastEmail && lastEmail !== currentEmail) {
-                        console.log('🛡️ Account switch detected. Clearing local user data to prevent bleed.');
+                        console.log('🛡️ [TRIAL DEBUG] Account switch detected. Clearing local user data to prevent bleed.');
+                        console.log('🚨 [TRIAL DEBUG] WARNING: This will clear subscription data from localStorage!');
                         clearAllUserData();
                         // Ensure demo can seed for brand new account
                         try { localStorage.removeItem('tpprover_has_seeded'); } catch {}
@@ -272,9 +280,31 @@ export function AppProvider({ children }) {
                 }
 
                 // Load subscription from cloud
+                console.log('🔍 [TRIAL DEBUG] Loading subscription from cloud for user:', userId);
                 const cloudSubscription = await loadUserSubscription(userId);
-                if (cloudSubscription && !cloudSubscription.id?.includes('lab_access') && !cloudSubscription.id?.includes('demo') && !cloudSubscription.id?.includes('test') && cloudSubscription.status !== 'lab_access') {
-                    setSubscription(cloudSubscription);
+                console.log('🔍 [TRIAL DEBUG] Raw cloud subscription loaded:', cloudSubscription);
+                
+                if (cloudSubscription) {
+                    const isFiltered = cloudSubscription.id?.includes('lab_access') || 
+                                     cloudSubscription.id?.includes('demo') || 
+                                     cloudSubscription.id?.includes('test') || 
+                                     cloudSubscription.status === 'lab_access';
+                    
+                    console.log('🔍 [TRIAL DEBUG] Subscription filtering check:', {
+                        id: cloudSubscription.id,
+                        status: cloudSubscription.status,
+                        isFiltered,
+                        willSetSubscription: !isFiltered
+                    });
+                    
+                    if (!isFiltered) {
+                        console.log('✅ [TRIAL DEBUG] Setting subscription in AppContext:', cloudSubscription);
+                        setSubscription(cloudSubscription);
+                    } else {
+                        console.log('❌ [TRIAL DEBUG] Subscription filtered out - not setting in AppContext');
+                    }
+                } else {
+                    console.log('⚠️ [TRIAL DEBUG] No cloud subscription found for user:', userId);
                 }
 
                 // Load user state from cloud (NO localStorage sync)
@@ -1259,11 +1289,15 @@ export function AppProvider({ children }) {
     // Listen for subscription changes from custom events (e.g., from Account page)
     useEffect(() => {
         const handleSubscriptionUpdate = async (e) => {
+            console.log('🔍 [TRIAL DEBUG] Subscription update event received:', e.detail);
             if (e.detail && e.detail.subscription !== undefined && firebaseUser) {
                 const userId = firebaseUser.uid;
+                console.log('🔍 [TRIAL DEBUG] Updating subscription in AppContext for user:', userId);
                 setSubscription(e.detail.subscription);
                 await saveUserSubscription(userId, e.detail.subscription);
-                console.log('🔄 Subscription updated and saved to cloud:', e.detail.subscription);
+                console.log('🔄 [TRIAL DEBUG] Subscription updated and saved to cloud:', e.detail.subscription);
+            } else {
+                console.log('⚠️ [TRIAL DEBUG] Subscription update event ignored - missing data or user not authenticated');
             }
         };
 
