@@ -34,9 +34,9 @@ export default function CoverLanding() {
     }
   }, []);
 
-  // Set launch date to Halloween 2025 (10/31/2025) at midnight
+  // Set launch date to Friday, November 21, 2025 at midnight
   useEffect(() => {
-    const launchDate = new Date('2025-10-31T00:00:00');
+    const launchDate = new Date('2025-11-21T00:00:00');
 
     const timer = setInterval(() => {
       const now = new Date().getTime();
