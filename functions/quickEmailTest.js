@@ -16,9 +16,15 @@ exports.quickEmailTest = onCall(
     logger.info(`🧪 Quick email test to: ${testEmail}`);
 
     try {
-      // Use the API key directly (temporary for testing)
+      // Use the API key from environment variables
       const sgMail = require('@sendgrid/mail');
-      sgMail.setApiKey('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');
+      const apiKey = process.env.SENDGRID_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('SENDGRID_API_KEY environment variable is not set');
+      }
+      
+      sgMail.setApiKey(apiKey);
 
       const msg = {
         to: testEmail,

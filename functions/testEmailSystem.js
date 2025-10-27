@@ -48,7 +48,13 @@ exports.testEmailSystem = onCall(
       // Direct SendGrid test for welcome email
       try {
         const sgMail = require('@sendgrid/mail');
-        sgMail.setApiKey('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');
+        const apiKey = process.env.SENDGRID_API_KEY;
+        
+        if (!apiKey) {
+          throw new Error('SENDGRID_API_KEY environment variable is not set');
+        }
+        
+        sgMail.setApiKey(apiKey);
 
         const msg = {
           to: testEmail,

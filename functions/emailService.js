@@ -18,7 +18,7 @@ const emailTemplates = require('./emailTemplates');
 async function sendEmail(to, subject, html) {
   try {
     // Check if SendGrid is configured
-    const sendgridApiKey = process.env.SENDGRID_API_KEY || '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';
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
     
     logger.info('🔑 API Key being used:', sendgridApiKey ? `${sendgridApiKey.substring(0, 10)}...` : 'undefined');
     
