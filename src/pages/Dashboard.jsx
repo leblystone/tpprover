@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { useOutletContext, useNavigate } from 'react-router-dom'
+import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom'
 import { Users, Plus, ShoppingCart, Droplet, Edit, Trash2, Pill, TestTube, Info, Target, PlusCircle, Award, Check, CheckCircle, Clock, TrendingUp, TrendingDown, Bed, Smile, ShieldAlert, Beaker, Calendar, Pipette } from 'lucide-react'
 import { Zap } from '../icons/lucide-safe'
 import BadgeImage from '../components/badges/BadgeImage'
@@ -31,12 +31,14 @@ import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { useBadgeStats } from '../utils/badges'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Dashboard() {
   console.log('🏠 Dashboard component rendered');
   const { theme } = useOutletContext()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { protocols: protocolsFromContext } = useAppContext()
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
   const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription } = useAppContext();
@@ -99,6 +101,11 @@ export default function Dashboard() {
   //         }
   //     } catch {}
   // }, []);
+
+  // Handle checkout return navigation
+  useEffect(() => {
+    handleCheckoutReturn(navigate, searchParams);
+  }, [navigate, searchParams]);
 
   const [todaysTasks, setTodaysTasks] = useState([])
   const [washoutReminders, setWashoutReminders] = useState([])

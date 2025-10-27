@@ -1,5 +1,5 @@
   import React from 'react'
-  import { useOutletContext, useNavigate } from 'react-router-dom'
+  import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom'
   import { themes, defaultThemeName } from '../theme/themes'
   import { CreditCard, Calendar, Check, X, RefreshCw, Shield, Pencil, Trash2, ExternalLink, Settings, Crown, User, Lock, TrendingUp, Gift, FileText } from 'lucide-react'
 import { Zap } from '../icons/lucide-safe'
@@ -9,6 +9,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   import { useBadgeStats } from '../utils/badges'
   import BadgeImage from '../components/badges/BadgeImage'
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
+  import { handleCheckoutReturn } from '../utils/checkoutNavigation'
   import { STRIPE_CONFIG } from '../config/stripe'
   import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification, sendPasswordResetEmail, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
   import { useFirebase } from '../context/FirebaseContext'
@@ -75,6 +76,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   export default function Account() {
     const { theme } = useOutletContext()
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const { user, logout } = useAppContext();
     const { firebaseUser } = useFirebase(); // CRITICAL: Must be at component level, before any useEffect
     const { earnedBadges } = useBadgeStats();
@@ -172,6 +174,11 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
             });
         }
     }, [user, sub, firebaseUser])
+
+    // Handle checkout return navigation
+    React.useEffect(() => {
+        handleCheckoutReturn(navigate, searchParams);
+    }, [navigate, searchParams]);
 
     // Listen for Stripe events
     React.useEffect(() => {
