@@ -17,66 +17,8 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getLatestAgreement, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
-import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2, Clock, AlertTriangle } from 'lucide-react'
+import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2 } from 'lucide-react'
 
-// PWA Notification Toggle Component
-function PWANotificationToggle({ checked, onChange, status, theme }) {
-  const getStatusText = () => {
-    if (!status.supported) return 'Not supported in this browser';
-    if (status.loading) return 'Updating...';
-    if (status.permission === 'denied') return 'Permission denied - enable in browser settings';
-    if (status.permission === 'default') return 'Click to enable native notifications';
-    if (checked) return 'Native notifications enabled';
-    return 'Click to enable native notifications';
-  };
-
-  const getStatusColor = () => {
-    if (!status.supported || status.permission === 'denied') return theme.error;
-    if (status.loading) return theme.warning;
-    if (checked) return theme.success;
-    return theme.textLight;
-  };
-
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium" style={{ color: theme.text }}>Push Notifications</h3>
-          {status.supported && (
-            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: theme.accent + '20', color: theme.text }}>
-              PWA
-            </span>
-          )}
-        </div>
-        <p className="text-sm mt-1" style={{ color: getStatusColor() }}>
-          {getStatusText()}
-        </p>
-        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-          Get notified in real-time on all your devices (desktop PWA + mobile), even when the app is closed.
-        </p>
-      </div>
-      <div className="ml-4">
-        <button
-          onClick={() => onChange(!checked)}
-          disabled={!status.supported || status.loading || status.permission === 'denied'}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-            checked ? 'bg-green-600' : 'bg-gray-200'
-          } ${status.loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          style={{
-            backgroundColor: checked ? theme.success : theme.border,
-            focusRingColor: theme.primary
-          }}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              checked ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // Settings persistence (local-only)
 export function loadSettings() {
@@ -809,13 +751,15 @@ export default function Settings() {
           theme={theme}
         >
           <div className="space-y-3">
-            <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />
-            <PWANotificationToggle 
-              checked={pwaNotificationStatus.enabled} 
+            <SettingToggle 
+              checked={pwaNotificationStatus.enabled && pwaNotificationStatus.supported} 
               onChange={handlePWANotificationToggle}
-              status={pwaNotificationStatus}
+              label="Push Notifications" 
+              description="Get notified in real-time on your devices, even when the app is closed."
               theme={theme}
+              disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
             />
+            <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />
             <SettingToggle checked={settings.notifications.billing} onChange={v => update('notifications.billing', v)} label="Billing Updates" description="Get notified about invoices and payment status." theme={theme} />
             <SettingToggle checked={settings.notifications.researchReminders} onChange={v => update('notifications.researchReminders', v)} label="Research Reminders" description="Stay on track with your research schedule." theme={theme} />
             <SettingToggle checked={settings.notifications.groupBuys} onChange={v => update('notifications.groupBuys', v)} label="Group Buy Updates" description="Get alerts for new group buy opportunities." theme={theme} />
