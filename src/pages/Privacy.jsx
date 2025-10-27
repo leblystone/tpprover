@@ -80,7 +80,7 @@ export default function Privacy() {
             Your privacy and data security are our top priorities.
           </p>
           <p className="text-sm" style={{ color: theme.textLight }}>
-            Last updated: December 2024
+            Last updated: October 27, 2025
           </p>
         </div>
       </div>

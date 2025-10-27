@@ -20,7 +20,33 @@ export const AGREEMENT_TYPES = {
 // These should match the actual date when the content was last updated
 export const AGREEMENT_VERSIONS = {
   TERMS_OF_SERVICE: 'TOS-2025-10-22-REV1',
-  PRIVACY_POLICY: 'PP-2025-10-22-REV1'
+  PRIVACY_POLICY: 'PP-2025-10-27-REV2'
+};
+
+// Data retention periods (in milliseconds) for medical/research compliance
+export const RETENTION_PERIODS = {
+  // Legal agreements - 10 years (medical/research liability protection)
+  LEGAL_AGREEMENTS: 10 * 365 * 24 * 60 * 60 * 1000,
+  
+  // User metadata - 5 years (account data, preferences, security logs)
+  USER_METADATA: 5 * 365 * 24 * 60 * 60 * 1000,
+  
+  // Technical data - 3 years (user agents, error logs, analytics)
+  TECHNICAL_DATA: 3 * 365 * 24 * 60 * 60 * 1000,
+  
+  // Agreement versions - indefinite (regulatory compliance)
+  AGREEMENT_VERSIONS: null, // Never delete
+  
+  // User deletion grace period - 30 days (anonymization delay)
+  USER_DELETION_GRACE: 30 * 24 * 60 * 60 * 1000
+};
+
+// Data classification for retention policies
+export const DATA_CLASSIFICATIONS = {
+  LEGAL_AGREEMENT: 'legal_agreement',
+  USER_METADATA: 'user_metadata', 
+  TECHNICAL_DATA: 'technical_data',
+  AGREEMENT_VERSION: 'agreement_version'
 };
 
 /**
@@ -167,6 +193,37 @@ export async function recordAgreement(type, version = null, additionalData = {},
   try {
     const history = getAgreementHistory();
     const now = new Date();
+    // Calculate retention expiration date based on agreement type
+    const getRetentionInfo = (agreementType) => {
+      // Legal agreements get 10-year retention
+      if ([AGREEMENT_TYPES.SIGNUP_TERMS, AGREEMENT_TYPES.SIGNUP_PRIVACY, 
+           AGREEMENT_TYPES.TERMS_UPDATE, AGREEMENT_TYPES.PRIVACY_UPDATE].includes(agreementType)) {
+        return {
+          classification: DATA_CLASSIFICATIONS.LEGAL_AGREEMENT,
+          retentionPeriod: RETENTION_PERIODS.LEGAL_AGREEMENTS,
+          expirationDate: new Date(now.getTime() + RETENTION_PERIODS.LEGAL_AGREEMENTS).toISOString()
+        };
+      }
+      
+      // First launch disclaimer gets technical data retention
+      if (agreementType === AGREEMENT_TYPES.FIRST_LAUNCH_DISCLAIMER) {
+        return {
+          classification: DATA_CLASSIFICATIONS.TECHNICAL_DATA,
+          retentionPeriod: RETENTION_PERIODS.TECHNICAL_DATA,
+          expirationDate: new Date(now.getTime() + RETENTION_PERIODS.TECHNICAL_DATA).toISOString()
+        };
+      }
+      
+      // Default to legal agreement retention for unknown types
+      return {
+        classification: DATA_CLASSIFICATIONS.LEGAL_AGREEMENT,
+        retentionPeriod: RETENTION_PERIODS.LEGAL_AGREEMENTS,
+        expirationDate: new Date(now.getTime() + RETENTION_PERIODS.LEGAL_AGREEMENTS).toISOString()
+      };
+    };
+
+    const retentionInfo = getRetentionInfo(type);
+
     const agreement = {
       id: generateAgreementId(),
       type,
@@ -179,7 +236,23 @@ export async function recordAgreement(type, version = null, additionalData = {},
       additionalData,
       // Legal metadata
       legalJurisdiction: 'New Mexico, United States',
-      agreementLanguage: 'English'
+      agreementLanguage: 'English',
+      // Retention metadata for compliance
+      dataClassification: retentionInfo.classification,
+      retentionPeriod: retentionInfo.retentionPeriod,
+      retentionExpirationDate: retentionInfo.expirationDate,
+      // Audit trail metadata
+      auditTrail: {
+        created: now.toISOString(),
+        createdBy: 'system',
+        lastAccessed: now.toISOString(),
+        accessCount: 1,
+        complianceFlags: {
+          medicalResearchCompliance: true,
+          fdaRegulatory: version ? true : false, // Only versioned agreements are FDA compliant
+          legalProtection: true
+        }
+      }
     };
 
     // Store locally first (this should always work)
@@ -404,6 +477,193 @@ export function validateAgreementHistory() {
 }
 
 /**
+ * DATA RETENTION AND CLEANUP FUNCTIONS
+ */
+
+/**
+ * Check if an agreement record has expired based on retention policy
+ */
+export function isAgreementExpired(agreement) {
+  if (!agreement.retentionExpirationDate) {
+    return false; // No expiration date set
+  }
+  
+  const now = new Date();
+  const expirationDate = new Date(agreement.retentionExpirationDate);
+  return now > expirationDate;
+}
+
+/**
+ * Get agreements that are eligible for cleanup (expired)
+ */
+export function getExpiredAgreements() {
+  const history = getAgreementHistory();
+  return history.filter(agreement => {
+    // Never delete legal agreements or agreement versions
+    if (agreement.dataClassification === DATA_CLASSIFICATIONS.LEGAL_AGREEMENT ||
+        agreement.dataClassification === DATA_CLASSIFICATIONS.AGREEMENT_VERSION) {
+      return false;
+    }
+    
+    return isAgreementExpired(agreement);
+  });
+}
+
+/**
+ * Calculate retention status for an agreement
+ */
+export function getRetentionStatus(agreement) {
+  const now = new Date();
+  const expirationDate = new Date(agreement.retentionExpirationDate);
+  const daysUntilExpiration = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+  
+  return {
+    isExpired: isAgreementExpired(agreement),
+    daysUntilExpiration: daysUntilExpiration,
+    classification: agreement.dataClassification,
+    canBeDeleted: agreement.dataClassification !== DATA_CLASSIFICATIONS.LEGAL_AGREEMENT &&
+                  agreement.dataClassification !== DATA_CLASSIFICATIONS.AGREEMENT_VERSION,
+    warningThreshold: daysUntilExpiration <= 30 && daysUntilExpiration > 0
+  };
+}
+
+/**
+ * Anonymize user data in agreement records (for user deletion requests)
+ */
+export function anonymizeAgreementData(userEmail, retainLegalRecords = true) {
+  try {
+    const history = getAgreementHistory();
+    let anonymizedCount = 0;
+    
+    const updatedHistory = history.map(agreement => {
+      if (agreement.userEmail === userEmail) {
+        // Create anonymous version
+        const anonymizedAgreement = { ...agreement };
+        
+        // Replace identifiable info with anonymized data
+        anonymizedAgreement.userEmail = `anonymous_${agreement.id.substr(-8)}`;
+        anonymizedAgreement.ipAddress = null;
+        
+        // Add anonymization metadata
+        anonymizedAgreement.anonymized = {
+          date: new Date().toISOString(),
+          reason: 'user_deletion_request',
+          originalUserExists: false
+        };
+        
+        // Legal agreements keep minimal data for compliance
+        if (retainLegalRecords && 
+            agreement.dataClassification === DATA_CLASSIFICATIONS.LEGAL_AGREEMENT) {
+          // Keep only essential legal compliance data
+          anonymizedAgreement.auditTrail.anonymized = true;
+          anonymizedCount++;
+          return anonymizedAgreement;
+        }
+        
+        // Non-legal agreements can be fully removed after grace period
+        if (!retainLegalRecords || 
+            agreement.dataClassification !== DATA_CLASSIFICATIONS.LEGAL_AGREEMENT) {
+          return null; // Mark for deletion
+        }
+        
+        anonymizedCount++;
+        return anonymizedAgreement;
+      }
+      
+      return agreement;
+    }).filter(Boolean); // Remove null entries
+    
+    // Update local storage
+    localStorage.setItem(AGREEMENT_STORAGE_KEY, JSON.stringify(updatedHistory));
+    
+    console.log(`🔒 Anonymized ${anonymizedCount} agreement records for user: ${userEmail}`);
+    return { anonymizedCount, remainingRecords: updatedHistory.length };
+    
+  } catch (error) {
+    console.error('❌ Error anonymizing agreement data:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get retention summary for admin dashboard
+ */
+export function getRetentionSummary() {
+  const history = getAgreementHistory();
+  const now = new Date();
+  
+  const summary = {
+    totalAgreements: history.length,
+    classifications: {
+      legal: 0,
+      metadata: 0,
+      technical: 0,
+      versions: 0
+    },
+    expirationStatus: {
+      expired: 0,
+      expiring30Days: 0,
+      expiring90Days: 0,
+      indefinite: 0
+    },
+    complianceFlags: {
+      medicalResearch: 0,
+      fdaRegulatory: 0,
+      legalProtection: 0
+    }
+  };
+  
+  history.forEach(agreement => {
+    // Count classifications
+    switch (agreement.dataClassification) {
+      case DATA_CLASSIFICATIONS.LEGAL_AGREEMENT:
+        summary.classifications.legal++;
+        break;
+      case DATA_CLASSIFICATIONS.USER_METADATA:
+        summary.classifications.metadata++;
+        break;
+      case DATA_CLASSIFICATIONS.TECHNICAL_DATA:
+        summary.classifications.technical++;
+        break;
+      case DATA_CLASSIFICATIONS.AGREEMENT_VERSION:
+        summary.classifications.versions++;
+        break;
+    }
+    
+    // Count expiration status
+    if (!agreement.retentionExpirationDate) {
+      summary.expirationStatus.indefinite++;
+    } else {
+      const expirationDate = new Date(agreement.retentionExpirationDate);
+      const daysUntilExpiration = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilExpiration <= 0) {
+        summary.expirationStatus.expired++;
+      } else if (daysUntilExpiration <= 30) {
+        summary.expirationStatus.expiring30Days++;
+      } else if (daysUntilExpiration <= 90) {
+        summary.expirationStatus.expiring90Days++;
+      }
+    }
+    
+    // Count compliance flags
+    if (agreement.auditTrail?.complianceFlags) {
+      if (agreement.auditTrail.complianceFlags.medicalResearchCompliance) {
+        summary.complianceFlags.medicalResearch++;
+      }
+      if (agreement.auditTrail.complianceFlags.fdaRegulatory) {
+        summary.complianceFlags.fdaRegulatory++;
+      }
+      if (agreement.auditTrail.complianceFlags.legalProtection) {
+        summary.complianceFlags.legalProtection++;
+      }
+    }
+  });
+  
+  return summary;
+}
+
+/**
  * ADMIN FUNCTIONS - For business/legal access to user agreement data
  */
 
@@ -551,6 +811,23 @@ if (process.env.NODE_ENV === 'development') {
     getAllAgreements: getAllUserAgreements,
     getUserAgreements: getUserAgreements,
     getStatistics: getAgreementStatistics,
-    exportAll: exportAllAgreements
+    exportAll: exportAllAgreements,
+    // Retention and cleanup functions
+    getRetentionSummary: getRetentionSummary,
+    getExpiredAgreements: getExpiredAgreements,
+    getRetentionStatus: (agreementId) => {
+      const history = getAgreementHistory();
+      const agreement = history.find(a => a.id === agreementId);
+      return agreement ? getRetentionStatus(agreement) : null;
+    },
+    anonymizeUser: anonymizeAgreementData,
+    // Constants
+    RETENTION_PERIODS: RETENTION_PERIODS,
+    DATA_CLASSIFICATIONS: DATA_CLASSIFICATIONS,
+    // Test functions
+    testRetention: () => {
+      console.log('📊 Current retention summary:', getRetentionSummary());
+      console.log('⏰ Expired agreements:', getExpiredAgreements());
+    }
   };
 }

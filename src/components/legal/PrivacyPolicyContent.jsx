@@ -4,7 +4,8 @@ export const PrivacyPolicyContent = () => (
     <div className="space-y-4 text-sm text-gray-600">
         <h2 className="text-lg font-bold text-gray-800">Privacy Policy</h2>
         
-        <p><strong>Last Updated:</strong> {new Date().toLocaleDateString()}</p>
+        <p><strong>Last Updated:</strong> October 27, 2025</p>
+        <p><strong>Version:</strong> PP-2025-10-27-REV2</p>
         
         <p>This Privacy Policy describes how The Pep Planner ("we," "our," or "us") collects, uses, and protects your information when you use our research tracking application.</p>
 
@@ -125,9 +126,48 @@ export const PrivacyPolicyContent = () => (
             </div>
         </div>
 
-        <div>
-            <h3 className="font-semibold text-gray-800">8. Data Retention</h3>
-            <p>We retain your information for as long as your account is active or as needed to provide services. Research data is retained to maintain your research history and enable data recovery. You may delete your account and associated data at any time through the app settings.</p>
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+            <h3 className="font-semibold text-amber-800">8. Data Retention - Medical/Research Compliance</h3>
+            <div className="text-amber-700 space-y-3">
+                <p><strong>Legal Agreement Data (10 Years):</strong></p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                    <li>Terms of Service and Privacy Policy acceptances</li>
+                    <li>User consent records and agreement timestamps</li>
+                    <li>Legal compliance documentation</li>
+                    <li><em>Rationale: Medical/research liability protection, regulatory compliance</em></li>
+                </ul>
+                
+                <p><strong>Agreement Versions (Indefinite):</strong></p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                    <li>Historical versions of terms and policies</li>
+                    <li>Version control and audit trail records</li>
+                    <li><em>Rationale: FDA/research regulatory compliance, legal protection</em></li>
+                </ul>
+                
+                <p><strong>User Metadata (5 Years):</strong></p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                    <li>Account creation dates and user preferences</li>
+                    <li>Login history and security logs</li>
+                    <li>Technical support interactions</li>
+                </ul>
+                
+                <p><strong>Technical Data (3 Years):</strong></p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                    <li>User agent strings and device information</li>
+                    <li>Error logs and performance monitoring data</li>
+                    <li>Usage analytics and feature interaction data</li>
+                </ul>
+                
+                <p><strong>User Deletion Rights:</strong></p>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                    <li>You may request account deletion at any time</li>
+                    <li>Personal identifiers will be anonymized within 30 days</li>
+                    <li>Legal agreement records may be retained with anonymized identifiers</li>
+                    <li><em>Note: Some data retention is required by law for medical/research compliance</em></li>
+                </ul>
+                
+                <p><strong>Automatic Data Cleanup:</strong> We implement automated systems to delete expired technical data according to these retention schedules. Data subject to longer retention periods for legal compliance will be clearly identified and protected.</p>
+            </div>
         </div>
 
         <div>

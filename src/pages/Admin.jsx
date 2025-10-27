@@ -1265,36 +1265,77 @@ function Admin() {
                   <button
                     onClick={async () => {
                       try {
-                        // Import admin notification service for cross-device notifications
-                        const { default: adminNotificationService } = await import('../services/adminNotifications');
+                        // PWA Notification (Local Desktop)
+                        const { default: pwaNotificationService } = await import('../services/pwaNotifications');
                         
-                        // Check if user is authenticated admin
-                        if (!adminNotificationService.isAuthenticated()) {
-                          window.dispatchEvent(new CustomEvent('tpp:toast', {
-                            detail: { 
-                              type: 'error', 
-                              message: 'Admin authentication required' 
-                            }
-                          }));
-                          return;
+                        const status = pwaNotificationService.getStatus();
+                        
+                        if (!status.supported) {
+                          throw new Error('PWA notifications not supported');
                         }
 
-                        // Send test notification to your mobile device via Firebase
+                        if (status.permission !== 'granted') {
+                          const permission = await pwaNotificationService.requestPermission();
+                          if (permission !== 'granted') {
+                            throw new Error('PWA notification permission denied');
+                          }
+                        }
+
+                        // Send PWA notification
+                        pwaNotificationService.showNotification('🧪 PWA Test Notification', {
+                          body: 'This is a PWA test notification from the admin panel. Local notifications working!',
+                          tag: 'admin-pwa-test',
+                          icon: '/tpp-logo.png'
+                        });
+
+                        window.dispatchEvent(new CustomEvent('tpp:toast', {
+                          detail: { 
+                            type: 'success', 
+                            message: 'PWA notification sent! Check your browser notifications.' 
+                          }
+                        }));
+
+                      } catch (error) {
+                        console.error('Failed to send PWA test notification:', error);
+                        window.dispatchEvent(new CustomEvent('tpp:toast', {
+                          detail: { 
+                            type: 'error', 
+                            message: 'PWA notification failed: ' + error.message 
+                          }
+                        }));
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: theme.info || '#3b82f6', color: theme.textOnPrimary }}
+                  >
+                    <Bell size={18} />
+                    Test PWA
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Firebase Cross-Device Notification
+                        const { default: adminNotificationService } = await import('../services/adminNotifications');
+                        
+                        if (!adminNotificationService.isAuthenticated()) {
+                          throw new Error('Admin authentication required');
+                        }
+
                         const result = await adminNotificationService.sendTestNotification('general');
 
                         window.dispatchEvent(new CustomEvent('tpp:toast', {
                           detail: { 
                             type: 'success', 
-                            message: `Cross-device notification sent! Check your mobile device. (${result.sent}/${result.total} delivered)` 
+                            message: `Firebase notification sent! Mobile: (${result.sent}/${result.total} delivered)` 
                           }
                         }));
 
                       } catch (error) {
-                        console.error('Failed to send test notification:', error);
+                        console.error('Failed to send Firebase test notification:', error);
                         window.dispatchEvent(new CustomEvent('tpp:toast', {
                           detail: { 
                             type: 'error', 
-                            message: 'Failed to send test notification: ' + error.message 
+                            message: 'Firebase notification failed: ' + error.message 
                           }
                         }));
                       }
@@ -1303,7 +1344,7 @@ function Admin() {
                     style={{ backgroundColor: theme.success || '#10b981', color: theme.textOnPrimary }}
                   >
                     <Send size={18} />
-                    Test Notification
+                    Test Mobile
                   </button>
                   <button
                     onClick={() => {

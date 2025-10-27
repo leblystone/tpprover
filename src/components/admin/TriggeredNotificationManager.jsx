@@ -201,28 +201,58 @@ export default function TriggeredNotificationManager({ theme }) {
     setTestingId(notification.id);
     
     try {
-      // Check if user is authenticated admin
-      if (!adminNotificationService.isAuthenticated()) {
-        throw new Error('Admin authentication required');
+      // Test both PWA (local) and Firebase (cross-device) notifications
+      let pwaSuccess = false;
+      let firebaseSuccess = false;
+
+      // Try PWA notification first (for immediate feedback)
+      try {
+        const { default: pwaNotificationService } = await import('../../services/pwaNotifications');
+        const status = pwaNotificationService.getStatus();
+        
+        if (status.supported && status.permission === 'granted') {
+          const processed = adminNotificationService.processVariables(notification.title, { count: 3, peptideName: 'BPC-157', userName: 'Test User', days: 7 });
+          const processedBody = adminNotificationService.processVariables(notification.body, { count: 3, peptideName: 'BPC-157', userName: 'Test User', days: 7 });
+          
+          pwaNotificationService.showNotification(processed, {
+            body: processedBody,
+            tag: `test-pwa-${notification.id}`,
+            icon: '/tpp-logo.png'
+          });
+          pwaSuccess = true;
+        }
+      } catch (error) {
+        console.warn('PWA notification failed:', error);
       }
 
-      // Send test notification to mobile device via Firebase
-      const result = await adminNotificationService.sendTriggeredNotification(notification, {
-        count: 3,
-        peptideName: 'BPC-157',
-        userName: 'Test User',
-        days: 7
-      });
+      // Try Firebase notification (for mobile cross-device)
+      try {
+        if (adminNotificationService.isAuthenticated()) {
+          const result = await adminNotificationService.sendTriggeredNotification(notification, {
+            count: 3,
+            peptideName: 'BPC-157',
+            userName: 'Test User',
+            days: 7
+          });
+          firebaseSuccess = result;
+        }
+      } catch (error) {
+        console.warn('Firebase notification failed:', error);
+      }
 
-      if (result) {
+      if (pwaSuccess || firebaseSuccess) {
+        const messages = [];
+        if (pwaSuccess) messages.push('PWA ✅');
+        if (firebaseSuccess) messages.push('Firebase ✅');
+        
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: { 
             type: 'success', 
-            message: 'Cross-device notification sent! Check your mobile device.' 
+            message: `Test sent: ${messages.join(', ')}. Check your notifications!` 
           }
         }));
       } else {
-        throw new Error('Failed to send notification');
+        throw new Error('Both PWA and Firebase notifications failed');
       }
 
     } catch (error) {

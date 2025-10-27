@@ -257,25 +257,13 @@ export default function Login() {
         
         // CRITICAL SECURITY: Check for user change and clear data immediately
         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
-        console.log('🔍 [TRIAL DEBUG] LOGIN: Account switch check:', {
-          lastUserEmail,
-          currentUserEmail: user.email,
-          isAccountSwitch: lastUserEmail && lastUserEmail !== user.email
-        });
-        
         if (lastUserEmail && lastUserEmail !== user.email) {
-          console.log('🚨🚨🚨 [TRIAL DEBUG] LOGIN: ACCOUNT SWITCH DETECTED - THIS MIGHT BE THE BUG!');
-          console.log('🔍 [TRIAL DEBUG] LOGIN: Email comparison details:', {
-            lastUserEmail: `"${lastUserEmail}"`,
-            currentUserEmail: `"${user.email}"`,
-            areEqual: lastUserEmail === user.email
-          });
-          console.log('🚨 [TRIAL DEBUG] LOGIN: WARNING: About to clear ALL user data including subscription!');
+          console.log('🚨 SECURITY: User change detected during login!');
+          console.log('  Previous user:', lastUserEmail);
+          console.log('  Current user:', user.email);
           
           clearAllUserData();
           console.log('✅ Confirmed: Account data cleared for new user');
-        } else {
-          console.log('✅ [TRIAL DEBUG] LOGIN: No account switch - emails match correctly');
         }
         
         // Update last user email
@@ -545,20 +533,16 @@ export default function Login() {
             paymentMethod: null,
           };
           
-          console.log('🔥 [TRIAL DEBUG] SIGNUP: Created trial subscription object:', trial);
-          
           // CRITICAL: Save to localStorage FIRST (immediate fallback)
           try {
-            console.log('🔍 [TRIAL DEBUG] SIGNUP: Saving trial to localStorage as fallback');
             localStorage.setItem('tpprover_subscription', JSON.stringify(trial));
-            console.log('💾 [TRIAL DEBUG] SIGNUP: Trial subscription saved to localStorage (fallback)');
+            console.log('💾 Trial subscription saved to localStorage (fallback)');
           } catch (e) {
-            console.error('❌ [TRIAL DEBUG] SIGNUP: Failed to save trial to localStorage:', e);
+            console.error('❌ Failed to save trial to localStorage:', e);
           }
           
           // Save trial subscription to cloud storage (with timeout)
           try {
-            console.log('🔍 [TRIAL DEBUG] SIGNUP: Saving trial to cloud storage for user:', firebaseUser.uid);
             const { saveUserSubscription } = await import('../services/cloudStorage');
             await Promise.race([
               saveUserSubscription(firebaseUser.uid, trial),
@@ -566,9 +550,9 @@ export default function Login() {
                 setTimeout(() => reject(new Error('Cloud save timeout')), 3000)
               )
             ]);
-            console.log('☁️ [TRIAL DEBUG] SIGNUP: Trial subscription saved to cloud storage successfully');
+            console.log('☁️ Trial subscription saved to cloud storage');
           } catch (cloudError) {
-            console.warn('⚠️ [TRIAL DEBUG] SIGNUP: Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
+            console.warn('⚠️ Cloud save timed out or failed (offline?), but localStorage has the trial:', cloudError.message);
             // Don't throw - localStorage has the fallback
           }
         } catch (error) {

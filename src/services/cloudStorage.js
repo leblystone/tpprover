@@ -129,35 +129,15 @@ export async function loadUserPreferences(userId) {
  * Save user subscription data
  */
 export async function saveUserSubscription(userId, subscription) {
-  console.log('🔍 [TRIAL DEBUG] saveUserSubscription called:', {
-    userId,
-    subscription: {
-      id: subscription?.id,
-      status: subscription?.status,
-      interval: subscription?.interval,
-      startedAt: subscription?.startedAt,
-      currentPeriodEnd: subscription?.currentPeriodEnd
-    }
-  });
-  
-  const result = await saveUserData(userId, { subscription }, COLLECTIONS.USER_SUBSCRIPTION);
-  console.log('🔍 [TRIAL DEBUG] saveUserSubscription result:', result);
-  return result;
+  return await saveUserData(userId, { subscription }, COLLECTIONS.USER_SUBSCRIPTION);
 }
 
 /**
  * Load user subscription data
  */
 export async function loadUserSubscription(userId) {
-  console.log('🔍 [TRIAL DEBUG] loadUserSubscription called for userId:', userId);
-  
   const data = await loadUserData(userId, COLLECTIONS.USER_SUBSCRIPTION);
-  console.log('🔍 [TRIAL DEBUG] loadUserSubscription raw data:', data);
-  
-  const subscription = data?.subscription || null;
-  console.log('🔍 [TRIAL DEBUG] loadUserSubscription extracted subscription:', subscription);
-  
-  return subscription;
+  return data?.subscription || null;
 }
 
 /**
