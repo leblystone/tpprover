@@ -7,7 +7,7 @@ service cloud.firestore {
       // You can implement admin checking logic here if needed
       // For now, we'll use a simple approach
       return request.auth != null && request.auth.token.email in [
-        'your-admin-email@example.com' // Replace with your actual admin email
+        'lebrockmaldonado@gmail.com' // Replace with your actual admin email
       ];
     }
     

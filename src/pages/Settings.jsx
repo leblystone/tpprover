@@ -802,8 +802,8 @@ export default function Settings() {
               theme={theme}
               disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
             />
-            {/* Development Test Button */}
-            {import.meta.env.DEV && settings.notifications.push && (
+            {/* Development & Mobile Test Button */}
+            {(import.meta.env.DEV || pwaNotificationStatus.isNative) && settings.notifications.push && (
               <div className="flex items-center justify-between p-3 rounded-lg border border-dashed" style={{ borderColor: theme.accent, backgroundColor: theme.background }}>
                 <div>
                   <div className="text-sm font-medium" style={{ color: theme.text }}>Test Notification</div>
@@ -820,7 +820,7 @@ export default function Settings() {
                             {
                               title: 'Test from The Pep Planner! 🎉',
                               body: 'This is a sample notification from your Android app. Native notifications are working correctly!',
-                              id: Date.now(),
+                              id: Math.floor(Math.random() * 1000000), // Random ID under Java int limit
                               schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay
                               sound: 'default',
                               attachments: [],

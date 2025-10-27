@@ -225,7 +225,7 @@ export default function EmailTemplateManager({ theme }) {
       } else {
         setTestResult({ 
           success: false, 
-          message: result.data.error || 'Failed to send test email' 
+          message: result.data.error || result.data.message || 'Failed to send test email' 
         });
       }
     } catch (error) {

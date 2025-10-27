@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
-  BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
+  BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send
 } from 'lucide-react';
+import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
 import { Zap } from '../icons/lucide-safe';
 import {
@@ -35,6 +36,7 @@ import AgreementTracking from '../components/admin/AgreementTracking';
 import NotificationTemplateEditor from '../components/admin/NotificationTemplateEditor';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
+import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -236,6 +238,7 @@ const adminTheme = {
 
 function Admin() {
   const theme = adminTheme;
+  const { firebaseUser } = useFirebase();
   const [announcements, setAnnouncements] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -344,7 +347,6 @@ function Admin() {
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
-  const [stripeSubscriptions, setStripeSubscriptions] = useState([]);
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
     featureUsage: {},
@@ -413,7 +415,14 @@ function Admin() {
     // Check if already authenticated
     const authStatus = localStorage.getItem('tpp_admin_auth');
     if (authStatus === 'true') {
-      setIsAuthenticated(true);
+      // Also verify the user is logged in with correct admin email
+      if (firebaseUser && firebaseUser.email === 'lebrockmaldonado@gmail.com') {
+        setIsAuthenticated(true);
+      } else {
+        // Clear auth if user is not logged in with correct email
+        localStorage.removeItem('tpp_admin_auth');
+        setIsAuthenticated(false);
+      }
     }
     
     // Load data
@@ -427,7 +436,7 @@ function Admin() {
     loadStripeData();
     loadLifetimeUsers();
     loadContentData();
-  }, []);
+  }, [firebaseUser]);
 
   const loadLifetimeUsers = async () => {
     setLoading(prev => ({ ...prev, lifetimeUsers: true }));
@@ -845,6 +854,11 @@ function Admin() {
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
+      // Check if user is logged in with correct admin email
+      if (!firebaseUser || firebaseUser.email !== 'lebrockmaldonado@gmail.com') {
+        alert('You must be logged in with the admin email account (lebrockmaldonado@gmail.com) to access the admin panel. Please log in with the correct account first.');
+        return;
+      }
       setIsAuthenticated(true);
       localStorage.setItem('tpp_admin_auth', 'true');
       setPassword('');
@@ -937,6 +951,9 @@ function Admin() {
             </div>
             <h1 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>Admin Panel</h1>
             <p className="text-sm" style={{ color: theme.textLight }}>Enter admin password to continue</p>
+            <p className="text-xs mt-2 p-2 rounded bg-blue-50 text-blue-700">
+              ⚠️ You must be logged in with the admin email account first
+            </p>
           </div>
           
           <form onSubmit={handleLogin} className="space-y-4">
@@ -991,13 +1008,13 @@ function Admin() {
               { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#3b82f6' },
               { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981' },
               { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b' },
-              { id: 'billing', label: 'Billing', icon: CreditCard, color: '#f97316' },
               { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6' },
               { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6' },
               { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
               { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
               { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
-              { id: 'notifications', label: 'Notifications', icon: Bell, color: '#8b5cf6' },
+              { id: 'notifications', label: 'Templates', icon: Bell, color: '#8b5cf6' },
+              { id: 'triggered', label: 'Triggered Push', icon: Send, color: '#10b981' },
               { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4' }
             ].map(tab => {
               const Icon = tab.icon;
@@ -1099,14 +1116,6 @@ function Admin() {
               color: '#f59e0b' 
             },
             { 
-              id: 'billing', 
-              label: 'Billing', 
-              icon: CreditCard, 
-              count: 0,
-              desc: 'Stripe subscriptions',
-              color: '#f97316' 
-            },
-            { 
               id: 'content', 
               label: 'Content', 
               icon: BookOpen, 
@@ -1148,11 +1157,19 @@ function Admin() {
             },
             { 
               id: 'notifications', 
-              label: 'Notifications', 
+              label: 'Templates', 
               icon: Bell, 
               count: 0,
               desc: 'Customize notification templates',
               color: '#8b5cf6' 
+            },
+            { 
+              id: 'triggered', 
+              label: 'Triggered Push', 
+              icon: Send, 
+              count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length,
+              desc: 'Automated push notifications',
+              color: '#10b981' 
             },
             { 
               id: 'emails', 
@@ -1222,13 +1239,13 @@ function Admin() {
                 {activeTab === 'analytics' && 'Real-time platform analytics and user insights'}
                 {activeTab === 'subscriptions' && 'User management, subscriptions, and account status'}
                 {activeTab === 'lifetime' && 'Manage and grant lifetime access to users'}
-                {activeTab === 'billing' && 'Manage Stripe subscriptions, plans, and view revenue'}
                 {activeTab === 'content' && 'Manage research topics and other in-app content'}
                 {activeTab === 'feedback' && 'User feedback management with keyword-based categorization'}
                 {activeTab === 'announcements' && 'Manage app-wide announcements and notifications'}
                 {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
                 {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
                 {activeTab === 'notifications' && 'Customize notification templates and messaging with personality'}
+                {activeTab === 'triggered' && 'Create automated push notifications triggered by user behavior, data conditions, and time events'}
                 {activeTab === 'emails' && 'Design beautiful branded email templates - no coding required!'}
               </p>
             </div>
@@ -1248,17 +1265,17 @@ function Admin() {
                   <button
                     onClick={async () => {
                       try {
-                        // Import PWA notification service
-                        const { default: pwaNotificationService } = await import('../services/pwaNotifications');
+                        // Import unified notification service
+                        const { default: unifiedNotificationService } = await import('../services/unifiedNotifications');
                         
                         // Check if notifications are supported
-                        const status = pwaNotificationService.getStatus();
+                        const status = await unifiedNotificationService.isSupported();
                         
                         if (!status.supported) {
                           window.dispatchEvent(new CustomEvent('tpp:toast', {
                             detail: { 
                               type: 'error', 
-                              message: 'PWA notifications not supported in this browser' 
+                              message: `Notifications not supported on ${status.platform}` 
                             }
                           }));
                           return;
@@ -1267,7 +1284,7 @@ function Admin() {
                         if (status.permission !== 'granted') {
                           // Try to request permission
                           try {
-                            const permission = await pwaNotificationService.requestPermission();
+                            const permission = await unifiedNotificationService.requestPermission();
                             if (permission !== 'granted') {
                               window.dispatchEvent(new CustomEvent('tpp:toast', {
                                 detail: { 
@@ -1288,20 +1305,20 @@ function Admin() {
                           }
                         }
 
-                        // Send test notification
-                        pwaNotificationService.showNotification('🧪 Admin Test Notification', {
+                        // Send test notification (works on both web and mobile)
+                        await unifiedNotificationService.sendNotification('🧪 Admin Test Notification', {
                           body: 'This is a test notification from The Pep Planner admin panel. Everything looks good!',
                           tag: 'admin-test',
-                          icon: '/tpp-logo.png',
                           data: {
                             path: '/app/dashboard'  
                           }
                         });
 
+                        const platformInfo = unifiedNotificationService.getPlatformInfo();
                         window.dispatchEvent(new CustomEvent('tpp:toast', {
                           detail: { 
                             type: 'success', 
-                            message: 'Test notification sent! Check your browser notifications.' 
+                            message: `Test notification sent! Check your ${platformInfo.isNative ? 'mobile' : 'browser'} notifications.` 
                           }
                         }));
 
@@ -2382,14 +2399,6 @@ function Admin() {
           </div>
         )}
 
-        {activeTab === 'billing' && (
-          <div className="space-y-6">
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Stripe Subscriptions</h2>
-              <SubscriptionTable subscriptions={stripeSubscriptions} theme={theme} />
-            </div>
-          </div>
-        )}
 
         {activeTab === 'content' && (
           <div className="space-y-6">
@@ -2735,6 +2744,12 @@ function Admin() {
           </div>
         )}
 
+        {activeTab === 'triggered' && (
+          <div className="space-y-6">
+            <TriggeredNotificationManager theme={theme} />
+          </div>
+        )}
+
         {activeTab === 'emails' && (
           <div className="space-y-6">
             <EmailTemplateManager theme={theme} />
@@ -3060,43 +3075,5 @@ function UserDetailModal({ user, onClose, theme }) {
   );
 }
 
-function SubscriptionTable({ subscriptions, theme }) {
-  if (subscriptions.length === 0) {
-    return <p style={{ color: theme.textLight }}>No subscriptions to display.</p>;
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
-        <thead style={{ backgroundColor: theme.background }}>
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Customer</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Status</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Plan</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Current Period</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          {subscriptions.map(sub => (
-            <tr key={sub.id}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.text }}>{sub.customer}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${sub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                  {sub.status}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
-                {sub.items.data[0]?.price.nickname || 'N/A'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
-                {new Date(sub.current_period_start * 1000).toLocaleDateString()} - {new Date(sub.current_period_end * 1000).toLocaleDateString()}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 export default Admin;

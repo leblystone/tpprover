@@ -239,7 +239,7 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
   return (
     <>
       <Modal
-        isOpen={isOpen}
+        open={isOpen}
         onClose={onClose}
         title="Notification Template Editor"
         titleExtra={
@@ -424,7 +424,7 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
 
       {/* Reset Confirmation Modal */}
       <Modal
-        isOpen={showResetConfirm}
+        open={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
         title="Reset All Templates"
         theme={theme}
