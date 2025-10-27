@@ -110,28 +110,27 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
         processedTemplate.body = processedTemplate.body?.replace(new RegExp(placeholder, 'g'), sampleData[key] || '');
       });
 
-      // Check if PWA notifications are supported
+      // ONLY test PWA notifications for Templates (this is just for previewing the text)
       const status = pwaNotificationService.getStatus();
       
       if (!status.supported) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: { 
             type: 'error', 
-            message: 'PWA notifications not supported in this browser' 
+            message: 'PWA notifications not supported in this browser. Template preview not available.' 
           }
         }));
         return;
       }
 
       if (status.permission !== 'granted') {
-        // Try to request permission
         try {
           const permission = await pwaNotificationService.requestPermission();
           if (permission !== 'granted') {
             window.dispatchEvent(new CustomEvent('tpp:toast', {
               detail: { 
-                type: 'error', 
-                message: 'Notification permission is required to test notifications' 
+                type: 'warning', 
+                message: 'Notification permission needed to preview template appearance' 
               }
             }));
             return;
@@ -139,18 +138,18 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
         } catch (error) {
           window.dispatchEvent(new CustomEvent('tpp:toast', {
             detail: { 
-              type: 'error', 
-              message: 'Failed to request notification permission' 
+              type: 'warning', 
+              message: 'Cannot preview template - permission denied' 
             }
           }));
           return;
         }
       }
 
-      // Send test notification
+      // Send PWA notification (template preview only)
       pwaNotificationService.showNotification(processedTemplate.title, {
         body: processedTemplate.body,
-        tag: `test-${selectedTemplate}`,
+        tag: `template-preview-${selectedTemplate}`,
         icon: '/tpp-logo.png',
         data: {
           path: processedTemplate.actionUrl || '/app/dashboard'
@@ -160,16 +159,16 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { 
           type: 'success', 
-          message: 'Test notification sent! Check your browser notifications.' 
+          message: 'Template preview sent! This is how the message will look.' 
         }
       }));
 
     } catch (error) {
-      console.error('Failed to send test notification:', error);
+      console.error('Failed to preview template:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { 
           type: 'error', 
-          message: 'Failed to send test notification: ' + error.message 
+          message: 'Failed to preview template: ' + error.message 
         }
       }));
     }
@@ -326,7 +325,7 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
                       }}
                     >
                       <Send size={14} className="inline mr-1" />
-                      Test
+                      Preview
                     </button>
                     <button
                       onClick={handleSave}
