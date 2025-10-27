@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, MessageSquare, Bell, AlertTriangle } from 'lucide-react';
+import { Save, RotateCcw, MessageSquare, Bell, AlertTriangle, Send } from 'lucide-react';
 import { 
   getAllTemplates, 
   saveNotificationTemplate, 
@@ -9,6 +9,7 @@ import {
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
+import pwaNotificationService from '../../services/pwaNotifications';
 
 export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
@@ -84,6 +85,129 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
         }
       }));
     }
+  };
+
+  const handleTestNotification = async () => {
+    if (!selectedTemplate || !editedTemplate) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          type: 'error', 
+          message: 'Please select a template to test' 
+        }
+      }));
+      return;
+    }
+
+    try {
+      // Get sample data for the selected template type
+      const sampleData = getSampleDataForTemplate(selectedTemplate);
+      
+      // Replace variables in the template
+      const processedTemplate = { ...editedTemplate };
+      Object.keys(sampleData).forEach(key => {
+        const placeholder = `{${key}}`;
+        processedTemplate.title = processedTemplate.title?.replace(new RegExp(placeholder, 'g'), sampleData[key] || '');
+        processedTemplate.body = processedTemplate.body?.replace(new RegExp(placeholder, 'g'), sampleData[key] || '');
+      });
+
+      // Check if PWA notifications are supported
+      const status = pwaNotificationService.getStatus();
+      
+      if (!status.supported) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { 
+            type: 'error', 
+            message: 'PWA notifications not supported in this browser' 
+          }
+        }));
+        return;
+      }
+
+      if (status.permission !== 'granted') {
+        // Try to request permission
+        try {
+          const permission = await pwaNotificationService.requestPermission();
+          if (permission !== 'granted') {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+              detail: { 
+                type: 'error', 
+                message: 'Notification permission is required to test notifications' 
+              }
+            }));
+            return;
+          }
+        } catch (error) {
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { 
+              type: 'error', 
+              message: 'Failed to request notification permission' 
+            }
+          }));
+          return;
+        }
+      }
+
+      // Send test notification
+      pwaNotificationService.showNotification(processedTemplate.title, {
+        body: processedTemplate.body,
+        tag: `test-${selectedTemplate}`,
+        icon: '/tpp-logo.png',
+        data: {
+          path: processedTemplate.actionUrl || '/app/dashboard'
+        }
+      });
+
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          type: 'success', 
+          message: 'Test notification sent! Check your browser notifications.' 
+        }
+      }));
+
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          type: 'error', 
+          message: 'Failed to send test notification: ' + error.message 
+        }
+      }));
+    }
+  };
+
+  const getSampleDataForTemplate = (templateType) => {
+    const sampleData = {
+      lowStock: {
+        count: 2,
+        peptideName: 'BPC-157'
+      },
+      orderArrived: {
+        peptideName: 'TB-500'
+      },
+      orderStatusUpdate: {
+        peptideName: 'Semaglutide',
+        status: 'Shipped',
+        additionalMessage: 'Expected delivery: 2-3 business days'
+      },
+      washoutReminder: {
+        protocolName: 'BPC-157 Protocol',
+        daysAgo: 3
+      },
+      cycleReminder: {
+        protocolName: 'Recovery Protocol',
+        daysUntil: 2
+      },
+      cycleEndReminder: {
+        protocolName: 'Recovery Protocol', 
+        daysUntil: 1
+      },
+      researchReminder: {
+        peptideName: 'BPC-157',
+        taskCount: 3
+      }
+    };
+    
+    return sampleData[templateType] || {};
   };
 
   const getTemplateIcon = (type) => {
@@ -191,6 +315,18 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
                     >
                       <RotateCcw size={14} className="inline mr-1" />
                       Reset
+                    </button>
+                    <button
+                      onClick={handleTestNotification}
+                      className="px-3 py-1 text-sm rounded-lg border transition-all hover:opacity-90"
+                      style={{ 
+                        borderColor: theme.primary,
+                        color: theme.primary,
+                        backgroundColor: theme.cardBackground 
+                      }}
+                    >
+                      <Send size={14} className="inline mr-1" />
+                      Test
                     </button>
                     <button
                       onClick={handleSave}

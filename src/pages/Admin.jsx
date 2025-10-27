@@ -3,7 +3,7 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, CreditCard, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award
+  UserPlus, Briefcase, BookOpen, Star, Award, Send
 } from 'lucide-react';
 import { formatMMDDYYYY } from '../utils/date';
 import { Zap } from '../icons/lucide-safe';
@@ -1244,17 +1244,95 @@ function Admin() {
                 </button>
               )}
               {activeTab === 'notifications' && (
-                <button
-                  onClick={() => {
-                    console.log('Edit Templates button clicked');
-                    setShowNotificationEditor(true);
-                  }}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                >
-                  <Bell size={18} />
-                  Edit Templates
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Import PWA notification service
+                        const { default: pwaNotificationService } = await import('../services/pwaNotifications');
+                        
+                        // Check if notifications are supported
+                        const status = pwaNotificationService.getStatus();
+                        
+                        if (!status.supported) {
+                          window.dispatchEvent(new CustomEvent('tpp:toast', {
+                            detail: { 
+                              type: 'error', 
+                              message: 'PWA notifications not supported in this browser' 
+                            }
+                          }));
+                          return;
+                        }
+
+                        if (status.permission !== 'granted') {
+                          // Try to request permission
+                          try {
+                            const permission = await pwaNotificationService.requestPermission();
+                            if (permission !== 'granted') {
+                              window.dispatchEvent(new CustomEvent('tpp:toast', {
+                                detail: { 
+                                  type: 'error', 
+                                  message: 'Notification permission is required to send test notifications' 
+                                }
+                              }));
+                              return;
+                            }
+                          } catch (error) {
+                            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                              detail: { 
+                                type: 'error', 
+                                message: 'Failed to request notification permission' 
+                              }
+                            }));
+                            return;
+                          }
+                        }
+
+                        // Send test notification
+                        pwaNotificationService.showNotification('🧪 Admin Test Notification', {
+                          body: 'This is a test notification from The Pep Planner admin panel. Everything looks good!',
+                          tag: 'admin-test',
+                          icon: '/tpp-logo.png',
+                          data: {
+                            path: '/app/dashboard'  
+                          }
+                        });
+
+                        window.dispatchEvent(new CustomEvent('tpp:toast', {
+                          detail: { 
+                            type: 'success', 
+                            message: 'Test notification sent! Check your browser notifications.' 
+                          }
+                        }));
+
+                      } catch (error) {
+                        console.error('Failed to send test notification:', error);
+                        window.dispatchEvent(new CustomEvent('tpp:toast', {
+                          detail: { 
+                            type: 'error', 
+                            message: 'Failed to send test notification: ' + error.message 
+                          }
+                        }));
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: theme.success || '#10b981', color: theme.textOnPrimary }}
+                  >
+                    <Send size={18} />
+                    Test Notification
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('Edit Templates button clicked');
+                      setShowNotificationEditor(true);
+                    }}
+                    className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    <Bell size={18} />
+                    Edit Templates
+                  </button>
+                </div>
               )}
               {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
                 <button
@@ -2541,7 +2619,7 @@ function Admin() {
                   <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Notification Templates</h2>
                   <p className="text-sm mb-4" style={{ color: theme.textLight }}>
                     Customize the messaging for all notifications sent to users. Add personality and adjust the tone to match your brand.
-                    Use variables like {'{peptideName}'}, {'{count}'}, {'{daysUntil}'} for dynamic content.
+                    Use variables like {'{peptideName}'}, {'{count}'}, {'{daysUntil}'} for dynamic content. Test individual templates or send a general test notification to verify functionality.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -2565,6 +2643,52 @@ function Admin() {
                         <li>• {'{status}'} - Order status</li>
                       </ul>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notification System Status */}
+            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' || '#10b98120' }}>
+                  <CheckCircle size={24} style={{ color: theme.success || '#10b981' }} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>System Status</h2>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
+                      <div>
+                        <h4 className="font-medium" style={{ color: theme.text }}>Notification Templates</h4>
+                        <p className="text-sm" style={{ color: theme.textLight }}>Template system and customization</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: theme.success + '20' || '#10b98120', color: theme.success || '#10b981' }}>
+                        ✓ Active
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
+                      <div>
+                        <h4 className="font-medium" style={{ color: theme.text }}>PWA Notifications</h4>
+                        <p className="text-sm" style={{ color: theme.textLight }}>Browser-based push notifications</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: theme.success + '20' || '#10b98120', color: theme.success || '#10b981' }}>
+                        ✓ Available
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
+                      <div>
+                        <h4 className="font-medium" style={{ color: theme.text }}>Firebase Integration</h4>
+                        <p className="text-sm" style={{ color: theme.textLight }}>Cloud messaging and storage</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: theme.success + '20' || '#10b98120', color: theme.success || '#10b981' }}>
+                        ✓ Connected
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.info + '10' || '#3b82f610', borderLeft: `3px solid ${theme.info || '#3b82f6'}` }}>
+                    <p className="text-sm" style={{ color: theme.text }}>
+                      <strong>Testing:</strong> Use the "Test Notification" button to send a sample notification, or edit individual templates and use their "Test" button for specific template testing.
+                    </p>
                   </div>
                 </div>
               </div>

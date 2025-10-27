@@ -8,6 +8,7 @@ const pushNotifications = require('./pushNotifications');
 const emailService = require('./emailService');
 const testEmailSystem = require('./testEmailSystem');
 const emailAutomation = require('./emailAutomation');
+const quickEmailTest = require('./quickEmailTest');
 
 admin.initializeApp();
 
@@ -237,6 +238,9 @@ exports.sendTestNotification = onCall(async (request) => {
 // Test email system function
 exports.testEmailSystem = testEmailSystem.testEmailSystem;
 
+// Quick email test function
+exports.quickEmailTest = quickEmailTest.quickEmailTest;
+
 // Email Automation Functions
 exports.onSubscriptionConfirmed = emailAutomation.onSubscriptionConfirmed;
 exports.onPaymentFailed = emailAutomation.onPaymentFailed;
@@ -339,7 +343,12 @@ exports.verifyEmailWithToken = onCall(async (request) => {
 // 📧 Email Functions
 
 // Send welcome email when new user is created
-exports.onUserCreated = onDocumentCreated('users/{userId}', async (event) => {
+exports.onUserCreated = onDocumentCreated(
+  {
+    document: 'users/{userId}',
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (event) => {
   const userData = event.data.data();
   const userId = event.params.userId;
   

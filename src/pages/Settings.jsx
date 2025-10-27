@@ -13,6 +13,7 @@ import SampleDataModal from '../components/ui/SampleDataModal'
 import RemoveSampleDataModal from '../components/ui/RemoveSampleDataModal'
 import TimezoneChangeModal from '../components/ui/TimezoneChangeModal'
 import pwaNotificationService from '../services/pwaNotifications'
+import { Capacitor } from '@capacitor/core'
 import CollapsibleSection from '../components/common/CollapsibleSection'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getLatestAgreement, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
@@ -342,11 +343,14 @@ export default function Settings() {
     useEffect(() => {
         const updatePWAStatus = () => {
             const status = pwaNotificationService.getStatus();
+            const isNative = Capacitor.isNativePlatform();
+            
             setPwaNotificationStatus({
-                supported: status.supported,
+                supported: status.supported || isNative, // Native platforms support notifications
                 permission: status.permission,
                 enabled: status.enabled,
-                loading: false
+                loading: false,
+                isNative: isNative
             });
         };
 
@@ -653,10 +657,31 @@ export default function Settings() {
       setPwaNotificationStatus(prev => ({ ...prev, loading: true }));
       
       try {
-        if (enabled) {
-          await pwaNotificationService.enable();
+        if (pwaNotificationStatus.isNative) {
+          // Use Capacitor native push notifications
+          const { PushNotifications } = await import('@capacitor/push-notifications');
+          
+          if (enabled) {
+            // Request permissions for native push notifications
+            const result = await PushNotifications.requestPermissions();
+            if (result.receive === 'granted') {
+              // Register for push notifications
+              await PushNotifications.register();
+              console.log('✅ Native push notifications enabled');
+            } else {
+              throw new Error('Push notification permission denied');
+            }
+          } else {
+            // For disabling, we just update local settings
+            console.log('⚠️ Native push notifications disabled locally');
+          }
         } else {
-          await pwaNotificationService.disable();
+          // Use PWA notifications for web
+          if (enabled) {
+            await pwaNotificationService.enable();
+          } else {
+            await pwaNotificationService.disable();
+          }
         }
         
         // Update PWA status to reflect the change
@@ -666,8 +691,16 @@ export default function Settings() {
           loading: false 
         }));
         
+        // Show success message
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: `${pwaNotificationStatus.isNative ? 'Native' : 'PWA'} notifications ${enabled ? 'enabled' : 'disabled'}`, 
+            type: 'success' 
+          } 
+        }));
+        
       } catch (error) {
-        console.error('Failed to toggle PWA notifications:', error);
+        console.error('Failed to toggle notifications:', error);
         
         // Revert the setting on error
         update('notifications.push', !enabled);
@@ -779,12 +812,33 @@ export default function Settings() {
                 <button
                   onClick={async () => {
                     try {
-                      await pwaNotificationService.showNotification('Test from The Pep Planner! 🎉', {
-                        body: 'This is a sample notification from your PWA. Notifications are working correctly!',
-                        icon: '/tpp-logo.png',
-                        tag: 'dev-test',
-                        data: { test: true, timestamp: Date.now() }
-                      });
+                      if (pwaNotificationStatus.isNative) {
+                        // Test native notification
+                        const { LocalNotifications } = await import('@capacitor/local-notifications');
+                        await LocalNotifications.schedule({
+                          notifications: [
+                            {
+                              title: 'Test from The Pep Planner! 🎉',
+                              body: 'This is a sample notification from your Android app. Native notifications are working correctly!',
+                              id: Date.now(),
+                              schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay
+                              sound: 'default',
+                              attachments: [],
+                              actionTypeId: '',
+                              extra: { test: true, timestamp: Date.now() }
+                            }
+                          ]
+                        });
+                        console.log('✅ Native test notification scheduled');
+                      } else {
+                        // Test PWA notification
+                        await pwaNotificationService.showNotification('Test from The Pep Planner! 🎉', {
+                          body: 'This is a sample notification from your PWA. Notifications are working correctly!',
+                          icon: '/tpp-logo.png',
+                          tag: 'dev-test',
+                          data: { test: true, timestamp: Date.now() }
+                        });
+                      }
                     } catch (error) {
                       console.error('Test notification failed:', error);
                       window.dispatchEvent(new CustomEvent('tpp:toast', { 
