@@ -10,7 +10,6 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
         if (supplement) {
             setForm({
                 schedule: [],
-                delivery: 'oral',
                 days: [],
                 ...supplement,
                 // Ensure delivery is never undefined
