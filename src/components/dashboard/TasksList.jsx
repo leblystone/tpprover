@@ -60,30 +60,44 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     const pmTasks = tasks.filter(t => t.time === 'PM');
     const otherTasks = tasks.filter(t => t.time !== 'AM' && t.time !== 'PM');
 
+    // Time-based ordering logic
+    // 2:00 AM to 1:59 PM: Show AM first
+    // 2:00 PM to 1:59 AM: Show PM first
+    const now = new Date();
+    const currentHour = now.getHours();
+    const showPMFirst = currentHour >= 14 || currentHour < 2; // 2 PM (14:00) to 1:59 AM
+
+    const renderTimeSection = (tasks, timeLabel) => {
+        if (tasks.length === 0) return null;
+        return (
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-medium text-gray-500">{timeLabel}</span>
+                    <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
+                <TaskListSection tasks={tasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-2 relative">
             {otherTasks.length > 0 && (
                 <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
             )}
             
-            {amTasks.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium text-gray-500">AM</span>
-                        <div className="flex-1 h-px bg-gray-200"></div>
-                    </div>
-                    <TaskListSection tasks={amTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
-                </div>
-            )}
-            
-            {pmTasks.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium text-gray-500">PM</span>
-                        <div className="flex-1 h-px bg-gray-200"></div>
-                    </div>
-                    <TaskListSection tasks={pmTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
-                </div>
+            {showPMFirst ? (
+                // PM first (2:00 PM to 1:59 AM)
+                <>
+                    {renderTimeSection(pmTasks, 'PM')}
+                    {renderTimeSection(amTasks, 'AM')}
+                </>
+            ) : (
+                // AM first (2:00 AM to 1:59 PM)
+                <>
+                    {renderTimeSection(amTasks, 'AM')}
+                    {renderTimeSection(pmTasks, 'PM')}
+                </>
             )}
         </div>
     );
