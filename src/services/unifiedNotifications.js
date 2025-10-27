@@ -57,47 +57,72 @@ class UnifiedNotificationService {
 
   /**
    * Send native mobile notification (using local notifications)
+   * Uses EXACT same method as working Settings page
    */
   async sendMobileNotification(title, options = {}) {
     try {
-      // Dynamic import to avoid issues on web
+      console.log('🔧 DEBUG: Starting mobile notification send...', { title, options });
+      
+      // Dynamic import to avoid issues on web (same as Settings page)
       const { LocalNotifications } = await import('@capacitor/local-notifications');
+      console.log('🔧 DEBUG: LocalNotifications imported successfully');
       
       // Check permissions first
       const permission = await LocalNotifications.checkPermissions();
+      console.log('🔧 DEBUG: Permission check result:', permission);
+      
       if (permission.display !== 'granted') {
-        console.warn('📱 Local notification permission not granted:', permission);
+        console.warn('📱 Local notification permission not granted, requesting...', permission);
         
         // Try to request permission
         const requestResult = await LocalNotifications.requestPermissions();
+        console.log('🔧 DEBUG: Permission request result:', requestResult);
+        
         if (requestResult.display !== 'granted') {
-          console.error('❌ Local notification permission denied');
-          return false;
+          console.error('❌ Local notification permission denied after request');
+          throw new Error('Local notification permission denied');
         }
       }
 
-      // Schedule the notification
+      // Use EXACT same structure as working Settings page
+      const notificationData = {
+        title,
+        body: options.body || '',
+        id: Math.floor(Math.random() * 1000000), // Random ID under Java int limit
+        schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay (same as Settings)
+        sound: 'default',
+        attachments: [],
+        actionTypeId: '',
+        extra: { 
+          test: true, 
+          timestamp: Date.now(),
+          source: 'admin-triggered',
+          ...options.data
+        }
+      };
+
+      console.log('🔧 DEBUG: About to schedule notification:', notificationData);
+
+      // Schedule the notification (EXACT same call as Settings page)
       await LocalNotifications.schedule({
-        notifications: [{
-          title,
-          body: options.body || '',
-          id: options.id || Math.floor(Math.random() * 1000000),
-          schedule: { at: new Date(Date.now() + (options.delay || 1000)) }, // Small delay for immediate delivery
-          sound: 'default',
-          attachments: [],
-          actionTypeId: '',
-          extra: {
-            ...options.data,
-            timestamp: Date.now(),
-            source: 'triggered'
-          }
-        }]
+        notifications: [notificationData]
       });
 
-      console.log('✅ Mobile notification scheduled:', title);
+      console.log('✅ Mobile notification scheduled successfully:', title);
       return true;
+      
     } catch (error) {
-      console.error('❌ Mobile notification failed:', error);
+      console.error('❌ Mobile notification failed with error:', error);
+      console.error('❌ Error details:', error.message, error.stack);
+      
+      // Show error to user for debugging
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          type: 'error', 
+          message: `Mobile notification failed: ${error.message}` 
+        }
+      }));
+      
       return false;
     }
   }

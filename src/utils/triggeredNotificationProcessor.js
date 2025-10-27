@@ -1,5 +1,5 @@
 // src/utils/triggeredNotificationProcessor.js
-import unifiedNotificationService from '../services/unifiedNotifications';
+import adminNotificationService from '../services/adminNotifications';
 
 /**
  * Triggered Notification Processor
@@ -188,16 +188,8 @@ class TriggeredNotificationProcessor {
         return;
       }
 
-      // Send via unified notification service (works on both web and mobile)
-      const success = await unifiedNotificationService.sendNotification(processedTitle, {
-        body: processedBody,
-        tag: `triggered-${notification.id}-${Date.now()}`,
-        data: {
-          notificationId: notification.id,
-          triggeredAt: new Date().toISOString(),
-          source: 'triggered'
-        }
-      });
+      // Send via admin notification service (cross-device to mobile)
+      const success = await adminNotificationService.sendTriggeredNotification(notification, userData);
 
       if (success) {
         console.log(`✅ Triggered notification sent: ${notification.name}`);

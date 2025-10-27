@@ -235,6 +235,184 @@ exports.sendTestNotification = onCall(async (request) => {
   return pushNotifications.sendPushNotificationByType(userId, type, notificationData);
 });
 
+// Admin notification functions
+exports.sendAdminNotification = onCall(async (request) => {
+  // Verify user is authenticated and is admin
+  if (!request.auth) {
+    throw new Error('User must be authenticated');
+  }
+
+  // Check if user is admin (your email)
+  const adminEmail = 'lebrockmaldonado@gmail.com';
+  const userEmail = request.auth.token.email;
+  
+  if (userEmail !== adminEmail) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+
+  const { 
+    targetType, // 'specific', 'all', 'active', 'inactive', 'premium'
+    targetEmail, // for specific user targeting
+    notification 
+  } = request.data;
+
+  logger.info(`🔧 Admin sending notification - Type: ${targetType}, From: ${userEmail}`);
+
+  try {
+    let results = [];
+
+    if (targetType === 'specific' && targetEmail) {
+      // Send to specific user by email
+      const userSnapshot = await admin.firestore()
+        .collection('users')
+        .where('email', '==', targetEmail.toLowerCase())
+        .limit(1)
+        .get();
+
+      if (userSnapshot.empty) {
+        throw new Error(`User not found: ${targetEmail}`);
+      }
+
+      const userDoc = userSnapshot.docs[0];
+      const userId = userDoc.id;
+      
+      const result = await pushNotifications.sendPushNotification(
+        userId,
+        notification.title,
+        notification.body,
+        {
+          source: 'admin',
+          timestamp: Date.now(),
+          ...notification.data
+        }
+      );
+
+      results.push({ userId, email: targetEmail, ...result });
+
+    } else if (targetType === 'test_admin') {
+      // Send test notification to admin (you)
+      const adminSnapshot = await admin.firestore()
+        .collection('users')
+        .where('email', '==', adminEmail)
+        .limit(1)
+        .get();
+
+      if (!adminSnapshot.empty) {
+        const adminDoc = adminSnapshot.docs[0];
+        const adminUserId = adminDoc.id;
+        
+        const result = await pushNotifications.sendPushNotification(
+          adminUserId,
+          notification.title,
+          notification.body,
+          {
+            source: 'admin-test',
+            timestamp: Date.now(),
+            ...notification.data
+          }
+        );
+
+        results.push({ userId: adminUserId, email: adminEmail, ...result });
+      }
+
+    } else if (targetType === 'all') {
+      // Send to all users with push notifications enabled
+      const usersSnapshot = await admin.firestore()
+        .collection('users')
+        .where('notificationSettings.push', '==', true)
+        .get();
+
+      const promises = [];
+      
+      for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        promises.push(
+          pushNotifications.sendPushNotification(
+            userId,
+            notification.title,
+            notification.body,
+            {
+              source: 'admin-broadcast',
+              timestamp: Date.now(),
+              ...notification.data
+            }
+          ).then(result => ({ userId, ...result }))
+        );
+      }
+
+      const allResults = await Promise.allSettled(promises);
+      results = allResults.map((result, index) => ({
+        userId: usersSnapshot.docs[index].id,
+        success: result.status === 'fulfilled' ? result.value.success : false,
+        error: result.status === 'rejected' ? result.reason.message : result.value.error
+      }));
+    }
+
+    const successful = results.filter(r => r.success).length;
+    
+    logger.info(`✅ Admin notification sent: ${successful}/${results.length} successful`);
+    
+    return {
+      success: true,
+      sent: successful,
+      total: results.length,
+      results: results.slice(0, 10) // Limit returned results for large broadcasts
+    };
+
+  } catch (error) {
+    logger.error('❌ Admin notification failed:', error);
+    throw new Error(`Admin notification failed: ${error.message}`);
+  }
+});
+
+// Get admin notification stats
+exports.getAdminNotificationStats = onCall(async (request) => {
+  // Verify user is authenticated and is admin
+  if (!request.auth) {
+    throw new Error('User must be authenticated');
+  }
+
+  const adminEmail = 'lebrockmaldonado@gmail.com';
+  const userEmail = request.auth.token.email;
+  
+  if (userEmail !== adminEmail) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+
+  try {
+    // Get users with push notifications enabled
+    const usersWithPushSnapshot = await admin.firestore()
+      .collection('users')
+      .where('notificationSettings.push', '==', true)
+      .get();
+
+    // Get total users
+    const totalUsersSnapshot = await admin.firestore()
+      .collection('users')
+      .get();
+
+    // Get active users (logged in within last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const activeUsersSnapshot = await admin.firestore()
+      .collection('users')
+      .where('lastLoginAt', '>=', sevenDaysAgo)
+      .get();
+
+    return {
+      totalUsers: totalUsersSnapshot.size,
+      usersWithPushEnabled: usersWithPushSnapshot.size,
+      activeUsers: activeUsersSnapshot.size,
+      pushEnabledPercentage: Math.round((usersWithPushSnapshot.size / totalUsersSnapshot.size) * 100)
+    };
+
+  } catch (error) {
+    logger.error('❌ Failed to get admin notification stats:', error);
+    throw new Error(`Failed to get stats: ${error.message}`);
+  }
+});
+
 // Test email system function
 exports.testEmailSystem = testEmailSystem.testEmailSystem;
 

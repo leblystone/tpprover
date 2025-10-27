@@ -272,10 +272,8 @@ export default function Login() {
           });
           console.log('🚨 [TRIAL DEBUG] LOGIN: WARNING: About to clear ALL user data including subscription!');
           
-          // TEMPORARILY DISABLE clearing for debugging
-          console.log('🛑 [TRIAL DEBUG] LOGIN: SKIPPING clearAllUserData() for debugging');
-          // clearAllUserData();
-          console.log('✅ Confirmed: Account data clearing skipped for debugging');
+          clearAllUserData();
+          console.log('✅ Confirmed: Account data cleared for new user');
         } else {
           console.log('✅ [TRIAL DEBUG] LOGIN: No account switch - emails match correctly');
         }

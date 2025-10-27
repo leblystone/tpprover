@@ -66,6 +66,17 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     const now = new Date();
     const currentHour = now.getHours();
     const showPMFirst = currentHour >= 14 || currentHour < 2; // 2 PM (14:00) to 1:59 AM
+    
+    // Debug logging
+    console.log('🕐 TasksList Debug:', {
+        currentHour,
+        showPMFirst,
+        amTasksCount: amTasks.length,
+        pmTasksCount: pmTasks.length,
+        otherTasksCount: otherTasks.length,
+        totalTasks: tasks.length,
+        sampleTasks: tasks.slice(0, 3).map(t => ({ name: t.name, time: t.time }))
+    });
 
     const renderTimeSection = (tasks, timeLabel) => {
         if (tasks.length === 0) return null;

@@ -44,7 +44,34 @@ exports.testEmailSystem = onCall(
     // Send specific template based on templateType
     if (templateType === 'welcome') {
       logger.info('Testing welcome email...');
-      emailResult = await emailService.sendWelcomeEmail(testEmail, 'Test User');
+      
+      // Direct SendGrid test for welcome email
+      try {
+        const sgMail = require('@sendgrid/mail');
+        sgMail.setApiKey('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');
+
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: 'Welcome to The Pep Planner! 🎉',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Welcome to The Pep Planner! 🎉</h1>
+              <p>Hi there! We're thrilled to have you join our research community.</p>
+              <p>This is a direct test email to verify the system is working.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `
+        };
+
+        await sgMail.send(msg);
+        logger.info('✅ Direct SendGrid email sent successfully');
+        emailResult = true;
+      } catch (error) {
+        logger.error('❌ Direct SendGrid failed:', error);
+        emailResult = false;
+      }
+      
       emailName = 'Welcome Email';
     } else if (templateType === 'trialEnding') {
       logger.info('Testing trial ending email...');

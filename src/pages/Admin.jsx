@@ -1265,60 +1265,27 @@ function Admin() {
                   <button
                     onClick={async () => {
                       try {
-                        // Import unified notification service
-                        const { default: unifiedNotificationService } = await import('../services/unifiedNotifications');
+                        // Import admin notification service for cross-device notifications
+                        const { default: adminNotificationService } = await import('../services/adminNotifications');
                         
-                        // Check if notifications are supported
-                        const status = await unifiedNotificationService.isSupported();
-                        
-                        if (!status.supported) {
+                        // Check if user is authenticated admin
+                        if (!adminNotificationService.isAuthenticated()) {
                           window.dispatchEvent(new CustomEvent('tpp:toast', {
                             detail: { 
                               type: 'error', 
-                              message: `Notifications not supported on ${status.platform}` 
+                              message: 'Admin authentication required' 
                             }
                           }));
                           return;
                         }
 
-                        if (status.permission !== 'granted') {
-                          // Try to request permission
-                          try {
-                            const permission = await unifiedNotificationService.requestPermission();
-                            if (permission !== 'granted') {
-                              window.dispatchEvent(new CustomEvent('tpp:toast', {
-                                detail: { 
-                                  type: 'error', 
-                                  message: 'Notification permission is required to send test notifications' 
-                                }
-                              }));
-                              return;
-                            }
-                          } catch (error) {
-                            window.dispatchEvent(new CustomEvent('tpp:toast', {
-                              detail: { 
-                                type: 'error', 
-                                message: 'Failed to request notification permission' 
-                              }
-                            }));
-                            return;
-                          }
-                        }
+                        // Send test notification to your mobile device via Firebase
+                        const result = await adminNotificationService.sendTestNotification('general');
 
-                        // Send test notification (works on both web and mobile)
-                        await unifiedNotificationService.sendNotification('🧪 Admin Test Notification', {
-                          body: 'This is a test notification from The Pep Planner admin panel. Everything looks good!',
-                          tag: 'admin-test',
-                          data: {
-                            path: '/app/dashboard'  
-                          }
-                        });
-
-                        const platformInfo = unifiedNotificationService.getPlatformInfo();
                         window.dispatchEvent(new CustomEvent('tpp:toast', {
                           detail: { 
                             type: 'success', 
-                            message: `Test notification sent! Check your ${platformInfo.isNative ? 'mobile' : 'browser'} notifications.` 
+                            message: `Cross-device notification sent! Check your mobile device. (${result.sent}/${result.total} delivered)` 
                           }
                         }));
 

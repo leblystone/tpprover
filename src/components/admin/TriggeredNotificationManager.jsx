@@ -6,7 +6,7 @@ import {
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
-import unifiedNotificationService from '../../services/unifiedNotifications';
+import adminNotificationService from '../../services/adminNotifications';
 
 // Default triggered notification templates
 const DEFAULT_TRIGGERED_NOTIFICATIONS = {
@@ -201,48 +201,29 @@ export default function TriggeredNotificationManager({ theme }) {
     setTestingId(notification.id);
     
     try {
-      // Check if notifications are supported
-      const status = await unifiedNotificationService.isSupported();
-      
-      if (!status.supported) {
-        throw new Error(`Notifications not supported on ${status.platform}`);
+      // Check if user is authenticated admin
+      if (!adminNotificationService.isAuthenticated()) {
+        throw new Error('Admin authentication required');
       }
 
-      if (status.permission !== 'granted') {
-        const permission = await unifiedNotificationService.requestPermission();
-        if (permission !== 'granted') {
-          throw new Error('Notification permission is required');
-        }
-      }
-
-      // Process any variables in the notification using sample data
-      const sampleData = {
+      // Send test notification to mobile device via Firebase
+      const result = await adminNotificationService.sendTriggeredNotification(notification, {
         count: 3,
         peptideName: 'BPC-157',
         userName: 'Test User',
         days: 7
-      };
-      
-      const processed = unifiedNotificationService.processTemplate(notification, sampleData);
-
-      // Send test notification (automatically detects platform - mobile or web)
-      await unifiedNotificationService.sendNotification(processed.title, {
-        body: processed.body,
-        tag: `test-triggered-${notification.id}`,
-        data: {
-          test: true,
-          path: '/app/dashboard',
-          notificationId: notification.id
-        }
       });
 
-      const platformInfo = unifiedNotificationService.getPlatformInfo();
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { 
-          type: 'success', 
-          message: `Test notification sent! Check your ${platformInfo.isNative ? 'mobile' : 'browser'} notifications.` 
-        }
-      }));
+      if (result) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { 
+            type: 'success', 
+            message: 'Cross-device notification sent! Check your mobile device.' 
+          }
+        }));
+      } else {
+        throw new Error('Failed to send notification');
+      }
 
     } catch (error) {
       console.error('Failed to send test notification:', error);

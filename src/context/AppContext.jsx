@@ -151,9 +151,7 @@ export function AppProvider({ children }) {
                         });
                         console.log('🚨 [TRIAL DEBUG] WARNING: About to clear ALL user data including subscription!');
                         
-                        // TEMPORARILY DISABLE clearing for debugging
-                        console.log('🛑 [TRIAL DEBUG] SKIPPING clearAllUserData() for debugging - this might be a false positive');
-                        // clearAllUserData();
+                        clearAllUserData();
                         
                         // Ensure demo can seed for brand new account
                         try { localStorage.removeItem('tpprover_has_seeded'); } catch {}
