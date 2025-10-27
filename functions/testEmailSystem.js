@@ -11,7 +11,8 @@ const emailService = require('./emailService');
  */
 exports.testEmailSystem = onCall(
     {
-      cors: true
+      cors: true,
+      secrets: ['SENDGRID_API_KEY']
     },
     async (request) => {
   // For admin testing, we'll allow unauthenticated calls but log it

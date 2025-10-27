@@ -275,7 +275,7 @@ exports.sendLifetimeAccessGrantedEmail = async (userEmail, reason = 'Beta tester
  */
 exports.sendSubscriptionConfirmedEmail = async (userEmail, plan) => {
   const subject = 'Subscription Confirmed - The Pep Planner';
-  const html = emailTemplates.subscriptionConfirmationEmail(plan, 'month', '$8.99');
+  const html = emailTemplates.subscriptionConfirmedEmail(plan, 'month', '$8.99');
   return sendEmail(userEmail, subject, html);
 };
 

@@ -647,20 +647,30 @@ export default function Settings() {
     const handlePWANotificationToggle = async (enabled) => {
       if (pwaNotificationStatus.loading) return;
       
+      // Update local settings immediately for responsive UI
+      update('notifications.push', enabled);
+      
       setPwaNotificationStatus(prev => ({ ...prev, loading: true }));
       
       try {
         if (enabled) {
           await pwaNotificationService.enable();
-          // Update local settings
-          update('notifications.push', true);
         } else {
           await pwaNotificationService.disable();
-          // Update local settings
-          update('notifications.push', false);
         }
+        
+        // Update PWA status to reflect the change
+        setPwaNotificationStatus(prev => ({ 
+          ...prev, 
+          enabled: enabled,
+          loading: false 
+        }));
+        
       } catch (error) {
         console.error('Failed to toggle PWA notifications:', error);
+        
+        // Revert the setting on error
+        update('notifications.push', !enabled);
         
         // Show error message
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -752,7 +762,7 @@ export default function Settings() {
         >
           <div className="space-y-3">
             <SettingToggle 
-              checked={pwaNotificationStatus.enabled && pwaNotificationStatus.supported} 
+              checked={settings.notifications.push ?? false} 
               onChange={handlePWANotificationToggle}
               label="Push Notifications" 
               description="Get notified in real-time on your devices, even when the app is closed."
