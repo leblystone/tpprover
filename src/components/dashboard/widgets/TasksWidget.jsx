@@ -299,6 +299,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
             theme={theme} 
             onToggle={onToggle}
             groupByTime={groupByTime}
+            setInjectionTask={setInjectionTask}
           />
         </div>
         

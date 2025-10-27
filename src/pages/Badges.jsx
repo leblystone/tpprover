@@ -146,7 +146,7 @@ export default function Badges() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 md:gap-3">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-2 md:p-3 rounded-md border" style={{ 
+                <div key={badge.name} className="p-2 md:p-3 rounded-md border recently-earned-badge" style={{ 
                   backgroundColor: theme.cardBackground, 
                   borderColor: theme.primary
                 }}>

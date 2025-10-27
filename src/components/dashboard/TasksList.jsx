@@ -51,8 +51,7 @@ const TaskIcon = ({ type, delivery, theme }) => {
 };
 
 
-export default function TasksList({ tasks, theme, onToggle }) {
-  const [injectionTask, setInjectionTask] = useState(null);
+export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) {
     if (!tasks || tasks.length === 0) {
         return <p className="text-xs text-center py-3" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
@@ -64,7 +63,7 @@ export default function TasksList({ tasks, theme, onToggle }) {
     return (
         <div className="space-y-2 relative">
             {otherTasks.length > 0 && (
-                <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} />
+                <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
             )}
             
             {amTasks.length > 0 && (
@@ -73,7 +72,7 @@ export default function TasksList({ tasks, theme, onToggle }) {
                         <span className="text-xs font-medium text-gray-500">AM</span>
                         <div className="flex-1 h-px bg-gray-200"></div>
                     </div>
-                    <TaskListSection tasks={amTasks} theme={theme} onToggle={onToggle} />
+                    <TaskListSection tasks={amTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
                 </div>
             )}
             
@@ -83,26 +82,14 @@ export default function TasksList({ tasks, theme, onToggle }) {
                         <span className="text-xs font-medium text-gray-500">PM</span>
                         <div className="flex-1 h-px bg-gray-200"></div>
                     </div>
-                    <TaskListSection tasks={pmTasks} theme={theme} onToggle={onToggle} />
+                    <TaskListSection tasks={pmTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} />
                 </div>
             )}
-            
-            <InjectionSiteSelector
-              taskName={injectionTask?.name}
-              task={injectionTask}
-              onConfirm={(injectionSite) => {
-                onToggle(injectionTask);
-                setInjectionTask(null);
-              }}
-              onCancel={() => setInjectionTask(null)}
-              theme={theme}
-              isVisible={!!injectionTask}
-            />
         </div>
     );
 }
 
-const TaskListSection = ({ tasks, theme, onToggle }) => {
+const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
     if (!tasks || tasks.length === 0) return null;
     return (
         <div>

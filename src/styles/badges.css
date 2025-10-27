@@ -107,6 +107,23 @@
 .category-section:nth-child(4) { animation-delay: 0.7s; }
 .category-section:nth-child(5) { animation-delay: 0.8s; }
 
+/* Line clamp utilities for badge text */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Recently earned badges specific styles */
+.recently-earned-badge {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .badge-card-earned:hover {
@@ -115,5 +132,9 @@
   
   .badge-hero-section {
     animation-duration: 0.6s;
+  }
+  
+  .recently-earned-badge {
+    min-height: 100px;
   }
 }
