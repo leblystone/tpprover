@@ -114,6 +114,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-clamp: 2;
 }
 
 /* Recently earned badges specific styles */
@@ -135,6 +136,12 @@
   }
   
   .recently-earned-badge {
-    min-height: 100px;
+    min-height: 70px;
+  }
+}
+
+@media (max-width: 640px) {
+  .recently-earned-badge {
+    min-height: 60px;
   }
 }

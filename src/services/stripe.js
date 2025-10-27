@@ -2,16 +2,17 @@ import { stripePromise, STRIPE_CONFIG } from '../config/stripe.js';
 import { httpsCallable } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
 import { functions } from '../config/firebase.js';
+import { storeCheckoutReturnPath, getCheckoutReturnPath } from '../utils/checkoutNavigation.js';
 
 /**
  * Create a Stripe Checkout session for subscription
  * @param {string} priceId - Stripe price ID
  * @param {string} userEmail - User's email
  * @param {string} userId - User's ID for metadata
- * @param {string} returnPath - Path to return to after checkout (default: '/account')
+ * @param {string} returnPath - Path to return to after checkout (default: current location)
  * @returns {Promise<void>}
  */
-export async function createCheckoutSession(priceId, userEmail, userId, returnPath = '/account') {
+export async function createCheckoutSession(priceId, userEmail, userId, returnPath = null) {
   try {
     // Check if Stripe is configured
     if (!STRIPE_CONFIG.publishableKey || STRIPE_CONFIG.publishableKey === 'undefined') {
@@ -38,6 +39,14 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
     }
 
     console.log('🔄 Creating Stripe checkout session...', { priceId, userEmail });
+    
+    // Store current location for return navigation (if not explicitly provided)
+    if (!returnPath) {
+      storeCheckoutReturnPath();
+      returnPath = window.location.pathname + window.location.search;
+    } else {
+      storeCheckoutReturnPath(returnPath);
+    }
     
     // Check if Functions are available
     if (!functions) {
@@ -173,9 +182,13 @@ export async function createPortalSession(customerId) {
 
     const createPortalSessionFn = httpsCallable(functions, 'createPortalSession');
     
+    // Store current location and use it as return URL
+    storeCheckoutReturnPath();
+    const currentPath = window.location.pathname + window.location.search;
+    
     const result = await createPortalSessionFn({
       customerId,
-      returnUrl: `${window.location.origin}/account`,
+      returnUrl: `${window.location.origin}${currentPath}`,
     });
 
     // Redirect to Stripe Customer Portal
@@ -226,9 +239,13 @@ export async function updatePaymentMethod(customerId) {
 
     const updatePaymentMethodFn = httpsCallable(functions, 'updatePaymentMethod');
     
+    // Store current location and use it as return URL
+    storeCheckoutReturnPath();
+    const currentPath = window.location.pathname + window.location.search;
+    
     const result = await updatePaymentMethodFn({
       customerId,
-      returnUrl: `${window.location.origin}/account`,
+      returnUrl: `${window.location.origin}${currentPath}`,
     });
 
     // Redirect to Stripe Checkout for payment method update

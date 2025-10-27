@@ -110,7 +110,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
       console.log('🎯 ConversionWidget: Creating checkout for price ID:', priceId);
       
       // Create Stripe checkout session - return to dashboard after cancel/success
-      await createCheckoutSession(priceId, user?.email, user?.uid, '/dashboard');
+      await createCheckoutSession(priceId, user?.email, user?.uid);
       
       // Reset processing state after successful checkout creation
       clearTimeout(timeoutId);

@@ -257,14 +257,27 @@ export default function Login() {
         
         // CRITICAL SECURITY: Check for user change and clear data immediately
         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+        console.log('🔍 [TRIAL DEBUG] LOGIN: Account switch check:', {
+          lastUserEmail,
+          currentUserEmail: user.email,
+          isAccountSwitch: lastUserEmail && lastUserEmail !== user.email
+        });
+        
         if (lastUserEmail && lastUserEmail !== user.email) {
-          console.log('🚨 SECURITY: User change detected during login!');
-          console.log('  Previous user:', lastUserEmail);
-          console.log('  Current user:', user.email);
+          console.log('🚨🚨🚨 [TRIAL DEBUG] LOGIN: ACCOUNT SWITCH DETECTED - THIS MIGHT BE THE BUG!');
+          console.log('🔍 [TRIAL DEBUG] LOGIN: Email comparison details:', {
+            lastUserEmail: `"${lastUserEmail}"`,
+            currentUserEmail: `"${user.email}"`,
+            areEqual: lastUserEmail === user.email
+          });
+          console.log('🚨 [TRIAL DEBUG] LOGIN: WARNING: About to clear ALL user data including subscription!');
           
-          // Clear ALL user-specific data from localStorage
-          clearAllUserData();
-          console.log('✅ Confirmed: Account data cleared for new user');
+          // TEMPORARILY DISABLE clearing for debugging
+          console.log('🛑 [TRIAL DEBUG] LOGIN: SKIPPING clearAllUserData() for debugging');
+          // clearAllUserData();
+          console.log('✅ Confirmed: Account data clearing skipped for debugging');
+        } else {
+          console.log('✅ [TRIAL DEBUG] LOGIN: No account switch - emails match correctly');
         }
         
         // Update last user email

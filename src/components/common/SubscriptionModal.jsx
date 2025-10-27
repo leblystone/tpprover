@@ -31,7 +31,7 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
 
       // Close modal and redirect to Stripe checkout immediately - return to dashboard
       onClose();
-      await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user', '/dashboard');
+      await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user');
       
       // Reset processing state
       setIsProcessing(false);

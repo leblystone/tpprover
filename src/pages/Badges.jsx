@@ -58,41 +58,41 @@ export default function Badges() {
 
   return (
     <ViewContainer theme={theme} title="Badges & Achievements">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-8">
         {/* Main Content */}
-        <div className="md:col-span-2 lg:col-span-3 space-y-4 md:space-y-8">
+        <div className="md:col-span-2 lg:col-span-3 space-y-3 md:space-y-8">
         {/* Hero Section */}
-        <div className="badge-hero-section relative overflow-hidden rounded-2xl p-4 md:p-8" style={{ 
+        <div className="badge-hero-section relative overflow-hidden rounded-2xl p-3 md:p-8" style={{ 
           background: `linear-gradient(135deg, ${theme.primary}15, ${theme.accent}15)`,
           border: `1px solid ${theme.border}`
         }}>
           <div className="relative z-10">
-            <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-6">
-              <div className="p-2 md:p-3 rounded-full" style={{ backgroundColor: theme.primary }}>
-                <Trophy className="w-6 h-6 md:w-8 md:h-8" style={{ color: theme.white }} />
+            <div className="flex items-center gap-2 md:gap-4 mb-3 md:mb-6">
+              <div className="p-1.5 md:p-3 rounded-full" style={{ backgroundColor: theme.primary }}>
+                <Trophy className="w-5 h-5 md:w-8 md:h-8" style={{ color: theme.white }} />
               </div>
               <div>
-                <h1 className="text-xl md:text-3xl font-bold" style={{ color: theme.primaryDark }}>
+                <h1 className="text-lg md:text-3xl font-bold" style={{ color: theme.primaryDark }}>
                   Achievement Gallery
                 </h1>
-                <p className="text-sm md:text-lg opacity-80" style={{ color: theme.text }}>
+                <p className="text-xs md:text-lg opacity-80" style={{ color: theme.text }}>
                   Track your progress and unlock new milestones
                 </p>
               </div>
             </div>
             
             {/* Progress Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
-                <div className="text-3xl font-bold mb-2" style={{ color: theme.primary }}>
+            <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-4 md:mb-6">
+              <div className="text-center p-2 md:p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
+                <div className="text-xl md:text-3xl font-bold mb-1 md:mb-2" style={{ color: theme.primary }}>
                   {earnedCount}/{totalBadges}
                 </div>
-                <div className="text-sm opacity-80" style={{ color: theme.text }}>
+                <div className="text-xs md:text-sm opacity-80" style={{ color: theme.text }}>
                   Badges Earned
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 md:h-2 mt-2 md:mt-3">
                   <div 
-                    className="h-2 rounded-full transition-all duration-500" 
+                    className="h-1.5 md:h-2 rounded-full transition-all duration-500" 
                     style={{ 
                       backgroundColor: theme.primary, 
                       width: `${progressPercentage}%` 
@@ -101,27 +101,27 @@ export default function Badges() {
                 </div>
               </div>
               
-              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
-                <div className="text-3xl font-bold mb-2" style={{ color: theme.accent }}>
+              <div className="text-center p-2 md:p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
+                <div className="text-xl md:text-3xl font-bold mb-1 md:mb-2" style={{ color: theme.accent }}>
                   {progressPercentage}%
                 </div>
-                <div className="text-sm opacity-80" style={{ color: theme.text }}>
+                <div className="text-xs md:text-sm opacity-80" style={{ color: theme.text }}>
                   Completion Rate
                 </div>
-                <div className="flex justify-center mt-3">
-                  <Star className="w-5 h-5" style={{ color: theme.accent }} />
+                <div className="flex justify-center mt-2 md:mt-3">
+                  <Star className="w-4 h-4 md:w-5 md:h-5" style={{ color: theme.accent }} />
                 </div>
               </div>
               
-              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
-                <div className="text-3xl font-bold mb-2" style={{ color: theme.primaryDark }}>
+              <div className="text-center p-2 md:p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
+                <div className="text-xl md:text-3xl font-bold mb-1 md:mb-2" style={{ color: theme.primaryDark }}>
                   {categories.length - 1}
                 </div>
-                <div className="text-sm opacity-80" style={{ color: theme.text }}>
+                <div className="text-xs md:text-sm opacity-80" style={{ color: theme.text }}>
                   Categories
                 </div>
-                <div className="flex justify-center mt-3">
-                  <Award className="w-5 h-5" style={{ color: theme.primaryDark }} />
+                <div className="flex justify-center mt-2 md:mt-3">
+                  <Award className="w-4 h-4 md:w-5 md:h-5" style={{ color: theme.primaryDark }} />
                 </div>
               </div>
             </div>
@@ -137,24 +137,30 @@ export default function Badges() {
 
         {/* Recent Badges */}
         {recentBadges.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Clock className="w-5 h-5" style={{ color: theme.primary }} />
-              <h2 className="text-xl font-bold" style={{ color: theme.primaryDark }}>
+          <div className="mb-4 md:mb-8">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-6">
+              <Clock className="w-4 h-4 md:w-5 md:h-5" style={{ color: theme.primary }} />
+              <h2 className="text-lg md:text-xl font-bold" style={{ color: theme.primaryDark }}>
                 Recently Earned
               </h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 md:gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-1.5 md:gap-3">
               {recentBadges.map(badge => (
-                <div key={badge.name} className="p-2 md:p-3 rounded-md border recently-earned-badge" style={{ 
+                <div key={badge.name} className="p-1.5 md:p-3 rounded-md border recently-earned-badge" style={{ 
                   backgroundColor: theme.cardBackground, 
                   borderColor: theme.primary
                 }}>
-                  <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0">
-                      <BadgeImage name={badge.name} isEarned={true} theme={theme} caption={false} size={48} />
+                  <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
+                    <div className="w-8 h-8 md:w-12 md:h-12 flex-shrink-0">
+                      <BadgeImage 
+                        name={badge.name} 
+                        isEarned={true} 
+                        theme={theme} 
+                        caption={false} 
+                        size={32} 
+                      />
                     </div>
-                    <div className="space-y-1 min-h-0">
+                    <div className="space-y-0.5 md:space-y-1 min-h-0">
                       <h3 className="font-bold text-xs md:text-sm leading-tight line-clamp-2" style={{ color: theme.primaryDark }}>
                         {badge.name}
                       </h3>
@@ -162,8 +168,9 @@ export default function Badges() {
                         {badge.description}
                       </p>
                       <div className="flex items-center justify-center gap-1 text-xs font-medium" style={{ color: theme.primary }}>
-                        <Star className="w-3 h-3" />
-                        <span>Earned!</span>
+                        <Star className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                        <span className="hidden sm:inline">Earned!</span>
+                        <span className="sm:hidden">✓</span>
                       </div>
                     </div>
                   </div>
@@ -241,15 +248,15 @@ export default function Badges() {
         </div>
 
         {/* Sidebar */}
-        <div className="md:col-span-2 lg:col-span-1 space-y-4 md:space-y-6">
+        <div className="md:col-span-2 lg:col-span-1 space-y-3 md:space-y-6">
           {/* Progress Widget */}
-          <div className="progress-widget p-6 rounded-xl" style={{ 
+          <div className="progress-widget p-3 md:p-6 rounded-xl" style={{ 
             backgroundColor: theme.cardBackground,
             border: `1px solid ${theme.border}`
           }}>
-            <div className="flex items-center gap-3 mb-4">
-              <BarChart3 className="w-5 h-5" style={{ color: theme.primary }} />
-              <h3 className="font-bold" style={{ color: theme.primaryDark }}>
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <BarChart3 className="w-4 h-4 md:w-5 md:h-5" style={{ color: theme.primary }} />
+              <h3 className="font-bold text-sm md:text-base" style={{ color: theme.primaryDark }}>
                 Progress Overview
               </h3>
             </div>
@@ -260,7 +267,7 @@ export default function Badges() {
           </div>
 
           {/* Achievement Timeline */}
-          <div className="p-6 rounded-xl" style={{ 
+          <div className="p-3 md:p-6 rounded-xl" style={{ 
             backgroundColor: theme.cardBackground,
             border: `1px solid ${theme.border}`
           }}>

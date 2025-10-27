@@ -19,12 +19,11 @@ export default function TrialExpired() {
         return;
       }
 
-      // TrialExpired shows during lockout - return to dashboard after checkout
+      // TrialExpired shows during lockout - checkout will return to current location
       await createCheckoutSession(
         plan.priceId,
         user.email,
-        user.uid || user.email,
-        '/dashboard'
+        user.uid || user.email
       );
     } catch (error) {
       console.error('Subscription error:', error);

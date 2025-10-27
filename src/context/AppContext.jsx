@@ -134,16 +134,32 @@ export function AppProvider({ children }) {
                     console.log('🔍 [TRIAL DEBUG] Account switch check:', {
                         currentEmail,
                         lastEmail,
-                        isAccountSwitch: lastEmail && lastEmail !== currentEmail
+                        isAccountSwitch: lastEmail && lastEmail !== currentEmail,
+                        emailsExactMatch: lastEmail === currentEmail,
+                        currentEmailLength: currentEmail.length,
+                        lastEmailLength: lastEmail.length
                     });
                     
                     if (lastEmail && lastEmail !== currentEmail) {
-                        console.log('🛡️ [TRIAL DEBUG] Account switch detected. Clearing local user data to prevent bleed.');
-                        console.log('🚨 [TRIAL DEBUG] WARNING: This will clear subscription data from localStorage!');
-                        clearAllUserData();
+                        console.log('🚨🚨🚨 [TRIAL DEBUG] ACCOUNT SWITCH DETECTED - THIS IS THE BUG!');
+                        console.log('🔍 [TRIAL DEBUG] Email comparison details:', {
+                            lastEmail: `"${lastEmail}"`,
+                            currentEmail: `"${currentEmail}"`,
+                            areEqual: lastEmail === currentEmail,
+                            lastEmailType: typeof lastEmail,
+                            currentEmailType: typeof currentEmail
+                        });
+                        console.log('🚨 [TRIAL DEBUG] WARNING: About to clear ALL user data including subscription!');
+                        
+                        // TEMPORARILY DISABLE clearing for debugging
+                        console.log('🛑 [TRIAL DEBUG] SKIPPING clearAllUserData() for debugging - this might be a false positive');
+                        // clearAllUserData();
+                        
                         // Ensure demo can seed for brand new account
                         try { localStorage.removeItem('tpprover_has_seeded'); } catch {}
                         try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                    } else {
+                        console.log('✅ [TRIAL DEBUG] No account switch - emails match correctly');
                     }
                     // Track current email for future comparisons
                     try { localStorage.setItem('tpprover_last_user_email', currentEmail); } catch {}
