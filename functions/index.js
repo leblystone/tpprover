@@ -458,6 +458,60 @@ exports.onSubscriptionConfirmed = emailAutomation.onSubscriptionConfirmed;
 exports.onPaymentFailed = emailAutomation.onPaymentFailed;
 exports.onPaymentSuccessful = emailAutomation.onPaymentSuccessful;
 exports.onSubscriptionCancelled = emailAutomation.onSubscriptionCancelled;
+
+// Test SendGrid API key validity
+exports.testSendGridConnection = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    try {
+      const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim().replace(/\r?\n/g, '');
+      
+      logger.info('🔑 Testing SendGrid API key...');
+      logger.info('🔑 API Key length:', sendgridApiKey ? sendgridApiKey.length : 0);
+      logger.info('🔑 API Key starts with SG.:', sendgridApiKey ? sendgridApiKey.startsWith('SG.') : false);
+      
+      if (!sendgridApiKey) {
+        throw new Error('SendGrid API key not configured');
+      }
+      
+      if (!sendgridApiKey.startsWith('SG.') || sendgridApiKey.length < 60) {
+        throw new Error('Invalid SendGrid API key format');
+      }
+      
+      // Test with a simple API call
+      const sgClient = require('@sendgrid/client');
+      sgClient.setApiKey(sendgridApiKey);
+      
+      const testRequest = {
+        url: '/v3/user/account',
+        method: 'GET'
+      };
+      
+      const [response] = await sgClient.request(testRequest);
+      
+      logger.info('✅ SendGrid API key is valid');
+      logger.info('📊 Account info:', response.body);
+      
+      return { 
+        success: true, 
+        message: 'SendGrid API key is valid',
+        accountType: response.body.type,
+        accountStatus: response.body.status
+      };
+      
+    } catch (error) {
+      logger.error('❌ SendGrid API key test failed:', error);
+      return { 
+        success: false, 
+        message: error.message,
+        error: error.code || 'Unknown error'
+      };
+    }
+  }
+);
 exports.checkTrialEndingSoon = emailAutomation.checkTrialEndingSoon;
 exports.checkRenewalReminders = emailAutomation.checkRenewalReminders;
 exports.sendWeeklyResearchReminders = emailAutomation.sendWeeklyResearchReminders;

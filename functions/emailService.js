@@ -30,9 +30,10 @@ async function sendEmail(to, subject, html) {
     }
     
     // Validate API key format
-    if (!sendgridApiKey.startsWith('SG.')) {
-      logger.error('❌ Invalid SendGrid API key format. Key must start with "SG."');
+    if (!sendgridApiKey.startsWith('SG.') || sendgridApiKey.length < 60) {
+      logger.error('❌ Invalid SendGrid API key format. Key must start with "SG." and be at least 60 characters');
       logger.error('API key provided:', sendgridApiKey.substring(0, 20) + '...');
+      logger.error('API key length:', sendgridApiKey.length);
       return false;
     }
 
