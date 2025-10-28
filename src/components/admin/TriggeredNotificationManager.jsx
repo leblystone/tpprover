@@ -652,11 +652,23 @@ function BasicInfoTab({ formData, onChange, theme }) {
         <h4 className="font-medium mb-2" style={{ color: theme.text }}>
           Available Variables:
         </h4>
-        <div className="grid grid-cols-2 gap-2 text-sm" style={{ color: theme.textLight }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm" style={{ color: theme.textLight }}>
           <div>• <code>{'{userName}'}</code> - User's name</div>
           <div>• <code>{'{count}'}</code> - Count/number</div>
           <div>• <code>{'{peptideName}'}</code> - Peptide name</div>
           <div>• <code>{'{days}'}</code> - Number of days</div>
+          <div>• <code>{'{protocolName}'}</code> - Protocol name</div>
+          <div>• <code>{'{orderId}'}</code> - Order ID</div>
+          <div>• <code>{'{orderStatus}'}</code> - Order status</div>
+          <div>• <code>{'{vendorName}'}</code> - Vendor name</div>
+          <div>• <code>{'{date}'}</code> - Date</div>
+          <div>• <code>{'{time}'}</code> - Time</div>
+          <div>• <code>{'{researchTask}'}</code> - Research task name</div>
+          <div>• <code>{'{cycleName}'}</code> - Cycle name</div>
+          <div>• <code>{'{stockpileCount}'}</code> - Stockpile item count</div>
+          <div>• <code>{'{stockpileItem}'}</code> - Stockpile item name</div>
+          <div>• <code>{'{price}'}</code> - Price/amount</div>
+          <div>• <code>{'{link}'}</code> - Deep link URL</div>
         </div>
       </div>
     </div>

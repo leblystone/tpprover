@@ -149,6 +149,17 @@ class AdminNotificationService {
       peptideName: userData.peptideName || 'your peptide',
       days: userData.days || 0,
       protocolName: userData.protocolName || 'your protocol',
+      orderId: userData.orderId || '',
+      orderStatus: userData.orderStatus || '',
+      vendorName: userData.vendorName || '',
+      date: userData.date || new Date().toLocaleDateString(),
+      time: userData.time || new Date().toLocaleTimeString(),
+      researchTask: userData.researchTask || 'your research task',
+      cycleName: userData.cycleName || '',
+      stockpileCount: userData.stockpileCount || 0,
+      stockpileItem: userData.stockpileItem || '',
+      price: userData.price || '',
+      link: userData.link || '',
       ...userData.variables
     };
 
