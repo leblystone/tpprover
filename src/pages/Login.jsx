@@ -16,7 +16,6 @@ import {
   getUserFounderStatus
 } from '../services/firebase';
 import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
 // Lightweight local auth to mirror old app behavior for local testing
@@ -642,16 +641,26 @@ export default function Login() {
 
         try {
             setLoading(true);
-            await sendPasswordResetEmail(auth, email);
+            console.log('🔐 Sending custom password reset email via SendGrid...');
+            
+            // Call the custom password reset email function
+            const { getFunctions, httpsCallable } = await import('firebase/functions');
+            const functions = getFunctions();
+            const sendCustomPasswordResetEmail = httpsCallable(functions, 'sendCustomPasswordResetEmail');
+            
+            const result = await sendCustomPasswordResetEmail();
+            
+            console.log('✅ Custom password reset email sent successfully:', result.data);
+            
             setError('');
-            alert(`Password reset email sent to ${email}. Check your inbox and spam folder.`);
+            alert(`Password reset email sent to ${email}. Check your inbox (not spam folder).`);
             setShowForgotPassword(false);
         } catch (error) {
             console.error('Password reset failed:', error);
-            if (error.code === 'auth/user-not-found') {
-                setError('No account found with this email address.');
-            } else if (error.code === 'auth/invalid-email') {
-                setError('Please enter a valid email address.');
+            if (error.code === 'functions/too-many-requests') {
+                setError('Too many requests. Please try again later.');
+            } else if (error.message?.includes('SendGrid')) {
+                setError('Email service temporarily unavailable. Please try again later.');
             } else {
                 setError('Failed to send password reset email. Please try again.');
             }

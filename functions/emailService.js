@@ -18,7 +18,7 @@ const emailTemplates = require('./emailTemplates');
 async function sendEmail(to, subject, html) {
   try {
     // Check if SendGrid is configured
-    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim();
     
     logger.info('🔑 API Key being used:', sendgridApiKey ? `${sendgridApiKey.substring(0, 10)}...` : 'undefined');
     logger.info('🔑 API Key length:', sendgridApiKey ? sendgridApiKey.length : 0);
@@ -43,7 +43,7 @@ async function sendEmail(to, subject, html) {
     const msg = {
       to,
       from: {
-        email: 'contact@thepepplanner.com', // This must be verified in SendGrid
+        email: 'contact@thepepplanner.com',
         name: 'The Pep Planner'
       },
       subject,

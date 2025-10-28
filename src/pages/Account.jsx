@@ -300,7 +300,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       
       setIsSendingVerification(true);
       try {
-        console.log('📧 Sending custom verification email...');
+        console.log('📧 Sending custom verification email via SendGrid...');
         
         // Call the custom verification email function
         const { getFunctions, httpsCallable } = await import('firebase/functions');
@@ -309,10 +309,10 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         
         const result = await sendCustomVerificationEmail();
         
-        console.log('✅ Custom verification email result:', result.data);
+        console.log('✅ Custom verification email sent successfully:', result.data);
         
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '📧 Verification email sent! Check your inbox and spam folder.', type: 'success' } 
+          detail: { message: '📧 Verification email sent! Check your inbox (not spam folder).', type: 'success' } 
         }));
       } catch (error) {
         console.error('❌ Email verification error:', error);
@@ -339,7 +339,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       if (!firebaseUser) return;
       
       try {
-        console.log('🔐 Sending custom password reset email...');
+        console.log('🔐 Sending custom password reset email via SendGrid...');
         
         // Call the custom password reset email function
         const { getFunctions, httpsCallable } = await import('firebase/functions');
@@ -348,10 +348,10 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         
         const result = await sendCustomPasswordResetEmail();
         
-        console.log('✅ Custom password reset email result:', result.data);
+        console.log('✅ Custom password reset email sent successfully:', result.data);
         
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '📧 Password reset email sent! Check your inbox and spam folder.', type: 'success' } 
+          detail: { message: '📧 Password reset email sent! Check your inbox (not spam folder).', type: 'success' } 
         }));
       } catch (error) {
         console.error('❌ Password reset error:', error);
