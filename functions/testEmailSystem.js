@@ -21,13 +21,17 @@ exports.testEmailSystem = onCall(
   if (!request.auth) {
     logger.warn('⚠️ testEmailSystem called without authentication - allowing for admin testing');
   }
-  const { testEmail, templateType } = request.data;
+  const { testEmail, templateType, templateData } = request.data;
 
   if (!testEmail) {
     throw new Error('testEmail parameter is required');
   }
 
   logger.info(`🧪 Testing email system for user ${userId} with email ${testEmail}`);
+  logger.info(`📧 Template type: ${templateType}`);
+  if (templateData) {
+    logger.info(`📦 Custom template data received: ${JSON.stringify(templateData).substring(0, 200)}...`);
+  }
 
   const results = {
     timestamp: new Date().toISOString(),
@@ -98,19 +102,131 @@ exports.testEmailSystem = onCall(
       emailName = 'Welcome Email';
     } else if (templateType === 'trialEnding') {
       logger.info('Testing trial ending email...');
-      emailResult = await emailService.sendTrialEndingEmail(testEmail, 2);
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: 'Your trial ends in 2 days - The Pep Planner',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Your Trial Ends in 2 Days ⏰</h1>
+              <p>Your 7-day free trial will end in 2 days. Continue your research journey!</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Trial ending email failed:', error);
+        emailResult = false;
+      }
       emailName = 'Trial Ending Email';
     } else if (templateType === 'verification') {
       logger.info('Testing verification email...');
-      emailResult = await emailService.sendVerificationEmail(testEmail, 'test-verification-link');
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: 'Verify your email for The Pep Planner',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Verify Your Email 📧</h1>
+              <p>Thanks for signing up! Please verify your email address.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Verification email failed:', error);
+        emailResult = false;
+      }
       emailName = 'Verification Email';
     } else if (templateType === 'passwordReset') {
       logger.info('Testing password reset email...');
-      emailResult = await emailService.sendPasswordResetEmail(testEmail, 'test-reset-link');
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: 'Reset your password for The Pep Planner',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Reset Your Password 🔐</h1>
+              <p>We received a request to reset the password for your account.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Password reset email failed:', error);
+        emailResult = false;
+      }
       emailName = 'Password Reset Email';
     } else if (templateType === 'subscription') {
       logger.info('Testing subscription email...');
-      emailResult = await emailService.sendSubscriptionConfirmedEmail(testEmail, 'Pro Plan');
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: 'Subscription Confirmed - The Pep Planner',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Welcome to Pro Plan! 🎉</h1>
+              <p>Thank you for subscribing to The Pep Planner! You now have full access.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Subscription email failed:', error);
+        emailResult = false;
+      }
       emailName = 'Subscription Confirmed Email';
     } else {
       // Default: send all emails for general testing

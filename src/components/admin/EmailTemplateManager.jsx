@@ -203,13 +203,15 @@ export default function EmailTemplateManager({ theme }) {
       
       console.log('📤 Calling testEmailSystem with data:', { 
         testEmail: 'thepepplanner@gmail.com',
-        templateType: selectedTemplate 
+        templateType: selectedTemplate,
+        templateData: currentTemplate
       });
       
-      // Send specific template based on current selection
+      // Send specific template based on current selection WITH custom template data
       const result = await testEmailSystem({ 
         testEmail: 'thepepplanner@gmail.com',
-        templateType: selectedTemplate 
+        templateType: selectedTemplate,
+        templateData: currentTemplate // Send the actual custom template
       });
       
       console.log('📥 Result received:', result);
