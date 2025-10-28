@@ -22,42 +22,64 @@ function getUserDoc(userId, collection = COLLECTIONS.USER_DATA) {
 }
 
 /**
+ * Deep clean data to remove undefined and null values recursively
+ */
+function deepCleanData(data) {
+  if (data === null || data === undefined) {
+    return null;
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(item => deepCleanData(item)).filter(item => item !== null && item !== undefined);
+  }
+  
+  if (typeof data === 'object') {
+    const cleaned = {};
+    Object.keys(data).forEach(key => {
+      const cleanedValue = deepCleanData(data[key]);
+      if (cleanedValue !== null && cleanedValue !== undefined) {
+        cleaned[key] = cleanedValue;
+      }
+    });
+    return cleaned;
+  }
+  
+  return data;
+}
+
+/**
  * Save user data to cloud storage
  */
 export async function saveUserData(userId, data, collection = COLLECTIONS.USER_DATA) {
   try {
     const userDoc = getUserDoc(userId, collection);
     
-    // Clean data to remove undefined values (Firestore doesn't allow undefined)
-    const cleanData = {};
-    Object.keys(data).forEach(key => {
-      if (data[key] !== undefined) {
-        // Recursively clean nested objects
-        if (typeof data[key] === 'object' && data[key] !== null && !Array.isArray(data[key])) {
-          const cleanedNested = {};
-          Object.keys(data[key]).forEach(nestedKey => {
-            if (data[key][nestedKey] !== undefined) {
-              cleanedNested[nestedKey] = data[key][nestedKey];
-            }
-          });
-          cleanData[key] = cleanedNested;
-        } else {
-          cleanData[key] = data[key];
-        }
-      }
-    });
+    // Use deep cleaning function to remove undefined and null values
+    const cleanData = deepCleanData(data);
     
-    await setDoc(userDoc, {
+    // Final validation - ensure no undefined values remain
+    const finalData = {
       ...cleanData,
       userId,
       lastUpdated: new Date().toISOString(),
       version: '1.0'
-    }, { merge: true });
+    };
+    
+    // Log data being saved for debugging
+    console.log(`☁️ Saving user data to cloud: ${collection}/${userId}`, finalData);
+    
+    await setDoc(userDoc, finalData, { merge: true });
     
     console.log(`☁️ Saved user data to cloud: ${collection}/${userId}`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to save user data to cloud:`, error);
+    console.error(`❌ Error details:`, {
+      userId,
+      collection,
+      errorMessage: error.message,
+      errorCode: error.code
+    });
     return false;
   }
 }

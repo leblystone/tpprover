@@ -11,7 +11,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
   import { handleCheckoutReturn } from '../utils/checkoutNavigation'
   import { STRIPE_CONFIG } from '../config/stripe'
-  import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification, sendPasswordResetEmail, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
+  import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
   import { useFirebase } from '../context/FirebaseContext'
   import { verifyStripeConfig } from '../utils/stripe-verify'
   import { getLatestAgreement, AGREEMENT_TYPES } from '../services/agreementTracking'
@@ -28,7 +28,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       const { loadUserSubscription } = await import('../services/cloudStorage');
       if (firebaseUser) {
         const subscription = await loadUserSubscription(firebaseUser.uid);
-        console.log('☁️ Loaded subscription from cloud:', subscription);
+
         // Only return subscription if it's a real subscription (not demo/debug data)
         if (subscription && !subscription.id?.includes('lab_access') && !subscription.id?.includes('demo') && !subscription.id?.includes('test') && subscription.status !== 'lab_access') {
           return subscription;
@@ -46,7 +46,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       const { saveUserSubscription } = await import('../services/cloudStorage');
       if (firebaseUser) {
         await saveUserSubscription(firebaseUser.uid, sub);
-        console.log('☁️ Subscription saved to cloud storage');
+
       }
       // Dispatch custom event to notify AppContext of subscription change
       window.dispatchEvent(new CustomEvent('subscription:updated', { detail: { subscription: sub } }));
@@ -99,7 +99,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                         const localSub = localStorage.getItem('tpprover_subscription');
                         if (localSub) {
                             const parsedSub = JSON.parse(localSub);
-                            console.log('📦 Account: Using localStorage subscription fallback:', parsedSub);
+
                             setSub(parsedSub);
                             return;
                         }
@@ -117,7 +117,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                     const localSub = localStorage.getItem('tpprover_subscription');
                     if (localSub) {
                         const parsedSub = JSON.parse(localSub);
-                        console.log('📦 Account: Using localStorage subscription fallback after error:', parsedSub);
+
                         setSub(parsedSub);
                         return;
                     }
@@ -166,7 +166,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     React.useEffect(() => {
         // Load existing subscription from cloud ONLY
         if (user && !sub && firebaseUser) {
-            console.log('📋 Loading subscription from cloud for user:', user.email);
+
             loadSubscription(firebaseUser).then(cloudSub => {
                 if (cloudSub) {
                     setSub(cloudSub);
@@ -281,7 +281,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       return auth.currentUser?.emailVerified || false;
     }, [firebaseUser])
     
-    // Send email verification
+    // Send email verification using custom SendGrid service
     const sendVerificationEmail = async () => {
       const auth = getAuth();
       if (!auth.currentUser) {
@@ -300,20 +300,28 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       
       setIsSendingVerification(true);
       try {
-        await sendEmailVerification(auth.currentUser, {
-          url: window.location.origin + '/account',
-          handleCodeInApp: false
-        });
+        console.log('📧 Sending custom verification email...');
+        
+        // Call the custom verification email function
+        const { getFunctions, httpsCallable } = await import('firebase/functions');
+        const functions = getFunctions();
+        const sendCustomVerificationEmail = httpsCallable(functions, 'sendCustomVerificationEmail');
+        
+        const result = await sendCustomVerificationEmail();
+        
+        console.log('✅ Custom verification email result:', result.data);
         
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '📧 Verification email sent! Check your inbox.', type: 'success' } 
+          detail: { message: '📧 Verification email sent! Check your inbox and spam folder.', type: 'success' } 
         }));
       } catch (error) {
         console.error('❌ Email verification error:', error);
         
         let errorMessage = 'Failed to send verification email. ';
-        if (error.code === 'auth/too-many-requests') {
+        if (error.code === 'functions/too-many-requests') {
           errorMessage += 'Too many requests. Please try again later.';
+        } else if (error.message?.includes('SendGrid')) {
+          errorMessage += 'Email service temporarily unavailable. Please try again later.';
         } else {
           errorMessage += error.message || 'Please try again.';
         }
@@ -367,8 +375,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         // Check if Firebase user
         const auth = getAuth();
         if (firebaseUser || auth.currentUser) {
-          console.log('🔐 Updating Firebase password...');
-          
+
           // Reauthenticate first (required by Firebase)
           const credential = EmailAuthProvider.credential(
             user.email,
@@ -386,7 +393,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           }));
         } else {
           // Legacy localStorage auth
-          console.log('🔐 Updating localStorage password...');
+
           const key = user.email.toLowerCase();
           const db = getAuthDb();
           const rec = db[key];
@@ -540,7 +547,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       setConfirmData(null);
     };
 
-
     // 2FA setup
     const [twoFAOpen, setTwoFAOpen] = React.useState(false)
     const [twoFAMethod, setTwoFAMethod] = React.useState(security.twoFactorMethod || 'email')
@@ -685,7 +691,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
             <div className="text-sm" style={{ color: theme.textLight }}>You are not signed in. Go to Login.</div>
           )}
         </CollapsibleSection>
-
 
         {/* Subscription */}
         <CollapsibleSection
@@ -1008,9 +1013,9 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                       </div>
                          </div>
                          
-                         {/* Lifetime plan in compact single column */}
+                         {/* Lifetime plan in expanded single column */}
                          <div 
-                           className="relative bg-white rounded-lg border-2 p-5 cursor-pointer hover:shadow-lg transition-all duration-200"
+                           className="relative bg-white rounded-lg border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
                            style={{ borderColor: sub?.interval === 'lifetime' ? '#A3B18A' : '#D4D7CD' }}
                            onClick={async () => {
                              try {
@@ -1028,18 +1033,21 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                                </div>
                              </div>
                            )}
-                           <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
-                                 <Crown size={16} className="text-white" />
+                           
+                           {/* Content with more vertical space */}
+                           <div className="flex items-center justify-between min-h-[80px]">
+                             <div className="flex items-center gap-5">
+                               <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#344E41' }}>
+                                 <Crown size={20} className="text-white" />
                                </div>
-                               <div>
-                                 <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
-                                 <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
+                               <div className="space-y-1">
+                                 <div className="font-bold text-lg" style={{ color: '#344E41' }}>Lifetime Access</div>
+                                 <div className="text-base font-semibold" style={{ color: '#344E41' }}>$249.99</div>
+                                 <div className="text-sm" style={{ color: '#5C7659' }}>Never pay again • All features included</div>
                                </div>
                              </div>
                              <button 
-                               className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                               className="px-6 py-3 rounded-lg text-white text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
                                style={{ backgroundColor: '#344E41' }}
                              >
                                Join Forever
@@ -1082,7 +1090,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
 
                            {/* Lifetime Upgrade */}
                            <div 
-                             className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
+                             className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col min-h-[180px]"
                              style={{ borderColor: '#D4D7CD' }}
                              onClick={async () => {
                                try {
@@ -1092,7 +1100,12 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                                }
                              }}
                            >
-                             <div className="text-center mb-4 flex-1 flex flex-col justify-center">
+                             <div className="text-center mb-6 flex-1 flex flex-col justify-center">
+                               <div className="flex items-center justify-center mb-3">
+                                 <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#344E41' }}>
+                                   <Crown size={18} className="text-white" />
+                                 </div>
+                               </div>
                                <h3 className="text-lg font-bold mb-2" style={{ color: '#344E41' }}>One-Time Payment</h3>
                                <p className="text-sm mb-3" style={{ color: '#5C7659' }}>
                                  Never pay again - lifetime access to all features
@@ -1100,7 +1113,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                                <div className="text-2xl font-bold" style={{ color: '#344E41' }}>$249.99</div>
                              </div>
                              <button 
-                               className="w-full py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                               className="w-full py-3 rounded-lg text-white font-medium transition-all hover:opacity-90 shadow-md"
                                style={{ backgroundColor: '#344E41' }}
                              >
                                Upgrade to Lifetime
@@ -1112,7 +1125,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                        // Annual users see subtle Lifetime upgrade option
                        <div className="space-y-4">
                          <div 
-                           className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-row items-center gap-6"
+                           className="relative bg-white rounded-xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-row items-center gap-6 min-h-[120px]"
                            style={{ borderColor: '#D4D7CD' }}
                            onClick={async () => {
                              try {
@@ -1122,17 +1135,22 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                              }
                            }}
                          >
-                           <div className="flex-1">
-                             <h3 className="text-lg font-bold mb-2" style={{ color: '#344E41' }}>Upgrade to Lifetime Access</h3>
-                             <p className="text-sm mb-2" style={{ color: '#5C7659' }}>
-                               One-time payment of $249.99 - never pay again
-                             </p>
-                             <p className="text-xs" style={{ color: '#6B7280' }}>
-                               We'll credit your unused time toward the lifetime upgrade
-                             </p>
+                           <div className="flex items-center gap-4 flex-1">
+                             <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#344E41' }}>
+                               <Crown size={18} className="text-white" />
+                             </div>
+                             <div className="flex-1">
+                               <h3 className="text-lg font-bold mb-2" style={{ color: '#344E41' }}>Upgrade to Lifetime Access</h3>
+                               <p className="text-sm mb-2" style={{ color: '#5C7659' }}>
+                                 One-time payment of $249.99 - never pay again
+                               </p>
+                               <p className="text-xs" style={{ color: '#6B7280' }}>
+                                 We'll credit your unused time toward the lifetime upgrade
+                               </p>
+                             </div>
                            </div>
                            <button 
-                             className="px-6 py-3 rounded-lg text-white font-medium transition-all hover:opacity-90 whitespace-nowrap"
+                             className="px-6 py-3 rounded-lg text-white font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
                              style={{ backgroundColor: '#344E41' }}
                            >
                              Upgrade Now
@@ -1262,9 +1280,9 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                         </div>
                       </div>
                       
-                      {/* Lifetime plan in compact single column */}
+                      {/* Lifetime plan in expanded single column */}
                       <div 
-                        className="relative bg-white rounded-lg border-2 p-5 cursor-pointer hover:shadow-lg transition-all duration-200"
+                        className="relative bg-white rounded-lg border-2 p-6 cursor-pointer hover:shadow-lg transition-all duration-200"
                         style={{ borderColor: '#D4D7CD' }}
                         onClick={async () => {
                           try {
@@ -1280,18 +1298,21 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                             Limited Time Only
                           </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#344E41' }}>
-                              <Crown size={16} className="text-white" />
+                        
+                        {/* Content with more vertical space */}
+                        <div className="flex items-center justify-between min-h-[80px]">
+                          <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#344E41' }}>
+                              <Crown size={20} className="text-white" />
                             </div>
-                            <div>
-                              <div className="font-semibold" style={{ color: '#344E41' }}>Lifetime Access</div>
-                              <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
+                            <div className="space-y-1">
+                              <div className="font-bold text-lg" style={{ color: '#344E41' }}>Lifetime Access</div>
+                              <div className="text-base font-semibold" style={{ color: '#344E41' }}>$249.99</div>
+                              <div className="text-sm" style={{ color: '#5C7659' }}>Never pay again • All features included</div>
                             </div>
                           </div>
                           <button 
-                            className="px-4 py-2 rounded-lg text-white font-medium transition-all hover:opacity-90"
+                            className="px-6 py-3 rounded-lg text-white text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
                             style={{ backgroundColor: '#344E41' }}
                           >
                             Join Forever
@@ -1303,7 +1324,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                 </div>
               )}
         </CollapsibleSection>
-
 
         {/* Security */}
         <CollapsibleSection
@@ -1916,6 +1936,4 @@ const PlanCard = ({ theme, title, price, interval, onSelect, current, popular, s
     </div>
   )
 }
-
-
 
