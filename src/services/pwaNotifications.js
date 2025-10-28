@@ -163,7 +163,8 @@ class PWANotificationService {
 
       const userRef = doc(db, 'users', user.email.toLowerCase());
       await setDoc(userRef, {
-        pushToken: token,
+        fcmToken: token, // Change from pushToken to fcmToken for consistency
+        pushToken: token, // Keep for backward compatibility
         notificationSettings: {
           pushEnabled: true,
           lastUpdated: serverTimestamp()
