@@ -824,12 +824,54 @@ export default function Settings() {
               theme={theme}
               disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
             />
-            <SettingToggle checked={settings.notifications.researchReminders} onChange={v => update('notifications.researchReminders', v)} label="Research Reminders" description="Stay on track with your research schedule." theme={theme} />
-            <SettingToggle checked={settings.notifications.groupBuys} onChange={v => update('notifications.groupBuys', v)} label="Group Buy Updates" description="Get alerts for new group buy opportunities." theme={theme} />
-            <SettingToggle checked={settings.notifications?.lowStockAlerts ?? true} onChange={v => update('notifications.lowStockAlerts', v)} label="Low Stock Notifications" description="Get notified when you're down to 3 or fewer vials" theme={theme} />
-            <SettingToggle checked={settings.notifications?.orderStatusUpdates ?? true} onChange={v => update('notifications.orderStatusUpdates', v)} label="Order Status Updates" description="Get notified about order arrivals and status changes" theme={theme} />
-            <SettingToggle checked={settings.notifications?.washoutReminders ?? true} onChange={v => update('notifications.washoutReminders', v)} label="Washout Reminders" description="Get reminded about washout periods between protocols" theme={theme} />
-            <SettingToggle checked={settings.notifications?.cycleReminders ?? true} onChange={v => update('notifications.cycleReminders', v)} label="Cycle Reminders" description="Get reminded about upcoming protocol cycles" theme={theme} />
+            <SettingToggle 
+              checked={settings.notifications.researchReminders} 
+              onChange={v => update('notifications.researchReminders', v)} 
+              label="Research Reminders" 
+              description="Stay on track with your research schedule." 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications.groupBuys} 
+              onChange={v => update('notifications.groupBuys', v)} 
+              label="Group Buy Updates" 
+              description="Get alerts for new group buy opportunities." 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications?.lowStockAlerts ?? true} 
+              onChange={v => update('notifications.lowStockAlerts', v)} 
+              label="Low Stock Notifications" 
+              description="Get notified when you're down to 3 or fewer vials" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications?.orderStatusUpdates ?? true} 
+              onChange={v => update('notifications.orderStatusUpdates', v)} 
+              label="Order Status Updates" 
+              description="Get notified about order arrivals and status changes" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications?.washoutReminders ?? true} 
+              onChange={v => update('notifications.washoutReminders', v)} 
+              label="Washout Reminders" 
+              description="Get reminded about washout periods between protocols" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications?.cycleReminders ?? true} 
+              onChange={v => update('notifications.cycleReminders', v)} 
+              label="Cycle Reminders" 
+              description="Get reminded about upcoming protocol cycles" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
           </div>
         </CollapsibleSection>
 
