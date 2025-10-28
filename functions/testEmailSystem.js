@@ -49,6 +49,34 @@ exports.testEmailSystem = onCall(
     if (templateType === 'welcome') {
       logger.info('Testing welcome email...');
       
+      // Use custom template data if provided, otherwise use simple test
+      let htmlContent, subjectText;
+      
+      if (templateData) {
+        // Use the custom template from admin panel
+        const { generateEmailHTML } = require('./emailService');
+        logger.info('🔍 Welcome template data fields:', Object.keys(templateData));
+        logger.info('🔍 Welcome template heading:', templateData.heading);
+        logger.info('🔍 Welcome template greeting:', templateData.greeting);
+        htmlContent = generateEmailHTML(templateData, { 
+          userName: 'Test User', 
+          userEmail: testEmail 
+        });
+        subjectText = templateData.subject || 'Welcome to The Pep Planner! 🎉';
+        logger.info('✅ Using custom template from admin panel');
+      } else {
+        // Simple fallback
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #6366f1;">Welcome to The Pep Planner! 🎉</h1>
+            <p>Hi there! We're thrilled to have you join our research community.</p>
+            <p>This is a direct test email to verify the system is working.</p>
+            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        subjectText = 'Welcome to The Pep Planner! 🎉';
+      }
+      
       // Direct SendGrid test for welcome email
       try {
         const sgMail = require('@sendgrid/mail');
@@ -74,15 +102,8 @@ exports.testEmailSystem = onCall(
         const msg = {
           to: testEmail,
           from: 'contact@thepepplanner.com',
-          subject: 'Welcome to The Pep Planner! 🎉',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #6366f1;">Welcome to The Pep Planner! 🎉</h1>
-              <p>Hi there! We're thrilled to have you join our research community.</p>
-              <p>This is a direct test email to verify the system is working.</p>
-              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-            </div>
-          `
+          subject: subjectText,
+          html: htmlContent
         };
 
         await sgMail.send(msg);
@@ -228,6 +249,279 @@ exports.testEmailSystem = onCall(
         emailResult = false;
       }
       emailName = 'Subscription Confirmed Email';
+    } else if (templateType === 'paymentSuccessful') {
+      logger.info('Testing payment successful email...');
+      
+      // Use custom template data if provided, otherwise use simple test
+      let htmlContent, subjectText;
+      
+      if (templateData) {
+        // Use the custom template from admin panel
+        const { generateEmailHTML } = require('./emailService');
+        logger.info('🔍 Template data fields:', Object.keys(templateData));
+        logger.info('🔍 Template heading:', templateData.heading);
+        logger.info('🔍 Template greeting:', templateData.greeting);
+        htmlContent = generateEmailHTML(templateData, { 
+          userName: 'Test User', 
+          userEmail: testEmail,
+          amount: '$29.99',
+          planName: 'Monthly Plan'
+        });
+        subjectText = templateData.subject || 'Payment Successful - The Pep Planner';
+        logger.info('✅ Using custom template from admin panel');
+      } else {
+        // Simple fallback
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #10b981;">Payment Successful! ✅</h1>
+            <p>Your payment of $29.99 for the Monthly Plan has been processed successfully.</p>
+            <p>You now have full access to all features.</p>
+            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        subjectText = 'Payment Successful - The Pep Planner';
+      }
+      
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: subjectText,
+          html: htmlContent
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Payment successful email failed:', error);
+        emailResult = false;
+      }
+      emailName = 'Payment Successful Email';
+    } else if (templateType === 'subscriptionCancelled') {
+      logger.info('Testing subscription cancelled email...');
+      
+      // Use custom template data if provided, otherwise use simple test
+      let htmlContent, subjectText;
+      
+      if (templateData) {
+        // Use the custom template from admin panel
+        const { generateEmailHTML } = require('./emailService');
+        htmlContent = generateEmailHTML(templateData, { 
+          userName: 'Test User', 
+          userEmail: testEmail,
+          planName: 'Monthly Plan',
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        });
+        subjectText = templateData.subject || 'Subscription Cancelled - The Pep Planner';
+        logger.info('✅ Using custom template from admin panel');
+      } else {
+        // Simple fallback
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #ef4444;">Subscription Cancelled</h1>
+            <p>Your Monthly Plan subscription has been cancelled.</p>
+            <p>You'll continue to have access until ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}.</p>
+            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        subjectText = 'Subscription Cancelled - The Pep Planner';
+      }
+      
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: subjectText,
+          html: htmlContent
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Subscription cancelled email failed:', error);
+        emailResult = false;
+      }
+      emailName = 'Subscription Cancelled Email';
+    } else if (templateType === 'renewalReminder') {
+      logger.info('Testing renewal reminder email...');
+      
+      // Use custom template data if provided, otherwise use simple test
+      let htmlContent, subjectText;
+      
+      if (templateData) {
+        // Use the custom template from admin panel
+        const { generateEmailHTML } = require('./emailService');
+        htmlContent = generateEmailHTML(templateData, { 
+          userName: 'Test User', 
+          userEmail: testEmail,
+          daysUntil: 3,
+          planName: 'Monthly Plan'
+        });
+        subjectText = templateData.subject || 'Your subscription renews in 3 days - The Pep Planner';
+        logger.info('✅ Using custom template from admin panel');
+      } else {
+        // Simple fallback
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #f59e0b;">Subscription Renewal in 3 Days ⏰</h1>
+            <p>Your Monthly Plan subscription will renew automatically in 3 days.</p>
+            <p>Make sure your payment method is up to date.</p>
+            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        subjectText = 'Your subscription renews in 3 days - The Pep Planner';
+      }
+      
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: subjectText,
+          html: htmlContent
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Renewal reminder email failed:', error);
+        emailResult = false;
+      }
+      emailName = 'Renewal Reminder Email';
+    } else if (templateType === 'weeklyReminder') {
+      logger.info('Testing weekly reminder email...');
+      
+      // Use custom template data if provided, otherwise use simple test
+      let htmlContent, subjectText;
+      
+      if (templateData) {
+        // Use the custom template from admin panel
+        const { generateEmailHTML } = require('./emailService');
+        htmlContent = generateEmailHTML(templateData, { 
+          userName: 'Test User', 
+          userEmail: testEmail,
+          taskCount: 3,
+          peptideName: 'BPC-157'
+        });
+        subjectText = templateData.subject || 'Weekly Research Reminder - The Pep Planner';
+        logger.info('✅ Using custom template from admin panel');
+      } else {
+        // Simple fallback
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #8b5cf6;">Weekly Research Reminder 📅</h1>
+            <p>You have 3 research tasks scheduled for this week.</p>
+            <p>Don't forget to track your BPC-157 protocol progress!</p>
+            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        subjectText = 'Weekly Research Reminder - The Pep Planner';
+      }
+      
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: subjectText,
+          html: htmlContent
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Weekly reminder email failed:', error);
+        emailResult = false;
+      }
+      emailName = 'Weekly Reminder Email';
+    } else if (templateType === 'paymentFailed') {
+      logger.info('Testing payment failed email...');
+      
+      // Use custom template data if provided, otherwise use simple test
+      let htmlContent, subjectText;
+      
+      if (templateData) {
+        // Use the custom template from admin panel
+        const { generateEmailHTML } = require('./emailService');
+        htmlContent = generateEmailHTML(templateData, { 
+          userName: 'Test User', 
+          userEmail: testEmail,
+          amount: '$29.99',
+          planName: 'Monthly Plan'
+        });
+        subjectText = templateData.subject || 'Payment Failed - The Pep Planner';
+        logger.info('✅ Using custom template from admin panel');
+      } else {
+        // Simple fallback
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #ef4444;">Payment Failed ❌</h1>
+            <p>We couldn't process your payment of $29.99 for the Monthly Plan.</p>
+            <p>Please update your payment method to continue your subscription.</p>
+            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        subjectText = 'Payment Failed - The Pep Planner';
+      }
+      
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: 'contact@thepepplanner.com',
+          subject: subjectText,
+          html: htmlContent
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Payment failed email failed:', error);
+        emailResult = false;
+      }
+      emailName = 'Payment Failed Email';
     } else {
       // Default: send all emails for general testing
       logger.info('Testing all email types...');

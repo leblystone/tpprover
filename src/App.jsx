@@ -24,7 +24,7 @@ import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import UpgradeBanner from './components/common/UpgradeBanner';
 import SubscriptionModal from './components/common/SubscriptionModal';
-import { LabBeakerContainer } from './components/ui/JournalToast';
+import { ModernToastContainer } from './components/ui/ModernToast';
 
 function App() {
   const location = useLocation();
@@ -347,8 +347,8 @@ function App() {
         currentPlan={subscriptionInterval}
       />
       
-      {/* Lab Beaker Notifications */}
-      <LabBeakerContainer theme={theme} />
+      {/* Toast Notifications */}
+      <ModernToastContainer theme={theme} />
       
     </div>
   )

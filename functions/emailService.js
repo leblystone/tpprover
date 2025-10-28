@@ -141,7 +141,7 @@ async function loadEmailTemplate(templateType) {
 /**
  * Generate email HTML from admin template
  */
-function generateEmailHTML(template, variables = {}) {
+exports.generateEmailHTML = function generateEmailHTML(template, variables = {}) {
   const colors = template.colors || {
     primary: '#344E41',
     primaryLight: '#3A5A40',

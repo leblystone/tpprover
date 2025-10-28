@@ -9,6 +9,7 @@ const emailService = require('./emailService');
 const testEmailSystem = require('./testEmailSystem');
 const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
+const stripeWebhooks = require('./stripeWebhooks');
 
 admin.initializeApp();
 
@@ -443,6 +444,9 @@ exports.checkRenewalReminders = emailAutomation.checkRenewalReminders;
 exports.sendWeeklyResearchReminders = emailAutomation.sendWeeklyResearchReminders;
 exports.testEmailAutomation = emailAutomation.testEmailAutomation;
 exports.getEmailStats = emailAutomation.getEmailStats;
+
+// Stripe Webhook Handler
+exports.stripeWebhook = stripeWebhooks.stripeWebhook;
 
 // Custom email verification function
 exports.sendCustomVerificationEmail = onCall(
