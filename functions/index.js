@@ -671,6 +671,107 @@ exports.verifyEmailWithToken = onCall(
   }
 });
 
+// Verify password reset token
+exports.verifyResetToken = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { token } = request.data;
+
+    if (!token) {
+      throw new Error('Reset token is required');
+    }
+
+    logger.info(`🔍 Verifying password reset token: ${token}`);
+
+    try {
+      // Get the token from Firestore
+      const tokenRef = admin.firestore().collection('passwordResetTokens').doc(token);
+      const tokenDoc = await tokenRef.get();
+
+      if (!tokenDoc.exists) {
+        throw new Error('Invalid password reset token');
+      }
+
+      const tokenData = tokenDoc.data();
+      
+      // Check if token is expired
+      if (new Date() > tokenData.expiresAt.toDate()) {
+        throw new Error('Password reset token has expired');
+      }
+
+      // Check if token is already used
+      if (tokenData.used) {
+        throw new Error('Password reset token has already been used');
+      }
+
+      logger.info(`✅ Password reset token is valid for user: ${tokenData.userId}`);
+      return { success: true, message: 'Token is valid' };
+      
+    } catch (error) {
+      logger.error('❌ Failed to verify password reset token:', error);
+      return { success: false, message: error.message };
+    }
+  }
+);
+
+// Reset password with custom token
+exports.resetPasswordWithToken = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { token, newPassword } = request.data;
+
+    if (!token || !newPassword) {
+      throw new Error('Token and new password are required');
+    }
+
+    logger.info(`🔐 Resetting password with token: ${token}`);
+
+    try {
+      // Get the token from Firestore
+      const tokenRef = admin.firestore().collection('passwordResetTokens').doc(token);
+      const tokenDoc = await tokenRef.get();
+
+      if (!tokenDoc.exists) {
+        throw new Error('Invalid password reset token');
+      }
+
+      const tokenData = tokenDoc.data();
+      
+      // Check if token is expired
+      if (new Date() > tokenData.expiresAt.toDate()) {
+        throw new Error('Password reset token has expired');
+      }
+
+      // Check if token is already used
+      if (tokenData.used) {
+        throw new Error('Password reset token has already been used');
+      }
+
+      // Update user's password using Firebase Admin SDK
+      await admin.auth().updateUser(tokenData.userId, {
+        password: newPassword
+      });
+
+      // Mark token as used
+      await tokenRef.update({ 
+        used: true, 
+        usedAt: admin.firestore.FieldValue.serverTimestamp() 
+      });
+
+      logger.info(`✅ Password reset successfully for user: ${tokenData.userId}`);
+      return { success: true, message: 'Password reset successfully' };
+      
+    } catch (error) {
+      logger.error('❌ Failed to reset password:', error);
+      return { success: false, message: error.message };
+    }
+  }
+);
+
 // 📧 Email Functions
 
 // Send welcome email when new user is created

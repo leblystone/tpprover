@@ -33,6 +33,8 @@ const Contact = lazy(() => import('./pages/Contact.jsx'))
 const Privacy = lazy(() => import('./pages/Privacy.jsx'))
 const Terms = lazy(() => import('./pages/Terms.jsx'))
 const Blog = lazy(() => import('./pages/Blog.jsx'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail.jsx'))
 
 // Launch Configuration
 const IS_APP_BLOCKED = false; // Set to false when ready to launch
@@ -114,6 +116,16 @@ export const router = createBrowserRouter([
   {
     path: '/resources',
     element: <Blog />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPassword />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/verify-email',
+    element: <VerifyEmail />,
     errorElement: <NotFound />,
   },
   {
