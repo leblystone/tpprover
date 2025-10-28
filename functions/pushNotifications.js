@@ -76,7 +76,11 @@ async function getUserNotificationSettings(userId) {
       push: userData.notificationSettings?.push === true,
       billing: userData.notificationSettings?.billing !== false,
       researchReminders: userData.notificationSettings?.researchReminders !== false,
-      groupBuys: userData.notificationSettings?.groupBuys !== false
+      groupBuys: userData.notificationSettings?.groupBuys !== false,
+      lowStockAlerts: userData.notificationSettings?.lowStockAlerts !== false,
+      orderStatusUpdates: userData.notificationSettings?.orderStatusUpdates !== false,
+      washoutReminders: userData.notificationSettings?.washoutReminders !== false,
+      cycleReminders: userData.notificationSettings?.cycleReminders !== false
     };
   } catch (error) {
     console.error(`❌ Failed to get notification settings for ${userId}:`, error);

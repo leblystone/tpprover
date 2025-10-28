@@ -318,14 +318,31 @@ exports.sendAdminNotification = onCall(async (request) => {
         const adminDoc = Array.isArray(adminSnapshot.docs) ? adminSnapshot.docs[0] : adminSnapshot;
         const adminUserId = adminDoc.id;
         
-        const result = await pushNotifications.sendPushNotification(
+        // Determine notification type based on notification ID or content
+        let notificationType = 'general';
+        if (notification.data?.notificationId) {
+          const typeMap = {
+            'lowStock': 'lowStockAlerts',
+            'researchReminders': 'researchReminders', 
+            'groupBuys': 'groupBuys',
+            'orderStatusUpdates': 'orderStatusUpdates',
+            'washoutReminders': 'washoutReminders',
+            'cycleReminders': 'cycleReminders'
+          };
+          notificationType = typeMap[notification.data.notificationId] || 'general';
+        }
+
+        const result = await pushNotifications.sendPushNotificationByType(
           adminUserId,
-          notification.title,
-          notification.body,
+          notificationType,
           {
-            source: 'admin-test',
-            timestamp: Date.now(),
-            ...notification.data
+            title: notification.title,
+            body: notification.body,
+            data: {
+              source: 'admin-test',
+              timestamp: Date.now(),
+              ...notification.data
+            }
           }
         );
 
