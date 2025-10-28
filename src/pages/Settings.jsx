@@ -846,59 +846,6 @@ export default function Settings() {
               theme={theme}
               disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
             />
-            {/* Development & Mobile Test Button */}
-            {(import.meta.env.DEV || pwaNotificationStatus.isNative) && settings.notifications.push && (
-              <div className="flex items-center justify-between p-3 rounded-lg border border-dashed" style={{ borderColor: theme.accent, backgroundColor: theme.background }}>
-                <div>
-                  <div className="text-sm font-medium" style={{ color: theme.text }}>Test Notification</div>
-                  <div className="text-xs" style={{ color: theme.textLight }}>Send a sample notification to test functionality</div>
-                </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      if (pwaNotificationStatus.isNative) {
-                        // Test native notification
-                        const { LocalNotifications } = await import('@capacitor/local-notifications');
-                        await LocalNotifications.schedule({
-                          notifications: [
-                            {
-                              title: 'Test from The Pep Planner! 🎉',
-                              body: 'This is a sample notification from your Android app. Native notifications are working correctly!',
-                              id: Math.floor(Math.random() * 1000000), // Random ID under Java int limit
-                              schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay
-                              sound: 'default',
-                              smallIcon: 'ic_launcher', // Use app icon as notification icon
-                              largeIcon: 'tpp-logo', // Use app logo for large icon in Android
-                              attachments: [],
-                              actionTypeId: '',
-                              extra: { test: true, timestamp: Date.now() }
-                            }
-                          ]
-                        });
-                        console.log('✅ Native test notification scheduled');
-                      } else {
-                        // Test PWA notification
-                        await pwaNotificationService.showNotification('Test from The Pep Planner! 🎉', {
-                          body: 'This is a sample notification from your PWA. Notifications are working correctly!',
-                          icon: '/tpp-logo.png',
-                          tag: 'dev-test',
-                          data: { test: true, timestamp: Date.now() }
-                        });
-                      }
-                    } catch (error) {
-                      console.error('Test notification failed:', error);
-                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                        detail: { message: 'Test notification failed: ' + error.message, type: 'error' } 
-                      }));
-                    }
-                  }}
-                  className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: theme.accent, color: theme.text }}
-                >
-                  Send Test
-                </button>
-              </div>
-            )}
             <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />
             <SettingToggle checked={settings.notifications.billing} onChange={v => update('notifications.billing', v)} label="Billing Updates" description="Get notified about invoices and payment status." theme={theme} />
             <SettingToggle checked={settings.notifications.researchReminders} onChange={v => update('notifications.researchReminders', v)} label="Research Reminders" description="Stay on track with your research schedule." theme={theme} />
