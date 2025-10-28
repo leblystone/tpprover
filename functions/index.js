@@ -21,8 +21,10 @@ exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
 
 // Scheduled Functions for Notifications - Now runs hourly to check all timezones
-exports.scheduledResearchReminders = onSchedule('0 * * * *', {
+exports.scheduledResearchReminders = onSchedule({
+  schedule: '0 * * * *',
   timeZone: 'UTC', // Use UTC as base, calculate user-specific times
+  secrets: ['SENDGRID_API_KEY']
 }, async (event) => {
   logger.info('🔬 Running scheduled research reminders (hourly check)...');
   
@@ -443,7 +445,12 @@ exports.testEmailAutomation = emailAutomation.testEmailAutomation;
 exports.getEmailStats = emailAutomation.getEmailStats;
 
 // Custom email verification function
-exports.sendCustomVerificationEmail = onCall(async (request) => {
+exports.sendCustomVerificationEmail = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
   // Verify user is authenticated
   if (!request.auth) {
     throw new Error('User must be authenticated');
@@ -481,7 +488,11 @@ exports.sendCustomVerificationEmail = onCall(async (request) => {
 });
 
 // Verify email with custom token
-exports.verifyEmailWithToken = onCall(async (request) => {
+exports.verifyEmailWithToken = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
   const { token } = request.data;
 
   if (!token) {
@@ -575,8 +586,10 @@ exports.onUserCreated = onDocumentCreated(
 });
 
 // Scheduled function to remind users about trial ending - Now timezone-aware
-exports.scheduledTrialReminders = onSchedule('0 * * * *', {
+exports.scheduledTrialReminders = onSchedule({
+  schedule: '0 * * * *',
   timeZone: 'UTC', // Use UTC as base, calculate user-specific times
+  secrets: ['SENDGRID_API_KEY']
 }, async (event) => {
   logger.info('🔔 Running scheduled trial ending reminders (hourly check)...');
   
