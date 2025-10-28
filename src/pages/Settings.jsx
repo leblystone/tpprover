@@ -19,6 +19,41 @@ import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getLatestAgreement, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
 import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2 } from 'lucide-react'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '../config/firebase'
+
+/**
+ * Save push token to Firestore for server-side push notifications
+ */
+async function savePushTokenToFirestore(token) {
+  try {
+    // Get current user email from localStorage
+    const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+    if (!user?.email) {
+      console.warn('📱 No user email found, cannot save FCM token');
+      return;
+    }
+
+    const userRef = doc(db, 'users', user.email.toLowerCase());
+    await setDoc(userRef, {
+      fcmToken: token,
+      pushToken: token, // Keep for backward compatibility
+      notificationSettings: {
+        pushEnabled: true,
+        lastUpdated: serverTimestamp()
+      },
+      deviceInfo: {
+        platform: Capacitor.getPlatform(),
+        isNative: true,
+        lastUpdated: serverTimestamp()
+      }
+    }, { merge: true });
+
+    console.log('✅ FCM token saved to Firestore for user:', user.email);
+  } catch (error) {
+    console.error('❌ Failed to save FCM token to Firestore:', error);
+  }
+}
 
 
 // Settings persistence (local-only)
@@ -668,6 +703,12 @@ export default function Settings() {
               // Register for push notifications
               await PushNotifications.register();
               console.log('✅ Native push notifications enabled');
+              
+              // Listen for registration token and save to Firestore
+              PushNotifications.addListener('registration', async (token) => {
+                console.log('📱 Push registration token received:', token.value);
+                await savePushTokenToFirestore(token.value);
+              });
             } else {
               throw new Error('Push notification permission denied');
             }
