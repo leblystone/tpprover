@@ -319,7 +319,7 @@ exports.sendAdminNotification = onCall(async (request) => {
         const adminUserId = adminDoc.id;
         
         // Determine notification type based on notification ID or content
-        let notificationType = 'general';
+        let notificationType = 'push'; // Default to checking main push setting
         if (notification.data?.notificationId) {
           const typeMap = {
             'lowStock': 'lowStockAlerts',
@@ -329,7 +329,7 @@ exports.sendAdminNotification = onCall(async (request) => {
             'washoutReminders': 'washoutReminders',
             'cycleReminders': 'cycleReminders'
           };
-          notificationType = typeMap[notification.data.notificationId] || 'general';
+          notificationType = typeMap[notification.data.notificationId] || 'push';
         }
 
         const result = await pushNotifications.sendPushNotificationByType(

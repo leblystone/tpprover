@@ -68,20 +68,26 @@ async function getUserNotificationSettings(userId) {
   try {
     const userDoc = await admin.firestore().collection('users').doc(userId).get();
     if (!userDoc.exists) {
+      console.log(`📱 User ${userId} not found in Firestore`);
       return null;
     }
 
     const userData = userDoc.data();
-    return {
+    const settings = {
       push: userData.notificationSettings?.push === true,
-      billing: userData.notificationSettings?.billing !== false,
-      researchReminders: userData.notificationSettings?.researchReminders !== false,
-      groupBuys: userData.notificationSettings?.groupBuys !== false,
-      lowStockAlerts: userData.notificationSettings?.lowStockAlerts !== false,
-      orderStatusUpdates: userData.notificationSettings?.orderStatusUpdates !== false,
-      washoutReminders: userData.notificationSettings?.washoutReminders !== false,
-      cycleReminders: userData.notificationSettings?.cycleReminders !== false
+      billing: userData.notificationSettings?.billing === true,
+      researchReminders: userData.notificationSettings?.researchReminders === true,
+      groupBuys: userData.notificationSettings?.groupBuys === true,
+      lowStockAlerts: userData.notificationSettings?.lowStockAlerts === true,
+      orderStatusUpdates: userData.notificationSettings?.orderStatusUpdates === true,
+      washoutReminders: userData.notificationSettings?.washoutReminders === true,
+      cycleReminders: userData.notificationSettings?.cycleReminders === true
     };
+    
+    console.log(`📱 User ${userId} notification settings:`, settings);
+    console.log(`📱 Raw notificationSettings:`, userData.notificationSettings);
+    
+    return settings;
   } catch (error) {
     console.error(`❌ Failed to get notification settings for ${userId}:`, error);
     return null;
