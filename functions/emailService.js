@@ -21,10 +21,18 @@ async function sendEmail(to, subject, html) {
     const sendgridApiKey = process.env.SENDGRID_API_KEY;
     
     logger.info('🔑 API Key being used:', sendgridApiKey ? `${sendgridApiKey.substring(0, 10)}...` : 'undefined');
+    logger.info('🔑 API Key length:', sendgridApiKey ? sendgridApiKey.length : 0);
     
     if (!sendgridApiKey) {
       logger.warn('⚠️ SendGrid not configured - email not sent');
       logger.info('📧 Would have sent email to:', to, 'Subject:', subject);
+      return false;
+    }
+    
+    // Validate API key format
+    if (!sendgridApiKey.startsWith('SG.')) {
+      logger.error('❌ Invalid SendGrid API key format. Key must start with "SG."');
+      logger.error('API key provided:', sendgridApiKey.substring(0, 20) + '...');
       return false;
     }
 
