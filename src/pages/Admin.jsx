@@ -33,7 +33,6 @@ import {
   httpsCallable 
 } from 'firebase/functions';
 import AgreementTracking from '../components/admin/AgreementTracking';
-import NotificationTemplateEditor from '../components/admin/NotificationTemplateEditor';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
@@ -394,12 +393,6 @@ function Admin() {
     category: 'General',
     date: new Date().toISOString().slice(0, 10)
   });
-  const [showNotificationEditor, setShowNotificationEditor] = useState(false);
-  
-  // Debug notification editor state
-  useEffect(() => {
-    console.log('showNotificationEditor state changed:', showNotificationEditor);
-  }, [showNotificationEditor]);
 
   // Simple admin authentication
   const ADMIN_PASSWORD = 'j&jm9102';
@@ -1013,8 +1006,7 @@ function Admin() {
               { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
               { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
               { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
-              { id: 'notifications', label: 'Templates', icon: Bell, color: '#8b5cf6' },
-              { id: 'triggered', label: 'Triggered Push', icon: Send, color: '#10b981' },
+            { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981' },
               { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4' }
             ].map(tab => {
               const Icon = tab.icon;
@@ -1157,18 +1149,10 @@ function Admin() {
             },
             { 
               id: 'notifications', 
-              label: 'Templates', 
+              label: 'Notifications', 
               icon: Bell, 
-              count: 0,
-              desc: 'Customize notification templates',
-              color: '#8b5cf6' 
-            },
-            { 
-              id: 'triggered', 
-              label: 'Triggered Push', 
-              icon: Send, 
               count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length,
-              desc: 'Automated push notifications',
+              desc: 'Templates & automated push notifications',
               color: '#10b981' 
             },
             { 
@@ -1244,8 +1228,7 @@ function Admin() {
                 {activeTab === 'announcements' && 'Manage app-wide announcements and notifications'}
                 {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
                 {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
-                {activeTab === 'notifications' && 'Customize notification templates and messaging with personality'}
-                {activeTab === 'triggered' && 'Create automated push notifications triggered by user behavior, data conditions, and time events'}
+                {activeTab === 'notifications' && 'Customize notification templates and automated push notifications'}
                 {activeTab === 'emails' && 'Design beautiful branded email templates - no coding required!'}
               </p>
             </div>
@@ -2626,134 +2609,6 @@ function Admin() {
 
         {activeTab === 'notifications' && (
           <div className="space-y-6">
-            {/* Notification Templates Overview */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-                  <Bell size={24} style={{ color: theme.primary }} />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Notification Templates</h2>
-                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                    Customize the messaging for all notifications sent to users. Add personality and adjust the tone to match your brand.
-                    Use variables like {'{peptideName}'}, {'{count}'}, {'{daysUntil}'} for dynamic content. Test individual templates or send a general test notification to verify functionality.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <h4 className="font-medium" style={{ color: theme.text }}>Available Templates:</h4>
-                      <ul className="text-sm space-y-1" style={{ color: theme.textLight }}>
-                        <li>• Low Stock Alerts</li>
-                        <li>• Order Arrived Notifications</li>
-                        <li>• Order Status Updates</li>
-                        <li>• Washout Reminders</li>
-                        <li>• Cycle Reminders</li>
-                        <li>• Research Reminders</li>
-                      </ul>
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="font-medium" style={{ color: theme.text }}>Variable Examples:</h4>
-                      <ul className="text-sm space-y-1" style={{ color: theme.textLight }}>
-                        <li>• {'{peptideName}'} - Name of peptide</li>
-                        <li>• {'{count}'} - Number of vials</li>
-                        <li>• {'{daysUntil}'} - Days until event</li>
-                        <li>• {'{protocolName}'} - Protocol name</li>
-                        <li>• {'{status}'} - Order status</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Notification System Status */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' || '#10b98120' }}>
-                  <CheckCircle size={24} style={{ color: theme.success || '#10b981' }} />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>System Status</h2>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-                      <div>
-                        <h4 className="font-medium" style={{ color: theme.text }}>Notification Templates</h4>
-                        <p className="text-sm" style={{ color: theme.textLight }}>Template system and customization</p>
-                      </div>
-                      <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: theme.success + '20' || '#10b98120', color: theme.success || '#10b981' }}>
-                        ✓ Active
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-                      <div>
-                        <h4 className="font-medium" style={{ color: theme.text }}>PWA Notifications</h4>
-                        <p className="text-sm" style={{ color: theme.textLight }}>Browser-based push notifications</p>
-                      </div>
-                      <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: theme.success + '20' || '#10b98120', color: theme.success || '#10b981' }}>
-                        ✓ Available
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-                      <div>
-                        <h4 className="font-medium" style={{ color: theme.text }}>Firebase Integration</h4>
-                        <p className="text-sm" style={{ color: theme.textLight }}>Cloud messaging and storage</p>
-                      </div>
-                      <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: theme.success + '20' || '#10b98120', color: theme.success || '#10b981' }}>
-                        ✓ Connected
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.info + '10' || '#3b82f610', borderLeft: `3px solid ${theme.info || '#3b82f6'}` }}>
-                    <p className="text-sm" style={{ color: theme.text }}>
-                      <strong>Testing:</strong> Use the "Test Notification" button to send a sample notification, or edit individual templates and use their "Test" button for specific template testing.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Template Examples */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h3 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Example: Low Stock Alert</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Title:</p>
-                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
-                      🔬 Stock Running Low!
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Message:</p>
-                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
-                      You're down to 2 vials of BPC-157. Time to reorder?
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h3 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Example: Cycle Reminder</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Title:</p>
-                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
-                      🔄 Cycle Coming Up!
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Message:</p>
-                    <p className="text-sm p-2 rounded border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
-                      Your Growth Hormone cycle is starting in 3 days! Ready to confirm it for your schedule?
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'triggered' && (
-          <div className="space-y-6">
             <TriggeredNotificationManager theme={theme} />
           </div>
         )}
@@ -2772,16 +2627,6 @@ function Admin() {
           onClose={() => setIsUserModalOpen(false)}
           theme={theme}
         />
-      )}
-      {showNotificationEditor && (
-        <>
-          {console.log('Rendering NotificationTemplateEditor modal')}
-          <NotificationTemplateEditor
-            isOpen={showNotificationEditor}
-            onClose={() => setShowNotificationEditor(false)}
-            theme={theme}
-          />
-        </>
       )}
 
       {/* Research Topic Edit Modal */}
