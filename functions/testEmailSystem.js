@@ -48,10 +48,21 @@ exports.testEmailSystem = onCall(
       // Direct SendGrid test for welcome email
       try {
         const sgMail = require('@sendgrid/mail');
-        const apiKey = process.env.SENDGRID_API_KEY;
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        logger.info('🔑 Checking API Key...');
+        logger.info('API Key exists:', !!apiKey);
+        if (apiKey) {
+          logger.info('API Key length:', apiKey.length);
+          logger.info('API Key starts with:', apiKey.substring(0, 10));
+        }
         
         if (!apiKey) {
           throw new Error('SENDGRID_API_KEY environment variable is not set');
+        }
+        
+        if (!apiKey.startsWith('SG.')) {
+          throw new Error(`Invalid SendGrid API key format. Got: ${apiKey.substring(0, 20)}...`);
         }
         
         sgMail.setApiKey(apiKey);
