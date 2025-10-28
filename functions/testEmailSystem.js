@@ -101,7 +101,10 @@ exports.testEmailSystem = onCall(
 
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: subjectText,
           html: htmlContent
         };
@@ -135,7 +138,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: 'Your trial ends in 2 days - The Pep Planner',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -167,7 +173,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: 'Verify your email for The Pep Planner',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -199,7 +208,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: 'Reset your password for The Pep Planner',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -231,7 +243,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: 'Subscription Confirmed - The Pep Planner',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -294,7 +309,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: subjectText,
           html: htmlContent
         };
@@ -348,7 +366,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: subjectText,
           html: htmlContent
         };
@@ -402,7 +423,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: subjectText,
           html: htmlContent
         };
@@ -456,7 +480,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: subjectText,
           html: htmlContent
         };
@@ -510,7 +537,10 @@ exports.testEmailSystem = onCall(
         
         const msg = {
           to: testEmail,
-          from: 'contact@thepepplanner.com',
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
           subject: subjectText,
           html: htmlContent
         };
