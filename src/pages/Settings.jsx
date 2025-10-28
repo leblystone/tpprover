@@ -70,7 +70,7 @@ function getDefaultSettings() {
       email: true,
       push: false,
       billing: true,
-      researchReminders: true,
+      researchReminders: false,
       groupBuys: true,
       lowStockAlerts: true,
       orderStatusUpdates: true,

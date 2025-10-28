@@ -7,19 +7,21 @@ const ModernToast = ({ message, type, onClose, theme }) => {
 
   useEffect(() => {
     // Fade in
-    const fadeInTimer = setTimeout(() => setIsVisible(true), 10);
+    const fadeInTimer = setTimeout(() => {
+      setIsVisible(true);
+    }, 10);
     
-    // Auto dismiss after 3 seconds (shorter for less annoyance)
+    // Auto dismiss after 4 seconds (increased for better UX)
     const dismissTimer = setTimeout(() => {
       setIsLeaving(true);
-      setTimeout(onClose, 200); // Wait for fade out animation
-    }, 3000);
+      setTimeout(onClose, 300); // Wait for fade out animation
+    }, 4000);
 
     return () => {
       clearTimeout(fadeInTimer);
       clearTimeout(dismissTimer);
     };
-  }, [onClose]);
+  }, [onClose, message, type]);
 
   const handleClose = () => {
     setIsLeaving(true);
@@ -80,7 +82,7 @@ const ModernToast = ({ message, type, onClose, theme }) => {
 
   return (
     <div
-      className={`fixed right-4 z-50 max-w-sm w-full transition-all duration-200 ease-out ${
+      className={`fixed right-4 z-[9999] max-w-sm w-full transition-all duration-500 ease-out ${
         isVisible && !isLeaving 
           ? 'opacity-100 translate-x-0' 
           : 'opacity-0 translate-x-full'
@@ -90,28 +92,51 @@ const ModernToast = ({ message, type, onClose, theme }) => {
         transform: isVisible && !isLeaving ? 'translateX(0)' : 'translateX(100%)',
       }}
     >
+      {/* Journal-style entry with clean, minimal design */}
       <div
-        className="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border backdrop-blur-sm"
+        className="relative overflow-hidden"
         style={{
-          backgroundColor: colors.bg,
-          color: colors.text,
-          borderColor: colors.border,
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          backgroundColor: '#FEFEFE',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         }}
       >
-        <div className="flex-shrink-0">
-          {getIcon()}
+        {/* Journal entry header with timestamp */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.bg }}></div>
+            <span className="text-xs font-medium text-gray-500">
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-3 h-3 text-gray-400" />
+          </button>
         </div>
-        <div className="flex-1 text-sm font-medium leading-tight">
-          {message}
+        
+        {/* Journal entry content */}
+        <div className="px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-0.5">
+              {getIcon()}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-800 leading-relaxed">
+                {message}
+              </p>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={handleClose}
-          className="flex-shrink-0 p-1 rounded-full hover:bg-black hover:bg-opacity-10 transition-colors"
-          style={{ color: colors.text }}
-        >
-          <X className="w-4 h-4" />
-        </button>
+        
+        {/* Subtle accent line */}
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-1" 
+          style={{ backgroundColor: colors.bg }}
+        ></div>
       </div>
     </div>
   );
@@ -140,7 +165,7 @@ const ModernToastContainer = ({ theme }) => {
   const removeToast = (id) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
-
+  
   return (
     <>
       {toasts.map(toast => (
