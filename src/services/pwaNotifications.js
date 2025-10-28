@@ -172,9 +172,22 @@ class PWANotificationService {
   /**
    * Show a PWA notification
    */
-  showNotification(title, options = {}) {
+  async showNotification(title, options = {}) {
     if (!this.isSupported || this.permissionStatus !== 'granted') {
       console.warn('Cannot show notification: not supported or permission not granted');
+      return null;
+    }
+
+    // Check user notification preferences
+    const userSettings = await this.getUserNotificationSettings();
+    if (!userSettings.push) {
+      console.log('📱 PWA notification blocked: user has disabled push notifications');
+      return null;
+    }
+
+    // Check specific notification type if provided
+    if (options.notificationType && !userSettings[options.notificationType]) {
+      console.log(`📱 PWA notification blocked: user has disabled ${options.notificationType} notifications`);
       return null;
     }
 
@@ -207,6 +220,35 @@ class PWANotificationService {
     }, 5000);
 
     return notification;
+  }
+
+  /**
+   * Get user notification settings from localStorage
+   */
+  async getUserNotificationSettings() {
+    try {
+      const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      return {
+        push: settings.notifications?.push === true,
+        researchReminders: settings.notifications?.researchReminders === true,
+        groupBuys: settings.notifications?.groupBuys === true,
+        lowStockAlerts: settings.notifications?.lowStockAlerts === true,
+        orderStatusUpdates: settings.notifications?.orderStatusUpdates === true,
+        washoutReminders: settings.notifications?.washoutReminders === true,
+        cycleReminders: settings.notifications?.cycleReminders === true
+      };
+    } catch (error) {
+      console.error('Failed to get user notification settings:', error);
+      return {
+        push: false,
+        researchReminders: false,
+        groupBuys: false,
+        lowStockAlerts: false,
+        orderStatusUpdates: false,
+        washoutReminders: false,
+        cycleReminders: false
+      };
+    }
   }
 
   /**
