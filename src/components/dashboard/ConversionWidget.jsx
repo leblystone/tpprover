@@ -23,6 +23,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [actualSubscription, setActualSubscription] = useState(null);
+  const [checkoutTimeoutId, setCheckoutTimeoutId] = useState(null);
 
   // Load subscription data the same way as Account page
   useEffect(() => {
@@ -74,7 +75,10 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     const timeoutId = setTimeout(() => {
       console.warn('⚠️ ConversionWidget: Checkout timeout, resetting processing state');
       setIsProcessing(false);
+      setCheckoutTimeoutId(null);
     }, 10000); // 10 second timeout
+    
+    setCheckoutTimeoutId(timeoutId);
     
     try {
       // Map plan types to Stripe price IDs
@@ -114,10 +118,12 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
       
       // Reset processing state after successful checkout creation
       clearTimeout(timeoutId);
+      setCheckoutTimeoutId(null);
       setIsProcessing(false);
     } catch (error) {
       // Always reset processing state on error
       clearTimeout(timeoutId);
+      setCheckoutTimeoutId(null);
       setIsProcessing(false);
       
       // Check if this is a user navigation error (abandoned cart)
@@ -142,6 +148,22 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
       }
     }
   };
+
+  // Listen for app visibility changes to clear timeout when user returns
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && checkoutTimeoutId) {
+        // User returned from checkout - clear timeout since they're back
+        console.log('ℹ️ User returned to app, clearing checkout timeout');
+        clearTimeout(checkoutTimeoutId);
+        setCheckoutTimeoutId(null);
+        setIsProcessing(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [checkoutTimeoutId]);
 
   // Real-time countdown timer
   useEffect(() => {

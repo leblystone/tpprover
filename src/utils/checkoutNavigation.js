@@ -3,6 +3,33 @@
  */
 
 const CHECKOUT_RETURN_PATH_KEY = 'tpp_checkout_return_path';
+const CHECKOUT_TIMEOUT_KEY = 'tpp_checkout_timeout_id';
+
+/**
+ * Global checkout timeout handler to clear timeouts when user returns to app
+ * This fixes the issue where mobile users see timeout warnings when they return from checkout
+ */
+export function setupCheckoutTimeoutHandler() {
+  const handleVisibilityChange = () => {
+    if (!document.hidden) {
+      // App became visible - user might have returned from checkout
+      const timeoutId = sessionStorage.getItem(CHECKOUT_TIMEOUT_KEY);
+      
+      if (timeoutId) {
+        console.log('ℹ️ User returned to app, clearing checkout timeout');
+        clearTimeout(parseInt(timeoutId));
+        sessionStorage.removeItem(CHECKOUT_TIMEOUT_KEY);
+      }
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  // Return cleanup function
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}
 
 /**
  * Store the current path before redirecting to checkout
@@ -140,7 +167,8 @@ export function debugCheckoutNavigation() {
   };
 }
 
-// Make debug function available globally
+// Setup checkout timeout handler on load
 if (typeof window !== 'undefined') {
   window.debugCheckoutNavigation = debugCheckoutNavigation;
+  setupCheckoutTimeoutHandler();
 }

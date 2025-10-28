@@ -5,6 +5,42 @@ import { functions } from '../config/firebase.js';
 import { storeCheckoutReturnPath, getCheckoutReturnPath } from '../utils/checkoutNavigation.js';
 
 /**
+ * Store checkout timeout ID for mobile visibility tracking
+ */
+function storeCheckoutTimeout(timeoutId) {
+  try {
+    sessionStorage.setItem('tpp_checkout_timeout_id', timeoutId.toString());
+  } catch (e) {
+    console.warn('Failed to store checkout timeout');
+  }
+}
+
+/**
+ * Clear checkout timeout when user returns to app
+ */
+function clearCheckoutTimeout() {
+  try {
+    const timeoutId = sessionStorage.getItem('tpp_checkout_timeout_id');
+    if (timeoutId) {
+      clearTimeout(parseInt(timeoutId));
+      sessionStorage.removeItem('tpp_checkout_timeout_id');
+    }
+  } catch (e) {
+    console.warn('Failed to clear checkout timeout');
+  }
+}
+
+// Setup visibility change listener to clear timeouts when app regains focus
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      // App became visible - clear any pending checkouts
+      clearCheckoutTimeout();
+    }
+  });
+}
+
+/**
  * Create a Stripe Checkout session for subscription
  * @param {string} priceId - Stripe price ID
  * @param {string} userEmail - User's email
