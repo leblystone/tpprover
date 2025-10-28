@@ -216,8 +216,9 @@ const AUDIENCE_TYPES = [
 export default function TriggeredNotificationManager({ theme }) {
   const [notifications, setNotifications] = useState(() => {
     try {
-      const saved = localStorage.getItem('tpp_triggered_notifications');
-      return saved ? JSON.parse(saved) : DEFAULT_TRIGGERED_NOTIFICATIONS;
+      // Force use new defaults for now - clear localStorage cache
+      localStorage.removeItem('tpp_triggered_notifications');
+      return DEFAULT_TRIGGERED_NOTIFICATIONS;
     } catch (error) {
       console.error('Failed to load triggered notifications:', error);
       return DEFAULT_TRIGGERED_NOTIFICATIONS;
