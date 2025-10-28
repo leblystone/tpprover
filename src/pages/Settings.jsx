@@ -867,6 +867,8 @@ export default function Settings() {
                               id: Math.floor(Math.random() * 1000000), // Random ID under Java int limit
                               schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay
                               sound: 'default',
+                              smallIcon: 'ic_launcher', // Use app icon as notification icon
+                              largeIcon: 'tpp-logo', // Use app logo for large icon in Android
                               attachments: [],
                               actionTypeId: '',
                               extra: { test: true, timestamp: Date.now() }
