@@ -697,18 +697,18 @@ export default function Settings() {
           const { PushNotifications } = await import('@capacitor/push-notifications');
           
           if (enabled) {
+            // FIRST: Add the registration listener BEFORE calling register()
+            PushNotifications.addListener('registration', async (token) => {
+              console.log('📱 Push registration token received:', token.value);
+              await savePushTokenToFirestore(token.value);
+            });
+            
             // Request permissions for native push notifications
             const result = await PushNotifications.requestPermissions();
             if (result.receive === 'granted') {
-              // Register for push notifications
+              // Register for push notifications (listener is now ready)
               await PushNotifications.register();
               console.log('✅ Native push notifications enabled');
-              
-              // Listen for registration token and save to Firestore
-              PushNotifications.addListener('registration', async (token) => {
-                console.log('📱 Push registration token received:', token.value);
-                await savePushTokenToFirestore(token.value);
-              });
             } else {
               throw new Error('Push notification permission denied');
             }
