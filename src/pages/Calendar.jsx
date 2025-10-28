@@ -116,7 +116,15 @@ export default function Calendar() {
     }
   }, []);
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState('month') // 'month' | 'week'
+  const [viewMode, setViewMode] = useState(() => {
+    // Load default view from settings
+    try {
+      const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      return settings.calendar?.defaultView || 'month';
+    } catch {
+      return 'month';
+    }
+  }) // 'month' | 'week'
   const [entries, setEntries] = useState({})
   const [activeDay, setActiveDay] = useState(null)
   const [editingNotesFor, setEditingNotesFor] = useState(null)
@@ -829,11 +837,29 @@ export default function Calendar() {
   }
 
   const weekStart = useMemo(() => {
-    const d = new Date(currentDate)
-    const day = d.getDay() // 0=Sun..6=Sat
-    const iso = (day + 6) % 7 // 0=Mon..6=Sun
-    d.setDate(d.getDate() - iso)
-    return d
+    // Get week starts on setting
+    const weekStartsOn = (() => {
+      try {
+        const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+        return settings.region?.weekStartsOn || 'monday';
+      } catch {
+        return 'monday';
+      }
+    })();
+    
+    const d = new Date(currentDate);
+    const day = d.getDay(); // 0=Sun..6=Sat
+    
+    if (weekStartsOn === 'sunday') {
+      // Sunday is day 0, subtract to get to this Sunday
+      d.setDate(d.getDate() - day);
+    } else {
+      // Monday is day 1, iso = (day + 6) % 7 converts 0=Sun..6=Sat to 0=Mon..6=Sun
+      const iso = (day + 6) % 7; // 0=Mon..6=Sun
+      d.setDate(d.getDate() - iso);
+    }
+    
+    return d;
   }, [currentDate])
 
   const handleSaveDay = (text) => {

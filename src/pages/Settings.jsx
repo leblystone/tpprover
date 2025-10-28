@@ -118,10 +118,6 @@ function getDefaultSettings() {
       costTracking: true, // Track cost per mg calculations
       lowStockThreshold: 3, // Alert when stock drops to this number
     },
-    ui: {
-      showTooltips: true, // Show helpful tooltips
-      animationsEnabled: true, // Enable/disable animations
-    },
     privacy: {
       analytics: true,
       functional: true,
@@ -322,10 +318,6 @@ export default function Settings() {
         orders: {
           ...defaultSettings.orders,
           ...(loadedSettings?.orders || {})
-        },
-        ui: {
-          ...defaultSettings.ui,
-          ...(loadedSettings?.ui || {})
         },
         privacy: {
           ...defaultSettings.privacy,
@@ -846,10 +838,12 @@ export default function Settings() {
               theme={theme}
               disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
             />
-            <SettingToggle checked={settings.notifications.email} onChange={v => update('notifications.email', v)} label="Email Notifications" description="Receive summaries, updates, and news." theme={theme} />
-            <SettingToggle checked={settings.notifications.billing} onChange={v => update('notifications.billing', v)} label="Billing Updates" description="Get notified about invoices and payment status." theme={theme} />
             <SettingToggle checked={settings.notifications.researchReminders} onChange={v => update('notifications.researchReminders', v)} label="Research Reminders" description="Stay on track with your research schedule." theme={theme} />
             <SettingToggle checked={settings.notifications.groupBuys} onChange={v => update('notifications.groupBuys', v)} label="Group Buy Updates" description="Get alerts for new group buy opportunities." theme={theme} />
+            <SettingToggle checked={settings.notifications?.lowStockAlerts ?? true} onChange={v => update('notifications.lowStockAlerts', v)} label="Low Stock Notifications" description="Get notified when you're down to 3 or fewer vials" theme={theme} />
+            <SettingToggle checked={settings.notifications?.orderStatusUpdates ?? true} onChange={v => update('notifications.orderStatusUpdates', v)} label="Order Status Updates" description="Get notified about order arrivals and status changes" theme={theme} />
+            <SettingToggle checked={settings.notifications?.washoutReminders ?? true} onChange={v => update('notifications.washoutReminders', v)} label="Washout Reminders" description="Get reminded about washout periods between protocols" theme={theme} />
+            <SettingToggle checked={settings.notifications?.cycleReminders ?? true} onChange={v => update('notifications.cycleReminders', v)} label="Cycle Reminders" description="Get reminded about upcoming protocol cycles" theme={theme} />
           </div>
         </CollapsibleSection>
 
@@ -889,12 +883,6 @@ export default function Settings() {
             <SettingToggle checked={settings.features?.analytics ?? true} onChange={v => update('features.analytics', v)} label="Analytics Dashboard" description="Show analytics and metrics in dashboard" theme={theme} />
             <SettingToggle checked={settings.orders?.autoStockpileUpdate ?? true} onChange={v => update('orders.autoStockpileUpdate', v)} label="Auto Stockpile Updates" description="Automatically add delivered orders to stockpile" theme={theme} />
             <SettingToggle checked={settings.orders?.lowStockAlerts ?? true} onChange={v => update('orders.lowStockAlerts', v)} label="Low Stock Alerts" description="Get notified when stock is running low" theme={theme} />
-            <SettingToggle checked={settings.notifications?.lowStockAlerts ?? true} onChange={v => update('notifications.lowStockAlerts', v)} label="Low Stock Notifications" description="Get notified when you're down to 3 or fewer vials" theme={theme} />
-            <SettingToggle checked={settings.notifications?.orderStatusUpdates ?? true} onChange={v => update('notifications.orderStatusUpdates', v)} label="Order Status Updates" description="Get notified about order arrivals and status changes" theme={theme} />
-            <SettingToggle checked={settings.notifications?.washoutReminders ?? true} onChange={v => update('notifications.washoutReminders', v)} label="Washout Reminders" description="Get reminded about washout periods between protocols" theme={theme} />
-            <SettingToggle checked={settings.notifications?.cycleReminders ?? true} onChange={v => update('notifications.cycleReminders', v)} label="Cycle Reminders" description="Get reminded about upcoming protocol cycles" theme={theme} />
-            <SettingToggle checked={settings.ui?.showTooltips ?? true} onChange={v => update('ui.showTooltips', v)} label="Show Tooltips" description="Display helpful tooltips throughout the app" theme={theme} />
-            <SettingToggle checked={settings.ui?.animationsEnabled ?? true} onChange={v => update('ui.animationsEnabled', v)} label="Animations" description="Enable smooth animations and transitions" theme={theme} />
             <SettingSelect label="Week Starts On" value={settings.region.weekStartsOn} onChange={e => update('region.weekStartsOn', e.target.value)} options={[{ value: 'sunday', label: 'Sunday' }, { value: 'monday', label: 'Monday' }]} theme={theme} />
             <SettingSelect label="Language" value={settings.region.language} onChange={e => update('region.language', e.target.value)} options={[{ value: 'en-US', label: 'English (US)' }, { value: 'en-GB', label: 'English (UK)' }, { value: 'es-ES', label: 'Español (ES)' }]} theme={theme} />
             <SettingSelect label="Currency" value={settings.region.currency} onChange={e => update('region.currency', e.target.value)} options={currencyOptions} theme={theme} />

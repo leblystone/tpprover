@@ -75,7 +75,13 @@ exports.testEmailSystem = onCall(
         emailResult = true;
       } catch (error) {
         logger.error('❌ Direct SendGrid failed:', error);
+        logger.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          response: error.response?.body
+        });
         emailResult = false;
+        emailName = error.message || 'SendGrid API error';
       }
       
       emailName = 'Welcome Email';

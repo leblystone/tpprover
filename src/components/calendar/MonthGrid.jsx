@@ -48,8 +48,32 @@ function getMonthDays(date) {
   const start = new Date(date.getFullYear(), date.getMonth(), 1)
   const end = new Date(date.getFullYear(), date.getMonth() + 1, 0)
   const days = []
-  const firstWeekday = start.getDay() // 0-6
-  for (let i = 0; i < firstWeekday; i++) days.push(null)
+  
+  // Get week starts on setting
+  const weekStartsOn = (() => {
+    try {
+      const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      return settings.region?.weekStartsOn || 'monday';
+    } catch {
+      return 'monday';
+    }
+  })();
+  
+  const firstWeekday = start.getDay() // 0-6 (0=Sunday, 6=Saturday)
+  
+  // Calculate padding days before the first day
+  let paddingDays = 0;
+  if (weekStartsOn === 'sunday') {
+    // No padding if Sunday start (day 0)
+    paddingDays = firstWeekday;
+  } else {
+    // Monday start: Sunday (0) needs 1 day of padding
+    // Monday (1) needs 0 days of padding
+    // Tuesday (2) needs 1 day of padding, etc.
+    paddingDays = (firstWeekday + 6) % 7;
+  }
+  
+  for (let i = 0; i < paddingDays; i++) days.push(null)
   for (let d = 1; d <= end.getDate(); d++) days.push(new Date(date.getFullYear(), date.getMonth(), d))
   return days
 }
@@ -103,7 +127,20 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
       weeks.push(days.slice(i, i + 7));
   }
 
-  const weekdayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  // Get week starts on setting and build appropriate headers
+  const weekStartsOn = (() => {
+    try {
+      const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      return settings.region?.weekStartsOn || 'monday';
+    } catch {
+      return 'monday';
+    }
+  })();
+  
+  const weekdayHeaders = weekStartsOn === 'sunday' 
+    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  
   return (
     <div className="h-full flex flex-col">
       <div className="grid grid-cols-7 text-xs mb-2" style={{ color: theme.textLight }}>
