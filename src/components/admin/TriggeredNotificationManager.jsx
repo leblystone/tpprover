@@ -77,6 +77,123 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
       timezone: 'user_local',
       preferredTime: '10:00'
     }
+  },
+  researchReminders: {
+    id: 'researchReminders',
+    name: 'Research Reminders',
+    title: '⏰ Research Reminder',
+    body: 'Time for your {peptideName} dose! You have {count} research tasks scheduled for today.',
+    enabled: true,
+    triggers: {
+      type: 'time_based',
+      condition: 'daily_reminder',
+      delay: 0,
+      unit: 'hours',
+      time: '09:00'
+    },
+    targeting: {
+      audience: 'active_users',
+      conditions: [
+        { field: 'has_active_protocol', operator: 'equals', value: true }
+      ]
+    },
+    scheduling: {
+      active: true,
+      timezone: 'user_local',
+      preferredTime: '09:00'
+    }
+  },
+  groupBuys: {
+    id: 'groupBuys',
+    name: 'Group Buy Updates',
+    title: '👥 Group Buy Available!',
+    body: 'New group buy opportunity for {peptideName} at {price}. Limited time offer!',
+    enabled: true,
+    triggers: {
+      type: 'data_condition',
+      condition: 'group_buy_available',
+      checkInterval: 'hourly'
+    },
+    targeting: {
+      audience: 'all_users',
+      conditions: [
+        { field: 'group_buy_notifications', operator: 'equals', value: true }
+      ]
+    },
+    scheduling: {
+      active: true,
+      timezone: 'user_local',
+      quietHours: { start: '22:00', end: '08:00' }
+    }
+  },
+  orderStatusUpdates: {
+    id: 'orderStatusUpdates',
+    name: 'Order Status Updates',
+    title: '📦 Order Update',
+    body: 'Your order #{orderId} status has been updated to {orderStatus}.',
+    enabled: true,
+    triggers: {
+      type: 'data_condition',
+      condition: 'order_status_change',
+      checkInterval: 'realtime'
+    },
+    targeting: {
+      audience: 'all_users',
+      conditions: [
+        { field: 'has_active_orders', operator: 'equals', value: true }
+      ]
+    },
+    scheduling: {
+      active: true,
+      timezone: 'user_local'
+    }
+  },
+  washoutReminders: {
+    id: 'washoutReminders',
+    name: 'Washout Reminders',
+    title: '⏳ Washout Period',
+    body: 'Your {protocolName} cycle is complete. Start your {days}-day washout period.',
+    enabled: true,
+    triggers: {
+      type: 'user_event',
+      event: 'protocol_completed',
+      delay: 0
+    },
+    targeting: {
+      audience: 'all_users',
+      conditions: [
+        { field: 'has_completed_protocol', operator: 'equals', value: true }
+      ]
+    },
+    scheduling: {
+      active: true,
+      timezone: 'user_local',
+      preferredTime: '10:00'
+    }
+  },
+  cycleReminders: {
+    id: 'cycleReminders',
+    name: 'Cycle Reminders',
+    title: '🔄 Cycle Starting Soon',
+    body: 'Your {cycleName} cycle starts in {days} days. Prepare your research materials.',
+    enabled: true,
+    triggers: {
+      type: 'time_based',
+      condition: 'cycle_start_reminder',
+      delay: 1, // 1 day before
+      unit: 'days'
+    },
+    targeting: {
+      audience: 'all_users',
+      conditions: [
+        { field: 'has_scheduled_cycle', operator: 'equals', value: true }
+      ]
+    },
+    scheduling: {
+      active: true,
+      timezone: 'user_local',
+      preferredTime: '09:00'
+    }
   }
 };
 
