@@ -6,7 +6,7 @@ import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
 import { createCheckoutSession } from '../services/stripe';
 import { STRIPE_CONFIG } from '../config/stripe';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 
 export default function TrialExpired() {
   const theme = themes[defaultThemeName];

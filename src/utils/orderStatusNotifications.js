@@ -75,8 +75,8 @@ export async function sendOrderArrivedNotification(notification) {
       await pwaService.sendPWANotification({
         title: notification.template.title,
         body: notification.template.body,
-        icon: '/tpp-logo.png',
-        badge: '/tpp-logo.png',
+        icon: '/tpp_logo.png',
+        badge: '/tpp_logo.png',
         tag: `order-arrived-${notification.order.id}`,
         data: {
           type: notification.type,
@@ -122,8 +122,8 @@ export async function sendOrderStatusNotification(notification) {
       await pwaService.sendPWANotification({
         title: notification.template.title,
         body: notification.template.body,
-        icon: '/tpp-logo.png',
-        badge: '/tpp-logo.png',
+        icon: '/tpp_logo.png',
+        badge: '/tpp_logo.png',
         tag: `order-status-${notification.order.id}`,
         data: {
           type: notification.type,

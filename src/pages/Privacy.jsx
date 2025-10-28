@@ -1,7 +1,7 @@
 import React from 'react';
 import { Shield, Lock, Eye, Database, UserCheck, Globe } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 
 export default function Privacy() {
   const theme = themes[defaultThemeName];

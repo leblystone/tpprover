@@ -484,9 +484,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         const { plan } = confirmData;
         
         // Show processing message
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '🔄 Processing your subscription...', type: 'info' } 
-        }));
 
         // ALL users must go through Stripe checkout for ANY paid plan
         try {
@@ -512,9 +509,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         const { subscription } = confirmData;
         
         // Show processing message
-        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '🔄 Cancelling your subscription...', type: 'info' } 
-        }));
         
         try {
           // If it's a Stripe subscription, cancel through Stripe

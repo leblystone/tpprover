@@ -42,7 +42,7 @@ class UnifiedNotificationService {
     try {
       const notification = pwaNotificationService.showNotification(title, {
         body: options.body,
-        icon: options.icon || '/tpp-logo.png',
+        icon: options.icon || '/tpp_logo.png',
         tag: options.tag || 'tpp-notification',
         data: options.data || {}
       });
@@ -92,7 +92,7 @@ class UnifiedNotificationService {
         schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay (same as Settings)
         sound: 'default',
         smallIcon: 'ic_launcher', // Use app icon as notification icon
-        largeIcon: 'tpp-logo', // Use app logo for large icon in Android
+        largeIcon: 'tpp_logo', // Use app logo for large icon in Android
         attachments: [],
         actionTypeId: '',
         extra: { 

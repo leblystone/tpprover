@@ -2,7 +2,7 @@
 import React from 'react';
 import { Rocket, Clock } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 
 export default function LaunchComingSoon() {
   const theme = themes[defaultThemeName];

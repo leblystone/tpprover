@@ -150,7 +150,7 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
       pwaNotificationService.showNotification(processedTemplate.title, {
         body: processedTemplate.body,
         tag: `template-preview-${selectedTemplate}`,
-        icon: '/tpp-logo.png',
+        icon: '/tpp_logo.png',
         data: {
           path: processedTemplate.actionUrl || '/app/dashboard'
         }

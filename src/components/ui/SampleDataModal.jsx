@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../../assets/tpp-logo.png';
+import logo from '../../assets/tpp_logo.png';
 
 export default function SampleDataModal({ open, onClose, onAddSampleData, theme, isLoading }) {
     if (!open) return null;

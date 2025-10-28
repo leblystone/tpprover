@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, User, ArrowRight, Search, Filter, BookOpen, FileText, Video, Download } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 
 export default function Blog() {
   const theme = themes[defaultThemeName];

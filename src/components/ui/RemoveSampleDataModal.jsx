@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../../assets/tpp-logo.png';
+import logo from '../../assets/tpp_logo.png';
 
 export default function RemoveSampleDataModal({ open, onClose, onRemoveSampleData, theme, isLoading }) {
     if (!open) return null;

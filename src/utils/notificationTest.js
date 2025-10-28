@@ -102,8 +102,8 @@ async function testNotificationDisplay() {
 
     const notification = new Notification('PWA Test Notification', {
       body: 'This is a test notification from The Pep Planner PWA',
-      icon: '/tpp-logo.png',
-      badge: '/tpp-logo.png',
+      icon: '/tpp_logo.png',
+      badge: '/tpp_logo.png',
       tag: 'pwa-test',
       requireInteraction: false,
       silent: false
@@ -161,8 +161,8 @@ export function showPWANotification(title, options = {}) {
   }
 
   const defaultOptions = {
-    icon: '/tpp-logo.png',
-    badge: '/tpp-logo.png',
+    icon: '/tpp_logo.png',
+    badge: '/tpp_logo.png',
     tag: 'tpp-notification',
     requireInteraction: false,
     silent: false

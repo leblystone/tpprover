@@ -28,7 +28,7 @@ import {
   BookOpen,
   Layers
 } from 'lucide-react';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 import LandingTermsModal from '../components/legal/LandingTermsModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';

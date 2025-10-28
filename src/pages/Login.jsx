@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Clock } from 'lucide-react';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import SignupAgreementModal from '../components/legal/SignupAgreementModal';

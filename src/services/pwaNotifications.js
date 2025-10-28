@@ -70,7 +70,7 @@ class PWANotificationService {
         payload.notification?.title || 'New Update',
         {
           body: payload.notification?.body || 'You have a new notification',
-          icon: payload.notification?.icon || '/tpp-logo.png',
+          icon: payload.notification?.icon || '/tpp_logo.png',
           data: payload.data
         }
       );
@@ -105,7 +105,7 @@ class PWANotificationService {
         // Show a welcome notification
         this.showNotification('Notifications Enabled!', {
           body: 'You\'ll now receive important updates from The Pep Planner',
-          icon: '/tpp-logo.png',
+          icon: '/tpp_logo.png',
           tag: 'permission-granted'
         });
       }
@@ -187,8 +187,8 @@ class PWANotificationService {
     }
 
     const defaultOptions = {
-      icon: '/tpp-logo.png',
-      badge: '/tpp-logo.png',
+      icon: '/tpp_logo.png',
+      badge: '/tpp_logo.png',
       tag: 'tpp-notification',
       requireInteraction: false,
       silent: false,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Star, Zap, Shield, Users } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 
 export default function Pricing() {
   const theme = themes[defaultThemeName];

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Star, Mail, Phone, Globe, MessageSquare, CreditCard, Banknote, Coins, Wallet, Landmark } from 'lucide-react';
 import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaFacebook } from 'react-icons/fa';
-import logo from '../../assets/tpp-logo.png';
+import logo from '../../assets/tpp_logo.png';
 
 const GOOD_LABELS = ['Reliable', 'Fast Shipping', 'Overfill', 'Vetted'];
 const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'Out of Service'];

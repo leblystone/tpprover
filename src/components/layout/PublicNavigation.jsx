@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { themes, defaultThemeName } from '../../theme/themes';
-import logo from '../../assets/tpp-logo.png';
+import logo from '../../assets/tpp_logo.png';
 
 export default function PublicNavigation() {
   const theme = themes[defaultThemeName];

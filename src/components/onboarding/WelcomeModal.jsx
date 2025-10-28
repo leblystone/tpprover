@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import logo from '../../assets/tpp-logo.png';
+import logo from '../../assets/tpp_logo.png';
 
 export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
     // Set session flag when modal is actually displayed

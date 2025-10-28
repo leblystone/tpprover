@@ -1,7 +1,7 @@
 import React from 'react';
 import { Play, Calendar, Target, Clock, FileText, Droplet, Repeat, RotateCw, Layers, TrendingUp } from 'lucide-react';
 import { formatMMDDYYYY } from '../../utils/date';
-import logo from '../../assets/tpp-logo.png';
+import logo from '../../assets/tpp_logo.png';
 
 // Sage theme colors - fixed for shared content
 const sageTheme = {

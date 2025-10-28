@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 import { decodeShareData } from '../utils/share';
 
 import SharedProtocolCard from '../components/share/SharedProtocolCard';

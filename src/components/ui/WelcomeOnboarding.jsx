@@ -30,7 +30,7 @@ export default function WelcomeOnboarding({ theme }) {
 			<div className="relative mx-4 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden" style={{ backgroundColor: theme?.white }}>
 				<div className="p-8">
 					<div className="flex items-center gap-3 mb-4">
-						<img src="/tpp-logo.png" alt="TPP" className="w-10 h-10 rounded" />
+						<img src="/tpp_logo.png" alt="TPP" className="w-10 h-10 rounded" />
 						<h2 className="text-2xl font-extrabold tracking-tight" style={{ color: theme?.primaryDark }}>Welcome to The Pep Planner</h2>
 					</div>
 					<p className="text-sm mb-6" style={{ color: theme?.text }}>

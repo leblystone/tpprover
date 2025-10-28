@@ -7,7 +7,7 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/tpp-logo.png'
+  '/tpp_logo.png'
 ];
 
 // Install event - cache static assets
@@ -182,14 +182,14 @@ self.addEventListener('push', event => {
     data = {
       title: 'The Pep Planner',
       body: 'You have a new notification',
-      icon: '/tpp-logo.png'
+      icon: '/tpp_logo.png'
     };
   }
 
   const options = {
     body: data.body || 'You have a new update',
-    icon: data.icon || '/tpp-logo.png',
-    badge: data.badge || '/tpp-logo.png',
+    icon: data.icon || '/tpp_logo.png',
+    badge: data.badge || '/tpp_logo.png',
     tag: data.tag || 'tpp-notification',
     data: data.data || {},
     requireInteraction: data.requireInteraction || false,

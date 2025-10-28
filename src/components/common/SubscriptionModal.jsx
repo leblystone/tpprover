@@ -14,9 +14,6 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
     setIsProcessing(true);
     
     // Show processing message
-    window.dispatchEvent(new CustomEvent('tpp:toast', { 
-      detail: { message: '🔄 Redirecting to Stripe checkout...', type: 'info' } 
-    }));
     
     try {
       // Determine the correct Stripe price ID based on plan

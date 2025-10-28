@@ -56,8 +56,8 @@ export async function sendLowStockNotification(item) {
       await pwaService.sendPWANotification({
         title: template.title,
         body: template.body,
-        icon: '/tpp-logo.png',
-        badge: '/tpp-logo.png',
+        icon: '/tpp_logo.png',
+        badge: '/tpp_logo.png',
         tag: `low-stock-${item.id}`,
         data: {
           type: 'lowStock',

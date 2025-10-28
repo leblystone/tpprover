@@ -217,7 +217,7 @@ export default function TriggeredNotificationManager({ theme }) {
           pwaNotificationService.showNotification(processed, {
             body: processedBody,
             tag: `test-pwa-${notification.id}`,
-            icon: '/tpp-logo.png'
+            icon: '/tpp_logo.png'
           });
           pwaSuccess = true;
         }

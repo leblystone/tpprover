@@ -4,8 +4,9 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const emailService = require('./emailService');
+
+// DO NOT use dotenv here - it's corrupting the .env file
 
 /**
  * Stripe Webhook Handler
@@ -15,16 +16,21 @@ const emailService = require('./emailService');
 exports.stripeWebhook = onRequest(
   {
     cors: true,
-    secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
+    invoker: 'public' // Allow unauthenticated access for Stripe webhooks
   },
   async (request, response) => {
     const sig = request.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     let event;
 
     try {
-      event = stripe.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
+      // Use webhook secret from environment
+      const webhookSecret = functions.config().stripe.webhook_secret;
+      
+      // Create Stripe instance with secret key from environment
+      const stripeSecretKey = functions.config().stripe.secret_key;
+      const stripeInstance = require('stripe')(stripeSecretKey);
+      event = stripeInstance.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
     } catch (err) {
       logger.error(`❌ Webhook signature verification failed: ${err.message}`);
       return response.status(400).send(`Webhook Error: ${err.message}`);
@@ -76,6 +82,19 @@ exports.stripeWebhook = onRequest(
 
         case 'charge.failed':
           await handleChargeFailed(event);
+          break;
+
+        // Dispute Events (for chargebacks, not refunds)
+        case 'charge.dispute.created':
+          await handleDisputeCreated(event);
+          break;
+
+        case 'charge.dispute.updated':
+          await handleDisputeUpdated(event);
+          break;
+
+        case 'charge.dispute.closed':
+          await handleDisputeClosed(event);
           break;
 
         default:
@@ -394,4 +413,73 @@ async function handleChargeFailed(event) {
     currency: charge.currency,
     timestamp: admin.firestore.FieldValue.serverTimestamp()
   });
+}
+
+/**
+ * Handle dispute created (chargeback)
+ */
+async function handleDisputeCreated(event) {
+  const dispute = event.data.object;
+  logger.info(`🚨 Dispute created: ${dispute.id} for charge: ${dispute.charge}`);
+
+  // Get customer email
+  const charge = await stripe.charges.retrieve(dispute.charge);
+  const customer = await stripe.customers.retrieve(charge.customer);
+  const userEmail = customer.email;
+
+  if (!userEmail) {
+    logger.warn('⚠️ No email found for disputed charge');
+    return;
+  }
+
+  // Send dispute notification email
+  await emailService.sendDisputeNotificationEmail(userEmail, dispute.reason, dispute.amount);
+
+  logger.info(`✅ Dispute notification sent to: ${userEmail}`);
+}
+
+/**
+ * Handle dispute updated
+ */
+async function handleDisputeUpdated(event) {
+  const dispute = event.data.object;
+  logger.info(`📝 Dispute updated: ${dispute.id} - Status: ${dispute.status}`);
+
+  // Get customer email
+  const charge = await stripe.charges.retrieve(dispute.charge);
+  const customer = await stripe.customers.retrieve(charge.customer);
+  const userEmail = customer.email;
+
+  if (!userEmail) {
+    logger.warn('⚠️ No email found for disputed charge');
+    return;
+  }
+
+  // Send dispute status update email
+  await emailService.sendDisputeStatusUpdateEmail(userEmail, dispute.status, dispute.reason);
+
+  logger.info(`✅ Dispute status update sent to: ${userEmail}`);
+}
+
+/**
+ * Handle dispute closed
+ */
+async function handleDisputeClosed(event) {
+  const dispute = event.data.object;
+  logger.info(`✅ Dispute closed: ${dispute.id} - Status: ${dispute.status}`);
+
+  // Get customer email
+  const charge = await stripe.charges.retrieve(dispute.charge);
+  const customer = await stripe.customers.retrieve(charge.customer);
+  const userEmail = customer.email;
+
+  if (!userEmail) {
+    logger.warn('⚠️ No email found for disputed charge');
+    return;
+  }
+
+  // Send dispute resolution email
+  await emailService.sendDisputeResolutionEmail(userEmail, dispute.status, dispute.reason);
+
+  logger.info(`✅ Dispute resolution sent to: ${userEmail}`);
 }

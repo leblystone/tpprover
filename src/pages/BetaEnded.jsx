@@ -2,7 +2,7 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp-logo.png';
+import logo from '../assets/tpp_logo.png';
 
 export default function BetaEnded() {
   const theme = themes[defaultThemeName];

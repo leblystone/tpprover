@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import logo from '../../assets/tpp-logo.png'
+import logo from '../../assets/tpp_logo.png'
 
 export default function MobileSidebar({ open, onClose, theme }) {
   const [visible, setVisible] = useState(false)

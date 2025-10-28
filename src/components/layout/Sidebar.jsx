@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
 import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare } from 'lucide-react'
-import logo from '../../assets/tpp-logo.png'
+import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 

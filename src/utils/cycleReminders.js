@@ -130,8 +130,8 @@ export async function sendCycleReminder(reminder) {
       await pwaService.sendPWANotification({
         title: reminder.template.title,
         body: reminder.template.body,
-        icon: '/tpp-logo.png',
-        badge: '/tpp-logo.png',
+        icon: '/tpp_logo.png',
+        badge: '/tpp_logo.png',
         tag: `cycle-reminder-${reminder.protocol.id}`,
         data: {
           type: reminder.type,
@@ -174,8 +174,8 @@ export async function sendWashoutReminder(reminder) {
       await pwaService.sendPWANotification({
         title: reminder.template.title,
         body: reminder.template.body,
-        icon: '/tpp-logo.png',
-        badge: '/tpp-logo.png',
+        icon: '/tpp_logo.png',
+        badge: '/tpp_logo.png',
         tag: `washout-reminder-${reminder.protocol.id}`,
         data: {
           type: reminder.type,

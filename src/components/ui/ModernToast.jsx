@@ -80,12 +80,13 @@ const ModernToast = ({ message, type, onClose, theme }) => {
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 max-w-sm w-full transition-all duration-200 ease-out ${
+      className={`fixed right-4 z-50 max-w-sm w-full transition-all duration-200 ease-out ${
         isVisible && !isLeaving 
           ? 'opacity-100 translate-x-0' 
           : 'opacity-0 translate-x-full'
       }`}
       style={{
+        top: 'env(safe-area-inset-top, 1rem)',
         transform: isVisible && !isLeaving ? 'translateX(0)' : 'translateX(100%)',
       }}
     >

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import logo from '../../assets/tpp-logo.png'
+import logo from '../../assets/tpp_logo.png'
 
 export default function OverlayTour({ open, steps, currentIndex, onIndexChange, onFinish, theme, onRequestInstall }) {
 	const [positions, setPositions] = useState({})
