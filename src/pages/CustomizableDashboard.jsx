@@ -102,7 +102,7 @@ export default function CustomizableDashboard() {
 
   // Don't do anything special on mount - Login.jsx handles everything
   useEffect(() => {
-    console.log('✅ Dashboard mounted successfully');
+
   }, []); // Run once on mount
 
   // Compute dashboard data
@@ -210,7 +210,7 @@ export default function CustomizableDashboard() {
   // Listen for autosave changes to protocols
   useEffect(() => {
     const handleAutosaveChange = () => {
-      console.log('📝 Autosave detected - checking for protocol updates');
+
       // Force task regeneration by updating calendarBump
       setCalendarBump(Date.now());
     };
@@ -225,11 +225,7 @@ export default function CustomizableDashboard() {
 
   // Generate today's tasks from supplements and protocols
   useEffect(() => {
-    console.log('🔄 CustomizableDashboard: Regenerating tasks', { 
-      protocolsCount: protocols.length, 
-      supplementsCount: supplements.length,
-      calendarBump 
-    });
+
     const tasks = [];
     const today = new Date();
     const todayKey = today.toISOString().split('T')[0];
@@ -270,7 +266,7 @@ export default function CustomizableDashboard() {
         if (draftData) {
           const parsed = JSON.parse(draftData);
           if (parsed.data && Object.keys(parsed.data).length > 0) {
-            console.log('📝 Using autosaved draft data for protocol:', protocol.protocolName);
+
             protocolData = { ...protocol, ...parsed.data };
           }
         }
@@ -341,8 +337,7 @@ export default function CustomizableDashboard() {
             administrationRoute: administrationRoute,
             completed: false
           };
-          
-          
+
           // Generate stable task ID and check completion status
           const taskId = generateTaskId(task);
           task.stableTaskId = taskId;
@@ -398,11 +393,10 @@ export default function CustomizableDashboard() {
   };
 
   const handleMoveWidget = (draggedWidgetId, targetWidgetId) => {
-    console.log('🔥 handleMoveWidget called:', { draggedWidgetId, targetWidgetId });
-    
+
     // If it's the old position-based system, handle it differently
     if (typeof targetWidgetId === 'object') {
-      console.log('📍 Position-based move (old system)');
+
       const newPosition = targetWidgetId;
       setWidgets(prev => prev.map(w => {
         if (w.id === draggedWidgetId) {
@@ -417,15 +411,13 @@ export default function CustomizableDashboard() {
     }
     
     // Handle widget reordering for drag and drop
-    console.log('🔄 Starting widget reorder...');
+
     setWidgets(prev => {
       console.log('📦 Current widgets before move:', prev.map(w => ({ id: w.id, type: w.type })));
       
       const draggedIndex = prev.findIndex(w => w.id === draggedWidgetId);
       const targetIndex = prev.findIndex(w => w.id === targetWidgetId);
-      
-      console.log('📍 Indices:', { draggedIndex, targetIndex });
-      
+
       if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
         return prev;
       }
@@ -434,8 +426,7 @@ export default function CustomizableDashboard() {
       const newWidgets = [...prev];
       const [draggedWidget] = newWidgets.splice(draggedIndex, 1);
       newWidgets.splice(targetIndex, 0, draggedWidget);
-      
-      
+
       // Save the new layout
       saveDashboardLayout(newWidgets);
       
@@ -476,14 +467,7 @@ export default function CustomizableDashboard() {
     const taskId = task.stableTaskId || generateTaskId(task);
     const currentlyCompleted = isTaskCompleted(taskId, dateKey, task.time);
     const newCompletedState = !currentlyCompleted;
-    
-    console.log('🔄 Dashboard: Toggling task', {
-      taskName: task.name,
-      taskId,
-      dateKey,
-      newCompletedState
-    });
-    
+
     // Toggle in the unified system (this will dispatch the global event)
     toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
     
@@ -815,7 +799,6 @@ export default function CustomizableDashboard() {
           addToast('Supplement saved', 'success');
         }}
       />
-
 
       <ProtocolEditorModal
         open={showNewProtocol}

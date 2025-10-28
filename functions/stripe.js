@@ -3,7 +3,7 @@ const {onCall} = require("firebase-functions/v2/https");
 // Load environment variables from .env file (Firebase Functions v2)
 require('dotenv').config();
 
-// Use environment variable for Stripe secret key (v2 functions)
+// Use Firebase Secret Manager for Stripe secret key (secure)
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 
 if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY === 'sk_test_fallback_key') {

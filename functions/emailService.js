@@ -97,6 +97,30 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
 };
 
 /**
+ * Send custom password reset email with Firebase token
+ */
+exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
+  const resetLink = `https://thepepplanner.app/reset-password?token=${resetToken}`;
+  
+  // Try to load custom template from Firestore, fallback to hardcoded
+  try {
+    const customTemplate = await loadEmailTemplate('passwordReset');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Reset your password for The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { resetLink });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (error) {
+    logger.warn('Failed to load custom password reset template, using default:', error);
+  }
+  
+  // Fallback to hardcoded template
+  const subject = 'Reset your password for The Pep Planner';
+  const html = emailTemplates.passwordResetEmail(resetLink, userEmail);
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
  * Send custom verification email with Firebase token
  */
 exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {

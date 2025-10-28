@@ -11,7 +11,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
   import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
   import { handleCheckoutReturn } from '../utils/checkoutNavigation'
   import { STRIPE_CONFIG } from '../config/stripe'
-  import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
+  import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
   import { useFirebase } from '../context/FirebaseContext'
   import { verifyStripeConfig } from '../utils/stripe-verify'
   import { getLatestAgreement, AGREEMENT_TYPES } from '../services/agreementTracking'
@@ -334,24 +334,39 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
       }
     }
     
-    // Send password reset email
+    // Send password reset email using custom SendGrid service
     const sendPasswordReset = async () => {
-      if (!user?.email) return;
+      if (!firebaseUser) return;
       
       try {
-        const auth = getAuth();
-        await sendPasswordResetEmail(auth, user.email, {
-          url: window.location.origin + '/login',
-          handleCodeInApp: false
-        });
+        console.log('🔐 Sending custom password reset email...');
+        
+        // Call the custom password reset email function
+        const { getFunctions, httpsCallable } = await import('firebase/functions');
+        const functions = getFunctions();
+        const sendCustomPasswordResetEmail = httpsCallable(functions, 'sendCustomPasswordResetEmail');
+        
+        const result = await sendCustomPasswordResetEmail();
+        
+        console.log('✅ Custom password reset email result:', result.data);
         
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '📧 Password reset email sent! Check your inbox.', type: 'success' } 
+          detail: { message: '📧 Password reset email sent! Check your inbox and spam folder.', type: 'success' } 
         }));
       } catch (error) {
         console.error('❌ Password reset error:', error);
+        
+        let errorMessage = 'Failed to send password reset email. ';
+        if (error.code === 'functions/too-many-requests') {
+          errorMessage += 'Too many requests. Please try again later.';
+        } else if (error.message?.includes('SendGrid')) {
+          errorMessage += 'Email service temporarily unavailable. Please try again later.';
+        } else {
+          errorMessage += error.message || 'Please try again.';
+        }
+        
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Failed to send password reset email. Please try again.', type: 'error' } 
+          detail: { message: errorMessage, type: 'error' } 
         }));
       }
     }

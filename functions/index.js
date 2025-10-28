@@ -10,6 +10,8 @@ const testEmailSystem = require('./testEmailSystem');
 const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
 const stripeWebhooks = require('./stripeWebhooks');
+// Test webhook email simulation
+const testWebhookSimulation = require('./testWebhookSimulation');
 
 admin.initializeApp();
 
@@ -448,6 +450,56 @@ exports.getEmailStats = emailAutomation.getEmailStats;
 // Stripe Webhook Handler
 exports.stripeWebhook = stripeWebhooks.stripeWebhook;
 
+// Test webhook email simulation (safe testing)
+exports.testWebhookEmails = testWebhookSimulation.testWebhookEmails;
+
+// Custom password reset function
+exports.sendCustomPasswordResetEmail = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new Error('User must be authenticated');
+    }
+
+    const userId = request.auth.uid;
+    
+    // Get user's email from Firebase Auth
+    const userRecord = await admin.auth().getUser(userId);
+    const userEmail = userRecord.email;
+
+    logger.info(`🔐 Sending custom password reset email to: ${userEmail}`);
+
+    try {
+      // Generate a custom password reset token
+      const resetToken = require('crypto').randomBytes(32).toString('hex');
+      
+      // Store the token in Firestore with expiration (1 hour)
+      const tokenRef = admin.firestore().collection('passwordResetTokens').doc(resetToken);
+      await tokenRef.set({
+        userId,
+        userEmail,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+        used: false
+      });
+
+      // Send custom password reset email via SendGrid
+      await emailService.sendCustomPasswordResetEmail(userEmail, resetToken);
+      
+      logger.info(`✅ Custom password reset email sent to: ${userEmail}`);
+      return { success: true, message: 'Password reset email sent' };
+      
+    } catch (error) {
+      logger.error('❌ Failed to send custom password reset email:', error);
+      throw new Error('Failed to send password reset email');
+    }
+  }
+);
+
 // Custom email verification function
 exports.sendCustomVerificationEmail = onCall(
   {
@@ -460,8 +512,11 @@ exports.sendCustomVerificationEmail = onCall(
     throw new Error('User must be authenticated');
   }
 
-  const { userEmail } = request.data;
   const userId = request.auth.uid;
+  
+  // Get user's email from Firebase Auth
+  const userRecord = await admin.auth().getUser(userId);
+  const userEmail = userRecord.email;
 
   logger.info(`📧 Sending custom verification email to: ${userEmail}`);
 

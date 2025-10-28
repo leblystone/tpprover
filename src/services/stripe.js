@@ -73,9 +73,6 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
       }));
       throw new Error('User must be authenticated to purchase a subscription');
     }
-
-    console.log('🔄 Creating Stripe checkout session...', { priceId, userEmail });
-    
     // Store current location for return navigation (if not explicitly provided)
     if (!returnPath) {
       storeCheckoutReturnPath();
@@ -113,14 +110,12 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
       throw funcError; // Re-throw other errors
     }
 
-
     const stripe = await stripePromise;
     
     if (!stripe) {
       throw new Error('Stripe not initialized - payment processor unavailable');
     }
-    
-    
+
     // Redirect to Stripe Checkout
     const checkoutResult = await stripe.redirectToCheckout({
       sessionId: result.data.id,
@@ -131,7 +126,6 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
     }
     
     // If we reach here, redirect succeeded - any "return" is user navigation
-    console.log('✅ Redirected to Stripe checkout successfully');
   } catch (error) {
     // Check if this is a user navigation/cancellation (not a real error)
     const isUserNavigation = error.message?.includes('Failed to redirect') || 
@@ -141,7 +135,6 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
     
     // If user just navigated back (cancelled), don't show error
     if (isUserNavigation && !error.code) {
-      console.log('ℹ️ User returned from checkout (likely abandoned cart) - this is normal');
       return; // Silent return, no error needed
     }
     
@@ -207,8 +200,6 @@ export async function createPortalSession(customerId) {
       }));
       return;
     }
-    
-    console.log('🔄 Opening Stripe Customer Portal...');
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { 
         message: 'Opening billing portal...', 
@@ -263,7 +254,6 @@ export async function updatePaymentMethod(customerId) {
   try {
     const auth = getAuth();
     if (!auth.currentUser) {
-      console.log('🎭 User not authenticated - running in demo mode');
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { 
           message: '🎭 Demo: Payment method update would open here', 
@@ -307,7 +297,6 @@ export async function downloadInvoiceReceipt(invoiceId, customerId) {
   try {
     const auth = getAuth();
     if (!auth.currentUser) {
-      console.log('🎭 User not authenticated - running in demo mode');
       // Demo receipt
       const demoReceipt = {
         receiptNumber: 'TPP-DEMO123',
@@ -418,7 +407,6 @@ export async function cancelSubscription(subscriptionId) {
   try {
     const auth = getAuth();
     if (!auth.currentUser) {
-      console.log('🎭 User not authenticated - running in demo mode');
       // For demo - simulate cancellation
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('stripe:subscription:cancelled', {

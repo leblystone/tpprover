@@ -51,13 +51,10 @@ async function savePushTokenToFirestore(token) {
         lastUpdated: serverTimestamp()
       }
     }, { merge: true });
-
-    console.log('✅ FCM token saved to Firestore for user:', user.email);
   } catch (error) {
     console.error('❌ Failed to save FCM token to Firestore:', error);
   }
 }
-
 
 // Settings persistence (local-only)
 export function loadSettings() {
@@ -511,10 +508,8 @@ export default function Settings() {
         // Try to parse as JSON first, then fall back to CSV
         try {
           data = JSON.parse(text);
-          console.log('Successfully parsed as JSON');
         } catch (jsonError) {
           // If JSON parsing fails, try to parse as CSV
-          console.log('Not JSON, trying CSV parsing...');
           const lines = text.split('\n').filter(line => line.trim());
           
           if (lines.length === 0) {
@@ -694,7 +689,6 @@ export default function Settings() {
           if (enabled) {
             // FIRST: Add the registration listener BEFORE calling register()
             PushNotifications.addListener('registration', async (token) => {
-              console.log('📱 Push registration token received:', token.value);
               await savePushTokenToFirestore(token.value);
             });
             
@@ -703,13 +697,11 @@ export default function Settings() {
             if (result.receive === 'granted') {
               // Register for push notifications (listener is now ready)
               await PushNotifications.register();
-              console.log('✅ Native push notifications enabled');
             } else {
               throw new Error('Push notification permission denied');
             }
           } else {
             // For disabling, we just update local settings
-            console.log('⚠️ Native push notifications disabled locally');
           }
         } else {
           // Use PWA notifications for web
@@ -758,13 +750,11 @@ export default function Settings() {
     const handleAddSampleData = async () => {
       setIsAddingSampleData(true);
       try {
-        console.log('🔄 Adding sample data...');
         const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
         
         if (firebaseUser) {
           const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
           if (seeded) {
-            console.log('✅ Sample data added - refreshing data...');
             // Clear the "cleared" flag so sample data shows
             localStorage.removeItem('tpprover_sample_data_cleared');
             localStorage.removeItem('tpprover_sample_banner_dismissed');
@@ -794,8 +784,6 @@ export default function Settings() {
     const handleRemoveSampleData = async () => {
       setIsRemovingSampleData(true);
       try {
-        console.log('🔄 Removing sample data...');
-        
         // Clear sample data from localStorage
         clearMockData();
         
@@ -810,8 +798,6 @@ export default function Settings() {
         setShowRemoveSampleDataModal(false);
         setSampleDataAction('removed');
         setShowDemoSuccessModal(true);
-        
-        console.log('✅ Sample data removed successfully');
       } catch (error) {
         console.error('❌ Removing sample data failed:', error);
         alert('Error removing sample data: ' + error.message);
@@ -1079,5 +1065,4 @@ const SettingSelect = ({ label, value, onChange, options, theme }) => (
     </select>
   </div>
 )
-
 

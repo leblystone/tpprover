@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle } from 'lucide-react';
+import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, Zap } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const DEFAULT_TEMPLATES = {
@@ -183,42 +183,63 @@ export default function EmailTemplateManager({ theme }) {
     setTimeout(() => setIsSaving(false), 1000);
   };
 
-  // Send test email for current template
-  const sendTestEmail = async () => {
-    console.log('🧪 Test email button clicked!');
-    console.log('📧 Selected template:', selectedTemplate);
-    console.log('📧 Current template:', currentTemplate);
-    
+  // Test webhook email simulation
+  const testWebhookEmails = async () => {
+
     setIsSendingTest(true);
     setTestResult(null);
 
     try {
-      console.log('🔧 Getting Firebase functions...');
+
       const functions = getFunctions();
-      console.log('🔧 Functions object:', functions);
-      
-      console.log('📞 Creating testEmailSystem callable...');
-      const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
-      console.log('📞 Callable created:', testEmailSystem);
-      
-      console.log('📤 Calling testEmailSystem with data:', { 
-        testEmail: 'thepepplanner@gmail.com',
-        templateType: selectedTemplate,
-        templateData: currentTemplate
+
+      const testWebhookEmails = httpsCallable(functions, 'testWebhookEmails');
+
+      const result = await testWebhookEmails({ 
+        testEmail: 'thepepplanner@gmail.com'
       });
-      
+
+      if (result.data.success) {
+        setTestResult({ 
+          success: true, 
+          message: `✅ Webhook simulation successful! ${result.data.message}` 
+        });
+      } else {
+        setTestResult({ 
+          success: false, 
+          message: result.data.message || 'Webhook simulation failed' 
+        });
+      }
+    } catch (error) {
+      console.error('Webhook simulation error:', error);
+      setTestResult({ 
+        success: false, 
+        message: `Webhook simulation error: ${error.message}` 
+      });
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
+  // Send test email for current template
+  const sendTestEmail = async () => {
+
+    setIsSendingTest(true);
+    setTestResult(null);
+
+    try {
+
+      const functions = getFunctions();
+
+      const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
+
       // Send specific template based on current selection WITH custom template data
       const result = await testEmailSystem({ 
         testEmail: 'thepepplanner@gmail.com',
         templateType: selectedTemplate,
         templateData: currentTemplate // Send the actual custom template
       });
-      
-      console.log('📥 Result received:', result);
-      console.log('📊 Result data:', result.data);
-      console.log('✅ Success status:', result.data.success);
-      console.log('📝 Message:', result.data.message);
-      
+
       if (result.data.success) {
         setTestResult({ 
           success: true, 
@@ -377,7 +398,7 @@ export default function EmailTemplateManager({ theme }) {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              console.log('🔘 Test email button clicked directly!');
+
               sendTestEmail();
             }}
             disabled={isSendingTest}
@@ -393,6 +414,27 @@ export default function EmailTemplateManager({ theme }) {
               <>
                 <Send size={16} />
                 Test {currentTemplate.name}
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => {
+
+              testWebhookEmails();
+            }}
+            disabled={isSendingTest}
+            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+            style={{ backgroundColor: theme.secondary, color: theme.text }}
+          >
+            {isSendingTest ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                Testing...
+              </>
+            ) : (
+              <>
+                <Zap size={16} />
+                Test Webhook Flow
               </>
             )}
           </button>

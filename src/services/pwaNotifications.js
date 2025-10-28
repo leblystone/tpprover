@@ -47,15 +47,9 @@ class PWANotificationService {
       this.messaging = getMessaging();
       this.setupFirebaseMessaging();
     } catch (error) {
-      console.log('Firebase messaging not available, using native notifications only');
+
     }
 
-    console.log('🔔 PWA Notification Service initialized:', {
-      supported: this.isSupported,
-      permission: this.permissionStatus,
-      serviceWorker: !!this.serviceWorkerRegistration,
-      firebase: !!this.messaging
-    });
   }
 
   setupFirebaseMessaging() {
@@ -63,8 +57,7 @@ class PWANotificationService {
 
     // Handle foreground messages
     onMessage(this.messaging, (payload) => {
-      console.log('Message received in foreground:', payload);
-      
+
       // Show notification even when app is in foreground
       this.showNotification(
         payload.notification?.title || 'New Update',
@@ -132,7 +125,7 @@ class PWANotificationService {
       });
 
       if (token) {
-        console.log('FCM token obtained:', token);
+
         this.pushSubscription = { token };
         
         // Store token in user's document for server-side notifications
@@ -140,7 +133,7 @@ class PWANotificationService {
         
         return token;
       } else {
-        console.log('No registration token available');
+
         return null;
       }
     } catch (error) {
@@ -171,7 +164,6 @@ class PWANotificationService {
         }
       }, { merge: true });
 
-      console.log('Push token saved for user:', user.email);
     } catch (error) {
       console.error('Failed to save push token:', error);
     }
@@ -273,7 +265,7 @@ class PWANotificationService {
     try {
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
       if (!user?.email) {
-        console.log('📱 No authenticated user, skipping Firebase update');
+
         return;
       }
 
@@ -285,7 +277,6 @@ class PWANotificationService {
         }
       }, { merge: true });
 
-      console.log('✅ Notification settings updated in Firebase:', enabled);
     } catch (error) {
       console.warn('⚠️ Failed to update notification settings in Firebase, using localStorage fallback:', error.message);
       
@@ -295,7 +286,7 @@ class PWANotificationService {
         settings.notifications = settings.notifications || {};
         settings.notifications.push = enabled;
         localStorage.setItem('tpprover_settings', JSON.stringify(settings));
-        console.log('✅ PWA notification settings saved to localStorage fallback');
+
       } catch (fallbackError) {
         console.error('❌ Failed to save to localStorage fallback:', fallbackError);
       }
@@ -319,7 +310,6 @@ class PWANotificationService {
         }
       }, { merge: true });
 
-      console.log('Push token removed for user:', user.email);
     } catch (error) {
       console.error('Failed to remove push token:', error);
     }

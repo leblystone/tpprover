@@ -12,11 +12,7 @@ class UnifiedNotificationService {
   constructor() {
     this.isNative = Capacitor.isNativePlatform();
     this.platform = Capacitor.getPlatform();
-    
-    console.log('🔔 Unified Notification Service initialized:', {
-      isNative: this.isNative,
-      platform: this.platform
-    });
+
   }
 
   /**
@@ -46,8 +42,7 @@ class UnifiedNotificationService {
         tag: options.tag || 'tpp-notification',
         data: options.data || {}
       });
-      
-      console.log('✅ PWA notification sent:', title);
+
       return !!notification;
     } catch (error) {
       console.error('❌ PWA notification failed:', error);
@@ -61,23 +56,19 @@ class UnifiedNotificationService {
    */
   async sendMobileNotification(title, options = {}) {
     try {
-      console.log('🔧 DEBUG: Starting mobile notification send...', { title, options });
-      
+
       // Dynamic import to avoid issues on web (same as Settings page)
       const { LocalNotifications } = await import('@capacitor/local-notifications');
-      console.log('🔧 DEBUG: LocalNotifications imported successfully');
-      
+
       // Check permissions first
       const permission = await LocalNotifications.checkPermissions();
-      console.log('🔧 DEBUG: Permission check result:', permission);
-      
+
       if (permission.display !== 'granted') {
         console.warn('📱 Local notification permission not granted, requesting...', permission);
         
         // Try to request permission
         const requestResult = await LocalNotifications.requestPermissions();
-        console.log('🔧 DEBUG: Permission request result:', requestResult);
-        
+
         if (requestResult.display !== 'granted') {
           console.error('❌ Local notification permission denied after request');
           throw new Error('Local notification permission denied');
@@ -103,14 +94,11 @@ class UnifiedNotificationService {
         }
       };
 
-      console.log('🔧 DEBUG: About to schedule notification:', notificationData);
-
       // Schedule the notification (EXACT same call as Settings page)
       await LocalNotifications.schedule({
         notifications: [notificationData]
       });
 
-      console.log('✅ Mobile notification scheduled successfully:', title);
       return true;
       
     } catch (error) {
