@@ -291,14 +291,26 @@ exports.sendAdminNotification = onCall(async (request) => {
 
     } else if (targetType === 'test_admin') {
       // Send test notification to admin (you)
-      const adminSnapshot = await admin.firestore()
+      // Try to find admin user by email query first
+      let adminSnapshot = await admin.firestore()
         .collection('users')
         .where('email', '==', adminEmail)
         .limit(1)
         .get();
+      
+      // If not found, try to get the current requesting user's document
+      if (adminSnapshot.empty) {
+        const adminUserId = request.auth.uid;
+        if (adminUserId) {
+          const adminDoc = await admin.firestore().collection('users').doc(adminUserId).get();
+          if (adminDoc.exists) {
+            adminSnapshot = adminDoc;
+          }
+        }
+      }
 
       if (!adminSnapshot.empty) {
-        const adminDoc = adminSnapshot.docs[0];
+        const adminDoc = Array.isArray(adminSnapshot.docs) ? adminSnapshot.docs[0] : adminSnapshot;
         const adminUserId = adminDoc.id;
         
         const result = await pushNotifications.sendPushNotification(

@@ -27,14 +27,17 @@ import { db } from '../config/firebase'
  */
 async function savePushTokenToFirestore(token) {
   try {
-    // Get current user email from localStorage
+    // Get current user from localStorage
     const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
     if (!user?.email) {
       console.warn('📱 No user email found, cannot save FCM token');
       return;
     }
 
-    const userRef = doc(db, 'users', user.email.toLowerCase());
+    // Try using uid first (correct Firestore structure)
+    const userId = user.uid || user.email?.toLowerCase();
+    const userRef = doc(db, 'users', userId);
+    
     await setDoc(userRef, {
       fcmToken: token,
       pushToken: token, // Keep for backward compatibility
