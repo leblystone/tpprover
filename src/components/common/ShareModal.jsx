@@ -109,13 +109,104 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
     };
 
     const downloadImage = (dataUrl) => {
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'shared-card.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        console.log('Image downloaded successfully');
+        // Check if we're on mobile/Capacitor
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                        window.Capacitor || 
+                        window.location.protocol === 'capacitor:';
+        
+        if (isMobile) {
+            // For mobile, open the image in a new tab/window so user can save it
+            console.log('Mobile detected - opening image in new tab for download');
+            const newWindow = window.open();
+            if (newWindow) {
+                newWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Shared Card - The Pep Planner</title>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <style>
+                                body { 
+                                    margin: 0; 
+                                    padding: 20px; 
+                                    background: #f5f5f5; 
+                                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                                    display: flex;
+                                    flex-direction: column;
+                                    align-items: center;
+                                    min-height: 100vh;
+                                }
+                                .container {
+                                    background: white;
+                                    border-radius: 12px;
+                                    padding: 20px;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                                    max-width: 400px;
+                                    width: 100%;
+                                }
+                                img { 
+                                    max-width: 100%; 
+                                    height: auto; 
+                                    border-radius: 8px;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                }
+                                .instructions {
+                                    margin-top: 20px;
+                                    text-align: center;
+                                    color: #666;
+                                    font-size: 14px;
+                                    line-height: 1.5;
+                                }
+                                .button {
+                                    background: #4A7C70;
+                                    color: white;
+                                    border: none;
+                                    padding: 12px 24px;
+                                    border-radius: 8px;
+                                    font-size: 16px;
+                                    font-weight: 600;
+                                    margin-top: 15px;
+                                    cursor: pointer;
+                                    width: 100%;
+                                }
+                                .button:hover {
+                                    background: #3A6B5F;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <img src="${dataUrl}" alt="Shared Card from The Pep Planner" />
+                                <div class="instructions">
+                                    <p><strong>Long press the image above</strong> and select "Save to Photos" or "Download" to save this shared card to your device.</p>
+                                    <button class="button" onclick="window.close()">Close</button>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                `);
+                newWindow.document.close();
+            } else {
+                // Fallback: try to trigger download anyway
+                console.log('Could not open new window, trying direct download');
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = 'shared-card.png';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        } else {
+            // Desktop: use normal download
+            console.log('Desktop detected - using normal download');
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'shared-card.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        console.log('Image download process completed');
     };
 
     const handleCopyLink = () => {
