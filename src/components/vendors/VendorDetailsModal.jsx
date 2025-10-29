@@ -157,8 +157,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         )}
         
         {/* VENDOR INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VENDOR INFO</h4>
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VENDOR INFO</h4>
         </div>
 
         {/* Section: Name, Rating, Category */}
@@ -189,8 +189,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* CONTACT INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>CONTACT INFO</h4>
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>CONTACT INFO</h4>
         </div>
 
         {/* Section: Contacts */}
@@ -252,13 +252,28 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                 </button>
               </div>
             ))}
-            <button className="px-3 py-2 rounded-md text-sm font-semibold border-dashed border" style={{ borderColor: theme.primary, color: theme.primary }} onClick={addContact}>+ Add Contact</button>
+            <button 
+              className="px-3 py-2 rounded-md text-sm font-semibold transition-all" 
+              style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                color: theme.primary 
+              }} 
+              onClick={addContact}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+              }}
+            >
+              + Add Contact
+            </button>
           </div>
         </div>
 
         {/* PAYMENT INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>PAYMENT INFO</h4>
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>PAYMENT INFO</h4>
         </div>
 
         {/* Section: Payment */}
@@ -277,8 +292,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* ADDITIONAL INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ADDITIONAL INFO</h4>
+        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>ADDITIONAL INFO</h4>
         </div>
 
         {/* Section: Labels + Notes */}
