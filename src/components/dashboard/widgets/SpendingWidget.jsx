@@ -38,6 +38,7 @@ const SpendingWidget = ({ widget, theme }) => {
         // Check if shipping costs should be included
         const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
         const includeShipping = settings.orders?.includeShippingInCosts ?? true;
+        console.log('💰 SpendingWidget - includeShipping setting:', includeShipping, 'from settings:', settings.orders);
         const shippingCost = includeShipping ? (parseFloat(order.shippingCost) || 0) : 0;
         const totalCost = itemsCost + shippingCost;
         

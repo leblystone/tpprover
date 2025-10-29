@@ -58,14 +58,26 @@ async function savePushTokenToFirestore(token) {
 
 // Settings persistence (local-only)
 export function loadSettings() {
-  try { return JSON.parse(localStorage.getItem('tpprover_settings') || 'null') } catch { return null }
+  try { 
+    const settings = JSON.parse(localStorage.getItem('tpprover_settings') || 'null')
+    console.log('📥 Settings loaded from localStorage:', settings)
+    return settings
+  } catch (error) {
+    console.error('❌ Failed to load settings:', error)
+    return null
+  }
 }
 function saveSettings(obj) {
-  try { localStorage.setItem('tpprover_settings', JSON.stringify(obj)) } catch {}
+  try { 
+    localStorage.setItem('tpprover_settings', JSON.stringify(obj))
+    console.log('✅ Settings saved to localStorage:', obj)
+  } catch (error) {
+    console.error('❌ Failed to save settings:', error)
+  }
 }
 function getDefaultSettings() {
   const tz = Intl?.DateTimeFormat?.().resolvedOptions?.().timeZone || 'UTC'
-  return {
+  const defaults = {
     notifications: {
       email: true,
       push: false,
@@ -122,6 +134,9 @@ function getDefaultSettings() {
       dataSharing: true,
     },
   }
+  
+  console.log('🔧 Default settings generated:', defaults)
+  return defaults
 }
 
 export default function Settings() {
@@ -176,6 +191,7 @@ export default function Settings() {
 
   // Handle shipping cost toggle with toast notification
   const handleShippingCostToggle = (enabled) => {
+    console.log('🔄 Shipping cost toggle changed:', enabled)
     update('orders.includeShippingInCosts', enabled);
     
     // Show toast notification
@@ -296,8 +312,11 @@ export default function Settings() {
       const loadedSettings = loadSettings()
       const defaultSettings = getDefaultSettings()
       
+      console.log('🔧 Initializing settings with defaults:', defaultSettings)
+      console.log('🔧 Loaded settings from storage:', loadedSettings)
+      
       // Ensure all required properties exist with proper structure
-      return {
+      const mergedSettings = {
         ...defaultSettings,
         ...loadedSettings,
         appearance: {
@@ -337,6 +356,9 @@ export default function Settings() {
           ...(loadedSettings?.privacy || {})
         }
       }
+      
+      console.log('🔧 Final merged settings:', mergedSettings)
+      return mergedSettings
     })
 
     // Load agreement data
@@ -670,6 +692,8 @@ export default function Settings() {
     }
 
     const update = (path, value) => {
+      console.log(`🔄 Setting change: ${path} = ${value}`)
+      
       const next = { ...settings }
       const segs = path.split('.')
       let ref = next
@@ -684,6 +708,7 @@ export default function Settings() {
       
       // Set the final value
       ref[segs[segs.length - 1]] = value
+      console.log(`✅ Setting updated: ${path} = ${value}`)
       setSettings(next)
       saveSettings(next)
     }
@@ -1009,42 +1034,80 @@ export default function Settings() {
           icon={Trash2}
           theme={theme}
         >
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={exportAll}>Export Backup (CSV)</button>
-              <label className="px-3 py-2 rounded-md text-sm font-semibold cursor-pointer hover:opacity-90" style={{ backgroundColor: theme.accent, color: theme.accentText }}>
-                Import Backup
-                <input type="file" accept=".csv,.json" className="hidden" onChange={e => e.target.files && e.target.files[0] && importBackup(e.target.files[0])} />
-              </label>
-              {pwaPrompted && <button className="px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={handleInstall}>Install App</button>}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-                 <div>
-                     <button 
-                         onClick={() => setShowRemoveSampleDataModal(true)}
-                         className="w-full px-3 py-2 rounded-md text-sm font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200"
-                     >
-                         Remove Sample Data
-                     </button>
-                     <p className="text-xs text-gray-500 mt-1">Remove sample content</p>
-                 </div>
-                <div>
-                    <button 
-                        onClick={() => setShowSampleDataModal(true)}
-                        className="w-full px-3 py-2 rounded-md text-sm font-semibold bg-green-100 text-green-700 hover:bg-green-200"
-                    >
-                        Add Sample Data
-                    </button>
-                    <p className="text-xs text-gray-500 mt-1">Add examples to explore</p>
-                </div>
-            </div>
-            <div>
-              <div className="font-semibold text-red-600 mb-2">Danger Zone</div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <button className="px-3 py-2 rounded-md text-sm font-semibold bg-red-100 text-red-700 hover:bg-red-200" onClick={clearSessionOnly}>Clear Session Only</button>
-                <button className="px-3 py-2 rounded-md text-sm font-semibold bg-red-600 text-white hover:bg-red-700" onClick={clearAllData}>Clear ALL Data</button>
+          <div className="space-y-6">
+            {/* Backup Section */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium" style={{ color: theme.text }}>Backup & Restore</h4>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button 
+                  className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+                  onClick={exportAll}
+                >
+                  Export Backup (CSV)
+                </button>
+                <label 
+                  className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer hover:opacity-90 transition-all" 
+                  style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                >
+                  Import Backup
+                  <input type="file" accept=".csv,.json" className="hidden" onChange={e => e.target.files && e.target.files[0] && importBackup(e.target.files[0])} />
+                </label>
+                {pwaPrompted && (
+                  <button 
+                    className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
+                    style={{ backgroundColor: theme.accent, color: theme.accentText }} 
+                    onClick={handleInstall}
+                  >
+                    Install App
+                  </button>
+                )}
               </div>
-              <p className="text-xs text-gray-500 mt-2">"Clear ALL" will permanently wipe all data in this browser. This cannot be undone.</p>
+            </div>
+
+            {/* Sample Data Section */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium" style={{ color: theme.text }}>Sample Data</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <button 
+                    onClick={() => setShowRemoveSampleDataModal(true)}
+                    className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all"
+                  >
+                    Remove Sample Data
+                  </button>
+                  <p className="text-xs text-gray-500">Remove sample content</p>
+                </div>
+                <div className="space-y-2">
+                  <button 
+                    onClick={() => setShowSampleDataModal(true)}
+                    className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all"
+                  >
+                    Add Sample Data
+                  </button>
+                  <p className="text-xs text-gray-500">Add examples to explore</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Danger Zone Section */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-red-600">Danger Zone</h4>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button 
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-all" 
+                  onClick={clearSessionOnly}
+                >
+                  Clear Session Only
+                </button>
+                <button 
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all" 
+                  onClick={clearAllData}
+                >
+                  Clear ALL Data
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">"Clear ALL" will permanently wipe all data in this browser. This cannot be undone.</p>
             </div>
           </div>
         </CollapsibleSection>

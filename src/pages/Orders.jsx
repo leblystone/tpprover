@@ -108,6 +108,7 @@ export default function Orders() {
 		// Check if shipping costs should be included
 		const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
 		const includeShipping = settings.orders?.includeShippingInCosts ?? true;
+		console.log('📦 Stockpile update - includeShipping setting:', includeShipping, 'from settings:', settings.orders);
 
 		// If both orders are delivered, we need to update existing stockpile items
 		if (wasDelivered && isDelivered && previousOrder && newOrder) {

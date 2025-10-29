@@ -35,6 +35,8 @@ const Terms = lazy(() => import('./pages/Terms.jsx'))
 const Blog = lazy(() => import('./pages/Blog.jsx'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'))
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail.jsx'))
+const RedeemGift = lazy(() => import('./pages/RedeemGift.jsx'))
+const GiftSuccess = lazy(() => import('./pages/GiftSuccess.jsx'))
 
 // Launch Configuration
 const IS_APP_BLOCKED = false; // Set to false when ready to launch
@@ -126,6 +128,16 @@ export const router = createBrowserRouter([
   {
     path: '/verify-email',
     element: <VerifyEmail />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/redeem-gift/:giftId',
+    element: <RedeemGift />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/gift-success',
+    element: <GiftSuccess />,
     errorElement: <NotFound />,
   },
   {

@@ -742,9 +742,9 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
               </div>
               
               {/* Logout button at bottom */}
-              <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+              <div className="mt-6 pt-6 border-t flex justify-end" style={{ borderColor: theme.border }}>
                 <button 
-                  className="w-full px-4 py-3 rounded-lg text-sm font-semibold hover:opacity-90 transition-all" 
+                  className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
                   style={{ backgroundColor: theme.error || '#DC2626', color: '#ffffff' }} 
                   onClick={logout}
                 >

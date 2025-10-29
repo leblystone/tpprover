@@ -213,6 +213,254 @@ exports.welcomeEmail = (userName, userEmail) => {
   return emailWrapper(content);
 };
 
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
 // ✉️ Email Verification
 exports.verificationEmail = (verificationLink) => {
   const content = `
@@ -246,6 +494,254 @@ exports.verificationEmail = (verificationLink) => {
         </p>
       </div>
 
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
         Best,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
@@ -303,6 +799,254 @@ exports.passwordResetEmail = (resetLink, userEmail) => {
   return emailWrapper(content);
 };
 
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
 // 🔔 Trial Ending Soon
 exports.trialEndingEmail = (daysLeft, userEmail) => {
   const content = `
@@ -336,6 +1080,254 @@ exports.trialEndingEmail = (daysLeft, userEmail) => {
         but you won't be able to add new protocols or make changes until you subscribe.
       </p>
 
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
         Best,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
@@ -384,6 +1376,254 @@ exports.subscriptionConfirmedEmail = (plan, interval, price) => {
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
         Happy researching! 🧪<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -442,6 +1682,254 @@ exports.lifetimeAccessGrantedEmail = (userEmail, reason) => {
   return emailWrapper(content);
 };
 
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
 /**
  * Payment Failed Email Template
  */
@@ -483,6 +1971,254 @@ exports.paymentFailedEmail = (amount, currency, invoiceUrl) => {
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
         Need help? Our support team is here to assist you.<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -540,6 +2276,254 @@ exports.paymentSuccessfulEmail = (amount, currency, receiptUrl) => {
   return emailWrapper(content);
 };
 
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
 /**
  * Subscription Cancelled Email Template
  */
@@ -579,6 +2563,254 @@ exports.subscriptionCancelledEmail = (planName, endDate) => {
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
         We hope you'll consider rejoining us in the future. Thank you for being part of our research community! 🧬<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -634,6 +2866,254 @@ exports.renewalReminderEmail = (planName) => {
   return emailWrapper(content);
 };
 
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
 /**
  * Weekly Research Reminder Email Template
  */
@@ -677,6 +3157,254 @@ exports.weeklyResearchReminderEmail = (firstName) => {
 
       <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px; padding-top: 24px; border-top: 1px solid ${COLORS.border};">
         Don't want weekly reminders? <a href="https://thepepplanner.app/app/settings" style="color: ${COLORS.primary};">Update your preferences</a>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+// ===== GIFT ACCESS EMAIL TEMPLATES =====
+
+/**
+ * Gift notification email to recipient
+ */
+exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months', 
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 You've Received a Gift!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Someone Gifted You Research Access!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        ${recipientName ? `Hi ${recipientName},` : 'Hello!'}
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${giftGiverName}</strong> has gifted you <strong>${subscriptionText}</strong> of access to The Pep Planner!
+      </p>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
+          - ${giftGiverName}
+        </p>
+      </div>
+      ` : ''}
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Gift Includes:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li>Full access to all research protocols</li>
+          <li>Vendor management and tracking</li>
+          <li>Order history and analytics</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+      
+      <center>
+        <a href="https://thepepplanner.app/redeem-gift?giftId=${giftId}" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🎁 Claim Your Gift
+        </a>
+      </center>
+      
+      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px;">
+        <strong>Important:</strong> This gift expires in 30 days. Claim it soon to start organizing your research!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift purchase confirmation email to giver
+ */
+exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Gift Purchase Confirmed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gift Has Been Sent!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for purchasing a gift subscription! We've sent <strong>${subscriptionText}</strong> of The Pep Planner access to <strong>${recipientEmail}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">📧 Gift Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Amount:</strong> $${pricePaid}</li>
+          <li><strong>Gift ID:</strong> ${giftId}</li>
+        </ul>
+      </div>
+      
+      ${giftMessage ? `
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">💌 Your Message:</p>
+        <p style="margin: 8px 0 0 0; font-style: italic; color: ${COLORS.text};">
+          "${giftMessage}"
+        </p>
+      </div>
+      ` : ''}
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        The recipient will receive an email with instructions to claim their gift. They have 30 days to redeem it.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed confirmation email to recipient
+ */
+exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Gift Successfully Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Welcome to The Pep Planner!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Congratulations! You've successfully redeemed the gift from <strong>${giftGiverName}</strong>.
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Access Details:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Access until:</strong> ${subscriptionEndDate.toLocaleDateString()}</li>
+          <li><strong>Gift from:</strong> ${giftGiverName}</li>
+        </ul>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do now:</h2>
+      <ul style="list-style: none; padding: 0; margin: 20px 0;">
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Create and manage research protocols
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Track vendors and suppliers
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Monitor order history and analytics
+        </li>
+        <li style="padding: 12px 0; padding-left: 32px; position: relative;">
+          <span style="position: absolute; left: 0; color: ${COLORS.secondary}; font-weight: bold; font-size: 18px;">✓</span>
+          Access priority support
+        </li>
+      </ul>
+      
+      <center>
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Start Organizing Your Research
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+
+/**
+ * Gift redeemed notification email to giver
+ */
+exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subscriptionText = {
+    monthly: '1 month',
+    quarterly: '3 months',
+    annual: '1 year'
+  }[subscriptionType] || subscriptionType;
+
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎉 Your Gift Was Redeemed!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Great News!</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${giftGiverName},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        <strong>${recipientEmail}</strong> has successfully redeemed your gift of <strong>${subscriptionText}</strong> access to The Pep Planner!
+      </p>
+      
+      <div style="background-color: #F0FDF4; border-left: 4px solid ${COLORS.secondary}; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Gift Redeemed:</p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: ${COLORS.text};">
+          <li><strong>Recipient:</strong> ${recipientEmail}</li>
+          <li><strong>Duration:</strong> ${subscriptionText}</li>
+          <li><strong>Status:</strong> Active and ready to use</li>
+        </ul>
+      </div>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Thank you for sharing The Pep Planner! Your gift is now helping someone organize their research more effectively.
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Best,<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
   `;

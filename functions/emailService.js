@@ -389,3 +389,41 @@ exports.sendWeeklyResearchReminderEmail = async (userEmail, firstName) => {
   return sendEmail(userEmail, subject, html);
 };
 
+// ===== GIFT ACCESS EMAIL FUNCTIONS =====
+
+/**
+ * Send gift notification email to recipient
+ */
+exports.sendGiftNotificationEmail = async (recipientEmail, recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  const subject = '🎁 You\'ve Received a Gift Subscription to The Pep Planner!';
+  const html = emailTemplates.giftNotificationEmail(recipientName, giftGiverName, giftMessage, giftId, subscriptionType);
+  return sendEmail(recipientEmail, subject, html);
+};
+
+/**
+ * Send gift purchase confirmation email to giver
+ */
+exports.sendGiftPurchaseConfirmationEmail = async (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  const subject = '🎁 Gift Purchase Confirmed - The Pep Planner';
+  const html = emailTemplates.giftPurchaseConfirmationEmail(giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid);
+  return sendEmail(giftGiverEmail, subject, html);
+};
+
+/**
+ * Send gift redeemed confirmation email to recipient
+ */
+exports.sendGiftRedeemedEmail = async (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  const subject = '🎉 Gift Successfully Redeemed - Welcome to The Pep Planner!';
+  const html = emailTemplates.giftRedeemedEmail(recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate);
+  return sendEmail(recipientEmail, subject, html);
+};
+
+/**
+ * Send gift redeemed notification email to giver
+ */
+exports.sendGiftRedeemedNotificationEmail = async (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  const subject = '🎉 Your Gift Was Redeemed - The Pep Planner';
+  const html = emailTemplates.giftRedeemedNotificationEmail(giftGiverEmail, giftGiverName, recipientEmail, subscriptionType);
+  return sendEmail(giftGiverEmail, subject, html);
+};
+

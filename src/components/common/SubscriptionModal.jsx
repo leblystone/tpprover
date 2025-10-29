@@ -4,10 +4,12 @@ import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
 import { useAppContext } from '../../context/AppContext';
 import { Crown } from '../../icons/lucide-safe';
+import GiftPurchaseModal from './GiftPurchaseModal';
 
 export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [showGiftModal, setShowGiftModal] = React.useState(false);
 
   const handleSelectPlan = async (plan) => {
     console.log('🚀 SubscriptionModal: Selected plan:', plan);
@@ -180,7 +182,27 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
             </div>
           </div>
         </div>
+        
+        {/* Gift Access Button */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-4">Want to share The Pep Planner with someone?</p>
+            <button
+              onClick={() => setShowGiftModal(true)}
+              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl font-medium hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg"
+            >
+              🎁 Give as a Gift
+            </button>
+          </div>
+        </div>
       </div>
     </Modal>
+    
+    {/* Gift Purchase Modal */}
+    <GiftPurchaseModal
+      isOpen={showGiftModal}
+      onClose={() => setShowGiftModal(false)}
+      theme={theme}
+    />
   );
 }
