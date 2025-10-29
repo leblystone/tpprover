@@ -166,21 +166,45 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="sm:col-span-1"><TextInput label="Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Vendor" theme={theme} /></div>
           <div className="flex flex-col items-start sm:items-start gap-2">
             <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Rating</div>
-            <div className="flex items-center justify-around w-full rounded-md p-1 shadow-inner border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} aria-label="Rating">
+            <div className="flex items-center justify-around w-full rounded-md p-1" style={{ 
+              backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+              border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+              boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.06)'
+            }} aria-label="Rating">
               {[1,2,3,4,5].map(n => (
                 <button key={n} type="button" className="p-2" onClick={() => setForm(prev => ({ ...prev, rating: n }))}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={form.rating >= n ? theme.primary : 'none'} stroke={form.rating >= n ? theme.primary : theme.border} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={form.rating >= n ? theme.primary : 'none'} stroke={form.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border)} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
                 </button>
               ))}
             </div>
           </div>
           <div className="flex flex-col items-start sm:items-start gap-2">
             <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Category</div>
-            <div className="flex w-full rounded-md p-1 shadow-inner" style={{ backgroundColor: theme.cardBackground }}>
+            <div className="flex w-full rounded-md p-1" style={{ 
+              backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+              boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.06)'
+            }}>
               {['domestic','international','groupbuy'].map(k => (
-                <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, type: k }))}
-                  className={`flex-1 text-center px-2 py-1.5 text-xs font-semibold rounded-md ${form.type === k ? '' : 'hover:opacity-80'}`}
-                  style={{ backgroundColor: form.type === k ? theme?.primary : 'transparent', color: form.type === k ? theme.textOnPrimary : theme.text }}>
+                <button 
+                  key={k} 
+                  type="button" 
+                  onClick={() => setForm(prev => ({ ...prev, type: k }))}
+                  className="flex-1 text-center px-2 py-1.5 text-xs font-semibold rounded-md transition-all"
+                  style={{ 
+                    backgroundColor: form.type === k ? theme?.primary : 'transparent', 
+                    color: form.type === k ? theme.textOnPrimary : theme.text 
+                  }}
+                  onMouseEnter={(e) => {
+                    if (form.type !== k) {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (form.type !== k) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
                   {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
                 </button>
               ))}
@@ -200,8 +224,11 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               <div key={idx} className="flex items-center gap-3">
                 <div className="flex-1">
                   <div 
-                    className="flex items-stretch border rounded-lg overflow-hidden"
-                    style={{ borderColor: theme.border }}
+                    className="flex items-stretch rounded-lg overflow-hidden"
+                    style={{ 
+                      border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                      boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                    }}
                   >
                     <input 
                       type="text"
@@ -210,15 +237,15 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                       placeholder={getContactPlaceholder(c.type)}
                       className="flex-1 px-3 py-2 outline-none min-w-0"
                       style={{
-                        backgroundColor: theme.inputBackground || '#fff',
+                        backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                         color: theme.text
                       }}
                     />
                     <div 
-                      className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                      className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                       style={{ 
-                        borderColor: theme.border,
-                        backgroundColor: theme.cardBackground || '#f9fafb'
+                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                       }}
                     >
                       <select 
@@ -309,7 +336,19 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             </div>
           </label>
           <label className="block text-sm font-medium" style={{ color: theme.text }}>Notes
-            <textarea className="w-full p-3 rounded-lg border text-sm" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Vendor notes" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }} />
+            <textarea 
+              className="w-full p-3 rounded-lg text-sm transition-all focus:outline-none resize-none" 
+              value={form.notes} 
+              onChange={e => setForm({ ...form, notes: e.target.value })} 
+              placeholder="Vendor notes" 
+              rows={4}
+              style={{ 
+                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground, 
+                color: theme.text,
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+              }} 
+            />
           </label>
         </div>
 
