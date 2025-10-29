@@ -108,7 +108,7 @@ export default function SettingsAppearance() {
                 sage: { start: '#7F9E95', mid: '#A0B9B3', end: '#5F7F76' },
                 mauve: { start: '#9F8F95', mid: '#BDB1B5', end: '#7D6F74' },
                 taupe: { start: '#C4B8B0', mid: '#D9D1CB', end: '#A39890' },
-                softDark: { start: '#6B7D7A', mid: '#A8A8A8', end: '#5A685A' }
+                softDark: { start: '#3A3A40', mid: '#5A5A60', end: '#2C2C30' }
               }
               
               const colors = swatchColors[themeKey] || { start: themeData.primary, mid: themeData.primaryLight, end: themeData.primaryDark }
@@ -129,14 +129,18 @@ export default function SettingsAppearance() {
                     className="w-full h-20 rounded-lg mb-3 relative overflow-hidden"
                     style={{
                       background: `linear-gradient(135deg, ${colors.start} 0%, ${colors.mid} 50%, ${colors.end} 100%)`,
-                      boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)'
+                      boxShadow: themeKey === 'softDark' 
+                        ? 'inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.25)'
+                        : 'inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)'
                     }}
                   >
                     {/* Metallic shine overlay */}
                     <div 
                       className="absolute inset-0"
                       style={{
-                        background: 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
+                        background: themeKey === 'softDark'
+                          ? 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, transparent 50%, rgba(0,0,0,0.2) 100%)'
+                          : 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
                         mixBlendMode: 'overlay'
                       }}
                     />
@@ -144,7 +148,9 @@ export default function SettingsAppearance() {
                     <div 
                       className="absolute inset-0"
                       style={{
-                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 55%, transparent 100%)',
+                        background: themeKey === 'softDark'
+                          ? 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 55%, transparent 100%)'
+                          : 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 55%, transparent 100%)',
                         mixBlendMode: 'overlay'
                       }}
                     />
