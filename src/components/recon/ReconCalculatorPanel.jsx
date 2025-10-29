@@ -271,11 +271,21 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                             peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
                         }));
                     }}
-                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
+                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                     style={{
                         backgroundColor: deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
                         color: deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border
+                    }}
+                    onMouseEnter={(e) => {
+                        if (deliveryMethod !== 'pipette') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (deliveryMethod !== 'pipette') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                        }
                     }}
                 >
                     <Pipette size={14} /> Syringe
@@ -289,11 +299,21 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                             peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
                         }));
                     }}
-                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
+                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                     style={{
                         backgroundColor: deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
                         color: deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border
+                    }}
+                    onMouseEnter={(e) => {
+                        if (deliveryMethod !== 'pen') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (deliveryMethod !== 'pen') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                        }
                     }}
                 >
                     <Pen size={14} /> Pen
@@ -307,11 +327,21 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                             peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'sprays' }))
                         }));
                     }}
-                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
+                    className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                     style={{
                         backgroundColor: deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
                         color: deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border
+                    }}
+                    onMouseEnter={(e) => {
+                        if (deliveryMethod !== 'nasal') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (deliveryMethod !== 'nasal') {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                        }
                     }}
                 >
                     <Droplets size={14} /> Nasal
