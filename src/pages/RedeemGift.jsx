@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../context/AppContext';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
-import { registerUser } from '../../services/firebase';
+import { registerUser } from '../services/firebase';
 
 const RedeemGiftPage = () => {
   const { giftId } = useParams();

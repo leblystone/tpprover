@@ -2564,6 +2564,122 @@ function Admin() {
           </div>
         )}
 
+        {/* Gifts Tab */}
+        {activeTab === 'gifts' && (
+          <div className="space-y-6">
+            {/* Gift Analytics Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Total Gifts</p>
+                    <p className="text-2xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.total}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
+                    <Star size={24} style={{ color: theme.primary }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">{giftAnalytics.pending}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100">
+                    <Clock size={24} className="text-yellow-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Redeemed</p>
+                    <p className="text-2xl font-bold text-green-600">{giftAnalytics.redeemed}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
+                    <CheckCircle size={24} className="text-green-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">${giftAnalytics.totalRevenue.toFixed(2)}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
+                    <DollarSign size={24} className="text-green-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gift Types Breakdown */}
+            <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>Gift Types</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Monthly</p>
+                  <p className="text-xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.byType.monthly}</p>
+                </div>
+                <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Quarterly</p>
+                  <p className="text-xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.byType.quarterly}</p>
+                </div>
+                <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Annual</p>
+                  <p className="text-xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.byType.annual}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Gifts */}
+            <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>Recent Gifts</h3>
+              {giftAnalytics.recentGifts.length > 0 ? (
+                <div className="space-y-3">
+                  {giftAnalytics.recentGifts.map((gift, index) => (
+                    <div key={gift.giftId || index} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
+                          <Star size={20} style={{ color: theme.primary }} />
+                        </div>
+                        <div>
+                          <p className="font-medium" style={{ color: theme.text }}>
+                            {gift.giftGiverName} → {gift.recipientEmail}
+                          </p>
+                          <p className="text-sm" style={{ color: theme.textLight }}>
+                            {gift.subscriptionType === 'monthly' ? '1 Month' :
+                             gift.subscriptionType === 'quarterly' ? '3 Months' : '1 Year'} • ${gift.pricePaid}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          gift.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          gift.status === 'redeemed' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {gift.status}
+                        </span>
+                        <span className="text-xs" style={{ color: theme.textLight }}>
+                          {gift.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8" style={{ color: theme.textLight }}>No gifts found</p>
+              )}
+            </div>
+          </div>
+        )}
+
         </div>
       </div>
       {isUserModalOpen && selectedUser && (
@@ -2749,123 +2865,6 @@ function Admin() {
           </div>
         </Modal>
       )}
-
-        {/* Gifts Tab */}
-        {activeTab === 'gifts' && (
-          <div className="space-y-6">
-            {/* Gift Analytics Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Total Gifts</p>
-                    <p className="text-2xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.total}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-                    <Star size={24} style={{ color: theme.primary }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Pending</p>
-                    <p className="text-2xl font-bold text-yellow-600">{giftAnalytics.pending}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100">
-                    <Clock size={24} className="text-yellow-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Redeemed</p>
-                    <p className="text-2xl font-bold text-green-600">{giftAnalytics.redeemed}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
-                    <CheckCircle size={24} className="text-green-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: theme.textLight }}>Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">${giftAnalytics.totalRevenue.toFixed(2)}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
-                    <DollarSign size={24} className="text-green-600" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Gift Types Breakdown */}
-            <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>Gift Types</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Monthly</p>
-                  <p className="text-xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.byType.monthly}</p>
-                </div>
-                <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Quarterly</p>
-                  <p className="text-xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.byType.quarterly}</p>
-                </div>
-                <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Annual</p>
-                  <p className="text-xl font-bold" style={{ color: theme.primary }}>{giftAnalytics.byType.annual}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Gifts */}
-            <div className="p-6 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>Recent Gifts</h3>
-              {giftAnalytics.recentGifts.length > 0 ? (
-                <div className="space-y-3">
-                  {giftAnalytics.recentGifts.map((gift, index) => (
-                    <div key={gift.giftId || index} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-                          <Star size={20} style={{ color: theme.primary }} />
-                        </div>
-                        <div>
-                          <p className="font-medium" style={{ color: theme.text }}>
-                            {gift.giftGiverName} → {gift.recipientEmail}
-                          </p>
-                          <p className="text-sm" style={{ color: theme.textLight }}>
-                            {gift.subscriptionType === 'monthly' ? '1 Month' :
-                             gift.subscriptionType === 'quarterly' ? '3 Months' : '1 Year'} • ${gift.pricePaid}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          gift.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          gift.status === 'redeemed' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {gift.status}
-                        </span>
-                        <span className="text-xs" style={{ color: theme.textLight }}>
-                          {gift.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8" style={{ color: theme.textLight }}>No gifts found</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
