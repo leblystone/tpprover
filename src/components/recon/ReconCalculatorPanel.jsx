@@ -230,11 +230,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
             {/* Add Peptide Button - In second column */}
             <button
               onClick={addPeptide}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
               style={{
                 backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                 color: theme.primary,
                 border: `1.5px solid ${theme.primary}20`
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
               }}
             >
               <div 
@@ -438,7 +444,24 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 )}
               </div>
             ))}
-            {prefill?.peptides?.length == null && <button onClick={addPeptide} className="px-3 py-2 text-sm font-semibold rounded-md border-dashed border" style={{ borderColor: theme.primary, color: theme.primary }}>+ Add Peptide</button>}
+            {prefill?.peptides?.length == null && (
+              <button 
+                onClick={addPeptide} 
+                className="px-3 py-2 text-sm font-semibold rounded-md transition-all" 
+                style={{ 
+                  backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                  color: theme.primary 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                }}
+              >
+                + Add Peptide
+              </button>
+            )}
           </div>
         </div>
 

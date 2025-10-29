@@ -363,14 +363,17 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             </div>
             <button
               type="button"
-              className="mt-3 px-3 py-2 rounded-md text-xs font-semibold border-dashed border-2 flex items-center gap-2 w-full justify-center transition-all"
-              style={{ borderColor: theme.border, color: theme.text }}
+              className="mt-3 px-3 py-2 rounded-md text-xs font-semibold flex items-center gap-2 w-full justify-center transition-all"
+              style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                color: theme.text 
+              }}
               onClick={addItem}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '10';
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '20';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
               }}
             >
               <PlusCircle size={14} /> Add Another Item
@@ -404,7 +407,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Order Status</h4>
           </div>
           <div className="space-y-3">
-            <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
+            <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
               {[
                 { label: 'Order Placed', value: 'Order Placed' },
                 { label: 'In Transit', value: 'Shipped' },
@@ -441,8 +444,21 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     }
                   }
                 }}
-                  className={`flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap ${form.status === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                  style={form.status === opt.value ? { backgroundColor: theme?.primary } : {}}>
+                  className="flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap"
+                  style={form.status === opt.value 
+                    ? { backgroundColor: theme?.primary, color: '#ffffff' } 
+                    : { color: theme.text }
+                  }
+                  onMouseEnter={(e) => {
+                    if (form.status !== opt.value) {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (form.status !== opt.value) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}>
                   {opt.label}
                 </button>
               ))}
