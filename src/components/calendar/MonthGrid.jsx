@@ -232,10 +232,11 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const isToday = d && new Date().toDateString() === d.toDateString();
                     
                     // Build icon elements for large screens (up to 4 slots)
+                    const iconColor = theme.isDark ? '#a8b5a0' : '#73796D';
                     const iconGridEls = [];
-                    if (peptideCount > 0) iconGridEls.push(<Pipette key="i-pep" className="w-4 h-4" style={{ color: '#73796D' }} />);
-                    if (suppCount > 0) iconGridEls.push(<Pill key="i-sup" className="w-4 h-4" style={{ color: '#A4A897' }} />);
-                    if (buyCount > 0) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" style={{ color: '#9B9B7A' }} />);
+                    if (peptideCount > 0) iconGridEls.push(<Pipette key="i-pep" className="w-4 h-4" style={{ color: iconColor }} />);
+                    if (suppCount > 0) iconGridEls.push(<Pill key="i-sup" className="w-4 h-4" style={{ color: iconColor }} />);
+                    if (buyCount > 0) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" style={{ color: iconColor }} />);
                     while (iconGridEls.length < 4) iconGridEls.push(<span key={`i-empty-${iconGridEls.length}`} />);
 
                     // Build simple task name list (first 6), peptides + supplements
@@ -245,12 +246,12 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
 
                     return (
                         <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg border text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] ${allTasksCompleted ? 'opacity-60' : ''} ${isToday && todayPulse ? 'animate-pulse' : ''}`} style={{ 
-                            borderColor: allTasksCompleted ? '#D1D5DB' : (isToday && todayPulse ? theme.primary : theme.border),
+                            borderColor: allTasksCompleted ? (theme.isDark ? '#4b5563' : '#D1D5DB') : (isToday && todayPulse ? theme.primary : theme.border),
                             backgroundColor: d ? (
                                 isToday ? theme.primary + '15' :
-                                allTasksCompleted ? '#F3F4F6' : 
-                                hasActivity ? theme.primary + '05' :
-                                theme.cardBackground
+                                allTasksCompleted ? (theme.isDark ? '#1f2937' : '#F3F4F6') : 
+                                hasActivity ? (theme.isDark ? '#1f2937' : theme.primary + '05') :
+                                theme.isDark ? '#111827' : theme.cardBackground
                             ) : 'transparent',
                             boxShadow: isToday && todayPulse ? `0 0 0 3px ${theme.primary}40` : 'none'
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
@@ -260,7 +261,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                 <div className="flex items-start justify-between mb-1">
                                     <span className={`text-sm sm:text-base md:text-xl font-bold ${isToday ? 'bg-white rounded-full w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex justify-center items-center shadow-sm text-xs sm:text-sm md:text-xl' : ''}`} style={{ 
                                         backgroundColor: isToday ? theme.primary : 'transparent',
-                                        color: isToday ? theme.textOnPrimary : (d ? theme.primaryDark : theme.textLight)
+                                        color: isToday ? theme.textOnPrimary : (d ? (theme.isDark ? theme.text : theme.primaryDark) : theme.textLight)
                                     }}>
                                         {d ? d.getDate() : ''}
                                     </span>
@@ -294,25 +295,25 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-8 h-8 sm:hidden mx-auto">
                                             {peptideCount > 0 && (
                                                 <div className="flex items-center justify-center">
-                                                    <Pipette size={12} style={{ color: '#73796D' }} />
+                                                    <Pipette size={12} style={{ color: iconColor }} />
                                                 </div>
                                             )}
                                             {suppCount > 0 && (
                                                 <div className="flex items-center justify-center">
-                                                    <Pill size={12} style={{ color: '#A4A897' }} />
+                                                    <Pill size={12} style={{ color: iconColor }} />
                                                 </div>
                                             )}
                                             {buyCount > 0 && (
                                                 <div className="flex items-center justify-center">
-                                                    <ShoppingCart size={12} style={{ color: '#9B9B7A' }} />
+                                                    <ShoppingCart size={12} style={{ color: iconColor }} />
                                                 </div>
                                             )}
                                         </div>
                                         {/* Tablet/Desktop: single row (sm/md) and 4-col line on lg+ */}
                                         <div className="hidden sm:flex justify-center lg:hidden items-center gap-1 sm:gap-1.5">
-                                            {peptideCount > 0 && <Pipette className="w-3 h-3" style={{ color: '#73796D' }} />}
-                                            {suppCount > 0 && <Pill className="w-3 h-3" style={{ color: '#A4A897' }} />}
-                                            {buyCount > 0 && <ShoppingCart className="w-3 h-3" style={{ color: '#9B9B7A' }} />}
+                                            {peptideCount > 0 && <Pipette className="w-3 h-3" style={{ color: iconColor }} />}
+                                            {suppCount > 0 && <Pill className="w-3 h-3" style={{ color: iconColor }} />}
+                                            {buyCount > 0 && <ShoppingCart className="w-3 h-3" style={{ color: iconColor }} />}
                                         </div>
                                         <div className="hidden lg:grid grid-cols-4 gap-1 w-full justify-items-center">
                                             {iconGridEls}

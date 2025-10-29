@@ -18,21 +18,21 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
       <div className="hidden sm:flex items-center gap-2">
         <button onClick={onToday} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Today</button>
         <div className="flex items-center gap-1">
-          <button onClick={onPrev} className="p-2 rounded-full hover:bg-gray-100"><ChevronLeft className="h-5 w-5" /></button>
-          <button onClick={onNext} className="p-2 rounded-full hover:bg-gray-100"><ChevronRight className="h-5 w-5" /></button>
+          <button onClick={onPrev} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronLeft className="h-5 w-5" /></button>
+          <button onClick={onNext} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronRight className="h-5 w-5" /></button>
         </div>
-        <h2 className="text-xl font-bold ml-2" style={{ color: theme.primaryDark }}>{monthName} {year}</h2>
+        <h2 className="text-xl font-bold ml-2" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>{monthName} {year}</h2>
       </div>
       
       <div className="hidden sm:flex items-center gap-2">
-        <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
-            <button onClick={() => onChangeView('month')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'month' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'month' ? { backgroundColor: theme.primary } : {}}>Month</button>
-            <button onClick={() => onChangeView('week')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'week' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'week' ? { backgroundColor: theme.primary } : {}}>Week</button>
+        <div className="inline-flex rounded-md p-1 border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
+            <button onClick={() => onChangeView('month')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'month' ? '' : 'hover:bg-opacity-20'}`} style={viewMode === 'month' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}>Month</button>
+            <button onClick={() => onChangeView('week')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${viewMode === 'week' ? '' : 'hover:bg-opacity-20'}`} style={viewMode === 'week' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}>Week</button>
         </div>
         {viewMode === 'month' && onShowIconKey && (
           <ModernTooltip text="Icon guide" position="bottom">
-            <button onClick={onShowIconKey} className="p-2 rounded-full hover:bg-gray-100">
-              <HelpCircle className="h-5 w-5" style={{ color: theme.primaryDark }} />
+            <button onClick={onShowIconKey} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+              <HelpCircle className="h-5 w-5" />
             </button>
           </ModernTooltip>
         )}
@@ -40,10 +40,10 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         
         {/* Mobile-only controls */}
         <div className="flex sm:hidden items-center justify-between w-full order-1">
-            <h2 className="text-xl font-bold" style={{ color: theme.primaryDark }}>{monthName} {year}</h2>
+            <h2 className="text-xl font-bold" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>{monthName} {year}</h2>
             <div className="flex items-center gap-1">
-                <button onClick={onPrev} className="p-2 rounded-full hover:bg-gray-100"><ChevronLeft className="h-5 w-5" /></button>
-                <button onClick={onNext} className="p-2 rounded-full hover:bg-gray-100"><ChevronRight className="h-5 w-5" /></button>
+                <button onClick={onPrev} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronLeft className="h-5 w-5" /></button>
+                <button onClick={onNext} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronRight className="h-5 w-5" /></button>
             </div>
         </div>
         <div className="flex sm:hidden items-center justify-between w-full order-3 mt-2">
@@ -51,14 +51,14 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
                <button onClick={onToday} className="px-4 py-1.5 text-sm font-semibold rounded-lg border" style={{ borderColor: theme.border }}>Today</button>
              </div>
             <div className="flex items-center gap-2">
-              <div className="flex gap-1 bg-gray-100 p-1 rounded-xl shadow-inner">
-                  <button onClick={() => onChangeView('month')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'month' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'month' ? { backgroundColor: theme.primary } : {}}>Month</button>
-                  <button onClick={() => onChangeView('week')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${viewMode === 'week' ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`} style={viewMode === 'week' ? { backgroundColor: theme.primary } : {}}>Week</button>
+              <div className="flex gap-1 p-1 rounded-xl shadow-inner" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+                  <button onClick={() => onChangeView('month')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all`} style={viewMode === 'month' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}>Month</button>
+                  <button onClick={() => onChangeView('week')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all`} style={viewMode === 'week' ? { backgroundColor: theme.primary, color: theme.textOnPrimary } : { color: theme.isDark ? theme.textLight : '#374151' }}>Week</button>
               </div>
               {viewMode === 'month' && onShowIconKey && (
                 <ModernTooltip text="Icon guide" position="bottom">
-                  <button onClick={onShowIconKey} className="p-1.5 rounded-full border" style={{ borderColor: theme.border }}>
-                    <HelpCircle className="h-4 w-4" style={{ color: theme.primaryDark }} />
+                  <button onClick={onShowIconKey} className="p-1.5 rounded-full border transition-all" style={{ borderColor: theme.border, color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <HelpCircle className="h-4 w-4" />
                   </button>
                 </ModernTooltip>
               )}
