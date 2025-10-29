@@ -6,9 +6,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  * @param {Object} formData - Current form data
  * @param {Function} setFormData - Function to update form data
  * @param {number} delay - Auto-save delay in milliseconds (default: 2000)
+ * @param {Function} onAutoSave - Optional callback for additional auto-save logic
  * @returns {Object} - { isSaving, lastSaved, clearSavedData, markAsSubmitted }
  */
-export const useAutoSave = (storageKey, formData, setFormData, delay = 2000) => {
+export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onAutoSave = null) => {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const timeoutRef = useRef(null);
@@ -56,7 +57,7 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000) => 
     setIsSaving(true);
 
     // Auto-save after delay
-    timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = setTimeout(async () => {
       try {
         const saveData = {
           data: formData,
@@ -66,6 +67,15 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000) => 
         localStorage.setItem(storageKey, JSON.stringify(saveData));
         setLastSaved(new Date());
         previousDataRef.current = formData;
+        
+        // Call additional auto-save callback if provided
+        if (onAutoSave && typeof onAutoSave === 'function') {
+          try {
+            await onAutoSave(formData);
+          } catch (error) {
+            console.warn('Additional auto-save callback failed:', error);
+          }
+        }
         
         // Dispatch autosave event for protocol updates
         if (storageKey.includes('protocol_draft_')) {

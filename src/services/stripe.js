@@ -55,7 +55,7 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
       console.error('🚫 Stripe publishable key not configured');
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { 
-          message: 'Payment system not configured. Please contact support at contact@thepepplanner.com', 
+          message: 'Payment processing error. Please contact support at contact@thepepplanner.com', 
           type: 'error' 
         }
       }));

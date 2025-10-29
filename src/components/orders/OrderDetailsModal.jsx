@@ -14,12 +14,28 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   
-  // Auto-save functionality
+  // Auto-save functionality with order persistence
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
     `order_form_${order?.id || 'new'}`,
     form,
-    setForm
+    setForm,
+    2000, // 2 second delay
+    async (formData) => {
+      // Auto-save to orders list if this is an existing order
+      if (order?.id && formData && Object.keys(formData).length > 0) {
+        try {
+          console.log('🔄 Auto-saving existing order:', order.id);
+          await onSave?.(formData);
+        } catch (error) {
+          console.warn('Auto-save to orders failed:', error);
+        }
+      }
+    }
   );
+  
+  // State for save operations
+  const [isSavingToOrders, setIsSavingToOrders] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const totalCost = useMemo(() => {
     return (form.items || []).reduce((sum, item) => {
@@ -95,20 +111,47 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       }));
   };
 
+  // Prevent modal from closing if there's unsaved data
+  const handleClose = () => {
+    // Check if there's meaningful data that hasn't been saved
+    const hasData = form && (
+      form.vendor || 
+      form.items?.some(item => item.name || item.quantity > 1) ||
+      form.notes ||
+      form.tracking
+    );
+    
+    if (hasData && !isSavingToOrders) {
+      const shouldClose = window.confirm(
+        'You have unsaved changes. Are you sure you want to close without saving?'
+      );
+      if (!shouldClose) return;
+    }
+    
+    onClose();
+  };
+
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={`Order${form?.id ? ` #${form.id}` : ''}`}
       titleExtra={
-        <AutoSaveIndicator 
-          isSaving={isSaving} 
-          lastSaved={lastSaved} 
-          onClearForm={clearSavedData} 
-          theme={theme}
-          compact={true}
-          iconOnly={true}
-        />
+        <div className="flex items-center gap-2">
+          <AutoSaveIndicator 
+            isSaving={isSaving || isSavingToOrders} 
+            lastSaved={lastSaved} 
+            onClearForm={clearSavedData} 
+            theme={theme}
+            compact={true}
+            iconOnly={true}
+          />
+          {(isSaving || isSavingToOrders) && (
+            <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
+              {isSavingToOrders ? 'Saving...' : 'Auto-saving...'}
+            </span>
+          )}
+        </div>
       }
       theme={theme}
       variant="modern"
@@ -121,17 +164,49 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme?.border, color: theme?.text }}>Cancel</button>
-            <button onClick={() => {
-              console.log('💾 Saving order:', { ...form, attachments });
-              markAsSubmitted();
-              onSave?.({ ...form, attachments });
-            }} className="px-4 py-2 rounded-lg text-sm font-medium transition-all" style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}>Save</button>
+            <button onClick={handleClose} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme?.border, color: theme?.text }}>Cancel</button>
+            <button 
+              onClick={async () => {
+                try {
+                  setIsSavingToOrders(true);
+                  setSaveError(null);
+                  
+                  console.log('💾 Saving order:', { ...form, attachments });
+                  
+                  // Call the save function
+                  await onSave?.({ ...form, attachments });
+                  
+                  // Only clear auto-save and close modal after successful save
+                  markAsSubmitted();
+                  onClose();
+                } catch (error) {
+                  console.error('❌ Failed to save order:', error);
+                  setSaveError('Failed to save order. Please try again.');
+                } finally {
+                  setIsSavingToOrders(false);
+                }
+              }}
+              disabled={isSavingToOrders}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
+              style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
+            >
+              {isSavingToOrders ? 'Saving...' : 'Save'}
+            </button>
           </div>
         </div>
       )}
     >
       <div className="space-y-6">
+        {/* Error Display */}
+        {saveError && (
+          <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="text-sm font-medium text-red-800">{saveError}</span>
+            </div>
+          </div>
+        )}
+        
         {/* Main form */}
         <div className="space-y-4">
           {/* Section: Vendor & Category */}

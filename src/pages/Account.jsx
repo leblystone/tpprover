@@ -312,7 +312,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         console.log('✅ Custom verification email sent successfully:', result.data);
         
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '📧 Verification email sent! Check your inbox (not spam folder).', type: 'success' } 
+          detail: { message: '📧 Verification email sent!', type: 'success' } 
         }));
       } catch (error) {
         console.error('❌ Email verification error:', error);
@@ -351,7 +351,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         console.log('✅ Custom password reset email sent successfully:', result.data);
         
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: '📧 Password reset email sent! Check your inbox (not spam folder).', type: 'success' } 
+          detail: { message: '📧 Password reset email sent!', type: 'success' } 
         }));
       } catch (error) {
         console.error('❌ Password reset error:', error);
@@ -404,7 +404,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           
           setPwForm({ current: '', next: '', confirm: '' });
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { message: '✅ Password updated successfully!', type: 'success' } 
+            detail: { message: '✅ Password updated!', type: 'success' } 
           }));
         } else {
           // Legacy localStorage auth
@@ -424,7 +424,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           setAuthDb(db);
           setPwForm({ current: '', next: '', confirm: '' });
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { message: '✅ Password updated successfully!', type: 'success' } 
+            detail: { message: '✅ Password updated!', type: 'success' } 
           }));
         }
       } catch (error) {
@@ -470,7 +470,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
         }
         saveSubscription(next, firebaseUser)
         setSub(next)
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Lab access started', type: 'success' } }))
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Subscription started', type: 'success' } }))
         return
       }
 
@@ -541,7 +541,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
             const next = { ...subscription, status: 'canceled', endedAt: new Date().toISOString() }
             saveSubscription(next, firebaseUser)
             setSub(next)
-            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Lab access will end after your current research period.', type: 'success' } }))
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Subscription will end after your current billing period.', type: 'success' } }))
           }
         } catch (error) {
           console.error('Cancellation error:', error);
@@ -633,21 +633,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                   </div>
                 </div>
 
-                {/* Account Status Card */}
-                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#f0fdf4' }}>
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>Account Status</div>
-                      <div className="text-sm font-semibold text-green-600">Active</div>
-                      <div className="text-xs mt-1" style={{ color: theme.textLight }}>Full access enabled</div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Email Verification Status - Only show for Firebase users */}
@@ -688,8 +673,73 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                       </button>
                     )}
                   </div>
+                  
+                  {/* Verification Tip */}
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: isEmailVerified ? '#d1fae5' : '#fef3c7' }}>
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: isEmailVerified ? '#10b981' : '#f59e0b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="text-xs" style={{ color: isEmailVerified ? '#059669' : '#d97706' }}>
+                        <strong>Why verify?</strong> Email verification ensures secure communication about your research protocols and protects your account. We understand the importance of data privacy in peptide research.
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
+
+              {/* Password Management */}
+              <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.secondary }}>
+                      <svg className="w-5 h-5" style={{ color: theme.primary }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium" style={{ color: theme.text }}>Password</div>
+                      <div className="text-xs" style={{ color: theme.textLight }}>Manage your account security</div>
+                    </div>
+                  </div>
+                  {firebaseUser && (
+                    <button
+                      onClick={sendPasswordReset}
+                      className="text-xs hover:underline px-2 py-1 rounded hover:bg-gray-100"
+                      style={{ color: theme.primary }}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <input
+                    type="password"
+                    placeholder="Current password"
+                    value={pwForm.current}
+                    onChange={(e) => setPwForm(prev => ({ ...prev, current: e.target.value }))}
+                    className="px-3 py-2 border rounded text-sm"
+                    style={{ borderColor: theme.border, backgroundColor: theme.inputBackground, color: theme.text }}
+                  />
+                  <input
+                    type="password"
+                    placeholder="New password"
+                    value={pwForm.next}
+                    onChange={(e) => setPwForm(prev => ({ ...prev, next: e.target.value }))}
+                    className="px-3 py-2 border rounded text-sm"
+                    style={{ borderColor: theme.border, backgroundColor: theme.inputBackground, color: theme.text }}
+                  />
+                  <button
+                    onClick={changePassword}
+                    disabled={isUpdatingPassword}
+                    className="px-4 py-2 rounded text-sm font-medium text-white hover:opacity-90 transition-all disabled:opacity-50"
+                    style={{ backgroundColor: theme.primary }}
+                  >
+                    {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                </div>
+              </div>
               
               {/* Logout button at bottom */}
               <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
@@ -861,37 +911,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                        </>
                      ) : (
                        <>
-                         {/* Active Subscription Status - For Monthly/Annual */}
-                         <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '2px solid rgba(34, 197, 94, 0.3)' }}>
-                           <div className="flex items-center justify-between mb-3">
-                             <div className="flex items-center gap-2">
-                               <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                               <span className="font-semibold text-sm" style={{ color: theme.primaryDark }}>
-                                 Active Researcher
-                               </span>
-                             </div>
-                             <span className="text-sm font-bold text-green-600">
-                               {sub.interval === 'year' ? 'Annual' : 'Monthly'}
-                             </span>
-                           </div>
-                           
-                           <div className="space-y-2">
-                             <div className="w-full bg-gray-200 rounded-full h-3">
-                               <div
-                                 className="h-3 rounded-full transition-all duration-500 ease-out"
-                                 style={{
-                                   width: '100%',
-                                   background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)',
-                                   boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)'
-                                 }}
-                               ></div>
-                             </div>
-                             <div className="flex justify-between text-xs" style={{ color: theme.textLight }}>
-                               <span>{sub.plan} - ${sub.price}</span>
-                               <span>Next billing: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</span>
-                             </div>
-                           </div>
-                         </div>
+                         {/* Subscription details are shown in the subscription tab - no need for redundant status here */}
                        </>
                      )}
                   </div>
@@ -1340,63 +1360,6 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
               )}
         </CollapsibleSection>
 
-        {/* Security */}
-        <CollapsibleSection
-          title="Security"
-          description="Manage your password and two-factor authentication"
-          icon={Lock}
-          theme={theme}
-        >
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm font-medium">Password</div>
-              <div className="text-xs mb-2" style={{ color: theme.textLight }}>For security, you will be logged out after changing your password.</div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <input type="password" className="p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} placeholder="Current" value={pwForm.current} onChange={e => setPwForm({ ...pwForm, current: e.target.value })} />
-                <input type="password" className="p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} placeholder="New" value={pwForm.next} onChange={e => setPwForm({ ...pwForm, next: e.target.value })} />
-                <input type="password" className="p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} placeholder="Confirm" value={pwForm.confirm} onChange={e => setPwForm({ ...pwForm, confirm: e.target.value })} />
-              </div>
-              <div className="mt-2 flex items-center justify-between">
-                {firebaseUser && (
-                  <button 
-                    onClick={sendPasswordReset}
-                    className="text-xs hover:underline"
-                    style={{ color: theme.primary }}
-                  >
-                    Forgot password? Send reset email
-                  </button>
-                )}
-                <button 
-                  className="px-3 py-2 rounded-md text-sm hover:opacity-90 disabled:opacity-50" 
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
-                  onClick={changePassword}
-                  disabled={isUpdatingPassword}
-                >
-                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
-                </button>
-              </div>
-            </div>
-            <hr style={{ borderColor: theme.border }}/>
-            <div>
-              <div className="text-sm font-medium">Two-Factor Authentication</div>
-              <div className="text-xs mb-2" style={{ color: theme.textLight }}>Add an extra layer of security to your account.</div>
-              {security.twoFactorEnabled ? (
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">Enabled ({security.twoFactorMethod === 'authenticator' ? 'Authenticator App' : 'Email OTP'})</div>
-                  <div className="flex items-center gap-2">
-                    <button className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }} onClick={openTwoFA}>Manage</button>
-                    <button className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.error, color: theme.textOnPrimary }} onClick={disableTwoFA}>Disable</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">Disabled</div>
-                  <button className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} onClick={openTwoFA}>Enable 2FA</button>
-                </div>
-              )}
-            </div>
-          </div>
-        </CollapsibleSection>
 
         {/* Legal & Privacy */}
         <CollapsibleSection

@@ -722,7 +722,7 @@ export default function Settings() {
         // Show success message
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
           detail: { 
-            message: `${pwaNotificationStatus.isNative ? 'Native' : 'PWA'} notifications ${enabled ? 'enabled' : 'disabled'}`, 
+            message: `Notifications ${enabled ? 'enabled' : 'disabled'}`, 
             type: 'success' 
           } 
         }));

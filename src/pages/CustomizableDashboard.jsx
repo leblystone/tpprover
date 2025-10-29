@@ -533,50 +533,6 @@ export default function CustomizableDashboard() {
   return (
     <ViewContainer theme={theme}>
       <div className="space-y-2 overflow-x-hidden w-full max-w-full">
-        
-        {/* Toast Test Button - Development Only */}
-        <div className="mb-4 flex gap-2">
-          <button
-            onClick={() => addToast('Protocol completed successfully! Research data has been logged.', 'success')}
-            className="px-3 py-1 text-sm rounded-md font-medium transition-colors"
-            style={{
-              backgroundColor: theme.success || '#10b981',
-              color: 'white'
-            }}
-          >
-            Test Success Toast
-          </button>
-          <button
-            onClick={() => addToast('Protocol error detected. Please check your research parameters.', 'error')}
-            className="px-3 py-1 text-sm rounded-md font-medium transition-colors"
-            style={{
-              backgroundColor: theme.error || '#ef4444',
-              color: 'white'
-            }}
-          >
-            Test Error Toast
-          </button>
-          <button
-            onClick={() => addToast('Protocol attention needed. Review your research schedule.', 'warning')}
-            className="px-3 py-1 text-sm rounded-md font-medium transition-colors"
-            style={{
-              backgroundColor: theme.warning || '#f59e0b',
-              color: 'white'
-            }}
-          >
-            Test Warning Toast
-          </button>
-          <button
-            onClick={() => addToast('New research protocol available. Check your dashboard for updates.', 'info')}
-            className="px-3 py-1 text-sm rounded-md font-medium transition-colors"
-            style={{
-              backgroundColor: theme.info || '#3b82f6',
-              color: 'white'
-            }}
-          >
-            Test Info Toast
-          </button>
-        </div>
 
         {/* Dashboard Layout - Flexible Grid */}
         <div className="overflow-x-hidden">

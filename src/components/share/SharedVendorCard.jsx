@@ -118,7 +118,7 @@ export default function SharedVendorCard({ vendor, theme }) {
     }
 
     return (
-        <div className="p-6 rounded-xl border bg-white w-full max-w-md" style={{ borderColor: sageTheme.border, fontFamily: 'sans-serif' }}>
+        <div className="p-6 rounded-xl border bg-white w-full max-w-md" style={{ borderColor: sageTheme.border, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
             <header className="flex items-center gap-3 mb-4 pb-4 border-b" style={{borderColor: sageTheme.border}}>
                 <img src={logo} alt="The Pep Planner Logo" className="h-12 w-12 rounded-full shadow-md object-cover" />
                 <div>

@@ -33,18 +33,25 @@ export default function ResetPassword() {
     try {
       setLoading(true);
       
-      // Check if it's a Firebase token (starts with specific pattern)
-      if (token.length > 50) {
+      console.log(`🔍 Token length: ${token.length} characters`);
+      console.log(`🔍 Token preview: ${token.substring(0, 10)}...`);
+      
+      // Our custom tokens are 64 characters (32 bytes hex), Firebase tokens are much longer
+      // Firebase tokens typically start with specific patterns and are 100+ characters
+      if (token.length > 100) {
+        console.log('🔍 Using Firebase token validation');
         // Firebase token - verify it
         const auth = getAuth();
         await verifyPasswordResetCode(auth, token);
         setIsValidToken(true);
       } else {
+        console.log('🔍 Using custom token validation');
         // Custom token - check with our function
         const functions = getFunctions();
         const verifyResetToken = httpsCallable(functions, 'verifyResetToken');
         
         const result = await verifyResetToken({ token });
+        console.log('🔍 Token validation result:', result.data);
         if (result.data.success) {
           setIsValidToken(true);
         } else {
@@ -117,7 +124,7 @@ export default function ResetPassword() {
       setLoading(true);
       setError('');
 
-      if (token.length > 50) {
+      if (token.length > 100) {
         // Firebase token - use Firebase's confirmPasswordReset
         const auth = getAuth();
         await confirmPasswordReset(auth, token, password);

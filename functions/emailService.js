@@ -101,7 +101,12 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
  * Send custom password reset email with Firebase token
  */
 exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
-  const resetLink = `https://thepepplanner.app/reset-password?token=${resetToken}`;
+  // Use environment variable for base URL, fallback to production
+  // For local development, you can set BASE_URL=http://localhost:5173
+  const baseUrl = process.env.BASE_URL || 'https://thepepplanner.app';
+  const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+  
+  logger.info(`🔗 Password reset link: ${resetLink}`);
   
   // Try to load custom template from Firestore, fallback to hardcoded
   try {
@@ -125,7 +130,12 @@ exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {
  * Send custom verification email with Firebase token
  */
 exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
-  const verificationLink = `https://thepepplanner.app/verify-email?token=${verificationToken}`;
+  // Use environment variable for base URL, fallback to production
+  // For local development, you can set BASE_URL=http://localhost:5173
+  const baseUrl = process.env.BASE_URL || 'https://thepepplanner.app';
+  const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
+  
+  logger.info(`🔗 Verification link: ${verificationLink}`);
   
   // Try to load custom template from Firestore, fallback to hardcoded
   try {

@@ -32,6 +32,9 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             const rect = node.getBoundingClientRect();
             console.log('Card dimensions:', rect.width, 'x', rect.height);
 
+            // Wait a bit for fonts to load on mobile
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const dataUrl = await toPng(node, { 
                 cacheBust: true,
                 width: rect.width,
@@ -41,6 +44,21 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                 style: {
                     transform: 'scale(1)',
                     transformOrigin: 'top left'
+                },
+                // Mobile-specific options to handle CSS issues
+                skipFonts: false,
+                skipAutoScale: true,
+                useCORS: true,
+                allowTaint: true,
+                // Handle font loading issues
+                fontEmbedCSS: false,
+                // Skip problematic external resources
+                filter: (node) => {
+                    // Skip external font links that cause issues on mobile
+                    if (node.tagName === 'LINK' && node.href && node.href.includes('fonts.googleapis.com')) {
+                        return false;
+                    }
+                    return true;
                 }
             });
 
@@ -72,7 +90,21 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             }
         } catch (err) {
             console.error('Error generating share image:', err);
-            alert('Could not generate image. Please try copying the link instead.');
+            // Try a simpler approach for mobile
+            try {
+                console.log('Trying simplified image generation...');
+                const simpleDataUrl = await toPng(node, { 
+                    backgroundColor: '#ffffff',
+                    pixelRatio: 1,
+                    skipFonts: true,
+                    useCORS: false,
+                    allowTaint: true
+                });
+                downloadImage(simpleDataUrl);
+            } catch (simpleErr) {
+                console.error('Simplified image generation also failed:', simpleErr);
+                alert('Could not generate image. Please try copying the link instead.');
+            }
         }
     };
 
@@ -132,7 +164,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                 Here is a preview of what will be shared.
             </p>
             <div className="flex justify-center w-full overflow-x-auto">
-                <div ref={cardRef} className="bg-white p-2 inline-block max-w-full">
+                <div ref={cardRef} className="bg-white p-2 inline-block max-w-full" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
                     <ShareCard {...cardProps} isPublicView={true} theme={theme} />
                 </div>
             </div>
