@@ -61,8 +61,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
     return (
         <div className="space-y-4">
                 {/* PEPTIDE DETAILS Section Header */}
-                <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Details</h4>
+                <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Details</h4>
                 </div>
 
                 {/* Peptide Information */}
@@ -144,9 +144,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                 {/* DELIVERY METHOD Section - Only show for separate protocols or first peptide in blended */}
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
                     <>
-                        <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>
-                                Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal lowercase" style={{ color: theme.primary }}>(shared by all peptides)</span>}
+                        <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>
+                                Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal lowercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>(shared by all peptides)</span>}
                             </h4>
                         </div>
 

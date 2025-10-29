@@ -380,9 +380,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 value={form.protocolName || ''}
                                 onChange={e => handleChange('protocolName', e.target.value)}
                                 placeholder="e.g., Semaglutide, NAD+, etc."
-                                className="w-full px-4 py-3 text-lg font-medium rounded-xl border-2 focus:ring-2 focus:ring-opacity-50 transition-all"
+                                className="w-full px-4 py-3 text-lg font-medium rounded-xl focus:ring-2 focus:ring-opacity-50 transition-all focus:outline-none"
                                 style={{
-                                    borderColor: theme.border,
+                                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
+                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                                     backgroundColor: theme.cardBackground,
                                     color: theme.text,
                                     '--tw-ring-color': theme.primary
@@ -400,9 +401,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 value={form.purpose || ''}
                                 onChange={e => handleChange('purpose', e.target.value)}
                                 placeholder="Weight Loss, Recovery, etc."
-                                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-opacity-50 transition-all"
+                                className="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-opacity-50 transition-all focus:outline-none"
                                 style={{
-                                    borderColor: theme.border,
+                                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
+                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                                     backgroundColor: theme.cardBackground,
                                     color: theme.text,
                                     '--tw-ring-color': theme.primary
@@ -421,11 +423,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'separate')}
-                                className="p-3 border-2 rounded-lg text-center transition-all transform hover:scale-[1.02]"
+                                className="p-3 rounded-lg text-center transition-all transform hover:scale-[1.02]"
                                 style={{ 
-                                    borderColor: form.protocolType === 'separate' ? theme.primary : theme.border,
-                                    backgroundColor: form.protocolType === 'separate' ? theme.primary + '15' : theme.cardBackground,
-                                    boxShadow: form.protocolType === 'separate' ? `0 2px 8px ${theme.primary}20` : 'none'
+                                    border: form.protocolType === 'separate' 
+                                        ? `2px solid ${theme.primary}` 
+                                        : (theme.isDark ? 'none' : `2px solid ${theme.border}`),
+                                    backgroundColor: form.protocolType === 'separate' ? theme.primary + '15' : (theme.isDark ? '#1f2937' : theme.cardBackground),
+                                    boxShadow: form.protocolType === 'separate' 
+                                        ? `0 2px 8px ${theme.primary}20` 
+                                        : (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)')
                                 }}
                             >
                                 <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Separate</div>
@@ -436,11 +442,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'blended')}
-                                className="p-3 border-2 rounded-lg text-center transition-all transform hover:scale-[1.02]"
+                                className="p-3 rounded-lg text-center transition-all transform hover:scale-[1.02]"
                                 style={{ 
-                                    borderColor: form.protocolType === 'blended' ? theme.primary : theme.border,
-                                    backgroundColor: form.protocolType === 'blended' ? theme.primary + '15' : theme.cardBackground,
-                                    boxShadow: form.protocolType === 'blended' ? `0 2px 8px ${theme.primary}20` : 'none'
+                                    border: form.protocolType === 'blended' 
+                                        ? `2px solid ${theme.primary}` 
+                                        : (theme.isDark ? 'none' : `2px solid ${theme.border}`),
+                                    backgroundColor: form.protocolType === 'blended' ? theme.primary + '15' : (theme.isDark ? '#1f2937' : theme.cardBackground),
+                                    boxShadow: form.protocolType === 'blended' 
+                                        ? `0 2px 8px ${theme.primary}20` 
+                                        : (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)')
                                 }}
                             >
                                 <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Blended</div>
@@ -483,12 +493,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     <div className="grid gap-4">
                         {form.peptides?.map((p, index) => (
                             <div key={p.id || index} 
-                                 className="rounded-xl border overflow-hidden transition-all hover:shadow-lg"
+                                 className="rounded-xl overflow-hidden transition-all hover:shadow-lg"
                                  style={{ 
-                                     borderColor: theme.border,
+                                     border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                     boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                                      backgroundColor: index % 2 === 0 
-                                         ? theme.cardBackground 
-                                         : theme.secondary + '80'
+                                         ? (theme.isDark ? '#1f2937' : theme.cardBackground)
+                                         : (theme.isDark ? '#111827' : theme.secondary + '80')
                                  }}>
                                 {/* Peptide Header with Number */}
                                 <div className="px-4 py-2 border-b flex items-center justify-between"
@@ -557,8 +568,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
                     {/* Global Titration for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 0 && (
-                        <div className="p-6 rounded-xl border-2" 
-                             style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                        <div className="p-6 rounded-xl" 
+                             style={{ 
+                                 border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
+                                 backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                             }}>
                             <h4 className="font-semibold mb-4" style={{ color: theme.text }}>
                                 Titration Schedule (Blended Protocol)
                             </h4>
