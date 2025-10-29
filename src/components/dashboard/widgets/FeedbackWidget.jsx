@@ -42,7 +42,7 @@ const FeedbackWidget = ({ widget, theme }) => {
   if (submitted) {
     return (
       <div className="h-full flex flex-col">
-        <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+        <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Feedback & Suggestions
@@ -66,7 +66,7 @@ const FeedbackWidget = ({ widget, theme }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Feedback & Suggestions
@@ -83,12 +83,12 @@ const FeedbackWidget = ({ widget, theme }) => {
               key={type.id}
               type="button"
               onClick={() => setFeedbackType(type.id)}
-              className={`p-1.5 text-xs rounded-lg border transition-colors flex items-center gap-1.5 ${
+              className={`p-1.5 text-xs rounded-lg transition-all ${
                 feedbackType === type.id ? 'border-2' : ''
               }`}
               style={{
-                borderColor: feedbackType === type.id ? type.color : theme.border,
-                backgroundColor: feedbackType === type.id ? type.color + '10' : 'transparent',
+                border: feedbackType === type.id ? `2px solid ${type.color}` : (theme.isDark ? 'none' : `1px solid ${theme.border}`),
+                backgroundColor: feedbackType === type.id ? type.color + '10' : (theme.isDark ? '#1f2937' : 'transparent'),
                 color: feedbackType === type.id ? type.color : theme.text
               }}
             >
@@ -104,10 +104,10 @@ const FeedbackWidget = ({ widget, theme }) => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={`Share your ${selectedType?.label.toLowerCase() || 'feedback'}...`}
-            className="w-full p-2 text-sm border rounded-lg resize-none flex-1"
+            className="w-full p-2 text-sm rounded-lg resize-none flex-1"
             style={{ 
-              borderColor: theme.border,
-              backgroundColor: theme.inputBackground || theme.cardBackground,
+              border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+              backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || theme.cardBackground),
               color: theme.text,
               minHeight: '70px'
             }}

@@ -229,7 +229,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const isTrial = subData?.status === 'trialing';
 
   return (
-    <div className="rounded border-2 p-3 content-card shadow-lg" style={{ borderColor: '#5C7659', backgroundColor: '#f8f9fa' }}>
+    <div className="rounded p-3 content-card shadow-lg" style={{ border: theme.isDark ? 'none' : '2px solid #5C7659', backgroundColor: theme.isDark ? '#1f2937' : '#f8f9fa' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Crown size={18} style={{ color: theme.primary }} />
@@ -252,7 +252,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
             </div>
             
             {/* Real-time Countdown */}
-            <div className="text-center mb-3 p-3 rounded-lg" style={{ backgroundColor: '#e6f7f0', border: '2px solid #a8d5c1' }}>
+            <div className="text-center mb-3 p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : '#e6f7f0', border: theme.isDark ? 'none' : '2px solid #a8d5c1' }}>
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Clock size={14} style={{ color: '#344E41' }} />
                 <span className="font-semibold text-xs" style={{ color: '#344E41' }}>
@@ -299,10 +299,10 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('monthly')}
                   disabled={isProcessing}
-                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-center disabled:opacity-50"
+                  className="p-3 rounded-lg cursor-pointer hover:shadow-md transition-all text-center disabled:opacity-50"
                   style={{ 
-                    borderColor: theme.border,
-                    backgroundColor: theme.cardBackground 
+                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
+                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
                   }}
                 >
                   <div className="font-bold text-sm" style={{ color: theme.primaryDark }}>MONTHLY</div>
@@ -316,10 +316,10 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('annual')}
                   disabled={isProcessing}
-                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
+                  className="p-3 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
                   style={{ 
-                    borderColor: theme.primary,
-                    backgroundColor: theme.cardBackground 
+                    border: theme.isDark ? `1px solid ${theme.primary}` : `2px solid ${theme.primary}`,
+                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
                   }}
                 >
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -341,10 +341,10 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('lifetime')}
                   disabled={isProcessing}
-                  className="p-3 border-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
+                  className="p-3 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
                   style={{ 
-                    borderColor: theme.border,
-                    backgroundColor: theme.cardBackground 
+                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
+                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
                   }}
                 >
                   <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
