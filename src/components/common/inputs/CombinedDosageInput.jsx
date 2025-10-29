@@ -43,7 +43,7 @@ export default function CombinedDosageInput({
                     placeholder={placeholder}
                     className="flex-1 px-3 py-2 outline-none min-w-0"
                     style={{ 
-                        backgroundColor: theme.inputBackground || '#fff',
+                        backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                         color: theme.text 
                     }}
                     autoComplete="off"
@@ -54,7 +54,7 @@ export default function CombinedDosageInput({
                     className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
                     style={{ 
                         borderColor: theme.border,
-                        backgroundColor: theme.cardBackground || '#f9fafb'
+                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                     }}
                 >
                     {displayUnits.map(unit => (
