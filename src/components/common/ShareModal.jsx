@@ -3,6 +3,8 @@ import Modal from './Modal';
 import { toPng } from 'html-to-image';
 import { Image, Copy, Check } from 'lucide-react';
 import { encodeShareData } from '../../utils/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 // Import the new share-specific cards
 import SharedProtocolCard from '../share/SharedProtocolCard';
@@ -98,63 +100,54 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                         window.Capacitor || 
                         window.location.protocol === 'capacitor:';
         
-        if (isMobile) {
-            console.log('Mobile detected - using native share functionality');
+        if (isMobile && window.Capacitor) {
+            console.log('Capacitor detected - using native file sharing');
             
             try {
-                // Convert data URL to blob
-                const response = await fetch(dataUrl);
-                const blob = await response.blob();
+                // Convert data URL to base64
+                const base64Data = dataUrl.split(',')[1];
                 
-                // Create a file from the blob
-                const file = new File([blob], 'shared-card.png', { type: 'image/png' });
+                // Write file to device storage
+                const fileName = `shared-card-${Date.now()}.png`;
+                const result = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64Data,
+                    directory: Directory.Cache,
+                });
                 
-                // Check if Web Share API supports files
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    console.log('Using Web Share API with file');
-                    await navigator.share({
-                        title: `Check out this ${title}`,
-                        text: `Shared from The Pep Planner`,
-                        files: [file],
-                    });
-                    console.log('Successfully shared via native share sheet');
-                } else {
-                    // Fallback: try to share the image URL
-                    console.log('Web Share API with files not supported, trying URL share');
-                    if (navigator.share) {
-                        await navigator.share({
-                            title: `Check out this ${title}`,
-                            text: `Shared from The Pep Planner`,
-                            url: dataUrl,
+                console.log('File written to:', result.uri);
+                
+                // Share the file using native share
+                await Share.share({
+                    title: `Check out this ${title}`,
+                    text: `Shared from The Pep Planner`,
+                    url: result.uri,
+                    dialogTitle: 'Share Image',
+                });
+                
+                console.log('Successfully shared via native Capacitor share');
+                
+                // Clean up the file after sharing
+                setTimeout(async () => {
+                    try {
+                        await Filesystem.deleteFile({
+                            path: fileName,
+                            directory: Directory.Cache,
                         });
-                        console.log('Successfully shared URL via native share sheet');
-                    } else {
-                        // Last resort: create a temporary blob URL and try to download
-                        console.log('Native share not available, creating blob URL for download');
-                        const blobUrl = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = blobUrl;
-                        link.download = 'shared-card.png';
-                        link.style.display = 'none';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(blobUrl);
-                        console.log('Download triggered via blob URL');
+                        console.log('Temporary file cleaned up');
+                    } catch (cleanupError) {
+                        console.log('Could not clean up temporary file:', cleanupError);
                     }
-                }
+                }, 5000);
+                
             } catch (error) {
-                console.error('Error with mobile share:', error);
-                // Fallback to simple download
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = 'shared-card.png';
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                console.log('Fallback download completed');
+                console.error('Error with Capacitor native share:', error);
+                // Fallback to Web Share API
+                await fallbackWebShare(dataUrl);
             }
+        } else if (isMobile) {
+            console.log('Mobile detected - using Web Share API');
+            await fallbackWebShare(dataUrl);
         } else {
             // Desktop: use normal download
             console.log('Desktop detected - using normal download');
@@ -166,6 +159,63 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             document.body.removeChild(link);
         }
         console.log('Image share/download process completed');
+    };
+
+    const fallbackWebShare = async (dataUrl) => {
+        try {
+            // Convert data URL to blob
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            
+            // Create a file from the blob
+            const file = new File([blob], 'shared-card.png', { type: 'image/png' });
+            
+            // Check if Web Share API supports files
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                console.log('Using Web Share API with file');
+                await navigator.share({
+                    title: `Check out this ${title}`,
+                    text: `Shared from The Pep Planner`,
+                    files: [file],
+                });
+                console.log('Successfully shared via Web Share API');
+            } else {
+                // Fallback: try to share the image URL
+                console.log('Web Share API with files not supported, trying URL share');
+                if (navigator.share) {
+                    await navigator.share({
+                        title: `Check out this ${title}`,
+                        text: `Shared from The Pep Planner`,
+                        url: dataUrl,
+                    });
+                    console.log('Successfully shared URL via Web Share API');
+                } else {
+                    // Last resort: create a temporary blob URL and try to download
+                    console.log('Web Share API not available, creating blob URL for download');
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = 'shared-card.png';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                    console.log('Download triggered via blob URL');
+                }
+            }
+        } catch (error) {
+            console.error('Error with fallback Web Share:', error);
+            // Final fallback to simple download
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'shared-card.png';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            console.log('Final fallback download completed');
+        }
     };
 
     const handleCopyLink = () => {
