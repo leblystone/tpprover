@@ -17,6 +17,12 @@ const Stockpile = lazy(() => import('./pages/Stockpile.jsx'))
 const Recon = lazy(() => import('./pages/Recon.jsx'))
 const Announcements = lazy(() => import('./pages/Announcements.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
+const SettingsNotifications = lazy(() => import('./pages/SettingsNotifications.jsx'))
+const SettingsAppearance = lazy(() => import('./pages/SettingsAppearance.jsx'))
+const SettingsPreferences = lazy(() => import('./pages/SettingsPreferences.jsx'))
+const SettingsPrivacy = lazy(() => import('./pages/SettingsPrivacy.jsx'))
+const SettingsLegal = lazy(() => import('./pages/SettingsLegal.jsx'))
+const SettingsData = lazy(() => import('./pages/SettingsData.jsx'))
 const Account = lazy(() => import('./pages/Account.jsx'))
 const Login = lazy(() => import('./pages/Login.jsx'))
 const Imports = lazy(() => import('./pages/Imports.jsx'))
@@ -172,6 +178,12 @@ export const router = createBrowserRouter([
           { path: 'announcements', element: <Announcements /> },
           { path: 'goals', element: <Goals /> },
           { path: 'settings', element: <Settings /> },
+          { path: 'settings/notifications', element: <SettingsNotifications /> },
+          { path: 'settings/appearance', element: <SettingsAppearance /> },
+          { path: 'settings/preferences', element: <SettingsPreferences /> },
+          { path: 'settings/privacy', element: <SettingsPrivacy /> },
+          { path: 'settings/legal', element: <SettingsLegal /> },
+          { path: 'settings/data', element: <SettingsData /> },
           { path: 'account', element: <Account /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
