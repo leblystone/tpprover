@@ -682,14 +682,32 @@ export default function Dashboard() {
           <div className="lg:col-span-3 p-2 rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }} data-tour-id="today-research">
             <div className="flex justify-between items-center mb-1">
                 <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Today's Research</h3>
-                <button 
-                    onClick={() => navigate('/app/calendar')}
-                    className="px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5" 
-                    style={{ backgroundColor: theme.accent, color: theme.primaryDark }}
-                >
-                    <Calendar size={12}/>
-                    <span>View Schedule</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => {
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                detail: { 
+                                    message: '🧪 Test toast notification!', 
+                                    type: 'success' 
+                                } 
+                            }));
+                        }}
+                        className="px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5" 
+                        style={{ backgroundColor: theme.accent, color: theme.primaryDark }}
+                        title="Test Toast"
+                    >
+                        <TestTube size={12}/>
+                        <span>Test Toast</span>
+                    </button>
+                    <button 
+                        onClick={() => navigate('/app/calendar')}
+                        className="px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5" 
+                        style={{ backgroundColor: theme.accent, color: theme.primaryDark }}
+                    >
+                        <Calendar size={12}/>
+                        <span>View Schedule</span>
+                    </button>
+                </div>
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
             <div className="max-h-48 overflow-y-auto pr-2">
@@ -920,6 +938,19 @@ export default function Dashboard() {
                   }} 
                   icon={<Plus />} 
                   label="New Protocol" 
+                  theme={theme} 
+                />
+                <ActionButton 
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                      detail: { 
+                        message: '🧪 Test toast notification!', 
+                        type: 'success' 
+                      } 
+                    }));
+                  }} 
+                  icon={<TestTube />} 
+                  label="Test Toast" 
                   theme={theme} 
                 />
             </div>

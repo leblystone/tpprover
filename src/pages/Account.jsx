@@ -1225,7 +1225,10 @@ import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
                       <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
                       <button
                         onClick={() => setShowGiftModal(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl font-medium hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg"
+                        className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
+                        }}
                       >
                         🎁 Give as a Gift
                       </button>

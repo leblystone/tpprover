@@ -92,21 +92,21 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
           <div className="grid grid-cols-2 gap-3">
             {/* Monthly Plan */}
             <div 
-              className={`relative bg-white rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-              style={{ borderColor: '#D4D7CD' }}
+              className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
               onClick={() => !isProcessing && handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
             >
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
-                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$8.99</div>
-                <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per month</div>
+                <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
+                <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$8.99</div>
+                <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
               </div>
 
               {/* Action Button */}
               <button 
-                className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
-                style={{ backgroundColor: '#344E41' }}
+                className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 Start Monthly
               </button>
@@ -114,26 +114,26 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
 
             {/* Annual Plan */}
             <div 
-              className={`relative bg-white rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-              style={{ borderColor: '#D4D7CD' }}
+              className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
               onClick={() => !isProcessing && handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
             >
               {/* Popular Badge */}
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#3A5A40' }}>
+                <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
                   Popular
                 </div>
               </div>
 
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
-                <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Annual</h3>
-                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$89.99</div>
-                <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per year</div>
+                <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
+                <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$89.99</div>
+                <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
                 
                 {/* Subtitle Badge */}
                 <div className="text-center mt-1">
-                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
+                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
                     Save $17.89
                   </span>
                 </div>
@@ -141,8 +141,8 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
 
               {/* Action Button */}
               <button 
-                className="w-full py-2 rounded-lg text-white font-medium text-sm transition-all hover:opacity-90"
-                style={{ backgroundColor: '#3A5A40' }}
+                className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
+                style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
               >
                 Start Annual
               </button>
@@ -151,13 +151,13 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
           
           {/* Lifetime plan in expanded single column */}
           <div 
-            className={`relative bg-white rounded-lg border-2 p-6 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-            style={{ borderColor: '#D4D7CD' }}
+            className={`relative rounded-lg border-2 p-6 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+            style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
             onClick={() => !isProcessing && handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
           >
             {/* Limited Time Badge */}
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-              <div className="px-3 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: '#344E41' }}>
+              <div className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
                 Limited Time Only
               </div>
             </div>
@@ -165,18 +165,18 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
             {/* Content with more vertical space */}
             <div className="flex items-center justify-between min-h-[80px]">
               <div className="flex items-center gap-5">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#344E41' }}>
-                  <Crown size={20} className="text-white" />
+                <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: theme.primary }}>
+                  <Crown size={20} style={{ color: theme.textOnPrimary }} />
                 </div>
                 <div className="space-y-1">
-                  <div className="font-bold text-lg" style={{ color: '#344E41' }}>Lifetime Access</div>
-                  <div className="text-base font-semibold" style={{ color: '#344E41' }}>$249.99</div>
-                  <div className="text-sm" style={{ color: '#5C7659' }}>Never pay again • All features included</div>
+                  <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
+                  <div className="text-base font-semibold" style={{ color: theme.text }}>$249.99</div>
+                  <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • All features included</div>
                 </div>
               </div>
               <button 
-                className="px-6 py-3 rounded-lg text-white text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
-                style={{ backgroundColor: '#344E41' }}
+                className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 Join Forever
               </button>
@@ -185,12 +185,15 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
         </div>
         
         {/* Gift Access Button */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-4">Want to share The Pep Planner with someone?</p>
+            <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
             <button
               onClick={() => setShowGiftModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl font-medium hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg"
+              className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90"
+              style={{ 
+                background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
+              }}
             >
               🎁 Give as a Gift
             </button>

@@ -9,6 +9,7 @@ export const themes = {
     primaryLight: '#A0B9B3',
     secondary: '#EFF2EE',
     accent: '#DDE6DE',
+    accentText: '#2F3B3A',
 
     // Text
     text: '#2F3B3A',
@@ -43,6 +44,7 @@ export const themes = {
     primaryLight: '#BDB1B5',   // Lighter shade for accents
     secondary: '#F8F7F7',      // Very light gray for backgrounds
     accent: '#EDEAE2',         // A warm off-white accent
+    accentText: '#4A4A4A',
 
     // Text
     text: '#4A4A4A',           // Dark gray for high contrast text
@@ -77,6 +79,7 @@ export const themes = {
     primaryLight: '#D9D1CB',   // Lighter shade of the taupe
     secondary: '#F9F8F7',      // A very clean, light off-white background
     accent: '#E9E5E3',         // A subtle accent color
+    accentText: '#3A3A3A',
 
     // Text
     text: '#3A3A3A',           // The dark text color from the image
@@ -99,6 +102,41 @@ export const themes = {
     successBg: '#F2F5F1',
     warningBg: '#FAF7F0',
     infoBg: '#F8F7F7',
+  },
+
+  softDark: {
+    name: 'Soft Dark',
+    isDark: true,
+    
+    // Core Palette - Exact colors from the provided soft dark palette
+    primary: '#5A685A',        // Sage/moss green (4th color in palette)
+    primaryDark: '#405A5A',    // Dark teal (5th color - for hover states)
+    primaryLight: '#6B7D7A',   // Lighter variation for subtle accents
+    secondary: '#2C2C30',      // Dark slate (2nd color - secondary surfaces)
+    accent: '#338238',         // Olive green (3rd color - accent elements)
+    accentText: '#FFFFFF',     // White text on accent
+
+    // Text - Light colors for dark backgrounds
+    text: '#E8E8E8',           // Very light gray for primary text
+    textLight: '#A8A8A8',      // Medium gray for secondary text
+    textOnPrimary: '#FFFFFF',  // White text on colored buttons
+    
+    // Backgrounds - Using exact palette colors
+    background: '#1A1A1D',     // Darkest color (1st) - main background
+    cardBackground: '#2C2C30', // Dark slate (2nd) - card/surface background
+    
+    // UI Elements
+    border: '#3A3A40',         // Subtle border slightly lighter than cards
+    buttonDisabled: '#35353A', // Muted dark for disabled states
+    
+    // Semantic Colors (adjusted for dark backgrounds with good contrast)
+    success: '#6FA080',        // Soft green visible on dark
+    warning: '#E5B872',        // Warm gold visible on dark
+    error: '#E59688',          // Soft red visible on dark
+    info: '#6B9A9A',           // Soft teal visible on dark
+    successBg: '#273830',      // Dark green tinted background
+    warningBg: '#3A3428',      // Dark gold tinted background
+    infoBg: '#283838',         // Dark teal tinted background
   },
 };
 
