@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 import { themes, defaultThemeName } from '../theme/themes'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 
@@ -45,8 +45,7 @@ export default function SettingsAppearance() {
     } catch {}
   }, [settings?.appearance?.fontScale]);
 
-  const handleThemeChange = (e) => {
-    const newTheme = e.target.value;
+  const handleThemeChange = (newTheme) => {
     setSelectedTheme(newTheme);
     try { 
       localStorage.setItem('tpprover_theme', newTheme); 
@@ -87,58 +86,113 @@ export default function SettingsAppearance() {
         </button>
         <div>
           <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Appearance</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Customize your app's look and feel</p>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Add personality to your research</p>
         </div>
       </div>
 
       {/* Appearance Settings */}
       <div className="space-y-4">
+        {/* Theme Selection */}
         <div 
-          className="p-4 rounded-lg"
+          className="p-4 rounded-lg space-y-3"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>Theme</label>
-          <select
-            value={selectedTheme}
-            onChange={handleThemeChange}
-            className="w-full p-2 rounded border"
-            style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
-          >
-            {Object.keys(themes).map(t => <option key={t} value={t}>{themes[t].name}</option>)}
-          </select>
+          <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>Color Theme</h4>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.keys(themes).map(themeKey => {
+              const themeData = themes[themeKey]
+              const isSelected = selectedTheme === themeKey
+              
+              return (
+                <button
+                  key={themeKey}
+                  onClick={() => handleThemeChange(themeKey)}
+                  className="relative p-4 rounded-xl transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: theme.secondary,
+                    border: isSelected ? `3px solid ${theme.accent}` : '3px solid transparent',
+                    boxShadow: isSelected ? `0 4px 12px ${theme.accent}40` : '0 2px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {/* Large Color Swatch with Metallic Finish */}
+                  <div 
+                    className="w-full h-20 rounded-lg mb-3 relative overflow-hidden"
+                    style={{
+                      background: `linear-gradient(135deg, ${themeData.primary} 0%, ${themeData.accent} 50%, ${themeData.primary} 100%)`,
+                      boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)'
+                    }}
+                  >
+                    {/* Metallic shine overlay */}
+                    <div 
+                      className="absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
+                        mixBlendMode: 'overlay'
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Theme Name and Check */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                      {themeData.name}
+                    </div>
+                    {isSelected && (
+                      <div 
+                        className="w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: theme.accent }}
+                      >
+                        <Check size={14} style={{ color: theme.accentText }} />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        <SettingSelect 
-          label="Font Size" 
-          value={settings?.appearance?.fontScale || '1.0'} 
-          onChange={e => update('appearance.fontScale', e.target.value)} 
-          options={[
-            { value: '0.9', label: 'Small' }, 
-            { value: '1.0', label: 'Default' }, 
-            { value: '1.1', label: 'Large' }, 
-            { value: '1.25', label: 'XL' }
-          ]} 
-          theme={theme} 
-        />
+        {/* Font Size Selection */}
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>Font Size</h4>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { value: '0.9', label: 'Small', preview: 'Aa' },
+              { value: '1.0', label: 'Default', preview: 'Aa' },
+              { value: '1.1', label: 'Large', preview: 'Aa' },
+              { value: '1.25', label: 'XL', preview: 'Aa' }
+            ].map(option => {
+              const isSelected = (settings?.appearance?.fontScale || '1.0') === option.value
+              
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => update('appearance.fontScale', option.value)}
+                  className="p-3 rounded-lg transition-all hover:opacity-90 text-center"
+                  style={{
+                    backgroundColor: isSelected ? theme.accent : theme.secondary,
+                    color: isSelected ? theme.accentText : theme.text,
+                    border: isSelected ? `2px solid ${theme.accent}` : '2px solid transparent'
+                  }}
+                >
+                  <div 
+                    className="font-bold mb-1"
+                    style={{ fontSize: `${parseFloat(option.value) * 1.5}rem` }}
+                  >
+                    {option.preview}
+                  </div>
+                  <div className="text-xs">
+                    {option.label}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </section>
   )
 }
-
-const SettingSelect = ({ label, value, onChange, options, theme }) => (
-  <div 
-    className="p-4 rounded-lg"
-    style={{ backgroundColor: theme.cardBackground }}
-  >
-    <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>{label}</label>
-    <select 
-      className="w-full p-2 rounded-md border" 
-      value={value} 
-      onChange={onChange} 
-      style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
-    >
-      {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-    </select>
-  </div>
-)
-
