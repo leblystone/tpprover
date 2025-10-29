@@ -23,7 +23,7 @@ const GoalsWidget = ({
 
   return (
     <div className="relative h-full flex flex-col">
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
           {widget.title}
         </h3>

@@ -367,7 +367,7 @@ const MetricsWidget = ({
 
   return (
     <div className="relative h-full flex flex-col">
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Bio-Metrics
@@ -429,7 +429,7 @@ const MetricsWidget = ({
                 </div>
                 
                 {/* Most Recent Entry Card */}
-                <div className="p-3 rounded border flex-1" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="p-3 rounded flex-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground }}>
                   {/* Date */}
                   <div className="flex items-center gap-1 mb-3">
                     <Calendar size={10} style={{ color: theme.primary }} />

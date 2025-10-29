@@ -52,7 +52,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
             <button
               key={index}
               onClick={action.onClick}
-              className="flex flex-col items-center justify-center p-3 rounded-lg transition-all hover:shadow-md min-h-[60px]"
+              className="flex flex-col items-center justify-center p-3 rounded-lg transition-all min-h-[60px] hover:opacity-90"
               style={{ 
                 backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                 color: theme.text

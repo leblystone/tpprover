@@ -190,8 +190,8 @@ const WaterTrackerWidget = ({ widget, theme }) => {
               disabled={todayData.glasses === 0}
               className="w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-30"
               style={{ 
-                backgroundColor: theme.error + '20', 
-                color: theme.error 
+                backgroundColor: theme.isDark ? '#7f1d1d' : theme.error + '20', 
+                color: theme.isDark ? '#fca5a5' : theme.error 
               }}
             >
               <Minus size={16} />

@@ -50,7 +50,7 @@ const SupplementsWidget = ({
 
   return (
     <div className="relative h-full flex flex-col">
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Supplements
@@ -93,10 +93,10 @@ const SupplementsWidget = ({
              {supplements.map(supplement => {
                return (
                <div 
-                 key={supplement.id} 
-                 className="p-3 rounded-lg border" 
-                 style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
-               >
+                key={supplement.id} 
+                className="p-3 rounded-lg" 
+                style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}
+              >
                  <div className="flex items-start justify-between">
                    <div className="flex items-start gap-3 flex-1">
                      {getDeliveryIcon(supplement.delivery || supplement.deliveryMethod)}

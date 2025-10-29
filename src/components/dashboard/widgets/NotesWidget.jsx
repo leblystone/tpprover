@@ -69,7 +69,7 @@ const NotesWidget = ({ widget, theme }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Research Notes
@@ -122,8 +122,8 @@ const NotesWidget = ({ widget, theme }) => {
                   {recentNotes.map((note) => (
                     <div 
                       key={note.id} 
-                      className="group p-2 rounded-lg border hover:shadow-sm transition-all duration-200 cursor-pointer" 
-                      style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                      className="group p-2 rounded-lg hover:shadow-sm transition-all duration-200 cursor-pointer" 
+                      style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground }}
                       onClick={() => setShowNotesModal(true)}
                     >
                       <div className="flex items-start justify-between mb-1">

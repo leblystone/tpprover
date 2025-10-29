@@ -118,7 +118,7 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
         <div>
             <ul className="space-y-1.5">
                 {tasks.map(task => (
-                    <li key={task.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.secondary }}>
+                    <li key={task.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
                         <div className="flex items-center gap-3 flex-1">
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">
