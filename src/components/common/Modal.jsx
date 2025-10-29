@@ -59,7 +59,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
       />
       <div 
         className={`relative w-full ${maxWidth || 'max-w-lg'} ${modalClass} flex flex-col overflow-hidden`} 
-        style={{ backgroundColor: '#FFFFFF', maxHeight: '90vh', minHeight: 'auto' }}
+        style={{ backgroundColor: theme?.cardBackground || '#FFFFFF', maxHeight: '90vh', minHeight: 'auto' }}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >
@@ -81,11 +81,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             </button>
           </div>
         </div>
-        <div className="p-6 overflow-y-auto bg-white">
+        <div className="p-6 overflow-y-auto" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-4 bg-white flex items-center justify-end gap-3 flex-shrink-0">
+          <div className="px-6 py-4 flex items-center justify-end gap-3 flex-shrink-0" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
             {footer}
           </div>
         )}
