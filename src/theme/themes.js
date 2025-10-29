@@ -118,7 +118,7 @@ export const themes = {
 
     // Text - Light colors matching screenshot
     text: '#ededee',           // Main text color (very light gray)
-    textLight: '#9CA3AF',      // Medium gray for secondary text
+    textLight: '#b8bbaa',      // Warm gray for secondary text
     textOnPrimary: '#1F2937',  // Dark text on bright cyan buttons
     
     // Backgrounds - Matching the screenshot's navy/charcoal palette
