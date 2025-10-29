@@ -602,7 +602,7 @@ export default function CustomizableDashboard() {
               }
 
               return (
-                <div key={`${widget.id}-${index}`} className={`${gridClasses} overflow-hidden w-full max-w-full`}>
+                <div key={`${widget.id}-${index}`} className={`${gridClasses} w-full max-w-full`}>
                   <DashboardWidget
                     widget={widget}
                     theme={theme}
