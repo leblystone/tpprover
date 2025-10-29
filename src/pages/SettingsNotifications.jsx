@@ -201,7 +201,6 @@ export default function SettingsNotifications() {
           className="p-4 rounded-lg space-y-3"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Master Control</h4>
           <SettingToggle 
             checked={settings.notifications.push ?? false} 
             onChange={handlePWANotificationToggle}
@@ -210,7 +209,6 @@ export default function SettingsNotifications() {
             theme={theme}
             disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
           />
-          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Enable this to receive all notification types below</p>
         </div>
 
         {/* Protocol & Research */}
@@ -300,9 +298,8 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled 
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} />
       <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
            style={{ 
-             backgroundColor: checked ? theme.accent : '#d1d5db', 
-             opacity: disabled ? 0.5 : 1,
-             borderColor: theme.border 
+             backgroundColor: checked ? theme.primary : '#d1d5db', 
+             opacity: disabled ? 0.5 : 1
            }}></div>
     </label>
   </div>
