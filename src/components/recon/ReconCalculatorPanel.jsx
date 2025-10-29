@@ -87,8 +87,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   const content = (
     <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
-      <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Vial Details</h4>
+      <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Vial Details</h4>
       </div>
 
       {/* Two Column Layout: Left Content + Visual Preview */}
@@ -196,7 +196,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                   }}
                   className="absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
                   style={{
-                    backgroundColor: theme.secondary,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                     color: theme.error || '#ef4444',
                     border: `1.5px solid ${theme.error || '#ef4444'}30`
                   }}
@@ -232,7 +232,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
               onClick={addPeptide}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
               style={{
-                backgroundColor: theme.secondary,
+                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                 color: theme.primary,
                 border: `1.5px solid ${theme.primary}20`
               }}
@@ -252,8 +252,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
         {/* Right Column: Delivery Method (moved from left) */}
         <div>
           {/* Section Banner - Delivery Method */}
-          <div className="mb-3 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Delivery Method</h4>
+          <div className="mb-3 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Delivery Method</h4>
           </div>
           <div className="grid grid-cols-3 gap-2">
                 <button 
@@ -267,7 +267,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                     }}
                     className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                     style={{
-                        backgroundColor: deliveryMethod === 'pipette' ? theme.primary : theme.secondary,
+                        backgroundColor: deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
                         color: deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'pipette' ? theme.primary : theme.border
                     }}
@@ -285,7 +285,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                     }}
                     className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                     style={{
-                        backgroundColor: deliveryMethod === 'pen' ? theme.primary : theme.secondary,
+                        backgroundColor: deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
                         color: deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'pen' ? theme.primary : theme.border
                     }}
@@ -303,7 +303,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                     }}
                     className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
                     style={{
-                        backgroundColor: deliveryMethod === 'nasal' ? theme.primary : theme.secondary,
+                        backgroundColor: deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
                         color: deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
                         borderColor: deliveryMethod === 'nasal' ? theme.primary : theme.border
                     }}
@@ -316,7 +316,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
             {deliveryMethod === 'pipette' && (
                 <div className="mt-3">
                     <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
-                    <div className="flex items-center gap-1 p-1 rounded-md bg-gray-100" style={{ backgroundColor: theme.cardBackground || '#f9fafb' }}>
+                    <div className="flex items-center gap-1 p-1 rounded-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb') }}>
                         {['subq', 'im', 'iv'].map(route => (
                             <button
                                 key={route}
@@ -445,7 +445,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
         {/* Step 3: Results */}
         <div>
           <div className="my-2 border-t" style={{ borderColor: theme.border }} />
-          <div className="rounded-lg border p-3" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
+          <div className="rounded-lg border p-3" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, borderColor: theme.border }}>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <div className="text-xs mb-1" style={{ color: theme.textLight }}>Units/Dose</div>

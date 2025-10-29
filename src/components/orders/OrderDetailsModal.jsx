@@ -216,8 +216,32 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   
                   console.log('💾 Saving order:', JSON.stringify({ ...form, attachments }, null, 2));
                   
+                  // Track status change for toast notification
+                  const previousStatus = originalStatus || order?.status || 'Order Placed';
+                  const newStatus = form?.status || 'Order Placed';
+                  
                   // Call the save function
                   await onSave?.({ ...form, attachments });
+                  
+                  // Show toast if status changed to Shipped or Delivered
+                  const statusChanged = previousStatus.toLowerCase() !== newStatus.toLowerCase();
+                  if (statusChanged) {
+                    if (newStatus.toLowerCase().includes('ship')) {
+                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                        detail: { 
+                          message: '🚚 Order marked as shipped!', 
+                          type: 'info' 
+                        } 
+                      }));
+                    } else if (newStatus.toLowerCase().includes('deliver')) {
+                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                        detail: { 
+                          message: '📦 Order marked as delivered!', 
+                          type: 'success' 
+                        } 
+                      }));
+                    }
+                  }
                   
                   // Only clear auto-save and close modal after successful save
                   markAsSubmitted();
@@ -368,7 +392,36 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 { label: 'Delivered', value: 'Delivered' },
                 { label: 'Delayed', value: 'Delayed' },
               ].map(opt => (
-                <button key={opt.value} type="button" onClick={() => setForm({ ...form, status: opt.value, shipDate: opt.value==='Shipped' ? (form.shipDate || new Date().toISOString().slice(0,10)) : form.shipDate, deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || new Date().toISOString().slice(0,10)) : form.deliveryDate })}
+                <button key={opt.value} type="button" onClick={() => {
+                  const previousStatus = form.status || originalStatus || 'Order Placed';
+                  const newForm = { 
+                    ...form, 
+                    status: opt.value, 
+                    shipDate: opt.value==='Shipped' ? (form.shipDate || new Date().toISOString().slice(0,10)) : form.shipDate, 
+                    deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || new Date().toISOString().slice(0,10)) : form.deliveryDate 
+                  };
+                  setForm(newForm);
+                  
+                  // Show toast immediately if status changed to Shipped or Delivered
+                  const statusChanged = previousStatus.toLowerCase() !== opt.value.toLowerCase();
+                  if (statusChanged) {
+                    if (opt.value.toLowerCase().includes('ship')) {
+                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                        detail: { 
+                          message: '🚚 Order marked as shipped!', 
+                          type: 'info' 
+                        } 
+                      }));
+                    } else if (opt.value.toLowerCase().includes('deliver')) {
+                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                        detail: { 
+                          message: '📦 Order marked as delivered!', 
+                          type: 'success' 
+                        } 
+                      }));
+                    }
+                  }
+                }}
                   className={`flex-1 text-center px-2 py-2 text-xs font-medium rounded-md transition-all whitespace-nowrap ${form.status === opt.value ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
                   style={form.status === opt.value ? { backgroundColor: theme?.primary } : {}}>
                   {opt.label}

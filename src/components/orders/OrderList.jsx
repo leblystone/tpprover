@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react'
 import { formatMMDDYYYY } from '../../utils/date'
 import { renderCost as formatCurrency, renderCostPerMg as formatCostPerMg } from '../../utils/currencyUtils'
-import { Pencil, Truck, Package, Beaker, DollarSign, Calendar, Info, Edit } from 'lucide-react'
+import { Pencil, Truck, Package, Beaker, DollarSign, Calendar, Info, Edit, Home } from 'lucide-react'
 
 const getNextStatus = (status) => {
   const s = (status || '').toLowerCase();
   if (s.includes('ship')) {
-    return { text: 'Mark as Delivered', icon: <Package className="h-4 w-4" /> };
+    return { text: 'Mark as Delivered', icon: <Home className="h-4 w-4" /> };
   }
   if (s.includes('deliver')) {
     return null; // This is the final status, no next action
@@ -28,32 +28,33 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
         const nextStatusAction = getNextStatus(o.status);
         return (
           <div key={o.id} className="rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow content-card" style={{ backgroundColor: theme.cardBackground }}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            {/* Top row: Title/Vendor on left, Status/Buttons on right */}
+            <div className="flex items-start justify-between gap-2 mb-2">
               {/* Left side: Title and Vendor */}
-              <div className="flex-grow">
+              <div className="flex-grow min-w-0">
                 <div className="font-semibold text-base" style={{ color: theme?.text }}>{formatOrderTitle(o)}</div>
                 <div className="text-sm flex items-center gap-2 mt-1" style={{ color: theme.textLight }}>
                   <Package size={14} /> {o.vendorId ? vendorMap[o.vendorId] : o.vendor}
                 </div>
               </div>
 
-              {/* Right side: Status and Actions */}
-              <div className="flex items-center gap-2 mt-4 sm:mt-0 flex-shrink-0">
-                 <span className="px-2 py-1 rounded-full text-xs font-semibold" style={statusStyle(o.status, theme)}>
+              {/* Right side: Status and Actions - Mobile optimized */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                 <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={statusStyle(o.status, theme)}>
                   {displayStatus(o.status)}
                 </span>
                 {nextStatusAction && (
                   <button 
                     aria-label={nextStatusAction.text} 
-                    className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 text-sm" 
+                    className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-md hover:bg-gray-100 text-xs sm:text-sm flex-shrink-0" 
                     style={{ color: theme.primary }} 
                     onClick={() => onAdvance?.(o)}
                   >
                     {nextStatusAction.icon}
-                    <span>{nextStatusAction.text}</span>
+                    <span className="hidden sm:inline">{nextStatusAction.text}</span>
                   </button>
                 )}
-                <button aria-label="Edit" className="p-2 rounded-md hover:bg-gray-100" style={{ color: theme.primary }} onClick={() => onEdit(o)}>
+                <button aria-label="Edit" className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 flex-shrink-0" style={{ color: theme.primary }} onClick={() => onEdit(o)}>
                   <Edit className="h-4 w-4" />
                 </button>
               </div>
