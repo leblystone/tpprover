@@ -122,8 +122,8 @@ export const themes = {
     textOnPrimary: '#1F2937',  // Dark text on bright cyan buttons
     
     // Backgrounds - Matching the screenshot's navy/charcoal palette
-    background: '#1F2937',     // Dark navy background (main app background)
-    cardBackground: '#374151', // Lighter charcoal for cards (matches screenshot cards)
+    background: '#222831',     // Dark navy background (main app background)
+    cardBackground: '#393E46', // Lighter charcoal for cards (matches screenshot cards)
     
     // UI Elements
     border: '#4B5563',         // Subtle border slightly lighter than cards
