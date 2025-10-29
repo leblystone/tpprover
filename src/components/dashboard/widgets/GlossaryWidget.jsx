@@ -1896,12 +1896,12 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
             {/* Work in Progress Badge */}
             <div className="px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 border shadow-sm" 
                  style={{ 
-                   backgroundColor: theme.warning + '25', 
-                   borderColor: theme.warning,
-                   color: theme.text 
+                   backgroundColor: theme.isDark ? '#c6536820' : theme.warning + '25', 
+                   borderColor: theme.isDark ? '#c65368' : theme.warning,
+                   color: theme.isDark ? '#f07268' : theme.text 
                  }}>
               <div className="w-1.5 h-1.5 rounded-full animate-pulse" 
-                   style={{ backgroundColor: theme.warning }}></div>
+                   style={{ backgroundColor: theme.isDark ? '#c65368' : theme.warning }}></div>
               Work in Progress
             </div>
             <BookOpen size={20} style={{ color: theme.primary }} />

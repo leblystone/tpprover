@@ -8,6 +8,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
     {
       icon: Calculator,
       label: 'Reconstitute',
+      color: theme.isDark ? '#0080a7' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openRecon'));
       }
@@ -15,6 +16,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
     {
       icon: Package,
       label: 'Add Order',
+      color: theme.isDark ? '#c65368' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openOrder'));
       }
@@ -22,6 +24,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
     {
       icon: Users,
       label: 'Add Vendor',
+      color: theme.isDark ? '#f07268' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openVendor'));
       }
@@ -29,6 +32,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
     {
       icon: FlaskConical,
       label: 'Add Protocol',
+      color: theme.isDark ? '#f07268' : theme.primary,
       onClick: () => {
         window.dispatchEvent(new CustomEvent('tpp:openProtocol'));
       }
@@ -58,7 +62,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 color: theme.text
               }}
             >
-              <action.icon className="w-8 h-8 mb-2" size={16} style={{ color: theme.primary }} />
+              <action.icon className="w-8 h-8 mb-2" size={16} style={{ color: action.color }} />
               <span className="text-xs text-center font-medium" style={{ color: theme.text }}>{action.label}</span>
             </button>
           ))}

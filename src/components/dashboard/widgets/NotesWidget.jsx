@@ -74,7 +74,7 @@ const NotesWidget = ({ widget, theme }) => {
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Research Notes
           </h3>
-          <FileText size={20} style={{ color: theme.primary }} />
+          <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} />
         </div>
       </div>
       

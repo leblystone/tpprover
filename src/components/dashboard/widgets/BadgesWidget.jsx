@@ -25,7 +25,7 @@ const BadgesWidget = ({ widget, theme }) => {
         <div className="flex-1 flex flex-col justify-center items-center">
           <div className="text-center mb-3">
             <div className="flex items-center justify-center mb-2">
-              <Trophy size={32} style={{ color: theme.primary }} />
+              <Trophy size={32} style={{ color: theme.isDark ? '#f07268' : theme.primary }} />
             </div>
             <div className="text-2xl font-bold" style={{ color: theme.text }}>
               {earnedCount}/{totalBadges}
@@ -42,7 +42,7 @@ const BadgesWidget = ({ widget, theme }) => {
                   className="h-2 rounded-full transition-all duration-300" 
                   style={{ 
                     width: `${progressPercentage}%`, 
-                    backgroundColor: theme.primary 
+                    backgroundColor: theme.isDark ? '#f07268' : theme.primary 
                   }}
                 />
               </div>
