@@ -22,7 +22,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     2000, // 2 second delay
     async (formData) => {
       // Auto-save to orders list if there's meaningful data
-      if (formData && Object.keys(formData).length > 0 && formData.items?.some(item => item.name)) {
+      const hasVendor = formData?.vendor && formData.vendor.trim().length > 0;
+      const hasItemsWithData = formData?.items?.some(item => 
+        item.name && item.name.trim().length > 0 && 
+        (item.quantity > 0 || item.price || item.mg)
+      );
+      const hasNotes = formData?.notes && formData.notes.trim().length > 0;
+      
+      if (formData && (hasVendor || hasItemsWithData || hasNotes)) {
         try {
           if (order?.id) {
             console.log('🔄 Auto-saving existing order:', order.id);
@@ -35,6 +42,13 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         } catch (error) {
           console.warn('Auto-save to orders failed:', error);
         }
+      } else {
+        console.log('🚫 Skipping autosave - insufficient data:', {
+          hasVendor,
+          hasItemsWithData,
+          hasNotes,
+          formData: formData ? Object.keys(formData) : 'null'
+        });
       }
     }
   );
@@ -184,6 +198,19 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 try {
                   setIsSavingToOrders(true);
                   setSaveError(null);
+                  
+                  // Validate that we have meaningful data before saving
+                  const hasVendor = form?.vendor && form.vendor.trim().length > 0;
+                  const hasItemsWithData = form?.items?.some(item => 
+                    item.name && item.name.trim().length > 0 && 
+                    (item.quantity > 0 || item.price || item.mg)
+                  );
+                  const hasNotes = form?.notes && form.notes.trim().length > 0;
+                  
+                  if (!hasVendor && !hasItemsWithData && !hasNotes) {
+                    setSaveError('Please enter at least a vendor name, item details, or notes before saving.');
+                    return;
+                  }
                   
                   console.log('💾 Saving order:', JSON.stringify({ ...form, attachments }, null, 2));
                   
