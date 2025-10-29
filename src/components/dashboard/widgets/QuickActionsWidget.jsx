@@ -2,6 +2,7 @@ import React from 'react';
 import { Calculator, Package, Users, FlaskConical } from 'lucide-react';
 import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
+import { getButtonHoverHandlers } from '../../../utils/buttonHoverEffect';
 
 const QuickActionsWidget = ({ widget, theme }) => {
   const actions = [
@@ -52,7 +53,9 @@ const QuickActionsWidget = ({ widget, theme }) => {
       
       <div className="flex-1 p-2">
         <div className="grid grid-cols-2 gap-2 h-full">
-          {actions.map((action, index) => (
+          {actions.map((action, index) => {
+            const hoverHandlers = getButtonHoverHandlers(theme);
+            return (
             <button
               key={index}
               onClick={action.onClick}
@@ -61,17 +64,13 @@ const QuickActionsWidget = ({ widget, theme }) => {
                 backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                 color: theme.text
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-              }}
+              {...hoverHandlers}
             >
               <action.icon className="w-8 h-8 mb-2" size={16} style={{ color: action.color }} />
               <span className="text-xs text-center font-medium" style={{ color: theme.text }}>{action.label}</span>
             </button>
-          ))}
+          );
+          })}
         </div>
       </div>
     </div>

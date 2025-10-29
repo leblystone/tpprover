@@ -228,6 +228,23 @@ export default function Orders() {
 		
 		handleStockpileUpdate(order, updatedOrder);
 		setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
+		
+		// Show toast notification
+		if (nextStatus === 'Shipped') {
+			window.dispatchEvent(new CustomEvent('tpp:toast', { 
+				detail: { 
+					message: '🚚 Order marked as shipped!', 
+					type: 'info' 
+				} 
+			}));
+		} else if (nextStatus === 'Delivered') {
+			window.dispatchEvent(new CustomEvent('tpp:toast', { 
+				detail: { 
+					message: '📦 Order marked as delivered!', 
+					type: 'success' 
+				} 
+			}));
+		}
 	};
 
 	return (

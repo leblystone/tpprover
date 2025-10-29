@@ -13,6 +13,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator';
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
+  const [originalStatus, setOriginalStatus] = useState(null);
   
   // Auto-save functionality with order persistence
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
@@ -95,6 +96,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       console.log('📝 OrderDetailsModal: Initializing form with data:', JSON.stringify(initialData, null, 2));
       setForm(initialData);
       setAttachments(initialData.attachments || []);
+      setOriginalStatus(initialData.status || 'Order Placed');
     }
   }, [open, order]);
 
