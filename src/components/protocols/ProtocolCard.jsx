@@ -64,9 +64,9 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
 
                     <div className="space-y-3">
                         {p.peptides?.map((peptide, index) => (
-                            <div key={peptide.id || index} className="text-sm p-2 rounded-md bg-gray-50/70">
+                            <div key={peptide.id || index} className="text-sm p-2 rounded-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb' }}>
                                 <div className="font-semibold" style={{color: theme.text}}>{peptide.name || 'Unnamed Peptide'}</div>
-                                <div className="text-xs space-y-1 mt-1">
+                                <div className="text-xs space-y-1 mt-1" style={{ color: theme.isDark ? theme.textLight : theme.text }}>
                                     {peptide.dosage?.amount > 0 && (
                                         <div className="flex items-center gap-1.5">
                                             <Pipette size={12} />
@@ -77,7 +77,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                         </div>
                                     )}
                                     {peptide.frequency && (<div className="flex items-center gap-1.5"><Repeat size={12} /><span>{formatIndividualFrequency(peptide.frequency)}</span></div>)}
-                                    {peptide.titration?.length > 0 && (<div className="flex items-start gap-1.5"><TrendingUp size={12} className="mt-0.5" /><span className="text-gray-500">{formatTitration(peptide.titration)}</span></div>)}
+                                    {peptide.titration?.length > 0 && (<div className="flex items-start gap-1.5"><TrendingUp size={12} className="mt-0.5" /><span style={{ color: theme.textLight }}>{formatTitration(peptide.titration)}</span></div>)}
                                 </div>
                             </div>
                         ))}

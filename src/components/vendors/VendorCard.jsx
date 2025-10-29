@@ -152,13 +152,14 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                             <div className="flex items-start gap-2 text-sm">
                                 <FileText size={14} className="mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />
                                 <div 
-                                    className="text-gray-600 text-xs leading-relaxed"
+                                    className="text-xs leading-relaxed"
                                     style={{
                                         display: '-webkit-box',
                                         WebkitLineClamp: 3,
                                         WebkitBoxOrient: 'vertical',
                                         overflow: 'hidden',
-                                        maxHeight: '3.6em'
+                                        maxHeight: '3.6em',
+                                        color: theme.isDark ? theme.textLight : theme.text
                                     }}
                                 >
                                     {vendor.notes}
