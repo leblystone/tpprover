@@ -536,11 +536,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     {/* Add Peptide Button */}
                     <button
                         onClick={addPeptide}
-                        className="p-6 border-2 border-dashed rounded-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.01] hover:shadow-md"
+                        className="p-6 rounded-xl flex items-center justify-center gap-3 transition-all"
                         style={{ 
-                            borderColor: theme.border, 
-                            color: theme.textLight,
-                            backgroundColor: theme.cardBackground + '50'
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                            color: theme.textLight
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
                         }}
                     >
                         <PlusCircle size={24} />
@@ -599,8 +604,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 <div className="border-t" style={{ borderColor: theme.border }}></div>
 
                 {/* PROTOCOL DURATION Section Header */}
-                <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Protocol Duration</h4>
+                <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Protocol Duration</h4>
                 </div>
 
                 {/* Duration Content */}
@@ -611,9 +616,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             <div className="space-y-3">
                                 {/* Combined Input with Pill Selector */}
                                 <div 
-                                    className="flex items-stretch border rounded-lg overflow-hidden"
+                                    className="flex items-stretch rounded-lg overflow-hidden"
                                     style={{ 
-                                        borderColor: theme.border,
+                                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                                         opacity: form.duration?.noEnd ? 0.5 : 1
                                     }}
                                 >
@@ -625,17 +631,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         disabled={form.duration?.noEnd}
                                         className="flex-1 px-3 py-2 outline-none min-w-0"
                                         style={{ 
-                                            backgroundColor: theme.inputBackground || '#fff',
+                                            backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                                             color: theme.text 
                                         }}
                                     />
                                     
                                     {/* Unit Selector Pills */}
                                     <div 
-                                        className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                                         style={{ 
-                                            borderColor: theme.border,
-                                            backgroundColor: theme.cardBackground || '#f9fafb'
+                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                                         }}
                                     >
                                         {['Day', 'Week', 'Month'].map(unit => (
@@ -678,9 +684,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 </div>
                                 {/* Combined Input with Pill Selector */}
                                 <div 
-                                    className="flex items-stretch border rounded-lg overflow-hidden"
+                                    className="flex items-stretch rounded-lg overflow-hidden"
                                     style={{ 
-                                        borderColor: theme.border,
+                                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                                         opacity: !form.washout?.enabled ? 0.5 : 1
                                     }}
                                 >
@@ -692,17 +699,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         disabled={!form.washout?.enabled}
                                         className="flex-1 px-3 py-2 outline-none min-w-0"
                                         style={{ 
-                                            backgroundColor: theme.inputBackground || '#fff',
+                                            backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                                             color: theme.text 
                                         }}
                                     />
                                     
                                     {/* Unit Selector Pills */}
                                     <div 
-                                        className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                                         style={{ 
-                                            borderColor: theme.border,
-                                            backgroundColor: theme.cardBackground || '#f9fafb'
+                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                                         }}
                                     >
                                         {['Day', 'Week', 'Month'].map(unit => (
