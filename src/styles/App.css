@@ -74,11 +74,9 @@ html, body {
   gap: 0.5rem !important;
   width: 100% !important;
   max-width: 100% !important;
-  overflow-x: hidden !important;
 }
 
 .dashboard-grid > * {
   width: 100% !important;
   max-width: 100% !important;
-  overflow-x: hidden !important;
 }
