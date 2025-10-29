@@ -112,13 +112,13 @@ export const themes = {
     primary: '#22D3EE',        // Bright cyan/teal accent (matches screenshot highlights)
     primaryDark: '#0891B2',    // Darker cyan for hover states
     primaryLight: '#67E8F9',   // Lighter cyan for subtle highlights
-    secondary: '#374151',      // Medium dark gray for secondary surfaces
-    accent: '#22D3EE',         // Bright cyan for accent elements (same as primary)
-    accentText: '#1F2937',     // Dark text on bright accent
+    secondary: '#29303b',      // Items within cards/buttons
+    accent: '#a5b6be',         // Chips and badges (light blue-gray)
+    accentText: '#181c22',     // Dark text on light accent/chips
 
     // Text - Light colors matching screenshot
-    text: '#F9FAFB',           // Very light gray/white for primary text
-    textLight: '#9CA3AF',      // Medium gray for secondary text (matches screenshot)
+    text: '#ededee',           // Main text color (very light gray)
+    textLight: '#9CA3AF',      // Medium gray for secondary text
     textOnPrimary: '#1F2937',  // Dark text on bright cyan buttons
     
     // Backgrounds - Matching the screenshot's navy/charcoal palette
@@ -126,8 +126,8 @@ export const themes = {
     cardBackground: '#181c22', // Dark card background for depth
     
     // UI Elements
-    border: '#4B5563',         // Subtle border slightly lighter than cards
-    buttonDisabled: '#4B5563', // Muted dark for disabled states
+    border: '#29303b',         // Subtle border (same as secondary)
+    buttonDisabled: '#29303b', // Muted dark for disabled states
     
     // Semantic Colors (adjusted for dark backgrounds with proper contrast)
     success: '#10B981',        // Bright green for success
