@@ -37,7 +37,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Quick Actions
@@ -52,9 +52,9 @@ const QuickActionsWidget = ({ widget, theme }) => {
             <button
               key={index}
               onClick={action.onClick}
-              className="flex flex-col items-center justify-center p-3 rounded-lg border transition-colors hover:bg-opacity-5 hover:bg-gray-500 min-h-[60px]"
+              className="flex flex-col items-center justify-center p-3 rounded-lg transition-all hover:shadow-md min-h-[60px]"
               style={{ 
-                borderColor: theme.border,
+                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                 color: theme.text
               }}
             >

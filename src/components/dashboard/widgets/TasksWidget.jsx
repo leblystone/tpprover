@@ -98,7 +98,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   if (filteredTasks.length === 0) {
     return (
       <div className="h-full flex flex-col">
-        <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+        <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Today's Research
@@ -120,7 +120,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   if (filteredTasks.length <= 3) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
+        <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
               Today's Research
@@ -132,7 +132,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
         <div className="flex-1 p-4 overflow-hidden overflow-y-auto pr-2">
           <div className="space-y-2 overflow-hidden">
             {filteredTasks.map(task => (
-              <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: theme.secondary, borderColor: theme.border }}>
+              <div key={task.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: theme.secondary }}>
                 <div className="flex items-center gap-3 flex-1">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -265,7 +265,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
   // Default full layout for many tasks
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 flex-shrink-0 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             {widget.title}
