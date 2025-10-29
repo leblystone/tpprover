@@ -221,8 +221,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
           <span 
             className={`font-bold text-lg flex items-center justify-center rounded-full w-8 h-8`}
             style={{
-                backgroundColor: isToday ? 'rgba(255,255,255,0.2)' : theme.secondary,
-                color: isToday ? theme.textOnPrimary: theme.primaryDark,
+                backgroundColor: isToday ? 'rgba(255,255,255,0.2)' : (theme.isDark ? '#1f2937' : theme.secondary),
+                color: isToday ? theme.textOnPrimary : (theme.isDark ? theme.text : theme.primaryDark),
             }}
           >
             {date.getDate()}
@@ -262,7 +262,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 <div className="mt-2">
                     <button
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs max-w-full"
-                        style={{ backgroundColor: theme.secondary, color: theme.text }}
+                        style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, color: theme.text }}
                         onClick={() => {
                             if (typeof window?.showGroupBuyDetails === 'function') {
                                 window.showGroupBuyDetails(groupBuyInfo);
@@ -283,7 +283,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
 
             {/* Goals Section */}
             {dayScheduled?.goals && dayScheduled.goals.length > 0 && (
-                <div className="mt-2 p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.secondary + '40' }}>
+                <div className="mt-2 p-2 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1f2937' : theme.secondary + '40' }}>
                     <div className="text-xs font-semibold mb-1" style={{ color: theme.text }}>Goals</div>
                     <div className="space-y-1">
                         {dayScheduled.goals.map((g, i) => (
@@ -304,7 +304,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
 
           <div className="mt-1">
             <div className="flex justify-end items-center text-xs font-semibold">
-              <button onClick={() => onNotesClick(date)} className="p-1 hover:bg-gray-100 rounded">
+              <button onClick={() => onNotesClick(date)} className="p-1 rounded transition-all" style={{ color: theme.textLight }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                 <Edit size={14} />
               </button>
             </div>
@@ -313,7 +313,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 onClick={() => onNotesClick(date)}
                 className="p-2 rounded-md border text-xs cursor-pointer mt-1 hover:opacity-90"
                 style={{ 
-                  backgroundColor: theme.secondary,
+                  backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                   borderColor: theme.border,
                   color: theme.text
                 }}
@@ -326,7 +326,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             )}
           </div>
             {dayScheduled?.washout?.length > 0 && (
-                <div className="p-1 rounded text-center mt-2" style={{ backgroundColor: theme.secondary }}>
+                <div className="p-1 rounded text-center mt-2" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary }}>
                     <span className="text-xs font-semibold" style={{ color: theme.textLight }}>
                         Washout: {dayScheduled.washout.join(', ')}
                     </span>
