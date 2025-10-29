@@ -36,6 +36,13 @@ html, body, #root {
   background: #6b7280;
 }
 
+/* Global Dark Mode Button Hover Effect - Inspired by Quick Actions */
+[data-theme="softDark"] button:not(:disabled):hover,
+.dark button:not(:disabled):hover {
+  filter: brightness(1.15);
+  transition: filter 0.2s ease, background-color 0.2s ease;
+}
+
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(10px); }
   to { opacity: 1; transform: translateX(0); }
