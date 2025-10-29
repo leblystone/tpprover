@@ -5,6 +5,7 @@
 import { Zap } from '../icons/lucide-safe'
   import Modal from '../components/common/Modal'
 import CollapsibleSection from '../components/common/CollapsibleSection'
+import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
   import { useAppContext } from '../context/AppContext'
   import { useBadgeStats } from '../utils/badges'
   import BadgeImage from '../components/badges/BadgeImage'
@@ -86,6 +87,7 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
     const [sub, setSub] = React.useState(null)
     const [security, setSecurity] = React.useState(() => loadSecurity() || { twoFactorEnabled: false, twoFactorMethod: 'email', authSecret: '', emailVisible: true })
     const [timeLeft, setTimeLeft] = React.useState(null);
+    const [showGiftModal, setShowGiftModal] = React.useState(false);
 
     // Load subscription data on component mount with localStorage fallback
     React.useEffect(() => {
@@ -1216,6 +1218,19 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                       )}
                     </div>
                   ) : null}
+                  
+                  {/* Gift Access Button - For users with subscription */}
+                  <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+                    <div className="text-center">
+                      <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
+                      <button
+                        onClick={() => setShowGiftModal(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl font-medium hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg"
+                      >
+                        🎁 Give as a Gift
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 // Regular user without subscription - show plans
@@ -1351,6 +1366,19 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
                             style={{ backgroundColor: '#344E41' }}
                           >
                             Join Forever
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Gift Access Button */}
+                      <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+                        <div className="text-center">
+                          <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
+                          <button
+                            onClick={() => setShowGiftModal(true)}
+                            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl font-medium hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg"
+                          >
+                            🎁 Give as a Gift
                           </button>
                         </div>
                       </div>
@@ -1689,6 +1717,12 @@ import CollapsibleSection from '../components/common/CollapsibleSection'
           </div>
         </Modal>
 
+        {/* Gift Purchase Modal */}
+        <GiftPurchaseModal
+          isOpen={showGiftModal}
+          onClose={() => setShowGiftModal(false)}
+          theme={theme}
+        />
       </section>
     )
   }
