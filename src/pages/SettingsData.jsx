@@ -318,23 +318,23 @@ export default function SettingsData() {
       </div>
 
       {/* Data Settings */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Backup Section */}
         <div 
           className="p-4 rounded-lg space-y-3"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <h4 className="text-sm font-medium" style={{ color: theme.text }}>Backup & Restore</h4>
-          <div className="flex items-center gap-3 flex-wrap">
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Backup & Restore</h4>
+          <div className="space-y-2">
             <button 
-              className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }} 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
+              style={{ backgroundColor: theme.accent, color: theme.accentText }} 
               onClick={exportAll}
             >
               Export Backup (CSV)
             </button>
             <label 
-              className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer hover:opacity-90 transition-all" 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium cursor-pointer hover:opacity-90 transition-all flex items-center justify-center" 
               style={{ backgroundColor: theme.accent, color: theme.accentText }}
             >
               Import Backup
@@ -342,7 +342,7 @@ export default function SettingsData() {
             </label>
             {pwaPrompted && (
               <button 
-                className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
+                className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
                 style={{ backgroundColor: theme.accent, color: theme.accentText }} 
                 onClick={handleInstall}
               >
@@ -350,6 +350,7 @@ export default function SettingsData() {
               </button>
             )}
           </div>
+          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Export your data for safekeeping or import from a previous backup</p>
         </div>
 
         {/* Sample Data Section */}
@@ -357,50 +358,48 @@ export default function SettingsData() {
           className="p-4 rounded-lg space-y-3"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <h4 className="text-sm font-medium" style={{ color: theme.text }}>Sample Data</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <button 
-                onClick={() => setShowRemoveSampleDataModal(true)}
-                className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all"
-              >
-                Remove Sample Data
-              </button>
-              <p className="text-xs text-gray-500">Remove sample content</p>
-            </div>
-            <div className="space-y-2">
-              <button 
-                onClick={() => setShowSampleDataModal(true)}
-                className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all"
-              >
-                Add Sample Data
-              </button>
-              <p className="text-xs text-gray-500">Add examples to explore</p>
-            </div>
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Sample Data</h4>
+          <div className="space-y-2">
+            <button 
+              onClick={() => setShowSampleDataModal(true)}
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all"
+              style={{ backgroundColor: theme.accent, color: theme.accentText }}
+            >
+              Add Sample Data
+            </button>
+            <button 
+              onClick={() => setShowRemoveSampleDataModal(true)}
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all"
+              style={{ backgroundColor: theme.secondary, color: theme.text }}
+            >
+              Remove Sample Data
+            </button>
           </div>
+          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Add or remove sample data to explore app features</p>
         </div>
 
         {/* Danger Zone Section */}
         <div 
           className="p-4 rounded-lg space-y-3"
-          style={{ backgroundColor: theme.cardBackground }}
+          style={{ backgroundColor: theme.cardBackground, borderColor: '#ef4444', borderWidth: '1px', borderStyle: 'solid' }}
         >
-          <h4 className="text-sm font-medium text-red-600">Danger Zone</h4>
-          <div className="flex items-center gap-3 flex-wrap">
+          <h4 className="text-sm font-medium mb-2 text-red-600">Danger Zone</h4>
+          <div className="space-y-2">
             <button 
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-all" 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium transition-all"
+              style={{ backgroundColor: theme.secondary, color: theme.text }}
               onClick={clearSessionOnly}
             >
               Clear Session Only
             </button>
             <button 
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all" 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all" 
               onClick={clearAllData}
             >
               Clear ALL Data
             </button>
           </div>
-          <p className="text-xs text-gray-500">"Clear ALL" will permanently wipe all data in this browser. This cannot be undone.</p>
+          <p className="text-xs mt-2 text-red-600">"Clear ALL" will permanently wipe all data in this browser. This cannot be undone.</p>
         </div>
       </div>
 
