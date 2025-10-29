@@ -59,7 +59,14 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
       />
       <div 
         className={`relative w-full ${maxWidth || 'max-w-lg'} ${modalClass} flex flex-col overflow-hidden`} 
-        style={{ backgroundColor: theme?.cardBackground || '#FFFFFF', maxHeight: '90vh', minHeight: 'auto' }}
+        style={{ 
+          backgroundColor: theme?.cardBackground || '#FFFFFF', 
+          maxHeight: '90vh', 
+          minHeight: 'auto',
+          boxShadow: theme?.isDark 
+            ? '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.1)' 
+            : '0 20px 60px rgba(0,0,0,0.15)'
+        }}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >

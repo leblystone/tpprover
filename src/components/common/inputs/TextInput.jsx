@@ -5,8 +5,9 @@ export default function TextInput({ label, value, onChange, placeholder, theme, 
     <>
       <style>{`
         .themed-input:focus {
-          border-color: ${theme.primary};
-          box-shadow: 0 0 0 2px ${theme.primaryLight};
+          box-shadow: ${theme.isDark 
+            ? `0 0 0 2px ${theme.primary}40, 0 2px 8px rgba(0,0,0,0.4)` 
+            : `0 0 0 2px ${theme.primaryLight}, 0 1px 3px rgba(0,0,0,0.1)`};
         }
         /* Hide number input spinners (Chrome, Safari, Edge, Opera) */
         input[type=number].no-spin::-webkit-inner-spin-button,
@@ -31,11 +32,12 @@ export default function TextInput({ label, value, onChange, placeholder, theme, 
           placeholder={placeholder}
           aria-label={label || placeholder}
           aria-describedby={label ? `${name || 'input'}-label` : undefined}
-          className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg border transition-colors focus:outline-none themed-input ${type === 'number' ? 'no-spin' : ''}`}
+          className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none themed-input ${type === 'number' ? 'no-spin' : ''}`}
           style={{ 
-            borderColor: theme.border, 
+            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
             backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground, 
-            color: theme.text 
+            color: theme.text,
+            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
           }}
         />
       </label>

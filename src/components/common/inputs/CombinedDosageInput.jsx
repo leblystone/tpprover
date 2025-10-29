@@ -32,8 +32,11 @@ export default function CombinedDosageInput({
     return (
         <div>
             <div 
-                className="flex items-stretch border rounded-lg overflow-hidden"
-                style={{ borderColor: theme.border }}
+                className="flex items-stretch rounded-lg overflow-hidden"
+                style={{ 
+                    border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                }}
             >
                 {/* Amount Input */}
                 <input
@@ -51,9 +54,9 @@ export default function CombinedDosageInput({
                 
                 {/* Unit Selector Pills - Integrated */}
                 <div 
-                    className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                    className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                     style={{ 
-                        borderColor: theme.border,
+                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
                         backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                     }}
                 >
