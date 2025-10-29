@@ -51,7 +51,7 @@ const DashboardWidget = ({
   const handleDragLeave = (e) => {
     if (!isCustomizing) return;
     // Reset border when drag leaves
-    e.currentTarget.style.borderColor = theme.border;
+    e.currentTarget.style.borderColor = theme.isDark ? '#3d4451' : theme.border;
     e.currentTarget.style.borderWidth = '1px';
   };
 
@@ -60,7 +60,7 @@ const DashboardWidget = ({
     e.preventDefault();
     
     // Reset border styling
-    e.currentTarget.style.borderColor = theme.border;
+    e.currentTarget.style.borderColor = theme.isDark ? '#3d4451' : theme.border;
     e.currentTarget.style.borderWidth = '1px';
     
     const draggedWidgetId = e.dataTransfer.getData('text/plain');
@@ -82,15 +82,13 @@ const DashboardWidget = ({
 
   return (
     <div
-      className={`dashboard-widget relative rounded-xl border content-card shadow-lg transition-all duration-200 ${
-        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : 'hover:border-2'
+      className={`dashboard-widget relative rounded-xl content-card shadow-lg transition-all duration-200 ${
+        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : ''
       } ${isDragging ? 'z-50 shadow-2xl' : 'hover:shadow-xl'}`}
       style={{
         ...widgetStyle,
-        borderColor: theme.border,
-        backgroundColor: theme.white || '#ffffff',
-        '--tw-ring-color': isCustomizing ? theme.primary : theme.primary + '4D', // 30% opacity for hover
-        '--hover-border-color': theme.primary
+        backgroundColor: theme.cardBackground,
+        '--tw-ring-color': isCustomizing ? theme.primary : theme.primary + '4D' // 30% opacity for hover
       }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
