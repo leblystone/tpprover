@@ -190,7 +190,7 @@ export default function SettingsNotifications() {
         </button>
         <div>
           <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Notifications</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Manage alerts and reminders for your research</p>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Manage research alerts and reminders</p>
         </div>
       </div>
 
@@ -205,7 +205,7 @@ export default function SettingsNotifications() {
             checked={settings.notifications.push ?? false} 
             onChange={handlePWANotificationToggle}
             label="Push Notifications" 
-            description="Get notified in real-time on your devices, even when the app is closed"
+            description="Receive real-time alerts on all devices, even when the app is closed"
             theme={theme}
             disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
           />
@@ -222,7 +222,7 @@ export default function SettingsNotifications() {
               checked={settings.notifications.researchReminders} 
               onChange={v => update('notifications.researchReminders', v)} 
               label="Research Reminders" 
-              description="Stay on track with your research schedule" 
+              description="Alerts for scheduled research activities" 
               theme={theme}
               disabled={!settings.notifications.push}
             />
@@ -230,7 +230,7 @@ export default function SettingsNotifications() {
               checked={settings.notifications?.washoutReminders ?? true} 
               onChange={v => update('notifications.washoutReminders', v)} 
               label="Washout Reminders" 
-              description="Get reminded about washout periods between protocols" 
+              description="Notifications for washout periods between protocols" 
               theme={theme}
               disabled={!settings.notifications.push}
             />
@@ -238,12 +238,11 @@ export default function SettingsNotifications() {
               checked={settings.notifications?.cycleReminders ?? true} 
               onChange={v => update('notifications.cycleReminders', v)} 
               label="Cycle Reminders" 
-              description="Get reminded about upcoming protocol cycles" 
+              description="Notifications for protocol cycle schedules" 
               theme={theme}
               disabled={!settings.notifications.push}
             />
           </div>
-          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Manage reminders for your research protocols and schedules</p>
         </div>
 
         {/* Orders & Stock */}
@@ -257,7 +256,7 @@ export default function SettingsNotifications() {
               checked={settings.notifications?.lowStockAlerts ?? true} 
               onChange={v => update('notifications.lowStockAlerts', v)} 
               label="Low Stock Notifications" 
-              description="Get notified when you're down to 3 or fewer vials" 
+              description="Alerts when inventory drops to 3 or fewer vials" 
               theme={theme}
               disabled={!settings.notifications.push}
             />
@@ -265,7 +264,7 @@ export default function SettingsNotifications() {
               checked={settings.notifications?.orderStatusUpdates ?? true} 
               onChange={v => update('notifications.orderStatusUpdates', v)} 
               label="Order Status Updates" 
-              description="Get notified about order arrivals and status changes" 
+              description="Notifications for order arrivals and status changes" 
               theme={theme}
               disabled={!settings.notifications.push}
             />
@@ -273,12 +272,11 @@ export default function SettingsNotifications() {
               checked={settings.notifications.groupBuys} 
               onChange={v => update('notifications.groupBuys', v)} 
               label="Group Buy Updates" 
-              description="Get alerts for new group buy opportunities" 
+              description="Alerts for new group buy opportunities" 
               theme={theme}
               disabled={!settings.notifications.push}
             />
           </div>
-          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Stay informed about your orders and inventory levels</p>
         </div>
       </div>
     </section>
