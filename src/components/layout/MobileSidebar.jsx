@@ -63,8 +63,8 @@ export default function MobileSidebar({ open, onClose, theme }) {
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="p-2" style={{ color: theme.text }} aria-label="Close Menu"><Menu className="h-7 w-7" /></button>
             <div className="text-left">
-              <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
-              <p className="text-xs" style={{ color: theme.textLight }}>Organize your research.</p>
+              <h1 className="text-lg font-bold" style={{ color: theme.isDark ? '#d9dbcd' : theme.primaryDark }}>The Pep Planner</h1>
+              <p className="text-xs" style={{ color: theme.isDark ? '#d9dbcd' : theme.textLight }}>Organize your research.</p>
             </div>
           </div>
           

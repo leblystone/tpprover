@@ -143,25 +143,25 @@ const TaskDisplay = ({
 
   return (
     <div 
-      className={`${styles.container} ${isCompleted ? 'line-through decoration-2 text-gray-400' : ''}`}
+      className={`${styles.container} ${isCompleted ? 'line-through decoration-1' : ''}`}
       style={{ 
-        backgroundColor: isCompleted ? '#F3F4F6' : (task.type === 'peptide' ? theme.primary + '20' : theme.secondary),
+        backgroundColor: isCompleted ? (theme.isDark ? '#1f2937' : '#F3F4F6') : (task.type === 'peptide' ? theme.primary + '20' : theme.secondary),
         borderLeft: isCompleted ? '3px solid #4CAF50' : 'none',
         paddingLeft: isCompleted ? 'calc(0.5rem - 3px)' : undefined
       }}
     >
       {/* Task name */}
       <div className="flex-1 min-w-0">
-        <div className={`${styles.name} font-semibold truncate`} style={{ color: isCompleted ? '#9ca3af' : theme.text }}>
+        <div className={`${styles.name} font-semibold truncate`} style={{ color: isCompleted ? (theme.isDark ? '#4b5563' : '#9ca3af') : theme.text }}>
           {task.name}
         </div>
       </div>
 
       {/* Right-aligned details */}
-      <div className={`text-right flex items-center gap-2 ${isCompleted ? 'line-through decoration-2 text-gray-400' : ''}`}>
+      <div className={`text-right flex items-center gap-2 ${isCompleted ? 'line-through decoration-1' : ''}`}>
         {/* Dose and units */}
         <div className="text-right">
-          <div className={`${styles.details} font-semibold`} style={{ color: isCompleted ? '#9ca3af' : theme.text }}>
+          <div className={`${styles.details} font-semibold`} style={{ color: isCompleted ? (theme.isDark ? '#4b5563' : '#9ca3af') : theme.text }}>
             {task.dose}{task.unit ? ` ${task.unit}` : ''}
           </div>
         </div>
@@ -178,7 +178,7 @@ const TaskDisplay = ({
               title={`Pen Color: ${task.penColor || 'Default'}`}
             />
             {task.penType && (
-              <span className={`${styles.penType} font-medium`} style={{ color: isCompleted ? '#9ca3af' : theme.textLight }}>
+              <span className={`${styles.penType} font-medium`} style={{ color: isCompleted ? (theme.isDark ? '#4b5563' : '#9ca3af') : theme.textLight }}>
                 {task.penType.toUpperCase()}
               </span>
             )}
@@ -186,7 +186,7 @@ const TaskDisplay = ({
         )}
 
         {/* Delivery method icon */}
-        <div style={{ opacity: isCompleted ? 0.5 : 1 }}>
+        <div style={{ opacity: isCompleted ? 0.3 : 1 }}>
           <DeliveryIcon task={task} theme={theme} size={size === 'compact' ? 10 : size === 'normal' ? 14 : 16} />
         </div>
 

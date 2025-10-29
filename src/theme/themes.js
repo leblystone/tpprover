@@ -118,7 +118,7 @@ export const themes = {
 
     // Text - Light colors matching screenshot
     text: '#ededee',           // Main text color (very light gray)
-    textLight: '#b8bbaa',      // Warm gray for secondary text
+    textLight: '#b8bbaa',      // Warm gray for secondary text and descriptive text
     textOnPrimary: '#1F2937',  // Dark text on bright cyan buttons
     
     // Backgrounds - Matching the screenshot's navy/charcoal palette
@@ -126,7 +126,7 @@ export const themes = {
     cardBackground: '#29303b', // Card background (lighter than main bg)
     
     // UI Elements
-    border: '#29303b',         // Subtle border (same as secondary)
+    border: '#b8bbaa',         // Page breaks and dividers (warm gray for better visibility)
     buttonDisabled: '#29303b', // Muted dark for disabled states
     
     // Semantic Colors (adjusted for dark backgrounds with proper contrast)
