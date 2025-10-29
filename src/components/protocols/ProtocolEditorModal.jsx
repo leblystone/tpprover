@@ -423,7 +423,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'separate')}
-                                className="p-3 rounded-lg text-center transition-all transform hover:scale-[1.02]"
+                                className="p-3 rounded-lg text-center transition-all"
                                 style={{ 
                                     border: form.protocolType === 'separate' 
                                         ? `2px solid ${theme.primary}` 
@@ -432,6 +432,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     boxShadow: form.protocolType === 'separate' 
                                         ? `0 2px 8px ${theme.primary}20` 
                                         : (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)')
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (form.protocolType !== 'separate') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '10';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (form.protocolType !== 'separate') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.cardBackground;
+                                    }
                                 }}
                             >
                                 <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Separate</div>
@@ -442,7 +452,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             <button
                                 type="button"
                                 onClick={() => handleChange('protocolType', 'blended')}
-                                className="p-3 rounded-lg text-center transition-all transform hover:scale-[1.02]"
+                                className="p-3 rounded-lg text-center transition-all"
                                 style={{ 
                                     border: form.protocolType === 'blended' 
                                         ? `2px solid ${theme.primary}` 
@@ -451,6 +461,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     boxShadow: form.protocolType === 'blended' 
                                         ? `0 2px 8px ${theme.primary}20` 
                                         : (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)')
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (form.protocolType !== 'blended') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '10';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (form.protocolType !== 'blended') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.cardBackground;
+                                    }
                                 }}
                             >
                                 <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Blended</div>
@@ -545,26 +565,25 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
 
                     {/* Add Peptide Button */}
-                    <button
-                        onClick={addPeptide}
-                        className="p-6 rounded-xl flex items-center justify-center gap-3 transition-all"
-                        style={{ 
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                            color: theme.textLight
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                        }}
-                    >
-                        <PlusCircle size={24} />
-                        <div className="text-left">
-                            <div className="font-semibold" style={{ color: theme.text }}>Add Another Peptide</div>
-                            <div className="text-sm">Click to add more compounds to this protocol</div>
-                        </div>
-                    </button>
+                    <div className="flex justify-center">
+                        <button
+                            onClick={addPeptide}
+                            className="px-6 py-3 rounded-lg flex items-center gap-2 transition-all"
+                            style={{ 
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                                color: theme.primary
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                            }}
+                        >
+                            <PlusCircle size={18} />
+                            <span className="font-semibold text-sm" style={{ color: theme.text }}>Add Another Peptide</span>
+                        </button>
+                    </div>
 
                     {/* Global Titration for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 0 && (
@@ -598,7 +617,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             className="sr-only peer" 
                                         />
                                         <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" 
-                                             style={{backgroundColor: form.sharedTitrationEnabled ? theme.primary : theme.secondary}}></div>
+                                             style={{backgroundColor: form.sharedTitrationEnabled ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary)}}></div>
                                     </label>
                                     <span className="text-sm font-medium" style={{ color: theme.text }}>Enable Dosing Schedule (Titration)</span>
                                 </div>
@@ -680,7 +699,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.duration?.noEnd} onChange={e => handleDurationChange('noEnd', e.target.checked)} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : theme.secondary }}></div>
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary) }}></div>
                                     </label>
                                     <span className="text-sm" style={{ color: theme.text }}>No end date</span>
                                 </div>
@@ -693,7 +712,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <div className="flex items-center gap-2 mb-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.washout?.enabled} onChange={e => handleWashoutChange('enabled', e.target.checked)} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.washout?.enabled ? theme.primary : theme.secondary}}></div>
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.washout?.enabled ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary)}}></div>
                                     </label>
                                     <span className="text-sm" style={{ color: theme.text }}>Enable washout</span>
                                 </div>
@@ -759,9 +778,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         <SchedulingPreview protocol={form} theme={theme} />
                     </div>
                 )}
-
-                {/* Separator */}
-                <div className="border-t" style={{ borderColor: theme.border }}></div>
 
                 {/* Notes Content */}
                 <div>

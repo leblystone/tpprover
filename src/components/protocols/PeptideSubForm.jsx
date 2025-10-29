@@ -115,7 +115,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 placeholder="Optional"
                                                 className="flex-1 px-2 py-2 outline-none min-w-0"
                                                 style={{ 
-                                                    backgroundColor: theme.inputBackground || '#fff',
+                                                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                                                     color: theme.text 
                                                 }}
                                             />
@@ -161,11 +161,21 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             handleChange('injectionType', 'SubQ');
                                         }
                                     }}
-                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.textOnPrimary : theme.text,
                                         borderColor: (item.deliveryMethod || 'pipette') === 'pipette' ? theme.primary : theme.border
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if ((item.deliveryMethod || 'pipette') !== 'pipette') {
+                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if ((item.deliveryMethod || 'pipette') !== 'pipette') {
+                                            e.currentTarget.style.backgroundColor = theme.secondary;
+                                        }
                                     }}
                                 >
                                     <Pipette size={16} /> Syringe
@@ -173,11 +183,21 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 <button 
                                     type="button"
                                     onClick={() => handleChange('deliveryMethod', 'pen')}
-                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'pipette') === 'pen' ? theme.textOnPrimary : theme.text,
                                         borderColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.border
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if ((item.deliveryMethod || 'pipette') !== 'pen') {
+                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if ((item.deliveryMethod || 'pipette') !== 'pen') {
+                                            e.currentTarget.style.backgroundColor = theme.secondary;
+                                        }
                                     }}
                                 >
                                     <Pen size={16} /> Pen
@@ -191,11 +211,21 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             handleChange('dosage', { ...item.dosage, unit: 'sprays' });
                                         }
                                     }}
-                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold`}
+                                    className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.secondary,
                                         color: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.textOnPrimary : theme.text,
                                         borderColor: (item.deliveryMethod || 'pipette') === 'nasal' ? theme.primary : theme.border
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if ((item.deliveryMethod || 'pipette') !== 'nasal') {
+                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if ((item.deliveryMethod || 'pipette') !== 'nasal') {
+                                            e.currentTarget.style.backgroundColor = theme.secondary;
+                                        }
                                     }}
                                 >
                                     <Droplets size={16} /> Nasal
@@ -468,7 +498,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                         }} 
                                         className="sr-only peer" 
                                     />
-                                    <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: item.titrationEnabled ? theme.primary : theme.secondary}}></div>
+                                    <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: item.titrationEnabled ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary)}}></div>
                                 </label>
                                 <span className="text-sm font-medium" style={{ color: theme.text }}>Enable Dosing Schedule (Titration)</span>
                             </div>
