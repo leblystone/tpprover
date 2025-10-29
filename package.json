@@ -25,6 +25,7 @@
     "@capacitor/ios": "^7.4.3",
     "@capacitor/local-notifications": "^7.0.3",
     "@capacitor/push-notifications": "^7.0.3",
+    "@capacitor/share": "^7.0.2",
     "@stripe/stripe-js": "^7.9.0",
     "abbrev": "^3.0.1",
     "crypto-js": "^4.2.0",
