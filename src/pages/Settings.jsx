@@ -55,8 +55,8 @@ export default function Settings() {
     <section className="space-y-3">
       {settingsSections.map((section) => {
         const Icon = section.icon
-        return (
-          <button
+    return (
+              <button 
             key={section.id}
             onClick={() => navigate(section.path)}
             className="w-full flex items-center justify-between p-4 rounded-lg transition-all hover:opacity-80"
@@ -64,10 +64,10 @@ export default function Settings() {
           >
             <div className="flex items-center gap-4">
               <div 
-                className="p-2 rounded-lg"
-                style={{ backgroundColor: theme.secondary }}
+                className="p-3 rounded-lg"
+                style={{ backgroundColor: theme.accent }}
               >
-                <Icon size={24} style={{ color: theme.accent }} />
+                <Icon size={24} style={{ color: theme.accentText }} />
               </div>
               <div className="text-left">
                 <div className="font-semibold text-base" style={{ color: theme.text }}>
@@ -79,9 +79,9 @@ export default function Settings() {
               </div>
             </div>
             <ChevronRight size={20} style={{ color: theme.mutedText }} />
-          </button>
+                </button>
         )
       })}
-    </section>
-  )
-}
+       </section>
+    )
+  }
