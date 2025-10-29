@@ -64,8 +64,8 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
         >
             <div className="space-y-3">
                 {/* GROUP BUY DETAILS Section Header */}
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>GROUP BUY DETAILS</h4>
+                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>GROUP BUY DETAILS</h4>
                 </div>
 
                 <div>
@@ -75,12 +75,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                         value={form.item}
                         onChange={e => setForm({ ...form, item: e.target.value })}
                         placeholder="Product Name"
-                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                        className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                         style={{
-                            borderColor: theme.border,
-                            backgroundColor: theme.cardBackground,
+                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                             color: theme.text,
-                            focusRingColor: theme.primary
+                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                         }}
                     />
                 </div>
@@ -92,12 +92,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             type="date"
                             value={form.openDate}
                             onChange={e => setForm({ ...form, openDate: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                             style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
+                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                 color: theme.text,
-                                focusRingColor: theme.primary
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                             }}
                         />
                     </div>
@@ -107,12 +107,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             type="date"
                             value={form.closeDate}
                             onChange={e => setForm({ ...form, closeDate: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                             style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
+                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                 color: theme.text,
-                                focusRingColor: theme.primary
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                             }}
                         />
                     </div>
@@ -126,12 +126,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             value={form.vendor}
                             onChange={e => setForm({ ...form, vendor: e.target.value })}
                             placeholder="Name"
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                             style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
+                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                 color: theme.text,
-                                focusRingColor: theme.primary
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                             }}
                         />
                     </div>
@@ -142,20 +142,20 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             value={form.location}
                             onChange={e => setForm({ ...form, location: e.target.value })}
                             placeholder="e.g Discord, Telegram, etc."
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                             style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
+                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                 color: theme.text,
-                                focusRingColor: theme.primary
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                             }}
                         />
                     </div>
                 </div>
 
                 {/* VENDOR & PRICING Section Header */}
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VENDOR & PRICING</h4>
+                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VENDOR & PRICING</h4>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -166,12 +166,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             value={form.participants}
                             onChange={e => setForm({ ...form, participants: e.target.value })}
                             placeholder="Vendor Name"
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                             style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
+                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                 color: theme.text,
-                                focusRingColor: theme.primary
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                             }}
                         />
                     </div>
@@ -186,12 +186,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                                 value={form.price}
                                 onChange={e => setForm({ ...form, price: e.target.value })}
                                 placeholder="0.00"
-                                className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                                className="w-full pl-7 pr-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                                 style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.cardBackground,
+                                    border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                                     color: theme.text,
-                                    focusRingColor: theme.primary
+                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                                 }}
                             />
                         </div>
@@ -208,12 +208,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                         onChange={e => setForm({ ...form, notes: e.target.value })}
                         placeholder="Any further group buy details."
                         rows={3}
-                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all resize-none"
+                        className="w-full px-3 py-2 rounded-lg text-sm transition-all resize-none focus:outline-none"
                         style={{
-                            borderColor: theme.border,
-                            backgroundColor: theme.cardBackground,
+                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                             color: theme.text,
-                            focusRingColor: theme.primary
+                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                         }}
                     />
                 </div>

@@ -279,8 +279,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           {/* Section: Vendor & Category */}
           <div>
             {/* Section Header */}
-            <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Order Details</h4>
+            <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Order Details</h4>
               {form.vendorId && (
                 <button
                   onClick={() => {
@@ -333,8 +333,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         {/* Section: Items */}
         <div>
             {/* Section Header */}
-            <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Items</h4>
+            <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Items</h4>
             </div>
             <div className="space-y-3">
                 {form.items?.map((item, index) => (
@@ -381,8 +381,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         {/* Section: Status & Dates */}
         <div>
           {/* Section Header */}
-          <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Order Status</h4>
+          <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Order Status</h4>
           </div>
           <div className="space-y-3">
             <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
