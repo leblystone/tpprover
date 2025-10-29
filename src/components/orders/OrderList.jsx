@@ -27,7 +27,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, vendo
       {orders.map(o => {
         const nextStatusAction = getNextStatus(o.status);
         return (
-          <div key={o.id} className="rounded-lg border p-4 shadow-sm content-card" style={{ borderColor: theme?.border || '#eee', backgroundColor: theme.cardBackground }}>
+          <div key={o.id} className="rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow content-card" style={{ backgroundColor: theme.cardBackground }}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               {/* Left side: Title and Vendor */}
               <div className="flex-grow">

@@ -364,7 +364,7 @@ export default function Recon() {
 								const calc = calculateRecon({ ...item, mg: totalMg, dose: totalDoseInMcg });
 								const costPerDose = item.cost ? formatCurrency(item.cost / calc.dosesPerVial) : null
 								return (
-									<div key={item.id} className="rounded-lg border p-4 shadow-sm content-card flex flex-col justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+									<div key={item.id} className="rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow content-card flex flex-col justify-between" style={{ backgroundColor: theme.cardBackground }}>
 										<div>
 											<div className="flex justify-between items-start">
 												<div>

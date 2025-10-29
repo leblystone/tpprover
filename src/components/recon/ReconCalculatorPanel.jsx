@@ -545,7 +545,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   }
 
   return (
-    <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+    <div className="rounded-lg p-6 content-card shadow-md hover:shadow-lg transition-shadow" style={{ backgroundColor: theme.cardBackground }}>
       {content}
     </div>
   );

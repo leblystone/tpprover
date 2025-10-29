@@ -446,7 +446,7 @@ export default function Stockpile() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {groups.filter(g => g.totalMg > 0).map(g => (
-                    <div key={g.name} className="relative p-4 rounded-lg border content-card shadow-sm flex flex-col justify-between" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div key={g.name} className="relative p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between" style={{ backgroundColor: theme.cardBackground }}>
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
@@ -454,7 +454,7 @@ export default function Stockpile() {
                             </div>
                             <div className="space-y-3">
                                 {Object.values(g.variants).sort((a, b) => String(a.mg).localeCompare(String(b.mg))).map(v => (
-                                    <div key={v.mg} className="rounded-md border p-3" style={{ borderColor: theme.border }}>
+                                    <div key={v.mg} className="rounded-md shadow-sm p-3" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb' }}>
                                         <div className="flex items-center justify-between text-sm mb-2">
                                             <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
                                             <div className="text-xs font-semibold">{v.totalVials} vials</div>
