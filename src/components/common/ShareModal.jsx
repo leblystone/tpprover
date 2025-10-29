@@ -21,6 +21,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
 
     const handleShareImage = async () => {
         if (cardRef.current === null) {
+            console.error('Card ref is null');
             return;
         }
 
@@ -29,13 +30,21 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
         try {
             // We need to get the real dimensions of the card to ensure the image is not cropped
             const rect = node.getBoundingClientRect();
+            console.log('Card dimensions:', rect.width, 'x', rect.height);
 
             const dataUrl = await toPng(node, { 
                 cacheBust: true,
                 width: rect.width,
                 height: rect.height,
-                pixelRatio: 2 // Generate a higher-resolution image
+                pixelRatio: 2, // Generate a higher-resolution image
+                backgroundColor: '#ffffff', // Ensure white background
+                style: {
+                    transform: 'scale(1)',
+                    transformOrigin: 'top left'
+                }
             });
+
+            console.log('Generated image data URL length:', dataUrl.length);
 
             const blob = await (await fetch(dataUrl)).blob();
             const file = new File([blob], "shared-card.png", { type: blob.type });
@@ -50,25 +59,31 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                         text: `Shared from The Pep Planner`,
                         files: [file],
                     });
+                    console.log('Successfully shared via Web Share API');
                 } catch (shareErr) {
                     // User cancelled or sharing failed, fall back to download
                     console.log('Share cancelled or failed, downloading instead', shareErr);
-                    const link = document.createElement('a');
-                    link.href = dataUrl;
-                    link.download = 'shared-card.png';
-                    link.click();
+                    downloadImage(dataUrl);
                 }
             } else {
                 // Fallback for browsers that don't support navigator.share with files
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = 'shared-card.png';
-                link.click();
+                console.log('Web Share API not available, downloading instead');
+                downloadImage(dataUrl);
             }
         } catch (err) {
             console.error('Error generating share image:', err);
             alert('Could not generate image. Please try copying the link instead.');
         }
+    };
+
+    const downloadImage = (dataUrl) => {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'shared-card.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        console.log('Image downloaded successfully');
     };
 
     const handleCopyLink = () => {
@@ -118,7 +133,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             </p>
             <div className="flex justify-center w-full overflow-x-auto">
                 <div ref={cardRef} className="bg-white p-2 inline-block max-w-full">
-                    <ShareCard {...cardProps} isPublicView={true} />
+                    <ShareCard {...cardProps} isPublicView={true} theme={theme} />
                 </div>
             </div>
         </Modal>

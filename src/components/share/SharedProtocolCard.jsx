@@ -51,13 +51,13 @@ export default function SharedProtocolCard({ item: p, theme }) {
 
             {p.notes && (
                 <>
-                    <hr className="my-4" style={{ borderColor: theme.border }} />
+                    <hr className="my-4" style={{ borderColor: sageTheme.border }} />
                     <div className="flex items-start gap-3 text-sm"><Icon I={FileText} /><p><strong>Notes:</strong> <span className="text-xs italic">{p.notes}</span></p></div>
                 </>
             )}
 
-            <footer className="text-center mt-6 pt-4 border-t" style={{ borderColor: theme.border }}>
-                <p className="text-xs font-semibold" style={{ color: theme.primary }}>The Pep Planner</p>
+            <footer className="text-center mt-6 pt-4 border-t" style={{ borderColor: sageTheme.border }}>
+                <p className="text-xs font-semibold" style={{ color: sageTheme.primary }}>The Pep Planner</p>
                 <p className="text-xs text-gray-400 mb-2">Organize Your Research</p>
                 <p className="text-[10px] text-red-600 font-semibold p-1 bg-red-100 rounded">
                     For Research & Informational Purposes Only. Not for human consumption. The content is user-generated and not endorsed by The Pep Planner.

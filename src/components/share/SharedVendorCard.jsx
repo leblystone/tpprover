@@ -3,6 +3,15 @@ import { Star, Mail, Phone, Globe, MessageSquare, CreditCard, Banknote, Coins, W
 import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaFacebook } from 'react-icons/fa';
 import logo from '../../assets/tpp_logo.png';
 
+// Sage theme colors - fixed for shared content
+const sageTheme = {
+    primary: '#4A7C70',        // Sage green
+    primaryDark: '#3A6B5F',    // Darker sage green
+    border: '#D1D5DB',         // Light gray border
+    text: '#374151',           // Dark gray text
+    textLight: '#6B7280'       // Medium gray text
+};
+
 const GOOD_LABELS = ['Reliable', 'Fast Shipping', 'Overfill', 'Vetted'];
 const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'Out of Service'];
 
@@ -33,7 +42,7 @@ const VendorPaymentIcons = ({ vendor, theme }) => {
             <h3 className="text-xs font-bold text-gray-500 mb-2">Payment Methods</h3>
             <div className="flex flex-wrap gap-2 text-xs">
                 {items.map(({ label, Icon }) => (
-                    <span key={label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100" style={{ color: theme.text }}>
+                    <span key={label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100" style={{ color: sageTheme.text }}>
                         <Icon className="w-3.5 h-3.5" />
                         {label}
                     </span>
@@ -56,7 +65,7 @@ export default function SharedVendorCard({ vendor, theme }) {
                 <div className="flex flex-col gap-1.5">
                     {vendor.contacts.filter(c => c.value).map(c => (
                         <div key={c.type+c.value} className="flex items-center gap-2 text-xs">
-                            <span style={{ color: theme.primary }}>{getContactIcon(c.type)}</span>
+                            <span style={{ color: sageTheme.primary }}>{getContactIcon(c.type)}</span>
                             <span className="truncate">{c.value}</span>
                         </div>
                     ))}
@@ -109,11 +118,11 @@ export default function SharedVendorCard({ vendor, theme }) {
     }
 
     return (
-        <div className="p-6 rounded-xl border bg-white w-full max-w-md" style={{ borderColor: theme.border, fontFamily: 'sans-serif' }}>
-            <header className="flex items-center gap-3 mb-4 pb-4 border-b" style={{borderColor: theme.border}}>
+        <div className="p-6 rounded-xl border bg-white w-full max-w-md" style={{ borderColor: sageTheme.border, fontFamily: 'sans-serif' }}>
+            <header className="flex items-center gap-3 mb-4 pb-4 border-b" style={{borderColor: sageTheme.border}}>
                 <img src={logo} alt="The Pep Planner Logo" className="h-12 w-12 rounded-full shadow-md object-cover" />
                 <div>
-                    <h1 className="font-bold text-lg" style={{ color: theme.primaryDark }}>{vendor.name}</h1>
+                    <h1 className="font-bold text-lg" style={{ color: sageTheme.primaryDark }}>{vendor.name}</h1>
                     <p className="text-xs text-gray-500">Vendor Details</p>
                     <div className="flex items-center gap-1 mt-1">
                         {[1, 2, 3, 4, 5].map(n => (
@@ -127,8 +136,8 @@ export default function SharedVendorCard({ vendor, theme }) {
                 {sections}
             </div>
 
-            <footer className="text-center mt-6 pt-4 border-t" style={{ borderColor: theme.border }}>
-                <p className="text-xs font-semibold" style={{ color: theme.primary }}>The Pep Planner</p>
+            <footer className="text-center mt-6 pt-4 border-t" style={{ borderColor: sageTheme.border }}>
+                <p className="text-xs font-semibold" style={{ color: sageTheme.primary }}>The Pep Planner</p>
                 <p className="text-xs text-gray-400 mb-2">Organize Your Research</p>
                 <p className="text-[10px] text-red-600 font-semibold p-1 bg-red-100 rounded">
                     For Research & Informational Purposes Only. The content is user-generated and not endorsed by The Pep Planner.
