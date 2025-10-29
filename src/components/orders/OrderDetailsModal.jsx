@@ -317,11 +317,24 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>
                     Category <span className="text-red-500">*</span>
                   </div>
-                  <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
+                  <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                     {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
-                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center ${form.category === k ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                        style={form.category === k ? { backgroundColor: theme?.primary } : {}}>
+                        className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center"
+                        style={form.category === k 
+                          ? { backgroundColor: theme?.primary, color: '#ffffff' } 
+                          : { color: theme.text }
+                        }
+                        onMouseEnter={(e) => {
+                          if (form.category !== k) {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (form.category !== k) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}>
                         {k === 'groupbuy' ? 'Group Buy' : k.charAt(0).toUpperCase() + k.slice(1)}
                       </button>
                     ))}
@@ -350,9 +363,15 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             </div>
             <button
               type="button"
-              className="mt-3 px-3 py-2 rounded-md text-xs font-semibold border-dashed border-2 flex items-center gap-2 w-full justify-center"
+              className="mt-3 px-3 py-2 rounded-md text-xs font-semibold border-dashed border-2 flex items-center gap-2 w-full justify-center transition-all"
               style={{ borderColor: theme.border, color: theme.text }}
               onClick={addItem}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '10';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
               <PlusCircle size={14} /> Add Another Item
             </button>
