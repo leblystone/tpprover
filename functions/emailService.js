@@ -17,8 +17,18 @@ const emailTemplates = require('./emailTemplates');
  */
 async function sendEmail(to, subject, html) {
   try {
-    // Check if SendGrid is configured
-    const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim().replace(/\r?\n/g, '');
+    // Check if SendGrid is configured - try both methods
+    let sendgridApiKey = process.env.SENDGRID_API_KEY?.trim().replace(/\r?\n/g, '');
+    
+    // Fallback to Firebase config if env var not found
+    if (!sendgridApiKey) {
+      try {
+        const functions = require('firebase-functions');
+        sendgridApiKey = functions.config().sendgrid?.api_key?.trim().replace(/\r?\n/g, '');
+      } catch (error) {
+        logger.warn('Could not access Firebase config:', error);
+      }
+    }
     
     logger.info('🔑 API Key being used:', sendgridApiKey ? `${sendgridApiKey.substring(0, 10)}...` : 'undefined');
     logger.info('🔑 API Key length:', sendgridApiKey ? sendgridApiKey.length : 0);
@@ -115,7 +125,7 @@ exports.sendLifetimeAccessEmail = async (userEmail, userName = null) => {
   
   // Fallback to hardcoded template
   const subject = '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
-  const html = emailTemplates.lifetimeAccessEmail(userName, userEmail);
+  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User');
   return sendEmail(userEmail, subject, html);
 };
 

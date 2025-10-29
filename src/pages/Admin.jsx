@@ -1177,6 +1177,14 @@ function Admin() {
               color: '#ef4444' 
             },
             { 
+              id: 'gifts', 
+              label: 'Gifts', 
+              icon: Star, 
+              count: giftAnalytics.total || 0,
+              desc: 'Gift access management',
+              color: '#ec4899' 
+            },
+            { 
               id: 'notifications', 
               label: 'Notifications', 
               icon: Bell, 
