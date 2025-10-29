@@ -1569,8 +1569,12 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
           onChange={handleInputChange}
           onKeyPress={(e) => e.key === 'Enter' && handleAIResearch()}
           placeholder="Search peptides..."
-          className="flex-1 px-2 py-1.5 text-sm border rounded-md"
-          style={{ borderColor: theme.border }}
+          className="flex-1 px-2 py-1.5 text-sm rounded-md"
+          style={{ 
+            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+            color: theme.text,
+            border: theme.isDark ? 'none' : `1px solid ${theme.border}`
+          }}
         />
         <button
           onClick={() => handleAIResearch()}
@@ -1591,17 +1595,17 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
       )}
 
       {aiResearch.error && (
-        <div className="p-3 rounded-lg border" style={{ borderColor: theme.error, backgroundColor: theme.error + '10' }}>
+        <div className="p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#7f1d1d' : theme.error + '10', border: theme.isDark ? 'none' : `1px solid ${theme.error}` }}>
           <div className="flex items-center gap-2">
-            <AlertTriangle size={16} style={{ color: theme.error }} />
-            <span className="text-sm" style={{ color: theme.error }}>{aiResearch.error}</span>
+            <AlertTriangle size={16} style={{ color: theme.isDark ? '#fca5a5' : theme.error }} />
+            <span className="text-sm" style={{ color: theme.isDark ? '#fca5a5' : theme.error }}>{aiResearch.error}</span>
           </div>
         </div>
       )}
 
       {aiResearch.data && (
         <div className="space-y-3">
-          <div className="p-3 rounded-lg border" style={{ borderColor: theme.primary, backgroundColor: theme.primary + '10' }}>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.primary + '10', border: theme.isDark ? 'none' : `1px solid ${theme.primary}` }}>
             <div className="flex items-center gap-2 mb-2">
               <Brain size={16} style={{ color: theme.primary }} />
               <h3 className="font-semibold text-sm" style={{ color: theme.text }}>{aiResearch.data.name}</h3>
@@ -1679,7 +1683,7 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
       {/* Request Research Success Message */}
       {aiResearch.requestSent && (
         <div className="space-y-3">
-          <div className="p-3 rounded-lg border" style={{ borderColor: theme.success, backgroundColor: theme.success + '10' }}>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.success + '10', border: theme.isDark ? 'none' : `1px solid ${theme.success}` }}>
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle size={16} style={{ color: theme.success }} />
               <h3 className="font-semibold text-sm" style={{ color: theme.text }}>Research Request Submitted</h3>
@@ -1883,7 +1887,7 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
   return (
     <div className="relative h-full flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
+      <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Research Glossary
