@@ -29,7 +29,13 @@ const SpendingWidget = ({ widget, theme }) => {
     orders.forEach(order => {
       if (order.status === 'delivered' && order.deliveredDate) {
         const deliveryDate = new Date(order.deliveredDate);
-        const totalCost = order.items?.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0) || 0;
+        const itemsCost = order.items?.reduce((sum, item) => {
+          const price = parseFloat(item.price) || 0;
+          const quantity = parseInt(item.quantity, 10) || 1;
+          return sum + (price * quantity);
+        }, 0) || 0;
+        const shippingCost = parseFloat(order.shippingCost) || 0;
+        const totalCost = itemsCost + shippingCost;
         
         // Total spend (all time)
         totalSpend += totalCost;

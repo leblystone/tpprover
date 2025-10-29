@@ -129,11 +129,13 @@ const formatTotalCost = (order) => {
     if (items.length === 0) {
         return renderCost(order.cost); // Fallback
     }
-    const total = items.reduce((sum, item) => {
+    const itemsTotal = items.reduce((sum, item) => {
         const price = parseFloat(item.price) || 0;
         const quantity = parseInt(item.quantity, 10) || 1;
         return sum + (price * quantity);
     }, 0);
+    const shippingCost = parseFloat(order.shippingCost) || 0;
+    const total = itemsTotal + shippingCost;
     return formatCurrency(total);
 };
 

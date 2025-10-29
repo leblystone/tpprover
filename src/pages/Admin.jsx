@@ -36,6 +36,7 @@ import AgreementTracking from '../components/admin/AgreementTracking';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
+import ImprovementsTracker from '../components/admin/ImprovementsTracker';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -1007,7 +1008,8 @@ function Admin() {
               { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
               { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
             { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981' },
-              { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4' }
+              { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4' },
+              { id: 'improvements', label: 'Improvements', icon: Target, color: '#8b5cf6' }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1163,6 +1165,14 @@ function Admin() {
               desc: 'Branded email editor',
               color: '#06b6d4' 
             },
+            { 
+              id: 'improvements', 
+              label: 'Improvements', 
+              icon: Target, 
+              count: 0,
+              desc: 'Track potential improvements',
+              color: '#8b5cf6' 
+            },
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1230,6 +1240,7 @@ function Admin() {
                 {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
                 {activeTab === 'notifications' && 'Customize notification templates and automated push notifications'}
                 {activeTab === 'emails' && 'Design beautiful branded email templates - no coding required!'}
+                {activeTab === 'improvements' && 'Track potential improvements and future features for The Pep Planner'}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -2517,6 +2528,12 @@ function Admin() {
         {activeTab === 'emails' && (
           <div className="space-y-6">
             <EmailTemplateManager theme={theme} />
+          </div>
+        )}
+
+        {activeTab === 'improvements' && (
+          <div className="space-y-6">
+            <ImprovementsTracker theme={theme} />
           </div>
         )}
 

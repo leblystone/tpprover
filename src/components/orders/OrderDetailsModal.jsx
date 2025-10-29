@@ -44,12 +44,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   const [saveError, setSaveError] = useState(null);
 
   const totalCost = useMemo(() => {
-    return (form.items || []).reduce((sum, item) => {
+    const itemsCost = (form.items || []).reduce((sum, item) => {
         const price = parseFloat(item.price) || 0;
         const quantity = parseInt(item.quantity, 10) || 1;
         return sum + (price * quantity);
     }, 0);
-  }, [form.items]);
+    const shippingCost = parseFloat(form.shippingCost) || 0;
+    return itemsCost + shippingCost;
+  }, [form.items, form.shippingCost]);
 
   useEffect(() => {
     if (open) {
@@ -301,6 +303,20 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             >
               <PlusCircle size={14} /> Add Another Item
             </button>
+            
+            {/* Shipping Cost Field */}
+            <div className="mt-4 pt-3 border-t" style={{ borderColor: theme.border }}>
+              <TextInput 
+                label="Shipping Cost" 
+                value={form.shippingCost || ''} 
+                onChange={v => setForm({ ...form, shippingCost: v })} 
+                placeholder="0.00" 
+                theme={theme}
+                type="number"
+                step="0.01"
+              />
+            </div>
+            
             <div className="flex justify-end items-center pt-2">
                 <span className="text-sm font-medium" style={{ color: theme?.text }}>Total Cost:</span>
                 <span className="text-lg font-semibold ml-2" style={{ color: theme?.primaryDark }}>

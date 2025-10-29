@@ -109,7 +109,20 @@ export function useBadgeStats() {
         const activeProtocols = protocols.filter(p => p.active !== false).length
         const lowStock = stockpile.filter(s => Number(s.quantity) <= 1).length
         const supplementCount = supplements.length
-        const totalSpend = orders.reduce((acc, o) => acc + (Number(String(o.cost).replace(/[^0-9.]/g,'')) || 0), 0)
+        const totalSpend = orders.reduce((acc, o) => {
+          // Handle new order structure with items array
+          if (o.items && o.items.length > 0) {
+            const itemsCost = o.items.reduce((sum, item) => {
+              const price = parseFloat(item.price) || 0;
+              const quantity = parseInt(item.quantity, 10) || 1;
+              return sum + (price * quantity);
+            }, 0);
+            const shippingCost = parseFloat(o.shippingCost) || 0;
+            return acc + itemsCost + shippingCost;
+          }
+          // Fallback for old order structure
+          return acc + (Number(String(o.cost).replace(/[^0-9.]/g,'')) || 0);
+        }, 0)
         
         let streak = 0;
         for (let i = 0; i < 180; i++) {
