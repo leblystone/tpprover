@@ -77,31 +77,35 @@ export default function MobileSidebar({ open, onClose, theme }) {
               key={to}
               to={to}
               onClick={onClose}
-              className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 hover:bg-gray-50 ${isActive ? 'sidebar-link-active' : 'text-gray-700'}`}
-              style={{
+              className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 ${isActive ? 'sidebar-link-active' : ''}`}
+              style={({ isActive }) => ({
                 animationDelay: visible ? `${index * 50}ms` : '0ms',
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'translateX(0)' : 'translateX(-20px)',
-                transition: 'opacity 200ms ease-out, transform 200ms ease-out'
-              }}
+                transition: 'opacity 200ms ease-out, transform 200ms ease-out',
+                color: isActive ? theme.textOnPrimary : theme.text,
+                backgroundColor: isActive ? theme.primary : 'transparent'
+              })}
             >
               <Icon className="h-6 w-6" />
               <span className="text-lg font-medium truncate">{label}</span>
             </NavLink>
           ))}
-          <div className="mt-auto border-t pt-2">
+          <div className="mt-auto border-t pt-2" style={{ borderColor: theme.border }}>
             {bottomLinks.map(({ to, label, icon: Icon }, index) => (
               <NavLink
                 key={to}
                 to={to}
                 onClick={onClose}
-                className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 hover:bg-gray-50 ${isActive ? 'sidebar-link-active' : 'text-gray-700'}`}
-                style={{
+                className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 ${isActive ? 'sidebar-link-active' : ''}`}
+                style={({ isActive }) => ({
                   animationDelay: visible ? `${(links.length + index) * 50}ms` : '0ms',
                   opacity: visible ? 1 : 0,
                   transform: visible ? 'translateX(0)' : 'translateX(-20px)',
-                  transition: 'opacity 200ms ease-out, transform 200ms ease-out'
-                }}
+                  transition: 'opacity 200ms ease-out, transform 200ms ease-out',
+                  color: isActive ? theme.textOnPrimary : theme.text,
+                  backgroundColor: isActive ? theme.primary : 'transparent'
+                })}
               >
                 <Icon className="h-6 w-6" />
                 <span className="text-lg font-medium truncate">{label}</span>

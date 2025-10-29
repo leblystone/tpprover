@@ -22,7 +22,6 @@ import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
-import UpgradeBanner from './components/common/UpgradeBanner';
 import SubscriptionModal from './components/common/SubscriptionModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
 
@@ -285,15 +284,13 @@ function App() {
           onActionClick={topbarTabs?.onActionClick}
           actionDisabled={topbarTabs?.actionDisabled}
           autoSaveIndicator={topbarAutoSave}
+          trialInfo={showUpgradePrompt && user && !isLoading ? {
+            daysRemaining,
+            isTrialExpired,
+            onUpgradeClick: () => setShowSubscriptionModal(true)
+          } : null}
         />
         {showDemoBanner && <SampleDataBanner theme={theme} sticky />}
-        {showUpgradePrompt && user && !isLoading && (
-          <UpgradeBanner
-            daysRemaining={daysRemaining}
-            isTrialExpired={isTrialExpired}
-            onUpgradeClick={() => setShowSubscriptionModal(true)}
-          />
-        )}
                <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
             <Outlet context={{ theme, installPrompt }} />

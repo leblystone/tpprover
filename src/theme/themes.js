@@ -105,38 +105,38 @@ export const themes = {
   },
 
   softDark: {
-    name: 'Soft Dark',
+    name: 'Dark Mode',
     isDark: true,
     
-    // Core Palette - Exact colors from the provided soft dark palette
-    primary: '#5A685A',        // Sage/moss green (4th color in palette)
-    primaryDark: '#405A5A',    // Dark teal (5th color - for hover states)
-    primaryLight: '#6B7D7A',   // Lighter variation for subtle accents
-    secondary: '#2C2C30',      // Dark slate (2nd color - secondary surfaces)
-    accent: '#338238',         // Olive green (3rd color - accent elements)
-    accentText: '#FFFFFF',     // White text on accent
+    // Core Palette - Exact colors from the reference screenshot
+    primary: '#22D3EE',        // Bright cyan/teal accent (matches screenshot highlights)
+    primaryDark: '#0891B2',    // Darker cyan for hover states
+    primaryLight: '#67E8F9',   // Lighter cyan for subtle highlights
+    secondary: '#374151',      // Medium dark gray for secondary surfaces
+    accent: '#22D3EE',         // Bright cyan for accent elements (same as primary)
+    accentText: '#1F2937',     // Dark text on bright accent
 
-    // Text - Light colors for dark backgrounds
-    text: '#E8E8E8',           // Very light gray for primary text
-    textLight: '#A8A8A8',      // Medium gray for secondary text
-    textOnPrimary: '#FFFFFF',  // White text on colored buttons
+    // Text - Light colors matching screenshot
+    text: '#F9FAFB',           // Very light gray/white for primary text
+    textLight: '#9CA3AF',      // Medium gray for secondary text (matches screenshot)
+    textOnPrimary: '#1F2937',  // Dark text on bright cyan buttons
     
-    // Backgrounds - Using exact palette colors
-    background: '#1A1A1D',     // Darkest color (1st) - main background
-    cardBackground: '#2C2C30', // Dark slate (2nd) - card/surface background
+    // Backgrounds - Matching the screenshot's navy/charcoal palette
+    background: '#1F2937',     // Dark navy background (main app background)
+    cardBackground: '#374151', // Lighter charcoal for cards (matches screenshot cards)
     
     // UI Elements
-    border: '#3A3A40',         // Subtle border slightly lighter than cards
-    buttonDisabled: '#35353A', // Muted dark for disabled states
+    border: '#4B5563',         // Subtle border slightly lighter than cards
+    buttonDisabled: '#4B5563', // Muted dark for disabled states
     
-    // Semantic Colors (adjusted for dark backgrounds with good contrast)
-    success: '#6FA080',        // Soft green visible on dark
-    warning: '#E5B872',        // Warm gold visible on dark
-    error: '#E59688',          // Soft red visible on dark
-    info: '#6B9A9A',           // Soft teal visible on dark
-    successBg: '#273830',      // Dark green tinted background
-    warningBg: '#3A3428',      // Dark gold tinted background
-    infoBg: '#283838',         // Dark teal tinted background
+    // Semantic Colors (adjusted for dark backgrounds with proper contrast)
+    success: '#10B981',        // Bright green for success
+    warning: '#F59E0B',        // Bright amber for warnings
+    error: '#EF4444',          // Bright red for errors
+    info: '#22D3EE',           // Cyan for info (matches primary)
+    successBg: '#064E3B',      // Dark green background
+    warningBg: '#78350F',      // Dark amber background
+    infoBg: '#164E63',         // Dark cyan background
   },
 };
 

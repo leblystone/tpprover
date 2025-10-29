@@ -5,8 +5,9 @@ import { useLocation } from 'react-router-dom';
 import GlobalSearchInline from '../search/GlobalSearchInline';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
+import TrialButton from '../common/TrialButton';
 
-export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
+export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator, trialInfo }) {
   const location = useLocation();
   // Handle both /page and /app/page routing patterns
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -138,6 +139,15 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             <div className="hidden md:block w-full max-w-xl mr-2">
               <GlobalSearchInline theme={theme} onClose={() => setShowSearch(false)} onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} />
             </div>
+          )}
+          {/* Trial Button - Only show on dashboard */}
+          {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
+            <TrialButton
+              daysRemaining={trialInfo.daysRemaining}
+              isTrialExpired={trialInfo.isTrialExpired}
+              onUpgradeClick={trialInfo.onUpgradeClick}
+              theme={theme}
+            />
           )}
           {/* Hide search button on stockpile and protocols pages */}
           {seg !== 'stockpile' && seg !== 'protocols' && (

@@ -82,14 +82,12 @@ const ModernToast = ({ message, type, onClose, theme }) => {
 
   return (
     <div
-      className={`fixed right-4 z-[9999] max-w-sm w-full transition-all duration-500 ease-out ${
-        isVisible && !isLeaving 
-          ? 'opacity-100 translate-x-0' 
-          : 'opacity-0 translate-x-full'
-      }`}
+      className="max-w-sm w-full transition-all duration-500 ease-out"
       style={{
-        top: 'env(safe-area-inset-top, 1rem)',
-        transform: isVisible && !isLeaving ? 'translateX(0)' : 'translateX(100%)',
+        opacity: isVisible && !isLeaving ? 1 : 0,
+        transform: isVisible && !isLeaving 
+          ? 'translateY(0)' 
+          : 'translateY(-100%)',
       }}
     >
       {/* Journal-style entry with clean, minimal design */}
@@ -167,17 +165,24 @@ const ModernToastContainer = ({ theme }) => {
   };
   
   return (
-    <>
-      {toasts.map(toast => (
-        <ModernToast
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2 pointer-events-none max-w-sm w-full">
+      {toasts.map((toast, index) => (
+        <div
           key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-          theme={theme}
-        />
+          className="pointer-events-auto w-full"
+          style={{
+            position: 'relative',
+          }}
+        >
+          <ModernToast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+            theme={theme}
+          />
+        </div>
       ))}
-    </>
+    </div>
   );
 };
 
