@@ -109,9 +109,9 @@ export const themes = {
     isDark: true,
     
     // Core Palette - Exact colors from the reference screenshot
-    primary: '#22D3EE',        // Bright cyan/teal accent (matches screenshot highlights)
-    primaryDark: '#0891B2',    // Darker cyan for hover states
-    primaryLight: '#67E8F9',   // Lighter cyan for subtle highlights
+    primary: '#929e82',        // Sage green for highlights and accents
+    primaryDark: '#7a8570',    // Darker sage for hover states
+    primaryLight: '#a8b499',   // Lighter sage for subtle highlights
     secondary: '#29303b',      // Items within cards/buttons
     accent: '#a5b6be',         // Chips and badges (light blue-gray)
     accentText: '#181c22',     // Dark text on light accent/chips
