@@ -82,9 +82,9 @@ const DashboardWidget = ({
 
   return (
     <div
-      className={`dashboard-widget relative rounded-xl content-card shadow-lg transition-all duration-200 ${
+      className={`dashboard-widget relative rounded-xl content-card shadow-xl transition-all duration-200 ${
         isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : ''
-      } ${isDragging ? 'z-50 shadow-2xl' : 'hover:shadow-xl'}`}
+      } ${isDragging ? 'z-50 shadow-2xl' : 'hover:shadow-2xl'}`}
       style={{
         ...widgetStyle,
         backgroundColor: theme.cardBackground,

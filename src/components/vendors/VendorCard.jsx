@@ -92,15 +92,12 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
     if (p.alipay) paymentMethods.push({ label: 'AliPay', Icon: FaAlipay });
 
     const cardStyle = {
-        borderColor: vendor.isStub ? theme.primary : theme.border,
         backgroundColor: theme.cardBackground,
-        borderStyle: vendor.isStub ? 'dashed' : 'solid',
-        borderWidth: vendor.isStub ? '2px' : '1px',
     };
 
     return (
         <>
-            <div className="p-4 rounded-lg border flex flex-col justify-between h-full" style={cardStyle}>
+            <div className={`p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between h-full ${vendor.isStub ? 'ring-2 ring-opacity-50' : ''}`} style={{...cardStyle, '--tw-ring-color': vendor.isStub ? theme.primary : 'transparent'}}>
                 {/* Top Section: Name, Rating, Contacts */}
                 <div>
                     <div className="flex items-start justify-between">

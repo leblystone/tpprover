@@ -52,7 +52,7 @@ export const themes = {
     textOnPrimary: '#FFFFFF',
     
     // Backgrounds
-    background: '#F8F7F7',      // Main background
+    background: '#E8E5E3',      // Darker background for better card contrast
     cardBackground: '#FFFFFF', // Pure white for cards
     
     // UI Elements

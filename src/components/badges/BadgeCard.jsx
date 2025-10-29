@@ -7,7 +7,6 @@ export default function BadgeCard({ badge, isEarned, theme, showProgress = true,
   
   const cardStyle = {
     backgroundColor: theme.cardBackground,
-    borderColor: isEarned ? theme.primary : theme.border,
     color: theme.text,
     opacity: isEarned ? 1 : 0.7,
     transform: isHovered && isEarned ? 'translateY(-1px)' : 'translateY(0)',
@@ -15,7 +14,7 @@ export default function BadgeCard({ badge, isEarned, theme, showProgress = true,
       ? isHovered 
         ? `0 4px 12px ${theme.primary}20` 
         : `0 2px 8px ${theme.primary}15`
-      : '0 1px 4px rgba(0,0,0,0.1)',
+      : '0 2px 6px rgba(0,0,0,0.1)',
   };
 
   const progress = badge.progress ? badge.progress(stats) : 0;
@@ -23,7 +22,7 @@ export default function BadgeCard({ badge, isEarned, theme, showProgress = true,
 
   return (
     <div 
-      className={`p-3 md:p-4 rounded-lg border transition-all duration-300 cursor-pointer relative overflow-hidden ${
+      className={`p-3 md:p-4 rounded-lg transition-all duration-300 cursor-pointer relative overflow-hidden ${
         isEarned ? 'badge-card-earned' : ''
       } ${className}`}
       style={cardStyle}

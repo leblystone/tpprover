@@ -33,8 +33,8 @@ export default function StockpileCard({
 
   return (
     <div 
-      className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow"
-      style={{ borderColor: theme.border }}
+      className="rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
+      style={{ backgroundColor: theme.cardBackground }}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">

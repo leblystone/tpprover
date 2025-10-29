@@ -49,7 +49,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
 
     return (
         <>
-            <div className="p-4 rounded-lg border content-card shadow-sm flex flex-col" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="p-4 rounded-lg content-card shadow-md flex flex-col hover:shadow-lg transition-shadow" style={{ backgroundColor: theme.cardBackground }}>
                 <div className="flex-grow">
                     <div className="flex items-start justify-between">
                         <div className="font-semibold text-base">{p.protocolName || 'Unnamed Protocol'}</div>
