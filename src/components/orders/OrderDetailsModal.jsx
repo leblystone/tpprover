@@ -21,11 +21,17 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     setForm,
     2000, // 2 second delay
     async (formData) => {
-      // Auto-save to orders list if this is an existing order
-      if (order?.id && formData && Object.keys(formData).length > 0) {
+      // Auto-save to orders list if there's meaningful data
+      if (formData && Object.keys(formData).length > 0 && formData.items?.some(item => item.name)) {
         try {
-          console.log('🔄 Auto-saving existing order:', order.id);
-          await onSave?.(formData);
+          if (order?.id) {
+            console.log('🔄 Auto-saving existing order:', order.id);
+            await onSave?.(formData);
+          } else {
+            console.log('🔄 Auto-saving new order draft');
+            // For new orders, we don't auto-save to the orders list yet
+            // Just keep the localStorage draft for now
+          }
         } catch (error) {
           console.warn('Auto-save to orders failed:', error);
         }
