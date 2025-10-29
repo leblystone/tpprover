@@ -48,6 +48,7 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
   };
 
   return (
+    <>
     <Modal
       open={isOpen}
       onClose={onClose}
@@ -204,5 +205,6 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
       onClose={() => setShowGiftModal(false)}
       theme={theme}
     />
+  </>
   );
 }

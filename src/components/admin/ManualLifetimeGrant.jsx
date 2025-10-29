@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, UserPlus, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Plus, UserPlus, CheckCircle, XCircle, AlertTriangle, Send } from 'lucide-react';
 import { getUserList, grantLifetimeAccessFirestore, getAllLifetimeUsers } from '../../services/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
@@ -10,6 +10,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
   const [result, setResult] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [showUserList, setShowUserList] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
 
   const handleGrantAccess = async () => {
     if (!email.trim()) {
@@ -97,6 +98,39 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
     setShowUserList(false);
   };
 
+  const handleTestEmail = async () => {
+    if (!email.trim()) {
+      setResult({ type: 'error', message: 'Please enter an email address to test' });
+      return;
+    }
+
+    setTestingEmail(true);
+    setResult(null);
+
+    try {
+      const functions = getFunctions();
+      const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
+      await sendLifetimeAccessEmail({
+        userEmail: email,
+        userName: email.split('@')[0],
+        reason: reason
+      });
+      
+      setResult({ 
+        type: 'success', 
+        message: `✅ Test email sent successfully to ${email}!` 
+      });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      setResult({ 
+        type: 'error', 
+        message: `Failed to send test email: ${error.message}` 
+      });
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Manual Grant Form */}
@@ -171,27 +205,51 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
             </select>
           </div>
 
-          <button
-            onClick={handleGrantAccess}
-            disabled={loading || !email.trim()}
-            className="w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
-            style={{ 
-              backgroundColor: loading ? theme.border : theme.primary, 
-              color: theme.textOnPrimary 
-            }}
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Granting Access...
-              </>
-            ) : (
-              <>
-                <Plus size={16} />
-                Grant Lifetime Access
-              </>
-            )}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleTestEmail}
+              disabled={testingEmail || !email.trim()}
+              className="flex-1 px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
+              style={{ 
+                backgroundColor: testingEmail ? theme.border : theme.secondary, 
+                color: theme.text 
+              }}
+            >
+              {testingEmail ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                  Sending Test...
+                </>
+              ) : (
+                <>
+                  <Send size={16} />
+                  Test Email
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={handleGrantAccess}
+              disabled={loading || !email.trim()}
+              className="flex-1 px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
+              style={{ 
+                backgroundColor: loading ? theme.border : theme.primary, 
+                color: theme.textOnPrimary 
+              }}
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Granting Access...
+                </>
+              ) : (
+                <>
+                  <Plus size={16} />
+                  Grant Lifetime Access
+                </>
+              )}
+            </button>
+          </div>
 
           {result && (
             <div className={`p-3 rounded-lg flex items-center gap-2 ${

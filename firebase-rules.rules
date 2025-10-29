@@ -94,6 +94,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Gift access - users can read gifts sent to their email, admin can manage all
+    match /giftAccess/{giftId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email == resource.data.recipientEmail ||
+        request.auth.token.email == resource.data.giftGiverEmail ||
+        isAdmin()
+      );
+      allow create: if request.auth != null; // Authenticated users can create gifts
+      allow update: if isAdmin(); // Only admin can update gifts
+      allow delete: if isAdmin(); // Only admin can delete gifts
+    }
+    
     // User agreements - users can create their own agreements, admin can read all
     match /user_agreements/{agreementId} {
       allow create: if request.auth != null; // Authenticated users can create agreements
