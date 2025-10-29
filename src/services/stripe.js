@@ -48,7 +48,7 @@ if (typeof document !== 'undefined') {
  * @param {string} returnPath - Path to return to after checkout (default: current location)
  * @returns {Promise<void>}
  */
-export async function createCheckoutSession(priceId, userEmail, userId, returnPath = null) {
+export async function createCheckoutSession(priceId, userEmail, userId, returnPath = null, isGift = false) {
   try {
     // Check if Stripe is configured
     if (!STRIPE_CONFIG.publishableKey || STRIPE_CONFIG.publishableKey === 'undefined') {
@@ -100,6 +100,7 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
         userId,
         successUrl: `${window.location.origin}${normalizedPath}?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}${normalizedPath}`,
+        isGift: isGift || false
       });
     } catch (funcError) {
       // Check if this is a "function not deployed" error

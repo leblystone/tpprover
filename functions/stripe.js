@@ -39,7 +39,7 @@ exports.createCheckoutSession = onCall(
           throw new Error("No request data provided");
         }
         
-        const {priceId, userEmail, userId, successUrl, cancelUrl} = request.data;
+        const {priceId, userEmail, userId, successUrl, cancelUrl, isGift, giftData} = request.data;
         
         // Validate required fields
         if (!priceId) {
@@ -58,11 +58,12 @@ exports.createCheckoutSession = onCall(
         // Lifetime price ID (one-time payment, not recurring)
         const LIFETIME_PRICE_ID = "price_1SJNIw50b3cktl9X7tr7Efox";
         
-        // Determine if this is a one-time payment (lifetime) or subscription
+        // Gift purchases are ALWAYS one-time payments (payment mode, not subscription)
+        // Regular subscriptions use subscription mode (except lifetime which is also payment mode)
         const isLifetime = priceId === LIFETIME_PRICE_ID;
-        const sessionMode = isLifetime ? "payment" : "subscription";
+        const sessionMode = (isGift || isLifetime) ? "payment" : "subscription";
         
-        console.log("🔍 Session mode:", sessionMode, isLifetime ? "(Lifetime - one-time payment)" : "(Recurring subscription)");
+        console.log("🔍 Session mode:", sessionMode, isGift ? "(Gift - one-time payment)" : isLifetime ? "(Lifetime - one-time payment)" : "(Recurring subscription)");
         
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ["card"],
@@ -76,6 +77,7 @@ exports.createCheckoutSession = onCall(
           customer_email: userEmail,
           metadata: {
             userId: userId,
+            isGift: isGift ? "true" : "false", // Store as string for metadata
           },
         });
         return {id: session.id};

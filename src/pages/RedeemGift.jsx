@@ -204,6 +204,14 @@ const RedeemGiftPage = () => {
                        giftData.subscriptionType === 'quarterly' ? '3 Months' : '1 Year'}
                     </span>
                   </div>
+                  {giftData.expiresAt && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Expires:</span>
+                      <span className="font-medium text-gray-800">
+                        {new Date(giftData.expiresAt.toDate()).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Status:</span>
                     <span className={`font-medium ${
@@ -230,6 +238,29 @@ const RedeemGiftPage = () => {
                   <p className="text-red-600 text-sm">{error}</p>
                 </div>
               )}
+
+              {/* Expiration Warning */}
+              {giftData.status === 'pending' && giftData.expiresAt && (() => {
+                const expiresDate = new Date(giftData.expiresAt.toDate());
+                const now = new Date();
+                const daysLeft = Math.ceil((expiresDate - now) / (1000 * 60 * 60 * 24));
+                const isExpiringSoon = daysLeft <= 3 && daysLeft > 0;
+                
+                if (isExpiringSoon) {
+                  return (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xl">⚠️</span>
+                        <h3 className="font-semibold text-yellow-800">Gift Expiring Soon</h3>
+                      </div>
+                      <p className="text-sm text-yellow-700">
+                        This gift expires in {daysLeft} {daysLeft === 1 ? 'day' : 'days'}. Please redeem it soon!
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Redeem Options */}
               {giftData.status === 'pending' && (

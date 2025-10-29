@@ -112,7 +112,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             <ModernTooltip text="Settings" position="top">
               <button 
                 onClick={() => setShowSettingsModal(true)}
-                className="p-1 rounded hover:bg-gray-100 transition-colors"
+                className="p-1 rounded transition-all hover:opacity-80"
                 style={{ color: theme.textLight }}
               >
                 <Settings size={16} />
@@ -201,7 +201,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             {todayData.glasses > 0 && (
               <button
                 onClick={resetToday}
-                className="px-2 py-1 text-xs rounded-full border transition-colors hover:bg-gray-50"
+                className="px-2 py-1 text-xs rounded-full border transition-all hover:opacity-80"
                 style={{ borderColor: theme.border, color: theme.textLight }}
               >
                 <RotateCcw size={10} className="inline mr-1" />

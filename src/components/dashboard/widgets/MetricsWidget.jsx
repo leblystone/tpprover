@@ -292,7 +292,7 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric }) => {
                       {formatMMDDYYYY(new Date(metric.date))}
                     </span>
                   </div>
-                  <button className="p-1 rounded hover:bg-gray-100 transition-colors" style={{ color: theme.textLight }}>
+                  <button className="p-1 rounded transition-all hover:opacity-80" style={{ color: theme.textLight }}>
                     <Edit size={14} />
                   </button>
                 </div>
@@ -420,7 +420,7 @@ const MetricsWidget = ({
                   <h4 className="text-xs font-semibold" style={{ color: theme.text }}>Latest Entry</h4>
                   <button 
                     onClick={() => setShowAllEntries(true)}
-                    className="px-2 py-1 rounded hover:bg-gray-100 transition-colors flex items-center gap-1 text-xs"
+                    className="px-2 py-1 rounded transition-all hover:opacity-80 flex items-center gap-1 text-xs"
                     style={{ color: theme.textLight }}
                   >
                     <Eye size={12} />

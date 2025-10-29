@@ -39,7 +39,7 @@ const GoalsWidget = ({
             </h4>
             <button
               onClick={onAddGoal}
-              className="p-1 rounded hover:bg-gray-100 transition-colors"
+              className="p-1 rounded transition-all hover:opacity-80"
               style={{ color: theme.primary }}
             >
               <Plus size={16} />
@@ -77,7 +77,7 @@ const GoalsWidget = ({
                   
                   <button
                     onClick={() => onEditGoal?.(goal)}
-                    className="p-1 rounded hover:bg-gray-100 transition-colors ml-auto"
+                    className="p-1 rounded transition-all hover:opacity-80 ml-auto"
                     style={{ color: theme.textLight }}
                   >
                     <Edit size={12} />
@@ -97,7 +97,7 @@ const GoalsWidget = ({
             </h4>
             <button
               onClick={onAddMetric}
-              className="p-1 rounded hover:bg-gray-100 transition-colors"
+              className="p-1 rounded transition-all hover:opacity-80"
               style={{ color: theme.primary }}
             >
               <Plus size={16} />

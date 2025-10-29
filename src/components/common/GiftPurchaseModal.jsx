@@ -21,9 +21,29 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
   const [error, setError] = useState('');
 
   const subscriptionOptions = [
-    { value: 'monthly', label: '1 Month', price: 9.99, description: 'Perfect for trying out The Pep Planner' },
-    { value: 'quarterly', label: '3 Months', price: 24.99, description: 'Great for ongoing research projects', savings: 'Save 17%' },
-    { value: 'annual', label: '1 Year', price: 79.99, description: 'Best value for serious researchers', savings: 'Save 33%' }
+    { 
+      value: 'monthly', 
+      label: '1 Month', 
+      price: 8.99, 
+      priceId: 'price_1SNf8t50b3cktl9Xrgtgcyr0',
+      description: 'Perfect for trying out The Pep Planner' 
+    },
+    { 
+      value: 'quarterly', 
+      label: '3 Months', 
+      price: 24.99, 
+      priceId: 'price_1SNfDj50b3cktl9Xb7bfctCE',
+      description: 'Great for ongoing research projects', 
+      savings: 'Save 17%' 
+    },
+    { 
+      value: 'annual', 
+      label: '1 Year', 
+      price: 89.99, 
+      priceId: 'price_1SNfEK50b3cktl9XVZc6HBz3',
+      description: 'Best value for serious researchers', 
+      savings: 'Save 33%' 
+    }
   ];
 
   const handleInputChange = (e) => {
@@ -49,13 +69,14 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
       // Get selected subscription option
       const selectedOption = subscriptionOptions.find(opt => opt.value === formData.subscriptionType);
       
-      // Create Stripe checkout session for gift
+      // Create Stripe checkout session for gift (one-time payment)
+      // Use the actual Stripe price ID for the selected gift option
       const checkoutResult = await createCheckoutSession(
-        selectedOption.value === 'monthly' ? 'price_monthly_gift' : 
-        selectedOption.value === 'quarterly' ? 'price_quarterly_gift' : 'price_annual_gift',
+        selectedOption.priceId,
         user.email,
         user.uid,
-        '/gift-success'
+        '/gift-success',
+        true // isGift flag
       );
 
       // Create gift access record
@@ -166,7 +187,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
             onChange={handleInputChange}
             rows={3}
             className={`w-full px-4 py-3 rounded-xl border-2 ${theme.border} bg-gray-50 text-gray-800 focus:border-green-500 focus:outline-none transition-colors resize-none`}
-            placeholder="Happy holidays! I thought you'd love organizing your research with The Pep Planner..."
+            placeholder="I thought you'd love organizing your research with The Pep Planner..."
           />
         </div>
 
@@ -228,9 +249,10 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
               <h4 className="font-semibold text-gray-800 mb-1">How it works:</h4>
               <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
                 <li>Recipient receives email with redemption link</li>
-                <li>They have 30 days to claim their gift</li>
+                <li>They have 60 days to claim their gift (expiration date shown on redemption page)</li>
                 <li>Gift activates immediately upon redemption</li>
                 <li>You'll be notified when they redeem it</li>
+                <li>If unredeemed, gift expires automatically after 60 days</li>
               </ul>
             </div>
           </div>

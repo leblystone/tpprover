@@ -437,3 +437,12 @@ exports.sendGiftRedeemedNotificationEmail = async (giftGiverEmail, giftGiverName
   return sendEmail(giftGiverEmail, subject, html);
 };
 
+/**
+ * Send gift subscription expiring soon email
+ */
+exports.sendGiftExpiringSoonEmail = async (recipientEmail, planName, daysLeft, giftGiverName) => {
+  const subject = `🎁 Your Gifted Research Time Is Ending in ${daysLeft} ${daysLeft === 1 ? 'Day' : 'Days'} - The Pep Planner`;
+  const html = emailTemplates.giftExpiringSoonEmail(recipientEmail, planName, daysLeft, giftGiverName);
+  return sendEmail(recipientEmail, subject, html);
+};
+

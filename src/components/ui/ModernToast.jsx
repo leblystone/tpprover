@@ -94,36 +94,58 @@ const ModernToast = ({ message, type, onClose, theme }) => {
       <div
         className="relative overflow-hidden"
         style={{
-          backgroundColor: '#FEFEFE',
-          border: '1px solid #E5E7EB',
+          backgroundColor: theme.cardBackground || '#FFFFFF',
+          border: `1px solid ${theme.border || '#E5E7EB'}`,
           borderRadius: '8px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          boxShadow: theme.isDark 
+            ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' 
+            : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         }}
       >
         {/* Journal entry header with timestamp */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+        <div 
+          className="flex items-center justify-between px-4 py-2 border-b transition-colors"
+          style={{ 
+            borderColor: theme.border || (theme.isDark ? '#3A3F47' : '#E5E7EB')
+          }}
+        >
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.bg }}></div>
-            <span className="text-xs font-medium text-gray-500">
+            <span 
+              className="text-xs font-medium"
+              style={{ color: theme.textLight || '#6B7D7A' }}
+            >
               {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
           <button
             onClick={handleClose}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-1 rounded-full transition-colors"
+            style={{ 
+              color: theme.textLight || '#9CA3AF',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = theme.secondary || (theme.isDark ? '#3A3F47' : '#F3F4F6');
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+            }}
           >
-            <X className="w-3 h-3 text-gray-400" />
+            <X className="w-3 h-3" />
           </button>
         </div>
         
         {/* Journal entry content */}
         <div className="px-4 py-3">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 mt-0.5">
+            <div className="flex-shrink-0 mt-0.5" style={{ color: colors.text || theme.text }}>
               {getIcon()}
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-800 leading-relaxed">
+              <p 
+                className="text-sm font-medium leading-relaxed"
+                style={{ color: theme.text || '#1F2937' }}
+              >
                 {message}
               </p>
             </div>

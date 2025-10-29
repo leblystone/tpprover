@@ -173,7 +173,7 @@ const GoalsOnlyWidget = ({
                   {displayGoals.map((goal) => (
                     <div
                       key={goal.id}
-                      className="group flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="group flex items-center gap-2 p-2 rounded-lg transition-all hover:opacity-90"
                     >
                       <button
                         onClick={(e) => {
@@ -214,7 +214,7 @@ const GoalsOnlyWidget = ({
                 <div className="pt-2 border-t flex-shrink-0" style={{ borderColor: theme.border }}>
                   <button
                     onClick={() => setShowAddForm(true)}
-                    className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-colors hover:bg-gray-50 flex items-center justify-center gap-1"
+                    className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-all hover:opacity-80 flex items-center justify-center gap-1"
                     style={{ borderColor: theme.border, color: theme.textLight }}
                   >
                     <Plus size={12} />

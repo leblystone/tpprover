@@ -175,7 +175,7 @@ const NotesWidget = ({ widget, theme }) => {
             <div className="space-y-2 flex-shrink-0">
               <button
                 onClick={() => setShowAddForm(true)}
-                className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-colors hover:bg-gray-50 flex items-center justify-center gap-1"
+                className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-all hover:opacity-80 flex items-center justify-center gap-1"
                 style={{ borderColor: theme.border, color: theme.textLight }}
               >
                 <Plus size={12} />

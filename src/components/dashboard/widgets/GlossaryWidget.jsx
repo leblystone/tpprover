@@ -1517,10 +1517,10 @@ export default function GlossaryWidget({ widget, theme, isReadOnly = false, onUp
     const cardColors = categoryColors || { bg: theme?.cardBackground, border: theme?.border, text: theme?.text };
     
     return (
-      <div key={peptideName} className="flex items-center justify-between p-2 border rounded hover:shadow-sm transition-all duration-200" 
+      <div key={peptideName} className="flex items-center justify-between p-2 rounded hover:shadow-sm transition-all duration-200" 
            style={{ 
-             borderColor: cardColors.border || theme?.border, 
-             backgroundColor: cardColors.bg || theme?.cardBackground 
+             border: theme.isDark ? 'none' : `1px solid ${cardColors.border || theme?.border}`,
+             backgroundColor: theme.isDark ? '#1f2937' : (cardColors.bg || theme?.cardBackground)
            }}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">

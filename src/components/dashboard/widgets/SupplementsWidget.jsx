@@ -60,7 +60,7 @@ const SupplementsWidget = ({
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={onAddSupplement}
-                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all hover:opacity-80"
                 style={{ borderColor: theme.primary, color: theme.primary }}
               >
                 <Plus size={12} strokeWidth={3} />
@@ -122,7 +122,7 @@ const SupplementsWidget = ({
                     <ModernTooltip text="Edit" position="top">
                       <button
                         onClick={() => onEditSupplement?.(supplement)}
-                        className="p-1 rounded hover:bg-gray-100 transition-colors"
+                        className="p-1 rounded transition-all hover:opacity-80"
                         style={{ color: theme.textLight }}
                       >
                         <Edit size={14} />

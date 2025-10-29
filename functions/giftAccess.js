@@ -31,9 +31,10 @@ exports.createGiftAccess = async (
     // Generate unique gift ID
     const giftId = `gift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Calculate expiration date (30 days from now)
+    // Calculate expiration date (configurable via environment variable, default 60 days)
+    const expirationDays = parseInt(process.env.GIFT_EXPIRATION_DAYS || '60', 10);
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + expirationDays);
     
     const giftData = {
       giftId,

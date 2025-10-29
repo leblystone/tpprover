@@ -1,0 +1,58 @@
+
+/**
+ * Gift Subscription Expiring Soon Email Template
+ */
+exports.giftExpiringSoonEmail = (recipientEmail, planName, daysLeft, giftGiverName) => {
+  const content = `
+    <div class="header">
+      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <div class="logo">🎁 Your Gifted Research Time Is Almost Up!</div>
+    </div>
+    
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gifted Research Time Is Ending Soon</h1>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Hi ${recipientEmail.split('@')[0]},
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Your gifted <strong>${planName || 'The Pep Planner'}</strong> subscription from ${giftGiverName ? giftGiverName : 'a friend'} is ending in <strong>${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}</strong>.
+      </p>
+      
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px; margin: 20px 0; border-radius: 12px;">
+        <p style="margin: 0; font-weight: 600; color: #92400E;">⏰ Time Remaining:</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
+          <strong>Expires:</strong> In ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}<br>
+          <strong>Plan:</strong> ${planName || 'Pro Plan'}<br>
+          <strong>Status:</strong> Active until expiration
+        </p>
+      </div>
+      
+      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">Continue Your Research Journey!</h2>
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
+        Don't let your research organization stop! Extend your access with one of our flexible plans:
+      </p>
+      <ul class="feature-list" style="margin: 16px 0; padding-left: 20px; color: ${COLORS.text};">
+        <li>✓ Continue organizing your research seamlessly</li>
+        <li>✓ Keep all your data and research notes</li>
+        <li>✓ Choose from monthly, quarterly, or annual plans</li>
+        <li>✓ Flexible pricing to fit your research needs</li>
+      </ul>
+
+      <center>
+        <a href="https://thepepplanner.app/app/account" style="display: inline-block; padding: 16px 32px; background-color: ${COLORS.primary}; color: ${COLORS.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+          🚀 Extend Your Research Plan
+        </a>
+      </center>
+      
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
+        Thank you for using The Pep Planner! We hope you've found it helpful for organizing your research.<br>
+        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      </p>
+    </div>
+  `;
+  
+  return emailWrapper(content);
+};
+

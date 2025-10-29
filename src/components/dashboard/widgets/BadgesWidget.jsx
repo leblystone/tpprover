@@ -55,7 +55,7 @@ const BadgesWidget = ({ widget, theme }) => {
           <div className="text-center mt-auto">
             <button 
               onClick={() => navigate('/app/badges')}
-              className="text-xs px-3 py-1 rounded-full border transition-colors hover:bg-gray-50" 
+              className="text-xs px-3 py-1 rounded-full border transition-all hover:opacity-80" 
               style={{ borderColor: theme.primary, color: theme.primary }}
             >
               View All
