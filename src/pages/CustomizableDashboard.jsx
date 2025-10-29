@@ -555,7 +555,7 @@ export default function CustomizableDashboard() {
 
         {/* Dashboard Layout - Flexible Grid */}
         <div className="overflow-x-hidden">
-          <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 auto-rows-min overflow-x-hidden w-full max-w-full">
+          <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min w-full max-w-full p-1">
             {enabledWidgets.map((widget, index) => {
               // Use consistent widget sizing based on configuration
               const sizeConfig = getSizeConfig(widget.size);
