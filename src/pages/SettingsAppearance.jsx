@@ -103,6 +103,16 @@ export default function SettingsAppearance() {
               const themeData = themes[themeKey]
               const isSelected = selectedTheme === themeKey
               
+              // Define unique swatch colors for each theme
+              const swatchColors = {
+                sage: { start: '#7F9E95', mid: '#A0B9B3', end: '#5F7F76' },
+                mauve: { start: '#9F8F95', mid: '#BDB1B5', end: '#7D6F74' },
+                taupe: { start: '#C4B8B0', mid: '#D9D1CB', end: '#A39890' },
+                softDark: { start: '#6B7D7A', mid: '#A8A8A8', end: '#5A685A' }
+              }
+              
+              const colors = swatchColors[themeKey] || { start: themeData.primary, mid: themeData.primaryLight, end: themeData.primaryDark }
+              
               return (
                 <button
                   key={themeKey}
@@ -118,7 +128,7 @@ export default function SettingsAppearance() {
                   <div 
                     className="w-full h-20 rounded-lg mb-3 relative overflow-hidden"
                     style={{
-                      background: `linear-gradient(135deg, ${themeData.primary} 0%, ${themeData.accent} 50%, ${themeData.primary} 100%)`,
+                      background: `linear-gradient(135deg, ${colors.start} 0%, ${colors.mid} 50%, ${colors.end} 100%)`,
                       boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15)'
                     }}
                   >
@@ -127,6 +137,14 @@ export default function SettingsAppearance() {
                       className="absolute inset-0"
                       style={{
                         background: 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
+                        mixBlendMode: 'overlay'
+                      }}
+                    />
+                    {/* Additional metallic reflection */}
+                    <div 
+                      className="absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 55%, transparent 100%)',
                         mixBlendMode: 'overlay'
                       }}
                     />
