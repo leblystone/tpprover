@@ -292,7 +292,16 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric }) => {
                       {formatMMDDYYYY(new Date(metric.date))}
                     </span>
                   </div>
-                  <button className="p-1 rounded transition-all hover:opacity-80" style={{ color: theme.textLight }}>
+                  <button 
+                    className="p-1 rounded transition-all" 
+                    style={{ color: theme.textLight }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '40';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
                     <Edit size={14} />
                   </button>
                 </div>
@@ -420,8 +429,14 @@ const MetricsWidget = ({
                   <h4 className="text-xs font-semibold" style={{ color: theme.text }}>Latest Entry</h4>
                   <button 
                     onClick={() => setShowAllEntries(true)}
-                    className="px-2 py-1 rounded transition-all hover:opacity-80 flex items-center gap-1 text-xs"
+                    className="px-2 py-1 rounded transition-all flex items-center gap-1 text-xs"
                     style={{ color: theme.textLight }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '40';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
                     <Eye size={12} />
                     View All

@@ -175,8 +175,14 @@ const NotesWidget = ({ widget, theme }) => {
             <div className="space-y-2 flex-shrink-0">
               <button
                 onClick={() => setShowAddForm(true)}
-                className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-all hover:opacity-80 flex items-center justify-center gap-1"
+                className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-all flex items-center justify-center gap-1"
                 style={{ borderColor: theme.border, color: theme.textLight }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '30';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 <Plus size={12} />
                 <span className="text-xs">Add Note</span>

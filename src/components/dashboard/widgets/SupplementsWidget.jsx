@@ -60,8 +60,14 @@ const SupplementsWidget = ({
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={onAddSupplement}
-                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all hover:opacity-80"
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
                 style={{ borderColor: theme.primary, color: theme.primary }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + '30' : theme.primary + '20';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 <Plus size={12} strokeWidth={3} />
               </button>
@@ -122,8 +128,14 @@ const SupplementsWidget = ({
                     <ModernTooltip text="Edit" position="top">
                       <button
                         onClick={() => onEditSupplement?.(supplement)}
-                        className="p-1 rounded transition-all hover:opacity-80"
+                        className="p-1 rounded transition-all"
                         style={{ color: theme.textLight }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '40';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
                         <Edit size={14} />
                       </button>

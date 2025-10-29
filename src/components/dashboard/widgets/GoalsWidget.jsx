@@ -39,8 +39,14 @@ const GoalsWidget = ({
             </h4>
             <button
               onClick={onAddGoal}
-              className="p-1 rounded transition-all hover:opacity-80"
+              className="p-1 rounded transition-all"
               style={{ color: theme.primary }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '20';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
               <Plus size={16} />
             </button>
@@ -77,8 +83,14 @@ const GoalsWidget = ({
                   
                   <button
                     onClick={() => onEditGoal?.(goal)}
-                    className="p-1 rounded transition-all hover:opacity-80 ml-auto"
+                    className="p-1 rounded transition-all ml-auto"
                     style={{ color: theme.textLight }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '40';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
                     <Edit size={12} />
                   </button>
@@ -97,8 +109,14 @@ const GoalsWidget = ({
             </h4>
             <button
               onClick={onAddMetric}
-              className="p-1 rounded transition-all hover:opacity-80"
+              className="p-1 rounded transition-all"
               style={{ color: theme.primary }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '20';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
               <Plus size={16} />
             </button>

@@ -56,10 +56,16 @@ const QuickActionsWidget = ({ widget, theme }) => {
             <button
               key={index}
               onClick={action.onClick}
-              className="flex flex-col items-center justify-center p-3 rounded-lg transition-all min-h-[60px] hover:opacity-90"
+              className="flex flex-col items-center justify-center p-3 rounded-lg transition-all min-h-[60px] group"
               style={{ 
                 backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                 color: theme.text
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
               }}
             >
               <action.icon className="w-8 h-8 mb-2" size={16} style={{ color: action.color }} />
