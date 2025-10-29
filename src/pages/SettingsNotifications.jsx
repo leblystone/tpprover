@@ -190,68 +190,98 @@ export default function SettingsNotifications() {
         </button>
         <div>
           <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Notifications</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Choose how you want to be notified</p>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Manage alerts and reminders for your research</p>
         </div>
       </div>
 
       {/* Notification Settings */}
-      <div className="space-y-3">
-        <SettingToggle 
-          checked={settings.notifications.push ?? false} 
-          onChange={handlePWANotificationToggle}
-          label="Push Notifications" 
-          description="Get notified in real-time on your devices, even when the app is closed."
-          theme={theme}
-          disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
-        />
-        <SettingToggle 
-          checked={settings.notifications.researchReminders} 
-          onChange={v => update('notifications.researchReminders', v)} 
-          label="Research Reminders" 
-          description="Stay on track with your research schedule." 
-          theme={theme}
-          disabled={!settings.notifications.push}
-        />
-        <SettingToggle 
-          checked={settings.notifications.groupBuys} 
-          onChange={v => update('notifications.groupBuys', v)} 
-          label="Group Buy Updates" 
-          description="Get alerts for new group buy opportunities." 
-          theme={theme}
-          disabled={!settings.notifications.push}
-        />
-        <SettingToggle 
-          checked={settings.notifications?.lowStockAlerts ?? true} 
-          onChange={v => update('notifications.lowStockAlerts', v)} 
-          label="Low Stock Notifications" 
-          description="Get notified when you're down to 3 or fewer vials" 
-          theme={theme}
-          disabled={!settings.notifications.push}
-        />
-        <SettingToggle 
-          checked={settings.notifications?.orderStatusUpdates ?? true} 
-          onChange={v => update('notifications.orderStatusUpdates', v)} 
-          label="Order Status Updates" 
-          description="Get notified about order arrivals and status changes" 
-          theme={theme}
-          disabled={!settings.notifications.push}
-        />
-        <SettingToggle 
-          checked={settings.notifications?.washoutReminders ?? true} 
-          onChange={v => update('notifications.washoutReminders', v)} 
-          label="Washout Reminders" 
-          description="Get reminded about washout periods between protocols" 
-          theme={theme}
-          disabled={!settings.notifications.push}
-        />
-        <SettingToggle 
-          checked={settings.notifications?.cycleReminders ?? true} 
-          onChange={v => update('notifications.cycleReminders', v)} 
-          label="Cycle Reminders" 
-          description="Get reminded about upcoming protocol cycles" 
-          theme={theme}
-          disabled={!settings.notifications.push}
-        />
+      <div className="space-y-4">
+        {/* Master Control */}
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Master Control</h4>
+          <SettingToggle 
+            checked={settings.notifications.push ?? false} 
+            onChange={handlePWANotificationToggle}
+            label="Push Notifications" 
+            description="Get notified in real-time on your devices, even when the app is closed"
+            theme={theme}
+            disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
+          />
+          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Enable this to receive all notification types below</p>
+        </div>
+
+        {/* Protocol & Research */}
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Protocol & Research</h4>
+          <div className="space-y-2">
+            <SettingToggle 
+              checked={settings.notifications.researchReminders} 
+              onChange={v => update('notifications.researchReminders', v)} 
+              label="Research Reminders" 
+              description="Stay on track with your research schedule" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications?.washoutReminders ?? true} 
+              onChange={v => update('notifications.washoutReminders', v)} 
+              label="Washout Reminders" 
+              description="Get reminded about washout periods between protocols" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications?.cycleReminders ?? true} 
+              onChange={v => update('notifications.cycleReminders', v)} 
+              label="Cycle Reminders" 
+              description="Get reminded about upcoming protocol cycles" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+          </div>
+          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Manage reminders for your research protocols and schedules</p>
+        </div>
+
+        {/* Orders & Stock */}
+        <div 
+          className="p-4 rounded-lg space-y-3"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Orders & Stock</h4>
+          <div className="space-y-2">
+            <SettingToggle 
+              checked={settings.notifications?.lowStockAlerts ?? true} 
+              onChange={v => update('notifications.lowStockAlerts', v)} 
+              label="Low Stock Notifications" 
+              description="Get notified when you're down to 3 or fewer vials" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications?.orderStatusUpdates ?? true} 
+              onChange={v => update('notifications.orderStatusUpdates', v)} 
+              label="Order Status Updates" 
+              description="Get notified about order arrivals and status changes" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+            <SettingToggle 
+              checked={settings.notifications.groupBuys} 
+              onChange={v => update('notifications.groupBuys', v)} 
+              label="Group Buy Updates" 
+              description="Get alerts for new group buy opportunities" 
+              theme={theme}
+              disabled={!settings.notifications.push}
+            />
+          </div>
+          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Stay informed about your orders and inventory levels</p>
+        </div>
       </div>
     </section>
   )
@@ -259,17 +289,21 @@ export default function SettingsNotifications() {
 
 const SettingToggle = ({ checked, onChange, label, description, theme, disabled }) => (
   <div 
-    className="flex items-start justify-between p-4 rounded-lg"
-    style={{ backgroundColor: theme.cardBackground }}
+    className="flex items-start justify-between p-3 rounded-lg"
+    style={{ backgroundColor: theme.secondary }}
   >
-    <div>
-      <div className="text-sm font-medium" style={{ color: theme.text }}>{label}</div>
+    <div className="flex-1 pr-4">
+      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{label}</div>
       <div className="text-xs" style={{ color: theme.mutedText }}>{description}</div>
     </div>
-    <label className="relative inline-flex items-center cursor-pointer">
+    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} />
-      <div className={`w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
-           style={{ backgroundColor: checked ? theme.primary : '', opacity: disabled ? 0.5 : 1 }}></div>
+      <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
+           style={{ 
+             backgroundColor: checked ? theme.accent : '#d1d5db', 
+             opacity: disabled ? 0.5 : 1,
+             borderColor: theme.border 
+           }}></div>
     </label>
   </div>
 )
