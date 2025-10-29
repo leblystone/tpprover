@@ -59,6 +59,10 @@ export default function Orders() {
 			return; // No change related to delivery status
 		}
 
+		// Check if shipping costs should be included
+		const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+		const includeShipping = settings.orders?.includeShippingInCosts ?? true;
+
 		try {
 			let stockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
 
@@ -69,16 +73,22 @@ export default function Orders() {
 					const isKit = (item.unit || '').toLowerCase() === 'kit';
 					const vialsPerItem = isKit ? 10 : 1;
 					const price = Number(item.price) || 0;
-					const shippingCost = parseFloat(newOrder.shippingCost) || 0;
-					const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
-						const orderItemPrice = parseFloat(orderItem.price) || 0;
-						const orderItemQuantity = parseInt(orderItem.quantity, 10) || 1;
-						return sum + (orderItemPrice * orderItemQuantity);
-					}, 0) + shippingCost;
-					const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
-					const itemShippingShare = shippingCost * itemCostShare;
-					const totalItemCost = (price * quantity) + itemShippingShare;
-					const costPerVial = vialsPerItem > 1 ? totalItemCost / vialsPerItem : totalItemCost;
+					
+					let costPerVial;
+					if (includeShipping) {
+						const shippingCost = parseFloat(newOrder.shippingCost) || 0;
+						const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
+							const orderItemPrice = parseFloat(orderItem.price) || 0;
+							const orderItemQuantity = parseInt(orderItem.quantity, 10) || 1;
+							return sum + (orderItemPrice * orderItemQuantity);
+						}, 0) + shippingCost;
+						const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
+						const itemShippingShare = shippingCost * itemCostShare;
+						const totalItemCost = (price * quantity) + itemShippingShare;
+						costPerVial = vialsPerItem > 1 ? totalItemCost / vialsPerItem : totalItemCost;
+					} else {
+						costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
+					}
 	
 					return {
 						id: `orderitem-${newOrder.id}-${item.id}`,

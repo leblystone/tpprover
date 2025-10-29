@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, UserPlus, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { getUserList, grantLifetimeAccessFirestore, getAllLifetimeUsers } from '../../services/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export default function ManualLifetimeGrant({ theme, onUserAdded }) {
   const [email, setEmail] = useState('');
@@ -40,9 +41,24 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         'admin-manual'
       );
 
+      // Send lifetime access email notification
+      try {
+        const functions = getFunctions();
+        const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
+        await sendLifetimeAccessEmail({
+          userEmail: user.email,
+          userName: user.displayName || user.email.split('@')[0],
+          reason: reason
+        });
+        console.log('✅ Lifetime access email sent to:', user.email);
+      } catch (emailError) {
+        console.warn('⚠️ Failed to send lifetime access email:', emailError);
+        // Don't fail the whole operation if email fails
+      }
+
       setResult({ 
         type: 'success', 
-        message: `✅ Successfully granted lifetime access to ${user.email}` 
+        message: `✅ Successfully granted lifetime access to ${user.email}. Email notification sent!` 
       });
 
       // Clear form

@@ -10,6 +10,7 @@ const testEmailSystem = require('./testEmailSystem');
 const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
 const stripeWebhooks = require('./stripeWebhooks');
+const giftAccess = require('./giftAccess');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 
@@ -880,6 +881,218 @@ exports.scheduledTrialReminders = onSchedule({
     
   } catch (error) {
     logger.error('❌ Error in scheduled trial reminders:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Send lifetime access granted email
+exports.sendLifetimeAccessEmail = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { userEmail, userName, reason } = request.data;
+
+    if (!userEmail) {
+      throw new Error('userEmail is required');
+    }
+
+    logger.info(`📧 Sending lifetime access email to: ${userEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      const success = await emailService.sendLifetimeAccessEmail(userEmail, userName);
+      
+      if (success) {
+        logger.info(`✅ Lifetime access email sent successfully to: ${userEmail}`);
+        return { success: true, message: 'Lifetime access email sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send lifetime access email to: ${userEmail}`);
+        return { success: false, message: 'Failed to send email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending lifetime access email: ${error.message}`);
+      throw new Error('Failed to send lifetime access email');
+    }
+  }
+);
+
+// ===== GIFT ACCESS FUNCTIONS =====
+
+// Create gift access
+exports.createGiftAccess = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { 
+      giftGiverEmail, 
+      giftGiverName, 
+      recipientEmail, 
+      recipientName, 
+      giftMessage, 
+      subscriptionType, 
+      stripePaymentIntentId, 
+      pricePaid 
+    } = request.data;
+
+    if (!giftGiverEmail || !recipientEmail || !subscriptionType || !stripePaymentIntentId) {
+      throw new Error('Missing required fields');
+    }
+
+    logger.info(`🎁 Creating gift access: ${subscriptionType} from ${giftGiverEmail} to ${recipientEmail}`);
+
+    try {
+      const result = await giftAccess.createGiftAccess(
+        giftGiverEmail,
+        giftGiverName,
+        recipientEmail,
+        recipientName,
+        giftMessage,
+        subscriptionType,
+        stripePaymentIntentId,
+        pricePaid
+      );
+
+      return { success: true, giftData: result };
+    } catch (error) {
+      logger.error(`❌ Error creating gift access: ${error.message}`);
+      throw new Error(`Failed to create gift access: ${error.message}`);
+    }
+  }
+);
+
+// Redeem gift access
+exports.redeemGiftAccess = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { giftId, userId, userEmail } = request.data;
+
+    if (!giftId || !userId || !userEmail) {
+      throw new Error('Missing required fields');
+    }
+
+    logger.info(`🎁 Redeeming gift access: ${giftId} by ${userEmail}`);
+
+    try {
+      const result = await giftAccess.redeemGiftAccess(giftId, userId, userEmail);
+      return { success: true, ...result };
+    } catch (error) {
+      logger.error(`❌ Error redeeming gift access: ${error.message}`);
+      throw new Error(`Failed to redeem gift: ${error.message}`);
+    }
+  }
+);
+
+// Get gift access by ID
+exports.getGiftAccess = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { giftId } = request.data;
+
+    if (!giftId) {
+      throw new Error('Gift ID is required');
+    }
+
+    try {
+      const giftData = await giftAccess.getGiftAccess(giftId);
+      return { success: true, giftData };
+    } catch (error) {
+      logger.error(`❌ Error getting gift access: ${error.message}`);
+      throw new Error(`Failed to get gift: ${error.message}`);
+    }
+  }
+);
+
+// Get gifts sent by user
+exports.getGiftsSentByUser = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { giftGiverEmail } = request.data;
+
+    if (!giftGiverEmail) {
+      throw new Error('Gift giver email is required');
+    }
+
+    try {
+      const gifts = await giftAccess.getGiftsSentByUser(giftGiverEmail);
+      return { success: true, gifts };
+    } catch (error) {
+      logger.error(`❌ Error getting gifts sent by user: ${error.message}`);
+      throw new Error(`Failed to get gifts: ${error.message}`);
+    }
+  }
+);
+
+// Get gifts received by user
+exports.getGiftsReceivedByUser = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { recipientEmail } = request.data;
+
+    if (!recipientEmail) {
+      throw new Error('Recipient email is required');
+    }
+
+    try {
+      const gifts = await giftAccess.getGiftsReceivedByUser(recipientEmail);
+      return { success: true, gifts };
+    } catch (error) {
+      logger.error(`❌ Error getting gifts received by user: ${error.message}`);
+      throw new Error(`Failed to get gifts: ${error.message}`);
+    }
+  }
+);
+
+// Get gift analytics (admin only)
+exports.getGiftAnalytics = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    // Verify user is authenticated and is admin
+    if (!request.auth) {
+      throw new Error('User must be authenticated');
+    }
+
+    const adminEmail = 'lebrockmaldonado@gmail.com';
+    const userEmail = request.auth.token.email;
+    
+    if (userEmail !== adminEmail) {
+      throw new Error('Unauthorized: Admin access required');
+    }
+
+    try {
+      const analytics = await giftAccess.getGiftAnalytics();
+      return { success: true, analytics };
+    } catch (error) {
+      logger.error(`❌ Error getting gift analytics: ${error.message}`);
+      throw new Error(`Failed to get analytics: ${error.message}`);
+    }
+  }
+);
+
+// Cleanup expired gifts (scheduled function)
+exports.cleanupExpiredGifts = onSchedule({
+  schedule: '0 2 * * *', // Run daily at 2 AM UTC
+  timeZone: 'UTC'
+}, async (event) => {
+  logger.info('🧹 Running expired gifts cleanup...');
+  
+  try {
+    const result = await giftAccess.cleanupExpiredGifts();
+    logger.info(`✅ Cleaned up ${result.cleanedUp} expired gifts`);
+    return result;
+  } catch (error) {
+    logger.error('❌ Error in expired gifts cleanup:', error);
     return { success: false, error: error.message };
   }
 });

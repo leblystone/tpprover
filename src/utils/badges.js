@@ -117,7 +117,12 @@ export function useBadgeStats() {
               const quantity = parseInt(item.quantity, 10) || 1;
               return sum + (price * quantity);
             }, 0);
-            const shippingCost = parseFloat(o.shippingCost) || 0;
+            
+            // Check if shipping costs should be included
+            const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+            const includeShipping = settings.orders?.includeShippingInCosts ?? true;
+            const shippingCost = includeShipping ? (parseFloat(o.shippingCost) || 0) : 0;
+            
             return acc + itemsCost + shippingCost;
           }
           // Fallback for old order structure

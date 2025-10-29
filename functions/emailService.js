@@ -98,6 +98,28 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
 };
 
 /**
+ * Send lifetime access granted email
+ */
+exports.sendLifetimeAccessEmail = async (userEmail, userName = null) => {
+  // Try to load custom template from Firestore, fallback to hardcoded
+  try {
+    const customTemplate = await loadEmailTemplate('lifetimeAccessGranted');
+    if (customTemplate) {
+      const subject = customTemplate.subject || '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
+      const html = generateEmailHTML(customTemplate, { userName, userEmail });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (error) {
+    logger.warn('Failed to load custom lifetime access template, using default:', error);
+  }
+  
+  // Fallback to hardcoded template
+  const subject = '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
+  const html = emailTemplates.lifetimeAccessEmail(userName, userEmail);
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
  * Send custom password reset email with Firebase token
  */
 exports.sendCustomPasswordResetEmail = async (userEmail, resetToken) => {

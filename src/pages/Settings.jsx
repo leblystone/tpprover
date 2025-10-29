@@ -114,6 +114,7 @@ function getDefaultSettings() {
       expiryTracking: true, // Track expiration dates
       costTracking: true, // Track cost per mg calculations
       lowStockThreshold: 3, // Alert when stock drops to this number
+      includeShippingInCosts: true, // Include shipping costs in stockpile and reconstitution calculations
     },
     privacy: {
       analytics: true,
@@ -171,6 +172,21 @@ export default function Settings() {
       setShowTimezoneWarning(false);
       setTimezoneChangeData(null);
     }
+  };
+
+  // Handle shipping cost toggle with toast notification
+  const handleShippingCostToggle = (enabled) => {
+    update('orders.includeShippingInCosts', enabled);
+    
+    // Show toast notification
+    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+      detail: { 
+        message: enabled 
+          ? 'Shipping costs will now be included in stockpile and reconstitution calculations' 
+          : 'Shipping costs will be excluded from stockpile and reconstitution calculations',
+        type: 'success' 
+      } 
+    }));
   };
   
     const [selectedTheme, setSelectedTheme] = useState(() => {
@@ -911,6 +927,7 @@ export default function Settings() {
             <SettingToggle checked={settings.features?.analytics ?? true} onChange={v => update('features.analytics', v)} label="Analytics Dashboard" description="Show analytics and metrics in dashboard" theme={theme} />
             <SettingToggle checked={settings.orders?.autoStockpileUpdate ?? true} onChange={v => update('orders.autoStockpileUpdate', v)} label="Auto Stockpile Updates" description="Automatically add delivered orders to stockpile" theme={theme} />
             <SettingToggle checked={settings.orders?.lowStockAlerts ?? true} onChange={v => update('orders.lowStockAlerts', v)} label="Low Stock Alerts" description="Get notified when stock is running low" theme={theme} />
+            <SettingToggle checked={settings.orders?.includeShippingInCosts ?? true} onChange={v => handleShippingCostToggle(v)} label="Include Shipping in Costs" description="Include shipping costs in stockpile and reconstitution calculations" theme={theme} />
             <SettingSelect label="Week Starts On" value={settings.region.weekStartsOn} onChange={e => update('region.weekStartsOn', e.target.value)} options={[{ value: 'sunday', label: 'Sunday' }, { value: 'monday', label: 'Monday' }]} theme={theme} />
             <SettingSelect label="Language" value={settings.region.language} onChange={e => update('region.language', e.target.value)} options={[{ value: 'en-US', label: 'English (US)' }, { value: 'en-GB', label: 'English (UK)' }, { value: 'es-ES', label: 'Español (ES)' }]} theme={theme} />
             <SettingSelect label="Currency" value={settings.region.currency} onChange={e => update('region.currency', e.target.value)} options={currencyOptions} theme={theme} />

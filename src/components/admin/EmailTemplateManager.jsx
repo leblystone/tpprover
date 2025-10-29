@@ -139,6 +139,26 @@ const DEFAULT_TEMPLATES = {
     highlightTitle: '📊 Your Research Data',
     highlightMessage: 'Your data remains accessible until [END_DATE]. Export your research if needed.',
     features: []
+  },
+  lifetimeAccessGranted: {
+    name: 'Lifetime Access Granted',
+    subject: '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!',
+    heading: 'Congratulations! 🎉',
+    greeting: 'Great news! You\'ve been granted lifetime access to The Pep Planner!',
+    mainMessage: 'The Pep Planner is your complete research management platform, designed to help you organize protocols, track progress, and optimize your research journey. You now have permanent access to all features - no subscription required!',
+    ctaText: 'Start Researching',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: '🏆 Lifetime Access Activated',
+    highlightMessage: 'Full access to all features forever. Happy researching!',
+    features: [
+      'Create Custom Protocols – Build and manage research protocols',
+      'Track Your Progress – Calendar integration and task management', 
+      'Reconstitution Calculator – Calculate dosages with precision',
+      'Inventory Management – Track orders, stockpile, and vendors',
+      'Research Notes – Document findings and observations',
+      'Data Analytics – Visualize trends and metrics',
+      'Priority Support – Get help when you need it'
+    ]
   }
 };
 
