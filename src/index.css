@@ -6,6 +6,36 @@ html, body, #root {
   height: 100%;
 }
 
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Dark mode scrollbar */
+[data-theme="softDark"] ::-webkit-scrollbar-thumb,
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+[data-theme="softDark"] ::-webkit-scrollbar-thumb:hover,
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(10px); }
   to { opacity: 1; transform: translateX(0); }
