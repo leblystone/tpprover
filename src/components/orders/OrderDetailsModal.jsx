@@ -76,12 +76,18 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         initialData.items = [{ id: Date.now(), quantity: 1, unit: 'vial' }]; // Start with one empty item for new orders
       }
 
+      console.log('📝 OrderDetailsModal: Initializing form with data:', JSON.stringify(initialData, null, 2));
       setForm(initialData);
       setAttachments(initialData.attachments || []);
     }
   }, [open, order]);
 
-  const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
+  // Debug form changes
+  useEffect(() => {
+    if (form && Object.keys(form).length > 0) {
+      console.log('📝 OrderDetailsModal: Form state updated:', JSON.stringify(form, null, 2));
+    }
+  }, [form]);
   
   const steps = [
     { status: 'received', icon: <Clock size={20} color={theme?.primary} />, label: 'Order Placed' },
@@ -177,7 +183,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   setIsSavingToOrders(true);
                   setSaveError(null);
                   
-                  console.log('💾 Saving order:', { ...form, attachments });
+                  console.log('💾 Saving order:', JSON.stringify({ ...form, attachments }, null, 2));
                   
                   // Call the save function
                   await onSave?.({ ...form, attachments });
