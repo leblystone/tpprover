@@ -34,8 +34,37 @@ export default function Stockpile() {
     'tpprover_stockpile_form_draft',
     form,
     setForm,
-    2000 // 2 second delay
-  )
+    2000, // 2 second delay
+    async (formData) => {
+      // Auto-save to stockpile list if there's meaningful data
+      if (formData && formData.name && formData.mg) {
+        try {
+          console.log('🔄 Auto-saving stockpile data');
+          // Auto-create new vendor if it doesn't exist
+          if (formData.vendor && !vendors.some(v => v.name.toLowerCase() === formData.vendor.toLowerCase())) {
+              addVendor({ name: formData.vendor, isStub: true });
+          }
+
+          const finalVendor = (vendors || []).find(v => v.name === formData.vendor);
+          let itemToAdd = { ...formData, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
+          
+          // Convert kit to vials before saving
+          if (itemToAdd.unit === 'kit') {
+              itemToAdd.quantity = (Number(itemToAdd.quantity) || 0) * 10;
+              itemToAdd.unit = 'vial';
+          }
+
+          setItems(prev => [itemToAdd, ...prev]); 
+        } catch (error) {
+          console.warn('Auto-save to stockpile failed:', error);
+        }
+      }
+    }
+  );
+  
+  // State for save operations
+  const [isSavingToStockpile, setIsSavingToStockpile] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
@@ -355,6 +384,27 @@ export default function Stockpile() {
     }
   }
 
+  // Prevent modal from closing if there's unsaved data
+  const handleCloseStockpileModal = () => {
+    // Check if there's meaningful data that hasn't been saved
+    const hasData = form && (
+      form.name || 
+      form.mg ||
+      form.vendor ||
+      form.quantity
+    );
+    
+    if (hasData && !isSavingToStockpile) {
+      const shouldClose = window.confirm(
+        'You have unsaved changes. Are you sure you want to close without saving?'
+      );
+      if (!shouldClose) return;
+    }
+    
+    setOpenAdd(false);
+    clearSavedData();
+  };
+
   return (
     <section className="space-y-4">
       <StockpileHelpPanel theme={theme} />
@@ -627,51 +677,85 @@ export default function Stockpile() {
 
       <Modal 
         open={openAdd} 
-        onClose={() => { setOpenAdd(false); clearSavedData(); }} 
+        onClose={handleCloseStockpileModal} 
         title="Add Peptide" 
         titleExtra={
-          <AutoSaveIndicator 
-            isSaving={isSaving}
-            lastSaved={lastSaved}
-            theme={theme}
-            compact={true}
-            iconOnly={true}
-          />
+          <div className="flex items-center gap-2">
+            <AutoSaveIndicator 
+              isSaving={isSaving || isSavingToStockpile}
+              lastSaved={lastSaved}
+              theme={theme}
+              compact={true}
+              iconOnly={true}
+            />
+            {(isSaving || isSavingToStockpile) && (
+              <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
+                {isSavingToStockpile ? 'Saving...' : 'Auto-saving...'}
+              </span>
+            )}
+          </div>
         }
         theme={theme}
         variant="modern"
         maxWidth="max-w-2xl" 
         footer={(
         <>
-          <button onClick={() => { setOpenAdd(false); clearSavedData(); }} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
-          <button onClick={() => { 
-              if (isReadOnly) {
-                setShowUpgradeModal(true);
-                return;
-              }
-              
-              // Auto-create new vendor if it doesn't exist
-              if (form.vendor && !vendors.some(v => v.name.toLowerCase() === form.vendor.toLowerCase())) {
-                  addVendor({ name: form.vendor, isStub: true });
-              }
+          <button onClick={handleCloseStockpileModal} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
+          <button 
+            onClick={async () => { 
+              try {
+                setIsSavingToStockpile(true);
+                setSaveError(null);
+                
+                if (isReadOnly) {
+                  setShowUpgradeModal(true);
+                  return;
+                }
+                
+                // Auto-create new vendor if it doesn't exist
+                if (form.vendor && !vendors.some(v => v.name.toLowerCase() === form.vendor.toLowerCase())) {
+                    addVendor({ name: form.vendor, isStub: true });
+                }
 
-              const finalVendor = (vendors || []).find(v => v.name === form.vendor);
-              let itemToAdd = { ...form, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
-              
-              // Convert kit to vials before saving
-              if (itemToAdd.unit === 'kit') {
-                  itemToAdd.quantity = (Number(itemToAdd.quantity) || 0) * 10;
-                  itemToAdd.unit = 'vial';
-              }
+                const finalVendor = (vendors || []).find(v => v.name === form.vendor);
+                let itemToAdd = { ...form, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
+                
+                // Convert kit to vials before saving
+                if (itemToAdd.unit === 'kit') {
+                    itemToAdd.quantity = (Number(itemToAdd.quantity) || 0) * 10;
+                    itemToAdd.unit = 'vial';
+                }
 
-              setItems(prev => [itemToAdd, ...prev]); 
-              markAsSubmitted(); // Clear auto-save data
-              setOpenAdd(false); 
-              setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] }) 
-            }} className="px-4 py-2 rounded-lg text-sm font-medium transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
+                setItems(prev => [itemToAdd, ...prev]); 
+                markAsSubmitted(); // Clear auto-save data
+                setOpenAdd(false); 
+                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] }) 
+              } catch (error) {
+                console.error('❌ Failed to save stockpile item:', error);
+                setSaveError('Failed to save stockpile item. Please try again.');
+              } finally {
+                setIsSavingToStockpile(false);
+              }
+            }} 
+            disabled={isSavingToStockpile}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          >
+            {isSavingToStockpile ? 'Saving...' : 'Save'}
+          </button>
         </>
       )}>
         <div className="space-y-6">
+          {/* Error Display */}
+          {saveError && (
+            <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span className="text-sm font-medium text-red-800">{saveError}</span>
+              </div>
+            </div>
+          )}
+          
           {/* VIAL DETAILS Section Header */}
           <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
             <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VIAL DETAILS</h4>

@@ -11,12 +11,28 @@ const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Ami
 export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, activeTab, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState(createEmptyVendor())
   
-  // Auto-save functionality
+  // Auto-save functionality with vendor persistence
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
     `vendor_form_${vendor?.id || 'new'}`,
     form,
-    setForm
-  )
+    setForm,
+    2000, // 2 second delay
+    async (formData) => {
+      // Auto-save to vendors list if this is an existing vendor
+      if (vendor?.id && formData && Object.keys(formData).length > 0) {
+        try {
+          console.log('🔄 Auto-saving existing vendor:', vendor.id);
+          await onSave?.(formData);
+        } catch (error) {
+          console.warn('Auto-save to vendors failed:', error);
+        }
+      }
+    }
+  );
+  
+  // State for save operations
+  const [isSavingToVendors, setIsSavingToVendors] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   useEffect(() => {
     if (open) {
       const base = vendor ? { ...createEmptyVendor(), ...vendor } : createEmptyVendor()
@@ -46,19 +62,46 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   const updateContact = (idx, key, value) => setForm(prev => ({ ...prev, contacts: prev.contacts.map((c, i) => i === idx ? { ...c, [key]: value } : c) }))
   const removeContact = (idx) => setForm(prev => ({ ...prev, contacts: prev.contacts.filter((_, i) => i !== idx) }))
 
+  // Prevent modal from closing if there's unsaved data
+  const handleClose = () => {
+    // Check if there's meaningful data that hasn't been saved
+    const hasData = form && (
+      form.name || 
+      form.contacts?.some(c => c.value) ||
+      form.notes ||
+      form.payments?.notes
+    );
+    
+    if (hasData && !isSavingToVendors) {
+      const shouldClose = window.confirm(
+        'You have unsaved changes. Are you sure you want to close without saving?'
+      );
+      if (!shouldClose) return;
+    }
+    
+    onClose();
+  };
+
   return (
     <Modal 
       open={open} 
-      onClose={onClose} 
+      onClose={handleClose} 
       title={form.name || 'Vendor Details'} 
       titleExtra={
-        <AutoSaveIndicator 
-          isSaving={isSaving}
-          lastSaved={lastSaved}
-          theme={theme}
-          compact={true}
-          iconOnly={true}
-        />
+        <div className="flex items-center gap-2">
+          <AutoSaveIndicator 
+            isSaving={isSaving || isSavingToVendors}
+            lastSaved={lastSaved}
+            theme={theme}
+            compact={true}
+            iconOnly={true}
+          />
+          {(isSaving || isSavingToVendors) && (
+            <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
+              {isSavingToVendors ? 'Saving...' : 'Auto-saving...'}
+            </span>
+          )}
+        </div>
       }
       theme={theme} 
       variant="modern"
@@ -68,20 +111,51 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         {vendor?.id && (
           <button onClick={() => onDelete?.(vendor.id)} className="px-3 py-2 rounded-md border mr-auto bg-red-600 text-white hover:bg-red-700">Delete</button>
         )}
-        <button onClick={onClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-        <button onClick={() => {
-            const dataToSave = { ...form };
-            if (dataToSave.isStub) {
-                delete dataToSave.isStub; // Remove the stub flag
+        <button onClick={handleClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
+        <button 
+          onClick={async () => {
+            try {
+              setIsSavingToVendors(true);
+              setSaveError(null);
+              
+              const dataToSave = { ...form };
+              if (dataToSave.isStub) {
+                  delete dataToSave.isStub; // Remove the stub flag
+              }
+              console.log('💾 Saving vendor data:', dataToSave);
+              
+              // Call the save function
+              await onSave?.(dataToSave);
+              
+              // Only clear auto-save and close modal after successful save
+              markAsSubmitted();
+              onClose();
+            } catch (error) {
+              console.error('❌ Failed to save vendor:', error);
+              setSaveError('Failed to save vendor. Please try again.');
+            } finally {
+              setIsSavingToVendors(false);
             }
-            console.log('💾 Saving vendor data:', dataToSave); // Debug log
-            markAsSubmitted();
-            onSave?.(dataToSave);
-            onClose(); // Close modal after save
-        }} className="px-3 py-2 rounded-md" style={{ backgroundColor: theme?.primary, color: theme?.white }}>Save</button>
+          }}
+          disabled={isSavingToVendors}
+          className="px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" 
+          style={{ backgroundColor: theme?.primary, color: theme?.white }}
+        >
+          {isSavingToVendors ? 'Saving...' : 'Save'}
+        </button>
       </div>
     )}    >
       <div className="relative space-y-4">
+        {/* Error Display */}
+        {saveError && (
+          <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="text-sm font-medium text-red-800">{saveError}</span>
+            </div>
+          </div>
+        )}
+        
         {/* VENDOR INFO Section Header */}
         <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
           <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VENDOR INFO</h4>

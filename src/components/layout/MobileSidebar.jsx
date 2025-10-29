@@ -9,7 +9,7 @@ export default function MobileSidebar({ open, onClose, theme }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const durationMs = 300
+    const durationMs = 350
     if (open) {
       setMounted(true)
       // Use double RAF to ensure the DOM is painted before starting transition
@@ -42,19 +42,20 @@ export default function MobileSidebar({ open, onClose, theme }) {
   const overlay = (
     <div className="fixed inset-0 z-50">
       <div 
-        className="absolute inset-0 bg-black/20" 
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm" 
         onClick={onClose}
         style={{
           opacity: visible ? 1 : 0,
-          transition: 'opacity 250ms ease-out'
+          transition: 'opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)'
         }}
       />
       <div className="absolute top-0 left-0 h-full w-full bg-white shadow-xl px-4 py-2 pb-4 flex flex-col" style={{ 
-        transform: visible ? 'translateX(0%)' : 'translateX(-100%)', 
+        transform: visible ? 'translateX(0%) scale(1)' : 'translateX(-100%) scale(0.95)', 
         opacity: visible ? 1 : 0,
-        transition: 'transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1), opacity 250ms ease-out',
+        transition: 'transform 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
         paddingTop: 'env(safe-area-inset-top, 1rem)',
-        willChange: 'transform, opacity'
+        willChange: 'transform, opacity',
+        transformOrigin: 'left center'
       }}>
         <div className="flex items-center justify-between mb-3">
           {/* Left side: Close button and Text */}
@@ -70,24 +71,36 @@ export default function MobileSidebar({ open, onClose, theme }) {
           <img src={logo} alt="The Pep Planner Logo" className="h-14 w-14 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
         </div>
         <nav className="flex-1 bg-white overflow-y-auto flex flex-col">
-          {links.map(({ to, label, icon: Icon }) => (
+          {links.map(({ to, label, icon: Icon }, index) => (
             <NavLink
               key={to}
               to={to}
               onClick={onClose}
-              className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link ${isActive ? 'sidebar-link-active' : 'text-gray-700'}`}
+              className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 hover:bg-gray-50 ${isActive ? 'sidebar-link-active' : 'text-gray-700'}`}
+              style={{
+                animationDelay: visible ? `${index * 50}ms` : '0ms',
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateX(0)' : 'translateX(-20px)',
+                transition: 'opacity 200ms ease-out, transform 200ms ease-out'
+              }}
             >
               <Icon className="h-6 w-6" />
               <span className="text-lg font-medium truncate">{label}</span>
             </NavLink>
           ))}
           <div className="mt-auto border-t pt-2">
-            {bottomLinks.map(({ to, label, icon: Icon }) => (
+            {bottomLinks.map(({ to, label, icon: Icon }, index) => (
               <NavLink
                 key={to}
                 to={to}
                 onClick={onClose}
-                className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link ${isActive ? 'sidebar-link-active' : 'text-gray-700'}`}
+                className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 hover:bg-gray-50 ${isActive ? 'sidebar-link-active' : 'text-gray-700'}`}
+                style={{
+                  animationDelay: visible ? `${(links.length + index) * 50}ms` : '0ms',
+                  opacity: visible ? 1 : 0,
+                  transform: visible ? 'translateX(0)' : 'translateX(-20px)',
+                  transition: 'opacity 200ms ease-out, transform 200ms ease-out'
+                }}
               >
                 <Icon className="h-6 w-6" />
                 <span className="text-lg font-medium truncate">{label}</span>

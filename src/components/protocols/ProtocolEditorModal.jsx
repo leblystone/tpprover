@@ -22,14 +22,29 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
 
     const [form, setForm] = useState(createEmpty);
     
-    // Auto-save functionality - for both new and existing protocols
+    // Auto-save functionality with protocol persistence
     const storageKey = `tpprover_protocol_draft_${protocol?.id || 'new'}`;
     const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
         storageKey, 
-        form, // Autosave for both new and existing protocols to prevent data loss
+        form, 
         setForm, 
-        2000 // 2 second delay
+        2000, // 2 second delay
+        async (formData) => {
+            // Auto-save to protocols list if this is an existing protocol
+            if (protocol?.id && formData && Object.keys(formData).length > 0) {
+                try {
+                    console.log('🔄 Auto-saving existing protocol:', protocol.id);
+                    await onSave?.(formData);
+                } catch (error) {
+                    console.warn('Auto-save to protocols failed:', error);
+                }
+            }
+        }
     );
+    
+    // State for save operations
+    const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
     useEffect(() => {
         if (!open) return;
@@ -198,77 +213,119 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         });
     };
 
-    const handleFinalSave = () => {
-        const fromEditorUnit = (u) => {
-            const s = String(u || '').toLowerCase();
-            if (s.includes('day')) return 'day';
-            if (s.includes('week')) return 'week';
-            if (s.includes('month')) return 'month';
-            return s || 'week';
-        };
-        const finalForm = { ...form };
+    const handleFinalSave = async () => {
+        try {
+            setIsSavingToProtocols(true);
+            setSaveError(null);
+            
+            const fromEditorUnit = (u) => {
+                const s = String(u || '').toLowerCase();
+                if (s.includes('day')) return 'day';
+                if (s.includes('week')) return 'week';
+                if (s.includes('month')) return 'month';
+                return s || 'week';
+            };
+            const finalForm = { ...form };
 
-        // Map protocolType to blendMode for consistency with rest of app
-        finalForm.blendMode = finalForm.protocolType;
+            // Map protocolType to blendMode for consistency with rest of app
+            finalForm.blendMode = finalForm.protocolType;
 
-        // If blended, sync the shared frequency/titration back to all peptides
-        if (finalForm.blendMode === 'blended') {
-            finalForm.peptides = finalForm.peptides.map(p => ({
-                ...p,
-                frequency: finalForm.sharedFrequency,
-                titrationEnabled: finalForm.sharedTitrationEnabled,
-                titration: finalForm.sharedTitration
-            }));
-        }
+            // If blended, sync the shared frequency/titration back to all peptides
+            if (finalForm.blendMode === 'blended') {
+                finalForm.peptides = finalForm.peptides.map(p => ({
+                    ...p,
+                    frequency: finalForm.sharedFrequency,
+                    titrationEnabled: finalForm.sharedTitrationEnabled,
+                    titration: finalForm.sharedTitration
+                }));
+            }
 
-        if (finalForm.duration) {
-            // Validate duration count
-            let cleanCount = finalForm.duration.count;
-            if (!finalForm.duration.noEnd && cleanCount !== '') {
-                const numValue = parseFloat(cleanCount);
-                if (isNaN(numValue) || numValue <= 0 || numValue > 999) {
-                    alert('Please enter a valid duration count (1-999)');
-                    return;
+            if (finalForm.duration) {
+                // Validate duration count
+                let cleanCount = finalForm.duration.count;
+                if (!finalForm.duration.noEnd && cleanCount !== '') {
+                    const numValue = parseFloat(cleanCount);
+                    if (isNaN(numValue) || numValue <= 0 || numValue > 999) {
+                        setSaveError('Please enter a valid duration count (1-999)');
+                        return;
+                    }
+                    cleanCount = numValue;
                 }
-                cleanCount = numValue;
+                
+                finalForm.duration = {
+                    ...finalForm.duration,
+                    unit: fromEditorUnit(finalForm.duration.unit),
+                    count: finalForm.duration.noEnd ? '' : cleanCount
+                };
+            }
+            if (finalForm.washout) {
+                if (finalForm.washout.duration) {
+                    finalForm.washout.count = finalForm.washout.duration;
+                    delete finalForm.washout.duration;
+                }
+                finalForm.washout = {
+                    ...finalForm.washout,
+                    unit: fromEditorUnit(finalForm.washout.unit)
+                };
             }
             
-            finalForm.duration = {
-                ...finalForm.duration,
-                unit: fromEditorUnit(finalForm.duration.unit),
-                count: finalForm.duration.noEnd ? '' : cleanCount
-            };
+            // Call the save function
+            await onSave?.(finalForm);
+            
+            // Only clear auto-save and close modal after successful save
+            markAsSubmitted();
+            onClose();
+        } catch (error) {
+            console.error('❌ Failed to save protocol:', error);
+            setSaveError('Failed to save protocol. Please try again.');
+        } finally {
+            setIsSavingToProtocols(false);
         }
-        if (finalForm.washout) {
-            if (finalForm.washout.duration) {
-                finalForm.washout.count = finalForm.washout.duration;
-                delete finalForm.washout.duration;
-            }
-            finalForm.washout = {
-                ...finalForm.washout,
-                unit: fromEditorUnit(finalForm.washout.unit)
-            };
+    };
+
+    // Prevent modal from closing if there's unsaved data
+    const handleClose = () => {
+        // Check if there's meaningful data that hasn't been saved
+        const hasData = form && (
+            form.protocolName || 
+            form.purpose ||
+            form.peptides?.some(p => p.name) ||
+            form.notes
+        );
+        
+        if (hasData && !isSavingToProtocols) {
+            const shouldClose = window.confirm(
+                'You have unsaved changes. Are you sure you want to close without saving?'
+            );
+            if (!shouldClose) return;
         }
-        markAsSubmitted(); // Clear auto-saved data after successful save
-        onSave?.(finalForm);
+        
+        onClose();
     };
 
     return (
         <Modal 
             open={open}
-            onClose={onClose}
+            onClose={handleClose}
             title={
                 form?.protocolName 
                     ? (form?.id ? `Editing: ${form.protocolName}` : `New: ${form.protocolName}`)
                     : (form?.id ? "Edit Protocol" : "New Protocol")
             }
             titleExtra={
-                <AutoSaveIndicator 
-                    isSaving={isSaving}
-                    lastSaved={lastSaved}
-                    theme={theme}
-                    compact={true}
-                />
+                <div className="flex items-center gap-2">
+                    <AutoSaveIndicator 
+                        isSaving={isSaving || isSavingToProtocols}
+                        lastSaved={lastSaved}
+                        theme={theme}
+                        compact={true}
+                    />
+                    {(isSaving || isSavingToProtocols) && (
+                        <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
+                            {isSavingToProtocols ? 'Saving...' : 'Auto-saving...'}
+                        </span>
+                    )}
+                </div>
             }
             theme={theme}
             variant="modern"
@@ -284,18 +341,19 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         // New protocol - show save/cancel buttons
                         <div className="flex items-center justify-end gap-2 w-full">
                             <button 
-                                onClick={onClose} 
+                                onClick={handleClose} 
                                 className="px-4 py-2 rounded-md border text-sm font-medium" 
                                 style={{ borderColor: theme?.border, color: theme?.text }}
                             >
                                 Cancel
                             </button>
                             <button 
-                                onClick={handleFinalSave} 
-                                className="px-4 py-2 rounded-md text-sm font-semibold"
+                                onClick={handleFinalSave}
+                                disabled={isSavingToProtocols}
+                                className="px-4 py-2 rounded-md text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                 style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
                             >
-                                Save
+                                {isSavingToProtocols ? 'Saving...' : 'Save'}
                             </button>
                         </div>
                     )}
@@ -303,6 +361,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
         >
             <div className="space-y-5">
+                {/* Error Display */}
+                {saveError && (
+                    <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-red-800">{saveError}</span>
+                        </div>
+                    </div>
+                )}
                 
                 {/* Protocol Basics - Visual Cards */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
