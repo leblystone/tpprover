@@ -123,7 +123,7 @@ export const themes = {
     
     // Backgrounds - Matching the screenshot's navy/charcoal palette
     background: '#222831',     // Dark navy background (main app background)
-    cardBackground: '#393E46', // Lighter charcoal for cards (matches screenshot cards)
+    cardBackground: '#181c22', // Dark card background for depth
     
     // UI Elements
     border: '#4B5563',         // Subtle border slightly lighter than cards
