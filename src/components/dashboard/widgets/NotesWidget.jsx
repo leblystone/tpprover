@@ -68,13 +68,13 @@ const NotesWidget = ({ widget, theme }) => {
   const recentNotes = userNotes.slice(0, 2);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col widget-card-hover">
       <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Research Notes
           </h3>
-          <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} />
+          <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
         </div>
       </div>
       

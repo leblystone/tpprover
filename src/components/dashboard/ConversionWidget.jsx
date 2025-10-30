@@ -229,60 +229,60 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const isTrial = subData?.status === 'trialing';
 
   return (
-    <div className="rounded p-3 content-card shadow-lg" style={{ border: theme.isDark ? 'none' : '2px solid #5C7659', backgroundColor: theme.isDark ? '#1f2937' : '#f8f9fa' }}>
+    <div className="rounded p-3 content-card shadow-lg" style={{ border: theme.isDark ? '1px solid #374151' : '2px solid #5C7659', backgroundColor: theme.isDark ? '#111827' : '#f8f9fa' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Crown size={18} style={{ color: theme.primary }} />
-                <span className="font-semibold text-base" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>
+                <Crown size={18} style={{ color: theme.isDark ? '#fbbf24' : theme.primary }} />
+                <span className="font-semibold text-base" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>
                   7-Day Researcher Access
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.isDark ? '#065f4630' : '#e6f7f0', color: theme.isDark ? '#34d399' : '#2d7d5a', border: theme.isDark ? '1px solid #34d399' : '1px solid #a8d5c1' }}>
+                <div className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.isDark ? '#065f4630' : '#e6f7f0', color: theme.isDark ? '#10b981' : '#2d7d5a', border: theme.isDark ? '1px solid #10b981' : '1px solid #a8d5c1' }}>
                   Trialing
                 </div>
                 <button 
                   onClick={handleDismiss}
-                  className="p-1 hover:opacity-70 transition-opacity"
-                  style={{ color: '#5C7659' }}
+                  className="p-1 hover:opacity-70 transition-opacity action-button-hover"
+                  style={{ color: theme.isDark ? '#9ca3af' : '#5C7659' }}
                 >
-                  <X size={16} />
+                  <X size={16} className="icon-hover" />
                 </button>
               </div>
             </div>
             
             {/* Real-time Countdown */}
-            <div className="text-center mb-3 p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : '#e6f7f0', border: theme.isDark ? 'none' : '2px solid #a8d5c1' }}>
+            <div className="text-center mb-3 p-3 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : '#e6f7f0', border: theme.isDark ? '1px solid #4b5563' : '2px solid #a8d5c1' }}>
               <div className="flex items-center justify-center gap-2 mb-1">
-                <Clock size={14} style={{ color: theme.isDark ? theme.textLight : '#344E41' }} />
-                <span className="font-semibold text-xs" style={{ color: theme.isDark ? theme.text : '#344E41' }}>
+                <Clock size={14} style={{ color: theme.isDark ? '#d1d5db' : '#344E41' }} />
+                <span className="font-semibold text-xs" style={{ color: theme.isDark ? '#f9fafb' : '#344E41' }}>
                   Time Remaining
                 </span>
               </div>
               
               {timeLeft.days > 0 || timeLeft.hours > 0 || timeLeft.minutes > 0 || timeLeft.seconds > 0 ? (
-                <div className="flex justify-center gap-3 text-lg font-bold" style={{ color: theme.isDark ? '#34d399' : '#2d7d5a' }}>
+                <div className="flex justify-center gap-3 text-lg font-bold" style={{ color: theme.isDark ? '#fbbf24' : '#2d7d5a' }}>
                   {timeLeft.days > 0 && (
                     <div className="flex flex-col items-center">
                       <span>{timeLeft.days}</span>
-                      <span className="text-xs font-normal" style={{ color: theme.isDark ? theme.textLight : '#6B7280' }}>days</span>
+                      <span className="text-xs font-normal" style={{ color: theme.isDark ? '#9ca3af' : '#6B7280' }}>days</span>
                     </div>
                   )}
                   <div className="flex flex-col items-center">
                     <span>{timeLeft.hours.toString().padStart(2, '0')}</span>
-                    <span className="text-xs font-normal" style={{ color: theme.isDark ? theme.textLight : '#6B7280' }}>hrs</span>
+                    <span className="text-xs font-normal" style={{ color: theme.isDark ? '#9ca3af' : '#6B7280' }}>hrs</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>
-                    <span className="text-xs font-normal" style={{ color: theme.isDark ? theme.textLight : '#6B7280' }}>min</span>
+                    <span className="text-xs font-normal" style={{ color: theme.isDark ? '#9ca3af' : '#6B7280' }}>min</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
-                    <span className="text-xs font-normal" style={{ color: theme.isDark ? theme.textLight : '#6B7280' }}>sec</span>
+                    <span className="text-xs font-normal" style={{ color: theme.isDark ? '#9ca3af' : '#6B7280' }}>sec</span>
                   </div>
                 </div>
               ) : (
-                <div className="text-lg font-bold" style={{ color: theme.isDark ? theme.text : '#344E41' }}>
+                <div className="text-lg font-bold" style={{ color: theme.isDark ? '#fbbf24' : '#344E41' }}>
                   Trial Expired
                 </div>
               )}
@@ -291,7 +291,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
 
             {/* Pricing Plans */}
             <div className="space-y-2">
-              <h4 className="font-semibold text-xs" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>Continue Your Research</h4>
+              <h4 className="font-semibold text-xs" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>Continue Your Research</h4>
               
               {/* All Plans in 3 Columns */}
               <div className="grid grid-cols-3 gap-2">
@@ -301,13 +301,13 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                   disabled={isProcessing}
                   className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50"
                   style={{ 
-                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
-                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
+                    border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
                   }}
                 >
-                  <div className="font-bold text-sm" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>MONTHLY</div>
-                  <div className="text-xs mt-1" style={{ color: theme.textLight }}>Flexible</div>
-                  <div className="text-xs font-semibold mt-2" style={{ color: theme.isDark ? '#f07268' : theme.primary }}>
+                  <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>MONTHLY</div>
+                  <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>Flexible</div>
+                  <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.primary }}>
                     {isProcessing ? '...' : 'Select →'}
                   </div>
                 </button>
@@ -318,20 +318,20 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                   disabled={isProcessing}
                   className="p-3 rounded-lg cursor-pointer plan-button-hover text-center relative disabled:opacity-50"
                   style={{ 
-                    border: theme.isDark ? `1px solid ${theme.primary}` : `2px solid ${theme.primary}`,
-                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
+                    border: theme.isDark ? `2px solid #fbbf24` : `2px solid ${theme.primary}`,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
                   }}
                 >
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <div className="bg-yellow-400 text-yellow-900 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <div className="bg-yellow-400 text-yellow-900 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
                       <Zap size={12} />
                       Popular
                     </div>
                   </div>
                   <div className="pt-4">
-                    <div className="font-bold text-sm" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>ANNUAL</div>
-                    <div className="text-xs mt-1" style={{ color: theme.isDark ? '#34d399' : theme.success }}>Best value</div>
-                    <div className="text-xs font-semibold mt-2" style={{ color: theme.isDark ? '#f07268' : theme.primary }}>
+                    <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>ANNUAL</div>
+                    <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.success }}>Best value</div>
+                    <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.primary }}>
                       {isProcessing ? '...' : 'Select →'}
                     </div>
                   </div>
@@ -343,19 +343,19 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                   disabled={isProcessing}
                   className="p-3 rounded-lg cursor-pointer plan-button-hover text-center relative disabled:opacity-50"
                   style={{ 
-                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
-                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
+                    border: theme.isDark ? '1px solid #4b5563' : `2px solid ${theme.border}`,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
                   }}
                 >
-                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: theme.primaryDark, fontSize: '10px' }}>
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
+                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold text-white shadow-lg" style={{ backgroundColor: theme.isDark ? '#dc2626' : theme.primaryDark, fontSize: '10px' }}>
                       Limited
                     </div>
                   </div>
                   <div className="pt-4">
-                    <div className="font-bold text-sm" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>LIFETIME</div>
-                    <div className="text-xs mt-1" style={{ color: theme.textLight }}>One-time</div>
-                    <div className="text-xs font-semibold mt-2" style={{ color: theme.isDark ? '#f07268' : theme.primary }}>
+                    <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>LIFETIME</div>
+                    <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>One-time</div>
+                    <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.primary }}>
                       {isProcessing ? '...' : 'Select →'}
                     </div>
                   </div>

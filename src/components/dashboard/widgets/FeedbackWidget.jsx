@@ -83,7 +83,7 @@ const FeedbackWidget = ({ widget, theme }) => {
               key={type.id}
               type="button"
               onClick={() => setFeedbackType(type.id)}
-              className={`p-1.5 text-xs rounded-lg transition-all ${
+              className={`p-1.5 text-xs rounded-lg action-button-hover ${
                 feedbackType === type.id ? 'border-2' : ''
               }`}
               style={{
@@ -92,8 +92,8 @@ const FeedbackWidget = ({ widget, theme }) => {
                 color: feedbackType === type.id ? type.color : theme.text
               }}
             >
-              <type.icon size={10} />
-              <span className="truncate text-xs">{type.label}</span>
+              <type.icon size={10} className="icon-hover" />
+              <span className="truncate text-xs text-hover">{type.label}</span>
             </button>
           ))}
         </div>
@@ -123,14 +123,14 @@ const FeedbackWidget = ({ widget, theme }) => {
           <button
             type="submit"
             disabled={!message.trim()}
-            className="w-full px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 rounded-lg text-xs font-medium action-button-hover flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ 
               backgroundColor: selectedType?.color || theme.primary, 
               color: theme.textOnPrimary 
             }}
           >
-            <Send size={12} />
-            Send {selectedType?.label || 'Feedback'}
+            <Send size={12} className="icon-hover" />
+            <span className="text-hover">Send {selectedType?.label || 'Feedback'}</span>
           </button>
         </div>
       </form>

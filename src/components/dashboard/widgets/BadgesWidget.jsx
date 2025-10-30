@@ -9,14 +9,14 @@ const BadgesWidget = ({ widget, theme }) => {
   const { showProgress = true } = widget.settings;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col widget-card-hover">
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Badges
           </h3>
-          <Award size={20} style={{ color: theme.primary }} />
+          <Award size={20} style={{ color: theme.primary }} className="icon-hover" />
         </div>
       </div>
       
@@ -25,7 +25,7 @@ const BadgesWidget = ({ widget, theme }) => {
         <div className="flex-1 flex flex-col justify-center items-center">
           <div className="text-center mb-3">
             <div className="flex items-center justify-center mb-2">
-              <Trophy size={32} style={{ color: theme.isDark ? '#f07268' : theme.primary }} />
+              <Trophy size={32} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
             </div>
             <div className="text-2xl font-bold" style={{ color: theme.text }}>
               {earnedCount}/{totalBadges}

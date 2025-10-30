@@ -237,7 +237,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
       <div className="mt-3 w-full space-y-1.5 flex-shrink-0 px-3 pb-3">
         {order.tracking && (
           <button
-            className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 w-full flex items-center justify-center gap-1.5 border"
+            className="px-3 py-1.5 rounded-md text-xs font-medium action-button-hover w-full flex items-center justify-center gap-1.5 border"
             style={{ 
               backgroundColor: theme.cardBackground, 
               color: theme.text,
@@ -254,13 +254,13 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
             }}
             disabled={isLoadingTracking}
           >
-            <RefreshCw size={14} className={isLoadingTracking ? 'animate-spin' : ''} />
-            {isLoadingTracking ? 'Updating...' : 'Refresh Tracking'}
+            <RefreshCw size={14} className={`icon-hover ${isLoadingTracking ? 'animate-spin' : ''}`} />
+            <span className="text-hover">{isLoadingTracking ? 'Updating...' : 'Refresh Tracking'}</span>
           </button>
         )}
         
         <button
-          className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 w-full border"
+          className="px-3 py-1.5 rounded-md text-xs font-medium action-button-hover w-full border"
           style={{ 
             backgroundColor: theme.cardBackground, 
             color: theme.text,
@@ -268,7 +268,7 @@ export default function UpcomingOrderCard({ order, theme, hideHeader = false }) 
           }}
           onClick={() => navigate('/app/orders')}
         >
-          View Orders
+          <span className="text-hover">View Orders</span>
         </button>
       </div>
     </div>

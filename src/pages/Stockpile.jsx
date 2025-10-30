@@ -612,19 +612,27 @@ export default function Stockpile() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
                 {incomingGroups.map(g => (
-                    <div key={`incoming-${g.name}`} className="p-4 rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div key={`incoming-${g.name}`} className="p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow" style={{ 
+                      border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                      backgroundColor: theme.cardBackground,
+                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.4)' : undefined
+                    }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="font-semibold" style={{ color: theme.text }}>{g.name}</div>
-                        <div className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">{g.totalMg} {g.unit || 'mg'} en route</div>
+                        <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.secondary, color: theme.text }}>{g.totalMg} {g.unit || 'mg'} en route</div>
                       </div>
                       <div className="space-y-2">
                         {Object.values(g.variants).sort((a,b)=>String(a.mg).localeCompare(String(b.mg))).map(v => (
-                          <div key={v.mg} className="rounded-md border p-3" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                          <div key={v.mg} className="rounded-md p-3" style={{ 
+                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                            backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                          }}>
                             <div className="flex items-center justify-between text-sm mb-2">
                               <div className="font-medium flex items-center gap-2"><Beaker size={14} /> {v.mg} {v.unit || 'mg'}</div>
                               <div className="text-xs">{v.totalMg} {v.unit || 'mg'}</div>
                             </div>
-                            <ul className="mt-1 text-xs space-y-1">
+                            <ul className="mt-1 text-xs space-y-1" style={{ color: theme.text }}>
                               {Object.entries(v.vendors).sort((a,b)=>a[0].localeCompare(b[0])).map(([vendor, qtyMg]) => {
                                 const vials = Math.max(1, Math.round((Number(qtyMg)||0) / (Number(v.mg)||1)))
                                 return (
@@ -654,7 +662,11 @@ export default function Stockpile() {
                 <hr className="mb-2" style={{ borderColor: theme.border }} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
                   {groups.filter(g => g.totalMg <= 0).map(g => (
-                    <div key={`oos-${g.name}`} className="relative p-3 rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div key={`oos-${g.name}`} className="relative p-3 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow" style={{ 
+                      border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                      backgroundColor: theme.cardBackground,
+                      boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.4)' : undefined
+                    }}>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div style={{ fontSize: '64px', color: 'rgba(185,28,28,0.10)', fontWeight: 800, transform: 'rotate(-20deg)' }}>OUT</div>
                       </div>
