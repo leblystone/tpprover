@@ -963,7 +963,15 @@ export default function Stockpile() {
         maxWidth="max-w-3xl" 
         footer={(
         <>
-          <button onClick={() => { setManageName(null); setManageRows([]); clearManageSavedData(); }} className="px-3 py-2 rounded-md border" style={{ borderColor: theme.border }}>Cancel</button>
+          <button 
+            onClick={() => { setManageName(null); setManageRows([]); clearManageSavedData(); }} 
+            className="px-3 py-2 rounded-md border transition-colors" 
+            style={{ borderColor: theme.border, color: theme.text }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            Cancel
+          </button>
           <button 
             onClick={() => {
               if (isReadOnly) {
@@ -972,8 +980,10 @@ export default function Stockpile() {
               }
               saveManage();
             }} 
-            className="px-3 py-2 rounded-md" 
+            className="px-3 py-2 rounded-md transition-colors" 
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + 'dd' : theme.primary + 'cc'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
           >
             Save
           </button>
@@ -981,7 +991,18 @@ export default function Stockpile() {
       )}>
         <div className="space-y-3">
           <div className="flex items-center justify-end">
-            <button className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}`, color: theme.text }} onClick={() => setShowHistory(v => !v)}>
+            <button 
+              className="px-2 py-1 rounded text-xs transition-colors" 
+              style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : theme.white, 
+                border: theme.isDark ? 'none' : `1px solid ${theme.border}`, 
+                color: theme.text,
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+              }} 
+              onClick={() => setShowHistory(v => !v)}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.white}
+            >
               {showHistory ? 'Hide History' : 'History'}
             </button>
           </div>
@@ -999,7 +1020,11 @@ export default function Stockpile() {
             </div>
           )}
           {manageRows.map(row => (
-            <div key={row.id} className="space-y-2 border p-3 rounded" style={{ borderColor: theme.border }}>
+            <div key={row.id} className="space-y-2 p-3 rounded" style={{ 
+              border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+              backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+              boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+            }}>
               <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
                 <div className="sm:col-span-2">
                   <VendorSuggestInput label="Vendor" value={row.vendorId ? vendorMap[row.vendorId] : (row.vendor || '')} onChange={v => updateManageData(prev => prev.map(r => r.id === row.id ? { ...r, vendor: v, vendorId: (vendors || []).find(vnd => vnd.name === v)?.id || null } : r))} placeholder="Vendor" theme={theme} />
@@ -1009,9 +1034,19 @@ export default function Stockpile() {
                 </div>
                 <div className="sm:col-span-3">
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Quantity & Unit</div>
-                  <div className="flex items-center p-2 rounded border" style={{ borderColor: theme?.border }}>
-                    <input className="flex-1 border-none outline-none text-sm bg-transparent" value={row.quantity || ''} onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))} placeholder="1" />
-                    <div className="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+                  <div className="flex items-center p-2 rounded" style={{ 
+                    border: theme.isDark ? 'none' : `1px solid ${theme?.border}`,
+                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                  }}>
+                    <input 
+                      className="flex-1 border-none outline-none text-sm bg-transparent" 
+                      value={row.quantity || ''} 
+                      onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))} 
+                      placeholder="1"
+                      style={{ color: theme.text }}
+                    />
+                    <div className="inline-flex rounded-full p-1 shadow-inner" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                         {['vial','kit'].map(k => (
                             <button key={k} type="button" onClick={() => {
                                 const oldUnit = row.unit || 'vial';
@@ -1033,8 +1068,18 @@ export default function Stockpile() {
                                     return { ...r, unit: k, quantity: String(newQty) };
                                 }));
                             }}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-full ${((row.unit || 'vial') === k) ? 'text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-                                style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}>
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${((row.unit || 'vial') === k) ? 'text-white' : ''}`}
+                                style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                onMouseEnter={(e) => {
+                                  if ((row.unit || 'vial') !== k) {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if ((row.unit || 'vial') !== k) {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }
+                                }}>
                                 {k.charAt(0).toUpperCase() + k.slice(1)}
                             </button>
                         ))}
