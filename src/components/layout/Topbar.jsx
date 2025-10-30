@@ -136,6 +136,15 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               {autoSaveIndicator}
             </div>
           )}
+          {/* Trial Button - Only show on dashboard */}
+          {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
+            <TrialButton
+              daysRemaining={trialInfo.daysRemaining}
+              isTrialExpired={trialInfo.isTrialExpired}
+              onUpgradeClick={trialInfo.onUpgradeClick}
+              theme={theme}
+            />
+          )}
           {/* Dashboard-specific expanding search box */}
           {onDashboard && (
             <form 
@@ -160,15 +169,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 }}
               />
             </form>
-          )}
-          {/* Trial Button - Only show on dashboard */}
-          {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
-            <TrialButton
-              daysRemaining={trialInfo.daysRemaining}
-              isTrialExpired={trialInfo.isTrialExpired}
-              onUpgradeClick={trialInfo.onUpgradeClick}
-              theme={theme}
-            />
           )}
           {!onDashboard && seg !== 'stockpile' && seg !== 'protocols' && seg !== 'settings' && seg !== 'account' && (
             <ModernTooltip text="Search" position="bottom">

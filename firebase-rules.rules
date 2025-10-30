@@ -16,6 +16,7 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       allow read: if isAdmin(); // Admin can read user data for analytics
       allow read: if true; // TEMPORARY: Allow unauthenticated read for email checking during login
+      allow write: if isAdmin(); // Admin can write to update user subscriptions (lifetime access)
     }
     
     // Users can only read/write their own encrypted data
@@ -104,6 +105,21 @@ service cloud.firestore {
       allow create: if request.auth != null; // Authenticated users can create gifts
       allow update: if isAdmin(); // Only admin can update gifts
       allow delete: if isAdmin(); // Only admin can delete gifts
+    }
+    
+    // Lifetime access - admin can read/write all, users can read their own
+    match /lifetimeAccess/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        isAdmin()
+      );
+      allow write: if isAdmin(); // Only admin can grant lifetime access
+    }
+    
+    // Config collection - admin can read/write, others can read feature flags
+    match /config/{configId} {
+      allow read: if true; // Anyone can read config (for feature flags, etc.)
+      allow write: if isAdmin(); // Only admin can write config
     }
     
     // User agreements - users can create their own agreements, admin can read all

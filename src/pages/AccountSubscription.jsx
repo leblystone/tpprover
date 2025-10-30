@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings, Sparkles, Lock, CreditCard, Calendar } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
@@ -235,21 +235,25 @@ export default function AccountSubscription() {
                   <Crown size={24} style={{ color: theme.accent }} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+                  <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
                     {sub.plan?.name || 'Research Subscription'}
                     {/* Special display for lifetime granted accounts */}
                     {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId && (
-                      <span className="ml-2 text-lg">🎁</span>
+                      <Gift size={18} style={{ color: '#A3B18A' }} />
                     )}
                   </h3>
                   <div 
-                    className="text-sm font-medium"
+                    className="text-sm font-medium flex items-center gap-1"
                     style={{ color: getStatusColor(sub.status) }}
                   >
-                    {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId 
-                      ? `🎁 Lifetime Granted (${sub.lifetimeReason})`
-                      : getStatusText(sub.status)
-                    }
+                    {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId ? (
+                      <>
+                        <Gift size={14} style={{ color: '#A3B18A' }} />
+                        <span>Lifetime Granted ({sub.lifetimeReason})</span>
+                      </>
+                    ) : (
+                      getStatusText(sub.status)
+                    )}
                   </div>
                 </div>
               </div>
@@ -276,7 +280,9 @@ export default function AccountSubscription() {
               }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="text-3xl">🎁</div>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#A3B18A30' }}>
+                  <Gift size={24} style={{ color: '#344E41' }} />
+                </div>
                 <div>
                   <h3 className="text-lg font-bold" style={{ color: '#344E41' }}>
                     Lifetime Granted Account
@@ -289,27 +295,27 @@ export default function AccountSubscription() {
               
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">✨</span>
+                  <Sparkles size={16} style={{ color: '#3A5A40' }} />
                   <span className="text-sm" style={{ color: '#3A5A40' }}>
                     <strong>Reason:</strong> {sub.lifetimeReason}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">🔒</span>
+                  <Lock size={16} style={{ color: '#3A5A40' }} />
                   <span className="text-sm" style={{ color: '#3A5A40' }}>
                     <strong>Access Level:</strong> Full platform access - forever
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">💳</span>
+                  <CreditCard size={16} style={{ color: '#3A5A40' }} />
                   <span className="text-sm" style={{ color: '#3A5A40' }}>
                     <strong>Payment Method:</strong> None required - completely free!
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">📅</span>
+                  <Calendar size={16} style={{ color: '#3A5A40' }} />
                   <span className="text-sm" style={{ color: '#3A5A40' }}>
-                    <strong>Expires:</strong> Never! 🎊
+                    <strong>Expires:</strong> Never!
                   </span>
                 </div>
               </div>

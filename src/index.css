@@ -323,31 +323,58 @@ html, body, #root {
 
 /* Expanding Search Box Animation */
 .search-box-wrapper {
-  font-size: 14px;
-  border: solid 2px currentColor;
+  font-size: 12px;
+  border: solid 1.5px currentColor;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  border-radius: 2.5em;
-  overflow: hidden;
+  border-radius: 2em;
+  overflow: visible;
   background-color: transparent;
   cursor: pointer;
 }
 
+.search-box-wrapper::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 150ms ease;
+}
+
+.search-box-wrapper::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  width: 6px;
+  height: 2px;
+  background-color: currentColor;
+  transform: rotate(45deg);
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 150ms ease;
+}
 
 .search-box-wrapper input[type="text"] {
   font-family: inherit;
   font-weight: normal;
-  width: 40px;
-  height: 40px;
-  padding: 6px 34px 6px 8px;
+  width: 32px;
+  height: 32px;
+  padding: 5px 28px 5px 28px;
   border: none;
   box-sizing: border-box;
-  border-radius: 2.5em;
+  border-radius: 2em;
   transition: width 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55) 150ms, padding 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55) 150ms;
   background-color: transparent;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .search-box-wrapper input[type="text"]:focus {
@@ -356,11 +383,20 @@ html, body, #root {
 
 .search-box-wrapper input[type="text"]:focus,
 .search-box-wrapper input[type="text"]:not(:placeholder-shown) {
-  width: 288px;
-  padding: 6px 34px 6px 16px;
+  width: 240px;
+  padding: 5px 28px 5px 12px;
   transition: width 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55), padding 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55);
 }
 
+.search-box-wrapper input[type="text"]:focus ~ *,
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ *,
+.search-box-wrapper:has(input:focus)::before,
+.search-box-wrapper:has(input:focus)::after,
+.search-box-wrapper:has(input:not(:placeholder-shown))::before,
+.search-box-wrapper:has(input:not(:placeholder-shown))::after {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
 
 .search-box-wrapper input[type="text"]:focus ~ button[type="reset"],
 .search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ button[type="reset"] {
@@ -376,8 +412,8 @@ html, body, #root {
 
 .search-box-wrapper button[type="reset"] {
   background-color: transparent;
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border: 0;
   padding: 0;
   outline: 0;
@@ -387,7 +423,7 @@ html, body, #root {
   position: absolute;
   top: 6px;
   right: 6px;
-  transform: rotate(-45deg) translateY(40px);
+  transform: rotate(-45deg) translateY(32px);
   transition: transform 150ms ease-out 150ms;
   cursor: pointer;
 }
@@ -396,8 +432,8 @@ html, body, #root {
 .search-box-wrapper button[type="reset"]:after {
   content: "";
   background-color: currentColor;
-  width: 2px;
-  height: 28px;
+  width: 1.5px;
+  height: 20px;
   position: absolute;
 }
 

@@ -23,6 +23,7 @@ exports.cancelSubscription = stripe.cancelSubscription;
 exports.updatePaymentMethod = stripe.updatePaymentMethod;
 exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
+exports['stripe-getStripeSubscriptions'] = stripe.getStripeSubscriptions; // Alias for backward compatibility
 exports.completeGiftFromSession = stripe.completeGiftFromSession;
 
 // Scheduled Functions for Notifications - Now runs hourly to check all timezones
