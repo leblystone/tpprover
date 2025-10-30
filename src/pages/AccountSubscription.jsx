@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, CreditCard, Calendar, Crown, Gift, ExternalLink, RefreshCw } from 'lucide-react'
+import { ArrowLeft, TrendingUp, CreditCard, Calendar, Crown, Gift, ExternalLink, RefreshCw, X } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
@@ -8,6 +8,7 @@ import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import { STRIPE_CONFIG } from '../config/stripe'
 import { verifyStripeConfig } from '../utils/stripe-verify'
 import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
+import Modal from '../components/common/Modal'
 
 // Load subscription from cloud storage ONLY (no localStorage)
 async function loadSubscription(firebaseUser) { 
@@ -36,6 +37,8 @@ export default function AccountSubscription() {
   const [timeLeft, setTimeLeft] = useState(null)
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [manageOpen, setManageOpen] = useState(false)
+  const [pmDraft, setPmDraft] = useState({ brand: 'Visa', last4: '' })
 
   // Load subscription data
   useEffect(() => {
@@ -93,14 +96,29 @@ export default function AccountSubscription() {
 
   const handleManageBilling = async () => {
     try {
+      // Check if Stripe is properly configured
       await verifyStripeConfig();
       const session = await createPortalSession(firebaseUser?.uid);
-      window.open(session.url, '_blank');
+      
+      if (session?.url) {
+        window.open(session.url, '_blank');
+      } else {
+        throw new Error('No portal URL returned');
+      }
     } catch (error) {
       console.error('Error creating portal session:', error);
+      
+      // Show a more helpful error message
+      const errorMessage = error.message?.includes('INTERNAL') 
+        ? 'Billing portal is temporarily unavailable. Please try again later or contact support.'
+        : 'Failed to open billing portal. Please check your subscription status.';
+        
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Failed to open billing portal', type: 'error' } 
+        detail: { message: errorMessage, type: 'error' } 
       }));
+      
+      // Fallback: open manage subscription modal
+      setManageOpen(true);
     }
   };
 
@@ -119,6 +137,26 @@ export default function AccountSubscription() {
         detail: { message: 'Failed to cancel subscription', type: 'error' } 
       }));
     }
+  };
+
+  const createSubscription = async (planData) => {
+    try {
+      await verifyStripeConfig();
+      const session = await createCheckoutSession(firebaseUser?.uid, planData);
+      handleCheckoutReturn(session.url);
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Failed to start checkout', type: 'error' } 
+      }));
+    }
+  };
+
+  const savePaymentMethod = () => {
+    // Placeholder for payment method update
+    window.dispatchEvent(new CustomEvent('tpp:toast', { 
+      detail: { message: 'Payment method update not implemented', type: 'info' } 
+    }));
   };
 
   const getStatusColor = (status) => {
@@ -192,6 +230,13 @@ export default function AccountSubscription() {
             className="p-6 rounded-lg"
             style={{ backgroundColor: theme.cardBackground }}
           >
+            {sub.status === 'trialing' && sub.startedAt && sub.currentPeriodEnd && (
+              <TrialProgressBar 
+                theme={theme} 
+                startDate={sub.startedAt} 
+                endDate={sub.currentPeriodEnd} 
+              />
+            )}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div 
@@ -319,6 +364,165 @@ export default function AccountSubscription() {
         onClose={() => setShowGiftModal(false)} 
         theme={theme} 
       />
+
+      {/* Manage Subscription Modal */}
+      <Modal
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        title="Manage Subscription"
+        theme={theme}
+        maxWidth="max-w-2xl"
+        footer={(
+          <div className="w-full flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              {sub?.customerId && (
+                <button 
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:opacity-90 flex items-center gap-2"
+                  style={{ backgroundColor: theme.secondary, color: theme.text }}
+                  onClick={handleManageBilling}
+                >
+                  <ExternalLink size={14} />
+                  Customer Portal
+                </button>
+              )}
+              <button 
+                className="px-3 py-2 rounded-md text-sm" 
+                style={{ color: '#EF4444' }} 
+                onClick={handleCancelSubscription}
+              >
+                Cancel Subscription
+              </button>
+            </div>
+            <button 
+              className="px-3 py-2 rounded-md" 
+              onClick={() => setManageOpen(false)} 
+              style={{ backgroundColor: theme.border, color: theme.text }}
+            >
+              Close
+            </button>
+          </div>
+        )}
+      >
+        <div className="space-y-6">
+          {/* Founder's Pricing Banner */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-6 text-center shadow-sm">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-lg">👑</span>
+              </div>
+              <div className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                Founder's Pricing
+              </div>
+            </div>
+            
+            <div className="bg-white/60 rounded-lg p-4 mb-4">
+              <p className="text-amber-800 font-medium mb-2">
+                🔒 <strong>Lock in these prices forever!</strong>
+              </p>
+              <p className="text-sm text-amber-700 leading-relaxed">
+                As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
+                even as we add new features and raise prices for new users.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-center gap-2 text-xs text-amber-600 mb-3">
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+              <span className="font-medium">Limited time founder benefits</span>
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+            </div>
+            
+            <button 
+              className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all shadow-sm border border-amber-300" 
+              style={{ 
+                backgroundColor: 'rgba(245, 158, 11, 0.1)', 
+                color: '#92400e',
+                backdropFilter: 'blur(10px)'
+              }}
+              onClick={() => verifyStripeConfig()}
+            >
+              🔧 Verify Setup (Dev Tool)
+            </button>
+          </div>
+          
+          {/* Pricing Plans */}
+          <div>
+            <div className="text-center font-semibold text-lg mb-4" style={{ color: theme.text }}>
+              {sub?.status === 'trialing' ? `Your trial ends on ${sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : 'Unknown'}` : 'Switch your plan'}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Monthly Plan */}
+              <PlanCard
+                theme={theme}
+                title="Monthly"
+                price="$6"
+                interval="/mo"
+                current={sub?.interval === 'month'}
+                onSelect={() => createSubscription({ name: 'Pro Monthly', price: 6.00, interval: 'month' })}
+              />
+              {/* Annual Plan */}
+              <PlanCard
+                theme={theme}
+                title="Annual"
+                price="$79"
+                interval="/yr"
+                current={sub?.interval === 'year'}
+                onSelect={() => createSubscription({ name: 'Pro Annual', price: 79.00, interval: 'year' })}
+                popular
+                subtitle="Save $13"
+              />
+              {/* Lifetime Plan */}
+              <PlanCard
+                theme={theme}
+                title="Lifetime"
+                price="$249.99"
+                interval="one-time"
+                current={sub?.interval === 'lifetime'}
+                onSelect={() => createSubscription({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
+              />
+            </div>
+          </div>
+
+          {/* Payment Method Section */}
+          {sub?.interval !== 'lifetime' && (
+            <div className="rounded-lg border p-4" style={{ borderColor: theme.border }}>
+              <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Payment Method</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                <div>
+                  <div className="text-xs mb-1">Brand</div>
+                  <select 
+                    className="w-full p-2 rounded border" 
+                    value={pmDraft.brand} 
+                    onChange={e => setPmDraft(d => ({ ...d, brand: e.target.value }))} 
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  >
+                    {['Visa','Mastercard','Amex','Discover'].map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div className="text-xs mb-1">Last 4 Digits</div>
+                  <input 
+                    className="w-full p-2 rounded border" 
+                    maxLength={4} 
+                    value={pmDraft.last4} 
+                    onChange={e => setPmDraft(d => ({ ...d, last4: (e.target.value || '').replace(/\D/g,'').slice(0,4) }))} 
+                    placeholder="1234" 
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  />
+                </div>
+              </div>
+              <div className="text-right mt-3">
+                <button 
+                  className="px-3 py-2 rounded-md text-sm hover:opacity-90" 
+                  style={{ backgroundColor: theme.accent, color: theme.accentText }} 
+                  onClick={savePaymentMethod}
+                >
+                  Update Payment Method
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
     </section>
   )
 }
@@ -340,3 +544,88 @@ const InfoCard = ({ icon: Icon, label, value, theme }) => (
     </div>
   </div>
 )
+
+const TrialProgressBar = ({ theme, startDate, endDate }) => {
+  const [progress, setProgress] = React.useState(0);
+  const [timeLeft, setTimeLeft] = React.useState('');
+
+  React.useEffect(() => {
+    const calculateProgress = () => {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const now = new Date();
+
+      const totalDuration = end.getTime() - start.getTime();
+      const elapsedTime = now.getTime() - start.getTime();
+      const percentage = Math.max(0, 100 - (elapsedTime / totalDuration * 100));
+      setProgress(percentage);
+
+      const remaining = end.getTime() - now.getTime();
+      if (remaining <= 0) {
+        setTimeLeft('Trial ended');
+      } else {
+        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        setTimeLeft(`${days}d ${hours}h left`);
+      }
+    };
+
+    calculateProgress();
+    const interval = setInterval(calculateProgress, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [startDate, endDate]);
+
+  return (
+    <div className="mb-4">
+      <div className="flex justify-between items-center text-sm mb-1">
+        <span className="font-semibold" style={{ color: theme.text }}>Trial Status</span>
+        <span className="text-xs font-medium" style={{ color: theme.mutedText }}>{timeLeft}</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div
+          className="h-2.5 rounded-full"
+          style={{
+            width: `${progress}%`,
+            backgroundColor: theme.primary,
+            transition: 'width 0.5s ease-in-out'
+          }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+const PlanCard = ({ theme, title, price, interval, onSelect, current, popular, subtitle }) => {
+  const isCurrent = !!current;
+  return (
+    <div 
+      className={`relative rounded-lg border p-4 text-center transition-shadow hover:shadow-lg ${isCurrent ? 'border-2' : ''} ${popular ? 'border-2' : ''}`} 
+      style={{ 
+        borderColor: isCurrent || popular ? theme.accent : theme.border,
+        backgroundColor: theme.cardBackground
+      }}
+    >
+      {popular && (
+        <div 
+          className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-semibold rounded-full" 
+          style={{ backgroundColor: theme.accent, color: theme.accentText }}
+        >
+          Most Popular
+        </div>
+      )}
+      <div className="font-bold text-lg" style={{ color: theme.text }}>{title}</div>
+      {subtitle && <div className="text-xs" style={{ color: theme.mutedText }}>{subtitle}</div>}
+      <div className="text-3xl font-bold my-3" style={{ color: theme.text }}>
+        {price || ''}<span className="text-base font-normal" style={{ color: theme.mutedText }}>{interval || ''}</span>
+      </div>
+      <button
+        className="w-full px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+        style={{ backgroundColor: theme.accent, color: theme.accentText }}
+        onClick={onSelect}
+        disabled={isCurrent}
+      >
+        {isCurrent ? 'Current Plan' : 'Select Plan'}
+      </button>
+    </div>
+  )
+}
