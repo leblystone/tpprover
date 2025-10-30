@@ -184,26 +184,6 @@ export default function AccountLegal() {
           </div>
         </div>
 
-        {/* Additional Resources */}
-        <div 
-          className="p-4 rounded-lg space-y-3"
-          style={{ backgroundColor: theme.cardBackground }}
-        >
-          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Additional Resources</h4>
-          <div className="space-y-2">
-            <button
-              onClick={() => window.open('mailto:support@thepepplanner.com', '_blank')}
-              className="w-full flex items-center justify-between p-3 rounded-lg transition-all hover:opacity-90"
-              style={{ backgroundColor: theme.secondary }}
-            >
-              <div className="flex items-center gap-3">
-                <FileText size={20} style={{ color: theme.accent }} />
-                <span className="font-medium" style={{ color: theme.text }}>Contact Legal Team</span>
-              </div>
-              <ExternalLink size={16} style={{ color: theme.mutedText }} />
-            </button>
-          </div>
-        </div>
       </div>
 
       <TermsOfServiceModal 

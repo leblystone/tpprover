@@ -1,6 +1,6 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Bell, Palette, Settings as SettingsIcon, Shield, FileText, Trash2, ChevronRight } from 'lucide-react'
+import { Bell, Palette, Settings as SettingsIcon, Trash2, ChevronRight } from 'lucide-react'
 
 export default function Settings() {
   const { theme } = useOutletContext()
@@ -27,20 +27,6 @@ export default function Settings() {
       description: 'Customize language, currency, tracking, and other app settings',
       icon: SettingsIcon,
       path: '/app/settings/preferences'
-    },
-    {
-      id: 'privacy',
-      title: 'Privacy',
-      description: 'Manage your data and cookie preferences',
-      icon: Shield,
-      path: '/app/settings/privacy'
-    },
-    {
-      id: 'legal',
-      title: 'Legal & Privacy',
-      description: 'Terms of Service, Privacy Policy, and other legal documents',
-      icon: FileText,
-      path: '/app/settings/legal'
     },
     {
       id: 'data',
