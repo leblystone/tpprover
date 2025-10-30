@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { ClipboardList, ShoppingCart, Users, Box, Pill, BookText, Home, X } from 'lucide-react'
 
-export default function GlobalSearchInline({ theme, onClose, onNavigate, pageFilter }) {
+export default function GlobalSearchInline({ theme, onClose, onNavigate, pageFilter, isClosing }) {
   const safeTheme = theme || { border: '#e5e7eb', white: '#fff', text: '#111827' }
   const [q, setQ] = useState('')
   const data = useMemo(() => {
@@ -29,7 +29,7 @@ export default function GlobalSearchInline({ theme, onClose, onNavigate, pageFil
   }
   
   return (
-    <div className="rounded-xl border bg-white content-card p-3 animate-slide-down" style={{ borderColor: safeTheme.border }}>
+    <div className={`rounded-xl border bg-white content-card p-3 ${isClosing ? 'animate-slide-up' : 'animate-slide-down'}`} style={{ borderColor: safeTheme.border, minWidth: '320px', maxWidth: '600px' }}>
       <div className="flex items-center gap-2 mb-2">
         <input autoFocus className="flex-1 p-2 rounded border" style={{ borderColor: safeTheme.border }} placeholder={getPlaceholder()} value={q} onChange={e => setQ(e.target.value)} />
         <button className="p-2 rounded hover:bg-gray-100" onClick={onClose}><X className="h-4 w-4" /></button>
