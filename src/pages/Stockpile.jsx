@@ -470,7 +470,7 @@ export default function Stockpile() {
                                                                     title="View Source Order" 
                                                                     className="p-1 rounded-md transition-colors" 
                                                                     style={{ color: theme.primary }} 
-                                                                    onClick={() => navigate(`/orders`, { state: { openOrderId: item.orderId } })}
+                                                                    onClick={() => navigate(`/app/orders`, { state: { openOrderId: item.orderId } })}
                                                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
                                                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                                 >
