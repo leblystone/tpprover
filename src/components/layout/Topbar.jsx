@@ -148,7 +148,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             </div>
           )}
           {showSearch && (
-            <div className="hidden md:block w-full max-w-xl mr-2 animate-slide-down">
+            <div className="w-full max-w-xl mr-2 animate-slide-down">
               <GlobalSearchInline 
                 theme={theme} 
                 pageFilter={getPageFilter()} 
