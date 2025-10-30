@@ -106,8 +106,8 @@ export default function SettingsAppearance() {
               // Define unique swatch colors for each theme (darker to match actual theme colors)
               const swatchColors = {
                 sage: { start: '#5F7F76', mid: '#7F9E95', end: '#4A6B63' },
-                mauve: { start: '#7D6F74', mid: '#9F8F95', end: '#6B5D62' },
-                taupe: { start: '#A39890', mid: '#C4B8B0', end: '#8B7F77' },
+                mauve: { start: '#6B5D62', mid: '#7D6F74', end: '#5A4C51' },
+                taupe: { start: '#8B7F77', mid: '#A39890', end: '#756A62' },
                 softDark: { start: '#2C2C30', mid: '#3A3A40', end: '#1A1A1D' }
               }
               
