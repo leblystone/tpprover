@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Search, Upload, Edit, Plus, X } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -50,29 +50,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const mobileTitle = titles[seg] || 'Dashboard';
   const desktopTitle = desktopTitles[seg] || mobileTitle;
 
-  const [showSearch, setShowSearch] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const searchInputRef = React.useRef(null);
 
-  // Map page segments to search filter types
-  const getPageFilter = () => {
-    const filterMap = {
-      'orders': 'order',
-      'protocols': 'protocol',
-      'vendors': 'vendor',
-      'stockpile': 'stockpile',
-      'glossary': 'glossary',
-    };
-    return filterMap[seg] || null;
-  };
-
-  const getPlaceholder = () => {
-    if (getPageFilter() === 'order') return 'Search orders...'
-    if (getPageFilter() === 'protocol') return 'Search protocols...'
-    if (getPageFilter() === 'vendor') return 'Search vendors...'
-    if (getPageFilter() === 'stockpile') return 'Search stockpile...'
-    if (getPageFilter() === 'glossary') return 'Search glossary...'
-    return 'Search supplements, tasks, protocols, orders...'
-  };
 
 
   return (
@@ -156,52 +136,30 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               {autoSaveIndicator}
             </div>
           )}
-          {/* Dashboard-specific inline expanding search */}
+          {/* Dashboard-specific expanding search box */}
           {onDashboard && (
-            <>
-              {showSearch && (
-                <div className="flex items-center gap-2 animate-slide-right">
-                  <input 
-                    autoFocus
-                    type="text" 
-                    value={searchQuery} 
-                    onChange={e => setSearchQuery(e.target.value)} 
-                    placeholder={getPlaceholder()} 
-                    className="w-64 px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
-                    style={{ 
-                      borderColor: theme.border, 
-                      backgroundColor: theme.cardBackground, 
-                      color: theme.text,
-                      focusRingColor: theme.primary
-                    }}
-                  />
-                  <button 
-                    onClick={() => {
-                      setShowSearch(false);
-                      setSearchQuery('');
-                    }}
-                    className="p-1.5 rounded-md hover:bg-opacity-20 transition-colors"
-                    style={{ color: theme.textLight }}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              <ModernTooltip text="Search" position="bottom">
-                <button 
-                  className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
-                  onClick={() => {
-                    // On dashboard, use global search
-                    setShowSearch(s => !s);
-                  }} 
-                  style={{ color: theme.text }}
-                  aria-label="Toggle search"
-                  aria-expanded={showSearch}
-                >
-                  <Search className="h-5 w-5 md:h-5 md:w-5" />
-                </button>
-              </ModernTooltip>
-            </>
+            <form 
+              className="search-box-wrapper" 
+              style={{ color: theme.text }} 
+              onSubmit={(e) => { e.preventDefault(); }}
+              onClick={() => searchInputRef.current?.focus()}
+            >
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                placeholder=" "
+                style={{ color: theme.text }}
+              />
+              <button 
+                type="reset"
+                onClick={() => {
+                  setSearchQuery('');
+                  searchInputRef.current?.blur();
+                }}
+              />
+            </form>
           )}
           {/* Trial Button - Only show on dashboard */}
           {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
@@ -224,7 +182,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 }} 
                 style={{ color: theme.text }}
                 aria-label="Toggle search"
-                aria-expanded={showSearch}
               >
                 <Search className="h-5 w-5 md:h-5 md:w-5" />
               </button>

@@ -320,3 +320,89 @@ html, body, #root {
   opacity: 0.8;
   color: #5C7659;
 }
+
+/* Expanding Search Box Animation */
+.search-box-wrapper {
+  font-size: 14px;
+  border: solid 2px currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 2.5em;
+  overflow: hidden;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+
+.search-box-wrapper input[type="text"] {
+  font-family: inherit;
+  font-weight: normal;
+  width: 40px;
+  height: 40px;
+  padding: 6px 34px 6px 8px;
+  border: none;
+  box-sizing: border-box;
+  border-radius: 2.5em;
+  transition: width 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55) 150ms, padding 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55) 150ms;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.search-box-wrapper input[type="text"]:focus {
+  outline: none;
+}
+
+.search-box-wrapper input[type="text"]:focus,
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) {
+  width: 288px;
+  padding: 6px 34px 6px 16px;
+  transition: width 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55), padding 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+
+.search-box-wrapper input[type="text"]:focus ~ button[type="reset"],
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ button[type="reset"] {
+  transform: rotate(-45deg) translateY(0);
+  transition: transform 150ms ease-out 800ms;
+}
+
+.search-box-wrapper input[type="text"]:focus ~ button[type="reset"]:after,
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ button[type="reset"]:after {
+  opacity: 1;
+  transition: top 150ms ease-out 950ms, right 150ms ease-out 950ms, opacity 150ms ease 950ms;
+}
+
+.search-box-wrapper button[type="reset"] {
+  background-color: transparent;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  padding: 0;
+  outline: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  transform: rotate(-45deg) translateY(40px);
+  transition: transform 150ms ease-out 150ms;
+  cursor: pointer;
+}
+
+.search-box-wrapper button[type="reset"]:before,
+.search-box-wrapper button[type="reset"]:after {
+  content: "";
+  background-color: currentColor;
+  width: 2px;
+  height: 28px;
+  position: absolute;
+}
+
+.search-box-wrapper button[type="reset"]:after {
+  transform: rotate(90deg);
+  opacity: 0;
+  transition: transform 150ms ease-out, opacity 150ms ease-out;
+}

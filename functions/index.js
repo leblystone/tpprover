@@ -890,7 +890,8 @@ exports.scheduledTrialReminders = onSchedule({
 // Send lifetime access granted email
 exports.sendLifetimeAccessEmail = onCall(
   {
-    cors: true
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
   },
   async (request) => {
     const { userEmail, userName, reason } = request.data;

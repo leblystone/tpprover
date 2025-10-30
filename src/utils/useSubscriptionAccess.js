@@ -95,6 +95,11 @@ export function useSubscriptionAccess() {
 
         // Lifetime subscription
         if (effectiveSubscription.interval === 'lifetime') {
+          // Check if this is a granted lifetime access (not purchased)
+          const isLifetimeGranted = effectiveSubscription.lifetimeReason && 
+            !effectiveSubscription.paymentMethodId && 
+            !effectiveSubscription.stripeSubscriptionId;
+          
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
@@ -103,6 +108,8 @@ export function useSubscriptionAccess() {
             daysRemaining: Infinity,
             subscriptionStatus: 'active',
             subscriptionInterval: 'lifetime',
+            isLifetimeGranted: isLifetimeGranted,
+            lifetimeReason: effectiveSubscription.lifetimeReason || 'Purchased'
           });
           return;
         }

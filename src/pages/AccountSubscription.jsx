@@ -237,12 +237,19 @@ export default function AccountSubscription() {
                 <div>
                   <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
                     {sub.plan?.name || 'Research Subscription'}
+                    {/* Special display for lifetime granted accounts */}
+                    {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId && (
+                      <span className="ml-2 text-lg">🎁</span>
+                    )}
                   </h3>
                   <div 
                     className="text-sm font-medium"
                     style={{ color: getStatusColor(sub.status) }}
                   >
-                    {getStatusText(sub.status)}
+                    {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId 
+                      ? `🎁 Lifetime Granted (${sub.lifetimeReason})`
+                      : getStatusText(sub.status)
+                    }
                   </div>
                 </div>
               </div>
@@ -257,6 +264,57 @@ export default function AccountSubscription() {
             </div>
 
           </div>
+
+          {/* Special section for Lifetime Granted accounts */}
+          {sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId && (
+            <div 
+              className="p-6 rounded-lg border-2"
+              style={{ 
+                backgroundColor: theme.cardBackground,
+                borderColor: '#A3B18A',
+                background: 'linear-gradient(135deg, #F0FDF4 0%, #D4D7CD 100%)'
+              }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-3xl">🎁</div>
+                <div>
+                  <h3 className="text-lg font-bold" style={{ color: '#344E41' }}>
+                    Lifetime Granted Account
+                  </h3>
+                  <p className="text-sm" style={{ color: '#3A5A40' }}>
+                    You have special lifetime access - no payment required!
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">✨</span>
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Reason:</strong> {sub.lifetimeReason}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🔒</span>
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Access Level:</strong> Full platform access - forever
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">💳</span>
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Payment Method:</strong> None required - completely free!
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📅</span>
+                  <span className="text-sm" style={{ color: '#3A5A40' }}>
+                    <strong>Expires:</strong> Never! 🎊
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Subscription Plans - Show under trial countdown */}
           {sub.status === 'trialing' && (

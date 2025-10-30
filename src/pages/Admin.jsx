@@ -2274,11 +2274,22 @@ function Admin() {
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {user.email}
                               </span>
+                              {/* Special emoji for granted lifetime access */}
+                              {user.reason && !user.paymentMethodId && (
+                                <span style={{ fontSize: '16px', marginLeft: '4px' }}>🎁</span>
+                              )}
                             </div>
                           </td>
                           <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, minWidth: '150px' }}>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
-                              {user.reason || 'N/A'}
+                              {user.reason && !user.paymentMethodId ? (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span>🎁</span>
+                                  <span>{user.reason}</span>
+                                </span>
+                              ) : (
+                                user.reason || 'N/A'
+                              )}
                             </span>
                           </td>
                           <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, whiteSpace: 'nowrap' }}>
