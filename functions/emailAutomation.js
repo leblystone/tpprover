@@ -284,19 +284,36 @@ exports.checkRenewalReminders = onSchedule({
       const fourDaysFromNow = new Date(threeDaysFromNow);
       fourDaysFromNow.setDate(fourDaysFromNow.getDate() + 1);
 
-      // Query users whose subscription renews in 3 days
+      // Query users whose subscription renews in 3 days (exclude gift subscriptions)
       const usersSnapshot = await getDb().collection('users')
         .where('subscriptionRenewalDate', '>=', threeDaysFromNow)
         .where('subscriptionRenewalDate', '<', fourDaysFromNow)
         .where('subscriptionStatus', 'in', ['active', 'trialing'])
         .get();
 
-      logger.info(`📧 Found ${usersSnapshot.size} users with renewals in 3 days`);
+      // Filter out users with gift subscriptions
+      const filteredUsers = [];
+      for (const doc of usersSnapshot.docs) {
+        const userData = doc.data();
+        
+        // Check if user has a gift subscription
+        const giftSubscriptionSnapshot = await getDb().collection('userSubscriptions')
+          .where('userId', '==', doc.id)
+          .where('type', '==', 'gift')
+          .where('status', '==', 'active')
+          .get();
+        
+        // Only include users without active gift subscriptions
+        if (giftSubscriptionSnapshot.empty) {
+          filteredUsers.push({ doc, data: userData });
+        }
+      }
+
+      logger.info(`📧 Found ${filteredUsers.length} users with renewals in 3 days (excluding gift subscriptions)`);
 
       const emailPromises = [];
       
-      usersSnapshot.forEach((doc) => {
-        const userData = doc.data();
+      filteredUsers.forEach(({ doc, data: userData }) => {
         const userEmail = userData.email;
         
         if (userEmail) {
@@ -333,7 +350,80 @@ exports.checkRenewalReminders = onSchedule({
 );
 
 /**
- * 10. Weekly Research Reminder - Every Sunday for active users
+ * 10. Gift Subscription Expiring Soon - 3 days before gift expires
+ * Runs daily at 11 AM EST to check for expiring gift subscriptions
+ */
+exports.checkGiftExpiringSoon = onSchedule({
+    schedule: '0 16 * * *', // 11 AM EST (16:00 UTC)
+    timeZone: 'America/New_York',
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (event) => {
+    logger.info('🔍 Checking for gift subscriptions expiring in 3 days...');
+    
+    try {
+      // Calculate date 3 days from now
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+      threeDaysFromNow.setHours(0, 0, 0, 0);
+      
+      const fourDaysFromNow = new Date(threeDaysFromNow);
+      fourDaysFromNow.setDate(fourDaysFromNow.getDate() + 1);
+
+      // Query gift subscriptions expiring in 3 days
+      const giftSubscriptionsSnapshot = await getDb().collection('userSubscriptions')
+        .where('type', '==', 'gift')
+        .where('status', '==', 'active')
+        .where('endDate', '>=', admin.firestore.Timestamp.fromDate(threeDaysFromNow))
+        .where('endDate', '<', admin.firestore.Timestamp.fromDate(fourDaysFromNow))
+        .get();
+
+      logger.info(`📧 Found ${giftSubscriptionsSnapshot.size} gift subscriptions expiring in 3 days`);
+
+      const emailPromises = [];
+      
+      giftSubscriptionsSnapshot.forEach((doc) => {
+        const subscriptionData = doc.data();
+        const userEmail = subscriptionData.userEmail || subscriptionData.recipientEmail;
+        const planName = subscriptionData.plan || 'Pro Plan';
+        const giftGiverName = subscriptionData.giftGiverName;
+        
+        if (userEmail) {
+          logger.info(`📤 Sending gift expiring soon email to ${userEmail}`);
+          emailPromises.push(
+            emailService.sendGiftExpiringSoonEmail(userEmail, planName, 3, giftGiverName)
+              .then(success => {
+                if (success) {
+                  // Log the email event
+                  return getDb().collection('emailLogs').add({
+                    type: 'gift_expiring_soon',
+                    userEmail,
+                    userId: doc.id,
+                    planName,
+                    giftGiverName,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    status: 'sent'
+                  });
+                }
+              })
+              .catch(error => {
+                logger.error(`❌ Failed to send gift expiring soon email to ${userEmail}:`, error);
+              })
+          );
+        }
+      });
+
+      await Promise.all(emailPromises);
+      logger.info('✅ Gift expiring soon check completed');
+      
+    } catch (error) {
+      logger.error('❌ Error in gift expiring soon check:', error);
+    }
+  }
+);
+
+/**
+ * 11. Weekly Research Reminder - Every Sunday for active users
  * Runs every Sunday at 11 AM EST
  */
 exports.sendWeeklyResearchReminders = onSchedule({

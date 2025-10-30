@@ -232,7 +232,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     <div className="rounded p-3 content-card shadow-lg" style={{ border: theme.isDark ? '1px solid #374151' : '2px solid #5C7659', backgroundColor: theme.isDark ? '#111827' : '#f8f9fa' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Crown size={18} style={{ color: theme.isDark ? '#fbbf24' : theme.primary }} />
+                <Crown size={18} style={{ color: theme.isDark ? '#d97706' : theme.primary }} />
                 <span className="font-semibold text-base" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>
                   7-Day Researcher Access
                 </span>
@@ -261,7 +261,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
               </div>
               
               {timeLeft.days > 0 || timeLeft.hours > 0 || timeLeft.minutes > 0 || timeLeft.seconds > 0 ? (
-                <div className="flex justify-center gap-3 text-lg font-bold" style={{ color: theme.isDark ? '#fbbf24' : '#2d7d5a' }}>
+                <div className="flex justify-center gap-3 text-lg font-bold" style={{ color: theme.isDark ? '#d97706' : '#2d7d5a' }}>
                   {timeLeft.days > 0 && (
                     <div className="flex flex-col items-center">
                       <span>{timeLeft.days}</span>
@@ -282,7 +282,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                   </div>
                 </div>
               ) : (
-                <div className="text-lg font-bold" style={{ color: theme.isDark ? '#fbbf24' : '#344E41' }}>
+                <div className="text-lg font-bold" style={{ color: theme.isDark ? '#d97706' : '#344E41' }}>
                   Trial Expired
                 </div>
               )}
@@ -307,7 +307,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 >
                   <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>MONTHLY</div>
                   <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>Flexible</div>
-                  <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.primary }}>
+                  <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
                     {isProcessing ? '...' : 'Select →'}
                   </div>
                 </button>
@@ -315,7 +315,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 {/* Annual Plan - Popular */}
                 <div className="relative">
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
-                    <div className="bg-yellow-400 text-yellow-900 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
+                    <div className="text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg" style={{ backgroundColor: theme.isDark ? '#92400e' : '#fbbf24', color: theme.isDark ? '#fef3c7' : '#92400e' }}>
                       <Zap size={12} />
                       Popular
                     </div>
@@ -325,14 +325,14 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                     disabled={isProcessing}
                     className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50 w-full"
                     style={{ 
-                      border: theme.isDark ? `2px solid #fbbf24` : `2px solid ${theme.primary}`,
+                      border: theme.isDark ? `2px solid #d97706` : `2px solid ${theme.primary}`,
                       backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground 
                     }}
                   >
                     <div className="pt-2">
                       <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>ANNUAL</div>
-                      <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.success }}>Best value</div>
-                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.primary }}>
+                      <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.success }}>Best value</div>
+                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
                         {isProcessing ? '...' : 'Select →'}
                       </div>
                     </div>
@@ -342,7 +342,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 {/* Lifetime Plan */}
                 <div className="relative">
                   <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
-                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold text-white shadow-lg" style={{ backgroundColor: theme.isDark ? '#dc2626' : theme.primaryDark, fontSize: '10px' }}>
+                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold shadow-lg" style={{ backgroundColor: theme.isDark ? '#991b1b' : theme.primaryDark, color: theme.isDark ? '#fecaca' : 'white', fontSize: '10px' }}>
                       Limited
                     </div>
                   </div>
@@ -358,7 +358,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                     <div className="pt-2">
                       <div className="font-bold text-sm plan-text" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>LIFETIME</div>
                       <div className="text-xs mt-1 plan-text" style={{ color: theme.isDark ? '#9ca3af' : theme.textLight }}>One-time</div>
-                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#fbbf24' : theme.primary }}>
+                      <div className="text-xs font-semibold mt-2 plan-text" style={{ color: theme.isDark ? '#d97706' : theme.primary }}>
                         {isProcessing ? '...' : 'Select →'}
                       </div>
                     </div>

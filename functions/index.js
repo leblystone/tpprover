@@ -515,6 +515,7 @@ exports.testSendGridConnection = onCall(
 );
 exports.checkTrialEndingSoon = emailAutomation.checkTrialEndingSoon;
 exports.checkRenewalReminders = emailAutomation.checkRenewalReminders;
+exports.checkGiftExpiringSoon = emailAutomation.checkGiftExpiringSoon;
 exports.sendWeeklyResearchReminders = emailAutomation.sendWeeklyResearchReminders;
 exports.testEmailAutomation = emailAutomation.testEmailAutomation;
 exports.getEmailStats = emailAutomation.getEmailStats;

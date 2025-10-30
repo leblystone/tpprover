@@ -552,6 +552,64 @@ exports.testEmailSystem = onCall(
         emailResult = false;
       }
       emailName = 'Payment Failed Email';
+    } else if (templateType === 'giftExpiringSoon') {
+      logger.info('Testing gift expiring soon email...');
+      
+      // Use custom template data if provided, otherwise use simple test
+      let htmlContent, subjectText;
+      
+      if (templateData) {
+        // Use the custom template from admin panel
+        const { generateEmailHTML } = require('./emailService');
+        htmlContent = generateEmailHTML(templateData, { 
+          userName: 'Test User', 
+          userEmail: testEmail,
+          daysLeft: 3,
+          planName: 'Monthly Gift Plan',
+          giftGiverName: 'Test Friend'
+        });
+        subjectText = templateData.subject || 'Your Gifted Research Time Is Ending Soon - The Pep Planner';
+        logger.info('✅ Using custom template from admin panel');
+      } else {
+        // Simple fallback
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #f59e0b;">🎁 Your Gifted Research Time Is Ending Soon</h1>
+            <p>Your gifted Monthly Gift Plan subscription from Test Friend is ending in 3 days.</p>
+            <p>Don't let your research organization stop! Extend your access with our flexible plans.</p>
+            <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        subjectText = 'Your Gifted Research Time Is Ending Soon - The Pep Planner';
+      }
+      
+      try {
+        const sgMail = require('@sendgrid/mail');
+        const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+        
+        if (!apiKey || !apiKey.startsWith('SG.')) {
+          throw new Error('Invalid SendGrid API key');
+        }
+        
+        sgMail.setApiKey(apiKey);
+        
+        const msg = {
+          to: testEmail,
+          from: {
+            email: 'contact@thepepplanner.com',
+            name: 'The Pep Planner'
+          },
+          subject: subjectText,
+          html: htmlContent
+        };
+        
+        await sgMail.send(msg);
+        emailResult = true;
+      } catch (error) {
+        logger.error('Gift expiring soon email failed:', error);
+        emailResult = false;
+      }
+      emailName = 'Gift Expiring Soon Email';
     } else {
       // Default: send all emails for general testing
       logger.info('Testing all email types...');
@@ -559,6 +617,7 @@ exports.testEmailSystem = onCall(
       const welcomeResult = await emailService.sendWelcomeEmail(testEmail, 'Test User');
       const trialResult = await emailService.sendTrialEndingEmail(testEmail, 2);
       const lifetimeResult = await emailService.sendLifetimeAccessGrantedEmail(testEmail, 'System Test');
+      const giftExpiringResult = await emailService.sendGiftExpiringSoonEmail(testEmail, 'Monthly Gift Plan', 3, 'Test Friend');
       
       results.tests.welcomeEmail = {
         success: welcomeResult,
@@ -571,6 +630,10 @@ exports.testEmailSystem = onCall(
       results.tests.lifetimeAccessEmail = {
         success: lifetimeResult,
         message: lifetimeResult ? 'Email sent successfully' : 'Email failed to send'
+      };
+      results.tests.giftExpiringSoonEmail = {
+        success: giftExpiringResult,
+        message: giftExpiringResult ? 'Email sent successfully' : 'Email failed to send'
       };
 
       const successCount = Object.values(results.tests).filter(test => test.success).length;

@@ -159,6 +159,23 @@ const DEFAULT_TEMPLATES = {
       'Data Analytics – Visualize trends and metrics',
       'Priority Support – Get help when you need it'
     ]
+  },
+  giftExpiringSoon: {
+    name: 'Gift Subscription Expiring Soon',
+    subject: '🎁 Your Gifted Research Time Is Ending Soon - The Pep Planner',
+    heading: 'Your Gifted Research Time Is Ending Soon',
+    greeting: 'Hi there!',
+    mainMessage: 'Your gifted subscription from a friend is ending soon. Don\'t let your research organization stop!',
+    ctaText: 'Extend Your Research Plan',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: '⏰ Time Remaining',
+    highlightMessage: 'Your gift expires in 3 days. Continue your research journey with our flexible plans.',
+    features: [
+      'Continue organizing your research seamlessly',
+      'Keep all your data and research notes',
+      'Choose from monthly, quarterly, or annual plans',
+      'Flexible pricing to fit your research needs'
+    ]
   }
 };
 
