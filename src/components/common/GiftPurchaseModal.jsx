@@ -71,29 +71,25 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
       
       // Create Stripe checkout session for gift (one-time payment)
       // Use the actual Stripe price ID for the selected gift option
-      const checkoutResult = await createCheckoutSession(
+      await createCheckoutSession(
         selectedOption.priceId,
         user.email,
         user.uid,
         '/gift-success',
-        true // isGift flag
+        true, // isGift flag
+        {
+          cancelPath: window.location.pathname + window.location.search,
+          successPath: '/gift-success',
+          giftData: {
+            recipientEmail: formData.recipientEmail,
+            recipientName: formData.recipientName,
+            giftGiverName: formData.giftGiverName,
+            giftMessage: formData.giftMessage,
+            subscriptionType: formData.subscriptionType,
+            pricePaid: selectedOption.price
+          }
+        }
       );
-
-      // Create gift access record
-      const createGiftAccess = httpsCallable(functions, 'createGiftAccess');
-      await createGiftAccess({
-        giftGiverEmail: user.email,
-        giftGiverName: formData.giftGiverName,
-        recipientEmail: formData.recipientEmail,
-        recipientName: formData.recipientName,
-        giftMessage: formData.giftMessage,
-        subscriptionType: formData.subscriptionType,
-        stripePaymentIntentId: checkoutResult.paymentIntentId,
-        pricePaid: selectedOption.price
-      });
-
-      // Redirect to Stripe checkout
-      window.location.href = checkoutResult.url;
 
     } catch (error) {
       console.error('Error creating gift:', error);

@@ -78,6 +78,13 @@ exports.createCheckoutSession = onCall(
           metadata: {
             userId: userId,
             isGift: isGift ? "true" : "false", // Store as string for metadata
+            // Attach gift info so we can securely finalize after payment
+            recipientEmail: giftData?.recipientEmail || '',
+            recipientName: giftData?.recipientName || '',
+            giftGiverName: giftData?.giftGiverName || '',
+            giftMessage: giftData?.giftMessage || '',
+            subscriptionType: giftData?.subscriptionType || '',
+            priceAtPurchase: String(giftData?.pricePaid || ''),
           },
         });
         return {id: session.id};
@@ -90,6 +97,55 @@ exports.createCheckoutSession = onCall(
           statusCode: error.statusCode,
           raw: error.raw
         });
+
+// Securely finalize a gift purchase using the Stripe session id
+const giftAccess = require('./giftAccess');
+exports.completeGiftFromSession = onCall(
+  { cors: true },
+  async (request) => {
+    if (!request.data?.sessionId) {
+      throw new Error('sessionId is required');
+    }
+    const { sessionId } = request.data;
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (!session) {
+        throw new Error('Checkout session not found');
+      }
+      if (session.payment_status !== 'paid') {
+        return { success: false, status: session.payment_status };
+      }
+      const meta = session.metadata || {};
+      if (meta.isGift !== 'true') {
+        return { success: false, status: 'not_gift' };
+      }
+      // Create the gift record now that payment is confirmed
+      const created = await giftAccess.createGiftAccess(
+        session.customer_details?.email || session.customer_email,
+        meta.giftGiverName || '',
+        meta.recipientEmail || '',
+        meta.recipientName || null,
+        meta.giftMessage || '',
+        meta.subscriptionType || 'monthly',
+        session.payment_intent,
+        Number(meta.priceAtPurchase || 0)
+      );
+      return {
+        success: true,
+        gift: {
+          recipientEmail: created.recipientEmail,
+          recipientName: created.recipientName || null,
+          giftMessage: created.giftMessage || '',
+          subscriptionType: created.subscriptionType,
+          giftId: created.giftId,
+        }
+      };
+    } catch (err) {
+      console.error('completeGiftFromSession error:', err);
+      throw new Error(err.message || 'Failed to complete gift');
+    }
+  }
+);
         // Return more detailed error for debugging
         throw new Error(`Stripe Error: ${error.type || 'unknown'} - ${error.message || 'No message'}`);
       }

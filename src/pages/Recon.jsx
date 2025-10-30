@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
@@ -36,6 +36,7 @@ export default function Recon() {
 	const [prefill, setPrefill] = useState(null)
 	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history | calculator
 	const [searchOpen, setSearchOpen] = useState(false)
+	const [searchClosing, setSearchClosing] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
@@ -188,6 +189,16 @@ export default function Recon() {
 		};
 	}, [activeTab]);
 
+	// Handle search close with animation
+	const handleCloseSearch = () => {
+		setSearchClosing(true);
+		setTimeout(() => {
+			setSearchOpen(false);
+			setSearchClosing(false);
+			setSearchQuery('');
+		}, 200); // Match animation duration
+	};
+
 	return (
 		<>
 			<ReconHelpPanel theme={theme} />
@@ -322,13 +333,13 @@ export default function Recon() {
 					
 					{/* Page-specific search input that appears below topbar when opened */}
 					{searchOpen && activeTab !== 'calculator' && (
-						<div className="mb-4 animate-slide-down">
+						<div className={`mb-4 relative ${searchClosing ? 'animate-slide-up' : 'animate-slide-down'}`}>
 							<input 
 								value={searchQuery} 
 								onChange={e => setSearchQuery(e.target.value)} 
 								placeholder="Search recon entries..." 
 								autoFocus
-								className="w-full p-3 rounded-lg text-sm focus:outline-none transition-all" 
+								className="w-full p-3 pr-10 rounded-lg text-sm focus:outline-none transition-all" 
 								style={{ 
 									border: 'none',
 									backgroundColor: theme.cardBackground,
@@ -336,6 +347,14 @@ export default function Recon() {
 									boxShadow: theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)'
 								}} 
 							/>
+							<button
+								onClick={handleCloseSearch}
+								className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-opacity-20 transition-colors"
+								style={{ color: theme.textLight }}
+								title="Close search"
+							>
+								<X className="h-4 w-4" />
+							</button>
 						</div>
 					)}
 

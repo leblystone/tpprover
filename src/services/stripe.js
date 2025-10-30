@@ -49,7 +49,7 @@ if (typeof document !== 'undefined') {
  * @param {string} returnPath - Path to return to after checkout (default: current location)
  * @returns {Promise<void>}
  */
-export async function createCheckoutSession(priceId, userEmail, userId, returnPath = null, isGift = false) {
+export async function createCheckoutSession(priceId, userEmail, userId, returnPath = null, isGift = false, options = {}) {
   try {
     // Check if Stripe is configured
     if (!STRIPE_CONFIG.publishableKey || STRIPE_CONFIG.publishableKey === 'undefined') {
@@ -92,6 +92,8 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
     
     // Ensure returnPath starts with /
     const normalizedPath = returnPath.startsWith('/') ? returnPath : `/${returnPath}`;
+    const successPath = (options.successPath || normalizedPath);
+    const cancelPath = (options.cancelPath || window.location.pathname + window.location.search);
     
     let result;
     try {
@@ -99,9 +101,10 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
         priceId,
         userEmail,
         userId,
-        successUrl: `${window.location.origin}${normalizedPath}?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}${normalizedPath}`,
-        isGift: isGift || false
+        successUrl: `${window.location.origin}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}${cancelPath}`,
+        isGift: isGift || false,
+        giftData: options.giftData || undefined
       });
     } catch (funcError) {
       // Check if this is a "function not deployed" error
