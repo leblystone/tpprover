@@ -313,6 +313,15 @@ exports.sendPasswordResetEmail = async (userEmail, resetLink) => {
  * Send trial ending soon reminder
  */
 exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
+  // Try Firestore template
+  try {
+    const customTemplate = await loadEmailTemplate('trialEnding');
+    if (customTemplate) {
+      const subject = customTemplate.subject || `Your trial ends in ${daysLeft} days - The Pep Planner`;
+      const html = generateEmailHTML(customTemplate, { daysLeft });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = `Your trial ends in ${daysLeft} days - The Pep Planner`;
   const html = emailTemplates.trialEndingEmail(daysLeft, userEmail);
   return sendEmail(userEmail, subject, html);
@@ -322,6 +331,14 @@ exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
  * Send subscription confirmation
  */
 exports.sendSubscriptionConfirmationEmail = async (userEmail, plan, interval, price) => {
+  try {
+    const customTemplate = await loadEmailTemplate('subscription');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Subscription Confirmed - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { plan, interval, price });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = 'Subscription Confirmed - The Pep Planner';
   const html = emailTemplates.subscriptionConfirmedEmail(plan, interval, price);
   return sendEmail(userEmail, subject, html);
@@ -349,6 +366,14 @@ exports.sendSubscriptionConfirmedEmail = async (userEmail, plan) => {
  * Send payment failed email
  */
 exports.sendPaymentFailedEmail = async (userEmail, amount, currency, invoiceUrl) => {
+  try {
+    const customTemplate = await loadEmailTemplate('paymentFailed');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Payment Failed - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { amount, currency, invoiceUrl });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = 'Payment Failed - The Pep Planner';
   const html = emailTemplates.paymentFailedEmail(amount, currency, invoiceUrl);
   return sendEmail(userEmail, subject, html);
@@ -358,6 +383,14 @@ exports.sendPaymentFailedEmail = async (userEmail, amount, currency, invoiceUrl)
  * Send payment successful email
  */
 exports.sendPaymentSuccessfulEmail = async (userEmail, amount, currency, receiptUrl) => {
+  try {
+    const customTemplate = await loadEmailTemplate('paymentSuccessful');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Payment Confirmed - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { amount, currency, receiptUrl });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = 'Payment Confirmed - The Pep Planner';
   const html = emailTemplates.paymentSuccessfulEmail(amount, currency, receiptUrl);
   return sendEmail(userEmail, subject, html);
@@ -367,6 +400,14 @@ exports.sendPaymentSuccessfulEmail = async (userEmail, amount, currency, receipt
  * Send subscription cancelled email
  */
 exports.sendSubscriptionCancelledEmail = async (userEmail, planName, endDate) => {
+  try {
+    const customTemplate = await loadEmailTemplate('subscriptionCancelled');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Subscription Cancelled - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { planName, endDate });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = 'Subscription Cancelled - The Pep Planner';
   const html = emailTemplates.subscriptionCancelledEmail(planName, endDate);
   return sendEmail(userEmail, subject, html);
@@ -376,6 +417,14 @@ exports.sendSubscriptionCancelledEmail = async (userEmail, planName, endDate) =>
  * Send renewal reminder email
  */
 exports.sendRenewalReminderEmail = async (userEmail, planName) => {
+  try {
+    const customTemplate = await loadEmailTemplate('renewalReminder');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Your subscription renews in 3 days - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { planName });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = 'Your subscription renews in 3 days - The Pep Planner';
   const html = emailTemplates.renewalReminderEmail(planName);
   return sendEmail(userEmail, subject, html);
@@ -385,6 +434,14 @@ exports.sendRenewalReminderEmail = async (userEmail, planName) => {
  * Send weekly research reminder email
  */
 exports.sendWeeklyResearchReminderEmail = async (userEmail, firstName) => {
+  try {
+    const customTemplate = await loadEmailTemplate('weeklyReminder');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Weekly Research Check-in - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { firstName });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = 'Weekly Research Check-in - The Pep Planner';
   const html = emailTemplates.weeklyResearchReminderEmail(firstName);
   return sendEmail(userEmail, subject, html);
@@ -396,6 +453,14 @@ exports.sendWeeklyResearchReminderEmail = async (userEmail, firstName) => {
  * Send gift notification email to recipient
  */
 exports.sendGiftNotificationEmail = async (recipientEmail, recipientName, giftGiverName, giftMessage, giftId, subscriptionType) => {
+  try {
+    const customTemplate = await loadEmailTemplate('giftNotification');
+    if (customTemplate) {
+      const subject = customTemplate.subject || '🎁 You\'ve Received a Gift Subscription to The Pep Planner!';
+      const html = generateEmailHTML(customTemplate, { recipientName, giftGiverName, giftMessage, giftId, subscriptionType });
+      return sendEmail(recipientEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = '🎁 You\'ve Received a Gift Subscription to The Pep Planner!';
   const html = emailTemplates.giftNotificationEmail(recipientName, giftGiverName, giftMessage, giftId, subscriptionType);
   return sendEmail(recipientEmail, subject, html);
@@ -405,6 +470,14 @@ exports.sendGiftNotificationEmail = async (recipientEmail, recipientName, giftGi
  * Send gift purchase confirmation email to giver
  */
 exports.sendGiftPurchaseConfirmationEmail = async (giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid) => {
+  try {
+    const customTemplate = await loadEmailTemplate('giftPurchaseConfirmation');
+    if (customTemplate) {
+      const subject = customTemplate.subject || '🎁 Gift Purchase Confirmed - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid });
+      return sendEmail(giftGiverEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = '🎁 Gift Purchase Confirmed - The Pep Planner';
   const html = emailTemplates.giftPurchaseConfirmationEmail(giftGiverEmail, giftGiverName, recipientEmail, giftMessage, giftId, subscriptionType, pricePaid);
   return sendEmail(giftGiverEmail, subject, html);
@@ -414,6 +487,14 @@ exports.sendGiftPurchaseConfirmationEmail = async (giftGiverEmail, giftGiverName
  * Send gift redeemed confirmation email to recipient
  */
 exports.sendGiftRedeemedEmail = async (recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate) => {
+  try {
+    const customTemplate = await loadEmailTemplate('giftRedeemed');
+    if (customTemplate) {
+      const subject = customTemplate.subject || '🎉 Gift Successfully Redeemed - Welcome to The Pep Planner!';
+      const html = generateEmailHTML(customTemplate, { giftGiverName, subscriptionType, subscriptionEndDate });
+      return sendEmail(recipientEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = '🎉 Gift Successfully Redeemed - Welcome to The Pep Planner!';
   const html = emailTemplates.giftRedeemedEmail(recipientEmail, giftGiverName, subscriptionType, subscriptionEndDate);
   return sendEmail(recipientEmail, subject, html);
@@ -423,6 +504,14 @@ exports.sendGiftRedeemedEmail = async (recipientEmail, giftGiverName, subscripti
  * Send gift redeemed notification email to giver
  */
 exports.sendGiftRedeemedNotificationEmail = async (giftGiverEmail, giftGiverName, recipientEmail, subscriptionType) => {
+  try {
+    const customTemplate = await loadEmailTemplate('giftRedeemedNotification');
+    if (customTemplate) {
+      const subject = customTemplate.subject || '🎉 Your Gift Was Redeemed - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { giftGiverName, recipientEmail, subscriptionType });
+      return sendEmail(giftGiverEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = '🎉 Your Gift Was Redeemed - The Pep Planner';
   const html = emailTemplates.giftRedeemedNotificationEmail(giftGiverEmail, giftGiverName, recipientEmail, subscriptionType);
   return sendEmail(giftGiverEmail, subject, html);
@@ -432,6 +521,14 @@ exports.sendGiftRedeemedNotificationEmail = async (giftGiverEmail, giftGiverName
  * Send gift subscription expiring soon email
  */
 exports.sendGiftExpiringSoonEmail = async (recipientEmail, planName, daysLeft, giftGiverName) => {
+  try {
+    const customTemplate = await loadEmailTemplate('giftExpiringSoon');
+    if (customTemplate) {
+      const subject = customTemplate.subject || `🎁 Your Gifted Research Time Is Ending in ${daysLeft} ${daysLeft === 1 ? 'Day' : 'Days'} - The Pep Planner`;
+      const html = generateEmailHTML(customTemplate, { planName, daysLeft, giftGiverName });
+      return sendEmail(recipientEmail, subject, html);
+    }
+  } catch (e) { /* ignore */ }
   const subject = `🎁 Your Gifted Research Time Is Ending in ${daysLeft} ${daysLeft === 1 ? 'Day' : 'Days'} - The Pep Planner`;
   const html = emailTemplates.giftExpiringSoonEmail(recipientEmail, planName, daysLeft, giftGiverName);
   return sendEmail(recipientEmail, subject, html);

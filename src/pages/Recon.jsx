@@ -35,8 +35,6 @@ export default function Recon() {
     const { isSaving, lastSaved, clearSavedData, updateFormData } = useAutoSave('tpprover_recon_add_draft', draft, setDraft, 1200)
 	const [prefill, setPrefill] = useState(null)
 	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history | calculator
-	const [searchOpen, setSearchOpen] = useState(false)
-	const [searchClosing, setSearchClosing] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
@@ -177,27 +175,17 @@ export default function Recon() {
 		window.addEventListener('resize', updateTabs);
 		
 		// Listen for topbar search events for page-specific search
-		const handleSearchToggle = () => {
-			setSearchOpen(v => !v);
+		const handleSearch = (e) => {
+			setSearchQuery(e.detail.query);
 		};
-		window.addEventListener('tpp:recon-search-toggle', handleSearchToggle);
+		window.addEventListener('tpp:recon-search', handleSearch);
 		
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('resize', updateTabs);
-			window.removeEventListener('tpp:recon-search-toggle', handleSearchToggle);
+			window.removeEventListener('tpp:recon-search', handleSearch);
 		};
 	}, [activeTab]);
-
-	// Handle search close with animation
-	const handleCloseSearch = () => {
-		setSearchClosing(true);
-		setTimeout(() => {
-			setSearchOpen(false);
-			setSearchClosing(false);
-			setSearchQuery('');
-		}, 200); // Match animation duration
-	};
 
 	return (
 		<>
@@ -318,37 +306,10 @@ export default function Recon() {
 				}} />
 				</div>
 
-				{/* Main content area */}
-				<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
-					
-					{/* Page-specific search input that appears below topbar when opened */}
-					{searchOpen && activeTab !== 'calculator' && (
-						<div className={`mb-4 relative ${searchClosing ? 'animate-slide-up' : 'animate-slide-down'}`}>
-							<input 
-								value={searchQuery} 
-								onChange={e => setSearchQuery(e.target.value)} 
-								placeholder="Search recon entries..." 
-								autoFocus
-								className="w-full p-3 pr-10 rounded-lg text-sm focus:outline-none transition-all" 
-								style={{ 
-									border: 'none',
-									backgroundColor: theme.cardBackground,
-									color: theme.text,
-									boxShadow: theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)'
-								}} 
-							/>
-							<button
-								onClick={handleCloseSearch}
-								className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-opacity-20 transition-colors"
-								style={{ color: theme.textLight }}
-								title="Close search"
-							>
-								<X className="h-4 w-4" />
-							</button>
-						</div>
-					)}
-
-					{activeTab === 'reconstituted' && (
+			{/* Main content area */}
+			<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
+				
+				{activeTab === 'reconstituted' && (
 						<div className="space-y-3">
 							{/* Empty State - Show when no items */}
 							{sortedItems.length === 0 ? (

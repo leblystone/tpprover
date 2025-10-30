@@ -68,9 +68,8 @@ export default function Stockpile() {
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchClosing, setSearchClosing] = useState(false)
   
   // Drag & Drop Merge functionality
   const [isDragMode, setIsDragMode] = useState(false)
@@ -98,12 +97,13 @@ export default function Stockpile() {
   const filtered = useMemo(() => {
     return (items || []).filter(i => {
       const vendorName = i.vendorId ? vendorMap[i.vendorId] : (i.vendor || '');
+      const combinedQuery = query || searchQuery;
       return (
         (!vendorFilter || vendorName.toLowerCase().includes(vendorFilter.toLowerCase())) &&
-        (!query || (i.name || '').toLowerCase().includes(query.toLowerCase()) || String(i.batchNumber || '').toLowerCase().includes(query.toLowerCase()))
+        (!combinedQuery || (i.name || '').toLowerCase().includes(combinedQuery.toLowerCase()) || String(i.batchNumber || '').toLowerCase().includes(combinedQuery.toLowerCase()))
       )
     })
-  }, [items, vendorFilter, query, vendorMap])
+  }, [items, vendorFilter, query, searchQuery, vendorMap])
 
   const groups = useMemo(() => {
     const map = new Map()
@@ -302,8 +302,15 @@ export default function Stockpile() {
       } 
     }));
     
+    // Listen for topbar search events for page-specific search
+    const handleSearch = (e) => {
+      setSearchQuery(e.detail.query);
+    };
+    window.addEventListener('tpp:stockpile-search', handleSearch);
+    
     return () => {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+      window.removeEventListener('tpp:stockpile-search', handleSearch);
     };
   }, [activeTab, isReadOnly])
   const saveManage = () => {

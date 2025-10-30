@@ -23,6 +23,7 @@ export default function Orders() {
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true)
+	const [searchQuery, setSearchQuery] = useState('')
 	
 	// Check if group buys are enabled
 	useEffect(() => {
@@ -85,18 +86,36 @@ export default function Orders() {
 			} 
 		}));
 		
+		// Listen for topbar search events for page-specific search
+		const handleSearch = (e) => {
+			setSearchQuery(e.detail.query);
+		};
+		window.addEventListener('tpp:orders-search', handleSearch);
+		
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+			window.removeEventListener('tpp:orders-search', handleSearch);
 		};
 	}, [activeTab, isReadOnly, groupBuysEnabled])
 
 
 	const filteredOrders = useMemo(() => {
-		return orders.filter(o => {
+		if (searchQuery) {
+			return orders.filter(o => {
+				const peptideMatch = (o.peptide || '').toLowerCase().includes(searchQuery.toLowerCase());
+				const vendorMatch = (o.vendor || '').toLowerCase().includes(searchQuery.toLowerCase());
+				return peptideMatch || vendorMatch;
+			});
+		}
+		return orders;
+	}, [orders, searchQuery]);
+	
+	const filteredOrdersByCategory = useMemo(() => {
+		return filteredOrders.filter(o => {
 			const orderCategory = o.category || o.type || 'domestic';
 			return orderCategory === activeTab;
 		})
-	}, [orders, activeTab]);
+	}, [filteredOrders, activeTab]);
 
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
 		const prevStatus = (previousOrder?.status || '').toLowerCase();
@@ -312,9 +331,9 @@ export default function Orders() {
 						)}
 					</div>
 				) : (
-					filteredOrders.length > 0 ? (
+					filteredOrdersByCategory.length > 0 ? (
 						<OrderList 
-							orders={filteredOrders} 
+							orders={filteredOrdersByCategory} 
 							onEdit={(order) => { 
 								if (isReadOnly) {
 									setShowUpgradeModal(true);

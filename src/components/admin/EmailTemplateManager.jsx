@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, Zap } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { db } from '../../config/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const DEFAULT_TEMPLATES = {
   welcome: {
@@ -224,7 +226,6 @@ const DEFAULT_COLORS = {
 export default function EmailTemplateManager({ theme }) {
   const [selectedTemplate, setSelectedTemplate] = useState('welcome');
   const [templates, setTemplates] = useState(() => {
-    // Load from localStorage or use defaults
     const saved = localStorage.getItem('tpp_email_templates');
     return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;
   });
@@ -239,17 +240,69 @@ export default function EmailTemplateManager({ theme }) {
 
   const currentTemplate = templates[selectedTemplate];
 
-  // Save templates to localStorage
-  const saveTemplates = () => {
+  // Load all templates from Firestore into state (merging with defaults)
+  useEffect(() => {
+    const loadFromFirestore = async () => {
+      try {
+        const keys = Object.keys(DEFAULT_TEMPLATES);
+        const loaded = { ...DEFAULT_TEMPLATES };
+
+        for (const key of keys) {
+          const snap = await getDoc(doc(db, 'emailTemplates', key));
+          if (snap.exists()) {
+            const data = snap.data();
+            loaded[key] = {
+              ...loaded[key],
+              ...data,
+            };
+          }
+        }
+
+        // Try global colors in a special doc
+        const colorSnap = await getDoc(doc(db, 'emailTemplates', '_branding'));
+        const fsColors = colorSnap.exists() ? (colorSnap.data()?.colors || DEFAULT_COLORS) : DEFAULT_COLORS;
+
+        setTemplates(loaded);
+        setColors(fsColors);
+
+        // Mirror to localStorage for quick reloads
+        localStorage.setItem('tpp_email_templates', JSON.stringify(loaded));
+        localStorage.setItem('tpp_email_colors', JSON.stringify(fsColors));
+      } catch (e) {
+        console.error('Failed to load email templates from Firestore:', e);
+      }
+    };
+
+    loadFromFirestore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save templates to Firestore (and localStorage)
+  const saveTemplates = async () => {
     setIsSaving(true);
-    localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
-    localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
-    
-    window.dispatchEvent(new CustomEvent('tpp:toast', {
-      detail: { message: '✅ Email templates saved!', type: 'success' }
-    }));
-    
-    setTimeout(() => setIsSaving(false), 1000);
+    try {
+      // Persist each template with embedded colors so backend can render consistently
+      const entries = Object.entries(templates);
+      for (const [key, tpl] of entries) {
+        await setDoc(doc(db, 'emailTemplates', key), { ...tpl, colors }, { merge: true });
+      }
+      // Save branding colors separately too (optional)
+      await setDoc(doc(db, 'emailTemplates', '_branding'), { colors }, { merge: true });
+
+      localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
+      localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
+
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: '✅ Templates saved to Firestore!', type: 'success' }
+      }));
+    } catch (e) {
+      console.error('Failed to save templates to Firestore:', e);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: '❌ Failed to save templates', type: 'error' }
+      }));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Test webhook email simulation

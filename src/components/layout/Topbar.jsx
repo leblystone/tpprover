@@ -48,6 +48,21 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   };
   
   const mobileTitle = titles[seg] || 'Dashboard';
+
+  const getPlaceholderForPage = (pageSeg) => {
+    const placeholders = {
+      recon: 'Search recon entries...',
+      orders: 'Search orders...',
+      protocols: 'Search protocols...',
+      stockpile: 'Search stockpile...',
+      vendors: 'Search vendors...',
+      glossary: 'Search glossary...',
+      research: 'Search supplements...',
+      calendar: 'Search events...',
+      imports: 'Search imports...',
+    };
+    return placeholders[pageSeg] || 'Search...';
+  };
   const desktopTitle = desktopTitles[seg] || mobileTitle;
 
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -181,22 +196,50 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               </form>
             </div>
           )}
-          {!onDashboard && seg !== 'stockpile' && seg !== 'protocols' && seg !== 'settings' && seg !== 'account' && (
-            <ModernTooltip text="Search" position="bottom">
-              <button 
-                className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
-                onClick={() => {
-                  // On recon, orders, protocols, or stockpile pages, trigger page-specific search
-                  if (seg === 'recon' || seg === 'orders' || seg === 'protocols' || seg === 'stockpile') {
-                    window.dispatchEvent(new CustomEvent(`tpp:${seg}-search-toggle`));
-                  }
-                }} 
-                style={{ color: theme.text }}
-                aria-label="Toggle search"
+          {/* Search for other pages */}
+          {!onDashboard && seg !== 'settings' && seg !== 'account' && (
+            <div className="flex items-center">
+              <ModernTooltip text="Search" position="bottom">
+                <button
+                  onClick={() => {
+                    // Create a unique search ref for each page if needed
+                    const pageSearchRef = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
+                    if (pageSearchRef) {
+                      pageSearchRef.focus();
+                    }
+                  }}
+                  className="p-2 rounded-full no-shadow flex-shrink-0 mr-2"
+                  style={{ color: theme.text }}
+                  aria-label="Focus search"
+                >
+                  <Search className="h-5 w-5" />
+                </button>
+              </ModernTooltip>
+              <form 
+                className="search-box-wrapper" 
+                style={{ color: theme.text, backgroundColor: theme.cardBackground }}
+                onSubmit={(e) => { e.preventDefault(); }}
               >
-                <Search className="h-5 w-5 md:h-5 md:w-5" />
-              </button>
-            </ModernTooltip>
+                <input 
+                  type="text" 
+                  data-page={seg}
+                  onChange={(e) => window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: e.target.value } }))} 
+                  placeholder={getPlaceholderForPage(seg)}
+                  style={{ color: theme.text }}
+                />
+                <button 
+                  type="reset"
+                  onClick={() => {
+                    const input = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
+                    if (input) {
+                      input.value = '';
+                      input.blur();
+                      window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: '' } }));
+                    }
+                  }}
+                />
+              </form>
+            </div>
           )}
           {/* Import feature temporarily hidden - uncomment to re-enable
           {onDashboard && (

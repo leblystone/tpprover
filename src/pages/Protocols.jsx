@@ -30,6 +30,7 @@ export default function Protocols() {
   const [stockpile, setStockpile] = useState([]);
   const [manageConfirm, setManageConfirm] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Listen for autosave events to update protocol cards in real-time
   useEffect(() => {
@@ -260,10 +261,26 @@ export default function Protocols() {
       } 
     }));
     
+    // Listen for topbar search events for page-specific search
+    const handleSearch = (e) => {
+      setSearchQuery(e.detail.query);
+    };
+    window.addEventListener('tpp:protocols-search', handleSearch);
+    
     return () => {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+      window.removeEventListener('tpp:protocols-search', handleSearch);
     };
   }, [activeTab, isReadOnly]);
+
+  const filteredProtocols = React.useMemo(() => {
+    if (!searchQuery) return protocols;
+    return protocols.filter(p => 
+      (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.purpose || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [protocols, searchQuery]);
 
   return (
     <>
@@ -274,30 +291,42 @@ export default function Protocols() {
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
           <div>
-            {protocols.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-                  <FileText size={32} style={{ color: theme.primary }} />
+            {filteredProtocols.length === 0 ? (
+              searchQuery ? (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                    <FileText size={32} style={{ color: theme.primary }} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Results Found</h3>
+                  <p className="text-sm" style={{ color: theme.textLight }}>
+                    No protocols match your search query.
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Protocols Yet</h3>
-                <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Create a protocol to track supplement schedules, dosing cycles, and timing for research purposes. 
-                  Protocols help maintain consistency and track adherence to research plans.
-                </p>
-                {!isReadOnly && (
-                  <button
-                    onClick={handleAddClick}
-                    className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                  >
-                    <PlusCircle size={18} />
-                    Create Your First Protocol
-                  </button>
-                )}
-              </div>
+              ) : protocols.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                    <FileText size={32} style={{ color: theme.primary }} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Protocols Yet</h3>
+                  <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                    Create a protocol to track supplement schedules, dosing cycles, and timing for research purposes. 
+                    Protocols help maintain consistency and track adherence to research plans.
+                  </p>
+                  {!isReadOnly && (
+                    <button
+                      onClick={handleAddClick}
+                      className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    >
+                      <PlusCircle size={18} />
+                      Create Your First Protocol
+                    </button>
+                  )}
+                </div>
+              ) : null
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {protocols.map(p => (
+                {filteredProtocols.map(p => (
                   <ProtocolCard 
                     key={p.id}
                     item={p}
