@@ -116,56 +116,34 @@ export default function SettingsLegal() {
         </button>
         <div>
           <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Legal & Privacy</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Terms of Service, Privacy Policy, and other legal documents</p>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Review agreements and legal documents</p>
         </div>
       </div>
 
       {/* Legal Settings */}
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Legal Documents */}
         <div 
-          className="flex items-center justify-between p-4 rounded-lg"
+          className="p-4 rounded-lg space-y-3"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <div>
-            <div className="text-sm font-medium" style={{ color: theme.text }}>Terms of Service</div>
-            {agreementData.termsAgreement ? (
-              <div className="text-xs" style={{ color: theme.mutedText }}>
-                Agreed on {new Date(agreementData.termsAgreement.timestamp).toLocaleDateString()}
-              </div>
-            ) : (
-              <div className="text-xs text-red-500">Agreement required - please review and agree</div>
-            )}
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Legal Documents</h4>
+          <div className="space-y-3">
+            <LegalDocumentCard
+              title="Terms of Service"
+              agreement={agreementData.termsAgreement}
+              onAction={() => setShowTerms(true)}
+              actionText={agreementData.termsAgreement ? 'View' : 'Agree'}
+              theme={theme}
+            />
+            <LegalDocumentCard
+              title="Privacy Policy"
+              agreement={agreementData.privacyAgreement}
+              onAction={() => setShowPrivacy(true)}
+              actionText={agreementData.privacyAgreement ? 'View' : 'Agree'}
+              theme={theme}
+            />
           </div>
-          <button 
-            onClick={() => setShowTerms(true)} 
-            className="px-3 py-2 rounded-md text-sm font-semibold" 
-            style={{ backgroundColor: theme.accent, color: theme.accentText }}
-          >
-            {agreementData.termsAgreement ? 'View' : 'Agree'}
-          </button>
-        </div>
-
-        <div 
-          className="flex items-center justify-between p-4 rounded-lg"
-          style={{ backgroundColor: theme.cardBackground }}
-        >
-          <div>
-            <div className="text-sm font-medium" style={{ color: theme.text }}>Privacy Policy</div>
-            {agreementData.privacyAgreement ? (
-              <div className="text-xs" style={{ color: theme.mutedText }}>
-                Agreed on {new Date(agreementData.privacyAgreement.timestamp).toLocaleDateString()}
-              </div>
-            ) : (
-              <div className="text-xs text-red-500">Agreement required - please review and agree</div>
-            )}
-          </div>
-          <button 
-            onClick={() => setShowPrivacy(true)} 
-            className="px-3 py-2 rounded-md text-sm font-semibold" 
-            style={{ backgroundColor: theme.accent, color: theme.accentText }}
-          >
-            {agreementData.privacyAgreement ? 'View' : 'Agree'}
-          </button>
         </div>
       </div>
 
@@ -183,5 +161,30 @@ export default function SettingsLegal() {
     </section>
   )
 }
+
+const LegalDocumentCard = ({ title, agreement, onAction, actionText, theme }) => (
+  <div 
+    className="flex items-center justify-between p-3 rounded-lg"
+    style={{ backgroundColor: theme.secondary }}
+  >
+    <div className="flex-1 pr-4">
+      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{title}</div>
+      {agreement ? (
+        <div className="text-xs" style={{ color: theme.mutedText }}>
+          Agreed on {new Date(agreement.timestamp).toLocaleDateString()}
+        </div>
+      ) : (
+        <div className="text-xs text-red-500">Agreement required - please review and agree</div>
+      )}
+    </div>
+    <button 
+      onClick={onAction}
+      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+      style={{ backgroundColor: theme.accent, color: theme.accentText }}
+    >
+      {actionText}
+    </button>
+  </div>
+)
 
 
