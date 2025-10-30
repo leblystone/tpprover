@@ -24,6 +24,10 @@ const SettingsPrivacy = lazy(() => import('./pages/SettingsPrivacy.jsx'))
 const SettingsLegal = lazy(() => import('./pages/SettingsLegal.jsx'))
 const SettingsData = lazy(() => import('./pages/SettingsData.jsx'))
 const Account = lazy(() => import('./pages/Account.jsx'))
+const AccountProfile = lazy(() => import('./pages/AccountProfile.jsx'))
+const AccountSubscription = lazy(() => import('./pages/AccountSubscription.jsx'))
+const AccountSecurity = lazy(() => import('./pages/AccountSecurity.jsx'))
+const AccountLegal = lazy(() => import('./pages/AccountLegal.jsx'))
 const Login = lazy(() => import('./pages/Login.jsx'))
 const Imports = lazy(() => import('./pages/Imports.jsx'))
 const Goals = lazy(() => import('./pages/Goals.jsx'))
@@ -185,6 +189,10 @@ export const router = createBrowserRouter([
           { path: 'settings/legal', element: <SettingsLegal /> },
           { path: 'settings/data', element: <SettingsData /> },
           { path: 'account', element: <Account /> },
+          { path: 'account/profile', element: <AccountProfile /> },
+          { path: 'account/subscription', element: <AccountSubscription /> },
+          { path: 'account/security', element: <AccountSecurity /> },
+          { path: 'account/legal', element: <AccountLegal /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
           { path: 'beta-survey', element: <BetaEndedSurvey /> },
