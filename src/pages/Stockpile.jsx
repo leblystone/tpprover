@@ -757,8 +757,8 @@ export default function Stockpile() {
           )}
           
           {/* VIAL DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VIAL DETAILS</h4>
+          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VIAL DETAILS</h4>
           </div>
 
           {/* Main form */}
@@ -770,12 +770,12 @@ export default function Stockpile() {
                 value={form.name}
                 onChange={e => updateFormData({ name: e.target.value })}
                 placeholder="e.g., BPC-157, Superhuman, Super Shredder, Lipo"
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
+                className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                 style={{
-                  borderColor: theme.border,
-                  backgroundColor: theme.cardBackground,
+                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                  backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                   color: theme.text,
-                  focusRingColor: theme.primary
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                 }}
               />
             </div>
@@ -784,8 +784,11 @@ export default function Stockpile() {
             <div>
               <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Amount</label>
               <div 
-                className="flex items-stretch border rounded-lg overflow-hidden"
-                style={{ borderColor: theme.border }}
+                className="flex items-stretch rounded-lg overflow-hidden"
+                style={{ 
+                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                }}
               >
                 <input 
                   type="text"
@@ -794,15 +797,15 @@ export default function Stockpile() {
                   placeholder="10 or 0.5"
                   className="flex-1 px-3 py-2 outline-none min-w-0"
                   style={{
-                    backgroundColor: theme.inputBackground || '#fff',
+                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                     color: theme.text
                   }}
                 />
                 <div 
-                  className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                   style={{ 
-                    borderColor: theme.border,
-                    backgroundColor: theme.cardBackground || '#f9fafb'
+                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                   }}
                 >
                   {['mg', 'mL'].map(unit => (
@@ -826,8 +829,11 @@ export default function Stockpile() {
             <div>
               <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Quantity</label>
               <div 
-                className="flex items-stretch border rounded-lg overflow-hidden"
-                style={{ borderColor: theme.border }}
+                className="flex items-stretch rounded-lg overflow-hidden"
+                style={{ 
+                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                }}
               >
                 <input 
                   type="text"
@@ -836,15 +842,15 @@ export default function Stockpile() {
                   placeholder="1"
                   className="flex-1 px-3 py-2 outline-none min-w-0"
                   style={{
-                    backgroundColor: theme.inputBackground || '#fff',
+                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                     color: theme.text
                   }}
                 />
                 <div 
-                  className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                   style={{ 
-                    borderColor: theme.border,
-                    backgroundColor: theme.cardBackground || '#f9fafb'
+                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                   }}
                 >
                   {['vial','bottle','kit'].map(k => (
@@ -870,8 +876,8 @@ export default function Stockpile() {
           <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Blue" theme={theme} />
           
           {/* ORDER DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ORDER DETAILS</h4>
+          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>ORDER DETAILS</h4>
           </div>
           
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="Vendor" theme={theme} />
