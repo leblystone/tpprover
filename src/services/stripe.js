@@ -3,6 +3,7 @@ import { httpsCallable } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
 import { functions } from '../config/firebase.js';
 import { storeCheckoutReturnPath, getCheckoutReturnPath } from '../utils/checkoutNavigation.js';
+import { formatCurrency } from '../utils/currencyUtils.js';
 
 /**
  * Store checkout timeout ID for mobile visibility tracking
@@ -301,7 +302,7 @@ export async function downloadInvoiceReceipt(invoiceId, customerId) {
       // Demo receipt
       const demoReceipt = {
         receiptNumber: 'TPP-DEMO123',
-        amount: '$8.99',
+        amount: formatCurrency(8.99),
         date: new Date().toLocaleDateString(),
         description: 'The Pep Planner Subscription',
         message: "Thank you for being a valued researcher! 🧬"

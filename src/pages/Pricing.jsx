@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, Star, Zap, Shield, Users } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
 import logo from '../assets/tpp_logo.png';
+import { formatCurrency } from '../utils/currencyUtils';
 
 export default function Pricing() {
   const theme = themes[defaultThemeName];
@@ -200,7 +201,7 @@ export default function Pricing() {
                   </p>
                   <div className="mb-4">
                     <span className="text-4xl font-bold" style={{ color: theme.primaryDark }}>
-                      ${billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice}
+                      {formatCurrency(billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice)}
                     </span>
                     <span className="text-sm ml-1" style={{ color: theme.textLight }}>
                       /{billingCycle === 'monthly' ? 'month' : 'year'}
@@ -208,7 +209,7 @@ export default function Pricing() {
                   </div>
                   {billingCycle === 'yearly' && (
                     <p className="text-sm" style={{ color: theme.primary }}>
-                      ${Math.round(plan.yearlyPrice / 12)}/month billed yearly
+                      {formatCurrency(Math.round(plan.yearlyPrice / 12))}/month billed yearly
                     </p>
                   )}
                 </div>

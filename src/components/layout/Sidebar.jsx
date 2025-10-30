@@ -68,11 +68,17 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto space-y-2 flex-shrink-0 overflow-x-hidden">
+        <div className="mt-auto space-y-2 flex-shrink-0 overflow-x-hidden" style={{
+          borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`,
+          paddingTop: '0.5rem'
+        }}>
           {bottomLinks.map(({ to, icon: Icon, label, tourId }) => (
             <NavLink key={to} to={to} title={label} data-tour={tourId}
-              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 ${isActive ? 'sidebar-link-active' : ''}`}
-              style={({ isActive }) => ({ color: isActive ? theme.textOnPrimary : theme.textLight })}
+              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg ${isActive ? 'sidebar-link-active' : ''}`}
+              style={({ isActive }) => ({ 
+                color: isActive ? theme.textOnPrimary : (theme.isDark ? '#a8b5a0' : theme.textLight),
+                backgroundColor: isActive ? undefined : (theme.isDark ? '#1f2937' : 'transparent')
+              })}
             >
               <Icon className="h-6 w-6 flex-shrink-0" />
               <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>

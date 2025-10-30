@@ -1,0 +1,109 @@
+TESTING INSTRUCTIONS FOR GOOGLE PLAY REVIEWERS
+================================================
+
+App Name: The Pep Planner
+Package: com.thepepplanner.app
+
+TEST ACCOUNT CREDENTIALS:
+─────────────────────────
+Email: contact@thepepplanner.com
+Password: [INSERT YOUR PASSWORD HERE]
+
+
+ACCOUNT SETUP:
+──────────────
+1. Open The Pep Planner app
+2. Tap "Sign Up" or "Create Account" (if testing as new user)
+3. Enter email: contact@thepepplanner.com
+4. Create a secure password
+5. Complete signup process
+
+Note: If the email already exists, use "Sign In" with the credentials above.
+
+
+GRANTING FULL ACCESS (CRITICAL):
+─────────────────────────────────
+After signup/login, you'll have access to all premium features automatically.
+
+The test account is pre-configured with full access so you can test all functionality
+without any subscription or payment barriers.
+
+
+WHAT TO TEST:
+─────────────
+
+✅ AUTHENTICATION (Most Important)
+- Sign up flow works
+- Sign in flow works
+- Password reset functionality (if available)
+- Data persists after logout/login
+
+✅ CORE FUNCTIONALITY
+- Dashboard loads and displays correctly
+- Can create and manage protocols (research schedules)
+- Calendar displays scheduled items
+- Can track inventory/stockpile
+- Can add and manage vendors
+- Data syncs between devices
+
+✅ NAVIGATION
+- All menu items work
+- Can navigate between sections
+- Back button works correctly
+- No crashes or white screens
+
+✅ DATA INTEGRITY
+- Data saves correctly
+- Can edit and delete items
+- Data syncs to cloud (Firebase)
+- No data loss on app restart
+
+
+TECHNICAL NOTES:
+───────────────
+- App uses Firebase for authentication and data storage
+- Subscription management redirects to web for billing
+- All user data is private and encrypted
+- No social features or public content
+
+
+ACCOUNT ACCESS:
+──────────────
+The test account has been granted lifetime premium access.
+All features are available immediately after sign-in.
+
+No invite codes or special setup required.
+
+
+TROUBLESHOOTING:
+───────────────
+If you encounter any issues:
+
+1. Network Issues:
+   - App requires internet connection for authentication
+   - Firebase services must be accessible
+   - Data sync may fail on restricted networks
+
+2. Login Issues:
+   - Try password reset if credentials don't work
+   - Check email for verification link if prompted
+   - Clear app cache if stuck on loading screen
+
+3. Feature Access:
+   - All features should be available immediately
+   - If you see upgrade prompts, contact support at contact@thepepplanner.com
+
+4. App Crashes:
+   - Clear app data and reinstall
+   - Ensure Android version is compatible (API 23+)
+   - Check device storage space
+
+Contact: contact@thepepplanner.com for any testing issues.
+
+
+DISCLAIMER:
+──────────
+This application is designed EXCLUSIVELY for research purposes.
+All features and content are for educational and research tracking only.
+NOT INTENDED FOR HUMAN CONSUMPTION OR MEDICAL USE.
+
