@@ -12,7 +12,22 @@ const GiftSuccessPage = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const preview = params.get('preview');
     const sessionId = params.get('session_id');
+
+    if (preview === '1') {
+      // Preview mode: show a sample success immediately
+      setGiftInfo({
+        recipientEmail: 'friend@example.com',
+        recipientName: 'Friend',
+        giftMessage: 'Excited for you to try The Pep Planner!',
+        subscriptionType: 'monthly',
+        giftId: 'gift_preview',
+      });
+      setLoading(false);
+      return;
+    }
+
     if (!sessionId) {
       setError('No checkout session found.');
       setLoading(false);

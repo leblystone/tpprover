@@ -74,9 +74,10 @@ export function useSubscriptionAccess() {
 
         const now = new Date();
         const endDate = new Date(effectiveSubscription.currentPeriodEnd);
-        const timeLeft = endDate - now;
-        // Use Math.floor() so 7-day trial shows as 7 days initially, not 8
-        const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+        const timeLeft = endDate.getTime() - now.getTime();
+        // Display-friendly days remaining: ceil so the last partial day counts as 1
+        // This avoids prematurely marking trials as expired while hours remain
+        const daysLeftDisplay = Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24)));
 
         // Active paid subscription (monthly, annual, lifetime)
         if (effectiveSubscription.status === 'active' && effectiveSubscription.interval !== 'trial') {
@@ -85,7 +86,7 @@ export function useSubscriptionAccess() {
             isTrialExpired: false,
             isReadOnly: false,
             showUpgradePrompt: false,
-            daysRemaining: effectiveSubscription.interval === 'lifetime' ? Infinity : daysLeft,
+            daysRemaining: effectiveSubscription.interval === 'lifetime' ? Infinity : daysLeftDisplay,
             subscriptionStatus: 'active',
             subscriptionInterval: effectiveSubscription.interval,
           });
@@ -107,13 +108,14 @@ export function useSubscriptionAccess() {
         }
 
         // Active trial
-        if (effectiveSubscription.status === 'trialing' && daysLeft > 0) {
+        // Consider trial active as long as actual timeLeft > 0
+        if (effectiveSubscription.status === 'trialing' && timeLeft > 0) {
           setAccessInfo({
             hasAccess: true,
             isTrialExpired: false,
             isReadOnly: false,
-            showUpgradePrompt: daysLeft <= 2, // Show prompt in last 2 days
-            daysRemaining: daysLeft,
+            showUpgradePrompt: daysLeftDisplay <= 2, // Show prompt in last 2 days
+            daysRemaining: daysLeftDisplay,
             subscriptionStatus: 'trialing',
             subscriptionInterval: 'trial',
           });

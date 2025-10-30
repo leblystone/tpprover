@@ -52,7 +52,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const desktopTitle = desktopTitles[seg] || mobileTitle;
 
   const [showSearch, setShowSearch] = React.useState(false);
-  const [searchClosing, setSearchClosing] = React.useState(false);
 
   // Map page segments to search filter types
   const getPageFilter = () => {
@@ -66,29 +65,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
     return filterMap[seg] || null;
   };
 
-  // Handle search close with animation
-  const handleCloseSearch = () => {
-    setSearchClosing(true);
-    setTimeout(() => {
-      setShowSearch(false);
-      setSearchClosing(false);
-    }, 200); // Match animation duration
-  };
 
   return (
     <>
-      {/* Search overlay positioned below header */}
-      {showSearch && (
-        <div className="fixed z-50 flex justify-center pt-2 left-0 md:left-24" style={{ top: '64px', right: 0 }}>
-          <GlobalSearchInline 
-            theme={theme} 
-            pageFilter={getPageFilter()} 
-            isClosing={searchClosing}
-            onClose={handleCloseSearch}
-            onNavigate={(to) => { handleCloseSearch(); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} 
-          />
-        </div>
-      )}
       <header className="backdrop-blur border-b h-12 md:h-16 flex items-center justify-between px-3 md:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="flex items-center gap-2 md:gap-4">
           {/* Mobile Menu Button - back on left side for consistency */}
@@ -166,6 +145,16 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {autoSaveIndicator && (
             <div className="mr-2">
               {autoSaveIndicator}
+            </div>
+          )}
+          {showSearch && (
+            <div className="hidden md:block w-full max-w-xl mr-2 animate-slide-down">
+              <GlobalSearchInline 
+                theme={theme} 
+                pageFilter={getPageFilter()} 
+                onClose={() => setShowSearch(false)}
+                onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} 
+              />
             </div>
           )}
           {/* Trial Button - Only show on dashboard */}

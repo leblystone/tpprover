@@ -197,6 +197,15 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
             >
               🎁 Give as a Gift
             </button>
+            <div className="mt-3">
+              <button
+                onClick={() => window.location.assign('/gift-success?preview=1')}
+                className="px-4 py-2 text-sm rounded-lg font-medium transition-all border"
+                style={{ borderColor: theme.border, color: theme.textLight, backgroundColor: theme.cardBackground }}
+              >
+                Preview Success Modal
+              </button>
+            </div>
           </div>
         </div>
       </div>

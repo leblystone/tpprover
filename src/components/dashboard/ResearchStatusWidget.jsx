@@ -39,7 +39,13 @@ export default function ResearchStatusWidget({ theme, subscription }) {
   const isTrial = subscription?.status === 'trialing';
   const isActive = subscription?.status === 'active';
   const isCanceled = subscription?.status === 'canceled';
-  const isExpired = isTrial && trialDaysLeft <= 0;
+  // Consider trial expired only when actual time has passed (not just daysLeft==0)
+  const isExpired = (() => {
+    if (!isTrial || !subscription?.currentPeriodEnd) return false;
+    const now = new Date();
+    const end = new Date(subscription.currentPeriodEnd);
+    return end.getTime() - now.getTime() <= 0;
+  })();
 
   // Hide widget only if user has active paid subscription
   // Show for trial, canceled, expired, or no subscription
