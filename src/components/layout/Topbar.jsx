@@ -147,28 +147,39 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           )}
           {/* Dashboard-specific expanding search box */}
           {onDashboard && (
-            <form 
-              className="search-box-wrapper" 
-              style={{ color: theme.text }} 
-              onSubmit={(e) => { e.preventDefault(); }}
-              onClick={() => searchInputRef.current?.focus()}
-            >
-              <input 
-                ref={searchInputRef}
-                type="text" 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)} 
-                placeholder=" "
-                style={{ color: theme.text }}
-              />
-              <button 
-                type="reset"
-                onClick={() => {
-                  setSearchQuery('');
-                  searchInputRef.current?.blur();
-                }}
-              />
-            </form>
+            <div className="flex items-center">
+              <ModernTooltip text="Search" position="bottom">
+                <button
+                  onClick={() => searchInputRef.current?.focus()}
+                  className="p-2 rounded-full no-shadow flex-shrink-0 mr-2"
+                  style={{ color: theme.text }}
+                  aria-label="Focus search"
+                >
+                  <Search className="h-5 w-5" />
+                </button>
+              </ModernTooltip>
+              <form 
+                className="search-box-wrapper" 
+                style={{ color: theme.text, backgroundColor: theme.cardBackground }}
+                onSubmit={(e) => { e.preventDefault(); }}
+              >
+                <input 
+                  ref={searchInputRef}
+                  type="text" 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  placeholder="Search supplements, tasks, protocols..."
+                  style={{ color: theme.text }}
+                />
+                <button 
+                  type="reset"
+                  onClick={() => {
+                    setSearchQuery('');
+                    searchInputRef.current?.blur();
+                  }}
+                />
+              </form>
+            </div>
           )}
           {!onDashboard && seg !== 'stockpile' && seg !== 'protocols' && seg !== 'settings' && seg !== 'account' && (
             <ModernTooltip text="Search" position="bottom">

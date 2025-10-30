@@ -321,124 +321,88 @@ html, body, #root {
   color: #5C7659;
 }
 
-/* Expanding Search Box Animation */
+/* Extending Search Box Animation */
 .search-box-wrapper {
-  font-size: 12px;
-  border: solid 1.5px currentColor;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   position: relative;
-  border-radius: 2em;
-  overflow: visible;
-  background-color: transparent;
-  cursor: pointer;
-}
-
-.search-box-wrapper::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  width: 14px;
-  height: 14px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 1;
-  transition: opacity 150ms ease;
-}
-
-.search-box-wrapper::after {
-  content: '';
-  position: absolute;
-  left: 18px;
-  top: 16px;
-  width: 6px;
-  height: 2px;
-  background-color: currentColor;
-  transform: rotate(45deg);
-  pointer-events: none;
-  z-index: 1;
-  transition: opacity 150ms ease;
 }
 
 .search-box-wrapper input[type="text"] {
-  font-family: inherit;
-  font-weight: normal;
-  width: 32px;
-  height: 32px;
-  padding: 5px 28px 5px 28px;
-  border: none;
-  box-sizing: border-box;
-  border-radius: 2em;
-  transition: width 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55) 150ms, padding 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55) 150ms;
-  background-color: transparent;
+  display: inline-block;
+  border: 1px solid transparent;
+  width: 0;
+  height: 2.5em;
+  border-radius: 1.25em;
+  transition: width 0.3s ease, border 0.3s ease;
+  outline: none;
+  padding: 0.5em 1em;
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  font-weight: 300;
   font-size: 14px;
+  font-family: inherit;
+  vertical-align: baseline;
+  opacity: 0;
 }
 
+.search-box-wrapper:hover input[type="text"],
 .search-box-wrapper input[type="text"]:focus {
+  opacity: 1;
+  border-color: currentColor;
   outline: none;
 }
 
 .search-box-wrapper input[type="text"]:focus,
 .search-box-wrapper input[type="text"]:not(:placeholder-shown) {
-  width: 240px;
-  padding: 5px 28px 5px 12px;
-  transition: width 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55), padding 800ms cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  width: 14em;
+  cursor: text;
 }
 
-.search-box-wrapper input[type="text"]:focus ~ *,
-.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ *,
-.search-box-wrapper:has(input:focus)::before,
-.search-box-wrapper:has(input:focus)::after,
-.search-box-wrapper:has(input:not(:placeholder-shown))::before,
-.search-box-wrapper:has(input:not(:placeholder-shown))::after {
-  opacity: 0;
-  transition: opacity 150ms ease;
+.search-box-wrapper input[type="text"]::placeholder {
+  opacity: 0.6;
+}
+
+.search-box-wrapper button[type="reset"] {
+  position: absolute;
+  right: 0.5em;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  padding: 0.25em;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
 }
 
 .search-box-wrapper input[type="text"]:focus ~ button[type="reset"],
 .search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ button[type="reset"] {
-  transform: rotate(-45deg) translateY(0);
-  transition: transform 150ms ease-out 800ms;
-}
-
-.search-box-wrapper input[type="text"]:focus ~ button[type="reset"]:after,
-.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ button[type="reset"]:after {
-  opacity: 1;
-  transition: top 150ms ease-out 950ms, right 150ms ease-out 950ms, opacity 150ms ease 950ms;
-}
-
-.search-box-wrapper button[type="reset"] {
-  background-color: transparent;
-  width: 20px;
-  height: 20px;
-  border: 0;
-  padding: 0;
-  outline: 0;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  transform: rotate(-45deg) translateY(32px);
-  transition: transform 150ms ease-out 150ms;
-  cursor: pointer;
+}
+
+.search-box-wrapper button[type="reset"]:hover {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .search-box-wrapper button[type="reset"]:before,
 .search-box-wrapper button[type="reset"]:after {
   content: "";
-  background-color: currentColor;
-  width: 1.5px;
-  height: 20px;
   position: absolute;
+  width: 2px;
+  height: 12px;
+  background-color: currentColor;
+}
+
+.search-box-wrapper button[type="reset"]:before {
+  transform: rotate(45deg);
 }
 
 .search-box-wrapper button[type="reset"]:after {
-  transform: rotate(90deg);
-  opacity: 0;
-  transition: transform 150ms ease-out, opacity 150ms ease-out;
+  transform: rotate(-45deg);
 }

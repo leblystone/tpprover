@@ -3,7 +3,7 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -477,7 +477,7 @@ function Admin() {
   const loadStripeData = async () => {
     try {
       const functions = getFunctions();
-      const getStripeSubscriptions = httpsCallable(functions, 'stripe-getStripeSubscriptions');
+      const getStripeSubscriptions = httpsCallable(functions, 'getStripeSubscriptions');
       const result = await getStripeSubscriptions();
       setStripeSubscriptions(result.data.data);
     } catch (error) {
@@ -2274,9 +2274,9 @@ function Admin() {
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {user.email}
                               </span>
-                              {/* Special emoji for granted lifetime access */}
+                              {/* Special icon for granted lifetime access */}
                               {user.reason && !user.paymentMethodId && (
-                                <span style={{ fontSize: '16px', marginLeft: '4px' }}>🎁</span>
+                                <Gift size={16} style={{ color: '#A3B18A', marginLeft: '4px' }} />
                               )}
                             </div>
                           </td>
@@ -2284,7 +2284,7 @@ function Admin() {
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
                               {user.reason && !user.paymentMethodId ? (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <span>🎁</span>
+                                  <Gift size={14} style={{ color: '#A3B18A', flexShrink: 0 }} />
                                   <span>{user.reason}</span>
                                 </span>
                               ) : (
