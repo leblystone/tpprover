@@ -53,6 +53,17 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   const [showSearch, setShowSearch] = React.useState(false);
 
+  // Map page segments to search filter types
+  const getPageFilter = () => {
+    const filterMap = {
+      'orders': 'order',
+      'protocols': 'protocol',
+      'vendors': 'vendor',
+      'stockpile': 'stockpile',
+      'glossary': 'glossary',
+    };
+    return filterMap[seg] || null;
+  };
 
   return (
     <>
@@ -137,7 +148,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           )}
           {showSearch && (
             <div className="hidden md:block w-full max-w-xl mr-2">
-              <GlobalSearchInline theme={theme} onClose={() => setShowSearch(false)} onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} />
+              <GlobalSearchInline 
+                theme={theme} 
+                pageFilter={getPageFilter()} 
+                onClose={() => setShowSearch(false)} 
+                onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} 
+              />
             </div>
           )}
           {/* Trial Button - Only show on dashboard */}
@@ -154,9 +170,17 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             <ModernTooltip text="Search" position="bottom">
               <button 
                 className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
-                onClick={() => setShowSearch(s => !s)} 
+                onClick={() => {
+                  // On recon page, trigger page-specific search
+                  if (seg === 'recon') {
+                    window.dispatchEvent(new CustomEvent('tpp:recon-search-toggle'));
+                  } else {
+                    // On other pages, use global search
+                    setShowSearch(s => !s);
+                  }
+                }} 
                 style={{ color: theme.text }}
-                aria-label="Toggle global search"
+                aria-label="Toggle search"
                 aria-expanded={showSearch}
               >
                 <Search className="h-5 w-5 md:h-5 md:w-5" />

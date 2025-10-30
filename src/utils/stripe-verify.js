@@ -28,14 +28,14 @@ export function verifyStripeConfig() {
   
   // Verify price IDs
   const priceChecks = [
-    { name: 'Monthly', key: 'monthlyPriceId', value: config.monthlyPriceId },
-    { name: 'Annual', key: 'annualPriceId', value: config.annualPriceId },
-    { name: 'Lifetime', key: 'lifetimePriceId', value: config.lifetimePriceId }
+    { name: 'Monthly', key: 'MONTHLY_PRICE_ID', value: config.monthlyPriceId },
+    { name: 'Annual', key: 'ANNUAL_PRICE_ID', value: config.annualPriceId },
+    { name: 'Lifetime', key: 'LIFETIME_PRICE_ID', value: config.lifetimePriceId }
   ];
   
   priceChecks.forEach(check => {
     if (!check.value) {
-      console.error(`❌ VITE_STRIPE_${check.key.toUpperCase()} is missing`);
+      console.error(`❌ VITE_STRIPE_${check.key} is missing`);
       allGood = false;
     } else if (!check.value.startsWith('price_')) {
       console.error(`❌ ${check.name} Price ID should start with price_`);

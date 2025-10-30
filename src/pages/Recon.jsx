@@ -174,9 +174,17 @@ export default function Recon() {
 
 		updateTabs();
 		window.addEventListener('resize', updateTabs);
+		
+		// Listen for topbar search events for page-specific search
+		const handleSearchToggle = () => {
+			setSearchOpen(v => !v);
+		};
+		window.addEventListener('tpp:recon-search-toggle', handleSearchToggle);
+		
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('resize', updateTabs);
+			window.removeEventListener('tpp:recon-search-toggle', handleSearchToggle);
 		};
 	}, [activeTab]);
 
@@ -303,28 +311,26 @@ export default function Recon() {
 				<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
 					{/* Search and Filter - show when not on calculator tab */}
 					{activeTab !== 'calculator' && (
-						<div className="flex items-center justify-between mb-4">
-							<div className="flex items-center gap-2 flex-1">
-								<button 
-									className="p-2 rounded-md hover:bg-opacity-10 hover:bg-gray-500 transition-colors" 
-									style={{ color: theme.text, backgroundColor: searchOpen ? theme.accent : 'transparent' }} 
-									title="Search entries" 
-									onClick={() => {
-										console.log('Search button clicked, current state:', searchOpen);
-										setSearchOpen(v => !v);
-									}}
-								>
-									<Search className="h-4 w-4" />
-								</button>
-								{searchOpen && (
-									<input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search entries..." className="ml-1 p-2 rounded border text-sm" style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }} />
-								)}
-							</div>
+						<div className="flex items-center justify-end mb-4">
 							{activeTab === 'history' && (
 								<button className="p-2 rounded-md" title="Filter" onClick={() => setShowHistoryFilters(v => !v)}>
 									<Filter className="h-4 w-4" />
 								</button>
 							)}
+						</div>
+					)}
+					
+					{/* Page-specific search input that appears below topbar when opened */}
+					{searchOpen && activeTab !== 'calculator' && (
+						<div className="mb-4 animate-slide-down">
+							<input 
+								value={searchQuery} 
+								onChange={e => setSearchQuery(e.target.value)} 
+								placeholder="Search recon entries..." 
+								autoFocus
+								className="w-full p-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all" 
+								style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text, focusRingColor: theme.primary }} 
+							/>
 						</div>
 					)}
 

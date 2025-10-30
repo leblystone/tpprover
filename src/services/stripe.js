@@ -220,8 +220,8 @@ export async function createPortalSession(customerId) {
       returnUrl: `${window.location.origin}${currentPath}`,
     });
 
-    // Redirect to Stripe Customer Portal
-    window.location.href = result.data.url;
+    // Return the URL for the calling component to handle
+    return { url: result.data.url };
     
   } catch (error) {
     console.error('❌ Portal session error:', error);

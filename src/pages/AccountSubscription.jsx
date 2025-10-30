@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, CreditCard, Calendar, Crown, Gift, ExternalLink, RefreshCw, X } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Crown, Gift, ExternalLink, RefreshCw, X, Settings } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { createCheckoutSession, createPortalSession, cancelSubscription as stripeCancel } from '../services/stripe'
@@ -27,6 +27,7 @@ async function loadSubscription(firebaseUser) {
 }
 
 export default function AccountSubscription() {
+  // Research Subscription Page - Updated Layout
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { user } = useAppContext()
@@ -36,7 +37,6 @@ export default function AccountSubscription() {
   const [timeLeft, setTimeLeft] = useState(null)
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [pmDraft, setPmDraft] = useState({ brand: 'Visa', last4: '' })
 
   // Load subscription data
   useEffect(() => {
@@ -79,15 +79,27 @@ export default function AccountSubscription() {
     }
   }, [sub]);
 
-  const handleUpgrade = async () => {
+  const handleSelectPlan = async (plan) => {
+    console.log('🚀 AccountSubscription: Selected plan:', plan);
+    
     try {
-      await verifyStripeConfig();
-      const session = await createCheckoutSession(firebaseUser?.uid);
-      handleCheckoutReturn(session.url);
+      // Determine the correct Stripe price ID based on plan
+      let priceId = '';
+      if (plan.name.toLowerCase() === 'monthly') {
+        priceId = STRIPE_CONFIG.prices.monthly;
+      } else if (plan.name.toLowerCase() === 'annual') {
+        priceId = STRIPE_CONFIG.prices.annual;
+      } else if (plan.name.toLowerCase() === 'lifetime') {
+        priceId = STRIPE_CONFIG.prices.lifetime;
+      }
+
+      await createCheckoutSession(priceId, firebaseUser?.email || 'demo@example.com', firebaseUser?.uid || 'demo_user');
+      
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('❌ AccountSubscription: Stripe checkout error:', error);
+      
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Failed to start checkout', type: 'error' } 
+        detail: { message: 'Failed to start checkout. Please try again.', type: 'error' } 
       }));
     }
   };
@@ -134,25 +146,6 @@ export default function AccountSubscription() {
     }
   };
 
-  const createSubscription = async (planData) => {
-    try {
-      await verifyStripeConfig();
-      const session = await createCheckoutSession(firebaseUser?.uid, planData);
-      handleCheckoutReturn(session.url);
-    } catch (error) {
-      console.error('Error creating subscription:', error);
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Failed to start checkout', type: 'error' } 
-      }));
-    }
-  };
-
-  const savePaymentMethod = () => {
-    // Placeholder for payment method update
-    window.dispatchEvent(new CustomEvent('tpp:toast', { 
-      detail: { message: 'Payment method update not implemented', type: 'info' } 
-    }));
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -218,47 +211,8 @@ export default function AccountSubscription() {
         </div>
       </div>
 
-      {/* Founder's Pricing Banner */}
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-6 text-center shadow-sm mb-6">
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-md">
-            <span className="text-white font-bold text-lg">👑</span>
-          </div>
-          <div className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-            Founder's Pricing
-          </div>
-        </div>
-        
-        <div className="bg-white/60 rounded-lg p-4 mb-4">
-          <p className="text-amber-800 font-medium mb-2">
-            🔒 <strong>Lock in these prices forever!</strong>
-          </p>
-          <p className="text-sm text-amber-700 leading-relaxed">
-            As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
-            even as we add new features and raise prices for new users.
-          </p>
-        </div>
-        
-        <div className="flex items-center justify-center gap-2 text-xs text-amber-600 mb-3">
-          <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
-          <span className="font-medium">Limited time founder benefits</span>
-          <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
-        </div>
-        
-        <button 
-          className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all shadow-sm border border-amber-300" 
-          style={{ 
-            backgroundColor: 'rgba(245, 158, 11, 0.1)', 
-            color: '#92400e',
-            backdropFilter: 'blur(10px)'
-          }}
-          onClick={() => verifyStripeConfig()}
-        >
-          🔧 Verify Setup (Dev Tool)
-        </button>
-      </div>
-
-      {sub ? (
+      {/* Current Subscription Status */}
+      {sub && (
         <div className="space-y-6">
           {/* Subscription Status */}
           <div 
@@ -302,22 +256,147 @@ export default function AccountSubscription() {
               )}
             </div>
 
-            {/* Subscription Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoCard
-                icon={CreditCard}
-                label="Next Billing"
-                value={sub.current_period_end ? new Date(sub.current_period_end * 1000).toLocaleDateString() : 'N/A'}
-                theme={theme}
-              />
-              <InfoCard
-                icon={Calendar}
-                label="Started"
-                value={sub.created ? new Date(sub.created * 1000).toLocaleDateString() : 'N/A'}
-                theme={theme}
-              />
-            </div>
           </div>
+
+          {/* Subscription Plans - Show under trial countdown */}
+          {sub.status === 'trialing' && (
+            <div 
+              className="p-6 rounded-lg"
+              style={{ backgroundColor: theme.cardBackground }}
+            >
+              <div className="space-y-4">
+                {/* Founder's Pricing Alert */}
+                <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
+                      <Crown size={12} className="text-white" />
+                    </div>
+                    <div className="text-lg font-bold" style={{ color: '#344E41' }}>
+                      Founder's Pricing
+                    </div>
+                  </div>
+                  
+                  <div className="rounded-lg p-3 mb-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
+                    <p className="text-xs leading-relaxed" style={{ color: '#3A5A40' }}>
+                      As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
+                      even as we add new features and increase value as we grow!
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Monthly and Annual in 2-column layout */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Monthly Plan */}
+                  <div 
+                    className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col cursor-pointer hover:shadow-lg`}
+                    style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                    onClick={() => handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
+                  >
+                    {/* Plan Title */}
+                    <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                      <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
+                      <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$8.99</div>
+                      <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button 
+                      className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    >
+                      Start Monthly
+                    </button>
+                  </div>
+
+                  {/* Annual Plan */}
+                  <div 
+                    className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col cursor-pointer hover:shadow-lg`}
+                    style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                    onClick={() => handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
+                  >
+                    {/* Popular Badge */}
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
+                        Popular
+                      </div>
+                    </div>
+
+                    {/* Plan Title */}
+                    <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                      <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
+                      <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$89.99</div>
+                      <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
+                      
+                      {/* Subtitle Badge */}
+                      <div className="text-center mt-1">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
+                          Save $17.89
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button 
+                      className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
+                      style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
+                    >
+                      Start Annual
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Lifetime plan in expanded single column */}
+                <div 
+                  className={`relative rounded-lg border-2 p-6 transition-all duration-200 cursor-pointer hover:shadow-lg`}
+                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                  onClick={() => handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
+                >
+                  {/* Limited Time Badge */}
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                    <div className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                      Limited Time Only
+                    </div>
+                  </div>
+                  
+                  {/* Content with more vertical space */}
+                  <div className="flex items-center justify-between min-h-[80px]">
+                    <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: theme.primary }}>
+                        <Crown size={20} style={{ color: theme.textOnPrimary }} />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
+                        <div className="text-base font-semibold" style={{ color: theme.text }}>$249.99</div>
+                        <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • All features included</div>
+                      </div>
+                    </div>
+                    <button 
+                      className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
+                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    >
+                      Join Forever
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Gift Access Button */}
+              <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+                <div className="text-center">
+                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
+                  <button
+                    onClick={() => setShowGiftModal(true)}
+                    className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
+                    }}
+                  >
+                    🎁 Give as a Gift
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div 
@@ -332,7 +411,7 @@ export default function AccountSubscription() {
                 style={{ backgroundColor: theme.secondary }}
               >
                 <div className="flex items-center gap-3">
-                  <CreditCard size={20} style={{ color: theme.accent }} />
+                  <Settings size={20} style={{ color: theme.accent }} />
                   <span className="font-medium" style={{ color: theme.text }}>Manage Billing</span>
                 </div>
                 <ExternalLink size={16} style={{ color: theme.mutedText }} />
@@ -353,133 +432,151 @@ export default function AccountSubscription() {
             </div>
           </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {/* No Subscription */}
-          <div 
-            className="p-8 rounded-lg text-center"
-            style={{ backgroundColor: theme.cardBackground }}
-          >
-            <TrendingUp size={48} className="mx-auto mb-4" style={{ color: theme.mutedText }} />
-            <h3 className="text-lg font-medium mb-2" style={{ color: theme.text }}>No Active Subscription</h3>
-            <p className="text-sm mb-6" style={{ color: theme.mutedText }}>
-              Upgrade to access advanced research features and tools
-            </p>
-            <button
-              onClick={handleUpgrade}
-              className="px-6 py-3 rounded-lg font-medium transition-all hover:opacity-90"
-              style={{ backgroundColor: theme.accent, color: theme.accentText }}
-            >
-              Upgrade Now
-            </button>
-          </div>
-
-          {/* Gift Access */}
-          <div 
-            className="p-4 rounded-lg space-y-3"
-            style={{ backgroundColor: theme.cardBackground }}
-          >
-            <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Gift Access</h4>
-            <button
-              onClick={() => setShowGiftModal(true)}
-              className="w-full flex items-center justify-between p-3 rounded-lg transition-all hover:opacity-90"
-              style={{ backgroundColor: theme.secondary }}
-            >
-              <div className="flex items-center gap-3">
-                <Gift size={20} style={{ color: theme.accent }} />
-                <span className="font-medium" style={{ color: theme.text }}>Redeem Gift Code</span>
-              </div>
-            </button>
-          </div>
-        </div>
       )}
 
-      {/* Pricing Plans - Always visible */}
-      <div 
-        className="p-6 rounded-lg"
-        style={{ backgroundColor: theme.cardBackground }}
-      >
-        <div className="text-center font-semibold text-lg mb-6" style={{ color: theme.text }}>
-          {sub?.status === 'trialing' ? `Your trial ends on ${sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : 'Unknown'}` : 'Choose Your Plan'}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Monthly Plan */}
-          <PlanCard
-            theme={theme}
-            title="Monthly"
-            price="$6"
-            interval="/mo"
-            current={sub?.interval === 'month'}
-            onSelect={() => createSubscription({ name: 'Pro Monthly', price: 6.00, interval: 'month' })}
-          />
-          {/* Annual Plan */}
-          <PlanCard
-            theme={theme}
-            title="Annual"
-            price="$79"
-            interval="/yr"
-            current={sub?.interval === 'year'}
-            onSelect={() => createSubscription({ name: 'Pro Annual', price: 79.00, interval: 'year' })}
-            popular
-            subtitle="Save $13"
-          />
-          {/* Lifetime Plan */}
-          <PlanCard
-            theme={theme}
-            title="Lifetime"
-            price="$249.99"
-            interval="one-time"
-            current={sub?.interval === 'lifetime'}
-            onSelect={() => createSubscription({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
-          />
-        </div>
-      </div>
-
-      {/* Payment Method Section - Only for non-lifetime subscriptions */}
-      {sub?.interval !== 'lifetime' && sub && (
+      {/* Subscription Plans - Show for non-trial users */}
+      {!sub && (
         <div 
-          className="p-4 rounded-lg"
+          className="p-6 rounded-lg"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <h4 className="text-sm font-medium mb-4" style={{ color: theme.text }}>Payment Method</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-            <div>
-              <div className="text-xs mb-1">Brand</div>
-              <select 
-                className="w-full p-2 rounded border" 
-                value={pmDraft.brand} 
-                onChange={e => setPmDraft(d => ({ ...d, brand: e.target.value }))} 
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              >
-                {['Visa','Mastercard','Amex','Discover'].map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
+          <div className="space-y-4">
+            {/* Founder's Pricing Alert */}
+            <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
+                  <Crown size={12} className="text-white" />
+                </div>
+                <div className="text-lg font-bold" style={{ color: '#344E41' }}>
+                  Founder's Pricing
+                </div>
+              </div>
+              
+              <div className="rounded-lg p-3 mb-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
+                <p className="text-xs leading-relaxed" style={{ color: '#3A5A40' }}>
+                  As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
+                  even as we add new features and increase value as we grow!
+                </p>
+              </div>
             </div>
-            <div>
-              <div className="text-xs mb-1">Last 4 Digits</div>
-              <input 
-                className="w-full p-2 rounded border" 
-                maxLength={4} 
-                value={pmDraft.last4} 
-                onChange={e => setPmDraft(d => ({ ...d, last4: (e.target.value || '').replace(/\D/g,'').slice(0,4) }))} 
-                placeholder="1234" 
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
+            
+            {/* Monthly and Annual in 2-column layout */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Monthly Plan */}
+              <div 
+                className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col cursor-pointer hover:shadow-lg`}
+                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                onClick={() => handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
+              >
+                {/* Plan Title */}
+                <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                  <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
+                  <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$8.99</div>
+                  <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
+                </div>
+
+                {/* Action Button */}
+                <button 
+                  className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  Start Monthly
+                </button>
+              </div>
+
+              {/* Annual Plan */}
+              <div 
+                className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col cursor-pointer hover:shadow-lg`}
+                style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                onClick={() => handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
+              >
+                {/* Popular Badge */}
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
+                    Popular
+                  </div>
+                </div>
+
+                {/* Plan Title */}
+                <div className="text-center mb-3 flex-1 flex flex-col justify-center">
+                  <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
+                  <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$89.99</div>
+                  <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
+                  
+                  {/* Subtitle Badge */}
+                  <div className="text-center mt-1">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
+                      Save $17.89
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button 
+                  className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
+                  style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
+                >
+                  Start Annual
+                </button>
+              </div>
+            </div>
+            
+            {/* Lifetime plan in expanded single column */}
+            <div 
+              className={`relative rounded-lg border-2 p-6 transition-all duration-200 cursor-pointer hover:shadow-lg`}
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+              onClick={() => handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
+            >
+              {/* Limited Time Badge */}
+              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                <div className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                  Limited Time Only
+                </div>
+              </div>
+              
+              {/* Content with more vertical space */}
+              <div className="flex items-center justify-between min-h-[80px]">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: theme.primary }}>
+                    <Crown size={20} style={{ color: theme.textOnPrimary }} />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
+                    <div className="text-base font-semibold" style={{ color: theme.text }}>$249.99</div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • All features included</div>
+                  </div>
+                </div>
+                <button 
+                  className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  Join Forever
+                </button>
+              </div>
             </div>
           </div>
-          <div className="text-right mt-3">
-            <button 
-              className="px-3 py-2 rounded-md text-sm hover:opacity-90" 
-              style={{ backgroundColor: theme.accent, color: theme.accentText }} 
-              onClick={savePaymentMethod}
-            >
-              Update Payment Method
-            </button>
+          
+          {/* Gift Access Button */}
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+            <div className="text-center">
+              <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
+              <button
+                onClick={() => setShowGiftModal(true)}
+                className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90"
+                style={{ 
+                  background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
+                }}
+              >
+                🎁 Give as a Gift
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+
       <GiftPurchaseModal 
-        open={showGiftModal} 
+        isOpen={showGiftModal} 
         onClose={() => setShowGiftModal(false)} 
         theme={theme} 
       />
@@ -488,29 +585,12 @@ export default function AccountSubscription() {
   )
 }
 
-const InfoCard = ({ icon: Icon, label, value, theme }) => (
-  <div 
-    className="flex items-center gap-3 p-3 rounded-lg"
-    style={{ backgroundColor: theme.secondary }}
-  >
-    <div 
-      className="w-8 h-8 rounded-full flex items-center justify-center"
-      style={{ backgroundColor: theme.accent + '20' }}
-    >
-      <Icon size={16} style={{ color: theme.accent }} />
-    </div>
-    <div>
-      <div className="text-sm font-medium" style={{ color: theme.text }}>{label}</div>
-      <div className="text-xs" style={{ color: theme.mutedText }}>{value}</div>
-    </div>
-  </div>
-)
 
 const TrialProgressBar = ({ theme, startDate, endDate }) => {
-  const [progress, setProgress] = React.useState(0);
-  const [timeLeft, setTimeLeft] = React.useState('');
+  const [progress, setProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState('');
 
-  React.useEffect(() => {
+  useEffect(() => {
     const calculateProgress = () => {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -555,38 +635,3 @@ const TrialProgressBar = ({ theme, startDate, endDate }) => {
     </div>
   );
 };
-
-const PlanCard = ({ theme, title, price, interval, onSelect, current, popular, subtitle }) => {
-  const isCurrent = !!current;
-  return (
-    <div 
-      className={`relative rounded-lg border p-4 text-center transition-shadow hover:shadow-lg ${isCurrent ? 'border-2' : ''} ${popular ? 'border-2' : ''}`} 
-      style={{ 
-        borderColor: isCurrent || popular ? theme.accent : theme.border,
-        backgroundColor: theme.cardBackground
-      }}
-    >
-      {popular && (
-        <div 
-          className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-semibold rounded-full" 
-          style={{ backgroundColor: theme.accent, color: theme.accentText }}
-        >
-          Most Popular
-        </div>
-      )}
-      <div className="font-bold text-lg" style={{ color: theme.text }}>{title}</div>
-      {subtitle && <div className="text-xs" style={{ color: theme.mutedText }}>{subtitle}</div>}
-      <div className="text-3xl font-bold my-3" style={{ color: theme.text }}>
-        {price || ''}<span className="text-base font-normal" style={{ color: theme.mutedText }}>{interval || ''}</span>
-      </div>
-      <button
-        className="w-full px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: theme.accent, color: theme.accentText }}
-        onClick={onSelect}
-        disabled={isCurrent}
-      >
-        {isCurrent ? 'Current Plan' : 'Select Plan'}
-      </button>
-    </div>
-  )
-}
