@@ -47,9 +47,9 @@ const ModernToast = ({ message, type, onClose, theme }) => {
     switch (type) {
       case 'success':
         return {
-          bg: theme.primary || '#7F9E95',
-          text: theme.textOnPrimary || '#FFFFFF',
-          border: theme.primary || '#7F9E95'
+          bg: theme.isDark ? '#6B7280' : (theme.primary || '#7F9E95'),
+          text: theme.isDark ? '#F9FAFB' : (theme.textOnPrimary || '#FFFFFF'),
+          border: theme.isDark ? '#6B7280' : (theme.primary || '#7F9E95')
         };
       case 'error':
         return {

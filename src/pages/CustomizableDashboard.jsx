@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, Edit, TestTube } from 'lucide-react';
+import { Settings, Edit } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -533,25 +533,6 @@ export default function CustomizableDashboard() {
   return (
     <ViewContainer theme={theme}>
       <div className="space-y-2 overflow-x-hidden w-full max-w-full">
-        {/* Test Toast Button - Top of Dashboard */}
-        <div className="flex justify-end mb-2">
-          <button 
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                detail: { 
-                  message: '🧪 Test toast notification!', 
-                  type: 'success' 
-                } 
-              }));
-            }}
-            className="px-3 py-2 rounded-md text-sm font-semibold flex items-center gap-1.5 transition-all hover:opacity-80" 
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            title="Test Toast Notification"
-          >
-            <TestTube size={16}/>
-            <span>Test Toast</span>
-          </button>
-        </div>
 
         {/* Dashboard Layout - Flexible Grid */}
         <div className="overflow-x-hidden">

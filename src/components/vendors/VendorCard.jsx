@@ -127,7 +127,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                 {vendor.contacts.filter(c => c.value).map(c => {
                                     const action = buildContactHref(c.type, c.value);
                                     const content = (
-                                        <div className="flex items-center gap-2 text-sm hover:text-gray-900 transition-colors">
+                                        <div className="flex items-center gap-2 text-sm transition-colors" style={{ color: theme.text }}>
                                             <span className="text-base" style={{ color: theme.primary }}>{getContactIcon(c.type)}</span>
                                             <span className="truncate">{c.value}</span>
                                         </div>
@@ -135,12 +135,12 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                     
                                     if (action.isLink) {
                                         return (
-                                            <a key={c.type+c.value} href={action.href} target="_blank" rel="noopener noreferrer" className="min-w-0 text-gray-700">{content}</a>
+                                            <a key={c.type+c.value} href={action.href} target="_blank" rel="noopener noreferrer" className="min-w-0" style={{ color: theme.text }}>{content}</a>
                                         );
                                     }
                                     
                                     return (
-                                        <button key={c.type+c.value} onClick={() => { try { navigator.clipboard.writeText(c.value); window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Copied!', type: 'success' } })) } catch { } }} title={`Copy ${c.value}`} className="min-w-0 text-left w-full text-gray-700">{content}</button>
+                                        <button key={c.type+c.value} onClick={() => { try { navigator.clipboard.writeText(c.value); window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Copied!', type: 'success' } })) } catch { } }} title={`Copy ${c.value}`} className="min-w-0 text-left w-full" style={{ color: theme.text }}>{content}</button>
                                     );
                                 })}
                             </div>
@@ -148,7 +148,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                     )}
 
                     {vendor.notes && vendor.notes.trim() && (
-                        <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                        <div className="mt-3 pt-3" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
                             <div className="flex items-start gap-2 text-sm">
                                 <FileText size={14} className="mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />
                                 <div 
@@ -172,11 +172,11 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                 {/* Bottom Section: Payments, Labels, Buttons */}
                 <div>
                     {(paymentMethods.length > 0 || (vendor.labels && vendor.labels.length > 0)) && (
-                        <div className="mt-3 pt-3 border-t space-y-3" style={{ borderColor: theme.border }}>
+                        <div className="mt-3 pt-3 space-y-3" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
                             {paymentMethods.length > 0 && (
                                 <div className="flex flex-wrap gap-2 text-xs">
                                     {paymentMethods.map(({ label, Icon }) => (
-                                        <span key={label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-gray-600" style={{ backgroundColor: theme.secondary }}>
+                                        <span key={label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.text }}>
                                             <Icon className="w-3.5 h-3.5" />
                                             {label}
                                         </span>
@@ -198,18 +198,18 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                     )}
 
                     {!isPublicView && (
-                         <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: theme.border }}>
+                         <div className="mt-4 pt-4 flex items-center justify-between" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
                             {orderHistory.length > 0 && (
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <div className="flex items-center gap-1 text-xs" style={{ color: theme.textLight }}>
                                     <ShoppingCart size={12} />
                                     <span>{orderHistory.length} order{orderHistory.length !== 1 ? 's' : ''}</span>
                                 </div>
                             )}
                             <div className="flex items-center gap-2 ml-auto">
-                                <button data-tour="vendor-share" onClick={handleShare} className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0" aria-label="Share vendor">
+                                <button data-tour="vendor-share" onClick={handleShare} className="p-2 rounded-md transition-colors flex-shrink-0" style={{ color: theme.text }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'} aria-label="Share vendor">
                                     <Share2 className="h-4 w-4" />
                                 </button>
-                                <button onClick={() => onEditClick(vendor)} className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0" aria-label="Edit vendor">
+                                <button onClick={() => onEditClick(vendor)} className="p-2 rounded-md transition-colors flex-shrink-0" style={{ color: theme.text }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'} aria-label="Edit vendor">
                                     <Edit className="h-4 w-4" />
                                 </button>
                             </div>
