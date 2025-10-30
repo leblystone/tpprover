@@ -912,7 +912,10 @@ export default function Calendar() {
         onShowIconKey={() => setShowIconKey(true)}
         theme={theme}
       />
-      <div className="rounded border p-4 content-card flex-1" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="rounded p-4 content-card flex-1" style={{ 
+        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+        backgroundColor: theme.cardBackground 
+      }}>
         {viewMode === 'month' ? (
           <MonthGrid
             date={currentDate}

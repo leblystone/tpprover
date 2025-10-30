@@ -16,7 +16,18 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
   return (
     <div className="flex items-center justify-between mb-4 flex-wrap">
       <div className="hidden sm:flex items-center gap-2">
-        <button onClick={onToday} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Today</button>
+        <button 
+          onClick={onToday} 
+          className="px-4 py-2 rounded-lg text-sm font-semibold transition-all" 
+          style={{ 
+            backgroundColor: theme.isDark ? '#1f2937' : theme.primary, 
+            color: theme.isDark ? theme.primary : theme.textOnPrimary 
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + 'dd'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.primary}
+        >
+          Today
+        </button>
         <div className="flex items-center gap-1">
           <button onClick={onPrev} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronLeft className="h-5 w-5" /></button>
           <button onClick={onNext} className="p-2 rounded-full transition-all" style={{ color: theme.isDark ? '#a8b5a0' : theme.primaryDark }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}><ChevronRight className="h-5 w-5" /></button>
@@ -48,7 +59,19 @@ export default function CalendarHeader({ currentDate, weekStart, onPrev, onNext,
         </div>
         <div className="flex sm:hidden items-center justify-between w-full order-3 mt-2">
              <div className="flex items-center gap-2">
-               <button onClick={onToday} className="px-4 py-1.5 text-sm font-semibold rounded-lg border" style={{ borderColor: theme.border }}>Today</button>
+               <button 
+                 onClick={onToday} 
+                 className="px-4 py-1.5 text-sm font-semibold rounded-lg transition-all" 
+                 style={{ 
+                   backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, 
+                   color: theme.isDark ? theme.primary : theme.text,
+                   border: theme.isDark ? 'none' : `1px solid ${theme.border}`
+                 }}
+                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary}
+               >
+                 Today
+               </button>
              </div>
             <div className="flex items-center gap-2">
               <div className="flex gap-1 p-1 rounded-xl shadow-inner" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
