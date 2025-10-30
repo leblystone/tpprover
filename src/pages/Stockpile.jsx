@@ -466,18 +466,32 @@ export default function Stockpile() {
                                                         <div className="flex items-center gap-2 font-medium"><Package size={12} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
                                                         <div className="flex items-center">
                                                             {item.orderId && (
-                                                                <button title="View Source Order" className="p-1" style={{ color: theme.primary }} onClick={() => navigate(`/orders`, { state: { openOrderId: item.orderId } })}>
+                                                                <button 
+                                                                    title="View Source Order" 
+                                                                    className="p-1 rounded-md transition-colors" 
+                                                                    style={{ color: theme.primary }} 
+                                                                    onClick={() => navigate(`/orders`, { state: { openOrderId: item.orderId } })}
+                                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+                                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                                >
                                                                     <ShoppingCart size={14} />
                                                                 </button>
                                                             )}
-                                                            <button title="Send to Recon Calculator" className="p-1" style={{ color: theme.primary }} onClick={() => {
-                                                                try {
-                                                                    const payload = { peptide: g.name, mg: String(item.mg), vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, cost: item.cost };
-                                                                    localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
-                                                                    window.history.pushState({}, '', '/recon');
-                                                                    window.dispatchEvent(new PopStateEvent('popstate'));
-                                                                } catch { }
-                                                            }}>
+                                                            <button 
+                                                                title="Send to Recon Calculator" 
+                                                                className="p-1 rounded-md transition-colors" 
+                                                                style={{ color: theme.primary }} 
+                                                                onClick={() => {
+                                                                    try {
+                                                                        const payload = { peptide: g.name, mg: String(item.mg), vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, cost: item.cost };
+                                                                        localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
+                                                                        window.history.pushState({}, '', '/recon');
+                                                                        window.dispatchEvent(new PopStateEvent('popstate'));
+                                                                    } catch { }
+                                                                }}
+                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+                                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            >
                                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C12 2 5 9 5 14a7 7 0 0 0 14 0c0-5-7-12-7-12z"></path></svg>
                                                             </button>
                                                         </div>
