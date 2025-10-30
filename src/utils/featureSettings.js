@@ -1,5 +1,5 @@
 // src/utils/featureSettings.js
-import { loadSettings } from '../pages/Settings'; // Assuming loadSettings is exported from Settings.jsx
+import { loadSettings } from './settingsHelpers';
 
 /**
  * Check if group buy features are enabled

@@ -156,8 +156,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               {autoSaveIndicator}
             </div>
           )}
-          {showSearch && (
-            <div className="flex-1 max-w-xl mr-2 flex items-center gap-2 animate-slide-down">
+          {/* Dashboard-specific inline expanding search */}
+          {showSearch && onDashboard && (
+            <div className="flex-1 max-w-xl mr-2 flex items-center gap-2 animate-slide-right">
               <input 
                 autoFocus
                 type="text" 
@@ -193,17 +194,16 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               theme={theme}
             />
           )}
-          {/* Hide search button on stockpile and protocols pages */}
-          {seg !== 'stockpile' && seg !== 'protocols' && (
+          {seg !== 'stockpile' && seg !== 'protocols' && seg !== 'settings' && seg !== 'account' && (
             <ModernTooltip text="Search" position="bottom">
               <button 
                 className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
                 onClick={() => {
-                  // On recon page, trigger page-specific search
-                  if (seg === 'recon') {
-                    window.dispatchEvent(new CustomEvent('tpp:recon-search-toggle'));
+                  // On recon, orders, protocols, or stockpile pages, trigger page-specific search
+                  if (seg === 'recon' || seg === 'orders' || seg === 'protocols' || seg === 'stockpile') {
+                    window.dispatchEvent(new CustomEvent(`tpp:${seg}-search-toggle`));
                   } else {
-                    // On other pages, use global search
+                    // On other pages like dashboard, use global search
                     setShowSearch(s => !s);
                   }
                 }} 

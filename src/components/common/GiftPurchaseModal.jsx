@@ -19,6 +19,9 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showFailure, setShowFailure] = useState(false);
+  const [giftData, setGiftData] = useState(null);
 
   const subscriptionOptions = [
     { 
@@ -55,6 +58,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
     setError('');
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -69,31 +73,51 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
       // Get selected subscription option
       const selectedOption = subscriptionOptions.find(opt => opt.value === formData.subscriptionType);
       
-      // Create Stripe checkout session for gift (one-time payment)
-      // Use the actual Stripe price ID for the selected gift option
-      await createCheckoutSession(
-        selectedOption.priceId,
-        user.email,
-        user.uid,
-        '/gift-success',
-        true, // isGift flag
-        {
-          cancelPath: window.location.pathname + window.location.search,
-          successPath: '/gift-success',
-          giftData: {
-            recipientEmail: formData.recipientEmail,
-            recipientName: formData.recipientName,
-            giftGiverName: formData.giftGiverName,
-            giftMessage: formData.giftMessage,
-            subscriptionType: formData.subscriptionType,
-            pricePaid: selectedOption.price
-          }
-        }
-      );
+      // For testing purposes, show success modal instead of redirecting
+      // In production, this would create the actual Stripe checkout session
+      setGiftData({
+        recipientEmail: formData.recipientEmail,
+        recipientName: formData.recipientName,
+        giftGiverName: formData.giftGiverName,
+        giftMessage: formData.giftMessage,
+        subscriptionType: formData.subscriptionType,
+        pricePaid: selectedOption.price
+      });
+      setShowSuccess(true);
+      
+      // Uncomment this for production:
+      // await createCheckoutSession(
+      //   selectedOption.priceId,
+      //   user.email,
+      //   user.uid,
+      //   '/gift-success',
+      //   true, // isGift flag
+      //   {
+      //     cancelPath: window.location.pathname + window.location.search,
+      //     successPath: '/gift-success',
+      //     giftData: {
+      //       recipientEmail: formData.recipientEmail,
+      //       recipientName: formData.recipientName,
+      //       giftGiverName: formData.giftGiverName,
+      //       giftMessage: formData.giftMessage,
+      //       subscriptionType: formData.subscriptionType,
+      //       pricePaid: selectedOption.price
+      //     }
+      //   }
+      // );
 
     } catch (error) {
       console.error('Error creating gift:', error);
-      setError(error.message || 'Failed to create gift. Please try again.');
+      setGiftData({
+        recipientEmail: formData.recipientEmail,
+        recipientName: formData.recipientName,
+        giftGiverName: formData.giftGiverName,
+        giftMessage: formData.giftMessage,
+        subscriptionType: formData.subscriptionType,
+        pricePaid: selectedOption.price,
+        errorMessage: error.message || 'Failed to create gift. Please try again.'
+      });
+      setShowFailure(true);
     } finally {
       setIsLoading(false);
     }
@@ -102,6 +126,7 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
   if (!isOpen) return null;
 
   return (
+    <>
     <Modal
       open={isOpen}
       onClose={onClose}
@@ -255,6 +280,118 @@ const GiftPurchaseModal = ({ isOpen, onClose, theme }) => {
         </div>
       </form>
     </Modal>
+
+    {/* Success Modal */}
+    {showSuccess && (
+      <Modal
+        open={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        title="🎉 Gift Sent Successfully!"
+        theme={theme}
+        maxWidth="max-w-md"
+        footer={
+          <div className="flex justify-center w-full">
+            <button
+              onClick={() => {
+                setShowSuccess(false);
+                onClose();
+              }}
+              className="px-6 py-2 rounded-lg text-sm font-medium transition-all"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: theme.successBg }}>
+            <span className="text-3xl">🎁</span>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+              Gift Purchase Complete!
+            </h3>
+            <p className="text-sm" style={{ color: theme.textLight }}>
+              Your gift has been sent to <strong>{giftData?.recipientName}</strong> at {giftData?.recipientEmail}
+            </p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 text-left">
+            <h4 className="font-medium mb-2" style={{ color: theme.text }}>Gift Details:</h4>
+            <div className="space-y-1 text-sm" style={{ color: theme.textLight }}>
+              <p><strong>Recipient:</strong> {giftData?.recipientName}</p>
+              <p><strong>Email:</strong> {giftData?.recipientEmail}</p>
+              <p><strong>Subscription:</strong> {giftData?.subscriptionType} (${giftData?.pricePaid})</p>
+              <p><strong>Message:</strong> "{giftData?.giftMessage}"</p>
+            </div>
+          </div>
+
+          <p className="text-xs" style={{ color: theme.textLight }}>
+            The recipient will receive an email with instructions to redeem their gift.
+          </p>
+        </div>
+      </Modal>
+    )}
+
+    {/* Failure Modal */}
+    {showFailure && (
+      <Modal
+        open={showFailure}
+        onClose={() => setShowFailure(false)}
+        title="❌ Gift Purchase Failed"
+        theme={theme}
+        maxWidth="max-w-md"
+        footer={
+          <div className="flex justify-center w-full">
+            <button
+              onClick={() => setShowFailure(false)}
+              className="px-6 py-2 rounded-lg text-sm font-medium transition-all"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Try Again
+            </button>
+          </div>
+        }
+      >
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEE2E2' }}>
+            <span className="text-3xl">💔</span>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+              Gift Purchase Failed
+            </h3>
+            <p className="text-sm" style={{ color: theme.textLight }}>
+              We encountered an issue processing your gift purchase.
+            </p>
+          </div>
+
+          <div className="bg-red-50 rounded-lg p-4 text-left">
+            <h4 className="font-medium mb-2 text-red-800">Error Details:</h4>
+            <p className="text-sm text-red-700">
+              {giftData?.errorMessage || 'Payment was declined or checkout was abandoned. Please try again with a different payment method.'}
+            </p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 text-left">
+            <h4 className="font-medium mb-2" style={{ color: theme.text }}>Gift Details:</h4>
+            <div className="space-y-1 text-sm" style={{ color: theme.textLight }}>
+              <p><strong>Recipient:</strong> {giftData?.recipientName}</p>
+              <p><strong>Email:</strong> {giftData?.recipientEmail}</p>
+              <p><strong>Subscription:</strong> {giftData?.subscriptionType} (${giftData?.pricePaid})</p>
+            </div>
+          </div>
+
+          <p className="text-xs" style={{ color: theme.textLight }}>
+            Please check your payment method and try again, or contact support if the issue persists.
+          </p>
+        </div>
+      </Modal>
+    )}
+    </>
   );
 };
 

@@ -69,6 +69,8 @@ export default function Stockpile() {
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchClosing, setSearchClosing] = useState(false)
   
   // Drag & Drop Merge functionality
   const [isDragMode, setIsDragMode] = useState(false)

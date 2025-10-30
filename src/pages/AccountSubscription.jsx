@@ -578,7 +578,7 @@ export default function AccountSubscription() {
       <GiftPurchaseModal 
         isOpen={showGiftModal} 
         onClose={() => setShowGiftModal(false)} 
-        theme={theme} 
+        theme={theme}
       />
 
     </section>
