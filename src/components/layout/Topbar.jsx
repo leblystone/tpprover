@@ -157,33 +157,51 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             </div>
           )}
           {/* Dashboard-specific inline expanding search */}
-          {showSearch && onDashboard && (
-            <div className="flex-1 max-w-xl mr-2 flex items-center gap-2 animate-slide-right">
-              <input 
-                autoFocus
-                type="text" 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)} 
-                placeholder={getPlaceholder()} 
-                className="w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
-                style={{ 
-                  borderColor: theme.border, 
-                  backgroundColor: theme.cardBackground, 
-                  color: theme.text,
-                  focusRingColor: theme.primary
-                }}
-              />
-              <button 
-                onClick={() => {
-                  setShowSearch(false);
-                  setSearchQuery('');
-                }}
-                className="p-1.5 rounded-md hover:bg-opacity-20 transition-colors"
-                style={{ color: theme.textLight }}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+          {onDashboard && (
+            <>
+              {showSearch && (
+                <div className="flex items-center gap-2 animate-slide-right">
+                  <input 
+                    autoFocus
+                    type="text" 
+                    value={searchQuery} 
+                    onChange={e => setSearchQuery(e.target.value)} 
+                    placeholder={getPlaceholder()} 
+                    className="w-64 px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
+                    style={{ 
+                      borderColor: theme.border, 
+                      backgroundColor: theme.cardBackground, 
+                      color: theme.text,
+                      focusRingColor: theme.primary
+                    }}
+                  />
+                  <button 
+                    onClick={() => {
+                      setShowSearch(false);
+                      setSearchQuery('');
+                    }}
+                    className="p-1.5 rounded-md hover:bg-opacity-20 transition-colors"
+                    style={{ color: theme.textLight }}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              <ModernTooltip text="Search" position="bottom">
+                <button 
+                  className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
+                  onClick={() => {
+                    // On dashboard, use global search
+                    setShowSearch(s => !s);
+                  }} 
+                  style={{ color: theme.text }}
+                  aria-label="Toggle search"
+                  aria-expanded={showSearch}
+                >
+                  <Search className="h-5 w-5 md:h-5 md:w-5" />
+                </button>
+              </ModernTooltip>
+            </>
           )}
           {/* Trial Button - Only show on dashboard */}
           {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
@@ -194,7 +212,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               theme={theme}
             />
           )}
-          {seg !== 'stockpile' && seg !== 'protocols' && seg !== 'settings' && seg !== 'account' && (
+          {!onDashboard && seg !== 'stockpile' && seg !== 'protocols' && seg !== 'settings' && seg !== 'account' && (
             <ModernTooltip text="Search" position="bottom">
               <button 
                 className="p-2 md:p-2 rounded-full no-shadow flex-shrink-0" 
@@ -202,9 +220,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   // On recon, orders, protocols, or stockpile pages, trigger page-specific search
                   if (seg === 'recon' || seg === 'orders' || seg === 'protocols' || seg === 'stockpile') {
                     window.dispatchEvent(new CustomEvent(`tpp:${seg}-search-toggle`));
-                  } else {
-                    // On other pages like dashboard, use global search
-                    setShowSearch(s => !s);
                   }
                 }} 
                 style={{ color: theme.text }}
