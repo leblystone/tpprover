@@ -98,7 +98,7 @@ export default function SettingsAppearance() {
           style={{ backgroundColor: theme.cardBackground }}
         >
           <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>Color Theme</h4>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-4 gap-2">
             {Object.keys(themes).map(themeKey => {
               const themeData = themes[themeKey]
               const isSelected = selectedTheme === themeKey
@@ -117,16 +117,16 @@ export default function SettingsAppearance() {
                 <button
                   key={themeKey}
                   onClick={() => handleThemeChange(themeKey)}
-                  className="relative p-4 rounded-xl transition-all hover:scale-[1.02]"
+                  className="relative p-2 rounded-lg transition-all hover:scale-[1.02]"
                   style={{
                     backgroundColor: theme.secondary,
-                    border: isSelected ? `3px solid ${theme.accent}` : '3px solid transparent',
+                    border: isSelected ? `2px solid ${theme.accent}` : '2px solid transparent',
                     boxShadow: isSelected ? `0 4px 12px ${theme.accent}40` : '0 2px 6px rgba(0,0,0,0.1)'
                   }}
                 >
-                  {/* Large Color Swatch with Metallic Finish */}
+                  {/* Compact Color Swatch with Metallic Finish */}
                   <div 
-                    className="w-full h-20 rounded-lg mb-3 relative overflow-hidden"
+                    className="w-full h-12 rounded-lg mb-2 relative overflow-hidden"
                     style={{
                       background: `linear-gradient(135deg, ${colors.start} 0%, ${colors.mid} 50%, ${colors.end} 100%)`,
                       boxShadow: themeKey === 'softDark' 
@@ -158,15 +158,15 @@ export default function SettingsAppearance() {
                   
                   {/* Theme Name and Check */}
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                    <div className="text-xs font-semibold" style={{ color: theme.text }}>
                       {themeData.name}
                     </div>
                     {isSelected && (
                       <div 
-                        className="w-6 h-6 rounded-full flex items-center justify-center"
+                        className="w-4 h-4 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: theme.accent }}
                       >
-                        <Check size={14} style={{ color: theme.accentText }} />
+                        <Check size={10} style={{ color: theme.accentText }} />
                       </div>
                     )}
                   </div>
