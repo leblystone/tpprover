@@ -514,21 +514,37 @@ export default function Recon() {
 				</div>
 			</div>
 
-            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'New Entry'} theme={theme} variant="modern" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
+            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'New Reconstitution'} theme={theme} variant="modern" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
 				<div className="w-full flex justify-between items-center">
 					<div>
 						{editingItem && <button onClick={() => handleDelete(editingItem.id)} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all">Delete</button>}
 					</div>
 					<div className="flex items-center gap-2">
-						<button onClick={() => { setShowEditModal(null); setEditingItem(null) }} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
-						<button onClick={() => handleSave(editingItem)} className="px-4 py-2 rounded-lg text-sm font-medium transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
+						<button 
+							onClick={() => { setShowEditModal(null); setEditingItem(null) }} 
+							className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" 
+							style={{ borderColor: theme.border, color: theme.text }}
+							onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+							onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+						>
+							Cancel
+						</button>
+						<button 
+							onClick={() => handleSave(editingItem)} 
+							className="px-4 py-2 rounded-lg text-sm font-medium transition-all" 
+							style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+							onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + 'dd' : theme.primary + 'cc'}
+							onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
+						>
+							Save
+						</button>
 					</div>
 				</div>
 			}>
                 <div className="space-y-3">
                     {/* VIAL DETAILS Section Header */}
-                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>VIAL DETAILS</h4>
+                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VIAL DETAILS</h4>
                     </div>
 
                     <TextInput label="Peptide Name" value={getEditingPeptideName()} onChange={v => { setEditingItem(i => ({ ...i, peptide: v })); updateFormData({ peptide: v }); }} theme={theme} />
@@ -552,8 +568,11 @@ export default function Recon() {
                     <div>
                         <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Dose</label>
                         <div 
-                            className="flex items-stretch border rounded-lg overflow-hidden"
-                            style={{ borderColor: theme.border }}
+                            className="flex items-stretch rounded-lg overflow-hidden"
+                            style={{ 
+                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                            }}
                         >
                             <input 
                                 type="number"
@@ -565,15 +584,15 @@ export default function Recon() {
                                 placeholder="250"
                                 className="flex-1 px-3 py-2 outline-none min-w-0"
                                 style={{
-                                    backgroundColor: theme.inputBackground || '#fff',
+                                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                                     color: theme.text
                                 }}
                             />
                             <div 
-                                className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                                 style={{ 
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.cardBackground || '#f9fafb'
+                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                                 }}
                             >
                                 {['mcg', 'mg', 'mL'].map(unit => (
@@ -587,9 +606,19 @@ export default function Recon() {
                                         className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
                                             getEditingDoseUnit() === unit 
                                                 ? 'text-white shadow-sm' 
-                                                : 'text-gray-600 hover:bg-gray-200'
+                                                : ''
                                         }`}
-                                        style={getEditingDoseUnit() === unit ? { backgroundColor: theme.primary } : {}}
+                                        style={getEditingDoseUnit() === unit ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                        onMouseEnter={(e) => {
+                                            if (getEditingDoseUnit() !== unit) {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#e5e7eb';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (getEditingDoseUnit() !== unit) {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }
+                                        }}
                                     >
                                         {unit}
                                     </button>
@@ -599,20 +628,30 @@ export default function Recon() {
                     </div>
 
                     {/* DELIVERY METHOD Section Header */}
-                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>DELIVERY METHOD</h4>
+                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>DELIVERY METHOD</h4>
                     </div>
 
                     <div>
-                        <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
+                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                             <button 
                                 onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'pipette' }))}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     (editingItem?.deliveryMethod || 'pipette') === 'pipette' 
                                         ? 'text-white shadow-sm' 
-                                        : 'text-gray-700 hover:bg-gray-200'
+                                        : ''
                                 }`}
-                                style={(editingItem?.deliveryMethod || 'pipette') === 'pipette' ? { backgroundColor: theme.primary } : {}}
+                                style={(editingItem?.deliveryMethod || 'pipette') === 'pipette' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                onMouseEnter={(e) => {
+                                    if ((editingItem?.deliveryMethod || 'pipette') !== 'pipette') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if ((editingItem?.deliveryMethod || 'pipette') !== 'pipette') {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
                             >
                                 <Pipette size={16} /> Syringe
                             </button>
@@ -621,9 +660,19 @@ export default function Recon() {
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'pen' 
                                         ? 'text-white shadow-sm' 
-                                        : 'text-gray-700 hover:bg-gray-200'
+                                        : ''
                                 }`}
-                                style={editingItem?.deliveryMethod === 'pen' ? { backgroundColor: theme.primary } : {}}
+                                style={editingItem?.deliveryMethod === 'pen' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                onMouseEnter={(e) => {
+                                    if (editingItem?.deliveryMethod !== 'pen') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (editingItem?.deliveryMethod !== 'pen') {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
                             >
                                 <PenTool size={16} /> Pen
                             </button>
@@ -632,9 +681,19 @@ export default function Recon() {
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'nasal' 
                                         ? 'text-white shadow-sm' 
-                                        : 'text-gray-700 hover:bg-gray-200'
+                                        : ''
                                 }`}
-                                style={editingItem?.deliveryMethod === 'nasal' ? { backgroundColor: theme.primary } : {}}
+                                style={editingItem?.deliveryMethod === 'nasal' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                onMouseEnter={(e) => {
+                                    if (editingItem?.deliveryMethod !== 'nasal') {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (editingItem?.deliveryMethod !== 'nasal') {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
                             >
                                 <Droplet size={16} /> Nasal
                             </button>
@@ -642,15 +701,25 @@ export default function Recon() {
                         {(editingItem?.deliveryMethod === 'pipette' || !editingItem?.deliveryMethod) && (
                             <div className="mt-3">
                                 <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
-                                <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
+                                <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                                     <button 
                                         onClick={() => setEditingItem(i => ({ ...i, administrationRoute: 'SubQ' }))}
                                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                             (editingItem?.administrationRoute || 'SubQ') === 'SubQ' 
                                                 ? 'text-white shadow-sm' 
-                                                : 'text-gray-700 hover:bg-gray-200'
+                                                : ''
                                         }`}
-                                        style={(editingItem?.administrationRoute || 'SubQ') === 'SubQ' ? { backgroundColor: theme.primary } : {}}
+                                        style={(editingItem?.administrationRoute || 'SubQ') === 'SubQ' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                        onMouseEnter={(e) => {
+                                            if ((editingItem?.administrationRoute || 'SubQ') !== 'SubQ') {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if ((editingItem?.administrationRoute || 'SubQ') !== 'SubQ') {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }
+                                        }}
                                     >
                                         SubQ
                                     </button>
@@ -659,9 +728,19 @@ export default function Recon() {
                                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                             editingItem?.administrationRoute === 'IM' 
                                                 ? 'text-white shadow-sm' 
-                                                : 'text-gray-700 hover:bg-gray-200'
+                                                : ''
                                         }`}
-                                        style={editingItem?.administrationRoute === 'IM' ? { backgroundColor: theme.primary } : {}}
+                                        style={editingItem?.administrationRoute === 'IM' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                        onMouseEnter={(e) => {
+                                            if (editingItem?.administrationRoute !== 'IM') {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (editingItem?.administrationRoute !== 'IM') {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }
+                                        }}
                                     >
                                         IM
                                     </button>
@@ -670,9 +749,19 @@ export default function Recon() {
                                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                             editingItem?.administrationRoute === 'IV' 
                                                 ? 'text-white shadow-sm' 
-                                                : 'text-gray-700 hover:bg-gray-200'
+                                                : ''
                                         }`}
-                                        style={editingItem?.administrationRoute === 'IV' ? { backgroundColor: theme.primary } : {}}
+                                        style={editingItem?.administrationRoute === 'IV' ? { backgroundColor: theme.primary } : { color: theme.text }}
+                                        onMouseEnter={(e) => {
+                                            if (editingItem?.administrationRoute !== 'IV') {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (editingItem?.administrationRoute !== 'IV') {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }
+                                        }}
                                     >
                                         IV
                                     </button>
