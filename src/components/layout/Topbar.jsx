@@ -1,8 +1,7 @@
 import React from 'react';
-import { Menu, Search, Upload, Edit, Plus } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus, X } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
-import GlobalSearchInline from '../search/GlobalSearchInline';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
 import TrialButton from '../common/TrialButton';
@@ -52,6 +51,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const desktopTitle = desktopTitles[seg] || mobileTitle;
 
   const [showSearch, setShowSearch] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   // Map page segments to search filter types
   const getPageFilter = () => {
@@ -63,6 +63,15 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
       'glossary': 'glossary',
     };
     return filterMap[seg] || null;
+  };
+
+  const getPlaceholder = () => {
+    if (getPageFilter() === 'order') return 'Search orders...'
+    if (getPageFilter() === 'protocol') return 'Search protocols...'
+    if (getPageFilter() === 'vendor') return 'Search vendors...'
+    if (getPageFilter() === 'stockpile') return 'Search stockpile...'
+    if (getPageFilter() === 'glossary') return 'Search glossary...'
+    return 'Search supplements, tasks, protocols, orders...'
   };
 
 
@@ -148,13 +157,31 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             </div>
           )}
           {showSearch && (
-            <div className="w-full max-w-xl mr-2 animate-slide-down">
-              <GlobalSearchInline 
-                theme={theme} 
-                pageFilter={getPageFilter()} 
-                onClose={() => setShowSearch(false)}
-                onNavigate={(to) => { setShowSearch(false); window.history.pushState({}, '', to); window.dispatchEvent(new PopStateEvent('popstate')) }} 
+            <div className="flex-1 max-w-xl mr-2 flex items-center gap-2 animate-slide-down">
+              <input 
+                autoFocus
+                type="text" 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                placeholder={getPlaceholder()} 
+                className="w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
+                style={{ 
+                  borderColor: theme.border, 
+                  backgroundColor: theme.cardBackground, 
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
               />
+              <button 
+                onClick={() => {
+                  setShowSearch(false);
+                  setSearchQuery('');
+                }}
+                className="p-1.5 rounded-md hover:bg-opacity-20 transition-colors"
+                style={{ color: theme.textLight }}
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           )}
           {/* Trial Button - Only show on dashboard */}
