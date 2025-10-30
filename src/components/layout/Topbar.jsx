@@ -168,7 +168,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   type="text" 
                   value={searchQuery} 
                   onChange={e => setSearchQuery(e.target.value)} 
-                  placeholder="Search supplements, tasks, protocols..."
+                  placeholder="Search..."
                   style={{ color: theme.text }}
                 />
                 <button 

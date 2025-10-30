@@ -160,6 +160,38 @@ const DEFAULT_TEMPLATES = {
       'Priority Support – Get help when you need it'
     ]
   },
+  manualLifetimeGrant: {
+    name: 'Manual Lifetime Grant',
+    subject: '✅ Lifetime Access Granted by Admin - The Pep Planner',
+    heading: 'Lifetime Access Granted',
+    greeting: 'An administrator has granted your account lifetime access to The Pep Planner.',
+    mainMessage: 'You now have permanent access to all features with no recurring billing. This is a special research authorization applied directly to your account.',
+    ctaText: 'Open Dashboard',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: 'Access Details',
+    highlightMessage: 'Status: Active • Type: Admin Granted • Expires: Never',
+    features: [
+      'Full access to all research features',
+      'Priority support',
+      'All future updates included',
+    ]
+  },
+  giftNotification: {
+    name: "Gift Received Notification",
+    subject: "🎁 You've Been Gifted Access to The Pep Planner!",
+    heading: "You've Been Gifted!",
+    greeting: "Great news! Someone just gifted you access to The Pep Planner.",
+    mainMessage: "Activate your research workspace and start organizing protocols, tracking progress, and managing inventory — all included with your gifted access.",
+    ctaText: 'Redeem Your Gift',
+    ctaLink: 'https://thepepplanner.app/app/redeem',
+    highlightTitle: 'Gift Details',
+    highlightMessage: 'This gift includes full access for the selected term. Activate to begin.',
+    features: [
+      'Full access to all features during the gift period',
+      'Keep your data — upgrade anytime to continue',
+      'Fast setup — be up and running in minutes',
+    ]
+  },
   giftExpiringSoon: {
     name: 'Gift Subscription Expiring Soon',
     subject: '🎁 Your Gifted Research Time Is Ending Soon - The Pep Planner',
