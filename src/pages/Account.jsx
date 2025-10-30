@@ -39,12 +39,6 @@ export default function Account() {
 
   return (
     <section className="space-y-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: theme.text }}>Account</h1>
-        <p className="text-sm" style={{ color: theme.mutedText }}>Manage your account settings and preferences</p>
-      </div>
-
       {/* Account Sections */}
       <div className="space-y-3">
         {accountSections.map((section, index) => {
