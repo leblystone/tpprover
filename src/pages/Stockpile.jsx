@@ -700,7 +700,19 @@ export default function Stockpile() {
         maxWidth="max-w-2xl" 
         footer={(
         <>
-          <button onClick={handleCloseStockpileModal} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
+          <button 
+            onClick={handleCloseStockpileModal} 
+            className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" 
+            style={{ borderColor: theme.border, color: theme.text }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            Cancel
+          </button>
           <button 
             onClick={async () => { 
               try {
@@ -740,6 +752,16 @@ export default function Stockpile() {
             disabled={isSavingToStockpile}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            onMouseEnter={(e) => {
+              if (!isSavingToStockpile) {
+                e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + 'dd' : theme.primary + 'cc';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSavingToStockpile) {
+                e.currentTarget.style.backgroundColor = theme.primary;
+              }
+            }}
           >
             {isSavingToStockpile ? 'Saving...' : 'Save'}
           </button>
