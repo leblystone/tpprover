@@ -299,7 +299,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('monthly')}
                   disabled={isProcessing}
-                  className="p-3 rounded-lg cursor-pointer hover:shadow-md transition-all text-center disabled:opacity-50"
+                  className="p-3 rounded-lg cursor-pointer plan-button-hover text-center disabled:opacity-50"
                   style={{ 
                     border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
                     backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
@@ -316,7 +316,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('annual')}
                   disabled={isProcessing}
-                  className="p-3 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
+                  className="p-3 rounded-lg cursor-pointer plan-button-hover text-center relative disabled:opacity-50"
                   style={{ 
                     border: theme.isDark ? `1px solid ${theme.primary}` : `2px solid ${theme.primary}`,
                     backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 
@@ -341,7 +341,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 <button
                   onClick={() => !isProcessing && handleSelectPlan('lifetime')}
                   disabled={isProcessing}
-                  className="p-3 rounded-lg cursor-pointer hover:shadow-md transition-all text-center relative disabled:opacity-50"
+                  className="p-3 rounded-lg cursor-pointer plan-button-hover text-center relative disabled:opacity-50"
                   style={{ 
                     border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
                     backgroundColor: theme.isDark ? '#374151' : theme.cardBackground 

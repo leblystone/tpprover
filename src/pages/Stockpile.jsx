@@ -1036,7 +1036,7 @@ export default function Stockpile() {
                   <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Quantity & Unit</div>
                   <div className="flex items-center p-2 rounded" style={{ 
                     border: theme.isDark ? 'none' : `1px solid ${theme?.border}`,
-                    backgroundColor: theme.isDark ? '#374151' : theme.cardBackground,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
                     boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                   }}>
                     <input 
@@ -1046,7 +1046,7 @@ export default function Stockpile() {
                       placeholder="1"
                       style={{ color: theme.text }}
                     />
-                    <div className="inline-flex rounded-full p-1 shadow-inner" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+                    <div className="inline-flex rounded-full p-1 shadow-inner" style={{ backgroundColor: theme.isDark ? '#374151' : '#f3f4f6' }}>
                         {['vial','kit'].map(k => (
                             <button key={k} type="button" onClick={() => {
                                 const oldUnit = row.unit || 'vial';
@@ -1072,7 +1072,7 @@ export default function Stockpile() {
                                 style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : { color: theme.text }}
                                 onMouseEnter={(e) => {
                                   if ((row.unit || 'vial') !== k) {
-                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#e5e7eb';
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#e5e7eb';
                                   }
                                 }}
                                 onMouseLeave={(e) => {

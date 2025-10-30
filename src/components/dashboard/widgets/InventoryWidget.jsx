@@ -41,7 +41,7 @@ const InventoryWidget = ({ widget, theme }) => {
 
   return (
     <div 
-      className="h-full flex flex-col cursor-pointer transition-all hover:shadow-lg" 
+      className="h-full flex flex-col cursor-pointer widget-card-hover" 
       onClick={handleClick}
       style={{ borderRadius: '12px' }}
     >

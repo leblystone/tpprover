@@ -27,10 +27,10 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
           </p>
           <button
             onClick={onAdd}
-            className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+            className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            Schedule Buy
+            <span className="text-hover">Schedule Buy</span>
           </button>
         </div>
         
@@ -49,10 +49,10 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
                   if (onUpgrade) onUpgrade();
                   else window.location.href = '/app/account';
                 }}
-                className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+                className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
-                Upgrade
+                <span className="text-hover">Upgrade</span>
               </button>
             </div>
           </div>
@@ -79,16 +79,16 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, isReadOnly = false, on
             <p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
               Trial has ended
             </p>
-            <button
-              onClick={() => {
-                if (onUpgrade) onUpgrade();
-                else window.location.href = '/app/account';
-              }}
-              className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            >
-              Upgrade
-            </button>
+              <button
+                onClick={() => {
+                  if (onUpgrade) onUpgrade();
+                  else window.location.href = '/app/account';
+                }}
+                className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <span className="text-hover">Upgrade</span>
+              </button>
           </div>
         </div>
       )}

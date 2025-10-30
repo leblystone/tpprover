@@ -655,7 +655,7 @@ export default function CustomizableDashboard() {
             </p>
             <button
               onClick={() => setShowCustomizer(true)}
-              className="px-6 py-3 rounded-lg font-semibold transition-colors"
+              className="px-6 py-3 rounded-lg font-semibold action-button-hover"
               style={{
                 backgroundColor: theme.primary,
                 color: theme.textOnPrimary

@@ -46,7 +46,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
   const titleExtraClass = isModern ? 'text-sm opacity-90' : 'text-sm text-white/90 mt-0.5';
   
   const content = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-0">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div 
         className={`absolute inset-0 ${backdropClass}`}
         onClick={onClose}

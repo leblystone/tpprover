@@ -39,7 +39,7 @@ const GoalsWidget = ({
             </h4>
             <button
               onClick={onAddGoal}
-              className="p-1 rounded transition-all"
+              className="p-1 rounded action-button-hover"
               style={{ color: theme.primary }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '20';
@@ -48,7 +48,7 @@ const GoalsWidget = ({
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <Plus size={16} />
+              <Plus size={16} className="icon-hover" />
             </button>
           </div>
           
@@ -62,7 +62,7 @@ const GoalsWidget = ({
                 <div key={goal.id} className="flex items-start gap-2">
                   <button 
                     onClick={() => onGoalToggle?.(goal.id)}
-                    className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5"
+                    className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 task-checkbox-hover"
                     style={{
                       borderColor: goal.completed ? theme.success : theme.border, 
                       backgroundColor: goal.completed ? theme.success : 'transparent'
@@ -83,7 +83,7 @@ const GoalsWidget = ({
                   
                   <button
                     onClick={() => onEditGoal?.(goal)}
-                    className="p-1 rounded transition-all ml-auto"
+                    className="p-1 rounded action-button-hover ml-auto"
                     style={{ color: theme.textLight }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '40';
@@ -92,7 +92,7 @@ const GoalsWidget = ({
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <Edit size={12} />
+                    <Edit size={12} className="icon-hover" />
                   </button>
                 </div>
               ))}
@@ -109,7 +109,7 @@ const GoalsWidget = ({
             </h4>
             <button
               onClick={onAddMetric}
-              className="p-1 rounded transition-all"
+              className="p-1 rounded action-button-hover"
               style={{ color: theme.primary }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '20';
@@ -118,7 +118,7 @@ const GoalsWidget = ({
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <Plus size={16} />
+              <Plus size={16} className="icon-hover" />
             </button>
           </div>
           
@@ -131,7 +131,7 @@ const GoalsWidget = ({
               {recentMetrics.map(metric => (
                 <div 
                   key={metric.id} 
-                  className="p-3 rounded border" 
+                  className="p-3 rounded border metric-card-hover" 
                   style={{ borderColor: theme.border, backgroundColor: theme.secondary }}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -153,9 +153,9 @@ const GoalsWidget = ({
                       </span>
                       <button 
                         onClick={() => onEditMetric?.(metric)}
-                        className="p-1 rounded hover:opacity-80"
+                        className="p-1 rounded action-button-hover"
                       >
-                        <Edit size={12} />
+                        <Edit size={12} className="icon-hover" />
                       </button>
                     </div>
                   </div>

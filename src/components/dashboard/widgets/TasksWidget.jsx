@@ -193,7 +193,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                         onToggle(task);
                       }
                     }}
-                    className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer`}
+                    className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 task-checkbox-hover cursor-pointer`}
                     style={{
                       borderColor: task.completed ? theme.primary : theme.border,
                       backgroundColor: task.completed ? theme.primary : 'transparent',
@@ -290,15 +290,15 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           <div className="mt-3 flex justify-end">
             <button
               onClick={() => setShowInjectionHistory(true)}
-              className="flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors hover:opacity-80"
+              className="flex items-center gap-1 px-2 py-1 text-xs rounded-md action-button-hover"
               style={{ 
                 backgroundColor: theme.secondary,
                 color: theme.textLight
               }}
               title="View site history"
             >
-              <History size={12} />
-              <span>View History</span>
+              <History size={12} className="icon-hover" />
+              <span className="text-hover">View History</span>
             </button>
           </div>
         )}

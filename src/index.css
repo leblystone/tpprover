@@ -111,3 +111,189 @@ html, body, #root {
 .checkbox-wrapper-24 input[type=checkbox]:checked + label:hover span { background-color: #333; transform: scale(1.25); }
 .checkbox-wrapper-24 input[type=checkbox]:checked + label:hover span:after { width: 10px; background: #fff; transition: width 150ms ease 100ms; }
 .checkbox-wrapper-24 input[type=checkbox]:checked + label:hover span:before { width: 5px; background: #fff; transition: width 150ms ease 100ms; }
+
+/* Modern Dashboard Hover Effects */
+.dashboard-hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-hover-glow {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-hover-glow:hover {
+  box-shadow: 0 0 20px rgba(92, 118, 89, 0.3);
+}
+
+.dashboard-hover-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.dashboard-hover-glow:hover::before {
+  left: 100%;
+}
+
+.dashboard-hover-scale {
+  transition: transform 0.2s ease;
+}
+
+.dashboard-hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.dashboard-hover-bounce {
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dashboard-hover-bounce:hover {
+  transform: scale(1.05);
+}
+
+.dashboard-hover-slide {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.dashboard-hover-slide:hover {
+  transform: translateX(4px);
+}
+
+.dashboard-hover-fade {
+  transition: all 0.3s ease;
+}
+
+.dashboard-hover-fade:hover {
+  opacity: 0.8;
+  background-color: rgba(92, 118, 89, 0.1);
+}
+
+.dashboard-hover-rotate {
+  transition: transform 0.3s ease;
+}
+
+.dashboard-hover-rotate:hover {
+  transform: rotate(2deg);
+}
+
+.dashboard-hover-pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.dashboard-hover-gradient {
+  background: linear-gradient(45deg, #5C7659, #6B8E6B);
+  transition: all 0.3s ease;
+}
+
+.dashboard-hover-gradient:hover {
+  background: linear-gradient(45deg, #4A5F4A, #5A7A5A);
+  transform: translateY(-1px);
+}
+
+/* Widget-specific hover effects */
+.widget-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.widget-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.task-checkbox-hover {
+  transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.task-checkbox-hover:hover {
+  transform: scale(1.1);
+}
+
+.action-button-hover {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-button-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(92, 118, 89, 0.2);
+}
+
+.action-button-hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.action-button-hover:hover::before {
+  left: 100%;
+}
+
+.metric-card-hover {
+  transition: all 0.3s ease;
+}
+
+.metric-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-color: rgba(92, 118, 89, 0.3);
+}
+
+.supplement-card-hover {
+  transition: all 0.3s ease;
+}
+
+.supplement-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  background-color: rgba(92, 118, 89, 0.05);
+}
+
+.plan-button-hover {
+  transition: all 0.3s ease;
+}
+
+.plan-button-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(92, 118, 89, 0.2);
+}
+
+.icon-hover {
+  transition: transform 0.2s ease;
+}
+
+.icon-hover:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.text-hover {
+  transition: all 0.3s ease;
+}
+
+.text-hover:hover {
+  opacity: 0.8;
+  color: #5C7659;
+}

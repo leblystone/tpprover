@@ -22,10 +22,10 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
           </p>
           <button
             onClick={onNewOrder}
-            className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+            className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            Add Order
+            <span className="text-hover">Add Order</span>
           </button>
         </div>
         
@@ -47,7 +47,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = fa
                     window.location.href = '/app/account';
                   }
                 }}
-                className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90 text-sm"
+                className="px-4 py-2 rounded-lg font-medium action-button-hover text-sm"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 Upgrade

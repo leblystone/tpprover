@@ -59,15 +59,15 @@ const QuickActionsWidget = ({ widget, theme }) => {
             <button
               key={index}
               onClick={action.onClick}
-              className="flex flex-col items-center justify-center p-3 rounded-lg transition-all min-h-[60px] group"
+              className="flex flex-col items-center justify-center p-3 rounded-lg transition-all min-h-[60px] group action-button-hover"
               style={{ 
                 backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
                 color: theme.text
               }}
               {...hoverHandlers}
             >
-              <action.icon className="w-8 h-8 mb-2" size={16} style={{ color: action.color }} />
-              <span className="text-xs text-center font-medium" style={{ color: theme.text }}>{action.label}</span>
+              <action.icon className="w-8 h-8 mb-2 icon-hover" size={16} style={{ color: action.color }} />
+              <span className="text-xs text-center font-medium text-hover" style={{ color: theme.text }}>{action.label}</span>
             </button>
           );
           })}
