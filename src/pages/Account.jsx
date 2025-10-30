@@ -55,8 +55,7 @@ export default function Account() {
               onClick={() => navigate(section.path)}
               className="w-full p-4 rounded-lg transition-all hover:opacity-90 text-left"
               style={{
-                backgroundColor: theme.cardBackground,
-                border: `1px solid ${theme.border}`
+                backgroundColor: theme.cardBackground
               }}
             >
               <div className="flex items-center gap-4">
