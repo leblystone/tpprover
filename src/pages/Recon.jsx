@@ -320,16 +320,6 @@ export default function Recon() {
 
 				{/* Main content area */}
 				<div className={`order-2 lg:order-1 lg:col-span-2 ${activeTab === 'calculator' ? 'hidden lg:block' : 'block'}`}>
-					{/* Search and Filter - show when not on calculator tab */}
-					{activeTab !== 'calculator' && (
-						<div className="flex items-center justify-end mb-4">
-							{activeTab === 'history' && (
-								<button className="p-2 rounded-md" title="Filter" onClick={() => setShowHistoryFilters(v => !v)}>
-									<Filter className="h-4 w-4" />
-								</button>
-							)}
-						</div>
-					)}
 					
 					{/* Page-specific search input that appears below topbar when opened */}
 					{searchOpen && activeTab !== 'calculator' && (
