@@ -122,7 +122,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                     )}
 
                     {vendor.contacts && vendor.contacts.length > 0 && (
-                        <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                        <div className="mt-3 pt-3" style={{ borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}` }}>
                             <div className="grid grid-cols-1 gap-x-4 gap-y-2">
                                 {vendor.contacts.filter(c => c.value).map(c => {
                                     const action = buildContactHref(c.type, c.value);
