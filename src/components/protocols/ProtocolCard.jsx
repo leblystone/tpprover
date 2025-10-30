@@ -49,7 +49,7 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
 
     return (
         <>
-            <div className="p-4 rounded-lg content-card shadow-md flex flex-col hover:shadow-lg transition-shadow" style={{ backgroundColor: theme.cardBackground }}>
+            <div className="p-4 rounded-lg content-card shadow-md flex flex-col widget-card-hover" style={{ backgroundColor: theme.cardBackground }}>
                 <div className="flex-grow">
                     <div className="flex items-start justify-between">
                         <div className="font-semibold text-base">{p.protocolName || 'Unnamed Protocol'}</div>
@@ -152,16 +152,70 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                 {!isPublicView && (
                     <div className="mt-4 flex items-center gap-2">
                         <button
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold action-button-hover"
                             style={{ backgroundColor: isActive ? theme.accent : theme.primary, color: isActive ? theme.accentText : theme.textOnPrimary }}
                             onClick={() => onStartClick(p, { manage: isActive })}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = `0 4px 12px ${isActive ? theme.accent + '40' : theme.primary + '40'}`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
                         >
-                            <Play size={16} />
-                            {isActive ? 'Manage' : 'Start Protocol'}
+                            <Play size={16} className="icon-hover" />
+                            <span className="text-hover">{isActive ? 'Manage' : 'Start Protocol'}</span>
                         </button>
-                        <button data-tour="protocol-share" onClick={handleShare} className="p-2 rounded-md hover-bg-gray-100 flex-shrink-0" aria-label="Share"><Share2 className="h-4 w-4" /></button>
-                        <button className="p-2 rounded-md hover-bg-gray-100 flex-shrink-0" aria-label="History" onClick={() => onHistoryClick(p)}><History className="h-4 w-4" /></button>
-                        <button className="p-2 rounded-md hover-bg-gray-100 flex-shrink-0" aria-label="Edit" onClick={() => onEditClick(p)}><EditIcon className="h-4 w-4" /></button>
+                        <button 
+                            data-tour="protocol-share" 
+                            onClick={handleShare} 
+                            className="p-2 rounded-md flex-shrink-0 action-button-hover" 
+                            aria-label="Share"
+                            style={{ color: theme.textLight }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                                e.currentTarget.style.color = theme.textLight;
+                            }}
+                        >
+                            <Share2 className="h-4 w-4 icon-hover" />
+                        </button>
+                        <button 
+                            className="p-2 rounded-md flex-shrink-0 action-button-hover" 
+                            aria-label="History" 
+                            onClick={() => onHistoryClick(p)}
+                            style={{ color: theme.textLight }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                                e.currentTarget.style.color = theme.textLight;
+                            }}
+                        >
+                            <History className="h-4 w-4 icon-hover" />
+                        </button>
+                        <button 
+                            className="p-2 rounded-md flex-shrink-0 action-button-hover" 
+                            aria-label="Edit" 
+                            onClick={() => onEditClick(p)}
+                            style={{ color: theme.textLight }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                                e.currentTarget.style.color = theme.textLight;
+                            }}
+                        >
+                            <EditIcon className="h-4 w-4 icon-hover" />
+                        </button>
                     </div>
                 )}
             </div>

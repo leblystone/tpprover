@@ -364,7 +364,7 @@ export default function Recon() {
 								const calc = calculateRecon({ ...item, mg: totalMg, dose: totalDoseInMcg });
 								const costPerDose = item.cost ? formatCurrency(item.cost / calc.dosesPerVial) : null
 								return (
-									<div key={item.id} className="rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow content-card flex flex-col justify-between" style={{ backgroundColor: theme.cardBackground }}>
+									<div key={item.id} className="rounded-lg p-4 shadow-md content-card flex flex-col justify-between widget-card-hover" style={{ backgroundColor: theme.cardBackground }}>
 										<div>
 											<div className="flex justify-between items-start">
 												<div>
@@ -442,10 +442,10 @@ export default function Recon() {
                                                 )}
 											</div>
                                             <div className="flex items-center">
-											    <button className="p-2 rounded-md hover:bg-gray-100 text-xs flex items-center gap-1" style={{ color: theme.textLight }} onClick={() => handleMarkAsUsed(item)}>
-                                                    <CheckCircle size={14} /> Mark as Used
+											    <button className="p-2 rounded-md text-xs flex items-center gap-1 action-button-hover" style={{ color: theme.textLight }} onClick={() => handleMarkAsUsed(item)}>
+                                                    <CheckCircle size={14} className="icon-hover" /> <span className="text-hover">Mark as Used</span>
                                                 </button>
-                                                <button className="p-2 rounded-md hover:bg-gray-100" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-4 w-4" /></button>
+                                                <button className="p-2 rounded-md action-button-hover" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-4 w-4 icon-hover" /></button>
                                             </div>
 										</div>
 
@@ -497,12 +497,12 @@ export default function Recon() {
 										</thead>
 										<tbody>
 											{sortedHistory.map(item => (
-												<tr key={`h-${item.id}`} className="border-t" style={{ borderColor: theme.border }}>
+												<tr key={`h-${item.id}`} className="border-t hover:bg-opacity-5 transition-colors" style={{ borderColor: theme.border, backgroundColor: 'transparent' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#f9fafb'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
 													<td className="py-2 pr-3">{item.peptide}</td>
 													<td className="py-2 pr-3">{formatMMDDYYYY(item.date)}</td>
 													<td className="py-2 pr-3">{item.vendor}</td>
 													<td className="py-2 pr-3">{item.mg}</td>
-													<td className="py-2 pr-3 text-right"><button className="p-1 rounded" onClick={() => setViewItem(item)} title="View details" style={{ color: theme.textLight }}><Eye className="h-4 w-4" /></button></td>
+													<td className="py-2 pr-3 text-right"><button className="p-1 rounded action-button-hover" onClick={() => setViewItem(item)} title="View details" style={{ color: theme.textLight }}><Eye className="h-4 w-4 icon-hover" /></button></td>
 												</tr>
 											))}
 										</tbody>

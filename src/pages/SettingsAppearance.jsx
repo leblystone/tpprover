@@ -103,12 +103,12 @@ export default function SettingsAppearance() {
               const themeData = themes[themeKey]
               const isSelected = selectedTheme === themeKey
               
-              // Define unique swatch colors for each theme
+              // Define unique swatch colors for each theme (darker to match actual theme colors)
               const swatchColors = {
-                sage: { start: '#7F9E95', mid: '#A0B9B3', end: '#5F7F76' },
-                mauve: { start: '#9F8F95', mid: '#BDB1B5', end: '#7D6F74' },
-                taupe: { start: '#C4B8B0', mid: '#D9D1CB', end: '#A39890' },
-                softDark: { start: '#3A3A40', mid: '#5A5A60', end: '#2C2C30' }
+                sage: { start: '#5F7F76', mid: '#7F9E95', end: '#4A6B63' },
+                mauve: { start: '#7D6F74', mid: '#9F8F95', end: '#6B5D62' },
+                taupe: { start: '#A39890', mid: '#C4B8B0', end: '#8B7F77' },
+                softDark: { start: '#2C2C30', mid: '#3A3A40', end: '#1A1A1D' }
               }
               
               const colors = swatchColors[themeKey] || { start: themeData.primary, mid: themeData.primaryLight, end: themeData.primaryDark }

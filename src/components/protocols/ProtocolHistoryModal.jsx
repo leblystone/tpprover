@@ -28,6 +28,9 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
     };
 
     const getEventBackground = (type) => {
+        if (theme.isDark) {
+            return type === 'start' ? '#1f2937' : '#7f1d1d';
+        }
         return type === 'start' ? theme.secondary : '#fef2f2';
     };
 
@@ -70,9 +73,10 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                                     
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
-                                        <div className="p-4 rounded-lg border" style={{ 
-                                            borderColor: theme.border, 
-                                            backgroundColor: theme.cardBackground 
+                                        <div className="p-4 rounded-lg" style={{ 
+                                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
                                         }}>
                                             <div className="flex items-center justify-between mb-2">
                                                 <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
@@ -110,11 +114,15 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end pt-4 mt-6 border-t" style={{ borderColor: theme.border }}>
+            <div className="flex justify-end pt-4 mt-6" style={{ 
+                borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`
+            }}>
                 <button
-                    className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
+                    className="px-4 py-2 rounded-lg font-medium transition-all"
                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                     onClick={onClose}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + 'dd' : theme.primary + 'cc'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
                 >
                     Close
                 </button>
