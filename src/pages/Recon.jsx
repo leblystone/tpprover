@@ -328,8 +328,13 @@ export default function Recon() {
 								onChange={e => setSearchQuery(e.target.value)} 
 								placeholder="Search recon entries..." 
 								autoFocus
-								className="w-full p-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all" 
-								style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text, focusRingColor: theme.primary }} 
+								className="w-full p-3 rounded-lg text-sm focus:outline-none transition-all" 
+								style={{ 
+									border: 'none',
+									backgroundColor: theme.cardBackground,
+									color: theme.text,
+									boxShadow: theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)'
+								}} 
 							/>
 						</div>
 					)}
