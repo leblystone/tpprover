@@ -46,26 +46,25 @@ export default function Account() {
       </div>
 
       {/* Account Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-3">
         {accountSections.map((section, index) => {
           const Icon = section.icon
           return (
             <button
               key={index}
               onClick={() => navigate(section.path)}
-              className="p-6 rounded-xl transition-all hover:scale-[1.02] hover:shadow-lg text-left"
+              className="w-full p-4 rounded-lg transition-all hover:opacity-90 text-left"
               style={{
                 backgroundColor: theme.cardBackground,
-                border: `1px solid ${theme.border}`,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                border: `1px solid ${theme.border}`
               }}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-center gap-4">
                 <div 
                   className="p-3 rounded-lg flex-shrink-0"
-                  style={{ backgroundColor: section.color + '20' }}
+                  style={{ backgroundColor: theme.accent }}
                 >
-                  <Icon size={24} style={{ color: section.color }} />
+                  <Icon size={24} style={{ color: theme.accentText }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold mb-1" style={{ color: theme.text }}>
@@ -74,6 +73,9 @@ export default function Account() {
                   <p className="text-sm" style={{ color: theme.mutedText }}>
                     {section.description}
                   </p>
+                </div>
+                <div className="text-lg" style={{ color: theme.mutedText }}>
+                  ›
                 </div>
               </div>
             </button>
