@@ -72,8 +72,8 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   return (
     <>
-      <header className="backdrop-blur border-b h-12 md:h-16 flex items-center justify-between px-3 md:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-2 md:gap-4">
+      <header className="backdrop-blur border-b h-12 md:h-16 flex items-center px-3 md:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
           {/* Mobile Menu Button - back on left side for consistency */}
           <button 
             onClick={onMenuClick} 
@@ -91,9 +91,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </h1>
         </div>
           
-        {/* Tabs in Topbar - Right aligned */}
+        {/* Tabs in Topbar - Center position */}
         {tabs && tabs.length > 0 && (
-          <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg" style={{ backgroundColor: `${theme.primary}08` }}>
+          <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg flex-1 justify-center mx-4" style={{ backgroundColor: `${theme.primary}08` }}>
             {tabs.map(tab => (
               <button
                 key={tab.value}
@@ -176,7 +176,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
-        <div className="flex items-center gap-1 md:gap-2">
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
             <div className="mr-2">
