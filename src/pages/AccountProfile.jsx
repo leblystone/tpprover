@@ -186,12 +186,11 @@ export default function AccountProfile() {
                 value={user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
                 theme={theme}
               />
-              <InfoCard
-                icon={Mail}
-                label="Email Status"
-                value={firebaseUser?.emailVerified ? 'Verified' : 'Unverified'}
+              <EmailStatusCard
+                isVerified={firebaseUser?.emailVerified}
                 theme={theme}
-                status={firebaseUser?.emailVerified ? 'success' : 'warning'}
+                onSendVerification={handleSendVerificationEmail}
+                isSending={isSendingVerification}
               />
             </div>
           </div>
@@ -238,6 +237,57 @@ const InfoCard = ({ icon: Icon, label, value, theme, status }) => (
         </div>
       </div>
     </div>
+  </div>
+)
+
+const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending }) => (
+  <div 
+    className="p-3 rounded-lg space-y-2"
+    style={{ backgroundColor: theme.secondary }}
+  >
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div 
+          className="w-8 h-8 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: theme.accent + '20' }}
+        >
+          <Mail size={16} style={{ color: theme.accent }} />
+        </div>
+        <div>
+          <div className="text-sm font-medium" style={{ color: theme.text }}>Email Status</div>
+          <div 
+            className="text-xs" 
+            style={{ 
+              color: isVerified ? '#10B981' : '#F59E0B'
+            }}
+          >
+            {isVerified ? 'Verified' : 'Unverified'}
+          </div>
+        </div>
+      </div>
+      {!isVerified && (
+        <button
+          onClick={onSendVerification}
+          disabled={isSending}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+          style={{ 
+            backgroundColor: theme.primary,
+            color: theme.primaryText || '#ffffff'
+          }}
+        >
+          <Send size={12} />
+          {isSending ? 'Sending...' : 'Verify Email'}
+        </button>
+      )}
+    </div>
+    {!isVerified && (
+      <div 
+        className="text-xs pl-11 leading-relaxed"
+        style={{ color: theme.mutedText }}
+      >
+        Email verification is required to ensure the security of your research account and enable important features like password recovery and account notifications.
+      </div>
+    )}
   </div>
 )
 

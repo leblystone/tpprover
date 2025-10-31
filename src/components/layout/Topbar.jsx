@@ -72,12 +72,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   return (
     <>
-      <header className="backdrop-blur border-b h-12 md:h-16 flex items-center justify-between px-3 md:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-2 md:gap-4">
+      <header className="backdrop-blur border-b h-12 md:h-16 flex items-center px-3 md:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="flex items-center gap-2 md:gap-4 min-w-0">
           {/* Mobile Menu Button - back on left side for consistency */}
           <button 
             onClick={onMenuClick} 
-            className="md:hidden no-shadow p-2" 
+            className="md:hidden no-shadow p-2 flex-shrink-0" 
             style={{ color: theme.text }}
             aria-label="Open navigation menu"
             aria-expanded="false"
@@ -85,15 +85,15 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             <Menu size={28} className="md:hidden" />
           </button>
           {/* Show page title - responsive for some pages */}
-          <h1 className="text-lg md:text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight truncate flex-shrink-0" style={{ color: theme?.primaryDark }}>
             <span className="md:hidden">{mobileTitle}</span>
             <span className="hidden md:inline">{desktopTitle}</span>
           </h1>
         </div>
           
-        {/* Tabs in Topbar - Right aligned */}
+        {/* Tabs in Topbar - Center aligned on desktop */}
         {tabs && tabs.length > 0 && (
-          <div className="hidden md:flex items-center gap-1 md:gap-2 px-2 py-1 rounded-lg md:justify-between md:min-w-[380px] md:w-[420px] lg:w-[520px] xl:w-[640px]" style={{ backgroundColor: `${theme.primary}08` }}>
+          <div className="hidden md:flex items-center gap-1 md:gap-2 px-2 py-1 rounded-lg flex-1 justify-center mx-4 min-w-0" style={{ backgroundColor: `${theme.primary}08` }}>
             {tabs.map(tab => (
               <button
                 key={tab.value}
@@ -176,7 +176,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
-        <div className="flex items-center gap-1 md:gap-2">
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
             <div className="mr-2">
