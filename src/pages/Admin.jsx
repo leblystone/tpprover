@@ -1090,15 +1090,15 @@ Enter The Lab 🧪
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="relative z-10 bg-white rounded-3xl shadow-2xl p-12 text-center max-w-md mx-4 pointer-events-auto"
+              className="relative z-10 bg-white rounded-3xl shadow-2xl p-12 text-center max-w-2xl mx-4 pointer-events-auto"
               style={{
                 background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.primaryLight} 100%)`,
-                border: `3px solid ${enhancedTheme.primary}`
+                border: `4px solid ${enhancedTheme.primary}`
               }}
             >
               {/* Fireworks Effects */}
               <div className="absolute inset-0 overflow-hidden rounded-3xl">
-                {[...Array(20)].map((_, i) => (
+                {[...Array(50)].map((_, i) => (
                   <motion.div
                     key={i}
                     className="absolute"
@@ -1111,21 +1111,22 @@ Enter The Lab 🧪
                     animate={{
                       x: `${Math.random() * 100}%`,
                       y: `${Math.random() * 100}%`,
-                      scale: [0, 1, 0],
+                      scale: [0, 1.5, 0],
                       opacity: [1, 1, 0],
                       rotate: Math.random() * 360
                     }}
                     transition={{
-                      duration: 1.5,
-                      delay: Math.random() * 0.5,
+                      duration: 2,
+                      delay: Math.random() * 0.8,
                       repeat: Infinity,
-                      repeatDelay: 2
+                      repeatDelay: 1.5
                     }}
                     style={{
-                      width: 8,
-                      height: 8,
+                      width: 16,
+                      height: 16,
                       borderRadius: '50%',
-                      background: `linear-gradient(135deg, ${enhancedTheme.primary}, ${enhancedTheme.secondary})`
+                      background: `linear-gradient(135deg, ${enhancedTheme.primary}, ${enhancedTheme.secondary})`,
+                      boxShadow: `0 0 20px ${enhancedTheme.primary}`
                     }}
                   />
                 ))}
@@ -1139,34 +1140,37 @@ Enter The Lab 🧪
               >
                 <motion.div
                   animate={{ 
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 10, -10, 0]
+                    scale: [1, 1.3, 1],
+                    rotate: [0, 15, -15, 0]
                   }}
                   transition={{ 
-                    duration: 0.6,
+                    duration: 0.8,
                     repeat: Infinity,
                     repeatDelay: 2
                   }}
-                  className="mb-4 inline-block"
+                  className="mb-6 inline-block"
                 >
-                  <PartyPopper size={64} style={{ color: enhancedTheme.primary }} strokeWidth={2} />
+                  <PartyPopper size={96} style={{ color: enhancedTheme.primary }} strokeWidth={2.5} />
                 </motion.div>
                 
-                <h2 className="text-3xl font-bold mb-2" style={{ color: enhancedTheme.primaryDark }}>
+                <h2 className="text-5xl md:text-6xl font-bold mb-4" style={{ color: enhancedTheme.primaryDark, textShadow: `0 4px 12px ${enhancedTheme.primary}40` }}>
                   WELCOME OWNER
                 </h2>
-                <p className="text-lg mb-6" style={{ color: enhancedTheme.textLight }}>
+                <p className="text-2xl md:text-3xl mb-8" style={{ color: enhancedTheme.textLight }}>
                   Your calm workspace awaits ☕
                 </p>
                 
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowWelcomeModal(false)}
-                  className="px-8 py-3 rounded-full font-semibold text-white shadow-lg transition-all"
-                  style={{ backgroundColor: enhancedTheme.primary }}
+                  className="px-12 py-4 text-xl rounded-full font-bold text-white shadow-2xl transition-all"
+                  style={{ 
+                    backgroundColor: enhancedTheme.primary,
+                    boxShadow: `0 8px 24px ${enhancedTheme.primary}60`
+                  }}
                 >
-                  Let's Go!
+                  Let's Go! 🚀
                 </motion.button>
               </motion.div>
             </motion.div>
