@@ -3319,7 +3319,7 @@ Enter The Lab 🧪
         )}
 
         </div>
-      </div>
+
       {isUserModalOpen && selectedUser && (
         <UserDetailModal 
           user={selectedUser} 
@@ -3327,6 +3327,7 @@ Enter The Lab 🧪
           theme={enhancedTheme}
         />
       )}
+      </div>
 
       {/* Research Topic Edit Modal */}
       {showTopicModal && editingTopic && (
