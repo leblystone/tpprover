@@ -199,6 +199,14 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               style={{ color: theme.text, backgroundColor: theme.cardBackground }}
               onSubmit={(e) => { e.preventDefault(); }}
             >
+              <button
+                type="button"
+                className="search-icon-button"
+                onClick={() => searchInputRef.current?.focus()}
+                style={{ color: theme.textLight, opacity: 0.7 }}
+              >
+                <Search size={18} />
+              </button>
               <input 
                 ref={searchInputRef}
                 type="text" 
@@ -223,6 +231,17 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               style={{ color: theme.text, backgroundColor: theme.cardBackground }}
               onSubmit={(e) => { e.preventDefault(); }}
             >
+              <button
+                type="button"
+                className="search-icon-button"
+                onClick={() => {
+                  const input = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
+                  input?.focus();
+                }}
+                style={{ color: theme.textLight, opacity: 0.7 }}
+              >
+                <Search size={18} />
+              </button>
               <input 
                 type="text" 
                 data-page={seg}

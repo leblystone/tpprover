@@ -396,12 +396,12 @@ export default function EmailTemplateManager({ theme }) {
       // Save branding colors separately too (optional)
       await setDoc(doc(db, 'emailTemplates', '_branding'), { colors }, { merge: true });
 
-      localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
-      localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
-
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
+    localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
+    localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
+    
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: '✅ Templates saved to Firestore!', type: 'success' }
-      }));
+    }));
     } catch (e) {
       console.error('Failed to save templates to Firestore:', e);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
@@ -802,7 +802,7 @@ export default function EmailTemplateManager({ theme }) {
           <div className="w-full bg-gray-200 rounded-full h-3" style={{ backgroundColor: theme.border }}>
             <div 
               className="h-3 rounded-full transition-all duration-300"
-              style={{ 
+            style={{
                 backgroundColor: theme.primary,
                 width: `${(sendProgress.sent / sendProgress.total) * 100}%`
               }}
@@ -892,7 +892,7 @@ export default function EmailTemplateManager({ theme }) {
           ) : (
             <ChevronDown size={18} style={{ color: theme.textLight }} />
           )}
-        </button>
+          </button>
 
         {showVariablesCheatSheet && (
           <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>

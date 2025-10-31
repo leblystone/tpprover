@@ -317,50 +317,6 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
             </button>
           </div>
 
-          {/* Send to All Users Button */}
-          <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
-            <button
-              onClick={handleSendToAllUsers}
-              disabled={sendingToAll || testingEmail || loading}
-              className="w-full px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
-              style={{ 
-                backgroundColor: sendingToAll ? theme.border : theme.warning, 
-                color: sendingToAll ? theme.textLight : '#FFFFFF' 
-              }}
-            >
-              {sendingToAll ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Sending to All Users... ({sendProgress.sent}/{sendProgress.total})
-                </>
-              ) : (
-                <>
-                  <Send size={16} />
-                  Send Email to ALL Users
-                </>
-              )}
-            </button>
-            {sendingToAll && sendProgress.total > 0 && (
-              <div className="mt-2">
-                <div className="w-full bg-gray-200 rounded-full h-2" style={{ backgroundColor: theme.border }}>
-                  <div 
-                    className="h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      backgroundColor: theme.primary,
-                      width: `${(sendProgress.sent / sendProgress.total) * 100}%`
-                    }}
-                  />
-                </div>
-                <p className="text-xs mt-1 text-center" style={{ color: theme.textLight }}>
-                  Progress: {sendProgress.sent} of {sendProgress.total} emails sent
-                </p>
-              </div>
-            )}
-            <p className="text-xs mt-2" style={{ color: theme.textLight }}>
-              ⚠️ This will send the manual lifetime grant email to every user in the system. Use with caution.
-            </p>
-          </div>
-
           {result && (
             <div className={`p-3 rounded-lg flex items-center gap-2 ${
               result.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'

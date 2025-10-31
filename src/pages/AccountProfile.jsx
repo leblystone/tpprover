@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X } from 'lucide-react'
+import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { getAuth, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 
 // Helper function to generate user initials
 function getUserInitials(email) {
@@ -24,6 +25,7 @@ export default function AccountProfile() {
   const [editingEmail, setEditingEmail] = useState(false)
   const [emailDraft, setEmailDraft] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isSendingVerification, setIsSendingVerification] = useState(false)
 
   const handleEmailUpdate = async () => {
     if (!emailDraft || emailDraft === user?.email) {
@@ -54,6 +56,35 @@ export default function AccountProfile() {
   const cancelEmailEdit = () => {
     setEmailDraft(user?.email || '')
     setEditingEmail(false)
+  }
+
+  const handleSendVerificationEmail = async () => {
+    if (!firebaseUser || firebaseUser.emailVerified) return
+
+    setIsSendingVerification(true)
+    try {
+      const functions = getFunctions()
+      const sendCustomVerificationEmail = httpsCallable(functions, 'sendCustomVerificationEmail')
+      
+      const result = await sendCustomVerificationEmail()
+      
+      if (result.data.success) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '📧 Verification email sent! Check your inbox.', type: 'success' }
+        }))
+      } else {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: 'Failed to send verification email. Please try again.', type: 'error' }
+        }))
+      }
+    } catch (error) {
+      console.error('Error sending verification email:', error)
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to send verification email. Please try again.', type: 'error' }
+      }))
+    } finally {
+      setIsSendingVerification(false)
+    }
   }
 
   return (

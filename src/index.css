@@ -323,10 +323,9 @@ html, body, #root {
 
 /* Extending Search Box Animation */
 .search-box-wrapper {
-  display: inline-block;
+  display: inline-flex;
   position: relative;
-  font-size: 10px;
-  border: solid 1px currentColor;
+  align-items: center;
   border-radius: 2em;
   overflow: hidden;
   background-color: transparent;
@@ -334,47 +333,23 @@ html, body, #root {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
 }
 
-.search-box-wrapper:hover {
-  opacity: 1;
-}
-
-.search-box-wrapper::before,
-.search-box-wrapper::after {
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-}
-
-/* Search icon (magnifying glass) using pseudo-elements */
-.search-box-wrapper::before {
-  content: "";
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border: 1.5px solid currentColor;
+.search-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
   border-radius: 50%;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
 }
 
-.search-box-wrapper::after {
-  content: "";
-  position: absolute;
-  width: 1.5px;
-  height: 5px;
-  background-color: currentColor;
-  left: calc(50% + 4px);
-  top: calc(50% + 4px);
-  transform: translate(-50%, 0) rotate(45deg);
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+.search-box-wrapper:hover .search-icon-button {
+  opacity: 1;
 }
 
 .search-box-wrapper input[type="text"] {
@@ -404,9 +379,9 @@ html, body, #root {
 }
 
 /* Hide search icon when expanded */
-.search-box-wrapper input[type="text"]:focus ~ button[type="reset"],
-.search-box-wrapper input[type="text"]:not(:placeholder-shown) {
-  /* Trigger showing close button, which also hides the icon */
+.search-box-wrapper input[type="text"]:focus ~ .search-icon-button,
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ .search-icon-button {
+  display: none;
 }
 
 .search-box-wrapper input[type="text"]:focus,
@@ -423,23 +398,6 @@ html, body, #root {
   }
 }
 
-/* Hide icon when input is focused or has value */
-.search-box-wrapper input[type="text"]:focus ~ ::before,
-.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ ::before,
-.search-box-wrapper input[type="text"]:focus ~ ::after,
-.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ ::after {
-  opacity: 0;
-}
-
-.search-box-wrapper:has(input[type="text"]:focus)::before,
-.search-box-wrapper:has(input[type="text"]:not(:placeholder-shown))::before {
-  opacity: 0;
-}
-
-.search-box-wrapper:has(input[type="text"]:focus)::after,
-.search-box-wrapper:has(input[type="text"]:not(:placeholder-shown))::after {
-  opacity: 0;
-}
 
 .search-box-wrapper input[type="text"]::placeholder {
   opacity: 0.6;

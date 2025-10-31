@@ -4,7 +4,7 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift, Coffee, Book, Wine, PartyPopper
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift, Coffee, Book, Wine, PartyPopper, Calendar, CreditCard, Lock
 } from 'lucide-react';
 import { getCurrentHolidayTheme, periwinkleTheme } from '../utils/holidayThemes';
 import { useFirebase } from '../context/FirebaseContext';
@@ -620,10 +620,10 @@ function Admin() {
       
       // Calculate subscription data from real users
       const now = new Date();
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000); // Last 48 hours
       const recentUsers = userData.filter(user => {
         if (!user.createdAt || !user.createdAt.toDate) return false;
-        return user.createdAt.toDate() >= weekAgo;
+        return user.createdAt.toDate() >= twoDaysAgo;
       });
       
       setSubscriptions({
@@ -631,10 +631,15 @@ function Admin() {
         beta: userData.length, // All users are beta users currently
         total: userData.length,
         thisWeek: recentUsers.length,
-        recentRegistrations: recentUsers.slice(0, 5).map(user => ({
+        recentRegistrations: recentUsers.map(user => ({
           date: user.createdAt?.toDate()?.toISOString().split('T')[0] || 'Unknown',
-          email: user.email
-        }))
+          email: user.email,
+          createdAt: user.createdAt?.toDate ? user.createdAt.toDate() : null
+        })).sort((a, b) => {
+          // Sort by date, most recent first
+          if (!a.createdAt || !b.createdAt) return 0;
+          return b.createdAt - a.createdAt;
+        })
       });
       
     } catch (error) {
@@ -1334,7 +1339,7 @@ Enter The Lab 🧪
       </div>
 
       {/* Main Content Area - Full Width */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10" style={{ marginTop: '110px' }}>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10" style={{ marginTop: '160px' }}>
         {/* Top Header - Enhanced */}
         <div className="bg-white border-b p-4 lg:p-6 flex-shrink-0 shadow-sm relative overflow-hidden" 
           style={{ 
@@ -1409,40 +1414,6 @@ Enter The Lab 🧪
 
         {activeTab === 'analytics' && (
           <div className="space-y-4">
-            {/* Welcome Section with Coffee/Book Theme */}
-            <div className="relative rounded-xl border p-4 shadow-lg overflow-hidden" style={{ 
-              borderColor: enhancedTheme.border, 
-              backgroundColor: enhancedTheme.cardBackground,
-              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
-            }}>
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
-                <Coffee size={150} style={{ color: enhancedTheme.accent }} />
-              </div>
-              <div className="absolute bottom-0 left-0 opacity-10 pointer-events-none">
-                <Book size={120} style={{ color: enhancedTheme.primary }} />
-              </div>
-              
-                  <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md transform hover:scale-110 transition-transform duration-200" 
-                    style={{ 
-                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
-                      boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
-                    }}>
-                    <BarChart3 size={18} style={{ color: '#FFFFFF' }} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold" style={{ color: enhancedTheme.primaryDark }}>Research Analytics</h2>
-                    <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
-                      <Book size={10} className="opacity-60" />
-                      Insights into your peptide research community
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Key Metrics Cards - Enhanced */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
@@ -1803,40 +1774,6 @@ Enter The Lab 🧪
 
         {activeTab === 'subscriptions' && (
           <div className="space-y-4">
-            {/* Welcome Section with Coffee/Book Theme */}
-            <div className="relative rounded-xl border p-4 shadow-lg overflow-hidden" style={{ 
-              borderColor: enhancedTheme.border, 
-              backgroundColor: enhancedTheme.cardBackground,
-              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
-            }}>
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
-                <Users size={150} style={{ color: enhancedTheme.accent }} />
-              </div>
-              <div className="absolute bottom-0 left-0 opacity-10 pointer-events-none">
-                <Book size={120} style={{ color: enhancedTheme.primary }} />
-              </div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200" 
-                    style={{ 
-                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
-                      boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
-                    }}>
-                    <Users size={24} style={{ color: '#FFFFFF' }} />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold" style={{ color: enhancedTheme.primaryDark }}>User Management</h2>
-                    <p className="text-sm flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
-                      <Book size={12} className="opacity-60" />
-                      Monitor your research community members
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Beta User Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
@@ -2740,43 +2677,9 @@ Enter The Lab 🧪
 
         {activeTab === 'lifetime' && (
           <div className="space-y-6">
-            {/* Welcome Section with Coffee/Book Theme */}
-            <div className="relative rounded-xl border p-6 shadow-lg overflow-hidden" style={{ 
-              borderColor: enhancedTheme.border, 
-              backgroundColor: enhancedTheme.cardBackground,
-              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
-            }}>
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
-                <Award size={150} style={{ color: enhancedTheme.accent }} />
-              </div>
-              <div className="absolute bottom-0 left-0 opacity-10 pointer-events-none">
-                <Book size={120} style={{ color: enhancedTheme.primary }} />
-              </div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200" 
-                    style={{ 
-                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
-                      boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
-                    }}>
-                    <Award size={24} style={{ color: '#FFFFFF' }} />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold" style={{ color: enhancedTheme.primaryDark }}>Lifetime Access</h2>
-                    <p className="text-sm flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
-                      <Book size={12} className="opacity-60" />
-                      Manage special access grants for your community
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Manual Grant Tool */}
             <ManualLifetimeGrant 
-              theme={theme} 
+              theme={enhancedTheme} 
               onUserAdded={() => {
                 loadLifetimeUsers();
                 console.log('User added, refreshing list');
@@ -2792,90 +2695,155 @@ Enter The Lab 🧪
               <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
                 <Award size={200} style={{ color: enhancedTheme.warning }} />
               </div>
+              <div className="absolute bottom-0 left-0 opacity-5 pointer-events-none">
+                <Coffee size={120} style={{ color: enhancedTheme.accent }} />
+              </div>
               
               <div className="relative z-10">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: enhancedTheme.primaryDark }}>
-                    <Gift size={20} />
-                    Lifetime Access Users ({lifetimeUsers.length})
-                  </h2>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center gap-2 mb-1" style={{ color: enhancedTheme.primaryDark }}>
+                      <Gift size={20} />
+                      Lifetime Access Researchers
+                    </h2>
+                    <p className="text-sm flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Book size={12} className="opacity-60" />
+                      Special access grants for researchers ({lifetimeUsers.length})
+                    </p>
+                  </div>
+                  <div className="px-4 py-2 rounded-xl text-sm font-semibold shadow-md" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
+                      color: '#FFFFFF',
+                      boxShadow: `0 4px 15px ${enhancedTheme.warning}30`
+                    }}>
+                    <Gift size={16} className="inline-block mr-1.5" />
+                    {lifetimeUsers.length} {lifetimeUsers.length === 1 ? 'Researcher' : 'Researchers'}
+                  </div>
                 </div>
 
               {loading.lifetimeUsers ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: theme.textLight }}>
-                  <Loader className="animate-spin mx-auto mb-2" size={24} />
-                  <p>Loading lifetime users...</p>
+                <div className="text-center py-12 rounded-xl" 
+                  style={{ 
+                    backgroundColor: enhancedTheme.background,
+                    border: `1px dashed ${enhancedTheme.border}`
+                  }}>
+                  <div className="mb-4">
+                    <Loader className="animate-spin mx-auto" size={32} style={{ color: enhancedTheme.primary }} />
+                  </div>
+                  <p className="text-sm font-medium flex items-center justify-center gap-2" style={{ color: enhancedTheme.textLight }}>
+                    <Coffee size={14} className="animate-pulse" />
+                    Loading lifetime researchers...
+                  </p>
                 </div>
               ) : lifetimeUsers.length === 0 ? (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '40px', 
-                  backgroundColor: theme.background, 
-                  borderRadius: '8px',
-                  border: `1px dashed ${theme.border}` 
-                }}>
-                  <Award size={48} style={{ color: theme.textLight, margin: '0 auto 16px' }} />
-                  <p style={{ color: theme.textLight, marginBottom: '8px' }}>No lifetime users found in Firestore</p>
-                  <p style={{ color: theme.textLight, fontSize: '14px' }}>Use the migration tool above to import from localStorage</p>
+                <div className="text-center py-12 rounded-xl relative overflow-hidden" 
+                  style={{ 
+                    backgroundColor: enhancedTheme.background,
+                    border: `1px dashed ${enhancedTheme.border}`
+                  }}>
+                  <div className="absolute top-0 right-0 opacity-5">
+                    <Book size={100} style={{ color: enhancedTheme.primary }} />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="mb-4">
+                      <Award size={48} className="mx-auto" style={{ color: enhancedTheme.textLight }} />
+                    </div>
+                    <p className="text-base font-semibold mb-2" style={{ color: enhancedTheme.text }}>
+                      No lifetime researchers found
+                    </p>
+                    <p className="text-sm mb-1 flex items-center justify-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Book size={12} />
+                      Use the grant tool above to grant special access
+                    </p>
+                    <p className="text-xs flex items-center justify-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Coffee size={10} />
+                      Research access can be granted manually or purchased
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+                <div className="overflow-x-auto rounded-xl" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <table className="w-full" style={{ borderCollapse: 'collapse', minWidth: '700px' }}>
                     <thead>
-                      <tr style={{ borderBottom: `2px solid ${theme.border}` }}>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Email</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Reason</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Granted</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Status</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'center', color: theme.textLight, fontWeight: '600', fontSize: '13px' }}>Actions</th>
+                      <tr style={{ borderBottom: `2px solid ${enhancedTheme.border}` }}>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>Researcher</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>Grant Reason</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>Granted Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>Status</th>
+                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {lifetimeUsers.map((user, idx) => (
-                        <tr key={user.id || idx} style={{ borderBottom: `1px solid ${theme.border}` }}>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.text, minWidth: '200px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Award size={14} style={{ color: theme.warning, flexShrink: 0 }} />
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <tr 
+                          key={user.id || idx} 
+                          className="hover:scale-[1.01] transition-all duration-200"
+                          style={{ 
+                            borderBottom: `1px solid ${enhancedTheme.border}40`,
+                            backgroundColor: idx % 2 === 0 ? 'transparent' : enhancedTheme.background + '40'
+                          }}
+                        >
+                          <td className="px-4 py-4" style={{ minWidth: '220px' }}>
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: enhancedTheme.primary + '15' }}>
+                                <Award size={14} style={{ color: enhancedTheme.primary }} />
+                              </div>
+                              <span className="text-sm font-medium truncate" style={{ color: enhancedTheme.text }}>
                                 {user.email}
                               </span>
                               {/* Special icon for granted lifetime access */}
                               {user.reason && !user.paymentMethodId && (
-                                <Gift size={16} style={{ color: '#A3B18A', marginLeft: '4px' }} />
+                                <div className="flex-shrink-0" title="Lifetime Granted">
+                                  <Gift size={16} style={{ color: '#A3B18A' }} />
+                                </div>
                               )}
                             </div>
                           </td>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, minWidth: '150px' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
+                          <td className="px-4 py-4" style={{ minWidth: '180px' }}>
+                            <div className="flex items-center gap-2">
                               {user.reason && !user.paymentMethodId ? (
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <Gift size={14} style={{ color: '#A3B18A', flexShrink: 0 }} />
-                                  <span>{user.reason}</span>
-                                </span>
+                                <>
+                                  <div className="p-1 rounded-lg" style={{ backgroundColor: '#A3B18A20' }}>
+                                    <Gift size={12} style={{ color: '#A3B18A' }} />
+                                  </div>
+                                  <span className="text-sm font-medium truncate" style={{ color: enhancedTheme.text }}>
+                                    {user.reason}
+                                  </span>
+                                </>
                               ) : (
-                                user.reason || 'N/A'
+                                <span className="text-sm truncate" style={{ color: enhancedTheme.textLight }}>
+                                  {user.reason || 'N/A'}
+                                </span>
                               )}
-                            </span>
+                            </div>
                           </td>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, whiteSpace: 'nowrap' }}>
-                            {user.grantedAt?.toDate ? 
-                              formatMMDDYYYY(user.grantedAt.toDate()) : 
-                              user.grantedAt ? new Date(user.grantedAt).toLocaleDateString() : 'N/A'}
+                          <td className="px-4 py-4" style={{ whiteSpace: 'nowrap' }}>
+                            <div className="flex items-center gap-1.5">
+                              <Book size={12} className="opacity-60" style={{ color: enhancedTheme.textLight }} />
+                              <span className="text-sm" style={{ color: enhancedTheme.textLight }}>
+                                {user.grantedAt?.toDate ? 
+                                  formatMMDDYYYY(user.grantedAt.toDate()) : 
+                                  user.grantedAt ? new Date(user.grantedAt).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
                           </td>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                            <span style={{
-                              padding: '3px 10px',
-                              borderRadius: '10px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              backgroundColor: user.status === 'active' ? theme.successBg : '#fee',
-                              color: user.status === 'active' ? theme.success : '#c00',
-                              whiteSpace: 'nowrap'
-                            }}>
+                          <td className="px-4 py-4" style={{ whiteSpace: 'nowrap' }}>
+                            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm inline-flex items-center gap-1.5"
+                              style={{
+                                backgroundColor: user.status === 'active' ? enhancedTheme.success + '20' : enhancedTheme.error + '20',
+                                color: user.status === 'active' ? enhancedTheme.success : enhancedTheme.error,
+                                border: `1px solid ${user.status === 'active' ? enhancedTheme.success + '40' : enhancedTheme.error + '40'}`
+                              }}>
+                              <div className="w-1.5 h-1.5 rounded-full" 
+                                style={{ 
+                                  backgroundColor: user.status === 'active' ? enhancedTheme.success : enhancedTheme.error 
+                                }} 
+                              />
                               {user.status || 'active'}
                             </span>
                           </td>
-                          <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <td className="px-4 py-4 text-center" style={{ whiteSpace: 'nowrap' }}>
                             <button
                               onClick={async () => {
                                 if (window.confirm(`Revoke lifetime access for ${user.email}?`)) {
@@ -2889,15 +2857,11 @@ Enter The Lab 🧪
                                   }
                                 }
                               }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95"
                               style={{
-                                padding: '4px 10px',
-                                backgroundColor: theme.error,
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '5px',
-                                fontSize: '11px',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap'
+                                backgroundColor: enhancedTheme.error,
+                                color: '#FFFFFF',
+                                boxShadow: `0 2px 8px ${enhancedTheme.error}30`
                               }}
                             >
                               Revoke
@@ -2921,35 +2885,61 @@ Enter The Lab 🧪
             <div className="flex justify-end gap-3">
               <button
                 onClick={loadContentData}
-                className="px-6 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                className="px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
+                style={{ 
+                  background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
+                  color: '#FFFFFF',
+                  boxShadow: `0 4px 15px ${enhancedTheme.info}30`
+                }}
               >
-                <RefreshCw size={18} />
-                Reload Data
+                <RefreshCw size={16} />
+                Reload
               </button>
               <button
                 onClick={saveContentData}
-                className="px-6 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
+                className="px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
+                style={{ 
+                  background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
+                  color: '#FFFFFF',
+                  boxShadow: `0 4px 15px ${enhancedTheme.success}30`
+                }}
               >
-                <Save size={18} />
-                Save All Changes
+                <Save size={16} />
+                Save All
               </button>
             </div>
 
             {/* Research Topics Management */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Research Topics (Glossary)</h2>
-                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                    Manage research topics shown in the glossary and global search.
-                  </p>
-                </div>
-                <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-                  {contentData.topics.length} topics
-                </span>
+            <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.primaryLight}05 100%)`
+            }}>
+              <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                <BookOpen size={180} style={{ color: enhancedTheme.primary }} />
               </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: enhancedTheme.primaryDark }}>
+                      <BookOpen size={20} />
+                      Research Topics (Glossary)
+                    </h2>
+                    <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Coffee size={12} className="opacity-60" />
+                      Manage research topics shown in the glossary and global search
+                    </p>
+                  </div>
+                  <span className="px-4 py-2 rounded-xl text-sm font-semibold shadow-md" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                      color: '#FFFFFF',
+                      boxShadow: `0 4px 15px ${enhancedTheme.primary}30`
+                    }}>
+                    {contentData.topics.length} topics
+                  </span>
+                </div>
               
               <div className="space-y-4">
                 {/* Add New Topic */}
@@ -2959,8 +2949,13 @@ Enter The Lab 🧪
                     placeholder="Enter a new research topic..."
                     value={contentData.newTopic}
                     onChange={(e) => setContentData(prev => ({ ...prev, newTopic: e.target.value }))}
-                    className="flex-1 p-3 rounded border"
-                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    className="flex-1 p-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02]"
+                    style={{ 
+                      borderColor: enhancedTheme.border, 
+                      backgroundColor: enhancedTheme.background, 
+                      color: enhancedTheme.text,
+                      focusRingColor: enhancedTheme.primary
+                    }}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && contentData.newTopic.trim()) {
                         setContentData(prev => ({
@@ -2981,8 +2976,13 @@ Enter The Lab 🧪
                         }));
                       }
                     }}
-                    className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                    disabled={!contentData.newTopic.trim()}
+                    className="px-4 py-2 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                      color: '#FFFFFF',
+                      boxShadow: `0 4px 15px ${enhancedTheme.primary}30`
+                    }}
                   >
                     <Plus size={18} />
                     Add
@@ -2992,36 +2992,71 @@ Enter The Lab 🧪
                 {/* Topics List */}
                 <div className="space-y-2">
                   {contentData.topics.length === 0 ? (
-                    <div className="text-center py-8" style={{ color: theme.textLight }}>
-                      <p>No research topics yet. Add some above!</p>
+                    <div className="text-center py-12 rounded-xl relative overflow-hidden"
+                      style={{ 
+                        backgroundColor: enhancedTheme.background,
+                        border: `1px dashed ${enhancedTheme.border}`
+                      }}>
+                      <div className="absolute top-0 right-0 opacity-5">
+                        <Book size={100} style={{ color: enhancedTheme.primary }} />
+                      </div>
+                      <div className="relative z-10">
+                        <BookOpen size={48} className="mx-auto mb-3" style={{ color: enhancedTheme.textLight }} />
+                        <p className="text-sm font-medium flex items-center justify-center gap-2" style={{ color: enhancedTheme.textLight }}>
+                          <Coffee size={14} />
+                          No research topics yet. Add some above!
+                        </p>
+                      </div>
                     </div>
                   ) : (
-                    contentData.topics.map((topic) => (
-                      <div key={topic.id} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                        <span style={{ color: theme.text }}>{topic.name}</span>
+                    contentData.topics.map((topic, idx) => (
+                      <div 
+                        key={topic.id} 
+                        className="flex items-center justify-between p-4 rounded-xl hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md"
+                        style={{ 
+                          borderColor: enhancedTheme.border + '40',
+                          backgroundColor: idx % 2 === 0 ? enhancedTheme.background : enhancedTheme.cardBackground,
+                          border: `1px solid ${enhancedTheme.border}40`
+                        }}
+                      >
+                        <span className="flex items-center gap-2 font-medium" style={{ color: enhancedTheme.text }}>
+                          <Book size={14} className="opacity-60" style={{ color: enhancedTheme.primary }} />
+                          {topic.name}
+                        </span>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
                               setEditingTopic(topic);
                               setShowTopicModal(true);
                             }}
-                            className="p-1 hover:opacity-70"
-                            style={{ color: theme.info }}
+                            className="p-2 rounded-lg transition-all duration-200 hover:scale-110 hover:shadow-md active:scale-95"
+                            style={{ 
+                              backgroundColor: enhancedTheme.info + '15',
+                              color: enhancedTheme.info,
+                              border: `1px solid ${enhancedTheme.info}30`
+                            }}
                             title="Edit details"
                           >
-                            <Edit size={16} />
+                            <Edit size={14} />
                           </button>
                           <button
                             onClick={() => {
-                              setContentData(prev => ({
-                                ...prev,
-                                topics: prev.topics.filter(t => t.id !== topic.id)
-                              }));
+                              if (window.confirm(`Delete "${topic.name}"?`)) {
+                                setContentData(prev => ({
+                                  ...prev,
+                                  topics: prev.topics.filter(t => t.id !== topic.id)
+                                }));
+                              }
                             }}
-                            className="text-red-500 hover:text-red-700"
+                            className="p-2 rounded-lg transition-all duration-200 hover:scale-110 hover:shadow-md active:scale-95"
+                            style={{ 
+                              backgroundColor: enhancedTheme.error + '15',
+                              color: enhancedTheme.error,
+                              border: `1px solid ${enhancedTheme.error}30`
+                            }}
                             title="Delete"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
@@ -3032,18 +3067,36 @@ Enter The Lab 🧪
             </div>
 
             {/* Pen Types Management */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Pen Types</h2>
-                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                    Manage pen brands/types shown in protocol editor dropdown.
-                  </p>
-                </div>
-                <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-                  {contentData.penTypes.length} types
-                </span>
+            <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.accent}05 100%)`
+            }}>
+              <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                <Target size={180} style={{ color: enhancedTheme.accent }} />
               </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: enhancedTheme.primaryDark }}>
+                      <Target size={20} />
+                      Pen Types
+                    </h2>
+                    <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Coffee size={12} className="opacity-60" />
+                      Manage pen brands/types shown in protocol editor dropdown
+                    </p>
+                  </div>
+                  <span className="px-4 py-2 rounded-xl text-sm font-semibold shadow-md" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.accent} 0%, ${enhancedTheme.accent}DD 100%)`,
+                      color: '#FFFFFF',
+                      boxShadow: `0 4px 15px ${enhancedTheme.accent}30`
+                    }}>
+                    {contentData.penTypes.length} types
+                  </span>
+                </div>
               
               <div className="space-y-4">
                 {/* Add New Pen Type */}
@@ -3252,7 +3305,7 @@ Enter The Lab 🧪
                           {gift.status}
                         </span>
                         <span className="text-xs" style={{ color: theme.textLight }}>
-                          {gift.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                          {gift.createdAt?.toDate ? gift.createdAt.toDate().toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -3271,7 +3324,7 @@ Enter The Lab 🧪
         <UserDetailModal 
           user={selectedUser} 
           onClose={() => setIsUserModalOpen(false)}
-          theme={theme}
+          theme={enhancedTheme}
         />
       )}
 
@@ -3512,62 +3565,274 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
 }
 
 function UserDetailModal({ user, onClose, theme }) {
+  // Check if user has lifetime access
+  const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
+  const isLifetimeGranted = user.subscription?.lifetimeReason && !user.subscription?.paymentMethodId;
+  const subscriptionStatus = user.subscription?.status || 'unknown';
+  const subscriptionPlan = user.subscription?.plan?.name || user.subscription?.plan || 'No subscription';
+  const subscriptionInterval = user.subscription?.interval || 'N/A';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: theme.cardBackground }}>
-        <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: theme.border }}>
-          <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Details</h2>
-          <button onClick={onClose} className="p-1 hover:opacity-70">
-            <X size={20} style={{ color: theme.textLight }} />
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative overflow-hidden" 
+        style={{ 
+          backgroundColor: enhancedTheme.cardBackground,
+          border: `1px solid ${enhancedTheme.border}`,
+          boxShadow: `0 20px 60px ${enhancedTheme.primary}20`
+        }}>
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+          <Coffee size={150} style={{ color: enhancedTheme.accent }} />
+        </div>
+        <div className="absolute bottom-0 left-0 opacity-5 pointer-events-none">
+          <Book size={120} style={{ color: enhancedTheme.primary }} />
+        </div>
+
+        {/* Header */}
+        <div className="p-6 border-b flex justify-between items-center relative z-10" 
+          style={{ 
+            borderColor: enhancedTheme.border + '40',
+            background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}08 0%, ${enhancedTheme.cardBackground} 100%)`
+          }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ 
+                background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+              }}>
+              <Users size={20} style={{ color: '#FFFFFF' }} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold" style={{ color: enhancedTheme.primaryDark }}>Researcher Details</h2>
+              <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                <Book size={10} className="opacity-60" />
+                View researcher information
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="p-2 rounded-lg hover:scale-110 transition-transform duration-200"
+            style={{ 
+              backgroundColor: enhancedTheme.background,
+              border: `1px solid ${enhancedTheme.border}40`
+            }}
+          >
+            <X size={18} style={{ color: enhancedTheme.textLight }} />
           </button>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 relative z-10">
           {/* User Info Header */}
-          <div className="flex items-center gap-4">
-            <img className="h-20 w-20 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
-            <div>
-              <h3 className="text-xl font-bold" style={{ color: theme.text }}>{user.displayName || 'No Name'}</h3>
-              <p className="text-sm" style={{ color: theme.textLight }}>{user.email}</p>
-              <div className="mt-2">
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {user.isActive ? 'Active' : 'Inactive'}
+          <div className="relative rounded-xl p-5 overflow-hidden" 
+            style={{ 
+              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`,
+              border: `1px solid ${enhancedTheme.border}40`
+            }}>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <img 
+                  className="h-20 w-20 rounded-xl shadow-lg border-2" 
+                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=${enhancedTheme.primary.replace('#', '')}&color=ffffff`} 
+                  alt=""
+                  style={{ borderColor: enhancedTheme.primary }}
+                />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
+                  style={{ backgroundColor: user.isActive ? enhancedTheme.success : enhancedTheme.error }}>
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold mb-1" style={{ color: enhancedTheme.text }}>
+                  {user.displayName || 'No Name'}
+                </h3>
+                <p className="text-sm flex items-center gap-1.5 mb-2" style={{ color: enhancedTheme.textLight }}>
+                  <Mail size={12} className="opacity-60" />
+                  {user.email}
+                </p>
+                <span className="px-3 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+                  style={{
+                    backgroundColor: user.isActive ? enhancedTheme.success + '20' : enhancedTheme.error + '20',
+                    color: user.isActive ? enhancedTheme.success : enhancedTheme.error,
+                    border: `1px solid ${user.isActive ? enhancedTheme.success + '40' : enhancedTheme.error + '40'}`
+                  }}>
+                  <div className="w-1.5 h-1.5 rounded-full" 
+                    style={{ backgroundColor: user.isActive ? enhancedTheme.success : enhancedTheme.error }} 
+                  />
+                  {user.isActive ? 'Active Researcher' : 'Inactive'}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Key Dates */}
-          <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Key Information</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="p-3 rounded" style={{ backgroundColor: theme.background }}>
-                <p className="font-medium">Registration Date</p>
-                <p style={{ color: theme.textLight }}>{user.createdAt?.toDate().toLocaleString() || 'N/A'}</p>
+          {/* Key Information */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md"
+              style={{ 
+                backgroundColor: enhancedTheme.background,
+                border: `1px solid ${enhancedTheme.border}40`
+              }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar size={16} style={{ color: enhancedTheme.info }} />
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Registered</p>
               </div>
-              <div className="p-3 rounded" style={{ backgroundColor: theme.background }}>
-                <p className="font-medium">Last Active</p>
-                <p style={{ color: theme.textLight }}>{user.lastActive?.toDate().toLocaleString() || 'N/A'}</p>
+              <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
+                {user.createdAt?.toDate ? new Date(user.createdAt.toDate()).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                }) : 'N/A'}
+              </p>
+            </div>
+            <div className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md"
+              style={{ 
+                backgroundColor: enhancedTheme.background,
+                border: `1px solid ${enhancedTheme.border}40`
+              }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={16} style={{ color: enhancedTheme.warning }} />
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Last Active</p>
               </div>
+              <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
+                {user.lastActive?.toDate ? new Date(user.lastActive.toDate()).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                }) : 'N/A'}
+              </p>
             </div>
           </div>
 
-          {/* Subscription Details (Placeholder) */}
-          <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Subscription Details</h4>
-            <div className="p-4 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-              <p style={{ color: theme.textLight }}>Stripe integration coming soon...</p>
+          {/* Subscription Details */}
+          <div className="rounded-xl border p-5 relative overflow-hidden"
+            style={{ 
+              borderColor: enhancedTheme.border,
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.success}05 100%)`
+            }}>
+            <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+              <Award size={100} style={{ color: enhancedTheme.success }} />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
+                    boxShadow: `0 2px 8px ${enhancedTheme.success}30`
+                  }}>
+                  <CreditCard size={16} style={{ color: '#FFFFFF' }} />
+                </div>
+                <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Access & Subscription</h4>
+              </div>
+              {hasLifetimeAccess ? (
+                <div className="space-y-3">
+                  <div className="p-4 rounded-lg"
+                    style={{ 
+                      backgroundColor: isLifetimeGranted ? '#A3B18A20' : enhancedTheme.success + '15',
+                      border: `1px solid ${isLifetimeGranted ? '#A3B18A40' : enhancedTheme.success + '30'}`
+                    }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      {isLifetimeGranted ? (
+                        <Gift size={18} style={{ color: '#A3B18A' }} />
+                      ) : (
+                        <Award size={18} style={{ color: enhancedTheme.success }} />
+                      )}
+                      <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
+                        {isLifetimeGranted ? 'Lifetime Granted' : 'Lifetime Access'}
+                      </span>
+                    </div>
+                    {isLifetimeGranted && user.subscription?.lifetimeReason && (
+                      <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                        <Book size={10} />
+                        Reason: {user.subscription.lifetimeReason}
+                      </p>
+                    )}
+                    {!isLifetimeGranted && (
+                      <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                        <Coffee size={10} />
+                        Purchased lifetime access
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : subscriptionPlan !== 'No subscription' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg"
+                    style={{ backgroundColor: enhancedTheme.background + '60' }}>
+                    <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Plan:</span>
+                    <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{subscriptionPlan}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg"
+                    style={{ backgroundColor: enhancedTheme.background + '60' }}>
+                    <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Billing:</span>
+                    <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{subscriptionInterval}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg"
+                    style={{ backgroundColor: enhancedTheme.background + '60' }}>
+                    <span className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>Status:</span>
+                    <span className="px-2 py-1 rounded text-xs font-semibold"
+                      style={{
+                        backgroundColor: subscriptionStatus === 'active' ? enhancedTheme.success + '20' : enhancedTheme.warning + '20',
+                        color: subscriptionStatus === 'active' ? enhancedTheme.success : enhancedTheme.warning
+                      }}>
+                      {subscriptionStatus}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-lg text-center"
+                  style={{ backgroundColor: enhancedTheme.background + '60' }}>
+                  <p className="text-sm flex items-center justify-center gap-2" style={{ color: enhancedTheme.textLight }}>
+                    <Book size={14} className="opacity-60" />
+                    No active subscription found
+                  </p>
+                  <p className="text-xs mt-1 flex items-center justify-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                    <Coffee size={10} />
+                    Check Stripe dashboard for details
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Admin Actions (Placeholder) */}
-          <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Admin Actions</h4>
-            <div className="flex gap-2">
-              <button onClick={() => handleImpersonateUser(user.uid)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Impersonate User</button>
-              <button onClick={() => handleResetPassword(user.email)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.warning + '80', color: theme.textOnPrimary }}>Reset Password</button>
-              <button onClick={() => handleSuspendUser(user.uid, user.disabled)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}>{user.disabled ? 'Enable' : 'Suspend'} User</button>
+          {/* Admin Actions */}
+          <div className="rounded-xl border p-5"
+            style={{ 
+              borderColor: enhancedTheme.border,
+              backgroundColor: enhancedTheme.cardBackground
+            }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ 
+                  background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
+                  boxShadow: `0 2px 8px ${enhancedTheme.warning}30`
+                }}>
+                <Shield size={16} style={{ color: '#FFFFFF' }} />
+              </div>
+              <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Emergency Actions</h4>
             </div>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  if (window.confirm(`Send password reset email to ${user.email}?`)) {
+                    handleResetPassword(user.email);
+                  }
+                }}
+                className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
+                style={{ 
+                  backgroundColor: enhancedTheme.warning,
+                  color: '#FFFFFF',
+                  boxShadow: `0 4px 15px ${enhancedTheme.warning}30`
+                }}
+              >
+                <Lock size={16} />
+                Reset Password
+              </button>
+            </div>
+            <p className="text-xs mt-3 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+              <Coffee size={10} className="opacity-60" />
+              Password reset requires backend function. For immediate access, check Stripe or contact support.
+            </p>
           </div>
         </div>
       </div>
