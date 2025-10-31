@@ -3,7 +3,7 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift, Coffee, Book
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift, Coffee, Book, Wine
 } from 'lucide-react';
 import { getCurrentHolidayTheme, periwinkleTheme } from '../utils/holidayThemes';
 import { useFirebase } from '../context/FirebaseContext';
@@ -241,12 +241,26 @@ function Admin() {
   const theme = adminTheme;
   const { firebaseUser } = useFirebase();
   const [holidayTheme, setHolidayTheme] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Detect current holiday theme
   useEffect(() => {
     const currentHoliday = getCurrentHolidayTheme();
     setHolidayTheme(currentHoliday);
   }, []);
+
+  // Update time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Determine if it's wine time (after 5pm)
+  const isWineTime = currentTime.getHours() >= 17;
+  const TimeIcon = isWineTime ? Wine : Coffee;
+  const timeMessage = isWineTime ? "where's my wine 🍷" : "where's my coffee ☕";
 
   // Enhanced theme with periwinkle base + holiday accents
   const enhancedTheme = {
@@ -1106,8 +1120,12 @@ Enter The Lab 🧪
                   boxShadow: `0 2px 8px ${enhancedTheme.accent}30`,
                   animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
                 }}>
-                <Coffee size={14} className="animate-bounce" style={{ color: enhancedTheme.accent }} />
-                <span className="text-xs font-semibold animate-pulse" style={{ color: enhancedTheme.accent }}>where's my coffee</span>
+                <TimeIcon size={14} className="animate-bounce" style={{ color: enhancedTheme.accent }} />
+                <span className="text-xs font-semibold animate-pulse" style={{ color: enhancedTheme.accent }}>{timeMessage}</span>
+                <Clock size={10} className="opacity-60" />
+                <span className="text-xs opacity-60" style={{ color: enhancedTheme.accent }}>
+                  {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
               
               {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
@@ -1206,7 +1224,7 @@ Enter The Lab 🧪
       </div>
 
       {/* Main Content Area - Full Width */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 mt-32">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10" style={{ marginTop: '140px' }}>
         {/* Top Header - Enhanced */}
         <div className="bg-white border-b p-4 lg:p-6 flex-shrink-0 shadow-sm relative overflow-hidden" 
           style={{ 
