@@ -3,8 +3,9 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift, Coffee, Book
 } from 'lucide-react';
+import { getCurrentHolidayTheme, periwinkleTheme } from '../utils/holidayThemes';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
 import { Zap } from '../icons/lucide-safe';
@@ -239,6 +240,22 @@ const adminTheme = {
 function Admin() {
   const theme = adminTheme;
   const { firebaseUser } = useFirebase();
+  const [holidayTheme, setHolidayTheme] = useState(null);
+
+  // Detect current holiday theme
+  useEffect(() => {
+    const currentHoliday = getCurrentHolidayTheme();
+    setHolidayTheme(currentHoliday);
+  }, []);
+
+  // Enhanced theme with periwinkle base + holiday accents
+  const enhancedTheme = {
+    ...theme,
+    ...periwinkleTheme,
+    holidayAccent: holidayTheme?.accent || periwinkleTheme.primary,
+    holidayGradient: holidayTheme?.gradient || `linear-gradient(135deg, ${periwinkleTheme.primary} 0%, ${periwinkleTheme.primaryLight} 100%)`,
+    holidayEmoji: holidayTheme?.emoji || '☕'
+  };
   const [announcements, setAnnouncements] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -958,17 +975,32 @@ function Admin() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="max-w-md w-full p-8 rounded-lg border shadow-sm content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
+        backgroundColor: enhancedTheme.background,
+        backgroundImage: holidayTheme ? `linear-gradient(135deg, ${enhancedTheme.holidayGradient} 0%, ${enhancedTheme.background} 100%)` : undefined
+      }}>
+        {/* Decorative elements */}
+        <div className="absolute top-10 right-10 opacity-5">
+          <Coffee size={120} style={{ color: enhancedTheme.accent }} />
+        </div>
+        <div className="absolute bottom-10 left-10 opacity-5">
+          <Book size={100} style={{ color: enhancedTheme.primary }} />
+        </div>
+        
+        <div className="max-w-md w-full p-8 rounded-xl border shadow-lg content-card relative z-10 backdrop-blur-sm" style={{ 
+          borderColor: enhancedTheme.border, 
+          backgroundColor: enhancedTheme.cardBackground,
+          boxShadow: `0 8px 32px ${enhancedTheme.primary}20`
+        }}>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-              <Megaphone size={32} style={{ color: theme.primary }} />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200" style={{ 
+              background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+              boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+            }}>
+              <Coffee size={32} style={{ color: '#FFFFFF' }} />
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>Admin Panel</h1>
-            <p className="text-sm" style={{ color: theme.textLight }}>Enter admin password to continue</p>
-            <p className="text-xs mt-2 p-2 rounded bg-blue-50 text-blue-700">
-              ⚠️ You must be logged in with the admin email account first
-            </p>
+            <h1 className="text-2xl font-bold mb-2" style={{ color: enhancedTheme.primaryDark }}>The Calm Workspace</h1>
+            <p className="text-sm" style={{ color: enhancedTheme.textLight }}>Welcome back, Mrs. FloralKaffe ☕</p>
           </div>
           
           <form onSubmit={handleLogin} className="space-y-4">
@@ -978,21 +1010,25 @@ function Admin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Admin password"
-                className="w-full p-4 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02]"
                 style={{ 
-                  borderColor: theme.border, 
-                  backgroundColor: theme.background,
-                  focusRingColor: theme.primary
+                  borderColor: enhancedTheme.border, 
+                  backgroundColor: enhancedTheme.background,
+                  focusRingColor: enhancedTheme.primary
                 }}
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full p-4 rounded-lg font-semibold transition-colors hover:opacity-90"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+              style={{ 
+                background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                color: '#FFFFFF',
+                boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+              }}
             >
-              Access Admin Panel
+Enter The Lab 🧪
             </button>
           </form>
         </div>
@@ -1000,91 +1036,109 @@ function Admin() {
     );
   }
 
+  // Define all tabs with categories
+  const allTabs = [
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#3b82f6', count: analytics.totalUsers || 0, category: 'Insights' },
+    { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981', count: subscriptions.total || 0, category: 'Users' },
+    { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b', count: lifetimeUsers.length || 0, category: 'Users' },
+    { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6', count: 0, category: 'Content' },
+    { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6', count: feedback.filter(f => f.status === 'new').length, category: 'Content' },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone, color: enhancedTheme.primary, count: announcements.length, category: 'Content' },
+    { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b', count: Object.keys(featureFlags.betaFeatures || {}).length, category: 'Settings' },
+    { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444', count: 0, category: 'Settings' },
+    { id: 'gifts', label: 'Gifts', icon: Star, color: '#ec4899', count: giftAnalytics.total || 0, category: 'Users' },
+    { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981', count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, category: 'Settings' },
+    { id: 'emails', label: 'Emails', icon: Mail, color: '#06b6d4', count: 0, category: 'Settings' },
+    { id: 'improvements', label: 'Improvements', icon: Target, color: '#8b5cf6', count: 0, category: 'Settings' }
+  ];
+
+
   return (
-    <div className="h-screen flex flex-col lg:flex-row overflow-hidden" style={{ backgroundColor: '#f8fafc' }}>
-      {/* Mobile Header Navigation */}
-      <div className="lg:hidden bg-white border-b" style={{ borderColor: theme.border }}>
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
+    <div className="h-screen flex flex-col overflow-hidden relative" style={{ 
+      backgroundColor: enhancedTheme.background,
+      backgroundImage: holidayTheme ? `linear-gradient(135deg, ${enhancedTheme.holidayGradient} 0%, ${enhancedTheme.background} 100%)` : undefined
+    }}>
+      {/* Decorative Coffee & Book Elements */}
+      <div className="fixed inset-0 pointer-events-none opacity-5 z-0">
+        <Coffee size={400} className="absolute top-20 right-20 rotate-12" style={{ color: enhancedTheme.accent }} />
+        <Book size={300} className="absolute bottom-40 left-20 -rotate-12" style={{ color: enhancedTheme.primary }} />
+        <Coffee size={250} className="absolute top-1/2 left-1/3 rotate-45" style={{ color: enhancedTheme.secondary }} />
+      </div>
+
+      {/* Top Navigation Bar - Fixed Horizontal */}
+      <div className="fixed top-0 left-0 right-0 z-50 shadow-lg" style={{ 
+        backgroundColor: enhancedTheme.cardBackground,
+        borderBottom: `2px solid ${enhancedTheme.border}`,
+        backdropFilter: 'blur(10px)'
+      }}>
+        {/* Header Section */}
+        <div className="px-4 lg:px-6 py-3 border-b" style={{ borderColor: enhancedTheme.border + '40' }}>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-                <Wrench size={16} style={{ color: theme.primary }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" 
+                style={{ 
+                  background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                  boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+                }}>
+                <Coffee size={20} style={{ color: '#FFFFFF' }} />
               </div>
               <div>
-                <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
-                <p className="text-xs" style={{ color: theme.textLight }}>The Pep Planner</p>
+                <h1 className="text-lg font-bold" style={{ color: enhancedTheme.primaryDark }}>
+                  The Calm Workspace
+                </h1>
+                <p className="text-xs flex items-center gap-1" style={{ color: enhancedTheme.textLight }}>
+                  <Book size={10} />
+                  <span>Welcome, Mrs. FloralKaffe ☕</span>
+                  {holidayTheme && (
+                    <span className="ml-1 text-base animate-bounce" title={holidayTheme.name}>
+                      {holidayTheme.emoji}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" 
+              style={{ 
+                backgroundColor: enhancedTheme.success + '15',
+                border: `1px solid ${enhancedTheme.success}30`
+              }}>
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: enhancedTheme.success }}></div>
+              <span className="text-xs font-semibold" style={{ color: enhancedTheme.success }}>Active</span>
+            </div>
           </div>
-          
-          {/* Mobile Tab Navigation */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 px-1" style={{ scrollbarWidth: 'thin' }}>
-            {[
-              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#3b82f6' },
-              { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981' },
-              { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b' },
-              { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6' },
-              { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6' },
-              { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
-              { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
-              { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
-              { id: 'gifts', label: 'Gifts', icon: Star, color: '#ec4899' },
-            { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981' },
-              { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4' },
-              { id: 'improvements', label: 'Improvements', icon: Target, color: '#8b5cf6' }
-            ].map(tab => {
+        </div>
+
+        {/* Horizontal Tab Navigation - No Scrolling Needed */}
+        <div className="px-4 lg:px-6 py-3 overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            {allTabs.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                    isActive ? 'shadow-md' : 'hover:opacity-70'
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-300 ${
+                    isActive ? 'shadow-lg transform scale-105' : 'hover:scale-105 hover:shadow-md'
                   }`}
-                  style={{ 
-                    backgroundColor: isActive ? tab.color + '15' : theme.background,
-                    color: isActive ? tab.color : theme.textLight,
-                    border: `1px solid ${isActive ? tab.color + '40' : theme.border}`,
-                    minWidth: '70px'
+                  style={{
+                    background: isActive 
+                      ? `linear-gradient(135deg, ${tab.color} 0%, ${tab.color}DD 100%)`
+                      : enhancedTheme.background,
+                    color: isActive ? '#FFFFFF' : enhancedTheme.text,
+                    border: `2px solid ${isActive ? tab.color : enhancedTheme.border}`,
+                    boxShadow: isActive ? `0 4px 20px ${tab.color}40` : undefined,
                   }}
                 >
                   <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                   <span>{tab.label}</span>
-                  {/* Show count badges on mobile too */}
-                  {tab.id === 'analytics' && analytics.totalUsers > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {analytics.totalUsers}
-                    </span>
-                  )}
-                  {tab.id === 'subscriptions' && subscriptions.total > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {subscriptions.total}
-                    </span>
-                  )}
-                  {tab.id === 'lifetime' && lifetimeUsers.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {lifetimeUsers.length}
-                    </span>
-                  )}
-                  {tab.id === 'feedback' && feedback.filter(f => f.status === 'new').length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {feedback.filter(f => f.status === 'new').length}
-                    </span>
-                  )}
-                  {tab.id === 'announcements' && announcements.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {announcements.length}
-                    </span>
-                  )}
-                  {tab.id === 'whitelist' && emailWhitelist.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {emailWhitelist.length}
-                    </span>
-                  )}
-                  {tab.id === 'gifts' && giftAnalytics.total > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {giftAnalytics.total}
+                  {tab.count > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold"
+                      style={{ 
+                        backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : tab.color + '25',
+                        color: isActive ? '#FFFFFF' : tab.color
+                      }}>
+                      {tab.count}
                     </span>
                   )}
                 </button>
@@ -1094,177 +1148,45 @@ function Admin() {
         </div>
       </div>
 
-      {/* Desktop Sidebar Navigation */}
-      <div className="hidden lg:flex lg:w-64 bg-white border-r flex-col h-screen sticky top-0" style={{ borderColor: theme.border }}>
-        {/* Header */}
-        <div className="p-6 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-              <Wrench size={20} style={{ color: theme.primary }} />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
-              <p className="text-xs" style={{ color: theme.textLight }}>The Pep Planner</p>
+      {/* Main Content Area - Full Width */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 mt-32">
+        {/* Top Header - Enhanced */}
+        <div className="bg-white border-b p-4 lg:p-6 flex-shrink-0 shadow-sm relative overflow-hidden" 
+          style={{ 
+            borderColor: enhancedTheme.border,
+            background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.primaryLight}05 100%)`
+          }}>
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-3 pointer-events-none">
+            <div className="absolute top-0 right-0">
+              <Coffee size={120} style={{ color: enhancedTheme.accent }} />
             </div>
           </div>
-        </div>
-
-        {/* Navigation Items */}
-        <nav className="flex-1 p-4 flex flex-col space-y-2 overflow-y-auto">
-          {[
-            { 
-              id: 'analytics', 
-              label: 'Analytics', 
-              icon: BarChart3, 
-              count: analytics.totalUsers || 0,
-              desc: 'User insights',
-              color: '#3b82f6' 
-            },
-            { 
-              id: 'subscriptions', 
-              label: 'Users', 
-              icon: Users, 
-              count: subscriptions.total || 0,
-              desc: 'User management',
-              color: '#10b981' 
-            },
-            { 
-              id: 'lifetime', 
-              label: 'Lifetime Access', 
-              icon: Award, 
-              count: lifetimeUsers.length || 0,
-              desc: 'Beta testers & founders',
-              color: '#f59e0b' 
-            },
-            { 
-              id: 'content', 
-              label: 'Content', 
-              icon: BookOpen, 
-              count: 0,
-              desc: 'Manage app content',
-              color: '#8b5cf6'
-            },
-            { 
-              id: 'feedback', 
-              label: 'Feedback', 
-              icon: MessageSquare, 
-              count: feedback.filter(f => f.status === 'new').length,
-              desc: 'Keyword analysis',
-              color: '#8b5cf6' 
-            },
-            { 
-              id: 'announcements', 
-              label: 'Announcements', 
-              icon: Megaphone, 
-              count: announcements.length,
-              desc: 'App announcements',
-              color: theme.primary 
-            },
-            { 
-              id: 'features', 
-              label: 'Feature Flags', 
-              icon: Flag, 
-              count: Object.keys(featureFlags.betaFeatures || {}).length,
-              desc: 'Beta features',
-              color: '#f59e0b' 
-            },
-            { 
-              id: 'agreements', 
-              label: 'Legal Agreements', 
-              icon: Shield, 
-              count: 0,
-              desc: 'User agreement tracking',
-              color: '#ef4444' 
-            },
-            { 
-              id: 'gifts', 
-              label: 'Gifts', 
-              icon: Star, 
-              count: giftAnalytics.total || 0,
-              desc: 'Gift access management',
-              color: '#ec4899' 
-            },
-            { 
-              id: 'notifications', 
-              label: 'Notifications', 
-              icon: Bell, 
-              count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length,
-              desc: 'Templates & automated push notifications',
-              color: '#10b981' 
-            },
-            { 
-              id: 'emails', 
-              label: 'Email Templates', 
-              icon: Mail, 
-              count: 0,
-              desc: 'Branded email editor',
-              color: '#06b6d4' 
-            },
-            { 
-              id: 'improvements', 
-              label: 'Improvements', 
-              icon: Target, 
-              count: 0,
-              desc: 'Track potential improvements',
-              color: '#8b5cf6' 
-            },
-          ].map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full p-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
-                  isActive ? 'shadow-md' : 'hover:shadow-sm'
-                }`}
-                style={{
-                  backgroundColor: isActive ? tab.color + '10' : 'transparent',
-                  border: `1px solid ${isActive ? tab.color + '30' : 'transparent'}`,
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center`} style={{ backgroundColor: tab.color + '20' }}>
-                    <Icon size={16} style={{ color: tab.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-sm truncate" style={{ color: isActive ? tab.color : theme.text }}>{tab.label}</h3>
-                      {tab.count > 0 && (
-                        <span className="text-xs px-2 py-1 rounded-full ml-2" style={{ backgroundColor: tab.color + '20', color: tab.color }}>
-                          {tab.count}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs truncate hidden lg:block" style={{ color: theme.textLight }}>{tab.desc}</p>
-                  </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <div>
+                  <h2 className="text-3xl font-bold capitalize" style={{ 
+                    color: enhancedTheme.primaryDark,
+                    textShadow: `0 2px 8px ${enhancedTheme.primary}20`
+                  }}>
+                    {activeTab === 'subscriptions' ? 'User Management' : 
+                     activeTab === 'lifetime' ? 'Lifetime Access' :
+                     activeTab.replace(/([A-Z])/g, ' $1').trim()}
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: enhancedTheme.textLight, fontStyle: 'italic' }}>
+                    Hello, Mrs. FloralKaffe! 👋
+                  </p>
                 </div>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t" style={{ borderColor: theme.border }}>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: theme.success + '10' }}>
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.success }}></div>
-            <span className="text-xs font-medium" style={{ color: theme.success }}>Admin Active</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Top Header */}
-        <div className="bg-white border-b p-4 lg:p-6 flex-shrink-0" style={{ borderColor: theme.border }}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold capitalize" style={{ color: theme.primaryDark }}>
-                {activeTab === 'subscriptions' ? 'User Management' : 
-                 activeTab === 'lifetime' ? 'Lifetime Access' :
-                 activeTab.replace(/([A-Z])/g, ' $1').trim()}
-              </h2>
-              <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                {holidayTheme && (
+                  <span className="text-2xl animate-bounce" title={holidayTheme.name}>
+                    {holidayTheme.emoji}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                <Book size={14} className="opacity-60" />
                 {activeTab === 'analytics' && 'Real-time platform analytics and user insights'}
                 {activeTab === 'subscriptions' && 'User management, subscriptions, and account status'}
                 {activeTab === 'lifetime' && 'Manage and grant lifetime access to users'}
@@ -1282,8 +1204,12 @@ function Admin() {
               {activeTab === 'announcements' && (
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  className="px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                    color: '#FFFFFF',
+                    boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+                  }}
                 >
                   <Plus size={18} />
                   New Announcement
@@ -1300,8 +1226,12 @@ function Admin() {
                     }
                   }}
                   disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                  className="px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
+                    color: '#FFFFFF',
+                    boxShadow: `0 4px 15px ${enhancedTheme.info}30`
+                  }}
                 >
                   <RefreshCw size={18} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
                   Refresh Data

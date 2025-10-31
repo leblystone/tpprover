@@ -99,10 +99,23 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
 };
 
 /**
- * Send lifetime access granted email
+ * Send lifetime access granted email (for manual admin grants)
+ * Uses manualLifetimeGrant template instead of lifetimeAccessGranted
  */
 exports.sendLifetimeAccessEmail = async (userEmail, userName = null) => {
-  // Try to load custom template from Firestore, fallback to hardcoded
+  // Try to load manual grant template from Firestore first
+  try {
+    const customTemplate = await loadEmailTemplate('manualLifetimeGrant');
+    if (customTemplate) {
+      const subject = customTemplate.subject || '✅ Lifetime Access Granted by Admin - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { userName, userEmail });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (error) {
+    logger.warn('Failed to load manual lifetime grant template, trying fallback:', error);
+  }
+  
+  // Fallback to regular lifetime access template if manual grant template doesn't exist
   try {
     const customTemplate = await loadEmailTemplate('lifetimeAccessGranted');
     if (customTemplate) {
@@ -111,11 +124,11 @@ exports.sendLifetimeAccessEmail = async (userEmail, userName = null) => {
       return sendEmail(userEmail, subject, html);
     }
   } catch (error) {
-    logger.warn('Failed to load custom lifetime access template, using default:', error);
+    logger.warn('Failed to load lifetime access template, using default:', error);
   }
   
-  // Fallback to hardcoded template
-  const subject = '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
+  // Final fallback to hardcoded template
+  const subject = '✅ Lifetime Access Granted by Admin - The Pep Planner';
   const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User');
   return sendEmail(userEmail, subject, html);
 };
@@ -210,12 +223,43 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
     textLight: '#6B7280'
   };
 
-  // Replace variables in template
-  let html = template.html || generateDefaultHTML(template, colors);
+  // Replace variables in template text fields BEFORE generating HTML
+  const processedTemplate = { ...template };
   
-  // Replace variables like %VERIFICATION_LINK%
+  // Function to replace variables in a string
+  const replaceVars = (text) => {
+    if (!text) return text;
+    let result = text;
+    Object.entries(variables).forEach(([key, value]) => {
+      // Handle null/undefined values gracefully
+      const replacement = value || '';
+      result = result.replace(new RegExp(`%${key.toUpperCase()}%`, 'g'), replacement);
+    });
+    return result;
+  };
+
+  // Replace variables in all text fields
+  processedTemplate.greeting = replaceVars(template.greeting);
+  processedTemplate.mainMessage = replaceVars(template.mainMessage);
+  processedTemplate.highlightTitle = replaceVars(template.highlightTitle);
+  processedTemplate.highlightMessage = replaceVars(template.highlightMessage);
+  processedTemplate.ctaText = replaceVars(template.ctaText);
+  processedTemplate.ctaLink = replaceVars(template.ctaLink);
+  processedTemplate.subject = replaceVars(template.subject);
+  processedTemplate.heading = replaceVars(template.heading);
+  
+  // Replace variables in features array
+  if (template.features && Array.isArray(template.features)) {
+    processedTemplate.features = template.features.map(f => replaceVars(f));
+  }
+
+  // Generate HTML from processed template
+  let html = template.html || generateDefaultHTML(processedTemplate, colors);
+  
+  // Also replace variables in custom HTML if provided
   Object.entries(variables).forEach(([key, value]) => {
-    html = html.replace(new RegExp(`%${key.toUpperCase()}%`, 'g'), value);
+    const replacement = value || '';
+    html = html.replace(new RegExp(`%${key.toUpperCase()}%`, 'g'), replacement);
   });
 
   return html;
@@ -532,5 +576,27 @@ exports.sendGiftExpiringSoonEmail = async (recipientEmail, planName, daysLeft, g
   const subject = `🎁 Your Gifted Research Time Is Ending in ${daysLeft} ${daysLeft === 1 ? 'Day' : 'Days'} - The Pep Planner`;
   const html = emailTemplates.giftExpiringSoonEmail(recipientEmail, planName, daysLeft, giftGiverName);
   return sendEmail(recipientEmail, subject, html);
+};
+
+/**
+ * Send custom announcement/maintenance email
+ * Use this for app-wide announcements, maintenance notices, downtime alerts, etc.
+ */
+exports.sendCustomAnnouncementEmail = async (userEmail, userName = null) => {
+  try {
+    const customTemplate = await loadEmailTemplate('customAnnouncement');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Important Update - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { userName, userEmail, firstName: userName?.split(' ')[0] || 'User' });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (error) {
+    logger.warn('Failed to load custom announcement template, using default:', error);
+  }
+  
+  // Fallback to hardcoded template
+  const subject = 'Important Update - The Pep Planner';
+  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User'); // Reuse structure
+  return sendEmail(userEmail, subject, html);
 };
 

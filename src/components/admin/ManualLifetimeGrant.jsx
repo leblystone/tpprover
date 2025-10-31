@@ -11,6 +11,8 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
   const [allUsers, setAllUsers] = useState([]);
   const [showUserList, setShowUserList] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
+  const [sendingToAll, setSendingToAll] = useState(false);
+  const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
 
   const handleGrantAccess = async () => {
     if (!email.trim()) {
@@ -131,6 +133,70 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
     }
   };
 
+  const handleSendToAllUsers = async () => {
+    if (!confirm('⚠️ Are you sure you want to send the manual lifetime grant email to ALL users? This cannot be undone.')) {
+      return;
+    }
+
+    setSendingToAll(true);
+    setSendProgress({ sent: 0, total: 0 });
+    setResult(null);
+
+    try {
+      const users = await getUserList();
+      const functions = getFunctions();
+      const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
+      
+      setSendProgress({ sent: 0, total: users.length });
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      // Send emails in batches to avoid overwhelming the system
+      const batchSize = 5;
+      for (let i = 0; i < users.length; i += batchSize) {
+        const batch = users.slice(i, i + batchSize);
+        
+        await Promise.allSettled(
+          batch.map(async (user) => {
+            try {
+              await sendLifetimeAccessEmail({
+                userEmail: user.email,
+                userName: user.displayName || user.email.split('@')[0],
+                reason: reason
+              });
+              successCount++;
+            } catch (error) {
+              console.error(`Failed to send to ${user.email}:`, error);
+              failCount++;
+            } finally {
+              setSendProgress({ sent: successCount + failCount, total: users.length });
+            }
+          })
+        );
+
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < users.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      setResult({ 
+        type: 'success', 
+        message: `✅ Sent emails to ${successCount} users${failCount > 0 ? ` (${failCount} failed)` : ''}!` 
+      });
+    } catch (error) {
+      console.error('Error sending emails to all users:', error);
+      setResult({ 
+        type: 'error', 
+        message: `Failed to send emails: ${error.message}` 
+      });
+    } finally {
+      setSendingToAll(false);
+      setSendProgress({ sent: 0, total: 0 });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Manual Grant Form */}
@@ -208,7 +274,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
           <div className="flex gap-3">
             <button
               onClick={handleTestEmail}
-              disabled={testingEmail || !email.trim()}
+              disabled={testingEmail || sendingToAll || !email.trim()}
               className="flex-1 px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
               style={{ 
                 backgroundColor: testingEmail ? theme.border : theme.secondary, 
@@ -230,7 +296,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
             
             <button
               onClick={handleGrantAccess}
-              disabled={loading || !email.trim()}
+              disabled={loading || sendingToAll || !email.trim()}
               className="flex-1 px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
               style={{ 
                 backgroundColor: loading ? theme.border : theme.primary, 
@@ -249,6 +315,50 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
                 </>
               )}
             </button>
+          </div>
+
+          {/* Send to All Users Button */}
+          <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
+            <button
+              onClick={handleSendToAllUsers}
+              disabled={sendingToAll || testingEmail || loading}
+              className="w-full px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
+              style={{ 
+                backgroundColor: sendingToAll ? theme.border : theme.warning, 
+                color: sendingToAll ? theme.textLight : '#FFFFFF' 
+              }}
+            >
+              {sendingToAll ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Sending to All Users... ({sendProgress.sent}/{sendProgress.total})
+                </>
+              ) : (
+                <>
+                  <Send size={16} />
+                  Send Email to ALL Users
+                </>
+              )}
+            </button>
+            {sendingToAll && sendProgress.total > 0 && (
+              <div className="mt-2">
+                <div className="w-full bg-gray-200 rounded-full h-2" style={{ backgroundColor: theme.border }}>
+                  <div 
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      backgroundColor: theme.primary,
+                      width: `${(sendProgress.sent / sendProgress.total) * 100}%`
+                    }}
+                  />
+                </div>
+                <p className="text-xs mt-1 text-center" style={{ color: theme.textLight }}>
+                  Progress: {sendProgress.sent} of {sendProgress.total} emails sent
+                </p>
+              </div>
+            )}
+            <p className="text-xs mt-2" style={{ color: theme.textLight }}>
+              ⚠️ This will send the manual lifetime grant email to every user in the system. Use with caution.
+            </p>
           </div>
 
           {result && (

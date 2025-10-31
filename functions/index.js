@@ -887,6 +887,39 @@ exports.scheduledTrialReminders = onSchedule({
   }
 });
 
+// Send custom announcement email (for maintenance, downtime, etc.)
+exports.sendCustomAnnouncementEmail = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { userEmail, userName } = request.data;
+
+    if (!userEmail) {
+      throw new Error('userEmail is required');
+    }
+
+    logger.info(`📢 Sending custom announcement email to: ${userEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      const success = await emailService.sendCustomAnnouncementEmail(userEmail, userName);
+      
+      if (success) {
+        logger.info(`✅ Custom announcement email sent successfully to: ${userEmail}`);
+        return { success: true, message: 'Custom announcement email sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send custom announcement email to: ${userEmail}`);
+        return { success: false, message: 'Failed to send email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending custom announcement email: ${error.message}`);
+      throw new Error('Failed to send custom announcement email');
+    }
+  }
+);
+
 // Send lifetime access granted email
 exports.sendLifetimeAccessEmail = onCall(
   {

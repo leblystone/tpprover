@@ -93,7 +93,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           
         {/* Tabs in Topbar - Right aligned */}
         {tabs && tabs.length > 0 && (
-          <div className="flex items-center gap-1 md:gap-2 px-2 py-1 rounded-lg md:justify-between md:min-w-[380px] md:w-[420px] lg:w-[520px] xl:w-[640px]" style={{ backgroundColor: `${theme.primary}08` }}>
+          <div className="hidden md:flex items-center gap-1 md:gap-2 px-2 py-1 rounded-lg md:justify-between md:min-w-[380px] md:w-[420px] lg:w-[520px] xl:w-[640px]" style={{ backgroundColor: `${theme.primary}08` }}>
             {tabs.map(tab => (
               <button
                 key={tab.value}
@@ -144,6 +144,38 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
+        {/* Mobile tabs - show only active tab with dropdown */}
+        {tabs && tabs.length > 0 && (
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              className="px-3 py-1.5 text-xs uppercase tracking-tight rounded-lg shadow-sm relative whitespace-nowrap"
+              style={{
+                backgroundColor: `${theme.primary}20`,
+                color: theme.primary,
+                fontWeight: 600
+              }}
+            >
+              {tabs.find(t => t.value === activeTab)?.label || tabs[0].label}
+            </button>
+            {onActionClick && (
+              <button 
+                className="p-1.5 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200" 
+                style={{ 
+                  color: actionDisabled ? theme.textLight : '#ffffff', 
+                  backgroundColor: actionDisabled ? theme.textLight : theme.primary,
+                  opacity: actionDisabled ? 0.6 : 1,
+                  cursor: actionDisabled ? 'not-allowed' : 'pointer'
+                }} 
+                onClick={onActionClick}
+                disabled={actionDisabled}
+                title="Add New"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+        
         <div className="flex items-center gap-1 md:gap-2">
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
@@ -162,84 +194,54 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           )}
           {/* Dashboard-specific expanding search box */}
           {onDashboard && (
-            <div className="flex items-center">
-              <ModernTooltip text="Search" position="bottom">
-                <button
-                  onClick={() => searchInputRef.current?.focus()}
-                  className="p-2 rounded-full no-shadow flex-shrink-0 mr-2"
-                  style={{ color: theme.text }}
-                  aria-label="Focus search"
-                >
-                  <Search className="h-5 w-5" />
-                </button>
-              </ModernTooltip>
-              <form 
-                className="search-box-wrapper" 
-                style={{ color: theme.text, backgroundColor: theme.cardBackground }}
-                onSubmit={(e) => { e.preventDefault(); }}
-              >
-                <input 
-                  ref={searchInputRef}
-                  type="text" 
-                  value={searchQuery} 
-                  onChange={e => setSearchQuery(e.target.value)} 
-                  placeholder="Search..."
-                  style={{ color: theme.text }}
-                />
-                <button 
-                  type="reset"
-                  onClick={() => {
-                    setSearchQuery('');
-                    searchInputRef.current?.blur();
-                  }}
-                />
-              </form>
-            </div>
+            <form 
+              className="search-box-wrapper" 
+              style={{ color: theme.text, backgroundColor: theme.cardBackground }}
+              onSubmit={(e) => { e.preventDefault(); }}
+            >
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                placeholder="Search..."
+                style={{ color: theme.text }}
+              />
+              <button 
+                type="reset"
+                onClick={() => {
+                  setSearchQuery('');
+                  searchInputRef.current?.blur();
+                }}
+              />
+            </form>
           )}
           {/* Search for other pages */}
           {!onDashboard && seg !== 'settings' && seg !== 'account' && (
-            <div className="flex items-center">
-              <ModernTooltip text="Search" position="bottom">
-                <button
-                  onClick={() => {
-                    // Create a unique search ref for each page if needed
-                    const pageSearchRef = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
-                    if (pageSearchRef) {
-                      pageSearchRef.focus();
-                    }
-                  }}
-                  className="p-2 rounded-full no-shadow flex-shrink-0 mr-2"
-                  style={{ color: theme.text }}
-                  aria-label="Focus search"
-                >
-                  <Search className="h-5 w-5" />
-                </button>
-              </ModernTooltip>
-              <form 
-                className="search-box-wrapper" 
-                style={{ color: theme.text, backgroundColor: theme.cardBackground }}
-                onSubmit={(e) => { e.preventDefault(); }}
-              >
-                <input 
-                  type="text" 
-                  data-page={seg}
-                  onChange={(e) => window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: e.target.value } }))} 
-                  placeholder={getPlaceholderForPage(seg)}
-                  style={{ color: theme.text }}
-                />
-                <button 
-                  type="reset"
-                  onClick={() => {
-                    const input = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
-                    if (input) {
-                      input.value = '';
-                      input.blur();
-                      window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: '' } }));
-                    }
-                  }}
-                />
-              </form>
-            </div>
+            <form 
+              className="search-box-wrapper" 
+              style={{ color: theme.text, backgroundColor: theme.cardBackground }}
+              onSubmit={(e) => { e.preventDefault(); }}
+            >
+              <input 
+                type="text" 
+                data-page={seg}
+                onChange={(e) => window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: e.target.value } }))} 
+                placeholder={getPlaceholderForPage(seg)}
+                style={{ color: theme.text }}
+              />
+              <button 
+                type="reset"
+                onClick={() => {
+                  const input = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
+                  if (input) {
+                    input.value = '';
+                    input.blur();
+                    window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: '' } }));
+                  }
+                }}
+              />
+            </form>
           )}
           {/* Import feature temporarily hidden - uncomment to re-enable
           {onDashboard && (

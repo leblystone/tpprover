@@ -325,6 +325,50 @@ html, body, #root {
 .search-box-wrapper {
   display: inline-block;
   position: relative;
+  font-size: 12px;
+  border: solid 1.5px currentColor;
+  border-radius: 2em;
+  overflow: hidden;
+  background-color: rgba(0,0,0,.375);
+  cursor: pointer;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.search-box-wrapper::before,
+.search-box-wrapper::after {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+/* Search icon (magnifying glass) using pseudo-elements */
+.search-box-wrapper::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.search-box-wrapper::after {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: 6px;
+  background-color: currentColor;
+  left: calc(50% + 5px);
+  top: calc(50% + 5px);
+  transform: translate(-50%, 0) rotate(45deg);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 
 .search-box-wrapper input[type="text"] {
@@ -353,10 +397,42 @@ html, body, #root {
   outline: none;
 }
 
+/* Hide search icon when expanded */
+.search-box-wrapper input[type="text"]:focus ~ button[type="reset"],
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) {
+  /* Trigger showing close button, which also hides the icon */
+}
+
 .search-box-wrapper input[type="text"]:focus,
 .search-box-wrapper input[type="text"]:not(:placeholder-shown) {
-  width: 14em;
+  width: 12em;
   cursor: text;
+}
+
+/* Mobile: smaller width */
+@media (max-width: 768px) {
+  .search-box-wrapper input[type="text"]:focus,
+  .search-box-wrapper input[type="text"]:not(:placeholder-shown) {
+    width: 8em;
+  }
+}
+
+/* Hide icon when input is focused or has value */
+.search-box-wrapper input[type="text"]:focus ~ ::before,
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ ::before,
+.search-box-wrapper input[type="text"]:focus ~ ::after,
+.search-box-wrapper input[type="text"]:not(:placeholder-shown) ~ ::after {
+  opacity: 0;
+}
+
+.search-box-wrapper:has(input[type="text"]:focus)::before,
+.search-box-wrapper:has(input[type="text"]:not(:placeholder-shown))::before {
+  opacity: 0;
+}
+
+.search-box-wrapper:has(input[type="text"]:focus)::after,
+.search-box-wrapper:has(input[type="text"]:not(:placeholder-shown))::after {
+  opacity: 0;
 }
 
 .search-box-wrapper input[type="text"]::placeholder {

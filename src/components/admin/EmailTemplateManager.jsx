@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, Zap } from 'lucide-react';
+import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, Zap, HelpCircle, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getUserList } from '../../services/firebase';
 
 const DEFAULT_TEMPLATES = {
   welcome: {
@@ -182,12 +183,12 @@ const DEFAULT_TEMPLATES = {
     name: "Gift Received Notification",
     subject: "🎁 You've Been Gifted Access to The Pep Planner!",
     heading: "You've Been Gifted!",
-    greeting: "Great news! Someone just gifted you access to The Pep Planner.",
-    mainMessage: "Activate your research workspace and start organizing protocols, tracking progress, and managing inventory — all included with your gifted access.",
+    greeting: "Great news! %GIFTGIVERNAME% just gifted you access to The Pep Planner.",
+    mainMessage: "%GIFTMESSAGE%",
+    highlightTitle: 'Gift Details',
+    highlightMessage: 'This gift includes full access for the selected term. Activate to begin your research journey.',
     ctaText: 'Redeem Your Gift',
     ctaLink: 'https://thepepplanner.app/app/redeem',
-    highlightTitle: 'Gift Details',
-    highlightMessage: 'This gift includes full access for the selected term. Activate to begin.',
     features: [
       'Full access to all features during the gift period',
       'Keep your data — upgrade anytime to continue',
@@ -209,6 +210,23 @@ const DEFAULT_TEMPLATES = {
       'Keep all your data and research notes',
       'Choose from monthly, quarterly, or annual plans',
       'Flexible pricing to fit your research needs'
+    ]
+  },
+  customAnnouncement: {
+    name: 'Custom Announcement / Maintenance',
+    subject: 'Important Update - The Pep Planner',
+    heading: 'Important Update',
+    greeting: 'Hello!',
+    mainMessage: 'We wanted to let you know about an important update regarding The Pep Planner.',
+    ctaText: 'Learn More',
+    ctaLink: 'https://thepepplanner.app',
+    highlightTitle: '⚠️ Action Required',
+    highlightMessage: 'Please review this information carefully.',
+    features: [
+      'Customize this template for maintenance notices',
+      'Use for app downtime announcements',
+      'Send important updates to all users',
+      'Adaptable for any app-wide communication'
     ]
   }
 };
@@ -237,6 +255,95 @@ export default function EmailTemplateManager({ theme }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
+  const [sendingToAll, setSendingToAll] = useState(false);
+  const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
+
+  // Available variables for each template type
+  const templateVariables = {
+    welcome: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
+    verification: [
+      { name: 'VERIFICATION_LINK', description: 'Email verification link' }
+    ],
+    passwordReset: [
+      { name: 'RESET_LINK', description: 'Password reset link' }
+    ],
+    trialEnding: [
+      { name: 'DAYSLEFT', description: 'Days remaining in trial' }
+    ],
+    subscription: [
+      { name: 'PLAN', description: 'Subscription plan name' },
+      { name: 'INTERVAL', description: 'Billing interval (month/year)' },
+      { name: 'PRICE', description: 'Subscription price' }
+    ],
+    paymentFailed: [
+      { name: 'AMOUNT', description: 'Failed payment amount' },
+      { name: 'CURRENCY', description: 'Currency code (e.g., USD)' },
+      { name: 'INVOICEURL', description: 'Link to invoice/payment page' }
+    ],
+    paymentSuccessful: [
+      { name: 'AMOUNT', description: 'Payment amount' },
+      { name: 'CURRENCY', description: 'Currency code (e.g., USD)' },
+      { name: 'RECEIPTURL', description: 'Link to receipt' }
+    ],
+    subscriptionCancelled: [
+      { name: 'PLANNAME', description: 'Cancelled plan name' },
+      { name: 'ENDDATE', description: 'Subscription end date' }
+    ],
+    renewalReminder: [
+      { name: 'PLANNAME', description: 'Plan name renewing' }
+    ],
+    weeklyReminder: [
+      { name: 'FIRSTNAME', description: 'User\'s first name' }
+    ],
+    lifetimeAccessGranted: [
+      { name: 'USEREMAIL', description: 'User\'s email address' },
+      { name: 'USERNAME', description: 'User\'s name' }
+    ],
+    manualLifetimeGrant: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
+    giftNotification: [
+      { name: 'RECIPIENTNAME', description: 'Gift recipient\'s name' },
+      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' },
+      { name: 'GIFTMESSAGE', description: 'Optional personal message from giver' },
+      { name: 'GIFTID', description: 'Unique gift ID' },
+      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription (monthly/annual)' }
+    ],
+    giftPurchaseConfirmation: [
+      { name: 'GIFTGIVEREMAIL', description: 'Email of gift giver' },
+      { name: 'GIFTGIVERNAME', description: 'Name of gift giver' },
+      { name: 'RECIPIENTEMAIL', description: 'Email of gift recipient' },
+      { name: 'GIFTMESSAGE', description: 'Personal message included with gift' },
+      { name: 'GIFTID', description: 'Unique gift ID' },
+      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription gifted' },
+      { name: 'PRICEPAID', description: 'Amount paid for gift' }
+    ],
+    giftRedeemed: [
+      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' },
+      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription' },
+      { name: 'SUBSCRIPTIONENDDATE', description: 'When the gift subscription ends' }
+    ],
+    giftRedeemedNotification: [
+      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' },
+      { name: 'RECIPIENTEMAIL', description: 'Email of person who redeemed' },
+      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription redeemed' }
+    ],
+    giftExpiringSoon: [
+      { name: 'PLANNAME', description: 'Gift subscription plan name' },
+      { name: 'DAYSLEFT', description: 'Days until gift expires' },
+      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' }
+    ],
+    customAnnouncement: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' },
+      { name: 'FIRSTNAME', description: 'User\'s first name' }
+    ]
+  };
 
   const currentTemplate = templates[selectedTemplate];
 
@@ -513,17 +620,85 @@ export default function EmailTemplateManager({ theme }) {
     }));
   };
 
+  // Send custom announcement to all users
+  const sendAnnouncementToAllUsers = async () => {
+    if (selectedTemplate !== 'customAnnouncement') {
+      return;
+    }
+
+    if (!confirm('⚠️ Are you sure you want to send this announcement email to ALL users? This cannot be undone.')) {
+      return;
+    }
+
+    setSendingToAll(true);
+    setSendProgress({ sent: 0, total: 0 });
+    setTestResult(null);
+
+    try {
+      const users = await getUserList();
+      const functions = getFunctions();
+      const sendCustomAnnouncementEmail = httpsCallable(functions, 'sendCustomAnnouncementEmail');
+      
+      setSendProgress({ sent: 0, total: users.length });
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      // Send emails in batches to avoid overwhelming the system
+      const batchSize = 5;
+      for (let i = 0; i < users.length; i += batchSize) {
+        const batch = users.slice(i, i + batchSize);
+        
+        await Promise.allSettled(
+          batch.map(async (user) => {
+            try {
+              await sendCustomAnnouncementEmail({
+                userEmail: user.email,
+                userName: user.displayName || user.email.split('@')[0]
+              });
+              successCount++;
+            } catch (error) {
+              console.error(`Failed to send to ${user.email}:`, error);
+              failCount++;
+            } finally {
+              setSendProgress({ sent: successCount + failCount, total: users.length });
+            }
+          })
+        );
+
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < users.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      setTestResult({ 
+        success: true, 
+        message: `✅ Sent announcement emails to ${successCount} users${failCount > 0 ? ` (${failCount} failed)` : ''}!` 
+      });
+    } catch (error) {
+      console.error('Error sending announcement emails:', error);
+      setTestResult({ 
+        success: false, 
+        message: `Failed to send announcement emails: ${error.message}` 
+      });
+    } finally {
+      setSendingToAll(false);
+      setSendProgress({ sent: 0, total: 0 });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => {
 
               sendTestEmail();
             }}
-            disabled={isSendingTest}
+            disabled={isSendingTest || sendingToAll}
             className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
@@ -539,6 +714,28 @@ export default function EmailTemplateManager({ theme }) {
               </>
             )}
           </button>
+          
+          {/* Send to All Users - Only show for customAnnouncement */}
+          {selectedTemplate === 'customAnnouncement' && (
+            <button
+              onClick={sendAnnouncementToAllUsers}
+              disabled={isSendingTest || sendingToAll}
+              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+              style={{ backgroundColor: theme.warning, color: '#FFFFFF' }}
+            >
+              {sendingToAll ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Sending to All... ({sendProgress.sent}/{sendProgress.total})
+                </>
+              ) : (
+                <>
+                  <Users size={16} />
+                  Send to ALL Users
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={() => {
 
@@ -591,21 +788,165 @@ export default function EmailTemplateManager({ theme }) {
         </div>
       )}
 
-      {/* Template Selector */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {Object.entries(templates).map(([key, template]) => (
-          <button
-            key={key}
-            onClick={() => setSelectedTemplate(key)}
-            className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all"
-            style={{
-              backgroundColor: selectedTemplate === key ? theme.primary : theme.secondary,
-              color: selectedTemplate === key ? theme.textOnPrimary : theme.text
-            }}
-          >
-            {template.name}
-          </button>
-        ))}
+      {/* Send Progress for All Users */}
+      {sendingToAll && sendProgress.total > 0 && (
+        <div className="px-4 py-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium" style={{ color: theme.text }}>
+              Sending to All Users...
+            </span>
+            <span className="text-sm" style={{ color: theme.textLight }}>
+              {sendProgress.sent} / {sendProgress.total}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3" style={{ backgroundColor: theme.border }}>
+            <div 
+              className="h-3 rounded-full transition-all duration-300"
+              style={{ 
+                backgroundColor: theme.primary,
+                width: `${(sendProgress.sent / sendProgress.total) * 100}%`
+              }}
+            />
+          </div>
+          <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
+            Please wait while emails are being sent. This may take a few minutes for large user bases.
+          </p>
+        </div>
+      )}
+
+      {/* Template Selector - Dropdown Style */}
+      <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <label className="block text-sm font-semibold mb-2" style={{ color: theme.text }}>
+          Select Email Template
+        </label>
+        <select
+          value={selectedTemplate}
+          onChange={(e) => setSelectedTemplate(e.target.value)}
+          className="w-full px-4 py-3 rounded-lg border text-base font-medium transition-all focus:outline-none focus:ring-2"
+          style={{
+            borderColor: theme.border,
+            backgroundColor: theme.background,
+            color: theme.text,
+            focusRingColor: theme.primary
+          }}
+        >
+          <optgroup label="Account & Authentication">
+            {Object.entries(templates).filter(([key]) => ['welcome', 'verification', 'passwordReset'].includes(key)).map(([key, template]) => (
+              <option key={key} value={key}>{template.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Subscription & Billing">
+            {Object.entries(templates).filter(([key]) => ['trialEnding', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder'].includes(key)).map(([key, template]) => (
+              <option key={key} value={key}>{template.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Lifetime Access">
+            {Object.entries(templates).filter(([key]) => ['lifetimeAccessGranted', 'manualLifetimeGrant'].includes(key)).map(([key, template]) => (
+              <option key={key} value={key}>{template.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Gift Subscriptions">
+            {Object.entries(templates).filter(([key]) => ['giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon'].includes(key)).map(([key, template]) => (
+              <option key={key} value={key}>{template.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Reminders & Notifications">
+            {Object.entries(templates).filter(([key]) => ['weeklyReminder'].includes(key)).map(([key, template]) => (
+              <option key={key} value={key}>{template.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Custom & Announcements">
+            {Object.entries(templates).filter(([key]) => ['customAnnouncement'].includes(key)).map(([key, template]) => (
+              <option key={key} value={key}>{template.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Other">
+            {Object.entries(templates).filter(([key]) => !['welcome', 'verification', 'passwordReset', 'trialEnding', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'lifetimeAccessGranted', 'manualLifetimeGrant', 'giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon', 'weeklyReminder', 'customAnnouncement'].includes(key)).map(([key, template]) => (
+              <option key={key} value={key}>{template.name}</option>
+            ))}
+          </optgroup>
+        </select>
+        
+        {/* Quick Stats */}
+        <div className="mt-3 flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
+          <span>Total Templates: {Object.keys(templates).length}</span>
+          <span>•</span>
+          <span>Current: {currentTemplate.name}</span>
+        </div>
+      </div>
+
+      {/* Variables Cheat Sheet */}
+      <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <button
+          onClick={() => setShowVariablesCheatSheet(!showVariablesCheatSheet)}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <HelpCircle size={18} style={{ color: theme.primary }} />
+            <span className="font-semibold" style={{ color: theme.text }}>
+              Available Variables for "{currentTemplate.name}"
+            </span>
+          </div>
+          {showVariablesCheatSheet ? (
+            <ChevronUp size={18} style={{ color: theme.textLight }} />
+          ) : (
+            <ChevronDown size={18} style={{ color: theme.textLight }} />
+          )}
+        </button>
+
+        {showVariablesCheatSheet && (
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>
+            {templateVariables[selectedTemplate] && templateVariables[selectedTemplate].length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm mb-3" style={{ color: theme.textLight }}>
+                  Use these variables in your template fields (greeting, mainMessage, etc.). They will be automatically replaced when the email is sent.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {templateVariables[selectedTemplate].map((variable, idx) => (
+                    <div 
+                      key={idx}
+                      className="p-3 rounded-lg border"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <code className="px-2 py-1 rounded text-sm font-mono" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                          %{variable.name}%
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`%${variable.name}%`);
+                            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                              detail: { message: `Copied %${variable.name}% to clipboard!`, type: 'success' }
+                            }));
+                          }}
+                          className="text-xs px-2 py-1 rounded hover:opacity-80"
+                          style={{ backgroundColor: theme.secondary, color: theme.text }}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <p className="text-xs" style={{ color: theme.textLight }}>
+                        {variable.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
+                  <p className="text-xs font-medium mb-1" style={{ color: theme.primary }}>
+                    💡 Tip:
+                  </p>
+                  <p className="text-xs" style={{ color: theme.textLight }}>
+                    Variables are case-insensitive. Use %USERNAME% or %username% - both work the same way.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: theme.textLight }}>
+                This template doesn't have any dynamic variables. You can use plain text only.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Editor Layout - Desktop Optimized */}

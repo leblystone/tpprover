@@ -209,3 +209,4 @@ const InfoCard = ({ icon: Icon, label, value, theme, status }) => (
     </div>
   </div>
 )
+
