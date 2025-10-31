@@ -1097,23 +1097,48 @@ Enter The Lab 🧪
                 </p>
               </div>
             </div>
-            <div 
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-              style={{ 
-                backgroundColor: enhancedTheme.accent + '20',
-                border: `1px solid ${enhancedTheme.accent}40`,
-                boxShadow: `0 2px 8px ${enhancedTheme.accent}30`,
-                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-              }}>
-              <Coffee size={14} className="animate-bounce" style={{ color: enhancedTheme.accent }} />
-              <span className="text-xs font-semibold animate-pulse" style={{ color: enhancedTheme.accent }}>where's my coffee</span>
+            <div className="flex items-center gap-2">
+              <div 
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                style={{ 
+                  backgroundColor: enhancedTheme.accent + '20',
+                  border: `1px solid ${enhancedTheme.accent}40`,
+                  boxShadow: `0 2px 8px ${enhancedTheme.accent}30`,
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                }}>
+                <Coffee size={14} className="animate-bounce" style={{ color: enhancedTheme.accent }} />
+                <span className="text-xs font-semibold animate-pulse" style={{ color: enhancedTheme.accent }}>where's my coffee</span>
+              </div>
+              
+              {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
+                <button
+                  onClick={() => {
+                    if (activeTab === 'lifetime') {
+                      loadLifetimeUsers();
+                    } else {
+                      loadRealAnalytics();
+                      loadUserData();
+                    }
+                  }}
+                  disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
+                  className="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
+                    color: '#FFFFFF',
+                    boxShadow: `0 2px 8px ${enhancedTheme.info}30`
+                  }}
+                >
+                  <RefreshCw size={14} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
+                  <span className="text-xs">Refresh</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Horizontal Tab Navigation - No Scrolling Needed */}
-        <div className="px-4 lg:px-6 py-3 overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* Horizontal Tab Navigation - Clean & Compact */}
+        <div className="px-4 lg:px-6 py-2 overflow-x-auto border-b" style={{ scrollbarWidth: 'thin', borderColor: enhancedTheme.border + '30' }}>
+          <div className="flex items-center gap-1 flex-wrap">
             {allTabs.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1121,28 +1146,57 @@ Enter The Lab 🧪
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-300 ${
-                    isActive ? 'shadow-lg transform scale-105' : 'hover:scale-105 hover:shadow-md'
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-xs whitespace-nowrap transition-all duration-300 relative group ${
+                    isActive ? '' : 'hover:scale-105'
                   }`}
                   style={{
-                    background: isActive 
-                      ? `linear-gradient(135deg, ${tab.color} 0%, ${tab.color}DD 100%)`
-                      : enhancedTheme.background,
+                    backgroundColor: isActive ? tab.color : 'transparent',
                     color: isActive ? '#FFFFFF' : enhancedTheme.text,
-                    border: `2px solid ${isActive ? tab.color : enhancedTheme.border}`,
-                    boxShadow: isActive ? `0 4px 20px ${tab.color}40` : undefined,
+                    transform: isActive ? 'scale(1.05)' : 'scale(1)',
                   }}
                 >
-                  <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                  <span>{tab.label}</span>
+                  <Icon 
+                    size={14} 
+                    strokeWidth={isActive ? 2.5 : 2}
+                    className={isActive ? 'animate-pulse' : 'group-hover:scale-110 transition-transform duration-300'}
+                  />
+                  <span className="relative">
+                    {tab.label}
+                    {isActive && (
+                      <span 
+                        className="absolute -inset-1 blur-md opacity-30"
+                        style={{ backgroundColor: tab.color }}
+                      />
+                    )}
+                  </span>
                   {tab.count > 0 && (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold"
+                    <span 
+                      className={`px-1.5 py-0.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                        isActive ? 'animate-bounce' : ''
+                      }`}
                       style={{ 
-                        backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : tab.color + '25',
+                        backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : tab.color + '20',
                         color: isActive ? '#FFFFFF' : tab.color
                       }}>
                       {tab.count}
                     </span>
+                  )}
+                  {/* Active indicator line with glow */}
+                  {isActive && (
+                    <span 
+                      className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full shadow-lg"
+                      style={{ 
+                        backgroundColor: tab.color,
+                        boxShadow: `0 0 8px ${tab.color}`
+                      }}
+                    />
+                  )}
+                  {/* Hover glow effect */}
+                  {!isActive && (
+                    <span 
+                      className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+                      style={{ backgroundColor: tab.color }}
+                    />
                   )}
                 </button>
               );
@@ -1218,28 +1272,6 @@ Enter The Lab 🧪
                   New Announcement
                 </button>
               )}
-              {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
-                <button
-                  onClick={() => {
-                    if (activeTab === 'lifetime') {
-                      loadLifetimeUsers();
-                    } else {
-                      loadRealAnalytics();
-                      loadUserData();
-                    }
-                  }}
-                  disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
-                  className="px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
-                    color: '#FFFFFF',
-                    boxShadow: `0 4px 15px ${enhancedTheme.info}30`
-                  }}
-                >
-                  <RefreshCw size={18} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
-                  Refresh Data
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -1248,9 +1280,9 @@ Enter The Lab 🧪
         <div className="flex-1 p-4 lg:p-6 overflow-y-auto overflow-x-hidden">
 
         {activeTab === 'analytics' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Welcome Section with Coffee/Book Theme */}
-            <div className="relative rounded-xl border p-6 shadow-lg overflow-hidden" style={{ 
+            <div className="relative rounded-xl border p-4 shadow-lg overflow-hidden" style={{ 
               borderColor: enhancedTheme.border, 
               backgroundColor: enhancedTheme.cardBackground,
               background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
@@ -1263,19 +1295,19 @@ Enter The Lab 🧪
                 <Book size={120} style={{ color: enhancedTheme.primary }} />
               </div>
               
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200" 
+                  <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md transform hover:scale-110 transition-transform duration-200" 
                     style={{ 
                       background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
                       boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
                     }}>
-                    <BarChart3 size={24} style={{ color: '#FFFFFF' }} />
+                    <BarChart3 size={18} style={{ color: '#FFFFFF' }} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold" style={{ color: enhancedTheme.primaryDark }}>Research Analytics</h2>
-                    <p className="text-sm flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
-                      <Book size={12} className="opacity-60" />
+                    <h2 className="text-lg font-bold" style={{ color: enhancedTheme.primaryDark }}>Research Analytics</h2>
+                    <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Book size={10} className="opacity-60" />
                       Insights into your peptide research community
                     </p>
                   </div>
@@ -1284,8 +1316,8 @@ Enter The Lab 🧪
             </div>
 
             {/* Key Metrics Cards - Enhanced */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
                 borderColor: enhancedTheme.border, 
                 backgroundColor: enhancedTheme.cardBackground,
                 background: `linear-gradient(135deg, ${enhancedTheme.info}15 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -1294,27 +1326,27 @@ Enter The Lab 🧪
                   <Users size={60} style={{ color: enhancedTheme.info }} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
                       style={{ 
                         background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
                         boxShadow: `0 4px 12px ${enhancedTheme.info}40`
                       }}>
-                      <Users size={20} style={{ color: '#FFFFFF' }} />
+                      <Users size={16} style={{ color: '#FFFFFF' }} />
                     </div>
-                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                    <div className="text-xs font-medium uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>
                       Total Researchers
                     </div>
                   </div>
-                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{analytics.totalUsers}</div>
+                  <div className="text-3xl font-bold mb-0.5" style={{ color: enhancedTheme.primaryDark }}>{analytics.totalUsers}</div>
                   <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
                     <TrendingUp size={12} />
-                    <span>Growing research community</span>
+                    <span>Growing community</span>
                   </div>
                 </div>
               </div>
               
-              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+              <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
                 borderColor: enhancedTheme.border, 
                 backgroundColor: enhancedTheme.cardBackground,
                 background: `linear-gradient(135deg, ${enhancedTheme.success}15 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -1323,8 +1355,8 @@ Enter The Lab 🧪
                   <UserPlus size={60} style={{ color: enhancedTheme.success }} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
                       style={{ 
                         background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
                         boxShadow: `0 4px 12px ${enhancedTheme.success}40`
@@ -1335,7 +1367,7 @@ Enter The Lab 🧪
                       New This Month
                     </div>
                   </div>
-                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                  <div className="text-3xl font-bold mb-0.5" style={{ color: enhancedTheme.primaryDark }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
                   <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
                     <TrendingUp size={12} />
                     <span>+23% this week 🎉</span>
@@ -1343,7 +1375,7 @@ Enter The Lab 🧪
                 </div>
               </div>
               
-              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+              <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
                 borderColor: enhancedTheme.border, 
                 backgroundColor: enhancedTheme.cardBackground,
                 background: `linear-gradient(135deg, ${enhancedTheme.warning}15 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -1352,8 +1384,8 @@ Enter The Lab 🧪
                   <Activity size={60} style={{ color: enhancedTheme.warning }} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
                       style={{ 
                         background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
                         boxShadow: `0 4px 12px ${enhancedTheme.warning}40`
@@ -1364,7 +1396,7 @@ Enter The Lab 🧪
                       Active Researchers
                     </div>
                   </div>
-                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{analytics.activeUsers}</div>
+                  <div className="text-3xl font-bold mb-0.5" style={{ color: enhancedTheme.primaryDark }}>{analytics.activeUsers}</div>
                   <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
                     <Coffee size={12} />
                     <span>Currently in the lab</span>
@@ -1642,9 +1674,9 @@ Enter The Lab 🧪
         )}
 
         {activeTab === 'subscriptions' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Welcome Section with Coffee/Book Theme */}
-            <div className="relative rounded-xl border p-6 shadow-lg overflow-hidden" style={{ 
+            <div className="relative rounded-xl border p-4 shadow-lg overflow-hidden" style={{ 
               borderColor: enhancedTheme.border, 
               backgroundColor: enhancedTheme.cardBackground,
               background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
@@ -1679,7 +1711,7 @@ Enter The Lab 🧪
 
             {/* Beta User Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+              <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
                 borderColor: enhancedTheme.border, 
                 backgroundColor: enhancedTheme.cardBackground,
                 background: `linear-gradient(135deg, ${enhancedTheme.info}15 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -1688,19 +1720,19 @@ Enter The Lab 🧪
                   <Users size={60} style={{ color: enhancedTheme.info }} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
                       style={{ 
                         background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
                         boxShadow: `0 4px 12px ${enhancedTheme.info}40`
                       }}>
-                      <Users size={20} style={{ color: '#FFFFFF' }} />
+                      <Users size={16} style={{ color: '#FFFFFF' }} />
                     </div>
                     <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
                       Total Beta Users
                     </div>
                   </div>
-                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.total}</div>
+                  <div className="text-3xl font-bold mb-0.5" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.total}</div>
                   <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
                     <TrendingUp size={12} />
                     <span>Community members</span>
@@ -1708,7 +1740,7 @@ Enter The Lab 🧪
                 </div>
               </div>
               
-              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+              <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
                 borderColor: enhancedTheme.border, 
                 backgroundColor: enhancedTheme.cardBackground,
                 background: `linear-gradient(135deg, ${enhancedTheme.success}15 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -1717,8 +1749,8 @@ Enter The Lab 🧪
                   <CheckCircle size={60} style={{ color: enhancedTheme.success }} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
                       style={{ 
                         background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
                         boxShadow: `0 4px 12px ${enhancedTheme.success}40`
@@ -1729,7 +1761,7 @@ Enter The Lab 🧪
                       Active Users
                     </div>
                   </div>
-                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.active}</div>
+                  <div className="text-3xl font-bold mb-0.5" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.active}</div>
                   <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
                     <Coffee size={12} />
                     <span>Currently in lab</span>
@@ -1737,7 +1769,7 @@ Enter The Lab 🧪
                 </div>
               </div>
               
-              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+              <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
                 borderColor: enhancedTheme.border, 
                 backgroundColor: enhancedTheme.cardBackground,
                 background: `linear-gradient(135deg, ${enhancedTheme.warning}15 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -1746,8 +1778,8 @@ Enter The Lab 🧪
                   <TrendingUp size={60} style={{ color: enhancedTheme.warning }} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
                       style={{ 
                         background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
                         boxShadow: `0 4px 12px ${enhancedTheme.warning}40`
@@ -1758,7 +1790,7 @@ Enter The Lab 🧪
                       This Week
                     </div>
                   </div>
-                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.thisWeek}</div>
+                  <div className="text-3xl font-bold mb-0.5" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.thisWeek}</div>
                   <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
                     <UserPlus size={12} />
                     <span>New this week</span>
@@ -1766,7 +1798,7 @@ Enter The Lab 🧪
                 </div>
               </div>
               
-              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+              <div className="relative rounded-xl border p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
                 borderColor: enhancedTheme.border, 
                 backgroundColor: enhancedTheme.cardBackground,
                 background: `linear-gradient(135deg, ${enhancedTheme.accent}15 0%, ${enhancedTheme.cardBackground} 100%)`
@@ -1775,8 +1807,8 @@ Enter The Lab 🧪
                   <Mail size={60} style={{ color: enhancedTheme.accent }} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
                       style={{ 
                         background: `linear-gradient(135deg, ${enhancedTheme.accent} 0%, ${enhancedTheme.accent}DD 100%)`,
                         boxShadow: `0 4px 12px ${enhancedTheme.accent}40`
@@ -1787,7 +1819,7 @@ Enter The Lab 🧪
                       Whitelisted
                     </div>
                   </div>
-                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{emailWhitelist.length}</div>
+                  <div className="text-3xl font-bold mb-0.5" style={{ color: enhancedTheme.primaryDark }}>{emailWhitelist.length}</div>
                   <div className="flex items-center gap-1 text-xs mb-2" style={{ color: enhancedTheme.textLight }}>
                     <span>Email addresses</span>
                   </div>
