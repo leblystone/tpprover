@@ -19,6 +19,7 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [filters, setFilters] = useState({ payment: [], contact: [], label: [] })
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+	const [searchQuery, setSearchQuery] = useState('')
 	
 	// Check if there are any demo vendors
 	const hasDemoVendors = useMemo(() => vendors.some(v => v.isMock), [vendors]);
@@ -47,8 +48,6 @@ export default function Vendors() {
 		console.warn('⚠️ Automatic cleanup disabled for safety. Use manual cleanup if needed.');
 		return false;
 	};
-
-	const filteredVendors = vendors.filter(v => (v.type || 'domestic') === activeTab)
 
 	// DISABLED: Auto-cleanup on component mount - caused data loss
 	// useEffect(() => {
@@ -84,11 +83,30 @@ export default function Vendors() {
 			}
 		}));
 
+		// Listen for topbar search events for page-specific search
+		const handleSearch = (e) => {
+			setSearchQuery(e.detail.query);
+		};
+		window.addEventListener('tpp:vendors-search', handleSearch);
+		
 		// Cleanup on unmount
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+			window.removeEventListener('tpp:vendors-search', handleSearch);
 		};
 	}, [activeTab, isReadOnly]);
+
+	const filteredVendors = useMemo(() => {
+		let filtered = vendors.filter(v => (v.type || 'domestic') === activeTab);
+		if (searchQuery) {
+			filtered = filtered.filter(v => 
+				(v.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(v.contact1 || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(v.website || '').toLowerCase().includes(searchQuery.toLowerCase())
+			);
+		}
+		return filtered;
+	}, [vendors, activeTab, searchQuery]);
 
 	return (
 		<>
@@ -113,45 +131,63 @@ export default function Vendors() {
 			)}
 			
 			{filteredVendors.length === 0 ? (
-				<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-					<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-						{activeTab === 'domestic' ? (
-							<Store size={32} style={{ color: theme.primary }} />
-						) : activeTab === 'international' ? (
-							<Globe size={32} style={{ color: theme.primary }} />
-						) : (
-							<Users size={32} style={{ color: theme.primary }} />
+				searchQuery ? (
+					<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+							{activeTab === 'domestic' ? (
+								<Store size={32} style={{ color: theme.primary }} />
+							) : activeTab === 'international' ? (
+								<Globe size={32} style={{ color: theme.primary }} />
+							) : (
+								<Users size={32} style={{ color: theme.primary }} />
+							)}
+						</div>
+						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No Results Found</h3>
+						<p className="text-sm" style={{ color: theme.textLight }}>
+							No vendors match your search query.
+						</p>
+					</div>
+				) : vendors.filter(v => (v.type || 'domestic') === activeTab).length === 0 ? (
+					<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+							{activeTab === 'domestic' ? (
+								<Store size={32} style={{ color: theme.primary }} />
+							) : activeTab === 'international' ? (
+								<Globe size={32} style={{ color: theme.primary }} />
+							) : (
+								<Users size={32} style={{ color: theme.primary }} />
+							)}
+						</div>
+						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+							{activeTab === 'domestic' ? 'No Domestic Vendors Yet' : 
+							 activeTab === 'international' ? 'No International Vendors Yet' : 
+							 'No Group Buy Vendors Yet'}
+						</h3>
+						<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+							{activeTab === 'domestic' 
+								? 'Add domestic vendors to track contact information, payment methods, and order history for research purposes. Organize suppliers and maintain accessible records.'
+								: activeTab === 'international' 
+								? 'Add international vendors to manage overseas suppliers, shipping information, and customs details for research purposes. Track global supply chain management.'
+								: 'Add group buy vendors to organize collaborative purchasing efforts.'
+							}
+						</p>
+						{!isReadOnly && (
+							<button
+								onClick={() => {
+									setEditingVendor({});
+									setShowAddModal(true);
+								}}
+								className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
+								style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+							>
+								<PlusCircle size={18} />
+								{activeTab === 'domestic' ? 'Add First Domestic Vendor' : 
+								 activeTab === 'international' ? 'Add First International Vendor' : 
+								 'Add First Group Buy Vendor'}
+							</button>
 						)}
 					</div>
-					<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-						{activeTab === 'domestic' ? 'No Domestic Vendors Yet' : 
-						 activeTab === 'international' ? 'No International Vendors Yet' : 
-						 'No Group Buy Vendors Yet'}
-					</h3>
-					<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-						{activeTab === 'domestic' 
-							? 'Add domestic vendors to track contact information, payment methods, and order history for research purposes. Organize suppliers and maintain accessible records.'
-							: activeTab === 'international' 
-							? 'Add international vendors to manage overseas suppliers, shipping information, and customs details for research purposes. Track global supply chain management.'
-							: 'Add group buy vendors to organize collaborative purchasing efforts.'
-						}
-					</p>
-					{!isReadOnly && (
-						<button
-							onClick={() => {
-								setEditingVendor({});
-								setShowAddModal(true);
-							}}
-							className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-							style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-						>
-							<PlusCircle size={18} />
-							{activeTab === 'domestic' ? 'Add First Domestic Vendor' : 
-							 activeTab === 'international' ? 'Add First International Vendor' : 
-							 'Add First Group Buy Vendor'}
-						</button>
-					)}
-				</div>
+				) : null
 			) : (
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 					{filteredVendors.map((v, idx) => (

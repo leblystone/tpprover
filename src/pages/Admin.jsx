@@ -1097,13 +1097,16 @@ Enter The Lab 🧪
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" 
+            <div 
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
               style={{ 
-                backgroundColor: enhancedTheme.success + '15',
-                border: `1px solid ${enhancedTheme.success}30`
+                backgroundColor: enhancedTheme.accent + '20',
+                border: `1px solid ${enhancedTheme.accent}40`,
+                boxShadow: `0 2px 8px ${enhancedTheme.accent}30`,
+                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
               }}>
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: enhancedTheme.success }}></div>
-              <span className="text-xs font-semibold" style={{ color: enhancedTheme.success }}>Active</span>
+              <Coffee size={14} className="animate-bounce" style={{ color: enhancedTheme.accent }} />
+              <span className="text-xs font-semibold animate-pulse" style={{ color: enhancedTheme.accent }}>where's my coffee</span>
             </div>
           </div>
         </div>
@@ -1246,116 +1249,392 @@ Enter The Lab 🧪
 
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            {/* User Growth Chart */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Growth</h2>
-                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>Daily user registration and activity</p>
+            {/* Welcome Section with Coffee/Book Theme */}
+            <div className="relative rounded-xl border p-6 shadow-lg overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
+            }}>
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
+                <Coffee size={150} style={{ color: enhancedTheme.accent }} />
+              </div>
+              <div className="absolute bottom-0 left-0 opacity-10 pointer-events-none">
+                <Book size={120} style={{ color: enhancedTheme.primary }} />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                      boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+                    }}>
+                    <BarChart3 size={24} style={{ color: '#FFFFFF' }} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold" style={{ color: enhancedTheme.primaryDark }}>Research Analytics</h2>
+                    <p className="text-sm flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Book size={12} className="opacity-60" />
+                      Insights into your peptide research community
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm" style={{ color: theme.success }}>
-                  <TrendingUp size={16} />
-                  +23% this week
+              </div>
+            </div>
+
+            {/* Key Metrics Cards - Enhanced */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.info}15 0%, ${enhancedTheme.cardBackground} 100%)`
+              }}>
+                <div className="absolute top-2 right-2 opacity-10">
+                  <Users size={60} style={{ color: enhancedTheme.info }} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                      style={{ 
+                        background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
+                        boxShadow: `0 4px 12px ${enhancedTheme.info}40`
+                      }}>
+                      <Users size={20} style={{ color: '#FFFFFF' }} />
+                    </div>
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                      Total Researchers
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{analytics.totalUsers}</div>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
+                    <TrendingUp size={12} />
+                    <span>Growing research community</span>
+                  </div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <div className="h-64 flex items-end justify-between gap-1 p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                    {analytics.userGrowth.slice(-14).map((day, index) => (
-                      <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
-                        <div 
-                          className="bg-blue-500 rounded-t w-full transition-all hover:bg-blue-600"
-                          style={{ height: `${(day.users / Math.max(...analytics.userGrowth.map(d => d.users))) * 200}px`, minHeight: '4px' }}
-                          title={`${day.date}: ${day.users} users`}
-                        />
-                        <span className="text-xs" style={{ color: theme.textLight }}>
-                          {new Date(day.date).getDate()}
-                        </span>
+              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.success}15 0%, ${enhancedTheme.cardBackground} 100%)`
+              }}>
+                <div className="absolute top-2 right-2 opacity-10">
+                  <UserPlus size={60} style={{ color: enhancedTheme.success }} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                      style={{ 
+                        background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
+                        boxShadow: `0 4px 12px ${enhancedTheme.success}40`
+                      }}>
+                      <UserPlus size={20} style={{ color: '#FFFFFF' }} />
+                    </div>
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                      New This Month
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
+                    <TrendingUp size={12} />
+                    <span>+23% this week 🎉</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.warning}15 0%, ${enhancedTheme.cardBackground} 100%)`
+              }}>
+                <div className="absolute top-2 right-2 opacity-10">
+                  <Activity size={60} style={{ color: enhancedTheme.warning }} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                      style={{ 
+                        background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
+                        boxShadow: `0 4px 12px ${enhancedTheme.warning}40`
+                      }}>
+                      <Activity size={20} style={{ color: '#FFFFFF' }} />
+                    </div>
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                      Active Researchers
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{analytics.activeUsers}</div>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
+                    <Coffee size={12} />
+                    <span>Currently in the lab</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* User Growth Chart - Enhanced */}
+            <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.primaryLight}05 100%)`
+            }}>
+              <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                <BarChart3 size={200} style={{ color: enhancedTheme.accent }} />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: enhancedTheme.primaryDark }}>
+                      <TrendingUp size={20} />
+                      Research Growth Trajectory
+                    </h2>
+                    <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Book size={12} className="opacity-60" />
+                      Daily user registration and research activity
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-md" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
+                      color: '#FFFFFF',
+                      boxShadow: `0 4px 15px ${enhancedTheme.success}30`
+                    }}>
+                    <TrendingUp size={16} />
+                    +23% this week
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <div className="h-64 flex items-end justify-between gap-1 p-4 rounded-xl relative overflow-hidden" 
+                      style={{ 
+                        backgroundColor: enhancedTheme.background,
+                        border: `1px solid ${enhancedTheme.border}40`
+                      }}>
+                      {analytics.userGrowth.slice(-14).map((day, index) => (
+                        <div key={day.date} className="flex flex-col items-center gap-1 flex-1 group">
+                          <div 
+                            className="rounded-t-lg w-full transition-all duration-300 hover:scale-105 cursor-pointer shadow-md hover:shadow-lg"
+                            style={{ 
+                              background: `linear-gradient(180deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.accent} 100%)`,
+                              height: `${(day.users / Math.max(...analytics.userGrowth.map(d => d.users))) * 200}px`, 
+                              minHeight: '4px',
+                              boxShadow: `0 4px 12px ${enhancedTheme.primary}30`
+                            }}
+                            title={`${day.date}: ${day.users} researchers`}
+                          />
+                          <span className="text-xs font-medium" style={{ color: enhancedTheme.textLight }}>
+                            {new Date(day.date).getDate()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md" 
+                      style={{ 
+                        backgroundColor: enhancedTheme.info + '15',
+                        border: `1px solid ${enhancedTheme.info}30`
+                      }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users size={16} style={{ color: enhancedTheme.info }} />
+                        <div className="text-xs font-medium uppercase" style={{ color: enhancedTheme.textLight }}>Total</div>
+                      </div>
+                      <div className="text-3xl font-bold" style={{ color: enhancedTheme.info }}>{analytics.totalUsers}</div>
+                      <div className="text-xs" style={{ color: enhancedTheme.textLight }}>All researchers</div>
+                    </div>
+                    <div className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md" 
+                      style={{ 
+                        backgroundColor: enhancedTheme.success + '15',
+                        border: `1px solid ${enhancedTheme.success}30`
+                      }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <UserPlus size={16} style={{ color: enhancedTheme.success }} />
+                        <div className="text-xs font-medium uppercase" style={{ color: enhancedTheme.textLight }}>New</div>
+                      </div>
+                      <div className="text-3xl font-bold" style={{ color: enhancedTheme.success }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                      <div className="text-xs" style={{ color: enhancedTheme.textLight }}>This month</div>
+                    </div>
+                    <div className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md" 
+                      style={{ 
+                        backgroundColor: enhancedTheme.warning + '15',
+                        border: `1px solid ${enhancedTheme.warning}30`
+                      }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Activity size={16} style={{ color: enhancedTheme.warning }} />
+                        <div className="text-xs font-medium uppercase" style={{ color: enhancedTheme.textLight }}>Active</div>
+                      </div>
+                      <div className="text-3xl font-bold" style={{ color: enhancedTheme.warning }}>{analytics.activeUsers}</div>
+                      <div className="text-xs" style={{ color: enhancedTheme.textLight }}>In the lab now</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature Usage - Enhanced */}
+            <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.accent}05 100%)`
+            }}>
+              <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                <Activity size={180} style={{ color: enhancedTheme.primary }} />
+              </div>
+              
+              <div className="relative z-10">
+                <h2 className="text-xl font-bold flex items-center gap-2 mb-4" style={{ color: enhancedTheme.primaryDark }}>
+                  <Zap size={20} />
+                  Feature Usage
+                </h2>
+                <p className="text-sm mb-6 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                  <Book size={12} className="opacity-60" />
+                  Track which research features are most popular
+                </p>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(analytics.featureUsage).map(([feature, data]) => (
+                    <div key={feature} 
+                      className="p-4 rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md hover:shadow-lg" 
+                      style={{ 
+                        backgroundColor: enhancedTheme.background,
+                        border: `1px solid ${enhancedTheme.border}40`
+                      }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold capitalize" style={{ color: enhancedTheme.text }}>{feature}</span>
+                        {data.trend === 'up' ? (
+                          <div className="p-1 rounded-lg" style={{ backgroundColor: enhancedTheme.success + '20' }}>
+                            <TrendingUp size={14} style={{ color: enhancedTheme.success }} />
+                          </div>
+                        ) : (
+                          <div className="p-1 rounded-lg" style={{ backgroundColor: enhancedTheme.error + '20' }}>
+                            <TrendingDown size={14} style={{ color: enhancedTheme.error }} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-2xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{data.uses}</div>
+                      <div className="text-xs flex items-center gap-1" style={{ color: enhancedTheme.textLight }}>
+                        <Book size={10} />
+                        <span>total uses</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Session Analytics - Enhanced */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.info}05 100%)`
+              }}>
+                <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                  <Clock size={150} style={{ color: enhancedTheme.info }} />
+                </div>
+                
+                <div className="relative z-10">
+                  <h2 className="text-xl font-bold flex items-center gap-2 mb-4" style={{ color: enhancedTheme.primaryDark }}>
+                    <Clock size={20} />
+                    Session Duration
+                  </h2>
+                  <p className="text-sm mb-4 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                    <Coffee size={12} className="opacity-60" />
+                    Time researchers spend in the lab
+                  </p>
+                  <div className="space-y-3">
+                    {analytics.sessionData.slice(-5).map((session) => (
+                      <div key={session.date} 
+                        className="flex items-center justify-between p-4 rounded-xl hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md" 
+                        style={{ 
+                          backgroundColor: enhancedTheme.background,
+                          border: `1px solid ${enhancedTheme.border}40`
+                        }}>
+                        <div className="flex items-center gap-2">
+                          <Book size={14} style={{ color: enhancedTheme.primary }} className="opacity-60" />
+                          <span className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
+                            {new Date(session.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-base font-bold" style={{ color: enhancedTheme.primaryDark }}>
+                            {Math.floor(session.avgDuration / 60)}m {session.avgDuration % 60}s
+                          </div>
+                          <div className="text-xs flex items-center gap-1" style={{ color: enhancedTheme.textLight }}>
+                            <Activity size={10} />
+                            <span>{session.sessions} sessions</span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
+              </div>
+
+              <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.success}05 100%)`
+              }}>
+                <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                  <Monitor size={150} style={{ color: enhancedTheme.success }} />
+                </div>
                 
-                <div className="space-y-4">
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.info }}>{analytics.totalUsers}</div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>Total Users</div>
-                </div>
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.success }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>New This Month</div>
-                </div>
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.warning }}>{analytics.activeUsers}</div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>Active Users</div>
-                </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Feature Usage */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feature Usage</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(analytics.featureUsage).map(([feature, data]) => (
-                  <div key={feature} className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{feature}</span>
-                      {data.trend === 'up' ? (
-                        <TrendingUp size={16} style={{ color: theme.success }} />
-                      ) : (
-                        <TrendingDown size={16} style={{ color: theme.error }} />
-                      )}
-                    </div>
-                    <div className="text-2xl font-bold" style={{ color: theme.primaryDark }}>{data.uses}</div>
-                    <div className="text-xs" style={{ color: theme.textLight }}>total uses</div>
+                <div className="relative z-10">
+                  <h2 className="text-xl font-bold flex items-center gap-2 mb-4" style={{ color: enhancedTheme.primaryDark }}>
+                    <Smartphone size={20} />
+                    Device Breakdown
+                  </h2>
+                  <p className="text-sm mb-4 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                    <Book size={12} className="opacity-60" />
+                    How researchers access the platform
+                  </p>
+                  <div className="space-y-4">
+                    {Object.entries(analytics.deviceBreakdown).map(([device, data]) => (
+                      <div key={device} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {device === 'mobile' && (
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: enhancedTheme.info + '20' }}>
+                                <Smartphone size={16} style={{ color: enhancedTheme.info }} />
+                              </div>
+                            )}
+                            {device === 'desktop' && (
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: enhancedTheme.success + '20' }}>
+                                <Monitor size={16} style={{ color: enhancedTheme.success }} />
+                              </div>
+                            )}
+                            {device === 'tablet' && (
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: enhancedTheme.warning + '20' }}>
+                                <Smartphone size={16} style={{ color: enhancedTheme.warning }} />
+                              </div>
+                            )}
+                            <span className="text-sm font-semibold capitalize" style={{ color: enhancedTheme.text }}>{device}</span>
+                          </div>
+                          <span className="text-sm font-medium" style={{ color: enhancedTheme.primaryDark }}>
+                            {data.count} <span className="text-xs" style={{ color: enhancedTheme.textLight }}>({data.percentage}%)</span>
+                          </span>
+                        </div>
+                        <div className="w-full rounded-full h-3 overflow-hidden shadow-inner" style={{ backgroundColor: enhancedTheme.background }}>
+                          <div 
+                            className="h-full rounded-full transition-all duration-500 shadow-md" 
+                            style={{ 
+                              width: `${data.percentage}%`,
+                              background: device === 'mobile' 
+                                ? `linear-gradient(90deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`
+                                : device === 'desktop'
+                                ? `linear-gradient(90deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`
+                                : `linear-gradient(90deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
+                              boxShadow: `0 2px 8px ${device === 'mobile' ? enhancedTheme.info : device === 'desktop' ? enhancedTheme.success : enhancedTheme.warning}40`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Session Analytics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Session Duration</h2>
-                <div className="space-y-3">
-                  {analytics.sessionData.slice(-5).map((session) => (
-                    <div key={session.date} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                      <span className="text-sm" style={{ color: theme.text }}>{new Date(session.date).toLocaleDateString()}</span>
-                      <div className="text-right">
-                        <div className="text-sm font-medium" style={{ color: theme.primaryDark }}>
-                          {Math.floor(session.avgDuration / 60)}m {session.avgDuration % 60}s
-                        </div>
-                        <div className="text-xs" style={{ color: theme.textLight }}>{session.sessions} sessions</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
-                <div className="space-y-4">
-                  {Object.entries(analytics.deviceBreakdown).map(([device, data]) => (
-                    <div key={device} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {device === 'mobile' && <Smartphone size={16} style={{ color: theme.info }} />}
-                          {device === 'desktop' && <Monitor size={16} style={{ color: theme.success }} />}
-                          {device === 'tablet' && <Smartphone size={16} style={{ color: theme.warning }} />}
-                          <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{device}</span>
-                        </div>
-                        <span className="text-sm" style={{ color: theme.textLight }}>{data.count} ({data.percentage}%)</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="h-2 rounded-full bg-blue-500" 
-                          style={{ width: `${data.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
