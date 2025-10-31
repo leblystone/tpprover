@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift, Coffee, Book, Wine
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Gift, Coffee, Book, Wine, PartyPopper
 } from 'lucide-react';
 import { getCurrentHolidayTheme, periwinkleTheme } from '../utils/holidayThemes';
 import { useFirebase } from '../context/FirebaseContext';
@@ -276,6 +277,7 @@ function Admin() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [activeTab, setActiveTab] = useState('analytics');
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [emailWhitelist, setEmailWhitelist] = useState([]);
   const [newEmails, setNewEmails] = useState('');
   const [userList, setUserList] = useState([]);
@@ -908,6 +910,7 @@ function Admin() {
       setIsAuthenticated(true);
       localStorage.setItem('tpp_admin_auth', 'true');
       setPassword('');
+      setShowWelcomeModal(true);
     } else {
       alert('Incorrect password');
     }
@@ -1068,16 +1071,119 @@ Enter The Lab 🧪
 
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden relative" style={{ 
-      backgroundColor: enhancedTheme.background,
-      backgroundImage: holidayTheme ? `linear-gradient(135deg, ${enhancedTheme.holidayGradient} 0%, ${enhancedTheme.background} 100%)` : undefined
-    }}>
-      {/* Decorative Coffee & Book Elements */}
-      <div className="fixed inset-0 pointer-events-none opacity-5 z-0">
-        <Coffee size={400} className="absolute top-20 right-20 rotate-12" style={{ color: enhancedTheme.accent }} />
-        <Book size={300} className="absolute bottom-40 left-20 -rotate-12" style={{ color: enhancedTheme.primary }} />
-        <Coffee size={250} className="absolute top-1/2 left-1/3 rotate-45" style={{ color: enhancedTheme.secondary }} />
-      </div>
+    <>
+      {/* Welcome Modal with Fireworks */}
+      <AnimatePresence>
+        {showWelcomeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none"
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black bg-opacity-40 backdrop-blur-sm pointer-events-auto" />
+            
+            {/* Modal Content */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="relative z-10 bg-white rounded-3xl shadow-2xl p-12 text-center max-w-md mx-4 pointer-events-auto"
+              style={{
+                background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.primaryLight} 100%)`,
+                border: `3px solid ${enhancedTheme.primary}`
+              }}
+            >
+              {/* Fireworks Effects */}
+              <div className="absolute inset-0 overflow-hidden rounded-3xl">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute"
+                    initial={{ 
+                      x: '50%',
+                      y: '50%',
+                      scale: 0,
+                      opacity: 1
+                    }}
+                    animate={{
+                      x: `${Math.random() * 100}%`,
+                      y: `${Math.random() * 100}%`,
+                      scale: [0, 1, 0],
+                      opacity: [1, 1, 0],
+                      rotate: Math.random() * 360
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      delay: Math.random() * 0.5,
+                      repeat: Infinity,
+                      repeatDelay: 2
+                    }}
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${enhancedTheme.primary}, ${enhancedTheme.secondary})`
+                    }}
+                  />
+                ))}
+              </div>
+              
+              {/* Content */}
+              <motion.div
+                initial={{ y: -20 }}
+                animate={{ y: 0 }}
+                className="relative z-10"
+              >
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 10, -10, 0]
+                  }}
+                  transition={{ 
+                    duration: 0.6,
+                    repeat: Infinity,
+                    repeatDelay: 2
+                  }}
+                  className="mb-4 inline-block"
+                >
+                  <PartyPopper size={64} style={{ color: enhancedTheme.primary }} strokeWidth={2} />
+                </motion.div>
+                
+                <h2 className="text-3xl font-bold mb-2" style={{ color: enhancedTheme.primaryDark }}>
+                  WELCOME OWNER
+                </h2>
+                <p className="text-lg mb-6" style={{ color: enhancedTheme.textLight }}>
+                  Your calm workspace awaits ☕
+                </p>
+                
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowWelcomeModal(false)}
+                  className="px-8 py-3 rounded-full font-semibold text-white shadow-lg transition-all"
+                  style={{ backgroundColor: enhancedTheme.primary }}
+                >
+                  Let's Go!
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="h-screen flex flex-col overflow-hidden relative" style={{ 
+        backgroundColor: enhancedTheme.background,
+        backgroundImage: holidayTheme ? `linear-gradient(135deg, ${enhancedTheme.holidayGradient} 0%, ${enhancedTheme.background} 100%)` : undefined
+      }}>
+        {/* Decorative Coffee & Book Elements */}
+        <div className="fixed inset-0 pointer-events-none opacity-5 z-0">
+          <Coffee size={400} className="absolute top-20 right-20 rotate-12" style={{ color: enhancedTheme.accent }} />
+          <Book size={300} className="absolute bottom-40 left-20 -rotate-12" style={{ color: enhancedTheme.primary }} />
+          <Coffee size={250} className="absolute top-1/2 left-1/3 rotate-45" style={{ color: enhancedTheme.secondary }} />
+        </div>
 
       {/* Top Navigation Bar - Fixed Horizontal */}
       <div className="fixed top-0 left-0 right-0 z-50 shadow-lg" style={{ 
@@ -1224,7 +1330,7 @@ Enter The Lab 🧪
       </div>
 
       {/* Main Content Area - Full Width */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10" style={{ marginTop: '140px' }}>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10" style={{ marginTop: '110px' }}>
         {/* Top Header - Enhanced */}
         <div className="bg-white border-b p-4 lg:p-6 flex-shrink-0 shadow-sm relative overflow-hidden" 
           style={{ 
@@ -3340,7 +3446,8 @@ Enter The Lab 🧪
           </div>
         </Modal>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

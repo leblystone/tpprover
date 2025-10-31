@@ -325,15 +325,21 @@ html, body, #root {
 .search-box-wrapper {
   display: inline-block;
   position: relative;
-  font-size: 12px;
-  border: solid 1.5px currentColor;
+  font-size: 10px;
+  border: solid 1px currentColor;
   border-radius: 2em;
   overflow: hidden;
-  background-color: rgba(0,0,0,.375);
+  background-color: transparent;
   cursor: pointer;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.search-box-wrapper:hover {
+  opacity: 1;
 }
 
 .search-box-wrapper::before,
@@ -347,9 +353,9 @@ html, body, #root {
 .search-box-wrapper::before {
   content: "";
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border: 2px solid currentColor;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid currentColor;
   border-radius: 50%;
   left: 50%;
   top: 50%;
@@ -361,11 +367,11 @@ html, body, #root {
 .search-box-wrapper::after {
   content: "";
   position: absolute;
-  width: 2px;
-  height: 6px;
+  width: 1.5px;
+  height: 5px;
   background-color: currentColor;
-  left: calc(50% + 5px);
-  top: calc(50% + 5px);
+  left: calc(50% + 4px);
+  top: calc(50% + 4px);
   transform: translate(-50%, 0) rotate(45deg);
   pointer-events: none;
   transition: opacity 0.3s ease;
@@ -375,16 +381,16 @@ html, body, #root {
   display: inline-block;
   border: 1px solid transparent;
   width: 0;
-  height: 2.5em;
-  border-radius: 1.25em;
+  height: 2em;
+  border-radius: 1em;
   transition: width 0.3s ease, border 0.3s ease;
   outline: none;
-  padding: 0.5em 1em;
+  padding: 0.4em 0.8em;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
   font-weight: 300;
-  font-size: 14px;
+  font-size: 12px;
   font-family: inherit;
   vertical-align: baseline;
   opacity: 0;
