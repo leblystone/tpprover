@@ -1,10 +1,12 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { User, TrendingUp, Shield, FileText, Crown, Gift, Settings } from 'lucide-react'
+import { User, TrendingUp, Shield, FileText, Crown, Gift, Settings, LogOut } from 'lucide-react'
+import { useAppContext } from '../context/AppContext'
 
 export default function Account() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
+  const { logout } = useAppContext()
 
   const accountSections = [
     {
@@ -74,6 +76,33 @@ export default function Account() {
             </button>
           )
         })}
+      </div>
+
+      {/* Logout Section */}
+      <div className="border-t pt-6" style={{ borderColor: theme.border }}>
+        <button
+          onClick={logout}
+          className="w-full p-4 rounded-lg transition-all hover:opacity-90 text-left flex items-center gap-4"
+          style={{
+            backgroundColor: theme.error + '10',
+            border: `1px solid ${theme.error}30`
+          }}
+        >
+          <div 
+            className="p-3 rounded-lg flex-shrink-0"
+            style={{ backgroundColor: theme.error }}
+          >
+            <LogOut size={24} style={{ color: '#FFFFFF' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold mb-1" style={{ color: theme.error }}>
+              Sign Out
+            </h3>
+            <p className="text-sm" style={{ color: theme.mutedText }}>
+              Sign out of your account
+            </p>
+          </div>
+        </button>
       </div>
     </section>
   )

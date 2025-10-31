@@ -39,6 +39,7 @@ import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
+import Modal from '../components/common/Modal';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -3319,27 +3320,27 @@ Enter The Lab 🧪
         )}
 
         </div>
+      </div>
+    </div>
 
-      {isUserModalOpen && selectedUser && (
+    {isUserModalOpen && selectedUser && (
         <UserDetailModal 
           user={selectedUser} 
           onClose={() => setIsUserModalOpen(false)}
           theme={enhancedTheme}
         />
       )}
-      </div>
 
-      {/* Research Topic Edit Modal */}
       {showTopicModal && editingTopic && (
         <Modal
-          isOpen={showTopicModal}
+          open={showTopicModal}
           onClose={() => {
             setShowTopicModal(false);
             setEditingTopic(null);
           }}
           title="Edit Research Topic"
           theme={theme}
-          size="large"
+          maxWidth="max-w-3xl"
         >
           <div className="space-y-4">
             <div>
@@ -3436,7 +3437,7 @@ Enter The Lab 🧪
       {/* Pen Type Edit Modal */}
       {showPenTypeModal && editingPenType && (
         <Modal
-          isOpen={showPenTypeModal}
+          open={showPenTypeModal}
           onClose={() => {
             setShowPenTypeModal(false);
             setEditingPenType(null);
@@ -3504,7 +3505,6 @@ Enter The Lab 🧪
           </div>
         </Modal>
       )}
-      </div>
     </>
   );
 }
@@ -3565,7 +3565,7 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
   );
 }
 
-function UserDetailModal({ user, onClose, theme }) {
+function UserDetailModal({ user, onClose, theme: enhancedTheme }) {
   // Check if user has lifetime access
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
   const isLifetimeGranted = user.subscription?.lifetimeReason && !user.subscription?.paymentMethodId;
