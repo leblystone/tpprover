@@ -2580,6 +2580,40 @@ Enter The Lab 🧪
 
         {activeTab === 'lifetime' && (
           <div className="space-y-6">
+            {/* Welcome Section with Coffee/Book Theme */}
+            <div className="relative rounded-xl border p-6 shadow-lg overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
+            }}>
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
+                <Award size={150} style={{ color: enhancedTheme.accent }} />
+              </div>
+              <div className="absolute bottom-0 left-0 opacity-10 pointer-events-none">
+                <Book size={120} style={{ color: enhancedTheme.primary }} />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                      boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+                    }}>
+                    <Award size={24} style={{ color: '#FFFFFF' }} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold" style={{ color: enhancedTheme.primaryDark }}>Lifetime Access</h2>
+                    <p className="text-sm flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Book size={12} className="opacity-60" />
+                      Manage special access grants for your community
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Manual Grant Tool */}
             <ManualLifetimeGrant 
               theme={theme} 
@@ -2590,12 +2624,22 @@ Enter The Lab 🧪
             />
 
             {/* Lifetime Users List */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
-                  Lifetime Access Users ({lifetimeUsers.length})
-                </h2>
+            <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.warning}05 100%)`
+            }}>
+              <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                <Award size={200} style={{ color: enhancedTheme.warning }} />
               </div>
+              
+              <div className="relative z-10">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: enhancedTheme.primaryDark }}>
+                    <Gift size={20} />
+                    Lifetime Access Users ({lifetimeUsers.length})
+                  </h2>
+                </div>
 
               {loading.lifetimeUsers ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: theme.textLight }}>
@@ -2705,6 +2749,7 @@ Enter The Lab 🧪
                   </table>
                 </div>
               )}
+              </div>
             </div>
           </div>
         )}
