@@ -1643,83 +1643,202 @@ Enter The Lab 🧪
 
         {activeTab === 'subscriptions' && (
           <div className="space-y-6">
-            {/* Beta User Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.info + '20' }}>
-                    <Users size={20} style={{ color: theme.info }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{subscriptions.total}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Total Beta Users</div>
-                  </div>
-                </div>
+            {/* Welcome Section with Coffee/Book Theme */}
+            <div className="relative rounded-xl border p-6 shadow-lg overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`
+            }}>
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
+                <Users size={150} style={{ color: enhancedTheme.accent }} />
+              </div>
+              <div className="absolute bottom-0 left-0 opacity-10 pointer-events-none">
+                <Book size={120} style={{ color: enhancedTheme.primary }} />
               </div>
               
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
-                    <CheckCircle size={20} style={{ color: theme.success }} />
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-200" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                      boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+                    }}>
+                    <Users size={24} style={{ color: '#FFFFFF' }} />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.success }}>{subscriptions.active}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Active Users</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
-                    <TrendingUp size={20} style={{ color: theme.warning }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.warning }}>{subscriptions.thisWeek}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>This Week</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.accent + '20' }}>
-                    <Mail size={20} style={{ color: theme.accent }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.accent }}>{emailWhitelist.length}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Whitelisted Emails</div>
-                    {emailWhitelist.length > 0 && (
-                      <div className="text-xs mt-1 flex items-center gap-2">
-                        <span style={{ color: theme.success }}>
-                          {getSignupStats().signedUp} signed up
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded-full text-xs font-medium" style={{
-                          backgroundColor: theme.success + '15',
-                          color: theme.success
-                        }}>
-                          {getSignupStats().signupRate.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
+                    <h2 className="text-2xl font-bold" style={{ color: enhancedTheme.primaryDark }}>User Management</h2>
+                    <p className="text-sm flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                      <Book size={12} className="opacity-60" />
+                      Monitor your research community members
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* User Search and Table */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>All Users</h2>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  placeholder="Search users by email or name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full p-3 rounded border"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                />
+            {/* Beta User Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.info}15 0%, ${enhancedTheme.cardBackground} 100%)`
+              }}>
+                <div className="absolute top-2 right-2 opacity-10">
+                  <Users size={60} style={{ color: enhancedTheme.info }} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                      style={{ 
+                        background: `linear-gradient(135deg, ${enhancedTheme.info} 0%, ${enhancedTheme.info}DD 100%)`,
+                        boxShadow: `0 4px 12px ${enhancedTheme.info}40`
+                      }}>
+                      <Users size={20} style={{ color: '#FFFFFF' }} />
+                    </div>
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                      Total Beta Users
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.total}</div>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
+                    <TrendingUp size={12} />
+                    <span>Community members</span>
+                  </div>
+                </div>
               </div>
+              
+              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.success}15 0%, ${enhancedTheme.cardBackground} 100%)`
+              }}>
+                <div className="absolute top-2 right-2 opacity-10">
+                  <CheckCircle size={60} style={{ color: enhancedTheme.success }} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                      style={{ 
+                        background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
+                        boxShadow: `0 4px 12px ${enhancedTheme.success}40`
+                      }}>
+                      <CheckCircle size={20} style={{ color: '#FFFFFF' }} />
+                    </div>
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                      Active Users
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.active}</div>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
+                    <Coffee size={12} />
+                    <span>Currently in lab</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.warning}15 0%, ${enhancedTheme.cardBackground} 100%)`
+              }}>
+                <div className="absolute top-2 right-2 opacity-10">
+                  <TrendingUp size={60} style={{ color: enhancedTheme.warning }} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                      style={{ 
+                        background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
+                        boxShadow: `0 4px 12px ${enhancedTheme.warning}40`
+                      }}>
+                      <TrendingUp size={20} style={{ color: '#FFFFFF' }} />
+                    </div>
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                      This Week
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{subscriptions.thisWeek}</div>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: enhancedTheme.textLight }}>
+                    <UserPlus size={12} />
+                    <span>New this week</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative rounded-xl border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden" style={{ 
+                borderColor: enhancedTheme.border, 
+                backgroundColor: enhancedTheme.cardBackground,
+                background: `linear-gradient(135deg, ${enhancedTheme.accent}15 0%, ${enhancedTheme.cardBackground} 100%)`
+              }}>
+                <div className="absolute top-2 right-2 opacity-10">
+                  <Mail size={60} style={{ color: enhancedTheme.accent }} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
+                      style={{ 
+                        background: `linear-gradient(135deg, ${enhancedTheme.accent} 0%, ${enhancedTheme.accent}DD 100%)`,
+                        boxShadow: `0 4px 12px ${enhancedTheme.accent}40`
+                      }}>
+                      <Mail size={20} style={{ color: '#FFFFFF' }} />
+                    </div>
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: enhancedTheme.textLight }}>
+                      Whitelisted
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold mb-1" style={{ color: enhancedTheme.primaryDark }}>{emailWhitelist.length}</div>
+                  <div className="flex items-center gap-1 text-xs mb-2" style={{ color: enhancedTheme.textLight }}>
+                    <span>Email addresses</span>
+                  </div>
+                  {emailWhitelist.length > 0 && (
+                    <div className="flex items-center gap-2 pt-2 border-t" style={{ borderColor: enhancedTheme.border + '40' }}>
+                      <span className="text-xs font-medium" style={{ color: enhancedTheme.success }}>
+                        {getSignupStats().signedUp} signed up
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold shadow-sm" style={{
+                        backgroundColor: enhancedTheme.success + '20',
+                        color: enhancedTheme.success
+                      }}>
+                        {getSignupStats().signupRate.toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* User Search and Table */}
+            <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.primaryLight}05 100%)`
+            }}>
+              <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                <Coffee size={200} style={{ color: enhancedTheme.accent }} />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: enhancedTheme.primaryDark }}>
+                    <Users size={20} />
+                    All Users
+                  </h2>
+                </div>
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Search users by email or name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-3 rounded-lg border transition-all duration-200 focus:scale-[1.01] focus:shadow-md"
+                    style={{ 
+                      borderColor: enhancedTheme.border, 
+                      backgroundColor: enhancedTheme.background,
+                      color: enhancedTheme.text
+                    }}
+                  />
+                </div>
               <UserTable 
                 users={users} 
                 searchTerm={searchTerm} 
@@ -1729,31 +1848,64 @@ Enter The Lab 🧪
                   setIsUserModalOpen(true);
                 }}
               />
+              </div>
             </div>
 
             {/* Recent Registrations */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Recent Registrations</h2>
-              <div className="space-y-3">
-                {subscriptions.recentRegistrations.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm" style={{ color: theme.textLight }}>No recent registrations</p>
-                  </div>
-                ) : (
-                  subscriptions.recentRegistrations.map((reg, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
-                          <Users size={16} style={{ color: theme.success }} />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium" style={{ color: theme.text }}>{reg.email}</div>
-                          <div className="text-xs" style={{ color: theme.textLight }}>Registered {reg.date}</div>
+            <div className="rounded-xl border p-6 shadow-lg relative overflow-hidden" style={{ 
+              borderColor: enhancedTheme.border, 
+              backgroundColor: enhancedTheme.cardBackground,
+              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.success}05 100%)`
+            }}>
+              <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+                <UserPlus size={150} style={{ color: enhancedTheme.success }} />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: enhancedTheme.primaryDark }}>
+                    <Clock size={20} />
+                    Recent Registrations
+                  </h2>
+                </div>
+                <div className="space-y-3">
+                  {subscriptions.recentRegistrations.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ backgroundColor: enhancedTheme.info + '10' }}>
+                        <Users size={32} style={{ color: enhancedTheme.info }} />
+                      </div>
+                      <p className="text-sm font-medium" style={{ color: enhancedTheme.textLight }}>No recent registrations</p>
+                    </div>
+                  ) : (
+                    subscriptions.recentRegistrations.map((reg, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center justify-between p-4 rounded-xl hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md" 
+                        style={{ 
+                          backgroundColor: enhancedTheme.background,
+                          border: `1px solid ${enhancedTheme.border}40`
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md" 
+                            style={{ 
+                              background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
+                              boxShadow: `0 4px 12px ${enhancedTheme.success}30`
+                            }}>
+                            <Users size={18} style={{ color: '#FFFFFF' }} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{reg.email}</div>
+                            <div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: enhancedTheme.textLight }}>
+                              <Coffee size={10} className="opacity-60" />
+                              <span>Registered {reg.date}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             </div>
 
