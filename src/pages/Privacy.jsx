@@ -10,33 +10,33 @@ export default function Privacy() {
   const privacyPrinciples = [
     {
       icon: <Shield className="w-8 h-8" />,
-      title: "Data Protection",
-      description: "We implement industry-standard security measures to protect your research data."
+      title: "Enhanced Research Data Protection",
+      description: "Your research data receives the highest level of confidentiality and security. We use it exclusively for providing our services—no commercial analysis, marketing, or third-party sharing."
     },
     {
       icon: <Lock className="w-8 h-8" />,
-      title: "Encryption",
-      description: "All data is encrypted in transit and at rest using enterprise-grade encryption."
+      title: "Secure Cloud & Local Storage",
+      description: "Industry-standard encryption protects data in transit and at rest. We use Firebase for secure cloud sync and local device storage for offline access with application-level encryption."
     },
     {
       icon: <Eye className="w-8 h-8" />,
-      title: "Transparency",
-      description: "We're transparent about how we collect, use, and protect your information."
+      title: "Legal Request Resistance",
+      description: "We scrutinize all law enforcement requests, interpret them narrowly, and provide user notice when legally permitted. We resist invalid or overly broad requests to protect your data."
     },
     {
       icon: <Database className="w-8 h-8" />,
-      title: "Data Control",
-      description: "You maintain full control over your data and can export or delete it at any time."
+      title: "Data Retention & Control",
+      description: "Legal agreements retained 10 years for research/medical compliance. You can request account deletion anytime—personal identifiers anonymized within 30 days while maintaining required legal records."
     },
     {
       icon: <UserCheck className="w-8 h-8" />,
-      title: "Consent",
-      description: "We only collect data with your explicit consent and for legitimate purposes."
+      title: "Purpose Limitation & Consent",
+      description: "We collect only minimum data necessary for our research tracking services. Access to your data is strictly limited to authorized personnel for technical support or service maintenance."
     },
     {
       icon: <Globe className="w-8 h-8" />,
-      title: "Compliance",
-      description: "We comply with applicable privacy laws and regulations worldwide."
+      title: "Research Use Only",
+      description: "This application is designed for research tracking purposes only. All tracked substances are for RESEARCH USE ONLY and NOT INTENDED FOR HUMAN CONSUMPTION."
     }
   ];
 
