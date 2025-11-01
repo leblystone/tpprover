@@ -1014,8 +1014,13 @@ export default function EmailTemplateManager({ theme }) {
                 type="text"
                 value={currentTemplate.subject}
                 onChange={(e) => updateTemplate('subject', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.primary + '40',
+                  backgroundColor: theme.primaryLighter || '#F0F2F8',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.primary}10`
+                }}
                 placeholder="Email subject line"
               />
             </div>
@@ -1029,8 +1034,13 @@ export default function EmailTemplateManager({ theme }) {
                 type="text"
                 value={currentTemplate.heading}
                 onChange={(e) => updateTemplate('heading', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.primary + '40',
+                  backgroundColor: theme.primaryLighter || '#F0F2F8',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.primary}10`
+                }}
                 placeholder="Main heading"
               />
             </div>
@@ -1043,8 +1053,13 @@ export default function EmailTemplateManager({ theme }) {
               <textarea
                 value={currentTemplate.greeting}
                 onChange={(e) => updateTemplate('greeting', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.primary + '40',
+                  backgroundColor: theme.coffeeFoam || '#FFF8F0',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.primary}10`
+                }}
                 rows="2"
                 placeholder="Opening greeting"
               />
@@ -1058,8 +1073,13 @@ export default function EmailTemplateManager({ theme }) {
               <textarea
                 value={currentTemplate.mainMessage}
                 onChange={(e) => updateTemplate('mainMessage', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.primary + '40',
+                  backgroundColor: theme.coffeeFoam || '#FFF8F0',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.primary}10`
+                }}
                 rows="3"
                 placeholder="Main email content"
               />
@@ -1074,15 +1094,25 @@ export default function EmailTemplateManager({ theme }) {
                 type="text"
                 value={currentTemplate.highlightTitle}
                 onChange={(e) => updateTemplate('highlightTitle', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm mb-2"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm mb-2 focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.coffeeLatte || '#D4A574' + '60',
+                  backgroundColor: theme.coffeeCream || '#F5E6D3',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.coffeeLatte || '#D4A574'}20`
+                }}
                 placeholder="Highlight title (leave empty to hide)"
               />
               <textarea
                 value={currentTemplate.highlightMessage}
                 onChange={(e) => updateTemplate('highlightMessage', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.coffeeLatte || '#D4A574' + '60',
+                  backgroundColor: theme.coffeeCream || '#F5E6D3',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.coffeeLatte || '#D4A574'}20`
+                }}
                 rows="2"
                 placeholder="Highlight message"
               />
@@ -1109,12 +1139,17 @@ export default function EmailTemplateManager({ theme }) {
                       type="text"
                       value={feature}
                       onChange={(e) => updateFeature(index, e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-lg border text-sm"
-                      style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                      className="flex-1 px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                      style={{ 
+                        borderColor: theme.primary + '40',
+                        backgroundColor: theme.primaryLighter || '#F0F2F8',
+                        color: theme.text,
+                        boxShadow: `0 2px 4px ${theme.primary}10`
+                      }}
                     />
                     <button
                       onClick={() => removeFeature(index)}
-                      className="px-3 py-2 rounded-lg text-sm hover:opacity-80"
+                      className="px-3 py-2 rounded-lg text-sm hover:opacity-80 transition-all"
                       style={{ backgroundColor: theme.error, color: theme.white }}
                     >
                       ×
@@ -1133,16 +1168,26 @@ export default function EmailTemplateManager({ theme }) {
                 type="text"
                 value={currentTemplate.ctaText}
                 onChange={(e) => updateTemplate('ctaText', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm mb-2"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm mb-2 focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.primary + '40',
+                  backgroundColor: theme.primaryLighter || '#F0F2F8',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.primary}10`
+                }}
                 placeholder="Button text"
               />
               <input
                 type="text"
                 value={currentTemplate.ctaLink}
                 onChange={(e) => updateTemplate('ctaLink', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.secondary, color: theme.text }}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.primary + '40',
+                  backgroundColor: theme.primaryLighter || '#F0F2F8',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.primary}10`
+                }}
                 placeholder="Button link URL"
               />
             </div>

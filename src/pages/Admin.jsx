@@ -1467,6 +1467,17 @@ function Admin() {
                 </button>
               )}
               
+              {!isFirebaseAdmin && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ 
+                  backgroundColor: '#ef444415',
+                  border: '1px solid #ef444440',
+                  color: '#ef4444'
+                }}>
+                  <AlertTriangle size={14} />
+                  <span className="text-xs font-medium hidden md:inline">Sign in as admin</span>
+                </div>
+              )}
+              
               <div 
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
                 style={{ 
