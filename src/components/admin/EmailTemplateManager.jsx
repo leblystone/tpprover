@@ -25,6 +25,53 @@ const DEFAULT_TEMPLATES = {
       'Data Analytics – Visualize trends and metrics'
     ]
   },
+  giftPurchaseConfirmation: {
+    name: 'Gift Purchase Confirmation',
+    subject: '🎁 Gift Purchase Confirmed - The Pep Planner',
+    heading: 'Thank You For Your Gift!',
+    greeting: 'Hi %GIFTGIVERNAME%,',
+    mainMessage: 'Your gift for %RECIPIENTEMAIL% has been successfully processed. A confirmation has been sent, and they can redeem their access at any time.',
+    ctaText: 'Manage Gifts',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: 'Gift Details',
+    highlightMessage: 'Type: %SUBSCRIPTIONTYPE% • Price: %PRICEPAID% • Gift ID: %GIFTID%',
+    features: [
+      'Recipient receives instructions to redeem access',
+      'You can track redemption status anytime',
+      'No account required for the recipient until redemption'
+    ]
+  },
+  giftRedeemed: {
+    name: 'Gift Redeemed (Recipient)',
+    subject: '🎉 Gift Successfully Redeemed - Welcome to The Pep Planner!',
+    heading: 'Welcome to The Pep Planner!',
+    greeting: 'Great news! Your gift from %GIFTGIVERNAME% has been redeemed.',
+    mainMessage: 'You now have access to The Pep Planner for %SUBSCRIPTIONTYPE%. Explore the workspace and organize your research.',
+    ctaText: 'Open Dashboard',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: 'Access Details',
+    highlightMessage: 'Ends on %SUBSCRIPTIONENDDATE%',
+    features: [
+      'Create and manage research protocols',
+      'Track vendors, orders, and stockpile',
+      'Use calculators and analytics to optimize your research'
+    ]
+  },
+  giftRedeemedNotification: {
+    name: 'Gift Redeemed (Giver Notice)',
+    subject: '🎉 Your Gift Was Redeemed - The Pep Planner',
+    heading: 'Your Gift Was Redeemed!',
+    greeting: 'Hi %GIFTGIVERNAME%,',
+    mainMessage: '%RECIPIENTEMAIL% has successfully redeemed your gift of %SUBSCRIPTIONTYPE% access to The Pep Planner.',
+    ctaText: 'View Gifts',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: 'Redemption Details',
+    highlightMessage: 'Your gift is active and ready to use.',
+    features: [
+      'Recipient gained immediate access',
+      'You may receive renewal reminders before expiration'
+    ]
+  },
   verification: {
     name: 'Email Verification',
     subject: 'Verify your email for The Pep Planner',

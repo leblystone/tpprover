@@ -13,6 +13,10 @@ const COLORS = {
   border: '#E5E7EB'
 };
 
+// Public asset base for images in emails
+const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.com';
+const LOGO_URL = `${ASSET_BASE}/tpp_logo.png`;
+
 // Base email wrapper
 const emailWrapper = (content) => `
 <!DOCTYPE html>
@@ -121,8 +125,8 @@ const emailWrapper = (content) => `
 <body>
   <div style="background-color: ${COLORS.sage}; padding: 20px 0;">
     <div class="email-container">
-      <div class="header">
-        <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" width="120" />
+    <div class="header">
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" width="120" />
         <div class="tagline">Organize Your Research</div>
       </div>
       ${content}
@@ -227,7 +231,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -295,7 +299,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -355,7 +359,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -423,7 +427,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -518,7 +522,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -586,7 +590,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -646,7 +650,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -714,7 +718,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -813,7 +817,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -881,7 +885,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+<img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -941,7 +945,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -1009,7 +1013,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1104,7 +1108,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -1172,7 +1176,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -1232,7 +1236,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -1300,7 +1304,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1398,7 +1402,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -1466,7 +1470,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -1526,7 +1530,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -1594,7 +1598,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1696,7 +1700,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -1764,7 +1768,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -1824,7 +1828,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -1892,7 +1896,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1993,7 +1997,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2061,7 +2065,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -2121,7 +2125,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -2189,7 +2193,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -2290,7 +2294,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2358,7 +2362,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -2418,7 +2422,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -2486,7 +2490,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -2585,7 +2589,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2653,7 +2657,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -2713,7 +2717,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -2781,7 +2785,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -2880,7 +2884,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2948,7 +2952,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -3008,7 +3012,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -3076,7 +3080,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -3178,7 +3182,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -3246,7 +3250,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -3306,7 +3310,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -3374,7 +3378,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -3419,7 +3423,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 exports.giftExpiringSoonEmail = (recipientEmail, planName, daysLeft, giftGiverName) => {
   const content = `
     <div class="header">
-      <img src="https://thepepplanner.app/tpp-logo.png" alt="The Pep Planner" class="logo-image" />
+      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
       <div class="logo">🎁 Your Gifted Research Time Is Almost Up!</div>
     </div>
     
