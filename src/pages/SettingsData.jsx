@@ -398,8 +398,14 @@ export default function SettingsData() {
             >
               Clear ALL Data
             </button>
+            <button 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all" 
+              onClick={() => window.open('/delete-account', '_blank')}
+            >
+              Delete Account Permanently
+            </button>
           </div>
-          <p className="text-xs mt-2 text-red-600">"Clear ALL" will permanently wipe all data in this browser. This cannot be undone.</p>
+          <p className="text-xs mt-2 text-red-600">"Clear ALL" will permanently wipe all data in this browser. "Delete Account" will permanently delete your account and all associated data from our servers.</p>
         </div>
       </div>
 

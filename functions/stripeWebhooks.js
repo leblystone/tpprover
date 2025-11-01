@@ -6,7 +6,11 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const emailService = require('./emailService');
 
-// DO NOT use dotenv here - it's corrupting the .env file
+// Load environment variables
+require('dotenv').config();
+
+// Initialize Stripe instance (will be set in the handler after secrets are loaded)
+let stripe = null;
 
 /**
  * Stripe Webhook Handler
@@ -16,24 +20,51 @@ const emailService = require('./emailService');
 exports.stripeWebhook = onRequest(
   {
     cors: true,
-    invoker: 'public' // Allow unauthenticated access for Stripe webhooks
+    invoker: 'public', // Allow unauthenticated access for Stripe webhooks
+    secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
   },
   async (request, response) => {
     const sig = request.headers['stripe-signature'];
 
+    // Initialize Stripe with secret key from environment/secrets
+    if (!stripe) {
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) {
+        logger.error('❌ STRIPE_SECRET_KEY not configured');
+        // Return 200 to acknowledge receipt, but log the error
+        return response.status(200).json({ 
+          received: false, 
+          error: 'Stripe not configured' 
+        });
+      }
+      stripe = require('stripe')(stripeSecretKey);
+    }
+
     let event;
 
     try {
-      // Use webhook secret from environment
-      const webhookSecret = functions.config().stripe.webhook_secret;
+      // Use webhook secret from environment/secrets
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       
-      // Create Stripe instance with secret key from environment
-      const stripeSecretKey = functions.config().stripe.secret_key;
-      const stripeInstance = require('stripe')(stripeSecretKey);
-      event = stripeInstance.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
+      if (!webhookSecret) {
+        logger.error('❌ STRIPE_WEBHOOK_SECRET not configured');
+        // Return 200 to acknowledge receipt, but log the error
+        return response.status(200).json({ 
+          received: false, 
+          error: 'Webhook secret not configured' 
+        });
+      }
+
+      // Verify webhook signature
+      event = stripe.webhooks.constructEvent(request.rawBody, sig, webhookSecret);
     } catch (err) {
       logger.error(`❌ Webhook signature verification failed: ${err.message}`);
-      return response.status(400).send(`Webhook Error: ${err.message}`);
+      // Return 200 to acknowledge receipt to Stripe, but log the error
+      // Stripe requires 200-299 status codes, so we acknowledge even on errors
+      return response.status(200).json({ 
+        received: false, 
+        error: `Webhook Error: ${err.message}` 
+      });
     }
 
     logger.info(`📥 Received Stripe webhook event: ${event.type}`);
@@ -42,69 +73,76 @@ exports.stripeWebhook = onRequest(
       switch (event.type) {
         // Payment Intent Events
         case 'payment_intent.succeeded':
-          await handlePaymentSucceeded(event);
+          await handlePaymentSucceeded(event, stripe);
           break;
 
         case 'payment_intent.payment_failed':
-          await handlePaymentFailed(event);
+          await handlePaymentFailed(event, stripe);
           break;
 
         // Subscription Events
         case 'customer.subscription.created':
-          await handleSubscriptionCreated(event);
+          await handleSubscriptionCreated(event, stripe);
           break;
 
         case 'customer.subscription.updated':
-          await handleSubscriptionUpdated(event);
+          await handleSubscriptionUpdated(event, stripe);
           break;
 
         case 'customer.subscription.deleted':
-          await handleSubscriptionDeleted(event);
+          await handleSubscriptionDeleted(event, stripe);
           break;
 
         // Invoice Events
         case 'invoice.payment_succeeded':
-          await handleInvoicePaymentSucceeded(event);
+          await handleInvoicePaymentSucceeded(event, stripe);
           break;
 
         case 'invoice.payment_failed':
-          await handleInvoicePaymentFailed(event);
+          await handleInvoicePaymentFailed(event, stripe);
           break;
 
         case 'invoice.upcoming':
-          await handleInvoiceUpcoming(event);
+          await handleInvoiceUpcoming(event, stripe);
           break;
 
         // Charge Events
         case 'charge.succeeded':
-          await handleChargeSucceeded(event);
+          await handleChargeSucceeded(event, stripe);
           break;
 
         case 'charge.failed':
-          await handleChargeFailed(event);
+          await handleChargeFailed(event, stripe);
           break;
 
         // Dispute Events (for chargebacks, not refunds)
         case 'charge.dispute.created':
-          await handleDisputeCreated(event);
+          await handleDisputeCreated(event, stripe);
           break;
 
         case 'charge.dispute.updated':
-          await handleDisputeUpdated(event);
+          await handleDisputeUpdated(event, stripe);
           break;
 
         case 'charge.dispute.closed':
-          await handleDisputeClosed(event);
+          await handleDisputeClosed(event, stripe);
           break;
 
         default:
           logger.info(`🤷 Unhandled event type: ${event.type}`);
       }
 
-      response.json({ received: true });
+      // Always return 200 to acknowledge receipt to Stripe
+      response.status(200).json({ received: true, eventType: event.type });
     } catch (error) {
-      logger.error(`❌ Error processing webhook: ${error.message}`);
-      response.status(500).json({ error: error.message });
+      logger.error(`❌ Error processing webhook: ${error.message}`, error);
+      // Return 200 to acknowledge receipt to Stripe even on processing errors
+      // This prevents Stripe from retrying indefinitely
+      response.status(200).json({ 
+        received: true, 
+        processed: false,
+        error: error.message 
+      });
     }
   }
 );
@@ -112,7 +150,7 @@ exports.stripeWebhook = onRequest(
 /**
  * Handle successful payment intent
  */
-async function handlePaymentSucceeded(event) {
+async function handlePaymentSucceeded(event, stripe) {
   const paymentIntent = event.data.object;
   logger.info(`💰 Payment succeeded: ${paymentIntent.id}`);
 
@@ -148,7 +186,7 @@ async function handlePaymentSucceeded(event) {
 /**
  * Handle failed payment intent
  */
-async function handlePaymentFailed(event) {
+async function handlePaymentFailed(event, stripe) {
   const paymentIntent = event.data.object;
   logger.info(`💸 Payment failed: ${paymentIntent.id}`);
 
@@ -184,7 +222,7 @@ async function handlePaymentFailed(event) {
 /**
  * Handle subscription created
  */
-async function handleSubscriptionCreated(event) {
+async function handleSubscriptionCreated(event, stripe) {
   const subscription = event.data.object;
   logger.info(`🎉 Subscription created: ${subscription.id}`);
 
@@ -219,7 +257,7 @@ async function handleSubscriptionCreated(event) {
 /**
  * Handle subscription updated
  */
-async function handleSubscriptionUpdated(event) {
+async function handleSubscriptionUpdated(event, stripe) {
   const subscription = event.data.object;
   logger.info(`📝 Subscription updated: ${subscription.id}`);
 
@@ -236,7 +274,7 @@ async function handleSubscriptionUpdated(event) {
 /**
  * Handle subscription deleted/cancelled
  */
-async function handleSubscriptionDeleted(event) {
+async function handleSubscriptionDeleted(event, stripe) {
   const subscription = event.data.object;
   logger.info(`❌ Subscription cancelled: ${subscription.id}`);
 
@@ -274,7 +312,7 @@ async function handleSubscriptionDeleted(event) {
 /**
  * Handle successful invoice payment
  */
-async function handleInvoicePaymentSucceeded(event) {
+async function handleInvoicePaymentSucceeded(event, stripe) {
   const invoice = event.data.object;
   logger.info(`✅ Invoice paid: ${invoice.id}`);
 
@@ -310,7 +348,7 @@ async function handleInvoicePaymentSucceeded(event) {
 /**
  * Handle failed invoice payment
  */
-async function handleInvoicePaymentFailed(event) {
+async function handleInvoicePaymentFailed(event, stripe) {
   const invoice = event.data.object;
   logger.info(`💸 Invoice payment failed: ${invoice.id}`);
 
@@ -346,7 +384,7 @@ async function handleInvoicePaymentFailed(event) {
 /**
  * Handle upcoming invoice (renewal reminder)
  */
-async function handleInvoiceUpcoming(event) {
+async function handleInvoiceUpcoming(event, stripe) {
   const invoice = event.data.object;
   logger.info(`📅 Invoice upcoming: ${invoice.id}`);
 
@@ -382,7 +420,7 @@ async function handleInvoiceUpcoming(event) {
 /**
  * Handle successful charge
  */
-async function handleChargeSucceeded(event) {
+async function handleChargeSucceeded(event, stripe) {
   const charge = event.data.object;
   logger.info(`✅ Charge succeeded: ${charge.id}`);
 
@@ -400,7 +438,7 @@ async function handleChargeSucceeded(event) {
 /**
  * Handle failed charge
  */
-async function handleChargeFailed(event) {
+async function handleChargeFailed(event, stripe) {
   const charge = event.data.object;
   logger.info(`💸 Charge failed: ${charge.id}`);
 
@@ -418,7 +456,7 @@ async function handleChargeFailed(event) {
 /**
  * Handle dispute created (chargeback)
  */
-async function handleDisputeCreated(event) {
+async function handleDisputeCreated(event, stripe) {
   const dispute = event.data.object;
   logger.info(`🚨 Dispute created: ${dispute.id} for charge: ${dispute.charge}`);
 
@@ -441,7 +479,7 @@ async function handleDisputeCreated(event) {
 /**
  * Handle dispute updated
  */
-async function handleDisputeUpdated(event) {
+async function handleDisputeUpdated(event, stripe) {
   const dispute = event.data.object;
   logger.info(`📝 Dispute updated: ${dispute.id} - Status: ${dispute.status}`);
 
@@ -464,7 +502,7 @@ async function handleDisputeUpdated(event) {
 /**
  * Handle dispute closed
  */
-async function handleDisputeClosed(event) {
+async function handleDisputeClosed(event, stripe) {
   const dispute = event.data.object;
   logger.info(`✅ Dispute closed: ${dispute.id} - Status: ${dispute.status}`);
 

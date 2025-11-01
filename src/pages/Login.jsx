@@ -13,7 +13,9 @@ import {
   registerUser, 
   loginUser, 
   checkAndAssignFounderStatus,
-  getUserFounderStatus
+  getUserFounderStatus,
+  checkUserExists,
+  getAccountStatus
 } from '../services/firebase';
 import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking';
 import { auth } from '../config/firebase';
@@ -168,8 +170,47 @@ export default function Login() {
             clearAllLocalStorage();
         };
         
+        // Add function to check account status
+        window.checkAccountStatus = async (emailToCheck) => {
+            const emailAddr = emailToCheck || email;
+            if (!emailAddr) {
+                console.error('❌ Please provide an email address or fill in the email field');
+                return;
+            }
+            console.log('🔍 Checking account status for:', emailAddr);
+            try {
+                const status = await getAccountStatus(emailAddr);
+                console.log('📊 Account Status:', {
+                    'Exists in Auth': status.existsInAuth,
+                    'Exists in Firestore': status.existsInFirestore,
+                    'Has Password Auth': status.hasPassword,
+                    'Sign-in Methods': status.signInMethods,
+                    'Details': status.details,
+                    'Firestore Doc': status.firestoreDoc
+                });
+                
+                if (status.existsInAuth && !status.existsInFirestore) {
+                    console.warn('⚠️ ORPHANED ACCOUNT: Exists in Firebase Auth but not in Firestore!');
+                    console.warn('   This means the account was created but the Firestore document failed to save.');
+                }
+                
+                if (status.existsInAuth && !status.hasPassword) {
+                    console.warn('⚠️ ACCOUNT HAS NO PASSWORD: User exists but password authentication is not set up.');
+                }
+                
+                return status;
+            } catch (error) {
+                console.error('❌ Error checking account status:', error);
+            }
+        };
+        
+        console.log('🧪 Development utilities available:');
+        console.log('   - window.forceLogout() - Force logout');
+        console.log('   - window.clearAllData() - Clear all localStorage');
+        console.log('   - window.checkAccountStatus(email?) - Check account status');
+        
         // Development commands available via window object
-    }, []);
+    }, [email]);
 
     // Real-time validation
     useEffect(() => {
@@ -334,10 +375,27 @@ export default function Login() {
         // Clear login flag on error too
         sessionStorage.removeItem('tpp_login_in_progress');
         console.error('Login failed:', error);
+        
+        // Get account status for better error messages
+        let accountStatus = null;
+        try {
+          accountStatus = await getAccountStatus(email);
+          console.log('🔍 Account status:', accountStatus);
+        } catch (statusError) {
+          console.warn('Could not get account status:', statusError);
+        }
+        
         if (error.code === 'auth/user-not-found') {
           setError('No account found with this email. Please create a new account.');
-        } else if (error.code === 'auth/wrong-password') {
-          setError('Incorrect password. Please try again.');
+        } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          // Check if account exists but password is wrong
+          if (accountStatus && accountStatus.existsInAuth) {
+            setError('Incorrect password. Use "Forgot password?" to reset it.');
+          } else if (accountStatus && !accountStatus.existsInAuth && accountStatus.existsInFirestore) {
+            setError('Account exists in database but authentication setup is incomplete. Please contact support.');
+          } else {
+            setError('Invalid email or password. Please try again or use "Forgot password?" to reset.');
+          }
         } else if (error.code === 'auth/invalid-email') {
           setError('Please enter a valid email address.');
         } else {
@@ -372,6 +430,21 @@ export default function Login() {
         // CRITICAL: Set session flag FIRST to prevent AppContext interference
         sessionStorage.setItem('tpp_signup_in_progress', 'true');
         console.log('🔒 Signup process started - AppContext will not interfere');
+        
+        // Check if account already exists before attempting registration
+        console.log('🔍 Checking if account already exists...');
+        const accountExists = await checkUserExists(email);
+        if (accountExists) {
+          console.log('⚠️ Account already exists, switching to login mode');
+          sessionStorage.removeItem('tpp_signup_in_progress');
+          setError('An account with this email already exists. Switching to login...');
+          setTimeout(() => {
+            setIsReturningUser(true);
+            setMode('login');
+            setError('Please enter your password to log in. Use "Forgot password?" if needed.');
+          }, 1500);
+          return false;
+        }
         
         // Clear previous seeding flags for fresh demo data on new signup
         localStorage.removeItem('tpprover_has_seeded');
@@ -415,6 +488,21 @@ export default function Login() {
           console.error('❌ registerUser FAILED:', regError);
           console.error('❌ Error code:', regError.code);
           console.error('❌ Error message:', regError.message);
+          
+          // Get account status to provide better error message
+          if (regError.code === 'auth/email-already-in-use') {
+            try {
+              const accountStatus = await getAccountStatus(email);
+              console.log('🔍 Account status after signup failure:', accountStatus);
+              
+              if (accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
+                console.warn('⚠️ Orphaned account detected: exists in Auth but not Firestore');
+              }
+            } catch (statusError) {
+              console.warn('Could not get account status:', statusError);
+            }
+          }
+          
           throw regError; // Re-throw to be caught by outer catch
         }
         
@@ -609,14 +697,38 @@ export default function Login() {
         // Clear signup flag on error too
         sessionStorage.removeItem('tpp_signup_in_progress');
         console.error('Signup failed:', error);
+        
         if (error.code === 'auth/email-already-in-use') {
-          setError('Account found! Switching to login form...');
-          // Automatically switch to login mode for existing users
-          setTimeout(() => {
-            setIsReturningUser(true);
-            setMode('login');
-            setError('Please enter your password to log in.');
-          }, 1500);
+          // Get detailed account status
+          try {
+            const accountStatus = await getAccountStatus(email);
+            console.log('🔍 Account status on signup failure:', accountStatus);
+            
+            if (accountStatus.existsInAuth && !accountStatus.existsInFirestore) {
+              setError('Account found but incomplete setup. Switching to login...');
+            } else {
+              setError('Account found! Switching to login form...');
+            }
+            
+            // Automatically switch to login mode for existing users
+            setTimeout(() => {
+              setIsReturningUser(true);
+              setMode('login');
+              if (accountStatus.hasPassword) {
+                setError('Please enter your password to log in. Use "Forgot password?" if needed.');
+              } else {
+                setError('Account exists but password authentication is not set up. Please use "Forgot password?" to set one.');
+              }
+            }, 1500);
+          } catch (statusError) {
+            // Fallback error handling
+            setError('Account found! Switching to login form...');
+            setTimeout(() => {
+              setIsReturningUser(true);
+              setMode('login');
+              setError('Please enter your password to log in.');
+            }, 1500);
+          }
         } else if (error.code === 'auth/invalid-email') {
           setError('Please enter a valid email address (example: user@example.com).');
         } else if (error.code === 'auth/weak-password') {

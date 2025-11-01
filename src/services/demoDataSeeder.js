@@ -218,3 +218,11 @@ export async function hasSampleData(userId) {
   }
 }
 
+/**
+ * Alias for seedSampleDataToCloud for backward compatibility
+ * @param {string} userId - Firebase user ID
+ * @param {string} password - User password for encryption
+ * @returns {Promise<boolean>} - Success status
+ */
+export const seedDemoDataToCloud = seedSampleDataToCloud;
+

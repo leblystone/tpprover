@@ -32,6 +32,7 @@ const Login = lazy(() => import('./pages/Login.jsx'))
 const Imports = lazy(() => import('./pages/Imports.jsx'))
 const Goals = lazy(() => import('./pages/Goals.jsx'))
 const Badges = lazy(() => import('./pages/Badges.jsx'))
+// Admin panel - now properly refactored with extracted components
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const BetaEndedSurvey = lazy(() => import('./pages/BetaEndedSurvey.jsx'))
 const LaunchComingSoon = lazy(() => import('./pages/LaunchComingSoon.jsx'))
@@ -43,6 +44,7 @@ const Contact = lazy(() => import('./pages/Contact.jsx'))
 const Privacy = lazy(() => import('./pages/Privacy.jsx'))
 const Terms = lazy(() => import('./pages/Terms.jsx'))
 const Blog = lazy(() => import('./pages/Blog.jsx'))
+const DeleteAccount = lazy(() => import('./pages/DeleteAccount.jsx'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'))
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail.jsx'))
 const RedeemGift = lazy(() => import('./pages/RedeemGift.jsx'))
@@ -118,6 +120,11 @@ export const router = createBrowserRouter([
   {
     path: '/terms',
     element: <Terms />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/delete-account',
+    element: <DeleteAccount />,
     errorElement: <NotFound />,
   },
   {

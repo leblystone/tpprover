@@ -90,14 +90,18 @@ export async function checkUserExists(email) {
     const authExists = signInMethods.length > 0;
     console.log('🔍 Firebase: User exists in AUTH?', authExists);
     
-    // Additional check: Look in Firestore users collection
+    // Check Firestore by querying users collection by email
+    // Note: users collection uses UID as doc ID, so we need to query by email field
     let firestoreExists = false;
+    let firestoreUserDoc = null;
     try {
-      const userDoc = await getDoc(doc(db, 'users', email.toLowerCase()));
-      firestoreExists = userDoc.exists();
+      const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      firestoreExists = !querySnapshot.empty;
       console.log('🔍 Firebase: User exists in FIRESTORE?', firestoreExists);
-      if (firestoreExists) {
-        console.log('🔍 Firebase: User data in Firestore:', userDoc.data());
+      if (firestoreExists && !querySnapshot.empty) {
+        firestoreUserDoc = querySnapshot.docs[0];
+        console.log('🔍 Firebase: User data in Firestore:', firestoreUserDoc.data());
       }
     } catch (firestoreError) {
       console.log('🔍 Firebase: Could not check Firestore:', firestoreError.message);
@@ -109,19 +113,6 @@ export async function checkUserExists(email) {
     
     console.log('🔍 Firebase: Final user exists decision:', exists, '(auth:', authExists, ', firestore:', firestoreExists, ')');
     
-    // Additional fallback: Try to get user by email query if we have it
-    if (!exists) {
-      try {
-        const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
-        const querySnapshot = await getDocs(q);
-        const firestoreByQuery = !querySnapshot.empty;
-        console.log('🔍 Firebase: User exists by query?', firestoreByQuery);
-        return firestoreByQuery;
-      } catch (queryError) {
-        console.log('🔍 Firebase: Query fallback failed:', queryError.message);
-      }
-    }
-    
     return exists;
   } catch (error) {
     console.error('❌ Firebase: Error checking user existence:', error);
@@ -131,6 +122,59 @@ export async function checkUserExists(email) {
       projectId: auth.app.options.projectId
     });
     return false;
+  }
+}
+
+/**
+ * Get detailed account status for an email
+ * @param {string} email - User email
+ * @returns {Promise<{existsInAuth: boolean, existsInFirestore: boolean, hasPassword: boolean, details: any}>}
+ */
+export async function getAccountStatus(email) {
+  try {
+    const status = {
+      existsInAuth: false,
+      existsInFirestore: false,
+      hasPassword: false,
+      firestoreDoc: null,
+      signInMethods: [],
+      details: {}
+    };
+    
+    // Check Firebase Auth
+    try {
+      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      status.existsInAuth = signInMethods.length > 0;
+      status.signInMethods = signInMethods;
+      status.hasPassword = signInMethods.includes('password');
+    } catch (authError) {
+      console.error('Error checking auth:', authError);
+    }
+    
+    // Check Firestore
+    try {
+      const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      status.existsInFirestore = !querySnapshot.empty;
+      if (status.existsInFirestore && !querySnapshot.empty) {
+        status.firestoreDoc = querySnapshot.docs[0].data();
+        status.details.uid = querySnapshot.docs[0].id;
+        status.details.createdAt = status.firestoreDoc.createdAt;
+        status.details.lastActive = status.firestoreDoc.lastActive;
+      }
+    } catch (firestoreError) {
+      console.error('Error checking Firestore:', firestoreError);
+    }
+    
+    return status;
+  } catch (error) {
+    console.error('Error getting account status:', error);
+    return {
+      existsInAuth: false,
+      existsInFirestore: false,
+      hasPassword: false,
+      details: { error: error.message }
+    };
   }
 }
 

@@ -3,11 +3,13 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
 import { Zap } from '../icons/lucide-safe';
+import { periwinkleTheme } from '../utils/holidayThemes';
+import WelcomeModal from '../components/admin/WelcomeModal';
 import {
   getEmailWhitelist,
   updateEmailWhitelist,
@@ -216,23 +218,11 @@ const analyzeFeedback = (feedbackList) => {
   };
 };
 
-// Admin theme (standalone since admin is outside the main app context)
+// The Calming Place - Periwinkle theme for Mrs. FloralKaffe's peaceful workspace
 const adminTheme = {
-  primary: '#7f9e95',
-  primaryDark: '#6b8a80',
-  success: '#10b981',
+  ...periwinkleTheme,
   successBg: '#ecfdf5',
-  error: '#ef4444',
-  warning: '#f59e0b',
-  info: '#3b82f6',
-  accent: '#8b5cf6',
   accentText: '#ffffff',
-  background: '#ffffff',
-  cardBackground: '#ffffff',
-  text: '#111827',
-  textLight: '#6b7280',
-  textOnPrimary: '#ffffff',
-  border: '#e5e7eb',
   white: '#ffffff'
 };
 
@@ -245,6 +235,22 @@ function Admin() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [activeTab, setActiveTab] = useState('analytics');
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Coffee/Wine time logic
+  const isWineTime = currentTime.getHours() >= 17;
+  const TimeIcon = isWineTime ? Wine : Coffee;
+  const timeMessage = isWineTime ? "where's my wine?!" : "where's my coffee?!";
+  const timeColor = isWineTime ? '#8B4789' : '#8B7355'; // Wine purple vs coffee brown
+  
+  // Update time every minute for coffee/wine chip
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
   const [emailWhitelist, setEmailWhitelist] = useState([]);
   const [newEmails, setNewEmails] = useState('');
   const [userList, setUserList] = useState([]);
@@ -865,6 +871,7 @@ function Admin() {
       setIsAuthenticated(true);
       localStorage.setItem('tpp_admin_auth', 'true');
       setPassword('');
+      setShowWelcomeModal(true);
     } else {
       alert('Incorrect password');
     }
@@ -946,17 +953,33 @@ function Admin() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="max-w-md w-full p-8 rounded-lg border shadow-sm content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
+        backgroundColor: theme.background,
+        backgroundImage: `linear-gradient(135deg, ${theme.primaryLight}15 0%, ${theme.background} 100%)`
+      }}>
+        {/* Decorative coffee and books */}
+        <div className="absolute top-10 right-10 opacity-5">
+          <Coffee size={120} style={{ color: theme.accent }} />
+        </div>
+        <div className="absolute bottom-10 left-10 opacity-5">
+          <Book size={100} style={{ color: theme.primary }} />
+        </div>
+        
+        <div className="max-w-md w-full p-8 rounded-xl border shadow-lg relative z-10 backdrop-blur-sm" style={{ 
+          borderColor: theme.border, 
+          backgroundColor: theme.cardBackground,
+          boxShadow: `0 8px 32px ${theme.primary}20`
+        }}>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-              <Megaphone size={32} style={{ color: theme.primary }} />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg" style={{ 
+              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
+              boxShadow: `0 4px 15px ${theme.primary}40`
+            }}>
+              <Book size={32} style={{ color: '#FFFFFF' }} />
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>Admin Panel</h1>
-            <p className="text-sm" style={{ color: theme.textLight }}>Enter admin password to continue</p>
-            <p className="text-xs mt-2 p-2 rounded bg-blue-50 text-blue-700">
-              ⚠️ You must be logged in with the admin email account first
-            </p>
+            <h1 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>The Calming Place</h1>
+            <p className="text-sm" style={{ color: theme.textLight }}>Welcome back, Mrs. FloralKaffe</p>
+            <p className="text-xs mt-2" style={{ color: theme.textLight }}>Enter your password to enter your peaceful workspace</p>
           </div>
           
           <form onSubmit={handleLogin} className="space-y-4">
@@ -966,7 +989,7 @@ function Admin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Admin password"
-                className="w-full p-4 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02]"
                 style={{ 
                   borderColor: theme.border, 
                   backgroundColor: theme.background,
@@ -977,10 +1000,14 @@ function Admin() {
             </div>
             <button
               type="submit"
-              className="w-full p-4 rounded-lg font-semibold transition-colors hover:opacity-90"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+              style={{ 
+                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
+                color: theme.textOnPrimary,
+                boxShadow: `0 4px 15px ${theme.primary}40`
+              }}
             >
-              Access Admin Panel
+              Enter The Calming Place ☕
             </button>
           </form>
         </div>
@@ -989,37 +1016,72 @@ function Admin() {
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row overflow-hidden" style={{ backgroundColor: '#f8fafc' }}>
+    <>
+      <WelcomeModal 
+        isOpen={showWelcomeModal}
+        onClose={() => setShowWelcomeModal(false)}
+        theme={theme}
+      />
+      
+      <div className="h-screen flex flex-col lg:flex-row overflow-hidden relative" style={{ 
+        backgroundColor: theme.background,
+        backgroundImage: `linear-gradient(135deg, ${theme.primaryLight}08 0%, ${theme.background} 100%)`
+      }}>
+        {/* Decorative Coffee & Book Elements */}
+        <div className="fixed inset-0 pointer-events-none opacity-5 z-0">
+          <Coffee size={400} className="absolute top-20 right-20 rotate-12" style={{ color: theme.accent }} />
+          <Book size={300} className="absolute bottom-40 left-20 -rotate-12" style={{ color: theme.primary }} />
+          <Coffee size={250} className="absolute top-1/2 left-1/3 rotate-45" style={{ color: theme.secondary }} />
+        </div>
+        
       {/* Mobile Header Navigation */}
-      <div className="lg:hidden bg-white border-b" style={{ borderColor: theme.border }}>
+      <div className="lg:hidden border-b relative z-10" style={{ 
+        borderColor: theme.border,
+        backgroundColor: theme.cardBackground,
+        backdropFilter: 'blur(10px)'
+      }}>
         <div className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-                <Wrench size={16} style={{ color: theme.primary }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ 
+                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
+                boxShadow: `0 4px 15px ${theme.primary}40`
+              }}>
+                <Book size={20} style={{ color: '#FFFFFF' }} />
               </div>
               <div>
-                <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
-                <p className="text-xs" style={{ color: theme.textLight }}>The Pep Planner</p>
+                <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Calming Place</h1>
+                <p className="text-xs" style={{ color: theme.textLight }}>Welcome, Mrs. FloralKaffe</p>
               </div>
+            </div>
+            {/* Coffee/Wine Chip - Mobile */}
+            <div 
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg animate-pulse"
+              style={{ 
+                backgroundColor: timeColor + '20',
+                border: `1px solid ${timeColor}40`,
+                boxShadow: `0 2px 8px ${timeColor}30`
+              }}>
+              <TimeIcon size={14} className="animate-bounce" style={{ color: timeColor }} />
+              <span className="text-xs font-semibold" style={{ color: timeColor }}>{timeMessage}</span>
             </div>
           </div>
           
-          {/* Mobile Tab Navigation */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 px-1" style={{ scrollbarWidth: 'thin' }}>
+          {/* Mobile Tab Navigation - Modern Compact */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {[
-              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#3b82f6' },
-              { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981' },
-              { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b' },
-              { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6' },
-              { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6' },
-              { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary },
-              { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b' },
-              { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444' },
-              { id: 'gifts', label: 'Gifts', icon: Star, color: '#ec4899' },
-            { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981' },
-              { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4' },
-              { id: 'improvements', label: 'Improvements', icon: Target, color: '#8b5cf6' }
+              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: '#3b82f6', short: 'Stats' },
+              { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981', short: 'Users' },
+              { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b', short: 'Beta' },
+              { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6', short: 'Content' },
+              { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6', short: 'Feedback' },
+              { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary, short: 'Posts' },
+              { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b', short: 'Flags' },
+              { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444', short: 'Legal' },
+              { id: 'gifts', label: 'Gifts', icon: Star, color: '#ec4899', short: 'Gifts' },
+              { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981', short: 'Notify' },
+              { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4', short: 'Email' },
+              { id: 'improvements', label: 'Improvements', icon: Target, color: '#8b5cf6', short: 'Ideas' }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1027,18 +1089,19 @@ function Admin() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                    isActive ? 'shadow-md' : 'hover:opacity-70'
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${
+                    isActive ? 'shadow-sm' : 'hover:opacity-80'
                   }`}
                   style={{ 
-                    backgroundColor: isActive ? tab.color + '15' : theme.background,
+                    backgroundColor: isActive ? tab.color + '15' : 'transparent',
                     color: isActive ? tab.color : theme.textLight,
-                    border: `1px solid ${isActive ? tab.color + '40' : theme.border}`,
-                    minWidth: '70px'
+                    border: `1px solid ${isActive ? tab.color + '30' : 'transparent'}`,
+                    minWidth: 'auto'
                   }}
                 >
-                  <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                  <span>{tab.label}</span>
+                  <Icon size={14} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.short}</span>
                   {/* Show count badges on mobile too */}
                   {tab.id === 'analytics' && analytics.totalUsers > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
@@ -1083,17 +1146,36 @@ function Admin() {
       </div>
 
       {/* Desktop Sidebar Navigation */}
-      <div className="hidden lg:flex lg:w-64 bg-white border-r flex-col h-screen sticky top-0" style={{ borderColor: theme.border }}>
+      <div className="hidden lg:flex lg:w-64 border-r flex-col h-screen sticky top-0 relative z-10 backdrop-blur-sm" style={{ 
+        borderColor: theme.border,
+        backgroundColor: theme.cardBackground,
+        boxShadow: `2px 0 12px ${theme.primary}10`
+      }}>
         {/* Header */}
-        <div className="p-6 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-              <Wrench size={20} style={{ color: theme.primary }} />
+        <div className="p-6 border-b flex-shrink-0" style={{ borderColor: theme.border + '40' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ 
+              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
+              boxShadow: `0 4px 15px ${theme.primary}40`
+            }}>
+              <Book size={24} style={{ color: '#FFFFFF' }} />
             </div>
-            <div>
-              <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>Admin Panel</h1>
-              <p className="text-xs" style={{ color: theme.textLight }}>The Pep Planner</p>
+            <div className="flex-1">
+              <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Calming Place</h1>
+              <p className="text-xs" style={{ color: theme.textLight }}>Welcome, Mrs. FloralKaffe</p>
             </div>
+          </div>
+          {/* Coffee/Wine Chip - Desktop */}
+          <div 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+            style={{ 
+              backgroundColor: timeColor + '15',
+              border: `1px solid ${timeColor}30`,
+              boxShadow: `0 2px 8px ${timeColor}20`,
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }}>
+            <TimeIcon size={14} className="animate-bounce" style={{ color: timeColor }} />
+            <span className="text-xs font-semibold animate-pulse" style={{ color: timeColor }}>{timeMessage}</span>
           </div>
         </div>
 
@@ -1188,6 +1270,14 @@ function Admin() {
               desc: 'Track potential improvements',
               color: '#8b5cf6' 
             },
+            { 
+              id: 'gifts', 
+              label: 'Gifts', 
+              icon: Star, 
+              count: giftAnalytics.total || 0,
+              desc: 'Gift subscriptions & analytics',
+              color: '#ec4899' 
+            },
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1223,25 +1313,22 @@ function Admin() {
             );
           })}
         </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t" style={{ borderColor: theme.border }}>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: theme.success + '10' }}>
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.success }}></div>
-            <span className="text-xs font-medium" style={{ color: theme.success }}>Admin Active</span>
-          </div>
-        </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative z-10">
         {/* Top Header */}
-        <div className="bg-white border-b p-4 lg:p-6 flex-shrink-0" style={{ borderColor: theme.border }}>
+        <div className="border-b p-4 lg:p-6 flex-shrink-0 relative z-10 backdrop-blur-sm" style={{ 
+          borderColor: theme.border + '40',
+          backgroundColor: theme.cardBackground,
+          boxShadow: `0 2px 8px ${theme.primary}05`
+        }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+            <div className="flex-1">
               <h2 className="text-2xl font-bold capitalize" style={{ color: theme.primaryDark }}>
                 {activeTab === 'subscriptions' ? 'User Management' : 
                  activeTab === 'lifetime' ? 'Lifetime Access' :
+                 activeTab === 'gifts' ? 'Gift Subscriptions' :
                  activeTab.replace(/([A-Z])/g, ' $1').trim()}
               </h2>
               <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -1256,7 +1343,22 @@ function Admin() {
                 {activeTab === 'notifications' && 'Customize notification templates and automated push notifications'}
                 {activeTab === 'emails' && 'Design beautiful branded email templates - no coding required!'}
                 {activeTab === 'improvements' && 'Track potential improvements and future features for The Pep Planner'}
+                {activeTab === 'gifts' && 'Manage gift subscriptions, track analytics, and view recent gifts'}
               </p>
+            </div>
+            {/* Coffee/Wine Chip - Desktop Header */}
+            <div className="hidden lg:flex items-center gap-2">
+              <div 
+                className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                style={{ 
+                  backgroundColor: timeColor + '15',
+                  border: `1px solid ${timeColor}30`,
+                  boxShadow: `0 2px 8px ${timeColor}20`,
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                }}>
+                <TimeIcon size={16} className="animate-bounce" style={{ color: timeColor }} />
+                <span className="text-sm font-semibold animate-pulse" style={{ color: timeColor }}>{timeMessage}</span>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {activeTab === 'announcements' && (
@@ -2854,6 +2956,7 @@ function Admin() {
         </Modal>
       )}
     </div>
+    </>
   );
 }
 
