@@ -3,7 +3,8 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -1030,7 +1031,7 @@ function Admin() {
                         backgroundColor: isActive ? item.color + '20' : item.color + '10'
                       }}
                     >
-                      <Icon size={14} style={{ color: item.color }} />
+                      <Icon size={16} strokeWidth={2.5} style={{ color: item.color }} />
                     </div>
                     <div className="flex-1 flex items-center justify-between min-w-0">
                       <span 
@@ -1298,12 +1299,12 @@ function Admin() {
             {renderNavGroup({
               id: 'overview',
               title: 'Overview',
-              icon: Layout,
+              icon: LayoutDashboard,
               items: [
                 { 
                   id: 'analytics', 
                   label: 'Analytics', 
-                  icon: BarChart3, 
+                  icon: TrendingUp, 
                   count: analytics.totalUsers || 0,
                   color: '#3b82f6' 
                 }
@@ -1326,14 +1327,14 @@ function Admin() {
                 { 
                   id: 'lifetime', 
                   label: 'Lifetime', 
-                  icon: Award, 
+                  icon: Crown, 
                   count: lifetimeUsers.length || 0,
                   color: '#f59e0b' 
                 },
                 { 
                   id: 'gifts', 
                   label: 'Gifts', 
-                  icon: Star, 
+                  icon: Gift, 
                   count: giftAnalytics.total || 0,
                   color: '#ec4899' 
                 }
@@ -1344,26 +1345,26 @@ function Admin() {
             {renderNavGroup({
               id: 'content',
               title: 'Content & Feedback',
-              icon: BookOpen,
+              icon: Layers,
               items: [
                 { 
                   id: 'content', 
                   label: 'Content', 
-                  icon: BookOpen, 
+                  icon: Layers, 
                   count: 0,
                   color: '#8b5cf6'
                 },
                 { 
                   id: 'feedback', 
                   label: 'Feedback', 
-                  icon: MessageCircle, 
+                  icon: MessagesSquare, 
                   count: feedback.filter(f => f.status === 'new').length,
                   color: '#8b5cf6' 
                 },
                 { 
                   id: 'improvements', 
                   label: 'Ideas', 
-                  icon: Target, 
+                  icon: Lightbulb, 
                   count: 0,
                   color: '#8b5cf6' 
                 }
@@ -1374,26 +1375,26 @@ function Admin() {
             {renderNavGroup({
               id: 'communications',
               title: 'Communications',
-              icon: Mail,
+              icon: MailOpen,
               items: [
                 { 
                   id: 'announcements', 
                   label: 'Announcements', 
-                  icon: Megaphone, 
+                  icon: Radio, 
                   count: announcements.length,
                   color: theme.primary 
                 },
                 { 
                   id: 'notifications', 
                   label: 'Notifications', 
-                  icon: Bell, 
+                  icon: BellRing, 
                   count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length,
                   color: '#10b981' 
                 },
                 { 
                   id: 'emails', 
                   label: 'Email Templates', 
-                  icon: Mail, 
+                  icon: MailOpen, 
                   count: 0,
                   color: '#06b6d4' 
                 }
@@ -1404,19 +1405,19 @@ function Admin() {
             {renderNavGroup({
               id: 'settings',
               title: 'Settings & Tools',
-              icon: Settings,
+              icon: Sliders,
               items: [
                 { 
                   id: 'features', 
                   label: 'Feature Flags', 
-                  icon: Flag, 
+                  icon: Sliders, 
                   count: Object.keys(featureFlags.betaFeatures || {}).length,
                   color: '#f59e0b' 
                 },
                 { 
                   id: 'agreements', 
                   label: 'Legal', 
-                  icon: Shield, 
+                  icon: FileCheck, 
                   count: 0,
                   color: '#ef4444' 
                 }
