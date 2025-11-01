@@ -968,120 +968,6 @@ function Admin() {
   };
 
 
-  // Render horizontal navigation group with dropdown
-  const renderHorizontalNavGroup = ({ id, title, icon: GroupIcon, items }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const hasActiveItem = items.some(item => item.id === activeTab);
-    
-    // If only one item, render as single button
-    if (items.length === 1) {
-      const item = items[0];
-      const isActive = activeTab === item.id;
-      const Icon = item.icon;
-      
-      return (
-        <button
-          key={item.id}
-          onClick={() => setActiveTab(item.id)}
-          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
-            isActive ? 'shadow-sm' : 'hover:scale-105'
-          }`}
-          style={{
-            backgroundColor: isActive ? item.color + '15' : 'transparent',
-            border: `1px solid ${isActive ? item.color + '30' : 'transparent'}`,
-            color: isActive ? item.color : theme.text
-          }}
-        >
-          <Icon size={16} strokeWidth={2.5} />
-          <span className="text-sm font-medium">{title}</span>
-          {item.count > 0 && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: item.color + '25', color: item.color }}>
-              {item.count}
-            </span>
-          )}
-        </button>
-      );
-    }
-    
-    // Multiple items - render as dropdown
-    return (
-      <div 
-        key={id}
-        className="relative"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <button
-          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
-            hasActiveItem ? 'shadow-sm' : 'hover:scale-105'
-          }`}
-          style={{
-            backgroundColor: hasActiveItem ? theme.primary + '15' : 'transparent',
-            border: `1px solid ${hasActiveItem ? theme.primary + '30' : 'transparent'}`,
-            color: hasActiveItem ? theme.primary : theme.text
-          }}
-        >
-          <GroupIcon size={16} strokeWidth={2.5} />
-          <span className="text-sm font-medium">{title}</span>
-          <ChevronDown 
-            size={14} 
-            className={`transition-transform duration-200 ${isHovered ? 'rotate-180' : ''}`}
-          />
-        </button>
-        
-        {/* Dropdown Menu */}
-        <div 
-          className={`absolute top-full left-0 mt-1 min-w-[200px] rounded-lg shadow-xl transition-all duration-200 ${
-            isHovered ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-          }`}
-          style={{
-            backgroundColor: theme.cardBackground,
-            border: `1px solid ${theme.border}`,
-            boxShadow: `0 8px 24px ${theme.primary}15`
-          }}
-        >
-          <div className="py-2">
-            {items.map(item => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setIsHovered(false);
-                  }}
-                  className={`w-full px-4 py-2.5 flex items-center gap-3 transition-all duration-150 ${
-                    isActive ? '' : 'hover:translate-x-1'
-                  }`}
-                  style={{
-                    backgroundColor: isActive ? item.color + '10' : 'transparent',
-                    color: isActive ? item.color : theme.text
-                  }}
-                >
-                  <div 
-                    className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: item.color + '15' }}
-                  >
-                    <Icon size={14} strokeWidth={2.5} style={{ color: item.color }} />
-                  </div>
-                  <span className={`text-sm flex-1 text-left ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                    {item.label}
-                  </span>
-                  {item.count > 0 && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: item.color + '20', color: item.color }}>
-                      {item.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // Render navigation group with collapsible sections (OLD - kept for mobile)
   const renderNavGroup = ({ id, title, icon: GroupIcon, items }) => {
@@ -1170,6 +1056,119 @@ function Admin() {
                       )}
                     </div>
                   </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Horizontal Nav Components (outside main component to avoid hook issues)
+  const HorizontalNavGroup = ({ id, title, icon: GroupIcon, items, activeTab, setActiveTab, theme }) => {
+    const [isHovered, setIsHovered] = React.useState(false);
+    const hasActiveItem = items.some(item => item.id === activeTab);
+    
+    // If only one item, render as single button
+    if (items.length === 1) {
+      const item = items[0];
+      const isActive = activeTab === item.id;
+      const Icon = item.icon;
+      
+      return (
+        <button
+          onClick={() => setActiveTab(item.id)}
+          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
+            isActive ? 'shadow-sm' : 'hover:scale-105'
+          }`}
+          style={{
+            backgroundColor: isActive ? item.color + '15' : 'transparent',
+            border: `1px solid ${isActive ? item.color + '30' : 'transparent'}`,
+            color: isActive ? item.color : theme.text
+          }}
+        >
+          <Icon size={16} strokeWidth={2.5} />
+          <span className="text-sm font-medium">{title}</span>
+          {item.count > 0 && (
+            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: item.color + '25', color: item.color }}>
+              {item.count}
+            </span>
+          )}
+        </button>
+      );
+    }
+    
+    // Multiple items - render as dropdown
+    return (
+      <div 
+        className="relative"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <button
+          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
+            hasActiveItem ? 'shadow-sm' : 'hover:scale-105'
+          }`}
+          style={{
+            backgroundColor: hasActiveItem ? theme.primary + '15' : 'transparent',
+            border: `1px solid ${hasActiveItem ? theme.primary + '30' : 'transparent'}`,
+            color: hasActiveItem ? theme.primary : theme.text
+          }}
+        >
+          <GroupIcon size={16} strokeWidth={2.5} />
+          <span className="text-sm font-medium">{title}</span>
+          <ChevronDown 
+            size={14} 
+            className={`transition-transform duration-200 ${isHovered ? 'rotate-180' : ''}`}
+          />
+        </button>
+        
+        {/* Dropdown Menu */}
+        <div 
+          className={`absolute top-full left-0 mt-1 min-w-[200px] rounded-lg shadow-xl transition-all duration-200 z-50 ${
+            isHovered ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
+          }`}
+          style={{
+            backgroundColor: theme.cardBackground,
+            border: `1px solid ${theme.border}`,
+            boxShadow: `0 8px 24px ${theme.primary}15`
+          }}
+        >
+          <div className="py-2">
+            {items.map(item => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsHovered(false);
+                  }}
+                  className={`w-full px-4 py-2.5 flex items-center gap-3 transition-all duration-150 ${
+                    isActive ? '' : 'hover:translate-x-1'
+                  }`}
+                  style={{
+                    backgroundColor: isActive ? item.color + '10' : 'transparent',
+                    color: isActive ? item.color : theme.text
+                  }}
+                >
+                  <div 
+                    className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: item.color + '15' }}
+                  >
+                    <Icon size={14} strokeWidth={2.5} style={{ color: item.color }} />
+                  </div>
+                  <span className={`text-sm flex-1 text-left ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                    {item.label}
+                  </span>
+                  {item.count > 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: item.color + '20', color: item.color }}>
+                      {item.count}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -1287,57 +1286,72 @@ function Admin() {
             
             {/* Horizontal Navigation Menu */}
             <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-4xl">
-              {renderHorizontalNavGroup({
-                id: 'overview',
-                title: 'Overview',
-                icon: LayoutDashboard,
-                items: [
+              <HorizontalNavGroup
+                id="overview"
+                title="Overview"
+                icon={LayoutDashboard}
+                items={[
                   { id: 'analytics', label: 'Analytics', icon: TrendingUp, count: analytics.totalUsers || 0, color: '#3b82f6' }
-                ]
-              })}
+                ]}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
               
-              {renderHorizontalNavGroup({
-                id: 'users',
-                title: 'Users',
-                icon: Users,
-                items: [
+              <HorizontalNavGroup
+                id="users"
+                title="Users"
+                icon={Users}
+                items={[
                   { id: 'subscriptions', label: 'Users', icon: Users, count: subscriptions.total || 0, color: '#10b981' },
                   { id: 'lifetime', label: 'Lifetime', icon: Crown, count: lifetimeUsers.length || 0, color: '#f59e0b' },
                   { id: 'gifts', label: 'Gifts', icon: Gift, count: giftAnalytics.total || 0, color: '#ec4899' }
-                ]
-              })}
+                ]}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
               
-              {renderHorizontalNavGroup({
-                id: 'content',
-                title: 'Content',
-                icon: Layers,
-                items: [
+              <HorizontalNavGroup
+                id="content"
+                title="Content"
+                icon={Layers}
+                items={[
                   { id: 'content', label: 'Content', icon: Layers, count: 0, color: '#8b5cf6' },
                   { id: 'feedback', label: 'Feedback', icon: MessagesSquare, count: feedback.filter(f => f.status === 'new').length, color: '#8b5cf6' },
                   { id: 'improvements', label: 'Ideas', icon: Lightbulb, count: 0, color: '#8b5cf6' }
-                ]
-              })}
+                ]}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
               
-              {renderHorizontalNavGroup({
-                id: 'communications',
-                title: 'Comms',
-                icon: MailOpen,
-                items: [
+              <HorizontalNavGroup
+                id="communications"
+                title="Comms"
+                icon={MailOpen}
+                items={[
                   { id: 'announcements', label: 'Announcements', icon: Radio, count: announcements.length, color: theme.primary },
                   { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#10b981' },
                   { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#06b6d4' }
-                ]
-              })}
+                ]}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
               
-              {renderHorizontalNavGroup({
-                id: 'settings',
-                title: 'Settings',
-                icon: Sliders,
-                items: [
+              <HorizontalNavGroup
+                id="settings"
+                title="Settings"
+                icon={Sliders}
+                items={[
                   { id: 'features', label: 'Feature Flags', icon: Sliders, count: Object.keys(featureFlags.betaFeatures || {}).length, color: '#f59e0b' },
                   { id: 'agreements', label: 'Legal', icon: FileCheck, count: 0, color: '#ef4444' }
-                ]
-              })}
+                ]}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
             </div>
             
             {/* Coffee/Wine Chip */}
