@@ -4,11 +4,9 @@ service cloud.firestore {
     
     // Helper function to check if user is admin
     function isAdmin() {
-      // You can implement admin checking logic here if needed
-      // For now, we'll use a simple approach
-      return request.auth != null && request.auth.token.email in [
-        'lebrockmaldonado@gmail.com' // Replace with your actual admin email
-      ];
+      // Check if authenticated user's email matches admin email
+      return request.auth != null && 
+             request.auth.token.email == 'lebrockmaldonado@gmail.com';
     }
     
     // Users can only read/write their own user document

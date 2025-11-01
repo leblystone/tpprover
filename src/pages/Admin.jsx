@@ -493,7 +493,7 @@ function Admin() {
   const loadStripeData = async () => {
     try {
       const functions = getFunctions();
-      const getStripeSubscriptions = httpsCallable(functions, 'stripe-getStripeSubscriptions');
+      const getStripeSubscriptions = httpsCallable(functions, 'getStripeSubscriptions');
       const result = await getStripeSubscriptions();
       setStripeSubscriptions(result.data.data);
     } catch (error) {
@@ -968,7 +968,122 @@ function Admin() {
   };
 
 
-  // Render navigation group with collapsible sections
+  // Render horizontal navigation group with dropdown
+  const renderHorizontalNavGroup = ({ id, title, icon: GroupIcon, items }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const hasActiveItem = items.some(item => item.id === activeTab);
+    
+    // If only one item, render as single button
+    if (items.length === 1) {
+      const item = items[0];
+      const isActive = activeTab === item.id;
+      const Icon = item.icon;
+      
+      return (
+        <button
+          key={item.id}
+          onClick={() => setActiveTab(item.id)}
+          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
+            isActive ? 'shadow-sm' : 'hover:scale-105'
+          }`}
+          style={{
+            backgroundColor: isActive ? item.color + '15' : 'transparent',
+            border: `1px solid ${isActive ? item.color + '30' : 'transparent'}`,
+            color: isActive ? item.color : theme.text
+          }}
+        >
+          <Icon size={16} strokeWidth={2.5} />
+          <span className="text-sm font-medium">{title}</span>
+          {item.count > 0 && (
+            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: item.color + '25', color: item.color }}>
+              {item.count}
+            </span>
+          )}
+        </button>
+      );
+    }
+    
+    // Multiple items - render as dropdown
+    return (
+      <div 
+        key={id}
+        className="relative"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <button
+          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 ${
+            hasActiveItem ? 'shadow-sm' : 'hover:scale-105'
+          }`}
+          style={{
+            backgroundColor: hasActiveItem ? theme.primary + '15' : 'transparent',
+            border: `1px solid ${hasActiveItem ? theme.primary + '30' : 'transparent'}`,
+            color: hasActiveItem ? theme.primary : theme.text
+          }}
+        >
+          <GroupIcon size={16} strokeWidth={2.5} />
+          <span className="text-sm font-medium">{title}</span>
+          <ChevronDown 
+            size={14} 
+            className={`transition-transform duration-200 ${isHovered ? 'rotate-180' : ''}`}
+          />
+        </button>
+        
+        {/* Dropdown Menu */}
+        <div 
+          className={`absolute top-full left-0 mt-1 min-w-[200px] rounded-lg shadow-xl transition-all duration-200 ${
+            isHovered ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
+          }`}
+          style={{
+            backgroundColor: theme.cardBackground,
+            border: `1px solid ${theme.border}`,
+            boxShadow: `0 8px 24px ${theme.primary}15`
+          }}
+        >
+          <div className="py-2">
+            {items.map(item => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsHovered(false);
+                  }}
+                  className={`w-full px-4 py-2.5 flex items-center gap-3 transition-all duration-150 ${
+                    isActive ? '' : 'hover:translate-x-1'
+                  }`}
+                  style={{
+                    backgroundColor: isActive ? item.color + '10' : 'transparent',
+                    color: isActive ? item.color : theme.text
+                  }}
+                >
+                  <div 
+                    className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: item.color + '15' }}
+                  >
+                    <Icon size={14} strokeWidth={2.5} style={{ color: item.color }} />
+                  </div>
+                  <span className={`text-sm flex-1 text-left ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                    {item.label}
+                  </span>
+                  {item.count > 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: item.color + '20', color: item.color }}>
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render navigation group with collapsible sections (OLD - kept for mobile)
   const renderNavGroup = ({ id, title, icon: GroupIcon, items }) => {
     const isExpanded = expandedGroups[id];
     const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
@@ -1136,7 +1251,7 @@ function Admin() {
         theme={theme}
       />
       
-      <div className="h-screen flex flex-col lg:flex-row overflow-hidden relative" style={{ 
+      <div className="h-screen flex flex-col overflow-hidden relative" style={{ 
         backgroundColor: theme.background,
         backgroundImage: `linear-gradient(135deg, ${theme.primaryLight}08 0%, ${theme.background} 100%)`
       }}>
@@ -1147,14 +1262,16 @@ function Admin() {
           <Coffee size={250} className="absolute top-1/2 left-1/3 rotate-45" style={{ color: theme.secondary }} />
         </div>
         
-      {/* Mobile Header Navigation */}
-      <div className="lg:hidden border-b relative z-10" style={{ 
-        borderColor: theme.border,
+      {/* Top Navigation Bar */}
+      <div className="border-b relative z-10 flex-shrink-0" style={{ 
+        borderColor: theme.border + '40',
         backgroundColor: theme.cardBackground,
-        backdropFilter: 'blur(10px)'
+        backdropFilter: 'blur(10px)',
+        boxShadow: `0 2px 12px ${theme.primary}05`
       }}>
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-4 lg:px-6 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo & Title */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ 
                 background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
@@ -1164,21 +1281,81 @@ function Admin() {
               </div>
               <div>
                 <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Calming Place</h1>
-                <p className="text-xs" style={{ color: theme.textLight }}>Welcome, Mrs. FloralKaffe</p>
+                <p className="text-xs hidden sm:block" style={{ color: theme.textLight }}>Welcome, Mrs. FloralKaffe</p>
               </div>
             </div>
-            {/* Coffee/Wine Chip - Mobile */}
+            
+            {/* Horizontal Navigation Menu */}
+            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-4xl">
+              {renderHorizontalNavGroup({
+                id: 'overview',
+                title: 'Overview',
+                icon: LayoutDashboard,
+                items: [
+                  { id: 'analytics', label: 'Analytics', icon: TrendingUp, count: analytics.totalUsers || 0, color: '#3b82f6' }
+                ]
+              })}
+              
+              {renderHorizontalNavGroup({
+                id: 'users',
+                title: 'Users',
+                icon: Users,
+                items: [
+                  { id: 'subscriptions', label: 'Users', icon: Users, count: subscriptions.total || 0, color: '#10b981' },
+                  { id: 'lifetime', label: 'Lifetime', icon: Crown, count: lifetimeUsers.length || 0, color: '#f59e0b' },
+                  { id: 'gifts', label: 'Gifts', icon: Gift, count: giftAnalytics.total || 0, color: '#ec4899' }
+                ]
+              })}
+              
+              {renderHorizontalNavGroup({
+                id: 'content',
+                title: 'Content',
+                icon: Layers,
+                items: [
+                  { id: 'content', label: 'Content', icon: Layers, count: 0, color: '#8b5cf6' },
+                  { id: 'feedback', label: 'Feedback', icon: MessagesSquare, count: feedback.filter(f => f.status === 'new').length, color: '#8b5cf6' },
+                  { id: 'improvements', label: 'Ideas', icon: Lightbulb, count: 0, color: '#8b5cf6' }
+                ]
+              })}
+              
+              {renderHorizontalNavGroup({
+                id: 'communications',
+                title: 'Comms',
+                icon: MailOpen,
+                items: [
+                  { id: 'announcements', label: 'Announcements', icon: Radio, count: announcements.length, color: theme.primary },
+                  { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#10b981' },
+                  { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#06b6d4' }
+                ]
+              })}
+              
+              {renderHorizontalNavGroup({
+                id: 'settings',
+                title: 'Settings',
+                icon: Sliders,
+                items: [
+                  { id: 'features', label: 'Feature Flags', icon: Sliders, count: Object.keys(featureFlags.betaFeatures || {}).length, color: '#f59e0b' },
+                  { id: 'agreements', label: 'Legal', icon: FileCheck, count: 0, color: '#ef4444' }
+                ]
+              })}
+            </div>
+            
+            {/* Coffee/Wine Chip */}
             <div 
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg animate-pulse"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
               style={{ 
-                backgroundColor: timeColor + '20',
-                border: `1px solid ${timeColor}40`,
-                boxShadow: `0 2px 8px ${timeColor}30`
+                backgroundColor: timeColor + '15',
+                border: `1px solid ${timeColor}30`,
+                boxShadow: `0 2px 8px ${timeColor}20`,
+                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
               }}>
               <TimeIcon size={14} className="animate-bounce" style={{ color: timeColor }} />
-              <span className="text-xs font-semibold" style={{ color: timeColor }}>{timeMessage}</span>
+              <span className="text-xs font-semibold hidden sm:inline" style={{ color: timeColor }}>{timeMessage}</span>
             </div>
           </div>
+          
+          {/* Mobile Menu Dropdown */}
+          <div className="lg:hidden mt-3">
           
           {/* Mobile Tab Navigation - Modern Compact */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -1258,220 +1435,11 @@ function Admin() {
         </div>
       </div>
 
-      {/* Desktop Sidebar Navigation */}
-      <div className="hidden lg:flex lg:w-64 border-r flex-col h-screen sticky top-0 relative z-10 backdrop-blur-sm" style={{ 
-        borderColor: theme.border,
-        backgroundColor: theme.cardBackground,
-        boxShadow: `2px 0 12px ${theme.primary}10`
-      }}>
-        {/* Header */}
-        <div className="p-6 border-b flex-shrink-0" style={{ borderColor: theme.border + '40' }}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ 
-              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
-              boxShadow: `0 4px 15px ${theme.primary}40`
-            }}>
-              <Book size={24} style={{ color: '#FFFFFF' }} />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Calming Place</h1>
-              <p className="text-xs" style={{ color: theme.textLight }}>Welcome, Mrs. FloralKaffe</p>
-            </div>
-          </div>
-          {/* Coffee/Wine Chip - Desktop */}
-          <div 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-            style={{ 
-              backgroundColor: timeColor + '15',
-              border: `1px solid ${timeColor}30`,
-              boxShadow: `0 2px 8px ${timeColor}20`,
-              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-            }}>
-            <TimeIcon size={14} className="animate-bounce" style={{ color: timeColor }} />
-            <span className="text-xs font-semibold animate-pulse" style={{ color: timeColor }}>{timeMessage}</span>
-          </div>
-        </div>
-
-        {/* Navigation Items - Grouped Collapsible Sections */}
-        <nav className="flex-1 p-3 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-          <div className="space-y-1">
-            {/* Overview Section */}
-            {renderNavGroup({
-              id: 'overview',
-              title: 'Overview',
-              icon: LayoutDashboard,
-              items: [
-                { 
-                  id: 'analytics', 
-                  label: 'Analytics', 
-                  icon: TrendingUp, 
-                  count: analytics.totalUsers || 0,
-                  color: '#3b82f6' 
-                }
-              ]
-            })}
-            
-            {/* Users & Access Section */}
-            {renderNavGroup({
-              id: 'users',
-              title: 'Users & Access',
-              icon: Users,
-              items: [
-                { 
-                  id: 'subscriptions', 
-                  label: 'Users', 
-                  icon: Users, 
-                  count: subscriptions.total || 0,
-                  color: '#10b981' 
-                },
-                { 
-                  id: 'lifetime', 
-                  label: 'Lifetime', 
-                  icon: Crown, 
-                  count: lifetimeUsers.length || 0,
-                  color: '#f59e0b' 
-                },
-                { 
-                  id: 'gifts', 
-                  label: 'Gifts', 
-                  icon: Gift, 
-                  count: giftAnalytics.total || 0,
-                  color: '#ec4899' 
-                }
-              ]
-            })}
-            
-            {/* Content & Feedback Section */}
-            {renderNavGroup({
-              id: 'content',
-              title: 'Content & Feedback',
-              icon: Layers,
-              items: [
-                { 
-                  id: 'content', 
-                  label: 'Content', 
-                  icon: Layers, 
-                  count: 0,
-                  color: '#8b5cf6'
-                },
-                { 
-                  id: 'feedback', 
-                  label: 'Feedback', 
-                  icon: MessagesSquare, 
-                  count: feedback.filter(f => f.status === 'new').length,
-                  color: '#8b5cf6' 
-                },
-                { 
-                  id: 'improvements', 
-                  label: 'Ideas', 
-                  icon: Lightbulb, 
-                  count: 0,
-                  color: '#8b5cf6' 
-                }
-              ]
-            })}
-            
-            {/* Communications Section */}
-            {renderNavGroup({
-              id: 'communications',
-              title: 'Communications',
-              icon: MailOpen,
-              items: [
-                { 
-                  id: 'announcements', 
-                  label: 'Announcements', 
-                  icon: Radio, 
-                  count: announcements.length,
-                  color: theme.primary 
-                },
-                { 
-                  id: 'notifications', 
-                  label: 'Notifications', 
-                  icon: BellRing, 
-                  count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length,
-                  color: '#10b981' 
-                },
-                { 
-                  id: 'emails', 
-                  label: 'Email Templates', 
-                  icon: MailOpen, 
-                  count: 0,
-                  color: '#06b6d4' 
-                }
-              ]
-            })}
-            
-            {/* Settings & Tools Section */}
-            {renderNavGroup({
-              id: 'settings',
-              title: 'Settings & Tools',
-              icon: Sliders,
-              items: [
-                { 
-                  id: 'features', 
-                  label: 'Feature Flags', 
-                  icon: Sliders, 
-                  count: Object.keys(featureFlags.betaFeatures || {}).length,
-                  color: '#f59e0b' 
-                },
-                { 
-                  id: 'agreements', 
-                  label: 'Legal', 
-                  icon: FileCheck, 
-                  count: 0,
-                  color: '#ef4444' 
-                }
-              ]
-            })}
-          </div>
-        </nav>
-      </div>
-
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative z-10">
-        {/* Top Header */}
-        <div className="border-b p-4 lg:p-6 flex-shrink-0 relative z-10 backdrop-blur-sm" style={{ 
-          borderColor: theme.border + '40',
-          backgroundColor: theme.cardBackground,
-          boxShadow: `0 2px 8px ${theme.primary}05`
-        }}>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
+        {/* Page Title Bar */}
+        <div className="p-4 lg:p-6 flex-shrink-0 relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold capitalize" style={{ color: theme.primaryDark }}>
-                {activeTab === 'subscriptions' ? 'User Management' : 
-                 activeTab === 'lifetime' ? 'Lifetime Access' :
-                 activeTab === 'gifts' ? 'Gift Subscriptions' :
-                 activeTab.replace(/([A-Z])/g, ' $1').trim()}
-              </h2>
-              <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                {activeTab === 'analytics' && 'Real-time platform analytics and user insights'}
-                {activeTab === 'subscriptions' && 'User management, subscriptions, and account status'}
-                {activeTab === 'lifetime' && 'Manage and grant lifetime access to users'}
-                {activeTab === 'content' && 'Manage research topics and other in-app content'}
-                {activeTab === 'feedback' && 'User feedback management with keyword-based categorization'}
-                {activeTab === 'announcements' && 'Manage app-wide announcements and notifications'}
-                {activeTab === 'features' && 'Control feature rollouts and beta experiments'}
-                {activeTab === 'agreements' && 'Track user agreement timestamps and legal compliance data'}
-                {activeTab === 'notifications' && 'Customize notification templates and automated push notifications'}
-                {activeTab === 'emails' && 'Design beautiful branded email templates - no coding required!'}
-                {activeTab === 'improvements' && 'Track potential improvements and future features for The Pep Planner'}
-                {activeTab === 'gifts' && 'Manage gift subscriptions, track analytics, and view recent gifts'}
-              </p>
-            </div>
-            {/* Coffee/Wine Chip - Desktop Header */}
-            <div className="hidden lg:flex items-center gap-2">
-              <div 
-                className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                style={{ 
-                  backgroundColor: timeColor + '15',
-                  border: `1px solid ${timeColor}30`,
-                  boxShadow: `0 2px 8px ${timeColor}20`,
-                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                }}>
-                <TimeIcon size={16} className="animate-bounce" style={{ color: timeColor }} />
-                <span className="text-sm font-semibold animate-pulse" style={{ color: timeColor }}>{timeMessage}</span>
-              </div>
-            </div>
             <div className="flex items-center gap-3">
               {activeTab === 'announcements' && (
                 <button
@@ -3074,7 +3042,8 @@ function Admin() {
             </div>
           </div>
         </Modal>
-      )}
+        )}
+      </div>
     </div>
     </>
   );
