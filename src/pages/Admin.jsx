@@ -1251,6 +1251,9 @@ function Admin() {
     );
   };
 
+  // Check if Firebase user is admin
+  const isFirebaseAdmin = firebaseUser?.email === 'lebrockmaldonado@gmail.com';
+  
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
@@ -1437,17 +1440,44 @@ function Admin() {
               />
             </div>
             
-            {/* Coffee/Wine Chip */}
-            <div 
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-              style={{ 
-                backgroundColor: timeColor + '15',
-                border: `1px solid ${timeColor}30`,
-                boxShadow: `0 2px 8px ${timeColor}20`,
-                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-              }}>
-              <TimeIcon size={14} className="animate-bounce" style={{ color: timeColor }} />
-              <span className="text-xs font-semibold hidden sm:inline" style={{ color: timeColor }}>{timeMessage}</span>
+            {/* Coffee/Wine Chip & Refresh Button */}
+            <div className="flex items-center gap-2">
+              {/* Refresh Button - Icon Only */}
+              {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
+                <button
+                  onClick={() => {
+                    if (activeTab === 'lifetime') {
+                      loadLifetimeUsers();
+                    } else {
+                      loadRealAnalytics();
+                      loadUserData();
+                    }
+                  }}
+                  disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
+                  className="p-2 rounded-lg flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ 
+                    backgroundColor: calmingPlacePalette.periwinkle.main + '20',
+                    border: `1px solid ${calmingPlacePalette.periwinkle.main}40`,
+                    color: calmingPlacePalette.periwinkle.dark,
+                    boxShadow: `0 2px 6px ${calmingPlacePalette.periwinkle.main}20`
+                  }}
+                  title="Refresh Data"
+                >
+                  <RefreshCw size={16} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
+                </button>
+              )}
+              
+              <div 
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                style={{ 
+                  backgroundColor: timeColor + '15',
+                  border: `1px solid ${timeColor}30`,
+                  boxShadow: `0 2px 8px ${timeColor}20`,
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                }}>
+                <TimeIcon size={14} className="animate-bounce" style={{ color: timeColor }} />
+                <span className="text-xs font-semibold hidden sm:inline" style={{ color: timeColor }}>{timeMessage}</span>
+              </div>
             </div>
           </div>
           
@@ -1560,31 +1590,6 @@ function Admin() {
               )}
             </div>
             
-            {/* Refresh Button - Top Right */}
-            {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
-              <button
-                onClick={() => {
-                  if (activeTab === 'lifetime') {
-                    loadLifetimeUsers();
-                  } else {
-                    loadRealAnalytics();
-                    loadUserData();
-                  }
-                }}
-                disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
-                className="px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ 
-                  background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.main} 0%, ${calmingPlacePalette.periwinkle.dark} 100%)`,
-                  color: '#FFFFFF',
-                  boxShadow: `0 4px 12px ${calmingPlacePalette.periwinkle.main}40`,
-                  border: `2px solid ${calmingPlacePalette.periwinkle.light}`
-                }}
-                title="Refresh Data"
-              >
-                <RefreshCw size={18} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
-                <span className="hidden sm:inline">Refresh Data</span>
-              </button>
-            )}
           </div>
         </div>
 
