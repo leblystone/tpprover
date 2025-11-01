@@ -219,9 +219,59 @@ const analyzeFeedback = (feedbackList) => {
   };
 };
 
-// The Calming Place - Periwinkle theme for Mrs. FloralKaffe's peaceful workspace
+// Mrs. FloralKaffe's Custom Color Palette 🎨☕📚
+const calmingPlacePalette = {
+  // Main periwinkle (from user's palette)
+  periwinkle: '#C5CBE0',      // Soft, calming periwinkle - MAIN COLOR
+  blue: '#A9BACC',             // Grayish blue - secondary
+  cream: '#F0EAD6',            // Warm cream - backgrounds
+  teal: '#3A6C7C',             // Deep teal - accents
+  sage: '#8D9483',             // Sage green - subtle highlights
+  
+  // Derived shades for depth
+  periwinkleDark: '#9AA5C4',   // Darker periwinkle for contrast
+  periwinkleLight: '#E2E5F0',  // Lighter periwinkle for hover
+  creamDark: '#E6DFC8',        // Slightly darker cream
+  
+  // Coffee & Book themed extensions
+  coffee: {
+    espresso: '#6F5E4F',
+    latte: '#D4A574',
+  },
+  book: {
+    leather: '#8B4513',
+    gold: '#D4AF37',
+    ink: '#2C3E50'
+  },
+  
+  // Functional colors (keeping vibrant for clarity)
+  functional: {
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    info: '#3A6C7C'  // Using teal from palette
+  }
+};
+
+// Apply The Calming Place theme with exact palette colors
 const adminTheme = {
   ...periwinkleTheme,
+  primary: calmingPlacePalette.periwinkle,           // #C5CBE0 - Main periwinkle
+  primaryLight: calmingPlacePalette.periwinkleLight, // Lighter periwinkle
+  primaryDark: calmingPlacePalette.periwinkleDark,   // Darker periwinkle
+  secondary: calmingPlacePalette.blue,               // #A9BACC - Grayish blue
+  accent: calmingPlacePalette.teal,                  // #3A6C7C - Deep teal
+  sage: calmingPlacePalette.sage,                    // #8D9483 - Sage green
+  background: calmingPlacePalette.cream,             // #F0EAD6 - Warm cream
+  cardBackground: '#FFFFFF',
+  success: calmingPlacePalette.functional.success,
+  warning: calmingPlacePalette.functional.warning,
+  error: calmingPlacePalette.functional.error,
+  info: calmingPlacePalette.functional.info,
+  text: calmingPlacePalette.book.ink,                // #2C3E50 - Book ink
+  textLight: '#718096',
+  border: calmingPlacePalette.periwinkle,
+  textOnPrimary: '#FFFFFF',
   successBg: '#ecfdf5',
   accentText: '#ffffff',
   white: '#ffffff'
@@ -1250,15 +1300,25 @@ function Admin() {
         theme={theme}
       />
       
-      <div className="h-screen flex flex-col overflow-hidden relative" style={{ 
-        backgroundColor: theme.background,
-        backgroundImage: `linear-gradient(135deg, ${theme.primaryLight}08 0%, ${theme.background} 100%)`
+      <div className="h-screen flex flex-col relative" style={{ 
+        backgroundColor: calmingPlacePalette.cream,
+        backgroundImage: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle}15 0%, ${calmingPlacePalette.cream} 100%)`
       }}>
-        {/* Decorative Coffee & Book Elements */}
-        <div className="fixed inset-0 pointer-events-none opacity-5 z-0">
-          <Coffee size={400} className="absolute top-20 right-20 rotate-12" style={{ color: theme.accent }} />
-          <Book size={300} className="absolute bottom-40 left-20 -rotate-12" style={{ color: theme.primary }} />
-          <Coffee size={250} className="absolute top-1/2 left-1/3 rotate-45" style={{ color: theme.secondary }} />
+        {/* Enhanced Decorative Coffee & Book Elements with Palette Colors */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          {/* Coffee theme - espresso colors */}
+          <Coffee size={380} className="absolute top-10 right-10 rotate-12 opacity-[0.04]" style={{ color: calmingPlacePalette.coffee.espresso }} />
+          <Coffee size={200} className="absolute bottom-20 right-1/4 -rotate-12 opacity-[0.05]" style={{ color: calmingPlacePalette.coffee.latte }} />
+          <Coffee size={150} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.04]" style={{ color: calmingPlacePalette.coffee.espresso }} />
+          
+          {/* Books theme - periwinkle & blue */}
+          <Book size={320} className="absolute bottom-32 left-10 -rotate-12 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle }} />
+          <Book size={180} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.05]" style={{ color: calmingPlacePalette.blue }} />
+          <BookOpen size={220} className="absolute top-2/3 left-1/2 -rotate-6 opacity-[0.05]" style={{ color: calmingPlacePalette.teal }} />
+          
+          {/* Reading/Learning theme - accents */}
+          <Lightbulb size={160} className="absolute top-1/2 right-1/2 rotate-12 opacity-[0.03]" style={{ color: calmingPlacePalette.book.gold }} />
+          <Star size={140} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.03]" style={{ color: calmingPlacePalette.sage }} />
         </div>
         
       {/* Top Navigation Bar */}
@@ -1450,9 +1510,14 @@ function Admin() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
         {/* Page Title Bar */}
-        <div className="p-4 lg:p-6 flex-shrink-0 relative z-10">
+        <div className="p-4 lg:p-6 flex-shrink-0 relative z-10 sticky top-0" style={{
+          backgroundColor: calmingPlacePalette.cream + 'F5',
+          backdropFilter: 'blur(12px)',
+          borderBottom: `2px solid ${calmingPlacePalette.periwinkle}40`,
+          zIndex: 20
+        }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               {activeTab === 'announcements' && (
