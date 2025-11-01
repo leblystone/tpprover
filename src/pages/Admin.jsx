@@ -3,7 +3,7 @@ import {
   Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
-  UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book
+  UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -237,6 +237,14 @@ function Admin() {
   const [activeTab, setActiveTab] = useState('analytics');
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [expandedGroups, setExpandedGroups] = useState({
+    overview: true,
+    users: true,
+    content: true,
+    communications: true,
+    engagement: true,
+    settings: true
+  });
   
   // Coffee/Wine time logic
   const isWineTime = currentTime.getHours() >= 17;
@@ -251,6 +259,14 @@ function Admin() {
     }, 60000);
     return () => clearInterval(interval);
   }, []);
+  
+  // Toggle group expansion
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
+  };
   const [emailWhitelist, setEmailWhitelist] = useState([]);
   const [newEmails, setNewEmails] = useState('');
   const [userList, setUserList] = useState([]);
@@ -951,6 +967,102 @@ function Admin() {
   };
 
 
+  // Render navigation group with collapsible sections
+  const renderNavGroup = ({ id, title, icon: GroupIcon, items }) => {
+    const isExpanded = expandedGroups[id];
+    const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
+    
+    return (
+      <div key={id} className="mb-2">
+        {/* Group Header */}
+        <button
+          onClick={() => toggleGroup(id)}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 hover:bg-opacity-50"
+          style={{ 
+            backgroundColor: theme.primary + '08',
+            color: theme.text
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <GroupIcon size={14} style={{ color: theme.primary }} />
+            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>
+              {title}
+            </span>
+          </div>
+          <ChevronIcon 
+            size={14} 
+            className="transition-transform duration-200"
+            style={{ color: theme.textLight }} 
+          />
+        </button>
+        
+        {/* Group Items */}
+        <div 
+          className="overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ 
+            maxHeight: isExpanded ? `${items.length * 60}px` : '0px',
+            opacity: isExpanded ? 1 : 0
+          }}
+        >
+          <div className="mt-1 space-y-0.5 pl-2">
+            {items.map(item => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full p-2.5 rounded-lg text-left transition-all duration-200 group ${
+                    isActive ? 'shadow-sm' : 'hover:translate-x-1'
+                  }`}
+                  style={{
+                    backgroundColor: isActive ? item.color + '15' : 'transparent',
+                    border: `1px solid ${isActive ? item.color + '30' : 'transparent'}`,
+                  }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div 
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                        isActive ? 'scale-110' : 'group-hover:scale-105'
+                      }`} 
+                      style={{ 
+                        backgroundColor: isActive ? item.color + '20' : item.color + '10'
+                      }}
+                    >
+                      <Icon size={14} style={{ color: item.color }} />
+                    </div>
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                      <span 
+                        className={`text-sm font-medium truncate ${
+                          isActive ? 'font-semibold' : ''
+                        }`}
+                        style={{ color: isActive ? item.color : theme.text }}
+                      >
+                        {item.label}
+                      </span>
+                      {item.count > 0 && (
+                        <span 
+                          className="text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-2"
+                          style={{ 
+                            backgroundColor: item.color + '25', 
+                            color: item.color 
+                          }}
+                        >
+                          {item.count}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
@@ -1179,139 +1291,138 @@ function Admin() {
           </div>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex-1 p-4 flex flex-col space-y-2 overflow-y-auto">
-          {[
-            { 
-              id: 'analytics', 
-              label: 'Analytics', 
-              icon: BarChart3, 
-              count: analytics.totalUsers || 0,
-              desc: 'User insights',
-              color: '#3b82f6' 
-            },
-            { 
-              id: 'subscriptions', 
-              label: 'Users', 
-              icon: Users, 
-              count: subscriptions.total || 0,
-              desc: 'User management',
-              color: '#10b981' 
-            },
-            { 
-              id: 'lifetime', 
-              label: 'Lifetime Access', 
-              icon: Award, 
-              count: lifetimeUsers.length || 0,
-              desc: 'Beta testers & founders',
-              color: '#f59e0b' 
-            },
-            { 
-              id: 'content', 
-              label: 'Content', 
-              icon: BookOpen, 
-              count: 0,
-              desc: 'Manage app content',
-              color: '#8b5cf6'
-            },
-            { 
-              id: 'feedback', 
-              label: 'Feedback', 
-              icon: MessageSquare, 
-              count: feedback.filter(f => f.status === 'new').length,
-              desc: 'Keyword analysis',
-              color: '#8b5cf6' 
-            },
-            { 
-              id: 'announcements', 
-              label: 'Announcements', 
-              icon: Megaphone, 
-              count: announcements.length,
-              desc: 'App announcements',
-              color: theme.primary 
-            },
-            { 
-              id: 'features', 
-              label: 'Feature Flags', 
-              icon: Flag, 
-              count: Object.keys(featureFlags.betaFeatures || {}).length,
-              desc: 'Beta features',
-              color: '#f59e0b' 
-            },
-            { 
-              id: 'agreements', 
-              label: 'Legal Agreements', 
-              icon: Shield, 
-              count: 0,
-              desc: 'User agreement tracking',
-              color: '#ef4444' 
-            },
-            { 
-              id: 'notifications', 
-              label: 'Notifications', 
-              icon: Bell, 
-              count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length,
-              desc: 'Templates & automated push notifications',
-              color: '#10b981' 
-            },
-            { 
-              id: 'emails', 
-              label: 'Email Templates', 
-              icon: Mail, 
-              count: 0,
-              desc: 'Branded email editor',
-              color: '#06b6d4' 
-            },
-            { 
-              id: 'improvements', 
-              label: 'Improvements', 
-              icon: Target, 
-              count: 0,
-              desc: 'Track potential improvements',
-              color: '#8b5cf6' 
-            },
-            { 
-              id: 'gifts', 
-              label: 'Gifts', 
-              icon: Star, 
-              count: giftAnalytics.total || 0,
-              desc: 'Gift subscriptions & analytics',
-              color: '#ec4899' 
-            },
-          ].map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full p-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] ${
-                  isActive ? 'shadow-md' : 'hover:shadow-sm'
-                }`}
-                style={{
-                  backgroundColor: isActive ? tab.color + '10' : 'transparent',
-                  border: `1px solid ${isActive ? tab.color + '30' : 'transparent'}`,
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center`} style={{ backgroundColor: tab.color + '20' }}>
-                    <Icon size={16} style={{ color: tab.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-sm truncate" style={{ color: isActive ? tab.color : theme.text }}>{tab.label}</h3>
-                      {tab.count > 0 && (
-                        <span className="text-xs px-2 py-1 rounded-full ml-2" style={{ backgroundColor: tab.color + '20', color: tab.color }}>
-                          {tab.count}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs truncate hidden lg:block" style={{ color: theme.textLight }}>{tab.desc}</p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+        {/* Navigation Items - Grouped Collapsible Sections */}
+        <nav className="flex-1 p-3 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+          <div className="space-y-1">
+            {/* Overview Section */}
+            {renderNavGroup({
+              id: 'overview',
+              title: 'Overview',
+              icon: Layout,
+              items: [
+                { 
+                  id: 'analytics', 
+                  label: 'Analytics', 
+                  icon: BarChart3, 
+                  count: analytics.totalUsers || 0,
+                  color: '#3b82f6' 
+                }
+              ]
+            })}
+            
+            {/* Users & Access Section */}
+            {renderNavGroup({
+              id: 'users',
+              title: 'Users & Access',
+              icon: Users,
+              items: [
+                { 
+                  id: 'subscriptions', 
+                  label: 'Users', 
+                  icon: Users, 
+                  count: subscriptions.total || 0,
+                  color: '#10b981' 
+                },
+                { 
+                  id: 'lifetime', 
+                  label: 'Lifetime', 
+                  icon: Award, 
+                  count: lifetimeUsers.length || 0,
+                  color: '#f59e0b' 
+                },
+                { 
+                  id: 'gifts', 
+                  label: 'Gifts', 
+                  icon: Star, 
+                  count: giftAnalytics.total || 0,
+                  color: '#ec4899' 
+                }
+              ]
+            })}
+            
+            {/* Content & Feedback Section */}
+            {renderNavGroup({
+              id: 'content',
+              title: 'Content & Feedback',
+              icon: BookOpen,
+              items: [
+                { 
+                  id: 'content', 
+                  label: 'Content', 
+                  icon: BookOpen, 
+                  count: 0,
+                  color: '#8b5cf6'
+                },
+                { 
+                  id: 'feedback', 
+                  label: 'Feedback', 
+                  icon: MessageCircle, 
+                  count: feedback.filter(f => f.status === 'new').length,
+                  color: '#8b5cf6' 
+                },
+                { 
+                  id: 'improvements', 
+                  label: 'Ideas', 
+                  icon: Target, 
+                  count: 0,
+                  color: '#8b5cf6' 
+                }
+              ]
+            })}
+            
+            {/* Communications Section */}
+            {renderNavGroup({
+              id: 'communications',
+              title: 'Communications',
+              icon: Mail,
+              items: [
+                { 
+                  id: 'announcements', 
+                  label: 'Announcements', 
+                  icon: Megaphone, 
+                  count: announcements.length,
+                  color: theme.primary 
+                },
+                { 
+                  id: 'notifications', 
+                  label: 'Notifications', 
+                  icon: Bell, 
+                  count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length,
+                  color: '#10b981' 
+                },
+                { 
+                  id: 'emails', 
+                  label: 'Email Templates', 
+                  icon: Mail, 
+                  count: 0,
+                  color: '#06b6d4' 
+                }
+              ]
+            })}
+            
+            {/* Settings & Tools Section */}
+            {renderNavGroup({
+              id: 'settings',
+              title: 'Settings & Tools',
+              icon: Settings,
+              items: [
+                { 
+                  id: 'features', 
+                  label: 'Feature Flags', 
+                  icon: Flag, 
+                  count: Object.keys(featureFlags.betaFeatures || {}).length,
+                  color: '#f59e0b' 
+                },
+                { 
+                  id: 'agreements', 
+                  label: 'Legal', 
+                  icon: Shield, 
+                  count: 0,
+                  color: '#ef4444' 
+                }
+              ]
+            })}
+          </div>
         </nav>
       </div>
 
@@ -1382,11 +1493,15 @@ function Admin() {
                     }
                   }}
                   disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                  className="p-2.5 rounded-lg flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ 
+                    backgroundColor: theme.primary + '15',
+                    border: `1px solid ${theme.primary}30`,
+                    color: theme.primary
+                  }}
+                  title="Refresh Data"
                 >
                   <RefreshCw size={18} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
-                  Refresh Data
                 </button>
               )}
             </div>
@@ -2426,11 +2541,15 @@ function Admin() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={loadContentData}
-                className="px-6 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: theme.info, color: theme.textOnPrimary }}
+                className="p-2.5 rounded-lg flex items-center justify-center hover:scale-105 transition-all"
+                style={{ 
+                  backgroundColor: theme.primary + '15',
+                  border: `1px solid ${theme.primary}30`,
+                  color: theme.primary
+                }}
+                title="Reload Data"
               >
                 <RefreshCw size={18} />
-                Reload Data
               </button>
               <button
                 onClick={saveContentData}
