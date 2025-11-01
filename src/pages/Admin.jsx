@@ -1544,48 +1544,63 @@ function Admin() {
               </div>
             </div>
 
-            {/* Feature Usage */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feature Usage</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Feature Usage - Compact */}
+            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
+              borderColor: theme.primary + '30',
+              background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
+            }}>
+              <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Feature Usage</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                 {Object.entries(analytics.featureUsage).map(([feature, data]) => (
-                  <div key={feature} className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{feature}</span>
+                  <div key={feature} className="p-3 rounded-lg border transition-all hover:scale-[1.02]" style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.border + '40'
+                  }}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium capitalize" style={{ color: theme.text }}>{feature}</span>
                       {data.trend === 'up' ? (
-                        <TrendingUp size={16} style={{ color: theme.success }} />
+                        <TrendingUp size={14} style={{ color: '#10b981' }} />
                       ) : (
-                        <TrendingDown size={16} style={{ color: theme.error }} />
+                        <TrendingDown size={14} style={{ color: '#ef4444' }} />
                       )}
                     </div>
-                    <div className="text-2xl font-bold" style={{ color: theme.primaryDark }}>{data.uses}</div>
-                    <div className="text-xs" style={{ color: theme.textLight }}>total uses</div>
+                    <div className="text-xl font-bold" style={{ color: theme.primaryDark }}>{data.uses}</div>
+                    <div className="text-[10px]" style={{ color: theme.textLight }}>total uses</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Session Analytics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Session Duration</h2>
-                <div className="space-y-3">
+            {/* Session Analytics - Compact */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
+                borderColor: theme.primary + '30',
+                background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
+              }}>
+                <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Session Duration</h2>
+                <div className="space-y-2">
                   {analytics.sessionData.slice(-5).map((session) => (
-                    <div key={session.date} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                      <span className="text-sm" style={{ color: theme.text }}>{new Date(session.date).toLocaleDateString()}</span>
+                    <div key={session.date} className="flex items-center justify-between p-2 rounded border" style={{ 
+                      backgroundColor: theme.background,
+                      borderColor: theme.border + '40'
+                    }}>
+                      <span className="text-xs" style={{ color: theme.text }}>{new Date(session.date).toLocaleDateString()}</span>
                       <div className="text-right">
                         <div className="text-sm font-medium" style={{ color: theme.primaryDark }}>
                           {Math.floor(session.avgDuration / 60)}m {session.avgDuration % 60}s
                         </div>
-                        <div className="text-xs" style={{ color: theme.textLight }}>{session.sessions} sessions</div>
+                        <div className="text-[10px]" style={{ color: theme.textLight }}>{session.sessions} sessions</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
+              <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
+                borderColor: theme.primary + '30',
+                background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
+              }}>
+                <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
                 <div className="space-y-4">
                   {Object.entries(analytics.deviceBreakdown).map(([device, data]) => (
                     <div key={device} className="space-y-2">
