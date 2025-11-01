@@ -219,60 +219,83 @@ const analyzeFeedback = (feedbackList) => {
   };
 };
 
-// Mrs. FloralKaffe's Custom Color Palette 🎨☕📚
+// Mrs. FloralKaffe's Periwinkle Coffee Shop Palette ☕💜
 const calmingPlacePalette = {
-  // Main periwinkle (from user's palette)
-  periwinkle: '#C5CBE0',      // Soft, calming periwinkle - MAIN COLOR
-  blue: '#A9BACC',             // Grayish blue - secondary
-  cream: '#F0EAD6',            // Warm cream - backgrounds
-  teal: '#3A6C7C',             // Deep teal - accents
-  sage: '#8D9483',             // Sage green - subtle highlights
+  // Periwinkle - THE STAR COLOR
+  periwinkle: {
+    main: '#C5CBE0',           // Main periwinkle
+    light: '#E0E4F0',          // Light periwinkle for backgrounds
+    lighter: '#F0F2F8',        // Very light for subtle backgrounds
+    dark: '#9AA5C4',           // Dark periwinkle for text/contrast
+    darker: '#7D86AC',         // Darker for emphasis
+  },
   
-  // Derived shades for depth
-  periwinkleDark: '#9AA5C4',   // Darker periwinkle for contrast
-  periwinkleLight: '#E2E5F0',  // Lighter periwinkle for hover
-  creamDark: '#E6DFC8',        // Slightly darker cream
-  
-  // Coffee & Book themed extensions
+  // Coffee Shop Colors
   coffee: {
-    espresso: '#6F5E4F',
-    latte: '#D4A574',
-  },
-  book: {
-    leather: '#8B4513',
-    gold: '#D4AF37',
-    ink: '#2C3E50'
+    bean: '#3E2723',           // Dark coffee bean
+    espresso: '#6F5E4F',       // Rich espresso
+    latte: '#D4A574',          // Warm latte
+    cream: '#F5E6D3',          // Coffee cream
+    foam: '#FFF8F0',           // Milk foam - very light
   },
   
-  // Functional colors (keeping vibrant for clarity)
+  // Supporting colors
+  neutral: {
+    cream: '#F0EAD6',          // Warm cream background
+    white: '#FFFFFF',
+    lightGray: '#E8E8E8',
+  },
+  
+  // Accents (softer, not harsh)
+  accents: {
+    sage: '#9CAF88',           // Soft sage (plants in coffee shop)
+    warmGold: '#D4AF37',       // Warm gold accents
+  },
+  
+  // Functional (softened)
   functional: {
-    success: '#10b981',
-    warning: '#f59e0b',
-    error: '#ef4444',
-    info: '#3A6C7C'  // Using teal from palette
+    success: '#9CAF88',        // Soft sage green instead of harsh green
+    warning: '#D4A574',        // Coffee latte instead of harsh orange
+    error: '#C4858A',          // Soft rose instead of harsh red
+    info: '#C5CBE0'            // Periwinkle itself!
   }
 };
 
-// Apply The Calming Place theme with exact palette colors
+// Apply The Calming Place Periwinkle Coffee Shop Theme
 const adminTheme = {
   ...periwinkleTheme,
-  primary: calmingPlacePalette.periwinkle,           // #C5CBE0 - Main periwinkle
-  primaryLight: calmingPlacePalette.periwinkleLight, // Lighter periwinkle
-  primaryDark: calmingPlacePalette.periwinkleDark,   // Darker periwinkle
-  secondary: calmingPlacePalette.blue,               // #A9BACC - Grayish blue
-  accent: calmingPlacePalette.teal,                  // #3A6C7C - Deep teal
-  sage: calmingPlacePalette.sage,                    // #8D9483 - Sage green
-  background: calmingPlacePalette.cream,             // #F0EAD6 - Warm cream
-  cardBackground: '#FFFFFF',
+  primary: calmingPlacePalette.periwinkle.main,      // Main periwinkle
+  primaryLight: calmingPlacePalette.periwinkle.light,
+  primaryLighter: calmingPlacePalette.periwinkle.lighter,
+  primaryDark: calmingPlacePalette.periwinkle.dark,
+  primaryDarker: calmingPlacePalette.periwinkle.darker,
+  
+  // Coffee colors
+  coffee: calmingPlacePalette.coffee.espresso,
+  coffeeLatte: calmingPlacePalette.coffee.latte,
+  coffeeCream: calmingPlacePalette.coffee.cream,
+  coffeeFoam: calmingPlacePalette.coffee.foam,
+  
+  // Backgrounds
+  background: calmingPlacePalette.coffee.foam,       // Light coffee foam
+  cardBackground: calmingPlacePalette.neutral.white,
+  
+  // Functional (all softened)
   success: calmingPlacePalette.functional.success,
   warning: calmingPlacePalette.functional.warning,
   error: calmingPlacePalette.functional.error,
   info: calmingPlacePalette.functional.info,
-  text: calmingPlacePalette.book.ink,                // #2C3E50 - Book ink
-  textLight: '#718096',
-  border: calmingPlacePalette.periwinkle,
+  
+  // Text
+  text: calmingPlacePalette.coffee.bean,
+  textLight: calmingPlacePalette.coffee.espresso,
+  
+  // Borders & accents
+  border: calmingPlacePalette.periwinkle.main,
+  accent: calmingPlacePalette.accents.warmGold,
+  
   textOnPrimary: '#FFFFFF',
-  successBg: '#ecfdf5',
+  successBg: calmingPlacePalette.accents.sage + '20',
   accentText: '#ffffff',
   white: '#ffffff'
 };
@@ -1301,24 +1324,24 @@ function Admin() {
       />
       
       <div className="h-screen flex flex-col relative" style={{ 
-        backgroundColor: calmingPlacePalette.cream,
-        backgroundImage: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle}15 0%, ${calmingPlacePalette.cream} 100%)`
+        backgroundColor: calmingPlacePalette.coffee.foam,
+        backgroundImage: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.light} 0%, ${calmingPlacePalette.coffee.foam} 100%)`
       }}>
-        {/* Enhanced Decorative Coffee & Book Elements with Palette Colors */}
+        {/* Coffee Shop Decorative Elements - Periwinkle & Coffee Themed */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          {/* Coffee theme - espresso colors */}
-          <Coffee size={380} className="absolute top-10 right-10 rotate-12 opacity-[0.04]" style={{ color: calmingPlacePalette.coffee.espresso }} />
-          <Coffee size={200} className="absolute bottom-20 right-1/4 -rotate-12 opacity-[0.05]" style={{ color: calmingPlacePalette.coffee.latte }} />
-          <Coffee size={150} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.04]" style={{ color: calmingPlacePalette.coffee.espresso }} />
+          {/* Coffee cups everywhere! */}
+          <Coffee size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.05]" style={{ color: calmingPlacePalette.coffee.latte, filter: 'drop-shadow(0 4px 8px rgba(111,94,79,0.1))' }} />
+          <Coffee size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle.dark, filter: 'drop-shadow(0 4px 8px rgba(197,203,224,0.2))' }} />
+          <Coffee size={180} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.05]" style={{ color: calmingPlacePalette.coffee.espresso }} />
+          <Coffee size={160} className="absolute bottom-1/4 left-1/3 -rotate-25 opacity-[0.04]" style={{ color: calmingPlacePalette.periwinkle.main }} />
           
-          {/* Books theme - periwinkle & blue */}
-          <Book size={320} className="absolute bottom-32 left-10 -rotate-12 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle }} />
-          <Book size={180} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.05]" style={{ color: calmingPlacePalette.blue }} />
-          <BookOpen size={220} className="absolute top-2/3 left-1/2 -rotate-6 opacity-[0.05]" style={{ color: calmingPlacePalette.teal }} />
+          {/* Books with periwinkle */}
+          <Book size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.07]" style={{ color: calmingPlacePalette.periwinkle.main, filter: 'drop-shadow(0 4px 8px rgba(197,203,224,0.2))' }} />
+          <Book size={200} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle.light }} />
+          <BookOpen size={240} className="absolute top-2/3 left-1/2 -rotate-6 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle.dark }} />
           
-          {/* Reading/Learning theme - accents */}
-          <Lightbulb size={160} className="absolute top-1/2 right-1/2 rotate-12 opacity-[0.03]" style={{ color: calmingPlacePalette.book.gold }} />
-          <Star size={140} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.03]" style={{ color: calmingPlacePalette.sage }} />
+          {/* Extra coffee accents */}
+          <Star size={150} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.03]" style={{ color: calmingPlacePalette.accents.warmGold, filter: 'drop-shadow(0 2px 4px rgba(212,175,55,0.2))' }} />
         </div>
         
       {/* Top Navigation Bar */}
@@ -1513,46 +1536,55 @@ function Admin() {
       <div className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
         {/* Page Title Bar */}
         <div className="p-4 lg:p-6 flex-shrink-0 relative z-10 sticky top-0" style={{
-          backgroundColor: calmingPlacePalette.cream + 'F5',
+          backgroundColor: calmingPlacePalette.coffee.foam + 'F8',
           backdropFilter: 'blur(12px)',
-          borderBottom: `2px solid ${calmingPlacePalette.periwinkle}40`,
-          zIndex: 20
+          borderBottom: `2px solid ${calmingPlacePalette.periwinkle.main}40`,
+          zIndex: 20,
+          boxShadow: `0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
         }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               {activeTab === 'announcements' && (
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-all"
+                  style={{ 
+                    backgroundColor: theme.primary,
+                    color: theme.textOnPrimary,
+                    boxShadow: `0 2px 6px ${theme.primary}30`
+                  }}
                 >
                   <Plus size={18} />
                   New Announcement
                 </button>
               )}
-              {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
-                <button
-                  onClick={() => {
-                    if (activeTab === 'lifetime') {
-                      loadLifetimeUsers();
-                    } else {
-                      loadRealAnalytics();
-                      loadUserData();
-                    }
-                  }}
-                  disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
-                  className="p-2.5 rounded-lg flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    backgroundColor: theme.primary + '15',
-                    border: `1px solid ${theme.primary}30`,
-                    color: theme.primary
-                  }}
-                  title="Refresh Data"
-                >
-                  <RefreshCw size={18} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
-                </button>
-              )}
             </div>
+            
+            {/* Refresh Button - Top Right */}
+            {(activeTab === 'analytics' || activeTab === 'subscriptions' || activeTab === 'lifetime') && (
+              <button
+                onClick={() => {
+                  if (activeTab === 'lifetime') {
+                    loadLifetimeUsers();
+                  } else {
+                    loadRealAnalytics();
+                    loadUserData();
+                  }
+                }}
+                disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
+                className="px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ 
+                  background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.main} 0%, ${calmingPlacePalette.periwinkle.dark} 100%)`,
+                  color: '#FFFFFF',
+                  boxShadow: `0 4px 12px ${calmingPlacePalette.periwinkle.main}40`,
+                  border: `2px solid ${calmingPlacePalette.periwinkle.light}`
+                }}
+                title="Refresh Data"
+              >
+                <RefreshCw size={18} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">Refresh Data</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1560,15 +1592,58 @@ function Admin() {
         <div className="flex-1 p-4 lg:p-6 overflow-y-auto overflow-x-hidden">
 
         {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            {/* User Growth Chart */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="space-y-5">
+            {/* Coffee Welcome Banner */}
+            <div className="rounded-xl p-5 relative overflow-hidden border-2" style={{
+              background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.light} 0%, ${calmingPlacePalette.coffee.foam} 100%)`,
+              borderColor: calmingPlacePalette.periwinkle.main,
+              boxShadow: `0 4px 12px ${calmingPlacePalette.periwinkle.main}30, 0 2px 6px ${calmingPlacePalette.coffee.latte}20`
+            }}>
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{
+                  background: `linear-gradient(135deg, ${calmingPlacePalette.coffee.latte} 0%, ${calmingPlacePalette.coffee.espresso} 100%)`,
+                  boxShadow: `0 4px 12px ${calmingPlacePalette.coffee.espresso}40`
+                }}>
+                  <Coffee size={32} className="text-white animate-pulse" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-xl mb-1" style={{ color: calmingPlacePalette.coffee.bean }}>
+                    Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, Mrs. FloralKaffe! ☕
+                  </h3>
+                  <p className="text-sm font-medium" style={{ color: calmingPlacePalette.periwinkle.darker }}>
+                    Welcome to The Calming Place • {isWineTime ? '🍷 Evening wine time' : '☕ Fresh coffee awaits'}
+                  </p>
+                </div>
+                <div className="hidden md:flex items-center gap-3">
+                  <Coffee size={36} style={{ color: calmingPlacePalette.coffee.latte }} className="opacity-70" />
+                  <Book size={32} style={{ color: calmingPlacePalette.periwinkle.dark }} className="opacity-70" />
+                </div>
+              </div>
+              {/* Decorative coffee steam */}
+              <div className="absolute -right-4 -bottom-4 opacity-15">
+                <Coffee size={120} style={{ color: calmingPlacePalette.coffee.espresso }} className="rotate-12" />
+              </div>
+            </div>
+
+            {/* User Growth Chart with Shadows */}
+            <div className="rounded-xl border-2 p-6 content-card" style={{ 
+              borderColor: calmingPlacePalette.periwinkle.main + '50',
+              backgroundColor: theme.cardBackground,
+              boxShadow: `0 4px 16px ${calmingPlacePalette.periwinkle.main}20, 0 2px 8px ${calmingPlacePalette.coffee.latte}10`
+            }}>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Growth</h2>
-                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>Daily user registration and activity</p>
+                  <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: calmingPlacePalette.periwinkle.darker }}>
+                    <TrendingUp size={20} style={{ color: calmingPlacePalette.periwinkle.main }} />
+                    User Growth
+                  </h2>
+                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>Daily registration & activity</p>
                 </div>
-                <div className="flex items-center gap-2 text-sm" style={{ color: theme.success }}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ 
+                  backgroundColor: calmingPlacePalette.accents.sage + '20',
+                  color: calmingPlacePalette.accents.sage,
+                  fontWeight: 600
+                }}>
                   <TrendingUp size={16} />
                   +23% this week
                 </div>
@@ -1576,15 +1651,23 @@ function Admin() {
               
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                  <div className="h-64 flex items-end justify-between gap-1 p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
+                  <div className="h-64 flex items-end justify-between gap-1 p-4 rounded-xl" style={{ 
+                    background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.background} 100%)`,
+                    boxShadow: `inset 0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
+                  }}>
                     {analytics.userGrowth.slice(-14).map((day, index) => (
                       <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
                         <div 
-                          className="bg-blue-500 rounded-t w-full transition-all hover:bg-blue-600"
-                          style={{ height: `${(day.users / Math.max(...analytics.userGrowth.map(d => d.users))) * 200}px`, minHeight: '4px' }}
+                          className="rounded-t-lg w-full transition-all hover:scale-105 cursor-pointer"
+                          style={{ 
+                            background: `linear-gradient(180deg, ${calmingPlacePalette.periwinkle.main} 0%, ${calmingPlacePalette.periwinkle.dark} 100%)`,
+                            height: `${(day.users / Math.max(...analytics.userGrowth.map(d => d.users))) * 200}px`,
+                            minHeight: '4px',
+                            boxShadow: `0 2px 8px ${calmingPlacePalette.periwinkle.main}40`
+                          }}
                           title={`${day.date}: ${day.users} users`}
                         />
-                        <span className="text-xs" style={{ color: theme.textLight }}>
+                        <span className="text-xs font-medium" style={{ color: theme.textLight }}>
                           {new Date(day.date).getDate()}
                         </span>
                       </div>
@@ -1592,45 +1675,62 @@ function Admin() {
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.info }}>{analytics.totalUsers}</div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>Total Users</div>
-                </div>
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.success }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>New This Month</div>
-                </div>
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.warning }}>{analytics.activeUsers}</div>
-                  <div className="text-sm" style={{ color: theme.textLight }}>Active Users</div>
-                </div>
+                <div className="space-y-3">
+                  <div className="p-4 rounded-xl border-2" style={{ 
+                    background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, #FFFFFF 100%)`,
+                    borderColor: calmingPlacePalette.periwinkle.main + '50',
+                    boxShadow: `0 2px 8px ${calmingPlacePalette.periwinkle.main}20`
+                  }}>
+                    <div className="text-2xl font-bold" style={{ color: calmingPlacePalette.periwinkle.darker }}>{analytics.totalUsers}</div>
+                    <div className="text-sm font-medium" style={{ color: theme.textLight }}>Total Users</div>
+                  </div>
+                  <div className="p-4 rounded-xl border-2" style={{ 
+                    background: `linear-gradient(135deg, ${calmingPlacePalette.coffee.cream} 0%, #FFFFFF 100%)`,
+                    borderColor: calmingPlacePalette.coffee.latte + '80',
+                    boxShadow: `0 2px 8px ${calmingPlacePalette.coffee.latte}25`
+                  }}>
+                    <div className="text-2xl font-bold" style={{ color: calmingPlacePalette.coffee.espresso }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                    <div className="text-sm font-medium" style={{ color: theme.textLight }}>New This Month</div>
+                  </div>
+                  <div className="p-4 rounded-xl border-2" style={{ 
+                    background: `linear-gradient(135deg, ${calmingPlacePalette.accents.sage}20 0%, #FFFFFF 100%)`,
+                    borderColor: calmingPlacePalette.accents.sage + '60',
+                    boxShadow: `0 2px 8px ${calmingPlacePalette.accents.sage}20`
+                  }}>
+                    <div className="text-2xl font-bold" style={{ color: calmingPlacePalette.accents.sage }}>{analytics.activeUsers}</div>
+                    <div className="text-sm font-medium" style={{ color: theme.textLight }}>Active Users</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Feature Usage - Compact */}
-            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
-              borderColor: theme.primary + '30',
-              background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
+            {/* Feature Usage with Coffee Theme */}
+            <div className="rounded-xl border-2 p-5 content-card" style={{ 
+              borderColor: calmingPlacePalette.periwinkle.main + '50',
+              background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.cardBackground} 100%)`,
+              boxShadow: `0 4px 16px ${calmingPlacePalette.periwinkle.main}20, 0 2px 8px ${calmingPlacePalette.coffee.latte}10`
             }}>
-              <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Feature Usage</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="flex items-center gap-2 mb-4">
+                <Coffee size={20} style={{ color: calmingPlacePalette.coffee.latte }} />
+                <h2 className="text-base font-bold" style={{ color: calmingPlacePalette.periwinkle.darker }}>Feature Usage</h2>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                 {Object.entries(analytics.featureUsage).map(([feature, data]) => (
-                  <div key={feature} className="p-3 rounded-lg border transition-all hover:scale-[1.02]" style={{ 
-                    backgroundColor: theme.background,
-                    borderColor: theme.border + '40'
+                  <div key={feature} className="p-3 rounded-lg border-2 transition-all hover:scale-105 hover:shadow-lg cursor-pointer" style={{ 
+                    background: '#FFFFFF',
+                    borderColor: calmingPlacePalette.periwinkle.light,
+                    boxShadow: `0 2px 6px ${calmingPlacePalette.periwinkle.main}15`
                   }}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium capitalize" style={{ color: theme.text }}>{feature}</span>
+                      <span className="text-xs font-bold capitalize" style={{ color: calmingPlacePalette.periwinkle.darker }}>{feature}</span>
                       {data.trend === 'up' ? (
-                        <TrendingUp size={14} style={{ color: '#10b981' }} />
+                        <TrendingUp size={14} style={{ color: calmingPlacePalette.accents.sage }} />
                       ) : (
-                        <TrendingDown size={14} style={{ color: '#ef4444' }} />
+                        <TrendingDown size={14} style={{ color: calmingPlacePalette.functional.error }} />
                       )}
                     </div>
-                    <div className="text-xl font-bold" style={{ color: theme.primaryDark }}>{data.uses}</div>
-                    <div className="text-[10px]" style={{ color: theme.textLight }}>total uses</div>
+                    <div className="text-xl font-bold" style={{ color: calmingPlacePalette.periwinkle.main }}>{data.uses}</div>
+                    <div className="text-[10px] font-medium" style={{ color: theme.textLight }}>total uses</div>
                   </div>
                 ))}
               </div>
