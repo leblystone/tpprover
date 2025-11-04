@@ -281,13 +281,13 @@ export default function Landing() {
               onClick={() => setShowIOSPopup(true)}
             >
               <div 
-                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg"
+                className="flex items-center justify-center px-2 sm:px-8 py-2 sm:py-4 rounded-lg shadow-lg"
                 style={{ backgroundColor: '#4c6b52' }}
               >
-                <Apple className="w-6 h-6 sm:w-8 sm:h-8 text-white mr-2 sm:mr-4" />
+                <Apple className="w-7 h-7 sm:w-10 sm:h-10 text-white mr-2 sm:mr-4" />
                 <div className="text-white text-center">
-                  <div className="text-[10px] sm:text-xs font-medium">Download on the</div>
-                  <div className="text-[12px] sm:text-lg font-semibold">App Store</div>
+                  <div className="text-[11px] sm:text-sm font-medium">Download on the</div>
+                  <div className="text-[14px] sm:text-xl font-semibold">App Store</div>
                 </div>
               </div>
             </button>

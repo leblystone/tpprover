@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, Zap, HelpCircle, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -300,6 +300,7 @@ export default function EmailTemplateManager({ theme }) {
   });
   const [showPreview, setShowPreview] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
@@ -439,6 +440,15 @@ export default function EmailTemplateManager({ theme }) {
     console.log('📧 Templates to save:', Object.keys(templates));
     console.log('🎨 Colors to save:', colors);
     
+    // Check authentication first
+    if (!auth.currentUser) {
+      console.error('❌ User not authenticated - cannot save to Firestore');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: '❌ You must be logged in to save templates. Please log in to the main app first, then navigate to /admin', type: 'error' }
+      }));
+      return;
+    }
+    
     setIsSaving(true);
     try {
       console.log('💾 Starting Firestore save operation...');
@@ -449,71 +459,62 @@ export default function EmailTemplateManager({ theme }) {
       
       for (const [key, tpl] of entries) {
         console.log(`  - Saving template: ${key} (${tpl.name})`);
-        await setDoc(doc(db, 'emailTemplates', key), { ...tpl, colors }, { merge: true });
-        console.log(`    ✅ Saved: ${key}`);
+        try {
+          await setDoc(doc(db, 'emailTemplates', key), { ...tpl, colors }, { merge: true });
+          console.log(`    ✅ Saved: ${key}`);
+        } catch (templateError) {
+          console.error(`    ❌ Failed to save template ${key}:`, templateError);
+          throw new Error(`Failed to save template "${tpl.name}": ${templateError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
+        }
       }
       
       // Save branding colors separately too (optional)
       console.log('🎨 Saving branding colors...');
-      await setDoc(doc(db, 'emailTemplates', '_branding'), { colors }, { merge: true });
-      console.log('  ✅ Branding colors saved');
+      try {
+        await setDoc(doc(db, 'emailTemplates', '_branding'), { colors }, { merge: true });
+        console.log('  ✅ Branding colors saved');
+      } catch (colorError) {
+        console.error('  ❌ Failed to save branding colors:', colorError);
+        throw new Error(`Failed to save branding colors: ${colorError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
+      }
 
       localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
       localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
       console.log('💾 Templates also saved to localStorage');
     
       console.log('✅ ALL TEMPLATES SAVED SUCCESSFULLY TO FIRESTORE!');
+      setSaveSuccess(true);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: '✅ Templates saved to Firestore!', type: 'success' }
       }));
+      
+      // Reset save success state after 2 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 2000);
     } catch (e) {
       console.error('❌ Failed to save templates to Firestore:', e);
       console.error('❌ Error details:', e.message);
       console.error('❌ Error code:', e.code);
+      console.error('❌ Full error object:', e);
+      setSaveSuccess(false);
+      
+      // Provide more specific error messages
+      let errorMessage = '❌ Failed to save templates';
+      if (e.code === 'permission-denied') {
+        errorMessage = '❌ Permission denied. You must be logged in as an admin to save templates. Please log in to the main app first, then navigate to /admin.';
+      } else if (e.message) {
+        errorMessage = `❌ ${e.message}`;
+      } else if (e.code) {
+        errorMessage = `❌ Save failed: ${e.code}`;
+      }
+      
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: '❌ Failed to save templates', type: 'error' }
+        detail: { message: errorMessage, type: 'error' }
       }));
     } finally {
       setIsSaving(false);
       console.log('🔵 Save operation completed');
-    }
-  };
-
-  // Test webhook email simulation
-  const testWebhookEmails = async () => {
-
-    setIsSendingTest(true);
-    setTestResult(null);
-
-    try {
-
-      const functions = getFunctions();
-
-      const testWebhookEmails = httpsCallable(functions, 'testWebhookEmails');
-
-      const result = await testWebhookEmails({ 
-        testEmail: 'thepepplanner@gmail.com'
-      });
-
-      if (result.data.success) {
-        setTestResult({ 
-          success: true, 
-          message: `✅ Webhook simulation successful! ${result.data.message}` 
-        });
-      } else {
-        setTestResult({ 
-          success: false, 
-          message: result.data.message || 'Webhook simulation failed' 
-        });
-      }
-    } catch (error) {
-      console.error('Webhook simulation error:', error);
-      setTestResult({ 
-        success: false, 
-        message: `Webhook simulation error: ${error.message}` 
-      });
-    } finally {
-      setIsSendingTest(false);
     }
   };
 
@@ -804,27 +805,6 @@ export default function EmailTemplateManager({ theme }) {
             </button>
           )}
           <button
-            onClick={() => {
-
-              testWebhookEmails();
-            }}
-            disabled={isSendingTest}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
-            style={{ backgroundColor: theme.secondary, color: theme.text }}
-          >
-            {isSendingTest ? (
-              <>
-                <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-                Testing...
-              </>
-            ) : (
-              <>
-                <Zap size={16} />
-                Test Webhook Flow
-              </>
-            )}
-          </button>
-          <button
             onClick={resetToDefaults}
             className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all"
             style={{ backgroundColor: theme.secondary, color: theme.text }}
@@ -834,13 +814,33 @@ export default function EmailTemplateManager({ theme }) {
           </button>
           <button
             onClick={saveTemplates}
-            disabled={isSaving}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+            disabled={isSaving || !auth.currentUser}
+            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 relative"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            title={!auth.currentUser ? 'You must be logged in to save templates. Please log in to the main app first, then navigate to /admin' : ''}
           >
-            {isSaving ? <CheckCircle size={16} /> : <Save size={16} />}
-            {isSaving ? 'Saved!' : 'Save Templates'}
+            {isSaving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : saveSuccess ? (
+              <>
+                <CheckCircle size={16} />
+                Saved!
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Save Templates
+              </>
+            )}
           </button>
+          {!auth.currentUser && (
+            <div className="px-3 py-2 rounded-lg text-xs bg-yellow-100 text-yellow-800 border border-yellow-200">
+              ⚠️ You must be logged in to save templates. Log in to the main app first, then navigate to /admin
+            </div>
+          )}
         </div>
       </div>
 

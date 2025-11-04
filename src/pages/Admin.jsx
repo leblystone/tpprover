@@ -27,7 +27,8 @@ import {
   updateFeatureFlag,
   getAllLifetimeUsers,
   grantLifetimeAccessFirestore,
-  revokeLifetimeAccess
+  revokeLifetimeAccess,
+  loginUser
 } from '../services/firebase';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -305,7 +306,10 @@ function Admin() {
   const { firebaseUser } = useFirebase();
   const [announcements, setAnnouncements] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [activeTab, setActiveTab] = useState('analytics');
@@ -502,6 +506,11 @@ function Admin() {
 
   // Simple admin authentication
   const ADMIN_PASSWORD = 'j&jm9102';
+  const ADMIN_EMAILS = [
+    'lebrockmaldonado@gmail.com',
+    'contact@thepepplanner.com',
+    'thepepplanner@gmail.com'
+  ];
 
   const categoryOptions = [
     { value: 'New Feature', icon: Sparkles, color: theme.info },
@@ -967,25 +976,81 @@ function Admin() {
     }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      console.log('✅ Admin password correct');
-      
-      // Check if user is already authenticated with Firebase
-      if (auth.currentUser) {
-        console.log('✅ Firebase auth active:', auth.currentUser.email);
-      } else {
-        console.warn('⚠️ No Firebase auth detected. Please log into the main app first for full admin functionality.');
-        console.warn('⚠️ Some features (like saving email templates) will not work without Firebase authentication.');
+    setLoginError('');
+    setIsLoggingIn(true);
+
+    try {
+      // Validate email is provided
+      if (!email.trim()) {
+        setLoginError('Please enter your email address');
+        setIsLoggingIn(false);
+        return;
       }
-      
+
+      // Validate email is an admin email
+      const emailLower = email.trim().toLowerCase();
+      if (!ADMIN_EMAILS.includes(emailLower)) {
+        setLoginError('This email is not authorized for admin access');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // Validate password matches admin password
+      if (password !== ADMIN_PASSWORD) {
+        setLoginError('Incorrect password');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // Authenticate with Firebase using email and password
+      console.log('🔐 Attempting Firebase authentication...');
+      try {
+        await loginUser(emailLower, password);
+        console.log('✅ Firebase authentication successful');
+      } catch (firebaseError) {
+        console.error('❌ Firebase authentication failed:', firebaseError);
+        
+        // Check if it's a user-not-found error - this might mean they need to create an account first
+        if (firebaseError.code === 'auth/user-not-found') {
+          setLoginError('Account not found. Please create an account with this email first, then try logging in again.');
+        } else if (firebaseError.code === 'auth/wrong-password') {
+          setLoginError('Incorrect password for this email');
+        } else if (firebaseError.code === 'auth/invalid-email') {
+          setLoginError('Invalid email address');
+        } else {
+          setLoginError(`Authentication failed: ${firebaseError.message}`);
+        }
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // Verify Firebase auth is active
+      if (!auth.currentUser) {
+        setLoginError('Authentication failed - please try again');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // Verify the authenticated user's email matches
+      if (auth.currentUser.email?.toLowerCase() !== emailLower) {
+        setLoginError('Email mismatch - please try again');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      console.log('✅ Admin login successful:', auth.currentUser.email);
       setIsAuthenticated(true);
       localStorage.setItem('tpp_admin_auth', 'true');
+      setEmail('');
       setPassword('');
       setShowWelcomeModal(true);
-    } else {
-      alert('Incorrect password');
+    } catch (error) {
+      console.error('❌ Admin login error:', error);
+      setLoginError(error.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -1307,29 +1372,61 @@ function Admin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Admin email"
+                className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02] mb-3"
+                style={{ 
+                  borderColor: loginError && !email.trim() ? theme.error : theme.border, 
+                  backgroundColor: theme.background,
+                  focusRingColor: theme.primary
+                }}
+                required
+                disabled={isLoggingIn}
+                autoComplete="email"
+              />
+              <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Admin password"
                 className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02]"
                 style={{ 
-                  borderColor: theme.border, 
+                  borderColor: loginError && email.trim() ? theme.error : theme.border, 
                   backgroundColor: theme.background,
                   focusRingColor: theme.primary
                 }}
                 required
+                disabled={isLoggingIn}
+                autoComplete="current-password"
               />
             </div>
+            {loginError && (
+              <div className="px-4 py-3 rounded-lg text-sm bg-red-100 text-red-800 border border-red-200">
+                {loginError}
+              </div>
+            )}
             <button
               type="submit"
-              className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+              disabled={isLoggingIn}
+              className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ 
                 background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
                 color: theme.textOnPrimary,
                 boxShadow: `0 4px 15px ${theme.primary}40`
               }}
             >
-              Enter The Calming Place ☕
+              {isLoggingIn ? (
+                <>
+                  <Loader className="animate-spin" size={20} />
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <>
+                  Enter The Calming Place ☕
+                </>
+              )}
             </button>
           </form>
         </div>

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tpp-cache-v7-firebase-fix'; // Updated version - FIREBASE AUTH FIX
-const STATIC_CACHE = 'tpp-static-v7';
-const DYNAMIC_CACHE = 'tpp-dynamic-v7';
+const CACHE_NAME = 'tpp-cache-v8-chunk-fix'; // Updated version - CHUNK LOADING FIX
+const STATIC_CACHE = 'tpp-static-v8';
+const DYNAMIC_CACHE = 'tpp-dynamic-v8';
 
 // Essential assets to cache
 const STATIC_ASSETS = [
@@ -32,7 +32,7 @@ self.addEventListener('activate', (event) => {
       try {
         const cacheNames = await caches.keys();
         const deletePromises = cacheNames
-          .filter(name => !name.includes('v7')) // Delete old cache versions - FIREBASE AUTH FIX
+          .filter(name => !name.includes('v8')) // Delete old cache versions - CHUNK LOADING FIX
           .map(name => caches.delete(name));
         
         await Promise.all(deletePromises);
@@ -71,6 +71,42 @@ self.addEventListener('fetch', (event) => {
           return fetch(request);
         }
         
+        // CRITICAL FIX: NEVER cache JavaScript chunks - always fetch from network
+        // This prevents stale chunk errors when new deployments happen
+        if (url.pathname.includes('/assets/') && 
+            (url.pathname.endsWith('.js') || url.pathname.endsWith('.css'))) {
+          try {
+            return await fetch(request);
+          } catch (error) {
+            // If network fails for JS/CSS chunks, we're truly offline - serve from cache if available
+            const cachedResponse = await caches.match(request);
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            throw error;
+          }
+        }
+        
+        // ALWAYS fetch index.html from network to get latest bundle hashes
+        if (request.destination === 'document' || url.pathname === '/' || url.pathname === '/index.html') {
+          try {
+            const networkResponse = await fetch(request);
+            if (networkResponse.ok) {
+              // Cache the latest HTML for offline use
+              const cache = await caches.open(STATIC_CACHE);
+              await cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+          } catch (error) {
+            // Network failed, fall back to cached HTML
+            const cachedResponse = await caches.match(request);
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            throw error;
+          }
+        }
+        
         // For other API calls and dynamic imports, use network-first with cache fallback
         if (url.pathname.includes('/api/') ||
             url.pathname.includes('src/pages/')) {
@@ -91,25 +127,10 @@ self.addEventListener('fetch', (event) => {
           }
         }
         
-        // For static assets, try cache first but with network fallback
+        // For static assets (images, fonts, etc.), use cache-first strategy
         const cachedResponse = await caches.match(request);
         
         if (cachedResponse) {
-          // Return cached version but update cache in background
-          
-          // Background update for HTML files to get latest version
-          if (request.destination === 'document') {
-            fetch(request).then(response => {
-              if (response.ok) {
-                caches.open(STATIC_CACHE).then(cache => {
-                  cache.put(request, response.clone());
-                });
-              }
-            }).catch(() => {
-              // Network failed, but we have cache - silently continue
-            });
-          }
-          
           return cachedResponse;
         }
         
