@@ -206,15 +206,20 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
  */
 async function loadEmailTemplate(templateType) {
   try {
+    logger.info(`📧 Loading email template: ${templateType}`);
     const templateRef = admin.firestore().collection('emailTemplates').doc(templateType);
     const templateDoc = await templateRef.get();
     
     if (templateDoc.exists) {
-      return templateDoc.data();
+      const data = templateDoc.data();
+      logger.info(`✅ Found template ${templateType} in Firestore`);
+      return data;
+    } else {
+      logger.warn(`⚠️ Template ${templateType} not found in Firestore`);
     }
     return null;
   } catch (error) {
-    logger.error('Failed to load email template:', error);
+    logger.error(`❌ Failed to load email template ${templateType}:`, error);
     return null;
   }
 }
@@ -279,9 +284,10 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
  * Generate default HTML from template data
  */
 function generateDefaultHTML(template, colors) {
-  // Use CDN or reliable hosting for logo - try multiple sources
+  // Use Firebase Storage URL if available, otherwise fallback to domain
+  // Firebase Storage is more trusted by email clients than regular domains
   const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.app';
-  // Try direct Netlify CDN URL first (more reliable than redirect)
+  // Try Firebase Storage first (most reliable for email clients), then domain
   const LOGO_URL = process.env.LOGO_URL || `https://thepepplanner.app/tpp_logo.png`;
   return `
 <!DOCTYPE html>
@@ -294,7 +300,8 @@ function generateDefaultHTML(template, colors) {
   <div style="background-color: ${colors.sage}; padding: 20px 0;">
     <div style="max-width: 600px; margin: 20px auto; background-color: ${colors.white}; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
       <div style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); padding: 40px 20px; text-align: center;">
-        <img src="${LOGO_URL}" alt="The Pep Planner" style="width: 120px; height: auto; margin: 0 auto 12px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));" />
+        <img src="${LOGO_URL}" alt="The Pep Planner" style="width: 120px; height: auto; margin: 0 auto 12px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)); display: block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+        <div style="display: none; color: ${colors.sage}; font-size: 24px; font-weight: 700; margin-bottom: 12px;">The Pep Planner</div>
         <div style="color: ${colors.sage}; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Organize Your Research</div>
       </div>
       <div style="padding: 40px 32px; color: ${colors.text};">
@@ -385,11 +392,16 @@ exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
   try {
     const customTemplate = await loadEmailTemplate('trialEnding');
     if (customTemplate) {
+      logger.info('✅ Using custom trialEnding template from Firestore');
       const subject = customTemplate.subject || `Your trial ends in ${daysLeft} days - The Pep Planner`;
       const html = generateEmailHTML(customTemplate, { daysLeft });
       return sendEmail(userEmail, subject, html);
+    } else {
+      logger.warn('⚠️ No custom trialEnding template found in Firestore, using default');
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    logger.error('❌ Failed to load custom trialEnding template:', e);
+  }
   const subject = `Your trial ends in ${daysLeft} days - The Pep Planner`;
   const html = emailTemplates.trialEndingEmail(daysLeft, userEmail);
   return sendEmail(userEmail, subject, html);
