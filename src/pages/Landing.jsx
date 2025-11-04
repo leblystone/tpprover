@@ -174,12 +174,12 @@ export default function Landing() {
               {/* Section 4: Button */}
               <div className="flex-1 flex flex-col items-center justify-center -mt-4 md:mt-0">
                <button
-                 onClick={handleGetStarted}
+                 onClick={handleSignIn}
                  className="px-3 md:px-6 lg:px-8 py-2 md:py-3 lg:py-4 rounded-lg text-sm md:text-base lg:text-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center group"
                  style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
                >
-                 Download
-                 <ArrowRight className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 ml-1 md:ml-2 group-hover:translate-x-1 transition-transform" />
+                 Get Started
+                 <Pen className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 ml-1 md:ml-2 group-hover:scale-110 transition-transform" />
                </button>
              </div>
             </div>
@@ -329,6 +329,7 @@ export default function Landing() {
               >
                 <Monitor className="w-6 h-6 sm:w-8 sm:h-8 text-white mr-2 sm:mr-4" />
                 <div className="text-white text-center">
+                  <div className="text-[10px] sm:text-xs font-medium">Access via</div>
                   <div className="text-[12px] sm:text-lg font-semibold">Web</div>
                 </div>
               </div>
@@ -393,12 +394,12 @@ export default function Landing() {
             Ready to Organize Your Research?
           </h2>
           <button
-            onClick={handleGetStarted}
+            onClick={handleSignIn}
             className="px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center mx-auto group"
             style={{ backgroundColor: '#FFFFFF', color: '#7F9E95' }}
           >
-            Download
-            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            Get Started
+            <Pen className="w-5 h-5 ml-2 group-hover:scale-110 transition-transform" />
           </button>
         </div>
       </section>
