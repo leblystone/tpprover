@@ -59,7 +59,7 @@ const LaunchRedirect = () => <Navigate to="/countdown" replace />;
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <CoverLanding />,
+    element: <Landing />,
     errorElement: <NotFound />,
   },
   {
@@ -79,7 +79,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/countdown',
-    element: <CoverLanding />,
+    element: <Navigate to="/" replace />,
     errorElement: <NotFound />,
   },
   {
