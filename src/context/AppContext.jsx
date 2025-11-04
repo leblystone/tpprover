@@ -43,8 +43,6 @@ export function AppProvider({ children }) {
     
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
     useEffect(() => {
-        console.log('⚡ Loading localStorage data immediately on mount');
-        
         // Set flag to prevent welcome modal interference during initial load
         sessionStorage.setItem('tpp_initial_data_loading', 'true');
         
@@ -78,8 +76,6 @@ export function AppProvider({ children }) {
 
             const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
             if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
-            
-            console.log('⚡ localStorage data loaded instantly');
         } catch (error) {
             console.error('❌ Failed to load localStorage data on mount:', error);
         } finally {
@@ -119,12 +115,10 @@ export function AppProvider({ children }) {
                 
                 // Only load if we have a Firebase user
                 if (!firebaseUser) {
-                    console.log('☁️ No Firebase user, skipping cloud data load');
                     return;
                 }
 
                 const userId = firebaseUser.uid;
-                console.log(`☁️ Loading data from cloud for user: ${userId}`);
 
                 // Detect account switch and prevent data bleeding
                 try {
@@ -181,8 +175,6 @@ export function AppProvider({ children }) {
                     } else {
                         // Brand new user - demo data is now seeded by Login.jsx directly to Firestore
                         // No need to seed here, just wait for data to load from cloud
-                        console.log('☁️ New user detected - demo data should already be in Firestore from signup');
-                        console.log('⏳ Waiting for cloud data to load...');
                     }
                 }
 
@@ -240,7 +232,6 @@ export function AppProvider({ children }) {
                     }
                 } else {
                     // No cloud data found, load from localStorage as fallback
-                    console.log('☁️ No cloud data found, loading from localStorage');
                     const savedProtocols = localStorage.getItem('tpprover_protocols');
                     if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
 
@@ -281,7 +272,6 @@ export function AppProvider({ children }) {
                 // Load user state from cloud (NO localStorage sync)
                 const cloudUserState = await loadUserState(userId);
                 if (cloudUserState) {
-                    console.log('☁️ Loaded user state from cloud:', cloudUserState);
                     // User state is now ONLY in cloud, no localStorage sync
                 }
 
@@ -815,12 +805,6 @@ export function AppProvider({ children }) {
     useEffect(() => { saveData('tpprover_recon_items', reconItems) }, [reconItems]);
     useEffect(() => { saveData('tpprover_recon_history', reconHistory) }, [reconHistory]);
     useEffect(() => { 
-        console.log('🔍 Current state during supplements save:', {
-            isInitialLoad,
-            hasFirebaseUser: !!firebaseUser,
-            hasPassword,
-            supplementsLength: supplements.length
-        });
         saveData('tpprover_supplements', supplements);
     }, [supplements]);
     useEffect(() => { saveData('tpprover_orders', orders) }, [orders]);
@@ -880,12 +864,7 @@ export function AppProvider({ children }) {
             id: newSupplement.id || Date.now()
         };
         
-        console.log('💊 Adding supplement:', supplementToAdd);
-        setSupplements(prev => {
-            const updated = [supplementToAdd, ...prev];
-            console.log('💊 Updated supplements array:', updated);
-            return updated;
-        });
+        setSupplements(prev => [supplementToAdd, ...prev]);
     };
 
     const updateSupplement = (updatedSupplement) => {
@@ -1068,8 +1047,6 @@ export function AppProvider({ children }) {
         
         const totalItems = Object.values(dataCategories).reduce((sum, count) => sum + count, 0);
         
-        console.log('🛡️ Data Integrity Check:', dataCategories, `Total: ${totalItems} items`);
-        
         // Only warn if we have a logged-in user with existing data that becomes empty
         // Don't warn for new users or during initial load
         if (totalItems === 0 && user && !isLoading && localStorage.getItem('tpprover_user_has_data') === 'true') {
@@ -1234,16 +1211,8 @@ export function AppProvider({ children }) {
             });
         };
         
-        // Force immediate log
+        // Run integrity check on load
         setTimeout(() => {
-            console.log('🆘 EMERGENCY FUNCTIONS READY:');
-            console.log('- emergencyDataCheck() - check current state');
-            console.log('- emergencyRecovery() - recover from localStorage');
-            console.log('- emergencyFirebaseReload() - reload from Firebase');
-            console.log('- emergencyManualRecovery() - manual localStorage check');
-            console.log('- emergencyDataIntegrityCheck() - validate data integrity');
-            
-            // CRITICAL: Run integrity check on load
             validateDataIntegrity();
         }, 1000);
         
@@ -1264,7 +1233,6 @@ export function AppProvider({ children }) {
                 const userId = firebaseUser.uid;
                 setSubscription(e.detail.subscription);
                 await saveUserSubscription(userId, e.detail.subscription);
-                console.log('🔄 Subscription updated and saved to cloud:', e.detail.subscription);
             }
         };
 

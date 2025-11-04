@@ -524,7 +524,7 @@ function Admin() {
         // Try to restore Firebase auth with admin email and password
         const storedPassword = ADMIN_PASSWORD; // Use the same password
         import('firebase/auth').then(({ signInWithEmailAndPassword }) => {
-          signInWithEmailAndPassword(auth, 'thepepplanner@gmail.com', storedPassword)
+          signInWithEmailAndPassword(auth, 'contact@thepepplanner.com', storedPassword)
             .then(() => {
               console.log('✅ Firebase authentication restored successfully');
             })
@@ -982,7 +982,7 @@ function Admin() {
       try {
         // Sign in to Firebase with admin email
         const { signInWithEmailAndPassword } = await import('firebase/auth');
-        await signInWithEmailAndPassword(auth, 'thepepplanner@gmail.com', password);
+        await signInWithEmailAndPassword(auth, 'contact@thepepplanner.com', password);
         console.log('✅ Admin authenticated with Firebase');
         
         setIsAuthenticated(true);

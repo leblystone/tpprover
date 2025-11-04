@@ -7,9 +7,9 @@ const FeedbackWidget = ({ widget, theme }) => {
   const [submitted, setSubmitted] = useState(false);
 
   const feedbackTypes = [
-    { id: 'suggestion', label: 'Suggestion', icon: Lightbulb, color: theme.primary },
+    { id: 'suggestion', label: 'Suggest', icon: Lightbulb, color: theme.primary },
     { id: 'bug', label: 'Bug Report', icon: Bug, color: theme.error },
-    { id: 'improvement', label: 'Improvement', icon: Star, color: theme.warning },
+    { id: 'improvement', label: 'Improve', icon: Star, color: theme.warning },
     { id: 'general', label: 'General', icon: MessageCircle, color: theme.info }
   ];
 

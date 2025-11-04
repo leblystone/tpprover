@@ -21,21 +21,12 @@ export const isNative = () => {
 
   try {
     const result = Capacitor.isNativePlatform();
-    const platform = Capacitor.getPlatform();
     
     // Cache the result
     _isNativeCache = result;
     
-    console.log('🔍 isNative() first call (cached for session):', {
-      result,
-      capacitorPlatform: platform,
-      userAgent: navigator.userAgent.substring(0, 100),
-      url: window.location.href
-    });
-    
     return result;
   } catch (error) {
-    console.log('🔍 isNative() error:', error);
     _isNativeCache = false;
     return false;
   }

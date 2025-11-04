@@ -83,26 +83,11 @@ export function clearCheckoutReturnPath() {
  * @param {URLSearchParams} searchParams - Current URL search parameters
  */
 export function handleCheckoutReturn(navigate, searchParams) {
-  console.log('🔍 handleCheckoutReturn called', {
-    currentPath: window.location.pathname,
-    currentSearch: window.location.search,
-    hasSessionId: searchParams.has('session_id'),
-    sessionId: searchParams.get('session_id')
-  });
-  
   const sessionId = searchParams.get('session_id');
   
   if (sessionId) {
-    console.log('✅ Checkout session detected:', sessionId);
-    
     // Get the return path and clear it
     const returnPath = getCheckoutReturnPath(true);
-    
-    console.log('🔄 Checkout return details:', {
-      sessionId,
-      returnPath,
-      currentPath: window.location.pathname
-    });
     
     // Clean up the URL by removing session_id
     const cleanPath = window.location.pathname;
@@ -116,10 +101,7 @@ export function handleCheckoutReturn(navigate, searchParams) {
     
     // Navigate to return path if it's different from current
     if (returnPath !== cleanPath) {
-      console.log('🔄 Navigating back to:', returnPath);
       navigate(returnPath, { replace: true });
-    } else {
-      console.log('📍 Already on return path, no navigation needed');
     }
     
     // Show success message
@@ -133,8 +115,6 @@ export function handleCheckoutReturn(navigate, searchParams) {
     }, 100);
     
     return true; // Indicates we handled a checkout return
-  } else {
-    console.log('📋 No checkout session detected in URL parameters');
   }
   
   return false; // No checkout return to handle

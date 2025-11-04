@@ -205,11 +205,6 @@ export default function Login() {
             }
         };
         
-        console.log('🧪 Development utilities available:');
-        console.log('   - window.forceLogout() - Force logout');
-        console.log('   - window.clearAllData() - Clear all localStorage');
-        console.log('   - window.checkAccountStatus(email?) - Check account status');
-        
         // Development commands available via window object
     }, [email]);
 

@@ -7,7 +7,7 @@ service cloud.firestore {
       // Check if authenticated user's email matches admin emails
       return request.auth != null && (
              request.auth.token.email == 'lebrockmaldonado@gmail.com' ||
-             request.auth.token.email == 'thepepplanner@gmail.com'
+             request.auth.token.email == 'contact@thepepplanner.com'
       );
     }
     

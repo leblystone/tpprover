@@ -65,12 +65,8 @@ export async function saveUserData(userId, data, collection = COLLECTIONS.USER_D
       version: '1.0'
     };
     
-    // Log data being saved for debugging
-    console.log(`☁️ Saving user data to cloud: ${collection}/${userId}`, finalData);
-    
     await setDoc(userDoc, finalData, { merge: true });
     
-    console.log(`☁️ Saved user data to cloud: ${collection}/${userId}`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to save user data to cloud:`, error);
@@ -94,10 +90,8 @@ export async function loadUserData(userId, collection = COLLECTIONS.USER_DATA) {
     
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log(`☁️ Loaded user data from cloud: ${collection}/${userId}`);
       return data;
     } else {
-      console.log(`☁️ No user data found in cloud: ${collection}/${userId}`);
       return null;
     }
   } catch (error) {
@@ -188,7 +182,6 @@ export async function deleteAllUserData(userId) {
     });
     
     await Promise.all(deletePromises);
-    console.log(`☁️ Deleted all user data from cloud: ${userId}`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to delete user data from cloud:`, error);
@@ -214,13 +207,10 @@ export async function hasUserData(userId) {
  */
 export async function migrateLocalStorageToCloud(userId) {
   try {
-    console.log(`🔄 Migrating localStorage data to cloud for user: ${userId}`);
-    
     // Get all localStorage keys that start with tpprover_
     const localStorageKeys = Object.keys(localStorage).filter(key => key.startsWith('tpprover_'));
     
     if (localStorageKeys.length === 0) {
-      console.log('📭 No localStorage data to migrate');
       return true;
     }
     
@@ -284,7 +274,6 @@ export async function migrateLocalStorageToCloud(userId) {
     
     await Promise.all(promises);
     
-    console.log(`✅ Migration complete for user: ${userId}`);
     return true;
   } catch (error) {
     console.error(`❌ Migration failed for user: ${userId}`, error);
@@ -299,7 +288,6 @@ export function clearLocalStorageData() {
   try {
     const keysToRemove = Object.keys(localStorage).filter(key => key.startsWith('tpprover_'));
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    console.log(`🧹 Cleared ${keysToRemove.length} localStorage keys`);
     return true;
   } catch (error) {
     console.error('❌ Failed to clear localStorage:', error);
