@@ -1029,76 +1029,60 @@ export default function Login() {
                         </div>
                     </div>
 
-                    {/* Download Section */}
-                    <div className="mt-8 w-full max-w-md">
-                        <div className="text-center mb-4">
-                            <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
-                                Download the App
-                            </h3>
-                        </div>
-                        
-                        <div className="flex gap-3 justify-center items-center">
+                    {/* Download Section - Simplified */}
+                    <div className="mt-6 pt-6 border-t w-full max-w-md" style={{ borderColor: theme.border }}>
+                        <p className="text-xs text-center mb-3" style={{ color: theme.textLight }}>Also available on</p>
+                        <div className="flex gap-2 justify-center items-center">
                             {/* Apple App Store Button */}
                             <button 
-                                className="inline-block transition-transform hover:scale-105 relative"
+                                className="transition-opacity hover:opacity-80 relative"
                                 onClick={() => setShowIOSPopup(true)}
                             >
                                 <div 
-                                    className="flex items-center justify-center px-2 py-2 rounded-lg shadow-lg"
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md shadow-sm"
                                     style={{ backgroundColor: '#4c6b52' }}
                                 >
-                                    <Apple className="w-6 h-6 text-white mr-2" />
-                                    <div className="text-white text-center">
-                                        <div className="text-[10px] font-medium">Download on the</div>
-                                        <div className="text-[12px] font-semibold">App Store</div>
-                                    </div>
+                                    <Apple className="w-4 h-4 text-white" />
+                                    <span className="text-[10px] text-white font-medium">iOS</span>
                                 </div>
                                 {/* Coming Soon Badge */}
                                 <div 
-                                    className="absolute -top-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-[6px] font-bold tracking-wider shadow-md"
+                                    className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full text-[6px] font-bold shadow-sm"
                                     style={{ 
                                       backgroundColor: '#B8A99A',
-                                      color: '#FFFFFF',
-                                      letterSpacing: '0.05em'
+                                      color: '#FFFFFF'
                                     }}
                                 >
-                                    COMING SOON
+                                    SOON
                                 </div>
                             </button>
 
                             {/* Google Play Store Button */}
                             <a 
                                 href="https://play.google.com/store/apps/details?id=com.thepepplanner.app" 
-                                className="inline-block transition-transform hover:scale-105"
+                                className="transition-opacity hover:opacity-80"
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
                                 <div 
-                                    className="flex items-center justify-center px-2 py-2 rounded-lg shadow-lg"
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md shadow-sm"
                                     style={{ backgroundColor: '#364b3d' }}
                                 >
-                                    <Play className="w-6 h-6 text-white mr-2" />
-                                    <div className="text-white text-center">
-                                        <div className="text-[10px] font-medium">GET IT ON</div>
-                                        <div className="text-[12px] font-semibold">Google Play</div>
-                                    </div>
+                                    <Play className="w-4 h-4 text-white" />
+                                    <span className="text-[10px] text-white font-medium">Android</span>
                                 </div>
                             </a>
 
                             {/* Web Access Button */}
                             <button 
-                                onClick={() => { /* Already on web login page */ }}
-                                className="inline-block transition-transform hover:scale-105 cursor-default"
+                                className="cursor-default"
                             >
                                 <div 
-                                    className="flex items-center justify-center px-2 py-2 rounded-lg shadow-lg"
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md shadow-sm opacity-60"
                                     style={{ backgroundColor: '#2d3d34' }}
                                 >
-                                    <Monitor className="w-6 h-6 text-white mr-2" />
-                                    <div className="text-white text-center">
-                                        <div className="text-[10px] font-medium">Access via</div>
-                                        <div className="text-[12px] font-semibold">Web</div>
-                                    </div>
+                                    <Monitor className="w-4 h-4 text-white" />
+                                    <span className="text-[10px] text-white font-medium">Web</span>
                                 </div>
                             </button>
                         </div>
