@@ -14,7 +14,7 @@ const COLORS = {
 };
 
 // Public asset base for images in emails
-const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.com';
+const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.app';
 const LOGO_URL = `${ASSET_BASE}/tpp_logo.png`;
 
 // Base email wrapper
@@ -3424,11 +3424,11 @@ exports.giftExpiringSoonEmail = (recipientEmail, planName, daysLeft, giftGiverNa
   const content = `
     <div class="header">
       <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
-      <div class="logo">🎁 Your Gifted Research Time Is Almost Up!</div>
+      <div class="logo">Organize Your Research</div>
     </div>
     
     <div class="content">
-      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">Your Gifted Research Time Is Ending Soon</h1>
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin: 0 0 16px 0;">🎁 Your Gifted Research Time Is Ending Soon</h1>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
         Hi ${recipientEmail.split('@')[0]},

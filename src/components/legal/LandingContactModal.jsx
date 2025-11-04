@@ -114,9 +114,10 @@ export default function LandingContactModal({ open, onClose }) {
                                         style={{ 
                                             borderColor: '#DDE6DE',
                                             backgroundColor: '#FFFFFF',
-                                            color: '#2F3B3A',
-                                            focusRingColor: '#7F9E95'
+                                            color: '#2F3B3A'
                                         }}
+                                        onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px #7F9E95'}
+                                        onBlur={(e) => e.currentTarget.style.boxShadow = 'none'}
                                         placeholder="Your name"
                                     />
                                 </div>
@@ -136,9 +137,10 @@ export default function LandingContactModal({ open, onClose }) {
                                         style={{ 
                                             borderColor: '#DDE6DE',
                                             backgroundColor: '#FFFFFF',
-                                            color: '#2F3B3A',
-                                            focusRingColor: '#7F9E95'
+                                            color: '#2F3B3A'
                                         }}
+                                        onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px #7F9E95'}
+                                        onBlur={(e) => e.currentTarget.style.boxShadow = 'none'}
                                         placeholder="your.email@example.com"
                                     />
                                 </div>
@@ -158,9 +160,10 @@ export default function LandingContactModal({ open, onClose }) {
                                         style={{ 
                                             borderColor: '#DDE6DE',
                                             backgroundColor: '#FFFFFF',
-                                            color: '#2F3B3A',
-                                            focusRingColor: '#7F9E95'
+                                            color: '#2F3B3A'
                                         }}
+                                        onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px #7F9E95'}
+                                        onBlur={(e) => e.currentTarget.style.boxShadow = 'none'}
                                         placeholder="What can we help you with?"
                                     />
                                 </div>
@@ -180,9 +183,10 @@ export default function LandingContactModal({ open, onClose }) {
                                         style={{ 
                                             borderColor: '#DDE6DE',
                                             backgroundColor: '#FFFFFF',
-                                            color: '#2F3B3A',
-                                            focusRingColor: '#7F9E95'
+                                            color: '#2F3B3A'
                                         }}
+                                        onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px #7F9E95'}
+                                        onBlur={(e) => e.currentTarget.style.boxShadow = 'none'}
                                         placeholder="Tell us more about your question or concern..."
                                     />
                                 </div>
@@ -199,7 +203,13 @@ export default function LandingContactModal({ open, onClose }) {
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                                        className="flex-1 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                                        style={{ 
+                                            backgroundColor: '#7F9E95',
+                                            color: '#FFFFFF'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b8b78'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7F9E95'}
                                     >
                                         {isSubmitting ? (
                                             <>
@@ -216,11 +226,21 @@ export default function LandingContactModal({ open, onClose }) {
                                 </div>
                             </form>
 
-                            <div className="border-t border-gray-200 pt-4">
-                                <p className="text-sm text-gray-600 text-center mb-3">Or contact us directly:</p>
+                            <div className="border-t pt-4" style={{ borderColor: '#DDE6DE' }}>
+                                <p className="text-sm text-center mb-3" style={{ color: '#6B7D7A' }}>Or contact us directly:</p>
                                 <button
                                     onClick={handleDirectEmail}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 border rounded-md transition-colors"
+                                    style={{ 
+                                        color: '#7F9E95',
+                                        borderColor: '#7F9E95'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#F5F5F0';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
                                 >
                                     <Mail className="w-4 h-4" />
                                     contact@thepepplanner.com

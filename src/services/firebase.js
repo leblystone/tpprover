@@ -31,41 +31,63 @@ import { encryptUserData, decryptUserData, hashPassword } from '../utils/encrypt
 
 /**
  * Check if user should be granted founder status (first 100 users)
+ * Only grants founder status for users who sign up on or after November 4, 2025
  * @param {string} userId - User ID
  * @returns {Promise<boolean>} - Whether user is a founder
  */
 export async function checkAndAssignFounderStatus(userId) {
   try {
-    // Get current user count from analytics
-    const analyticsRef = doc(db, 'analytics', 'userCount');
-    const analyticsDoc = await getDoc(analyticsRef);
+    // Define the founder program start date (November 4, 2025 at 00:00:00 UTC)
+    const FOUNDER_PROGRAM_START_DATE = new Date('2025-11-04T00:00:00Z');
+    const now = new Date();
     
-    let currentCount = 0;
-    if (analyticsDoc.exists()) {
-      currentCount = analyticsDoc.data().totalUsers || 0;
+    // Check if we're past the founder program start date
+    if (now < FOUNDER_PROGRAM_START_DATE) {
+      console.log('⏰ Founder program has not started yet (starts Nov 4, 2025)');
+      return false;
     }
     
-    // Increment user count
-    const newCount = currentCount + 1;
+    // Get current founder count from analytics
+    const analyticsRef = doc(db, 'analytics', 'founderCount');
+    const analyticsDoc = await getDoc(analyticsRef);
+    
+    let currentFounderCount = 0;
+    if (analyticsDoc.exists()) {
+      currentFounderCount = analyticsDoc.data().totalFounders || 0;
+    }
+    
+    // Check if we've already granted 100 founder badges
+    if (currentFounderCount >= 100) {
+      console.log('🏁 Founder program full (100/100 badges granted)');
+      return false;
+    }
+    
+    // Increment founder count
+    const newFounderCount = currentFounderCount + 1;
     await setDoc(analyticsRef, {
-      totalUsers: newCount,
+      totalFounders: newFounderCount,
       lastUpdated: serverTimestamp()
     }, { merge: true });
     
-    // Check if this user is in the first 100
-    const isFounder = newCount <= 100;
+    // Also track in user count for backwards compatibility
+    const userCountRef = doc(db, 'analytics', 'userCount');
+    await setDoc(userCountRef, {
+      totalUsers: increment(1),
+      lastUpdated: serverTimestamp()
+    }, { merge: true });
     
-    if (isFounder) {
-      // Store founder status in user document
-      const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, {
-        isFounder: true,
-        founderNumber: newCount,
-        registeredAt: serverTimestamp()
-      }, { merge: true });
-    }
+    // Grant founder status
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, {
+      isFounder: true,
+      founderNumber: newFounderCount,
+      founderGrantedAt: serverTimestamp(),
+      registeredAt: serverTimestamp()
+    }, { merge: true });
     
-    return isFounder;
+    console.log(`🎉 Founder badge granted! User is founder #${newFounderCount}/100`);
+    
+    return true;
   } catch (error) {
     console.error('Error checking founder status:', error);
     return false;

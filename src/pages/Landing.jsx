@@ -77,7 +77,7 @@ export default function Landing() {
   ];
 
   const platforms = [
-    { icon: Apple, name: 'iOS', status: 'Available' },
+    { icon: Apple, name: 'iOS', status: 'Coming Soon' },
     { icon: Play, name: 'Android', status: 'Available' },
     { icon: Monitor, name: 'Web', status: 'Available' }
   ];
@@ -276,7 +276,7 @@ export default function Landing() {
               Download the App
             </h2>
             <p className="text-lg" style={{ color: '#6B7D7A' }}>
-              Available on iOS, Android, and Web
+              Available on Android and Web. <span style={{ color: '#7F9E95', fontWeight: '600' }}>iOS Coming Soon!</span>
             </p>
           </div>
           
@@ -284,7 +284,7 @@ export default function Landing() {
             {/* Apple App Store Button */}
             <a 
               href="#" 
-              className="inline-block transition-transform hover:scale-105"
+              className="inline-block transition-transform hover:scale-105 relative"
               onClick={(e) => e.preventDefault()}
             >
               <div 
@@ -296,6 +296,13 @@ export default function Landing() {
                   <div className="text-[10px] sm:text-xs font-medium">Download on the</div>
                   <div className="text-[12px] sm:text-lg font-semibold">App Store</div>
                 </div>
+              </div>
+              {/* Coming Soon Banner */}
+              <div 
+                className="absolute -top-2 -right-2 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold shadow-md transform rotate-12"
+                style={{ backgroundColor: '#F59E0B', color: '#FFFFFF' }}
+              >
+                COMING SOON
               </div>
             </a>
 

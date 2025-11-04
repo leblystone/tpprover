@@ -274,9 +274,6 @@ export default function Login() {
         
         // Store password for encryption
         setFirebasePassword(password);
-
-        // Set beta tester flag for all users during beta period
-        localStorage.setItem('tpprover_is_tester', 'true');
         
         // Check existing founder status for returning users
         try {
@@ -286,6 +283,18 @@ export default function Login() {
           }
         } catch (error) {
           console.error('Error checking existing founder status:', error);
+        }
+        
+        // Check Firestore for beta tester status (from manual admin grants)
+        try {
+          const { checkLifetimeAccessFirestore } = await import('../services/firebase');
+          const lifetimeAccess = await checkLifetimeAccessFirestore(firebaseUser.uid);
+          if (lifetimeAccess && lifetimeAccess.metadata?.isBetaTester) {
+            localStorage.setItem('tpprover_is_tester', 'true');
+            console.log('🧪 Beta tester status synced from Firestore');
+          }
+        } catch (error) {
+          console.error('Error checking beta tester status:', error);
         }
 
         // Set user in app context  
@@ -510,11 +519,7 @@ export default function Login() {
         setFirebasePassword(password);
         console.log('🔐 Password set for encryption');
         
-        // Set beta tester flag for all users during beta period
-        localStorage.setItem('tpprover_is_tester', 'true');
-        console.log('🧪 Beta tester flag set');
-        
-        // Check and assign founder status (first 100 users)
+        // Check and assign founder status (first 100 users starting Nov 4, 2025)
         console.log('🏁 About to check founder status...');
         try {
           const isFounder = await checkAndAssignFounderStatus(firebaseUser.uid);
