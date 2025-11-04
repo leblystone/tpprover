@@ -8,7 +8,7 @@ const FeedbackWidget = ({ widget, theme }) => {
 
   const feedbackTypes = [
     { id: 'suggestion', label: 'Suggest', icon: Lightbulb, color: theme.primary },
-    { id: 'bug', label: 'Bug Report', icon: Bug, color: theme.error },
+    { id: 'bug', label: 'Bug', icon: Bug, color: theme.error },
     { id: 'improvement', label: 'Improve', icon: Star, color: theme.warning },
     { id: 'general', label: 'General', icon: MessageCircle, color: theme.info }
   ];
@@ -83,7 +83,7 @@ const FeedbackWidget = ({ widget, theme }) => {
               key={type.id}
               type="button"
               onClick={() => setFeedbackType(type.id)}
-              className={`p-1.5 text-xs rounded-lg action-button-hover ${
+              className={`p-2 text-xs rounded-lg action-button-hover flex flex-col items-center justify-center gap-1 ${
                 feedbackType === type.id ? 'border-2' : ''
               }`}
               style={{
@@ -92,8 +92,8 @@ const FeedbackWidget = ({ widget, theme }) => {
                 color: feedbackType === type.id ? type.color : theme.text
               }}
             >
-              <type.icon size={10} className="icon-hover" />
-              <span className="truncate text-xs text-hover">{type.label}</span>
+              <type.icon size={16} className="icon-hover" />
+              <span className="text-xs text-hover">{type.label}</span>
             </button>
           ))}
         </div>
