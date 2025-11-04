@@ -306,6 +306,7 @@ export default function EmailTemplateManager({ theme }) {
   const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
   const [sendingToAll, setSendingToAll] = useState(false);
   const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
+  const [editMode, setEditMode] = useState('simple'); // 'simple' or 'advanced'
 
   // Available variables for each template type
   const templateVariables = {
@@ -602,10 +603,8 @@ export default function EmailTemplateManager({ theme }) {
     updateTemplate('features', newFeatures);
   };
 
-  // Generate preview HTML
-  const generatePreviewHTML = () => {
-    const template = currentTemplate;
-    
+  // Generate HTML from template fields (for simple mode)
+  const generateHTMLFromTemplate = (template) => {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -680,6 +679,22 @@ export default function EmailTemplateManager({ theme }) {
 </body>
 </html>
     `;
+  };
+
+  // Generate preview HTML
+  const generatePreviewHTML = () => {
+    const template = currentTemplate;
+    
+    // If custom HTML exists, use it (but still replace variables for preview)
+    if (template.html) {
+      let html = template.html;
+      // Replace color variables in custom HTML
+      html = html.replace(/\$\{colors\.(\w+)\}/g, (match, colorKey) => colors[colorKey] || match);
+      return html;
+    }
+    
+    // Otherwise generate from simple fields
+    return generateHTMLFromTemplate(template);
   };
 
   // Copy HTML to clipboard
@@ -1023,6 +1038,51 @@ export default function EmailTemplateManager({ theme }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Left: Editor */}
         <div className="space-y-6">
+          {/* Edit Mode Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div>
+              <h3 className="text-sm font-medium mb-1" style={{ color: theme.text }}>
+                Editor Mode
+              </h3>
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                {editMode === 'simple' ? 'Simple form-based editing' : 'Full HTML control from header to footer'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditMode('simple')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  editMode === 'simple' ? 'opacity-100' : 'opacity-50 hover:opacity-75'
+                }`}
+                style={editMode === 'simple' ? {
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary
+                } : {
+                  backgroundColor: theme.secondary,
+                  color: theme.text
+                }}
+              >
+                Simple
+              </button>
+              <button
+                onClick={() => setEditMode('advanced')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  editMode === 'advanced' ? 'opacity-100' : 'opacity-50 hover:opacity-75'
+                }`}
+                style={editMode === 'advanced' ? {
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary
+                } : {
+                  backgroundColor: theme.secondary,
+                  color: theme.text
+                }}
+              >
+                Advanced HTML
+              </button>
+            </div>
+          </div>
+
+          {editMode === 'simple' ? (
           <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
               Edit Template
@@ -1215,6 +1275,69 @@ export default function EmailTemplateManager({ theme }) {
               />
             </div>
           </div>
+          ) : (
+          /* Advanced HTML Editor */
+          <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+                Advanced HTML Editor
+              </h3>
+              <button
+                onClick={() => {
+                  // Generate HTML from simple fields (ignore existing html field)
+                  const template = { ...currentTemplate };
+                  delete template.html; // Remove html to generate from simple fields
+                  const html = generateHTMLFromTemplate(template);
+                  updateTemplate('html', html);
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90"
+                style={{ backgroundColor: theme.secondary, color: theme.text }}
+                title="Generate HTML from simple fields"
+              >
+                Generate from Simple Fields
+              </button>
+            </div>
+            
+            <div className="mb-4 p-3 rounded-lg text-xs" style={{ backgroundColor: theme.primaryLighter || '#F0F2F8', color: theme.text }}>
+              <p className="font-medium mb-2">💡 Tips:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs" style={{ color: theme.textLight }}>
+                <li>Edit the entire email HTML from header to footer</li>
+                <li>Use variables like %USERNAME%, %USEREMAIL%, %DAYSLEFT%, etc.</li>
+                <li>Colors are available: {colors.primary}, {colors.secondary}, {colors.sage}</li>
+                <li>Logo URL will use Firebase Storage URL automatically</li>
+              </ul>
+            </div>
+
+            <textarea
+              value={currentTemplate.html || generateHTMLFromTemplate(currentTemplate)}
+              onChange={(e) => updateTemplate('html', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border-2 text-sm font-mono focus:outline-none focus:ring-2 transition-all"
+              style={{ 
+                borderColor: theme.primary + '40',
+                backgroundColor: theme.primaryLighter || '#F0F2F8',
+                color: theme.text,
+                boxShadow: `0 2px 4px ${theme.primary}10`,
+                minHeight: '600px',
+                fontFamily: 'Monaco, "Courier New", monospace',
+                fontSize: '12px',
+                lineHeight: '1.5'
+              }}
+              placeholder="<!DOCTYPE html>..."
+              spellCheck={false}
+            />
+            
+            <div className="mt-4 p-3 rounded-lg text-xs" style={{ backgroundColor: theme.coffeeCream || '#F5E6D3', color: theme.text }}>
+              <p className="font-medium mb-2">📋 Available Variables:</p>
+              <div className="flex flex-wrap gap-2">
+                {templateVariables[selectedTemplate]?.map((v, i) => (
+                  <code key={i} className="px-2 py-1 rounded" style={{ backgroundColor: theme.white, color: theme.primary }}>
+                    %{v.name}%
+                  </code>
+                ))}
+              </div>
+            </div>
+          </div>
+          )}
 
           {/* Color Customization - Compact */}
           <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
