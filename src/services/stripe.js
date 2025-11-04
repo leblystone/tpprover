@@ -4,6 +4,7 @@ import { getAuth } from 'firebase/auth';
 import { functions } from '../config/firebase.js';
 import { storeCheckoutReturnPath, getCheckoutReturnPath } from '../utils/checkoutNavigation.js';
 import { formatCurrency } from '../utils/currencyUtils.js';
+import { isNative, getPWAUrl } from '../utils/platform.js';
 
 /**
  * Store checkout timeout ID for mobile visibility tracking
@@ -90,6 +91,10 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
     
     const createCheckoutSessionFn = httpsCallable(functions, 'createCheckoutSession');
     
+    // Get the proper base URL for redirects
+    // In native apps, use production PWA URL instead of capacitor://localhost
+    const baseUrl = isNative() ? getPWAUrl() : window.location.origin;
+    
     // Ensure returnPath starts with /
     const normalizedPath = returnPath.startsWith('/') ? returnPath : `/${returnPath}`;
     const successPath = (options.successPath || normalizedPath);
@@ -101,8 +106,8 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
         priceId,
         userEmail,
         userId,
-        successUrl: `${window.location.origin}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}${cancelPath}`,
+        successUrl: `${baseUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${baseUrl}${cancelPath}`,
         isGift: isGift || false,
         giftData: options.giftData || undefined
       });
@@ -218,9 +223,13 @@ export async function createPortalSession(customerId) {
     storeCheckoutReturnPath();
     const currentPath = window.location.pathname + window.location.search;
     
+    // Get the proper base URL for redirects
+    // In native apps, use production PWA URL instead of capacitor://localhost
+    const baseUrl = isNative() ? getPWAUrl() : window.location.origin;
+    
     const result = await createPortalSessionFn({
       customerId,
-      returnUrl: `${window.location.origin}${currentPath}`,
+      returnUrl: `${baseUrl}${currentPath}`,
     });
 
     // Return the URL for the calling component to handle
@@ -274,9 +283,13 @@ export async function updatePaymentMethod(customerId) {
     storeCheckoutReturnPath();
     const currentPath = window.location.pathname + window.location.search;
     
+    // Get the proper base URL for redirects
+    // In native apps, use production PWA URL instead of capacitor://localhost
+    const baseUrl = isNative() ? getPWAUrl() : window.location.origin;
+    
     const result = await updatePaymentMethodFn({
       customerId,
-      returnUrl: `${window.location.origin}${currentPath}`,
+      returnUrl: `${baseUrl}${currentPath}`,
     });
 
     // Redirect to Stripe Checkout for payment method update
