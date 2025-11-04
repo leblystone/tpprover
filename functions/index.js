@@ -77,6 +77,24 @@ exports.adminGrantLifetimeAccess = onCall(
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       
+      // CRITICAL: Also write to userSubscriptions collection (where app reads from)
+      const subscriptionData = {
+        hasLifetimeAccess: true,
+        interval: 'lifetime',
+        status: 'active',
+        plan: 'lifetime',
+        lifetimeReason: reason || 'Beta tester',
+        lifetimeGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
+        currentPeriodEnd: null, // Lifetime has no end date
+        currentPeriodStart: admin.firestore.FieldValue.serverTimestamp(),
+        userId: userId,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      await db.collection('userSubscriptions').doc(userId).set({
+        subscription: subscriptionData
+      }, { merge: true });
+      
       logger.info('✅ Lifetime access granted successfully');
       
       return { 
@@ -938,7 +956,7 @@ exports.onUserCreated = onDocumentCreated(
 exports.scheduledTrialReminders = onSchedule({
   schedule: '0 * * * *',
   timeZone: 'UTC', // Use UTC as base, calculate user-specific times
-  secrets: ['SENDGRID_API_KEY']
+  secrets: ['SENDGRID_API_KEY', 'LOGO_URL']
 }, async (event) => {
   logger.info('🔔 Running scheduled trial ending reminders (hourly check)...');
   
