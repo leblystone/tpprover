@@ -119,6 +119,7 @@ export default function Login() {
     const [passwordValidation, setPasswordValidation] = useState({ valid: true, errors: [], tips: [] });
     const [emailValidation, setEmailValidation] = useState({ valid: true, error: '', tip: '' });
     const [isReturningUser, setIsReturningUser] = useState(false);
+    const [showIOSPopup, setShowIOSPopup] = useState(false);
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -1038,10 +1039,9 @@ export default function Login() {
                         
                         <div className="flex gap-3 justify-center items-center">
                             {/* Apple App Store Button */}
-                            <a 
-                                href="#" 
+                            <button 
                                 className="inline-block transition-transform hover:scale-105 relative"
-                                onClick={(e) => e.preventDefault()}
+                                onClick={() => setShowIOSPopup(true)}
                             >
                                 <div 
                                     className="flex items-center justify-center px-2 py-2 rounded-lg shadow-lg"
@@ -1057,14 +1057,14 @@ export default function Login() {
                                 <div 
                                     className="absolute -top-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-[6px] font-bold tracking-wider shadow-md"
                                     style={{ 
-                                      backgroundColor: '#7F9E95',
+                                      backgroundColor: '#B8A99A',
                                       color: '#FFFFFF',
                                       letterSpacing: '0.05em'
                                     }}
                                 >
                                     COMING SOON
                                 </div>
-                            </a>
+                            </button>
 
                             {/* Google Play Store Button */}
                             <a 
@@ -1128,6 +1128,41 @@ export default function Login() {
                     onClose={() => setShowAgreementModal(false)}
                     theme={theme}
                 />
+            )}
+
+            {/* iOS Coming Soon Popup */}
+            {showIOSPopup && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn"
+                    onClick={() => setShowIOSPopup(false)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl transform animate-scaleIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="text-center">
+                            <div className="mb-4">
+                                <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: '#B8A99A' }}>
+                                    <Apple className="w-8 h-8 text-white" />
+                                </div>
+                            </div>
+                            <h3 className="text-2xl font-bold mb-3" style={{ color: '#2F3B3A' }}>
+                                iOS App Coming Soon!
+                            </h3>
+                            <p className="text-base mb-6" style={{ color: '#6B7D7A' }}>
+                                We're working hard to bring <strong>The Pep Planner</strong> to the App Store. 
+                                In the meantime, you can access the full experience on <strong>Android</strong> or <strong>Web</strong>!
+                            </p>
+                            <button
+                                onClick={() => setShowIOSPopup(false)}
+                                className="w-full px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                                style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
+                            >
+                                Got it!
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
         </>
