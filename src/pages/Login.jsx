@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import { X, Plus, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Apple, Play, Monitor } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
@@ -1025,6 +1025,78 @@ export default function Login() {
                                     </button>
                                 </div>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Download Section */}
+                    <div className="mt-8 w-full max-w-md">
+                        <div className="text-center mb-4">
+                            <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
+                                Download the App
+                            </h3>
+                        </div>
+                        
+                        <div className="flex gap-3 justify-center items-center">
+                            {/* Apple App Store Button */}
+                            <a 
+                                href="#" 
+                                className="inline-block transition-transform hover:scale-105 relative"
+                                onClick={(e) => e.preventDefault()}
+                            >
+                                <div 
+                                    className="flex items-center justify-center px-2 py-2 rounded-lg shadow-lg"
+                                    style={{ backgroundColor: '#4c6b52' }}
+                                >
+                                    <Apple className="w-6 h-6 text-white mr-2" />
+                                    <div className="text-white text-center">
+                                        <div className="text-[10px] font-medium">Download on the</div>
+                                        <div className="text-[12px] font-semibold">App Store</div>
+                                    </div>
+                                </div>
+                                {/* Coming Soon Banner */}
+                                <div 
+                                    className="absolute -top-2 -right-2 px-2 py-1 rounded-full text-[8px] font-bold shadow-md transform rotate-12"
+                                    style={{ backgroundColor: '#F59E0B', color: '#FFFFFF' }}
+                                >
+                                    COMING SOON
+                                </div>
+                            </a>
+
+                            {/* Google Play Store Button */}
+                            <a 
+                                href="https://play.google.com/store/apps/details?id=com.thepepplanner.app" 
+                                className="inline-block transition-transform hover:scale-105"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <div 
+                                    className="flex items-center justify-center px-2 py-2 rounded-lg shadow-lg"
+                                    style={{ backgroundColor: '#364b3d' }}
+                                >
+                                    <Play className="w-6 h-6 text-white mr-2" />
+                                    <div className="text-white text-center">
+                                        <div className="text-[10px] font-medium">GET IT ON</div>
+                                        <div className="text-[12px] font-semibold">Google Play</div>
+                                    </div>
+                                </div>
+                            </a>
+
+                            {/* Web Access Button */}
+                            <button 
+                                onClick={() => { /* Already on web login page */ }}
+                                className="inline-block transition-transform hover:scale-105 cursor-default"
+                            >
+                                <div 
+                                    className="flex items-center justify-center px-2 py-2 rounded-lg shadow-lg"
+                                    style={{ backgroundColor: '#2d3d34' }}
+                                >
+                                    <Monitor className="w-6 h-6 text-white mr-2" />
+                                    <div className="text-white text-center">
+                                        <div className="text-[10px] font-medium">Access via</div>
+                                        <div className="text-[12px] font-semibold">Web</div>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </div>
