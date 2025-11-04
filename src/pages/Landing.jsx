@@ -159,16 +159,16 @@ export default function Landing() {
                {/* Section 2: Blueprint Text - Desktop Only */}
                <div className="hidden md:flex flex-1 items-center justify-center mb-8 lg:mb-12">
                  <p className="text-base lg:text-lg font-medium tracking-wider uppercase text-center" style={{ color: '#6B7D7A' }}>
-                   <span className="block lg:hidden">THE NEW BLUEPRINT<br />FOR YOUR RESEARCH</span>
-                   <span className="hidden lg:block">THE NEW BLUEPRINT FOR YOUR RESEARCH</span>
+                   <span className="block lg:hidden">YOUR RESEARCH,<br />ORGANIZED AND SIMPLIFIED</span>
+                   <span className="hidden lg:block">YOUR RESEARCH, ORGANIZED AND SIMPLIFIED</span>
                  </p>
                </div>
 
                {/* Section 3: Blueprint Text - Mobile Only (even spacing) */}
                <div className="md:hidden flex-1 flex items-center justify-center">
                  <p className="text-sm font-medium tracking-wider uppercase text-center" style={{ color: '#6B7D7A', lineHeight: '1.8' }}>
-                   <span className="block">THE NEW BLUEPRINT</span>
-                   <span className="block">FOR YOUR RESEARCH</span>
+                   <span className="block">YOUR RESEARCH,</span>
+                   <span className="block">ORGANIZED AND SIMPLIFIED</span>
                  </p>
                </div>
 
