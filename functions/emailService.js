@@ -93,6 +93,16 @@ exports.sendWelcomeEmail = async (userEmail, userName = null) => {
  * Send email verification
  */
 exports.sendVerificationEmail = async (userEmail, verificationLink) => {
+  try {
+    const customTemplate = await loadEmailTemplate('verification');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Verify your email for The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { verificationLink });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) {
+    logger.warn('Failed to load custom verification template, using default:', e);
+  }
   const subject = 'Verify your email for The Pep Planner';
   const html = emailTemplates.verificationEmail(verificationLink);
   return sendEmail(userEmail, subject, html);
@@ -350,6 +360,16 @@ function generateDefaultHTML(template, colors) {
  * Send password reset email
  */
 exports.sendPasswordResetEmail = async (userEmail, resetLink) => {
+  try {
+    const customTemplate = await loadEmailTemplate('passwordReset');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Reset your password for The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { resetLink });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) {
+    logger.warn('Failed to load custom password reset template, using default:', e);
+  }
   const subject = 'Reset your password for The Pep Planner';
   const html = emailTemplates.passwordResetEmail(resetLink, userEmail);
   return sendEmail(userEmail, subject, html);
@@ -394,6 +414,16 @@ exports.sendSubscriptionConfirmationEmail = async (userEmail, plan, interval, pr
  * Send lifetime access granted email
  */
 exports.sendLifetimeAccessGrantedEmail = async (userEmail, reason = 'Beta tester') => {
+  try {
+    const customTemplate = await loadEmailTemplate('lifetimeAccessGranted');
+    if (customTemplate) {
+      const subject = customTemplate.subject || '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
+      const html = generateEmailHTML(customTemplate, { userEmail, userName: reason });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) {
+    logger.warn('Failed to load custom lifetime access template, using default:', e);
+  }
   const subject = '🎉 Lifetime Access Granted - The Pep Planner';
   const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, reason);
   return sendEmail(userEmail, subject, html);
@@ -403,6 +433,16 @@ exports.sendLifetimeAccessGrantedEmail = async (userEmail, reason = 'Beta tester
  * Send subscription confirmed email (alias for testEmailSystem)
  */
 exports.sendSubscriptionConfirmedEmail = async (userEmail, plan) => {
+  try {
+    const customTemplate = await loadEmailTemplate('subscription');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Subscription Confirmed - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { plan, interval: 'month', price: '$8.99' });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (e) { 
+    logger.warn('Failed to load custom subscription template, using default:', e);
+  }
   const subject = 'Subscription Confirmed - The Pep Planner';
   const html = emailTemplates.subscriptionConfirmedEmail(plan, 'month', '$8.99');
   return sendEmail(userEmail, subject, html);
