@@ -293,7 +293,7 @@ export default function Landing() {
               {/* Coming Soon Banner */}
               <div 
                 className="absolute -top-2 -right-2 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold shadow-md transform rotate-12"
-                style={{ backgroundColor: '#F59E0B', color: '#FFFFFF' }}
+                style={{ backgroundColor: '#A89F91', color: '#FFFFFF' }}
               >
                 COMING SOON
               </div>
