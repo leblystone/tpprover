@@ -1035,7 +1035,7 @@ export default function Login() {
                         <div className="flex gap-2 justify-center items-center">
                             {/* Apple App Store Button */}
                             <button 
-                                className="transition-opacity hover:opacity-80 relative"
+                                className="transition-opacity hover:opacity-80"
                                 onClick={() => setShowIOSPopup(true)}
                             >
                                 <div 
@@ -1044,16 +1044,6 @@ export default function Login() {
                                 >
                                     <Apple className="w-4 h-4 text-white" />
                                     <span className="text-[10px] text-white font-medium">iOS</span>
-                                </div>
-                                {/* Coming Soon Badge */}
-                                <div 
-                                    className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full text-[6px] font-bold shadow-sm"
-                                    style={{ 
-                                      backgroundColor: '#B8A99A',
-                                      color: '#FFFFFF'
-                                    }}
-                                >
-                                    SOON
                                 </div>
                             </button>
 
