@@ -5,8 +5,54 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Redirect all non-file routes to index.html for SPA
-# Netlify automatically serves static files (images, CSS, JS) from dist/
+# Netlify automatically serves static files from dist/ directory
+# Static files (images, CSS, JS) are served directly without redirect
+# Only non-file routes go to index.html for SPA routing
+
+# Explicitly serve logo and other static assets
+[[redirects]]
+  from = "/tpp_logo.png"
+  to = "/tpp_logo.png"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*.png"
+  to = "/:splat.png"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*.jpg"
+  to = "/:splat.jpg"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*.jpeg"
+  to = "/:splat.jpeg"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*.svg"
+  to = "/:splat.svg"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*.webp"
+  to = "/:splat.webp"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*.ico"
+  to = "/:splat.ico"
+  status = 200
+  force = false
+
+# SPA fallback - must be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
