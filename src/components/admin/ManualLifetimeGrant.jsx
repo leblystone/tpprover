@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, UserPlus, CheckCircle, XCircle, AlertTriangle, Send } from 'lucide-react';
-import { getUserList, getAllLifetimeUsers } from '../../services/firebase';
+import { getUserList, getAllLifetimeUsers, getUserByEmail } from '../../services/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export default function ManualLifetimeGrant({ theme, onUserAdded }) {
@@ -24,15 +24,15 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
     setResult(null);
 
     try {
-      // First, try to find the user by email
-      const users = await getUserList();
-      const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      // Find the user by email using optimized query (much faster!)
+      const user = await getUserByEmail(email.trim());
 
       if (!user) {
         setResult({ 
           type: 'error', 
           message: `User with email "${email}" not found in Firebase. Make sure they have signed up first.` 
         });
+        setLoading(false);
         return;
       }
 

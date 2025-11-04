@@ -709,6 +709,52 @@ export async function getUserList() {
   }
 }
 
+/**
+ * Get a specific user by email (optimized for admin lifetime grant)
+ * @param {string} email - User email to search for
+ * @returns {Promise<Object|null>} User object or null if not found
+ */
+export async function getUserByEmail(email) {
+  try {
+    if (!email) {
+      throw new Error('Email is required');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Query Firestore for user with matching email
+    const q = query(
+      collection(db, 'users'), 
+      where('email', '==', normalizedEmail),
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data();
+    
+    return {
+      id: userDoc.id,
+      uid: userDoc.id,
+      email: userData.email,
+      displayName: userData.displayName,
+      createdAt: userData.createdAt,
+      lastActive: userData.lastActive,
+      inviteCodeUsed: userData.inviteCodeUsed,
+      isActive: userData.isActive,
+      subscription: userData.subscription
+    };
+  } catch (error) {
+    console.error('Failed to get user by email:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // FEEDBACK SYSTEM
 // ============================================================================
