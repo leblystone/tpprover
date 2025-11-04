@@ -3,7 +3,7 @@
  * Automatically clears old cached data and forces fresh load
  */
 
-const CURRENT_APP_VERSION = '2.0.1';
+const CURRENT_APP_VERSION = '2.0.2';
 
 /**
  * Check if app needs cache clearing and perform it

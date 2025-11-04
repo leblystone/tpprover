@@ -524,9 +524,9 @@ function Admin() {
         // Try to restore Firebase auth with admin email and password
         const storedPassword = ADMIN_PASSWORD; // Use the same password
         import('firebase/auth').then(({ signInWithEmailAndPassword }) => {
-          signInWithEmailAndPassword(auth, 'contact@thepepplanner.com', storedPassword)
+          signInWithEmailAndPassword(auth, 'lebrockmaldonado@gmail.com', storedPassword)
             .then(() => {
-              console.log('✅ Firebase authentication restored successfully');
+              console.log('✅ Firebase authentication restored successfully as lebrockmaldonado@gmail.com');
             })
             .catch((error) => {
               console.error('❌ Failed to restore Firebase auth:', error);
@@ -980,10 +980,10 @@ function Admin() {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
       try {
-        // Sign in to Firebase with admin email
+        // Sign in to Firebase with admin email - using lebrockmaldonado@gmail.com
         const { signInWithEmailAndPassword } = await import('firebase/auth');
-        await signInWithEmailAndPassword(auth, 'contact@thepepplanner.com', password);
-        console.log('✅ Admin authenticated with Firebase');
+        await signInWithEmailAndPassword(auth, 'lebrockmaldonado@gmail.com', password);
+        console.log('✅ Admin authenticated with Firebase as lebrockmaldonado@gmail.com');
         
         setIsAuthenticated(true);
         localStorage.setItem('tpp_admin_auth', 'true');
