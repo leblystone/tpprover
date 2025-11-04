@@ -516,25 +516,16 @@ function Admin() {
     if (authStatus === 'true') {
       setIsAuthenticated(true);
       
-      // CRITICAL: Check if Firebase auth is active, if not re-authenticate
+      // Check if Firebase auth is active
       if (!auth.currentUser) {
-        console.log('⚠️ Admin panel authenticated but Firebase auth is missing');
-        console.log('🔄 Attempting to restore Firebase authentication...');
-        
-        // Try to restore Firebase auth with admin email and password
-        const storedPassword = ADMIN_PASSWORD; // Use the same password
-        import('firebase/auth').then(({ signInWithEmailAndPassword }) => {
-          signInWithEmailAndPassword(auth, 'lebrockmaldonado@gmail.com', storedPassword)
-            .then(() => {
-              console.log('✅ Firebase authentication restored successfully as lebrockmaldonado@gmail.com');
-            })
-            .catch((error) => {
-              console.error('❌ Failed to restore Firebase auth:', error);
-              console.log('⚠️ Please log out and log back in to fix Firebase permissions');
-            });
-        });
+        console.warn('⚠️ Admin panel authenticated but no Firebase user detected');
+        console.warn('📝 To use features like email template saving:');
+        console.warn('   1. Log into the main app with your admin email first');
+        console.warn('   2. Then navigate to /admin');
+        console.warn('   3. Enter the admin password');
       } else {
         console.log('✅ Firebase auth already active:', auth.currentUser.email);
+        console.log('✅ All admin features available');
       }
     }
     
@@ -976,28 +967,23 @@ function Admin() {
     }
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
-      try {
-        // Sign in to Firebase with admin email - using lebrockmaldonado@gmail.com
-        const { signInWithEmailAndPassword } = await import('firebase/auth');
-        await signInWithEmailAndPassword(auth, 'lebrockmaldonado@gmail.com', password);
-        console.log('✅ Admin authenticated with Firebase as lebrockmaldonado@gmail.com');
-        
-        setIsAuthenticated(true);
-        localStorage.setItem('tpp_admin_auth', 'true');
-        setPassword('');
-        setShowWelcomeModal(true);
-      } catch (error) {
-        console.error('❌ Firebase authentication failed:', error);
-        // Still allow admin access with localStorage, but warn about Firebase
-        console.warn('⚠️ Admin panel accessible, but Firebase operations may fail');
-        setIsAuthenticated(true);
-        localStorage.setItem('tpp_admin_auth', 'true');
-        setPassword('');
-        setShowWelcomeModal(true);
+      console.log('✅ Admin password correct');
+      
+      // Check if user is already authenticated with Firebase
+      if (auth.currentUser) {
+        console.log('✅ Firebase auth active:', auth.currentUser.email);
+      } else {
+        console.warn('⚠️ No Firebase auth detected. Please log into the main app first for full admin functionality.');
+        console.warn('⚠️ Some features (like saving email templates) will not work without Firebase authentication.');
       }
+      
+      setIsAuthenticated(true);
+      localStorage.setItem('tpp_admin_auth', 'true');
+      setPassword('');
+      setShowWelcomeModal(true);
     } else {
       alert('Incorrect password');
     }
