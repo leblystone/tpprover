@@ -44,6 +44,24 @@ export const isWeb = () => !Capacitor.isNativePlatform();
 export const isAndroid = () => Capacitor.getPlatform() === 'android';
 export const isIOS = () => Capacitor.getPlatform() === 'ios';
 
+/**
+ * Detect if user is on iOS Safari (for PWA prompts)
+ * Works for both iPhone and iPad
+ */
+export const isIOSBrowser = () => {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(userAgent);
+  const isSafari = /safari/.test(userAgent) && !/chrome|crios|fxios/.test(userAgent);
+  return isIOS && !window.navigator.standalone; // Not already installed as PWA
+};
+
+/**
+ * Check if app is already installed as PWA on iOS
+ */
+export const isIOSPWAInstalled = () => {
+  return window.navigator.standalone === true;
+};
+
 export const getPlatform = () => {
   if (isIOS()) return 'ios';
   if (isAndroid()) return 'android';

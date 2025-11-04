@@ -18,6 +18,7 @@ import FeedbackModal from './components/common/FeedbackModal';
 import InstallInstructionsModal from './components/common/InstallInstructionsModal';
 import PwaUnsupportedModal from './components/common/PwaUnsupportedModal';
 import NotificationPermissionPrompt from './components/common/NotificationPermissionPrompt';
+import IOSInstallPrompt from './components/common/IOSInstallPrompt';
 import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
@@ -341,6 +342,7 @@ function App() {
         onAccept={() => {}} 
       />
       <NotificationPermissionPrompt theme={theme} />
+      <IOSInstallPrompt theme={theme} />
       <SubscriptionModal 
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}

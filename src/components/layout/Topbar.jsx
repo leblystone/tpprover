@@ -144,6 +144,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
+        {/* Spacer to push icons to the right when no tabs */}
+        {(!tabs || tabs.length === 0) && <div className="flex-1" />}
+        
         {/* Mobile tabs - show only active tab with dropdown */}
         {tabs && tabs.length > 0 && (
           <div className="md:hidden flex items-center gap-2">
@@ -176,7 +179,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
-        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 ml-auto">
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
             <div className="mr-2">

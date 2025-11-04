@@ -12,7 +12,6 @@ import {
   FlaskConical, 
   Calendar, 
   BarChart3, 
-  Clock, 
   Download,
   Apple,
   Play,
@@ -32,45 +31,13 @@ import logo from '../assets/tpp_logo.png';
 import LandingTermsModal from '../components/legal/LandingTermsModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
+import IOSInstallBanner from '../components/landing/IOSInstallBanner';
 
 export default function Landing() {
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showContact, setShowContact] = useState(false);
-  
-  // Countdown timer state
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  
-  // Calculate time left until October 23, 2025 at midnight
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      // Set target to October 23, 2025 at midnight local time
-      const targetDate = new Date(2025, 9, 23, 0, 0, 0, 0); // Month is 0-indexed, so 9 = October
-      const now = new Date();
-      const difference = targetDate - now;
-      
-      if (difference > 0) {
-        return {
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        };
-      }
-      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    };
-    
-    // Initial calculation
-    setTimeLeft(calculateTimeLeft());
-    
-    // Update every second
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, []);
 
   const handleGetStarted = () => {
     startTransition(() => {
@@ -166,54 +133,6 @@ export default function Landing() {
           </div>
         </div>
       </header>
-
-      {/* Countdown Banner */}
-      <div className="py-3 md:py-4" style={{ backgroundColor: '#7F9E95' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4">
-            <p className="text-xs md:text-sm font-semibold uppercase tracking-wider" style={{ color: '#FFFFFF' }}>
-              Launch Countdown
-            </p>
-            <div className="flex items-center gap-2 md:gap-4">
-              <div className="flex flex-col items-center">
-                <div className="text-2xl md:text-3xl font-bold" style={{ color: '#FFFFFF' }}>
-                  {String(timeLeft.days).padStart(2, '0')}
-                </div>
-                <div className="text-[10px] md:text-xs uppercase tracking-wide" style={{ color: '#E0E7E4' }}>
-                  Days
-                </div>
-              </div>
-              <div className="text-2xl md:text-3xl font-bold" style={{ color: '#FFFFFF' }}>:</div>
-              <div className="flex flex-col items-center">
-                <div className="text-2xl md:text-3xl font-bold" style={{ color: '#FFFFFF' }}>
-                  {String(timeLeft.hours).padStart(2, '0')}
-                </div>
-                <div className="text-[10px] md:text-xs uppercase tracking-wide" style={{ color: '#E0E7E4' }}>
-                  Hours
-                </div>
-              </div>
-              <div className="text-2xl md:text-3xl font-bold" style={{ color: '#FFFFFF' }}>:</div>
-              <div className="flex flex-col items-center">
-                <div className="text-2xl md:text-3xl font-bold" style={{ color: '#FFFFFF' }}>
-                  {String(timeLeft.minutes).padStart(2, '0')}
-                </div>
-                <div className="text-[10px] md:text-xs uppercase tracking-wide" style={{ color: '#E0E7E4' }}>
-                  Minutes
-                </div>
-              </div>
-              <div className="text-2xl md:text-3xl font-bold" style={{ color: '#FFFFFF' }}>:</div>
-              <div className="flex flex-col items-center">
-                <div className="text-2xl md:text-3xl font-bold" style={{ color: '#FFFFFF' }}>
-                  {String(timeLeft.seconds).padStart(2, '0')}
-                </div>
-                <div className="text-[10px] md:text-xs uppercase tracking-wide" style={{ color: '#E0E7E4' }}>
-                  Seconds
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
        {/* Hero Section */}
        <section className="py-12 md:py-20" style={{ backgroundColor: '#EFF2EE' }}>
@@ -414,6 +333,11 @@ export default function Landing() {
                 </div>
               </div>
             </a>
+          </div>
+
+          {/* iOS Install Banner - Only shows on iOS */}
+          <div className="mt-8 max-w-3xl mx-auto">
+            <IOSInstallBanner />
           </div>
         </div>
       </section>
