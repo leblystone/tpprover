@@ -1,0 +1,19 @@
+# Serve static files directly (images, fonts, etc.)
+/tpp_logo.png  /tpp_logo.png  200
+/*.png         /:splat.png    200
+/*.jpg         /:splat.jpg    200
+/*.jpeg        /:splat.jpeg   200
+/*.gif         /:splat.gif    200
+/*.svg         /:splat.svg    200
+/*.webp        /:splat.webp   200
+/*.ico         /:splat.ico    200
+/*.css         /:splat.css    200
+/*.js          /:splat.js     200
+/*.json        /:splat.json   200
+/*.xml         /:splat.xml    200
+/*.txt         /:splat.txt    200
+/*.html        /:splat.html   200
+
+# SPA fallback - must be last
+/*    /index.html   200
+

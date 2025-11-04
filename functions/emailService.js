@@ -279,8 +279,10 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
  * Generate default HTML from template data
  */
 function generateDefaultHTML(template, colors) {
+  // Use CDN or reliable hosting for logo - try multiple sources
   const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.app';
-  const LOGO_URL = `${ASSET_BASE}/tpp_logo.png`;
+  // Try direct Netlify CDN URL first (more reliable than redirect)
+  const LOGO_URL = process.env.LOGO_URL || `https://thepepplanner.app/tpp_logo.png`;
   return `
 <!DOCTYPE html>
 <html lang="en">
