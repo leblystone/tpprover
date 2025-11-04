@@ -791,14 +791,19 @@ exports.verifyEmailWithToken = onCall(
     // Mark token as used
     await tokenRef.update({ used: true, usedAt: admin.firestore.FieldValue.serverTimestamp() });
 
-    // Update user's email verification status in Firestore
+    // Update user's email verification status in Firebase Auth (CRITICAL: This is what the frontend checks)
+    await admin.auth().updateUser(tokenData.userId, {
+      emailVerified: true
+    });
+
+    // Update user's email verification status in Firestore (for record keeping)
     const userRef = admin.firestore().collection('users').doc(tokenData.userId);
     await userRef.update({ 
       emailVerified: true,
       emailVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    logger.info(`✅ Email verified for user: ${tokenData.userId}`);
+    logger.info(`✅ Email verified for user: ${tokenData.userId} (Firebase Auth + Firestore updated)`);
     return { success: true, message: 'Email verified successfully' };
     
   } catch (error) {

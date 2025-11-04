@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, LogOut } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
@@ -27,6 +27,37 @@ export default function AccountProfile() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSendingVerification, setIsSendingVerification] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(false)
+
+  // Initialize emailVerified state from firebaseUser
+  useEffect(() => {
+    setEmailVerified(firebaseUser?.emailVerified || false)
+  }, [firebaseUser?.emailVerified])
+
+  // Reload Firebase Auth user periodically to check for verification status updates
+  useEffect(() => {
+    const checkVerificationStatus = async () => {
+      if (firebaseUser) {
+        try {
+          const auth = getAuth()
+          if (auth.currentUser) {
+            await auth.currentUser.reload()
+            setEmailVerified(auth.currentUser.emailVerified)
+          }
+        } catch (error) {
+          console.error('Error checking verification status:', error)
+        }
+      }
+    }
+
+    // Check immediately
+    checkVerificationStatus()
+
+    // Check every 5 seconds when on the account page (helps catch verification while user is on the page)
+    const interval = setInterval(checkVerificationStatus, 5000)
+
+    return () => clearInterval(interval)
+  }, [firebaseUser])
 
   const handleEmailUpdate = async () => {
     if (!emailDraft || emailDraft === user?.email) {
@@ -204,7 +235,7 @@ export default function AccountProfile() {
                 theme={theme}
               />
               <EmailStatusCard
-                isVerified={firebaseUser?.emailVerified}
+                isVerified={emailVerified || firebaseUser?.emailVerified}
                 theme={theme}
                 onSendVerification={handleSendVerificationEmail}
                 isSending={isSendingVerification}

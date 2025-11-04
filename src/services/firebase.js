@@ -1013,15 +1013,33 @@ export async function grantLifetimeAccessFirestore(userId, email, reason = 'Beta
     
     // Also update user document
     const userRef = doc(db, 'users', userId);
+    const grantedAt = serverTimestamp();
     await setDoc(userRef, {
       subscription: {
         hasLifetimeAccess: true,
         lifetimeReason: reason,
-        lifetimeGrantedAt: serverTimestamp(),
+        lifetimeGrantedAt: grantedAt,
         plan: 'lifetime',
         status: 'active'
       },
       updatedAt: serverTimestamp()
+    }, { merge: true });
+    
+    // CRITICAL: Also write to userSubscriptions collection (where app reads from)
+    const subscriptionRef = doc(db, 'userSubscriptions', userId);
+    await setDoc(subscriptionRef, {
+      subscription: {
+        hasLifetimeAccess: true,
+        interval: 'lifetime',
+        status: 'active',
+        plan: 'lifetime',
+        lifetimeReason: reason,
+        lifetimeGrantedAt: grantedAt,
+        currentPeriodEnd: null, // Lifetime has no end date
+        currentPeriodStart: grantedAt,
+        userId: userId,
+        lastUpdated: serverTimestamp()
+      }
     }, { merge: true });
     
     return true;

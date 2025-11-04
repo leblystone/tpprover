@@ -150,10 +150,46 @@ export async function saveUserSubscription(userId, subscription) {
 
 /**
  * Load user subscription data
+ * Checks both userSubscriptions collection and users/{userId} subscription field
  */
 export async function loadUserSubscription(userId) {
-  const data = await loadUserData(userId, COLLECTIONS.USER_SUBSCRIPTION);
-  return data?.subscription || null;
+  try {
+    // Primary: Check userSubscriptions collection (where Stripe subscriptions are stored)
+    const data = await loadUserData(userId, COLLECTIONS.USER_SUBSCRIPTION);
+    if (data?.subscription) {
+      return data.subscription;
+    }
+    
+    // Fallback: Check users/{userId} subscription field (where lifetime access is granted)
+    const userDoc = doc(db, 'users', userId);
+    const userDocSnap = await getDoc(userDoc);
+    
+    if (userDocSnap.exists()) {
+      const userData = userDocSnap.data();
+      const userSubscription = userData.subscription;
+      
+      // If user has lifetime access in users collection, convert to app format
+      if (userSubscription?.hasLifetimeAccess && userSubscription.plan === 'lifetime') {
+        console.log('✅ Found lifetime access in users collection, converting format');
+        return {
+          hasLifetimeAccess: true,
+          interval: 'lifetime',
+          status: userSubscription.status || 'active',
+          plan: 'lifetime',
+          lifetimeReason: userSubscription.lifetimeReason || 'Unknown',
+          lifetimeGrantedAt: userSubscription.lifetimeGrantedAt,
+          currentPeriodEnd: null, // Lifetime has no end date
+          currentPeriodStart: userSubscription.lifetimeGrantedAt || new Date().toISOString(),
+          userId: userId
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Failed to load subscription:', error);
+    return null;
+  }
 }
 
 /**

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
 import { themes, defaultThemeName } from '../theme/themes';
 
 export default function VerifyEmail() {
@@ -37,6 +38,13 @@ export default function VerifyEmail() {
       
       if (result.data.success) {
         setSuccess(true);
+        
+        // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
+        const auth = getAuth();
+        if (auth.currentUser) {
+          await auth.currentUser.reload();
+          console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
+        }
         
         // Show success toast
         window.dispatchEvent(new CustomEvent('tpp:toast', {
