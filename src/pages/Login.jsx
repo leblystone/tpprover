@@ -1055,14 +1055,14 @@ export default function Login() {
                                 </div>
                                 {/* Coming Soon Badge */}
                                 <div 
-                                    className="absolute -top-2 -right-2 px-2 py-1 rounded-md text-[8px] font-semibold shadow-lg"
+                                    className="absolute -top-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-[6px] font-bold tracking-wider shadow-md"
                                     style={{ 
-                                      backgroundColor: '#FFFFFF',
-                                      color: '#4c6b52',
-                                      border: '2px solid #4c6b52'
+                                      backgroundColor: '#7F9E95',
+                                      color: '#FFFFFF',
+                                      letterSpacing: '0.05em'
                                     }}
                                 >
-                                    SOON
+                                    COMING SOON
                                 </div>
                             </a>
 
