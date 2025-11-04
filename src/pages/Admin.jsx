@@ -515,6 +515,27 @@ function Admin() {
     const authStatus = localStorage.getItem('tpp_admin_auth');
     if (authStatus === 'true') {
       setIsAuthenticated(true);
+      
+      // CRITICAL: Check if Firebase auth is active, if not re-authenticate
+      if (!auth.currentUser) {
+        console.log('⚠️ Admin panel authenticated but Firebase auth is missing');
+        console.log('🔄 Attempting to restore Firebase authentication...');
+        
+        // Try to restore Firebase auth with admin email and password
+        const storedPassword = ADMIN_PASSWORD; // Use the same password
+        import('firebase/auth').then(({ signInWithEmailAndPassword }) => {
+          signInWithEmailAndPassword(auth, 'thepepplanner@gmail.com', storedPassword)
+            .then(() => {
+              console.log('✅ Firebase authentication restored successfully');
+            })
+            .catch((error) => {
+              console.error('❌ Failed to restore Firebase auth:', error);
+              console.log('⚠️ Please log out and log back in to fix Firebase permissions');
+            });
+        });
+      } else {
+        console.log('✅ Firebase auth already active:', auth.currentUser.email);
+      }
     }
     
     // Load data
