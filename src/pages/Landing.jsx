@@ -25,7 +25,8 @@ import {
   Shield,
   Calculator,
   BookOpen,
-  Layers
+  Layers,
+  Pipette
 } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import LandingTermsModal from '../components/legal/LandingTermsModal';
