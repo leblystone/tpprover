@@ -5,6 +5,8 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Redirect all non-file routes to index.html for SPA
+# Netlify automatically serves static files (images, CSS, JS) from dist/
 [[redirects]]
   from = "/*"
   to = "/index.html"

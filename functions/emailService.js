@@ -269,7 +269,7 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
  * Generate default HTML from template data
  */
 function generateDefaultHTML(template, colors) {
-  const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.com';
+  const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.app';
   const LOGO_URL = `${ASSET_BASE}/tpp_logo.png`;
   return `
 <!DOCTYPE html>
