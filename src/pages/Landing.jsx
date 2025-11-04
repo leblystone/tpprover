@@ -308,9 +308,10 @@ export default function Landing() {
 
             {/* Google Play Store Button */}
             <a 
-              href="#" 
+              href="https://play.google.com/store/apps/details?id=com.thepepplanner.app" 
               className="inline-block transition-transform hover:scale-105"
-              onClick={(e) => e.preventDefault()}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <div 
                 className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg"
@@ -326,9 +327,10 @@ export default function Landing() {
 
             {/* Web Access Button */}
             <a 
-              href="#" 
+              href="https://thepepplanner.web.app" 
               className="inline-block transition-transform hover:scale-105"
-              onClick={(e) => e.preventDefault()}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <div 
                 className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg"
