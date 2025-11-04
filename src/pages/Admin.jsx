@@ -955,13 +955,28 @@ function Admin() {
     }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem('tpp_admin_auth', 'true');
-      setPassword('');
-      setShowWelcomeModal(true);
+      try {
+        // Sign in to Firebase with admin email
+        const { signInWithEmailAndPassword } = await import('firebase/auth');
+        await signInWithEmailAndPassword(auth, 'thepepplanner@gmail.com', password);
+        console.log('✅ Admin authenticated with Firebase');
+        
+        setIsAuthenticated(true);
+        localStorage.setItem('tpp_admin_auth', 'true');
+        setPassword('');
+        setShowWelcomeModal(true);
+      } catch (error) {
+        console.error('❌ Firebase authentication failed:', error);
+        // Still allow admin access with localStorage, but warn about Firebase
+        console.warn('⚠️ Admin panel accessible, but Firebase operations may fail');
+        setIsAuthenticated(true);
+        localStorage.setItem('tpp_admin_auth', 'true');
+        setPassword('');
+        setShowWelcomeModal(true);
+      }
     } else {
       alert('Incorrect password');
     }
