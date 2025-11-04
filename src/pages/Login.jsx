@@ -236,9 +236,11 @@ export default function Login() {
 
     const doLogin = async () => {
       try {
+        console.log('🔄 Step 1: Initializing login...');
         // Set flag to prevent auth token clearing during login
         sessionStorage.setItem('tpp_login_in_progress', 'true');
         
+        console.log('🔄 Step 2: Backing up existing data...');
         // CRITICAL FIX: Backup existing localStorage data before login
         const existingData = {};
         const dataKeys = [
@@ -264,24 +266,30 @@ export default function Login() {
         );
         
         if (hasExistingData) {
-          console.log('🔄 Backing up existing user data before login...');
+          console.log('💾 Existing user data backed up');
         }
         
+        console.log('🔄 Step 3: Authenticating with Firebase...');
         const firebaseUser = await loginUser(email, password);
+        console.log('✅ Firebase authentication successful');
         
+        console.log('🔄 Step 4: Setting up encryption...');
         // Store password for encryption
         setFirebasePassword(password);
         
+        console.log('🔄 Step 5: Checking founder status...');
         // Check existing founder status for returning users
         try {
           const isFounder = await getUserFounderStatus(firebaseUser.uid);
           if (isFounder) {
             localStorage.setItem('tpprover_is_founder', 'true');
+            console.log('👑 Founder status confirmed');
           }
         } catch (error) {
           console.error('Error checking existing founder status:', error);
         }
         
+        console.log('🔄 Step 6: Checking beta tester status...');
         // Check Firestore for beta tester status (from manual admin grants)
         try {
           const { checkLifetimeAccessFirestore } = await import('../services/firebase');
@@ -294,6 +302,7 @@ export default function Login() {
           console.error('Error checking beta tester status:', error);
         }
 
+        console.log('🔄 Step 7: Setting up user context...');
         // Set user in app context  
         let user = { 
           email: firebaseUser.email, 
@@ -337,12 +346,14 @@ export default function Login() {
           }
         }
         
+        console.log('🔄 Step 8: Storing user data...');
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         
+        console.log('🔄 Step 9: Setting auth token...');
         // Set auth token  
         try {
           localStorage.setItem('tpprover_auth_token', 'firebase_token');
-          console.log('🔑 Auth token set to firebase_token');
+          console.log('🔑 Auth token set');
         } catch (e) {
           console.error('❌ Failed to set auth token:', e);
         }
@@ -352,6 +363,7 @@ export default function Login() {
         // DON'T create trial subscriptions on login - only on signup!
         // Existing users should keep their original trial subscription
         
+        console.log('🔄 Step 10: Restoring backed up data...');
         // CRITICAL FIX: Restore existing data if it was backed up and Firebase sync might overwrite it
         if (hasExistingData) {
           console.log('💾 Restoring backed up data to prevent data loss...');
@@ -368,11 +380,13 @@ export default function Login() {
           
         }
         
+        console.log('🔄 Step 11: Setting user context...');
         setUser(user);
         
         // Clear login flag
         sessionStorage.removeItem('tpp_login_in_progress');
         
+        console.log('✅ Login complete! Navigating to dashboard...');
         startTransition(() => {
             navigate('/app/dashboard');
         });
@@ -791,6 +805,8 @@ export default function Login() {
         if (mode === 'login') {
             setLoading(true);
             try {
+                console.log('🔐 Starting login process...');
+                
                 // Add timeout to prevent infinite loading state
                 const loginPromise = doLogin();
                 const timeoutPromise = new Promise((_, reject) => 
@@ -798,14 +814,25 @@ export default function Login() {
                 );
                 
                 const success = await Promise.race([loginPromise, timeoutPromise]);
+                
+                // CRITICAL FIX: Always reset loading state
+                // Navigation happens in startTransition, so we can safely reset here
                 if (!success) {
-                    // Reset loading state if login failed
+                    console.log('❌ Login failed, resetting loading state');
                     setLoading(false);
+                } else {
+                    console.log('✅ Login successful, navigation in progress');
+                    // Give navigation a moment to start, then reset loading
+                    // This prevents the stuck loading state if navigation fails
+                    setTimeout(() => setLoading(false), 100);
                 }
             } catch (error) {
+                console.error('❌ Login error:', error);
                 setLoading(false);
                 if (error.message?.includes('timeout')) {
-                    setError('Login timed out. Try clearing your browser cache or running: window.emergencyCacheClear()');
+                    setError('Login timed out. Please check your internet connection and try again. You can also run: window.emergencyCacheClear()');
+                } else {
+                    setError(error.message || 'Login failed. Please try again.');
                 }
             }
         } else { // signup
