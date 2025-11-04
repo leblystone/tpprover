@@ -113,9 +113,6 @@ const FeedbackWidget = ({ widget, theme }) => {
             }}
             maxLength={300}
           />
-          <div className="text-xs mt-1 text-right" style={{ color: theme.textLight }}>
-            {message.length}/300
-          </div>
         </div>
 
         {/* Submit Button */}
