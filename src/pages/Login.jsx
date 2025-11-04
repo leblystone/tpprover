@@ -1053,12 +1053,16 @@ export default function Login() {
                                         <div className="text-[12px] font-semibold">App Store</div>
                                     </div>
                                 </div>
-                                {/* Coming Soon Banner */}
+                                {/* Coming Soon Badge */}
                                 <div 
-                                    className="absolute -top-2 -right-2 px-2 py-1 rounded-full text-[8px] font-bold shadow-md transform rotate-12"
-                                    style={{ backgroundColor: '#A89F91', color: '#FFFFFF' }}
+                                    className="absolute -top-2 -right-2 px-2 py-1 rounded-md text-[8px] font-semibold shadow-lg"
+                                    style={{ 
+                                      backgroundColor: '#FFFFFF',
+                                      color: '#4c6b52',
+                                      border: '2px solid #4c6b52'
+                                    }}
                                 >
-                                    COMING SOON
+                                    SOON
                                 </div>
                             </a>
 
