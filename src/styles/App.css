@@ -40,8 +40,8 @@ html, body {
   overflow-y: auto;
 }
 
-/* Mobile-specific spacing overrides for dashboard */
-@media (max-width: 768px) {
+/* Mobile and tablet-specific spacing overrides for dashboard */
+@media (max-width: 1023px) {
   .space-y-0\.5 > * + * {
     margin-top: 0.125rem !important; /* 2px */
   }
@@ -63,7 +63,7 @@ html, body {
     margin-top: 0 !important;
   }
   
-  /* Mobile-specific: Ensure single column on mobile */
+  /* Mobile and tablet-specific: Ensure single column */
   .dashboard-grid {
     grid-template-columns: 1fr !important;
   }

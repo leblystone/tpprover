@@ -253,9 +253,9 @@ function App() {
   return (
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
-      <div className="flex-1 flex flex-col md:ml-24 min-w-0" style={{
+      <div className="flex-1 flex flex-col lg:ml-24 min-w-0" style={{
         // Add padding for mobile status bar
-        paddingTop: window.innerWidth <= 768 ? 'env(safe-area-inset-top, 24px)' : '0px'
+        paddingTop: window.innerWidth < 1024 ? 'env(safe-area-inset-top, 24px)' : '0px'
       }}>
         <Topbar 
           theme={theme} 

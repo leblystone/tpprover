@@ -13,7 +13,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
 
   useEffect(() => {
     const updateIsOpen = () => {
-      setIsOpen(window.innerWidth >= 768)
+      setIsOpen(window.innerWidth >= 1024)
     }
     updateIsOpen()
     window.addEventListener('resize', updateIsOpen)
@@ -51,7 +51,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
         }
       `}</style>
       <aside 
-        className="hidden md:flex md:w-24 md:flex-col p-3 border-r card-shadow fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden"
+        className="hidden lg:flex lg:w-24 lg:flex-col p-3 border-r card-shadow fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden"
         style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
       >
         <div className="mb-4 mt-2 flex items-center justify-center">

@@ -72,28 +72,28 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   return (
     <>
-      <header className="backdrop-blur border-b h-12 md:h-16 flex items-center px-3 md:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+      <header className="backdrop-blur border-b h-12 lg:h-16 flex items-center px-3 lg:px-6 relative" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
           {/* Mobile Menu Button - back on left side for consistency */}
           <button 
             onClick={onMenuClick} 
-            className="md:hidden no-shadow p-2" 
+            className="lg:hidden no-shadow p-2" 
             style={{ color: theme.text }}
             aria-label="Open navigation menu"
             aria-expanded="false"
           >
-            <Menu size={28} className="md:hidden" />
+            <Menu size={28} className="lg:hidden" />
           </button>
           {/* Show page title - responsive for some pages */}
-          <h1 className="text-lg md:text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
-            <span className="md:hidden">{mobileTitle}</span>
-            <span className="hidden md:inline">{desktopTitle}</span>
+          <h1 className="text-lg lg:text-xl font-bold tracking-tight truncate" style={{ color: theme?.primaryDark }}>
+            <span className="lg:hidden">{mobileTitle}</span>
+            <span className="hidden lg:inline">{desktopTitle}</span>
           </h1>
         </div>
           
         {/* Tabs in Topbar - Center position */}
         {tabs && tabs.length > 0 && (
-          <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg flex-1 justify-center mx-4" style={{ backgroundColor: `${theme.primary}08` }}>
+          <div className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg flex-1 justify-center mx-4" style={{ backgroundColor: `${theme.primary}08` }}>
             {tabs.map(tab => (
               <button
                 key={tab.value}
@@ -149,7 +149,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         
         {/* Mobile tabs - show only active tab with dropdown */}
         {tabs && tabs.length > 0 && (
-          <div className="md:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-2">
             <button
               className="px-3 py-1.5 text-xs uppercase tracking-tight rounded-lg shadow-sm relative whitespace-nowrap"
               style={{
@@ -179,7 +179,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
-        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 ml-auto">
+        <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 ml-auto">
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
             <div className="mr-2">
@@ -276,7 +276,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {onDashboard && onDashboardCustomize && (
             <ModernTooltip text={customizingState ? "Done Editing" : "Customize Dashboard"} position="bottom">
               <button 
-                className={`p-1.5 md:p-2 rounded-full no-shadow transition-all duration-200 ${
+                className={`p-1.5 lg:p-2 rounded-full no-shadow transition-all duration-200 ${
                   customizingState ? 'ring-2 ring-opacity-50' : ''
                 }`}
                 onClick={onDashboardCustomize}
@@ -288,7 +288,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 aria-label={customizingState ? "Done editing dashboard" : "Customize dashboard"}
                 title="Customize Dashboard"
               >
-                <Edit className="h-4 w-4 md:h-5 md:w-5" />
+                <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
               </button>
             </ModernTooltip>
           )}
