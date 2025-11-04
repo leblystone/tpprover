@@ -277,7 +277,7 @@ export default function Landing() {
           <div className="grid grid-cols-3 sm:flex sm:flex-row gap-3 sm:gap-6 justify-center items-center">
             {/* Apple App Store Button */}
             <button 
-              className="inline-block transition-transform hover:scale-105 relative"
+              className="inline-block transition-transform hover:scale-105"
               onClick={() => setShowIOSPopup(true)}
             >
               <div 
@@ -289,17 +289,6 @@ export default function Landing() {
                   <div className="text-[10px] sm:text-xs font-medium">Download on the</div>
                   <div className="text-[12px] sm:text-lg font-semibold">App Store</div>
                 </div>
-              </div>
-              {/* Coming Soon Badge */}
-              <div 
-                className="absolute -top-2 left-1/2 transform -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[7px] sm:text-[8px] font-bold tracking-wider shadow-md"
-                style={{ 
-                  backgroundColor: '#B8A99A',
-                  color: '#FFFFFF',
-                  letterSpacing: '0.05em'
-                }}
-              >
-                COMING SOON
               </div>
             </button>
 
