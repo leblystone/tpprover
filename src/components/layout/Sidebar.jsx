@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
-import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare } from 'lucide-react'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
@@ -72,6 +72,23 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
           borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`,
           paddingTop: '0.5rem'
         }}>
+          {/* Physical Planner Shop Link */}
+          <a 
+            href="https://thepepplanner.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            title="Shop Planners"
+            className="flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg"
+            style={{ 
+              color: theme.isDark ? '#a8b5a0' : theme.textLight,
+              backgroundColor: theme.isDark ? '#1f2937' : 'transparent',
+              textDecoration: 'none'
+            }}
+          >
+            <BookOpen className="h-6 w-6 flex-shrink-0" />
+            <span className="text-sm font-semibold ml-4 sidebar-link-label">Shop Planners</span>
+          </a>
+          
           {bottomLinks.map(({ to, icon: Icon, label, tourId }) => (
             <NavLink key={to} to={to} title={label} data-tour={tourId}
               className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg ${isActive ? 'sidebar-link-active' : ''}`}

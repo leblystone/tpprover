@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import logo from '../../assets/tpp_logo.png'
 
@@ -92,6 +92,27 @@ export default function MobileSidebar({ open, onClose, theme }) {
             </NavLink>
           ))}
           <div className="mt-auto border-t pt-2" style={{ borderColor: theme.border }}>
+            {/* Physical Planner Shop Link */}
+            <a
+              href="https://thepepplanner.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
+              className="flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200"
+              style={{
+                animationDelay: visible ? `${links.length * 50}ms` : '0ms',
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateX(0)' : 'translateX(-20px)',
+                transition: 'opacity 200ms ease-out, transform 200ms ease-out',
+                color: theme.text,
+                backgroundColor: 'transparent',
+                textDecoration: 'none'
+              }}
+            >
+              <BookOpen className="h-6 w-6" />
+              <span className="text-lg font-medium truncate">Shop Planners</span>
+            </a>
+            
             {bottomLinks.map(({ to, label, icon: Icon }, index) => (
               <NavLink
                 key={to}
@@ -99,7 +120,7 @@ export default function MobileSidebar({ open, onClose, theme }) {
                 onClick={onClose}
                 className={({ isActive }) => `flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 ${isActive ? 'sidebar-link-active' : ''}`}
                 style={({ isActive }) => ({
-                  animationDelay: visible ? `${(links.length + index) * 50}ms` : '0ms',
+                  animationDelay: visible ? `${(links.length + index + 1) * 50}ms` : '0ms',
                   opacity: visible ? 1 : 0,
                   transform: visible ? 'translateX(0)' : 'translateX(-20px)',
                   transition: 'opacity 200ms ease-out, transform 200ms ease-out',

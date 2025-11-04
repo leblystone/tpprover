@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Clock } from 'lucide-react';
+import { X, Plus, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
@@ -103,7 +103,8 @@ export default function Login() {
     const isTrialMode = searchParams.get('trial') === 'true';
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
-    const [mode, setMode] = useState('login'); // 'login' | 'signup'
+    // Default to signup mode if coming from trial link, otherwise login
+    const [mode, setMode] = useState(isTrialMode ? 'signup' : 'login'); // 'login' | 'signup'
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -832,15 +833,6 @@ export default function Login() {
                         <img src={logo} alt="The Pep Planner Logo" className="h-20 w-20 rounded-full shadow-lg object-cover mx-auto mb-4" />
                         <h1 className="text-3xl font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
                         <p className="mt-2 text-md text-gray-500">Organize Your Research</p>
-                        {isTrialMode && (
-                            <div className="mt-4 p-4 rounded-lg bg-green-50 border border-green-200">
-                                <div className="flex items-center justify-center mb-2">
-                                    <Clock className="w-5 h-5 text-green-600 mr-2" />
-                                    <span className="text-green-800 font-semibold">Start Your 7-Day Free Trial</span>
-                                </div>
-                                <p className="text-green-700 text-sm">No credit card required • Full access to all features</p>
-                            </div>
-                        )}
                     </div>
 
                     <div className="p-8 space-y-6 rounded-xl shadow-lg" style={{ backgroundColor: theme.white }}>

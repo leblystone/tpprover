@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Eye, Save, Send, RotateCcw, Copy, CheckCircle, Zap, HelpCircle, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db } from '../../config/firebase';
+import { db, auth } from '../../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getUserList } from '../../services/firebase';
 
@@ -433,29 +433,49 @@ export default function EmailTemplateManager({ theme }) {
 
   // Save templates to Firestore (and localStorage)
   const saveTemplates = async () => {
+    console.log('🔵 Save Templates Button Clicked!');
+    console.log('👤 Current user:', auth.currentUser?.email);
+    console.log('🔐 User authenticated:', !!auth.currentUser);
+    console.log('📧 Templates to save:', Object.keys(templates));
+    console.log('🎨 Colors to save:', colors);
+    
     setIsSaving(true);
     try {
+      console.log('💾 Starting Firestore save operation...');
+      
       // Persist each template with embedded colors so backend can render consistently
       const entries = Object.entries(templates);
+      console.log(`📝 Saving ${entries.length} templates to Firestore...`);
+      
       for (const [key, tpl] of entries) {
+        console.log(`  - Saving template: ${key} (${tpl.name})`);
         await setDoc(doc(db, 'emailTemplates', key), { ...tpl, colors }, { merge: true });
+        console.log(`    ✅ Saved: ${key}`);
       }
+      
       // Save branding colors separately too (optional)
+      console.log('🎨 Saving branding colors...');
       await setDoc(doc(db, 'emailTemplates', '_branding'), { colors }, { merge: true });
+      console.log('  ✅ Branding colors saved');
 
-    localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
-    localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
+      localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
+      localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
+      console.log('💾 Templates also saved to localStorage');
     
-    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      console.log('✅ ALL TEMPLATES SAVED SUCCESSFULLY TO FIRESTORE!');
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: '✅ Templates saved to Firestore!', type: 'success' }
-    }));
+      }));
     } catch (e) {
-      console.error('Failed to save templates to Firestore:', e);
+      console.error('❌ Failed to save templates to Firestore:', e);
+      console.error('❌ Error details:', e.message);
+      console.error('❌ Error code:', e.code);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: '❌ Failed to save templates', type: 'error' }
       }));
     } finally {
       setIsSaving(false);
+      console.log('🔵 Save operation completed');
     }
   };
 
