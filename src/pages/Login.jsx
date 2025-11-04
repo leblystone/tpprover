@@ -790,13 +790,22 @@ export default function Login() {
         if (mode === 'login') {
             setLoading(true);
             try {
-                const success = await doLogin();
+                // Add timeout to prevent infinite loading state
+                const loginPromise = doLogin();
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Login timeout - network may be slow or blocked')), 30000)
+                );
+                
+                const success = await Promise.race([loginPromise, timeoutPromise]);
                 if (!success) {
                     // Reset loading state if login failed
                     setLoading(false);
                 }
             } catch (error) {
                 setLoading(false);
+                if (error.message?.includes('timeout')) {
+                    setError('Login timed out. Try clearing your browser cache or running: window.emergencyCacheClear()');
+                }
             }
         } else { // signup
             // Show agreement modal instead of proceeding directly
