@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tpp-cache-v6-force'; // Updated version for cache management - AGGRESSIVE BETA FIX
-const STATIC_CACHE = 'tpp-static-v6';
-const DYNAMIC_CACHE = 'tpp-dynamic-v6';
+const CACHE_NAME = 'tpp-cache-v7-firebase-fix'; // Updated version - FIREBASE AUTH FIX
+const STATIC_CACHE = 'tpp-static-v7';
+const DYNAMIC_CACHE = 'tpp-dynamic-v7';
 
 // Essential assets to cache
 const STATIC_ASSETS = [
@@ -32,7 +32,7 @@ self.addEventListener('activate', (event) => {
       try {
         const cacheNames = await caches.keys();
         const deletePromises = cacheNames
-          .filter(name => !name.includes('v6')) // Delete old cache versions - AGGRESSIVE CLEAR ALL OLD CACHES
+          .filter(name => !name.includes('v7')) // Delete old cache versions - FIREBASE AUTH FIX
           .map(name => caches.delete(name));
         
         await Promise.all(deletePromises);
@@ -62,9 +62,17 @@ self.addEventListener('fetch', (event) => {
         // CRITICAL FIX: Network-first strategy for better WiFi compatibility
         // Try network first, fall back to cache if network fails
         
-        // For API calls, Firebase, and dynamic imports, always try network first
+        // BYPASS SERVICE WORKER FOR FIREBASE - Let Firebase handle its own requests
+        // Firebase Auth and Firestore need direct network access, no caching
         if (url.hostname.includes('firebase') || 
-            url.pathname.includes('/api/') ||
+            url.hostname.includes('firebaseapp') ||
+            url.hostname.includes('googleapis.com')) {
+          // Return direct fetch without any caching or interception
+          return fetch(request);
+        }
+        
+        // For other API calls and dynamic imports, use network-first with cache fallback
+        if (url.pathname.includes('/api/') ||
             url.pathname.includes('src/pages/')) {
           try {
             const networkResponse = await fetch(request);

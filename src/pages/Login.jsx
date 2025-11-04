@@ -405,7 +405,9 @@ export default function Login() {
           console.warn('Could not get account status:', statusError);
         }
         
-        if (error.code === 'auth/user-not-found') {
+        if (error.code === 'auth/network-request-failed') {
+          setError('🌐 Network error: Unable to connect to authentication servers. This is usually caused by browser cache or service worker issues. Please try: 1) Hard refresh (Ctrl+Shift+R), 2) Clear browser cache, or 3) Open in incognito/private mode.');
+        } else if (error.code === 'auth/user-not-found') {
           setError('No account found with this email. Please create a new account.');
         } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           // Check if account exists but password is wrong
