@@ -24,6 +24,7 @@ import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import SubscriptionModal from './components/common/SubscriptionModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
+import { useBackButtonHandler } from './utils/useBackButtonHandler';
 
 function App() {
   const location = useLocation();
@@ -62,6 +63,9 @@ function App() {
   const [topbarTabs, setTopbarTabs] = useState(null);
   const [topbarAutoSave, setTopbarAutoSave] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  // Hardware back button handler for mobile apps
+  useBackButtonHandler();
 
   // App is now live - no beta restrictions
 

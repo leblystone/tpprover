@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Shield, Lock, Eye, EyeOff, Key, Mail, Smartphone, Check, X } from 'lucide-react'
+import { ArrowLeft, Shield, Lock, Eye, EyeOff, Key, Mail, Smartphone } from 'lucide-react'
 import { getAuth, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
 import { useFirebase } from '../context/FirebaseContext'
 import Modal from '../components/common/Modal'
@@ -36,8 +36,7 @@ export default function AccountSecurity() {
     loadSecurity() || { 
       twoFactorEnabled: false, 
       twoFactorMethod: 'email', 
-      authSecret: '', 
-      emailVisible: true 
+      authSecret: ''
     }
   )
   const [twoFAOpen, setTwoFAOpen] = useState(false)
@@ -86,14 +85,6 @@ export default function AccountSecurity() {
     }))
   }
 
-  const savePrivacy = (key, value) => { 
-    const next = { ...security, [key]: value }
-    saveSecurity(next)
-    setSecurity(next)
-    window.dispatchEvent(new CustomEvent('tpp:toast', { 
-      detail: { message: 'Privacy setting updated', type: 'success' } 
-    }))
-  }
 
   const handlePasswordUpdate = async () => {
     if (!passwordData.current || !passwordData.new || !passwordData.confirm) {
@@ -233,40 +224,6 @@ export default function AccountSecurity() {
                 }}
               >
                 {security.twoFactorEnabled ? 'Disable' : 'Enable'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Privacy Settings */}
-        <div 
-          className="p-4 rounded-lg space-y-3"
-          style={{ backgroundColor: theme.cardBackground }}
-        >
-          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Privacy Settings</h4>
-          <div className="space-y-2">
-            <div 
-              className="flex items-center justify-between p-3 rounded-lg"
-              style={{ backgroundColor: theme.secondary }}
-            >
-              <div className="flex items-center gap-3">
-                <Eye size={20} style={{ color: theme.accent }} />
-                <div>
-                  <div className="font-medium" style={{ color: theme.text }}>Email Visibility</div>
-                  <div className="text-xs" style={{ color: theme.mutedText }}>
-                    {security.emailVisible ? 'Email is visible to other users' : 'Email is hidden from other users'}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => savePrivacy('emailVisible', !security.emailVisible)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90`}
-                style={{ 
-                  backgroundColor: security.emailVisible ? theme.accent : theme.secondary,
-                  color: security.emailVisible ? theme.accentText : theme.text
-                }}
-              >
-                {security.emailVisible ? 'Visible' : 'Hidden'}
               </button>
             </div>
           </div>
@@ -467,5 +424,6 @@ export default function AccountSecurity() {
     </section>
   )
 }
+
 
 

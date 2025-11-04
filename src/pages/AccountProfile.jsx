@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send } from 'lucide-react'
+import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, LogOut } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { getAuth, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
@@ -19,13 +19,14 @@ function getUserInitials(email) {
 export default function AccountProfile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
-  const { user } = useAppContext()
+  const { user, logout } = useAppContext()
   const { firebaseUser } = useFirebase()
   
   const [editingEmail, setEditingEmail] = useState(false)
   const [emailDraft, setEmailDraft] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSendingVerification, setIsSendingVerification] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleEmailUpdate = async () => {
     if (!emailDraft || emailDraft === user?.email) {
@@ -81,9 +82,25 @@ export default function AccountProfile() {
       console.error('Error sending verification email:', error)
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: 'Failed to send verification email. Please try again.', type: 'error' }
-      }))
+        }))
     } finally {
       setIsSendingVerification(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Successfully logged out', type: 'success' }
+      }))
+    } catch (error) {
+      console.error('Error logging out:', error)
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to log out. Please try again.', type: 'error' }
+      }))
+      setIsLoggingOut(false)
     }
   }
 
@@ -193,6 +210,27 @@ export default function AccountProfile() {
                 isSending={isSendingVerification}
               />
             </div>
+          </div>
+
+          {/* Logout Section */}
+          <div 
+            className="p-4 rounded-lg"
+            style={{ backgroundColor: theme.cardBackground }}
+          >
+            <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>Account Actions</h4>
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+              style={{ 
+                backgroundColor: theme.secondary,
+                color: theme.text,
+                border: `1px solid ${theme.border}`
+              }}
+            >
+              <LogOut size={18} />
+              {isLoggingOut ? 'Logging out...' : 'Log Out'}
+            </button>
           </div>
         </div>
       ) : (

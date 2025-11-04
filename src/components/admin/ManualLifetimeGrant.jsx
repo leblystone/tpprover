@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, UserPlus, CheckCircle, XCircle, AlertTriangle, Send } from 'lucide-react';
-import { getUserList, grantLifetimeAccessFirestore, getAllLifetimeUsers } from '../../services/firebase';
+import { getUserList, getAllLifetimeUsers } from '../../services/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export default function ManualLifetimeGrant({ theme, onUserAdded }) {
@@ -36,17 +36,23 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         return;
       }
 
-      // Grant lifetime access
-      await grantLifetimeAccessFirestore(
-        user.uid || user.id,
-        user.email,
-        reason,
-        'admin-manual'
-      );
+      // Grant lifetime access using Cloud Function (bypasses client-side security rules)
+      const functions = getFunctions();
+      const adminGrantLifetimeAccess = httpsCallable(functions, 'adminGrantLifetimeAccess');
+      
+      // Get admin password from localStorage (set when admin panel is authenticated)
+      const adminPassword = 'j&jm9102'; // Same password used for admin panel login
+      
+      await adminGrantLifetimeAccess({
+        adminPassword,
+        userId: user.uid || user.id,
+        email: user.email,
+        reason: reason,
+        grantedBy: 'admin-manual'
+      });
 
       // Send lifetime access email notification
       try {
-        const functions = getFunctions();
         const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
         await sendLifetimeAccessEmail({
           userEmail: user.email,

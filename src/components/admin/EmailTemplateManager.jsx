@@ -259,7 +259,7 @@ const DEFAULT_TEMPLATES = {
       'Flexible pricing to fit your research needs'
     ]
   },
-  customAnnouncement: {
+  customAnnouncement: {jameson
     name: 'Custom Announcement / Maintenance',
     subject: 'Important Update - The Pep Planner',
     heading: 'Important Update',
@@ -284,7 +284,7 @@ const DEFAULT_COLORS = {
   secondary: '#A3B18A',
   sage: '#D4D7CD',
   white: '#FFFFFF',
-  text: '#1F2937',
+  text: '#1F293jae
   textLight: '#6B7280'
 };
 

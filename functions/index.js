@@ -25,6 +25,121 @@ exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
 exports.completeGiftFromSession = stripe.completeGiftFromSession;
 
+// Admin Functions - Use Admin SDK to bypass client-side security rules
+exports.adminGrantLifetimeAccess = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      // Verify admin password (simple auth check)
+      const { adminPassword, userId, email, reason, grantedBy } = request.data;
+      
+      const ADMIN_PASSWORD = 'j&jm9102';
+      if (adminPassword !== ADMIN_PASSWORD) {
+        throw new Error('Invalid admin password');
+      }
+      
+      if (!userId || !email) {
+        throw new Error('userId and email are required');
+      }
+      
+      logger.info('🎁 Admin granting lifetime access to:', email, userId);
+      
+      // Use Admin SDK to write directly (bypasses security rules)
+      const db = admin.firestore();
+      
+      // Create lifetime access document
+      await db.collection('lifetimeAccess').doc(userId).set({
+        userId,
+        email: email.toLowerCase(),
+        hasLifetimeAccess: true,
+        reason: reason || 'Beta tester',
+        grantedBy: grantedBy || 'admin',
+        grantedAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'active',
+        metadata: {
+          isBetaTester: (reason || '').toLowerCase().includes('beta'),
+          isFounder: (reason || '').toLowerCase().includes('founder'),
+          isManualGrant: true
+        }
+      }, { merge: true });
+      
+      // Update user document
+      await db.collection('users').doc(userId).set({
+        subscription: {
+          hasLifetimeAccess: true,
+          lifetimeReason: reason || 'Beta tester',
+          lifetimeGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
+          plan: 'lifetime',
+          status: 'active'
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      
+      logger.info('✅ Lifetime access granted successfully');
+      
+      return { 
+        success: true, 
+        message: `Lifetime access granted to ${email}` 
+      };
+    } catch (error) {
+      logger.error('❌ Error granting lifetime access:', error);
+      throw new Error(`Failed to grant lifetime access: ${error.message}`);
+    }
+  }
+);
+
+exports.adminRevokeLifetimeAccess = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      const { adminPassword, userId, reason } = request.data;
+      
+      const ADMIN_PASSWORD = 'j&jm9102';
+      if (adminPassword !== ADMIN_PASSWORD) {
+        throw new Error('Invalid admin password');
+      }
+      
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      
+      logger.info('🚫 Admin revoking lifetime access for:', userId);
+      
+      const db = admin.firestore();
+      
+      // Update lifetime access document
+      await db.collection('lifetimeAccess').doc(userId).update({
+        hasLifetimeAccess: false,
+        status: 'revoked',
+        revokedAt: admin.firestore.FieldValue.serverTimestamp(),
+        revokedBy: 'admin',
+        revocationReason: reason || 'Manual revocation'
+      });
+      
+      // Update user document
+      await db.collection('users').doc(userId).update({
+        'subscription.hasLifetimeAccess': false,
+        'subscription.status': 'revoked',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      logger.info('✅ Lifetime access revoked successfully');
+      
+      return { 
+        success: true, 
+        message: `Lifetime access revoked for user ${userId}` 
+      };
+    } catch (error) {
+      logger.error('❌ Error revoking lifetime access:', error);
+      throw new Error(`Failed to revoke lifetime access: ${error.message}`);
+    }
+  }
+);
+
 // Scheduled Functions for Notifications - Now runs hourly to check all timezones
 exports.scheduledResearchReminders = onSchedule({
   schedule: '0 * * * *',

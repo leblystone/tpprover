@@ -277,3 +277,4 @@ export default function UserDetailModal({ user, onClose, theme: enhancedTheme, o
   );
 }
 
+

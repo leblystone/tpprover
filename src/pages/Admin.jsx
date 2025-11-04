@@ -1251,9 +1251,6 @@ function Admin() {
     );
   };
 
-  // Check if Firebase user is admin
-  const isFirebaseAdmin = firebaseUser?.email === 'lebrockmaldonado@gmail.com';
-  
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
@@ -1465,17 +1462,6 @@ function Admin() {
                 >
                   <RefreshCw size={16} className={loading.analytics || loading.subscriptions ? 'animate-spin' : ''} />
                 </button>
-              )}
-              
-              {!isFirebaseAdmin && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ 
-                  backgroundColor: '#ef444415',
-                  border: '1px solid #ef444440',
-                  color: '#ef4444'
-                }}>
-                  <AlertTriangle size={14} />
-                  <span className="text-xs font-medium hidden md:inline">Sign in as admin</span>
-                </div>
               )}
               
               <div 
