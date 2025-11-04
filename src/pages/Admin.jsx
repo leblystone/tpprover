@@ -997,14 +997,7 @@ function Admin() {
         return;
       }
 
-      // Validate password matches admin password
-      if (password !== ADMIN_PASSWORD) {
-        setLoginError('Incorrect password');
-        setIsLoggingIn(false);
-        return;
-      }
-
-      // Authenticate with Firebase using email and password
+      // Authenticate with Firebase using email and password (use your Firebase account password)
       console.log('🔐 Attempting Firebase authentication...');
       try {
         await loginUser(emailLower, password);
@@ -1016,7 +1009,7 @@ function Admin() {
         if (firebaseError.code === 'auth/user-not-found') {
           setLoginError('Account not found. Please create an account with this email first, then try logging in again.');
         } else if (firebaseError.code === 'auth/wrong-password') {
-          setLoginError('Incorrect password for this email');
+          setLoginError('Incorrect password. Use the password for your Firebase account (the one you use to log into the main app).');
         } else if (firebaseError.code === 'auth/invalid-email') {
           setLoginError('Invalid email address');
         } else {
@@ -1366,7 +1359,7 @@ function Admin() {
             </div>
             <h1 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>The Calming Place</h1>
             <p className="text-sm" style={{ color: theme.textLight }}>Welcome back, Mrs. FloralKaffe</p>
-            <p className="text-xs mt-2" style={{ color: theme.textLight }}>Enter your password to enter your peaceful workspace</p>
+            <p className="text-xs mt-2" style={{ color: theme.textLight }}>Enter your email and Firebase account password to access the admin panel</p>
           </div>
           
           <form onSubmit={handleLogin} className="space-y-4">
@@ -1390,7 +1383,7 @@ function Admin() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Admin password"
+                placeholder="Your Firebase account password"
                 className="w-full p-4 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:scale-[1.02]"
                 style={{ 
                   borderColor: loginError && email.trim() ? theme.error : theme.border, 
