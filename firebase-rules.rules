@@ -4,9 +4,11 @@ service cloud.firestore {
     
     // Helper function to check if user is admin
     function isAdmin() {
-      // Check if authenticated user's email matches admin email
-      return request.auth != null && 
-             request.auth.token.email == 'lebrockmaldonado@gmail.com';
+      // Check if authenticated user's email matches admin emails
+      return request.auth != null && (
+             request.auth.token.email == 'lebrockmaldonado@gmail.com' ||
+             request.auth.token.email == 'thepepplanner@gmail.com'
+      );
     }
     
     // Users can only read/write their own user document
