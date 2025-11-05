@@ -164,38 +164,86 @@ export default function CustomizableDashboard() {
     return vendors.filter(vendor => vendor.isStub === true);
   }, [vendors]);
 
-  // Load upcoming buys
+  // Load upcoming buys - use AppContext's scheduledBuys which already has filtering applied
+  // But also listen for data clearing events to ensure UI updates
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('tpprover_scheduled_buys');
-      if (raw) {
-        const buys = JSON.parse(raw);
-        // Filter out mock scheduled buys if sample data was cleared
-        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-        const filteredBuys = sampleDataCleared 
-          ? buys.filter(b => !b.isMock)
-          : buys;
-        const now = new Date();
-        const upcoming = filteredBuys.filter(b => 
-          new Date(b.openDate) >= now || 
-          (new Date(b.closeDate) >= now && new Date(b.openDate) <= now)
-        );
-        setScheduledBuys(upcoming.map(b => ({
-          id: b.id,
-          name: b.item,
-          date: b.openDate,
-          openDate: b.openDate,
-          closeDate: b.closeDate,
-          vendor: b.vendor,
-          notes: b.notes
-        })));
+    const loadAndFilterBuys = () => {
+      try {
+        const raw = localStorage.getItem('tpprover_scheduled_buys');
+        if (raw) {
+          const buys = JSON.parse(raw);
+          // Filter out mock scheduled buys if sample data was cleared
+          const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+          const filteredBuys = sampleDataCleared 
+            ? buys.filter(b => {
+                // Filter by isMock flag
+                if (b.isMock) return false;
+                // Also filter by known mock vendors
+                const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
+                if (mockVendors.includes(b.vendor)) return false;
+                // Filter by known mock IDs
+                if (b.id === 201 || b.id === 202 || b.id === 203) return false;
+                // Filter by known mock item names
+                const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
+                if (mockItems.includes(b.item)) return false;
+                return true;
+              })
+            : buys;
+          const now = new Date();
+          const upcoming = filteredBuys.filter(b => 
+            new Date(b.openDate) >= now || 
+            (new Date(b.closeDate) >= now && new Date(b.openDate) <= now)
+          );
+          setScheduledBuys(upcoming.map(b => ({
+            id: b.id,
+            name: b.item,
+            date: b.openDate,
+            openDate: b.openDate,
+            closeDate: b.closeDate,
+            vendor: b.vendor,
+            notes: b.notes,
+            isMock: b.isMock // Preserve isMock flag for filtering
+          })));
+        } else {
+          // If no data in localStorage, clear the state
+          setScheduledBuys([]);
+        }
+      } catch (error) {
+        console.error('Error loading upcoming buys:', error);
       }
-    } catch (error) {
-      console.error('Error loading upcoming buys:', error);
-    }
+    };
 
-    // Debug functions are now loaded globally via App.jsx -> debugUtils.js
-  }, []);
+    // Load on mount
+    loadAndFilterBuys();
+
+    // Listen for sample data cleared event
+    const handleSampleDataCleared = () => {
+      console.log('🔄 Sample data cleared - refreshing scheduled buys');
+      loadAndFilterBuys();
+    };
+
+    // Listen for group buy deleted event
+    const handleGroupBuyDeletedInMainEffect = () => {
+      loadAndFilterBuys();
+    };
+
+    window.addEventListener('sample-data-cleared', handleSampleDataCleared);
+    window.addEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInMainEffect);
+
+    // Also listen for localStorage changes (cross-tab sync)
+    const handleStorageChange = (e) => {
+      if (e.key === 'tpprover_scheduled_buys' || e.key === 'tpprover_sample_data_cleared') {
+        loadAndFilterBuys();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('sample-data-cleared', handleSampleDataCleared);
+      window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInMainEffect);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [setScheduledBuys]);
 
   // Quick Actions event listeners
   useEffect(() => {
@@ -216,11 +264,38 @@ export default function CustomizableDashboard() {
     const handleDashboardSettings = () => {
       setShowCustomizer(true);
     };
-    const handleGroupBuyDeleted = () => {
+    const handleGroupBuyDeletedInQuickActions = () => {
       // Refresh the scheduled buys data from localStorage
-      const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
-      const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : [];
-      setScheduledBuys(scheduledBuys);
+      // Use the same filtering logic as the main useEffect
+      try {
+        const raw = localStorage.getItem('tpprover_scheduled_buys');
+        if (raw) {
+          const buys = JSON.parse(raw);
+          const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+          const filteredBuys = sampleDataCleared 
+            ? buys.filter(b => !b.isMock)
+            : buys;
+          const now = new Date();
+          const upcoming = filteredBuys.filter(b => 
+            new Date(b.openDate) >= now || 
+            (new Date(b.closeDate) >= now && new Date(b.openDate) <= now)
+          );
+          setScheduledBuys(upcoming.map(b => ({
+            id: b.id,
+            name: b.item,
+            date: b.openDate,
+            openDate: b.openDate,
+            closeDate: b.closeDate,
+            vendor: b.vendor,
+            notes: b.notes,
+            isMock: b.isMock
+          })));
+        } else {
+          setScheduledBuys([]);
+        }
+      } catch (error) {
+        console.error('Error refreshing scheduled buys:', error);
+      }
     };
 
     window.addEventListener('tpp:openRecon', handleOpenRecon);
@@ -229,7 +304,7 @@ export default function CustomizableDashboard() {
     window.addEventListener('tpp:openProtocol', handleOpenProtocol);
     window.addEventListener('tpp:dashboard-customize', handleDashboardCustomize);
     window.addEventListener('tpp:dashboard-settings', handleDashboardSettings);
-    window.addEventListener('tpp:group-buy-deleted', handleGroupBuyDeleted);
+    window.addEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInQuickActions);
 
     return () => {
       window.removeEventListener('tpp:openRecon', handleOpenRecon);
@@ -238,7 +313,7 @@ export default function CustomizableDashboard() {
       window.removeEventListener('tpp:openProtocol', handleOpenProtocol);
       window.removeEventListener('tpp:dashboard-customize', handleDashboardCustomize);
       window.removeEventListener('tpp:dashboard-settings', handleDashboardSettings);
-      window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeleted);
+      window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInQuickActions);
     };
   }, [isCustomizing]);
 
@@ -662,7 +737,20 @@ export default function CustomizableDashboard() {
                       theme={theme}
                       tasks={todaysTasks}
                       incomingOrder={incomingOrder}
-                      upcomingBuys={scheduledBuys}
+                      upcomingBuys={(() => {
+                        // Additional safety filter: remove mock buys if sample data was cleared
+                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                        if (!sampleDataCleared) return scheduledBuys;
+                        return scheduledBuys.filter(buy => {
+                          if (buy.isMock) return false;
+                          const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
+                          if (mockVendors.includes(buy.vendor)) return false;
+                          if (buy.id === 201 || buy.id === 202 || buy.id === 203) return false;
+                          const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
+                          if (mockItems.includes(buy.item || buy.name)) return false;
+                          return true;
+                        });
+                      })()}
                       pendingVendors={pendingVendors}
                       goals={goals}
                       metrics={metrics}

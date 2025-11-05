@@ -174,16 +174,12 @@ export default function Calendar() {
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dayKey = d.toLocaleDateString('en-US', { weekday: 'short' })
             const daySupps = supps.filter(s => !s.days || s.days.length === 0 || s.days.includes(dayKey))
-            console.log(`📅 Day ${d.getDate()} (${dayKey}):`, {
-              totalSupps: supps.length,
-              daySupps: daySupps.length,
-              supplements: daySupps.map(s => ({ name: s.name, delivery: s.delivery, days: s.days, schedule: s.schedule }))
-            });
             
-            // Debug: Show what gets added to bySlot
-            if (daySupps.length > 0) {
-              console.log(`🔍 Processing ${daySupps.length} supplements for day ${d.getDate()}`);
-            }
+            // Debug logging removed - was causing excessive console output
+            // Uncomment below for debugging if needed:
+            // if (daySupps.length > 0) {
+            //   console.log(`📅 Day ${d.getDate()} (${dayKey}): ${daySupps.length} supplements`);
+            // }
             if (daySupps.length > 0) {
               const key = toKey(d)
               const bySlot = { ...(next[key]?.bySlot || {}) }
@@ -226,7 +222,22 @@ export default function Calendar() {
           }
           // Scheduled group buys: mark all days in [openDate, closeDate]
           // Use scheduledBuys from context instead of reading directly from localStorage
-          const contextScheduledBuys = scheduledBuys || []
+          // Additional safety filter: remove mock data if sample data was cleared
+          const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+          const contextScheduledBuys = (scheduledBuys || []).filter(buy => {
+            if (!sampleDataCleared) return true;
+            // Filter by isMock flag
+            if (buy.isMock) return false;
+            // Filter by known mock vendors
+            const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
+            if (mockVendors.includes(buy.vendor)) return false;
+            // Filter by known mock IDs
+            if (buy.id === 201 || buy.id === 202 || buy.id === 203) return false;
+            // Filter by known mock item names
+            const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
+            if (mockItems.includes(buy.item)) return false;
+            return true;
+          });
           // Protocol indicators: count by time-of-day occurrences + wash-out chips
           const prots = protocols
           const metricsByKey = (metrics || []).reduce((map, m) => {
@@ -659,7 +670,7 @@ export default function Calendar() {
               }
             }
             // Scheduled Group Buys
-            const dayBuys = (contextScheduledBuys || []).filter(b => {
+            const dayBuys = contextScheduledBuys.filter(b => {
                 if (!b?.openDate || !b?.closeDate) return false;
                 const open = parseDateString(b.openDate);
                 const close = parseDateString(b.closeDate);
@@ -706,13 +717,8 @@ export default function Calendar() {
           }
 
           // Force complete refresh instead of merging to prevent stale data
-          console.log('🔄 Calendar: Refreshing with new data', { supplements: supps.length, goals: goals.length });
-          console.log('📋 Final scheduled data sample:', Object.keys(next || {}).slice(0, 5).map(key => ({
-            date: key,
-            hasSupplements: !!next[key]?.supplements?.length,
-            bySlot: next[key]?.bySlot ? Object.keys(next[key].bySlot) : [],
-            supplementCount: Object.values(next[key]?.bySlot || {}).reduce((total, slot) => total + (slot.supplements?.length || 0), 0)
-          })));
+          // Debug logging removed - uncomment below if needed for debugging:
+          // console.log('🔄 Calendar: Refreshing with new data', { supplements: supps.length, goals: goals.length });
           setScheduled(next)
         } catch (e) {
           console.error('[Calendar Debug] Error in loadData:', e);

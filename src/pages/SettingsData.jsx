@@ -252,13 +252,15 @@ export default function SettingsData() {
   const handleAddSampleData = async () => {
     setIsAddingSampleData(true);
     try {
+      // Clear the flag BEFORE seeding so the seed functions don't block it
+      localStorage.removeItem('tpprover_sample_data_cleared');
+      localStorage.removeItem('tpprover_sample_banner_dismissed');
+      
       const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
       
       if (firebaseUser) {
         const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
         if (seeded) {
-          localStorage.removeItem('tpprover_sample_data_cleared');
-          localStorage.removeItem('tpprover_sample_banner_dismissed');
           setShowSampleDataModal(false);
           
           refreshDataAfterClear();

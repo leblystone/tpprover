@@ -22,15 +22,7 @@ export default function Orders() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true)
 	const [searchQuery, setSearchQuery] = useState('')
-	
-	// Check if group buys are enabled
-	useEffect(() => {
-		import('../utils/featureSettings').then(({ areGroupBuysEnabled }) => {
-			setGroupBuysEnabled(areGroupBuysEnabled());
-		});
-	}, []);
 	
 
 	useEffect(() => {
@@ -65,7 +57,7 @@ export default function Orders() {
 		const tabs = [
 			{ value: 'domestic', label: 'Domestic' },
 			{ value: 'international', label: 'International' },
-			...(groupBuysEnabled ? [{ value: 'groupbuy', label: 'Group Buy' }] : [])
+			{ value: 'groupbuy', label: 'Group Buy' }
 		];
 		
 		const handleAddClick = () => {
@@ -96,7 +88,7 @@ export default function Orders() {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:orders-search', handleSearch);
 		};
-	}, [activeTab, isReadOnly, groupBuysEnabled])
+	}, [activeTab, isReadOnly])
 
 
 	const filteredOrders = useMemo(() => {

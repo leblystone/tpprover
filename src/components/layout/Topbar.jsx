@@ -164,19 +164,40 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         {/* Spacer to push icons to the right when no tabs */}
         {(!tabs || tabs.length === 0) && <div className="flex-1" />}
         
-        {/* Mobile tabs - show only active tab with dropdown */}
+        {/* Mobile tabs - show all tabs */}
         {tabs && tabs.length > 0 && (
-          <div className="lg:hidden flex items-center gap-2 absolute left-1/2 transform -translate-x-1/2">
-            <button
-              className="px-3 py-1.5 text-xs uppercase tracking-tight rounded-lg shadow-sm relative whitespace-nowrap"
-              style={{
-                backgroundColor: `${theme.primary}20`,
-                color: theme.primary,
-                fontWeight: 600
-              }}
-            >
-              {tabs.find(t => t.value === activeTab)?.label || tabs[0].label}
-            </button>
+          <div className="lg:hidden flex items-center gap-1 px-1 py-1 rounded-lg absolute left-1/2 transform -translate-x-1/2" style={{ backgroundColor: `${theme.primary}08` }}>
+            {tabs.map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => onTabChange(tab.value)}
+                className={`px-2 py-1 text-xs uppercase tracking-tight rounded-lg transition-all duration-200 relative whitespace-nowrap ${
+                  activeTab === tab.value 
+                    ? 'shadow-sm' 
+                    : 'hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
+                  color: activeTab === tab.value ? theme.primary : theme.textLight,
+                  fontWeight: activeTab === tab.value ? 600 : 500
+                }}
+              >
+                {tab.label}
+                {/* Active indicator line */}
+                {activeTab === tab.value && (
+                  <span 
+                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"
+                    style={{ backgroundColor: theme.primary }}
+                  />
+                )}
+              </button>
+            ))}
+            {onActionClick && (
+              <div 
+                className="h-5 w-px mx-1" 
+                style={{ backgroundColor: theme.border }}
+              />
+            )}
             {onActionClick && (
               <button 
                 className="p-1.5 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200" 

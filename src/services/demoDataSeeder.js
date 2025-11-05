@@ -27,11 +27,14 @@ export async function seedSampleDataToCloud(userId, password) {
   try {
     console.log('☁️ Adding sample data (OPTIMISTIC: localStorage + Firestore)');
     
-    // SAFETY CHECK: Only prevent adding sample data if user explicitly cleared it
+    // SAFETY CHECK: Only prevent AUTO-adding sample data if user explicitly cleared it
+    // But allow manual seeding from Settings page (flag will be cleared before calling this)
     const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
     
     if (sampleDataCleared) {
-      console.log('❌ Cannot add sample data: User has explicitly cleared sample data');
+      // User has explicitly cleared sample data - this prevents auto-seeding
+      // But if called manually from Settings, the flag should be cleared first
+      console.log('ℹ️ Sample data previously cleared by user - skipping auto-seed');
       throw new Error('Sample data was previously removed. Please refresh the page and try again if you want to add sample data.');
     }
     
@@ -154,7 +157,12 @@ export async function seedSampleDataToCloud(userId, password) {
     
     return true;
   } catch (error) {
-    console.error('❌ Failed to seed sample data to Firestore:', error);
+    // Expected error if user cleared sample data - only log as warning
+    if (error.message.includes('previously removed')) {
+      console.log('ℹ️ Sample data seeding skipped (user preference)');
+    } else {
+      console.warn('⚠️ Failed to seed sample data to Firestore:', error.message);
+    }
     
     // Fallback to localStorage if Firestore fails (offline mode)
     console.log('🔄 Falling back to localStorage seeding...');
