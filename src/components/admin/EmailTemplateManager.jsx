@@ -616,7 +616,9 @@ export default function EmailTemplateManager({ theme }) {
   <div style="background-color: ${colors.sage}; padding: 20px 0;">
     <div style="max-width: 600px; margin: 20px auto; background-color: ${colors.white}; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
       <div style="background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); padding: 40px 20px; text-align: center;">
-        <img src="https://thepepplanner.app/tpp_logo.png" alt="The Pep Planner" style="width: 120px; height: auto; margin: 0 auto 12px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+        <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+          <img src="https://thepepplanner.app/tpp_logo.png" alt="The Pep Planner" style="width: 120px; height: auto; margin: 0 auto 12px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+        </a>
         <div style="display: none; color: ${colors.sage}; font-size: 24px; font-weight: bold; margin: 0 auto 12px;">The Pep Planner</div>
         <div style="color: ${colors.sage}; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Organize Your Research</div>
       </div>
@@ -659,17 +661,13 @@ export default function EmailTemplateManager({ theme }) {
         ` : ''}
 
         <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin-top: 24px;">
-          Best,<br>
+          Happy Researching! ✌🏻,<br>
           <strong style="color: ${colors.primary};">The Pep Planner Team</strong>
         </p>
       </div>
       <div style="background-color: ${colors.sage}; padding: 32px; text-align: center; color: ${colors.textLight}; font-size: 13px;">
         <p style="margin: 0 0 12px 0; font-weight: 600; color: ${colors.text};">The Pep Planner</p>
-        <p style="margin: 0 0 16px 0;">Your research management platform</p>
-        <p style="margin: 0;">
-          <a href="https://thepepplanner.app" style="color: ${colors.primary}; text-decoration: none;">Visit Website</a> • 
-          <a href="https://thepepplanner.app/app/dashboard" style="color: ${colors.primary}; text-decoration: none;">Dashboard</a>
-        </p>
+        <p style="margin: 0 0 16px 0;">Organize Your Research</p>
         <p style="margin: 16px 0 0 0; font-size: 11px; color: ${colors.textLight};">
           © 2025 The Pep Planner. All rights reserved.
         </p>

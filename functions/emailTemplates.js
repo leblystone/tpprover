@@ -126,18 +126,15 @@ const emailWrapper = (content) => `
   <div style="background-color: ${COLORS.sage}; padding: 20px 0;">
     <div class="email-container">
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" width="120" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" width="120" />
+      </a>
         <div class="tagline">Organize Your Research</div>
       </div>
       ${content}
       <div class="footer">
         <p style="margin: 0 0 12px 0; font-weight: 600; color: ${COLORS.text};">The Pep Planner</p>
-        <p style="margin: 0 0 16px 0;">Your research management platform</p>
-        <p style="margin: 0;">
-          <a href="https://thepepplanner.app" style="color: ${COLORS.primary}; text-decoration: none;">Visit Website</a> • 
-          <a href="https://thepepplanner.app/app/dashboard" style="color: ${COLORS.primary}; text-decoration: none;">Dashboard</a> • 
-          <a href="https://thepepplanner.app/support" style="color: ${COLORS.primary}; text-decoration: none;">Support</a>
-        </p>
+        <p style="margin: 0 0 16px 0;">Organize Your Research</p>
         <p style="margin: 16px 0 0 0; font-size: 11px; color: ${COLORS.textLight};">
           © 2025 The Pep Planner. All rights reserved.
         </p>
@@ -208,7 +205,7 @@ exports.welcomeEmail = (userName, userEmail) => {
       </p>
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -278,7 +275,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -338,7 +335,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -406,7 +403,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -456,7 +453,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -499,7 +496,7 @@ exports.verificationEmail = (verificationLink) => {
       </div>
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -569,7 +566,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -629,7 +626,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -697,7 +694,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -747,7 +744,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -794,7 +791,7 @@ exports.passwordResetEmail = (resetLink, userEmail) => {
       </p>
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -864,7 +861,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -924,7 +921,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -945,7 +942,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -992,7 +991,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1013,7 +1012,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1042,7 +1043,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1085,7 +1086,7 @@ exports.trialEndingEmail = (daysLeft, userEmail) => {
       </p>
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1108,7 +1109,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -1155,7 +1158,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1176,7 +1179,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -1215,7 +1220,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1236,7 +1241,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -1283,7 +1290,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1304,7 +1311,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1333,7 +1342,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1402,7 +1411,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -1449,7 +1460,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1470,7 +1481,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -1509,7 +1522,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1530,7 +1543,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -1577,7 +1592,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1598,7 +1613,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1627,7 +1644,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1700,7 +1717,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -1747,7 +1766,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1768,7 +1787,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -1807,7 +1828,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1828,7 +1849,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -1875,7 +1898,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1896,7 +1919,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -1925,7 +1950,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -1997,7 +2022,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2044,7 +2071,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2065,7 +2092,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -2104,7 +2133,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2125,7 +2154,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -2172,7 +2203,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2193,7 +2224,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -2222,7 +2255,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2294,7 +2327,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2341,7 +2376,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2362,7 +2397,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -2401,7 +2438,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2422,7 +2459,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -2469,7 +2508,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2490,7 +2529,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -2519,7 +2560,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2589,7 +2630,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2636,7 +2679,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2657,7 +2700,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -2696,7 +2741,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2717,7 +2762,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -2764,7 +2811,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2785,7 +2832,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -2814,7 +2863,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2884,7 +2933,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -2931,7 +2982,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -2952,7 +3003,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -2991,7 +3044,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -3012,7 +3065,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -3059,7 +3114,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -3080,7 +3135,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -3109,7 +3166,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -3182,7 +3239,9 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 You've Received a Gift!</div>
     </div>
     
@@ -3229,7 +3288,7 @@ exports.giftNotificationEmail = (recipientName, giftGiverName, giftMessage, gift
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -3250,7 +3309,9 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎁 Gift Purchase Confirmed!</div>
     </div>
     
@@ -3289,7 +3350,7 @@ exports.giftPurchaseConfirmationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -3310,7 +3371,9 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Gift Successfully Redeemed!</div>
     </div>
     
@@ -3357,7 +3420,7 @@ exports.giftRedeemedEmail = (recipientEmail, giftGiverName, subscriptionType, su
       </center>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -3378,7 +3441,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">🎉 Your Gift Was Redeemed!</div>
     </div>
     
@@ -3407,7 +3472,7 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
       </p>
       
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Best,<br>
+        Happy Researching! ✌🏻,<br>
         <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
       </p>
     </div>
@@ -3423,7 +3488,9 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 exports.giftExpiringSoonEmail = (recipientEmail, planName, daysLeft, giftGiverName) => {
   const content = `
     <div class="header">
-      <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      <a href="https://thepepplanner.app/app/dashboard" style="display: inline-block; text-decoration: none;">
+        <img src="${LOGO_URL}" alt="The Pep Planner" class="logo-image" />
+      </a>
       <div class="logo">Organize Your Research</div>
     </div>
     
