@@ -205,9 +205,14 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   // Use actualSubscription first, fallback to subscription prop
   const subData = actualSubscription || subscription;
   
-  // Don't show if user has active PAID subscription
+  // CRITICAL: Check for lifetime access - should hide widget completely
+  const hasLifetimeAccess = subData?.hasLifetimeAccess || 
+                            subData?.interval === 'lifetime' || 
+                            subData?.plan === 'lifetime';
+  
+  // Don't show if user has active PAID subscription (including lifetime)
   // Show for: trial users, expired trials, canceled subscriptions, or no subscription
-  const isActivePaidSubscription = subData?.status === 'active' && subData?.plan !== '7-Day Free Trial';
+  const isActivePaidSubscription = (subData?.status === 'active' && subData?.plan !== '7-Day Free Trial') || hasLifetimeAccess;
   
   if (isActivePaidSubscription || isDismissed) {
     return null;

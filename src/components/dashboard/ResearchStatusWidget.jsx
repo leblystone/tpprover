@@ -36,7 +36,12 @@ export default function ResearchStatusWidget({ theme, subscription }) {
     return () => clearInterval(interval);
   }, [subscription?.currentPeriodEnd]);
 
-  const isTrial = subscription?.status === 'trialing';
+  // CRITICAL: Check for lifetime access - should hide widget completely
+  const hasLifetimeAccess = subscription?.hasLifetimeAccess || 
+                            subscription?.interval === 'lifetime' || 
+                            subscription?.plan === 'lifetime';
+  
+  const isTrial = subscription?.status === 'trialing' && !hasLifetimeAccess;
   const isActive = subscription?.status === 'active';
   const isCanceled = subscription?.status === 'canceled';
   // Consider trial expired only when actual time has passed (not just daysLeft==0)
@@ -47,9 +52,9 @@ export default function ResearchStatusWidget({ theme, subscription }) {
     return end.getTime() - now.getTime() <= 0;
   })();
 
-  // Hide widget only if user has active paid subscription
+  // Hide widget only if user has active paid subscription (including lifetime)
   // Show for trial, canceled, expired, or no subscription
-  if (isActive && !isCanceled) {
+  if ((isActive && !isCanceled) || hasLifetimeAccess) {
     return null;
   }
 
