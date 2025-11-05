@@ -15,7 +15,7 @@ const emailTemplates = require('./emailTemplates');
  * @param {string} html - Email HTML content
  * @returns {Promise<boolean>}
  */
-async function sendEmail(to, subject, html) {
+exports.sendEmail = async function sendEmail(to, subject, html) {
   try {
     // Get SendGrid API key from environment variables (Firebase Functions v2)
     // The secret is automatically injected as an environment variable when the function is called
