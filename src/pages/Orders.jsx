@@ -23,6 +23,7 @@ export default function Orders() {
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
 	
 
 	useEffect(() => {

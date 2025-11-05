@@ -45,7 +45,7 @@ const FeedbackWidget = ({ widget, theme }) => {
         <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-              Feedback & Suggestions
+              Feedback
             </h3>
             <MessageCircle size={20} style={{ color: theme.primary }} />
           </div>
@@ -69,15 +69,15 @@ const FeedbackWidget = ({ widget, theme }) => {
       <div className={`px-4 py-3 ${theme.isDark ? '' : 'border-b'}`} style={{ borderColor: theme.isDark ? 'transparent' : theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-            Feedback & Suggestions
+            Feedback
           </h3>
           <MessageCircle size={20} style={{ color: theme.primary }} />
         </div>
       </div>
       
-      <form onSubmit={handleSubmit} className="flex-1 p-2 flex flex-col space-y-2 min-h-0">
+      <form onSubmit={handleSubmit} className="flex-1 p-2 flex flex-col min-h-0" style={{ paddingBottom: '8px' }}>
         {/* Feedback Type Selection - Compact */}
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-2 gap-1 mb-2 flex-shrink-0">
           {feedbackTypes.map((type) => (
             <button
               key={type.id}
@@ -99,17 +99,19 @@ const FeedbackWidget = ({ widget, theme }) => {
         </div>
 
         {/* Message Input */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 mb-2" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={`Share your ${selectedType?.label.toLowerCase() || 'feedback'}...`}
-            className="w-full p-2 text-sm rounded-lg resize-none flex-1"
+            placeholder="Thoughts?"
+            className="w-full p-2 text-sm rounded-lg resize-none"
             style={{ 
               border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
               backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || theme.cardBackground),
               color: theme.text,
-              minHeight: '70px'
+              minHeight: '60px',
+              maxHeight: '100px',
+              boxSizing: 'border-box'
             }}
             maxLength={300}
           />
@@ -126,8 +128,10 @@ const FeedbackWidget = ({ widget, theme }) => {
               color: theme.textOnPrimary 
             }}
           >
-            <Send size={12} className="icon-hover" />
-            <span className="text-hover">Send {selectedType?.label || 'Feedback'}</span>
+            <span className="text-hover">Send</span>
+            {selectedType?.icon && (
+              <selectedType.icon size={12} className="icon-hover" />
+            )}
           </button>
         </div>
       </form>

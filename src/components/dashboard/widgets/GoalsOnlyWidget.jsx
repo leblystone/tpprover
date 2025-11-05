@@ -138,11 +138,11 @@ const GoalsOnlyWidget = ({
                 </p>
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                 >
-                  <Plus size={14} className="inline mr-1" />
-                  Add First Goal
+                  <Plus size={12} />
+                  Add Goal
                 </button>
               </div>
             ) : (

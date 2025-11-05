@@ -28,7 +28,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
         setForm(prev => ({
           ...prev,
           vendor: vendors,
-          peptides: prefill.peptides.map(pep => ({ ...pep, doseUnit: pep.doseUnit || 'mcg' }))
+          peptides: prefill.peptides.map((pep, index) => ({ ...pep, id: pep.id || index + 1, doseUnit: pep.doseUnit || 'mcg' }))
         }));
         setCost(String(totalCost));
       } 

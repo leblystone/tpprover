@@ -333,6 +333,8 @@ html, body, #root {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
+  flex-shrink: 0;
+  min-width: 2em;
 }
 
 .search-icon-button {
@@ -359,7 +361,7 @@ html, body, #root {
   width: 0;
   height: 2em;
   border-radius: 1em;
-  transition: width 0.3s ease, border 0.3s ease;
+  transition: width 0.3s ease, border 0.3s ease, opacity 0.3s ease;
   outline: none;
   padding: 0.4em 0.8em;
   cursor: pointer;
@@ -370,6 +372,8 @@ html, body, #root {
   font-family: inherit;
   vertical-align: baseline;
   opacity: 0;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .search-box-wrapper.is-active input[type="text"] {
@@ -391,7 +395,7 @@ html, body, #root {
 /* Mobile: smaller width */
 @media (max-width: 768px) {
   .search-box-wrapper.is-active input[type="text"] {
-    width: 8em;
+    width: 9.5em;
   }
 }
 

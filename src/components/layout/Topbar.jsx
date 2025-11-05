@@ -167,7 +167,17 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         
         {/* Mobile tabs - show all tabs with scrollable container */}
         {tabs && tabs.length > 0 && (
-          <div className="lg:hidden flex items-center gap-0.5 px-1 py-1 rounded-lg absolute left-1/2 transform -translate-x-1/2 max-w-[calc(100vw-180px)] overflow-x-auto mobile-tabs-container" style={{ backgroundColor: `${theme.primary}08`, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div 
+            className="lg:hidden flex items-center gap-0.5 px-1 py-1 rounded-lg absolute left-1/2 transform -translate-x-1/2 overflow-x-auto mobile-tabs-container" 
+            style={{ 
+              backgroundColor: `${theme.primary}08`, 
+              scrollbarWidth: 'none', 
+              msOverflowStyle: 'none',
+              maxWidth: isSearchActive ? 'calc(100vw - 240px)' : 'calc(100vw - 120px)',
+              transition: 'max-width 0.3s ease',
+              willChange: 'max-width'
+            }}
+          >
             <style>{`
               .mobile-tabs-container::-webkit-scrollbar {
                 display: none;
@@ -223,7 +233,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           </div>
         )}
         
-        <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 ml-auto">
+        <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
           {/* Sample Data Chip Notification - Show on dashboard mobile, hidden on other pages mobile to prevent overlap */}
           {showSampleData && (
             <div className={`${onDashboard ? 'flex' : 'hidden md:flex'} items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200`}
@@ -263,38 +273,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               onUpgradeClick={trialInfo.onUpgradeClick}
               theme={theme}
             />
-          )}
-          {/* Dashboard-specific expanding search box */}
-          {onDashboard && (
-            <form 
-              className="search-box-wrapper" 
-              style={{ color: theme.text, backgroundColor: theme.cardBackground }}
-              onSubmit={(e) => { e.preventDefault(); }}
-            >
-              <button
-                type="button"
-                className="search-icon-button"
-                onClick={() => searchInputRef.current?.focus()}
-                style={{ color: theme.textLight, opacity: 0.7 }}
-              >
-                <Search size={18} />
-              </button>
-              <input 
-                ref={searchInputRef}
-                type="text" 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)} 
-                placeholder="Search..."
-                style={{ color: theme.text }}
-              />
-              <button 
-                type="reset"
-                onClick={() => {
-                  setSearchQuery('');
-                  searchInputRef.current?.blur();
-                }}
-              />
-            </form>
           )}
           {/* Search for other pages */}
           {!onDashboard && seg !== 'settings' && seg !== 'account' && (
@@ -349,7 +327,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           <NotificationBell theme={theme} />
           */}
           {onDashboard && onDashboardCustomize && (
-            <ModernTooltip text={customizingState ? "Done Editing" : "Customize Dashboard"} position="bottom">
               <button 
                 className={`p-1.5 lg:p-2 rounded-full no-shadow transition-all duration-200 ${
                   customizingState ? 'ring-2 ring-opacity-50' : ''
@@ -361,11 +338,9 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   ringColor: customizingState ? theme.primary : 'transparent'
                 }}
                 aria-label={customizingState ? "Done editing dashboard" : "Customize dashboard"}
-                title="Customize Dashboard"
               >
                 <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
               </button>
-            </ModernTooltip>
           )}
         </div>
       </header>

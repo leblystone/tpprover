@@ -56,7 +56,7 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'inventory',
     type: WIDGET_TYPES.INVENTORY,
-    title: 'Inventory',
+    title: 'Stockpile',
     size: WIDGET_SIZES.SMALL,
     position: { x: 3, y: 0 },
     enabled: true,
@@ -159,7 +159,7 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'water_tracker',
     type: WIDGET_TYPES.WATER_TRACKER,
-    title: 'Water Intake',
+    title: 'Hydration',
     size: WIDGET_SIZES.SMALL,
     position: { x: 4, y: 2 },
     enabled: true,
@@ -194,7 +194,7 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'feedback',
     type: WIDGET_TYPES.FEEDBACK,
-    title: 'Feedback & Suggestions',
+    title: 'Feedback',
     size: WIDGET_SIZES.SMALL,
     position: { x: 1, y: 3 },
     enabled: true,
@@ -304,7 +304,7 @@ export const WIDGET_METADATA = {
     settings: []
   },
   [WIDGET_TYPES.INVENTORY]: {
-    title: 'Inventory',
+    title: 'Stockpile',
     description: 'Monitor stock levels and low inventory alerts',
     icon: 'Archive',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
@@ -345,7 +345,7 @@ export const WIDGET_METADATA = {
     settings: []
   },
   [WIDGET_TYPES.WATER_TRACKER]: {
-    title: 'Water Intake',
+    title: 'Hydration',
     description: 'Track daily water intake with customizable goals',
     icon: 'Droplets',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
@@ -517,14 +517,15 @@ export const compactGrid = (widgets) => {
   const grid = [];
   const GRID_COLS = 6; // 6-column grid
 
-  // Get widget dimensions based on size
+  // Get widget dimensions based on size (matching getSizeConfig)
   const getWidgetDimensions = (size) => {
     switch (size) {
       case WIDGET_SIZES.SMALL: return { width: 1, height: 1 };
       case WIDGET_SIZES.MEDIUM: return { width: 2, height: 1 };
-      case WIDGET_SIZES.LARGE: return { width: 3, height: 2 };
-      case WIDGET_SIZES.WIDE: return { width: 4, height: 1 };
-      case WIDGET_SIZES.FULL: return { width: 6, height: 2 };
+      case WIDGET_SIZES.TALL: return { width: 1, height: 2 };
+      case WIDGET_SIZES.LARGE: return { width: 2, height: 2 };
+      case WIDGET_SIZES.WIDE: return { width: 3, height: 1 };
+      case WIDGET_SIZES.FULL: return { width: 4, height: 2 };
       default: return { width: 2, height: 1 };
     }
   };

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Move } from 'lucide-react';
+import { X, Move, Plus } from 'lucide-react';
 import { getSizeConfig } from '../../utils/dashboardCustomization';
 
 const DashboardWidget = ({ 
@@ -7,7 +7,7 @@ const DashboardWidget = ({
   children, 
   theme, 
   isCustomizing = false,
-  onRemove,
+  onToggleVisibility,
   onMove,
   style = {}
 }) => {
@@ -16,7 +16,7 @@ const DashboardWidget = ({
   const widgetRef = useRef(null);
 
   const handleDragStart = (e) => {
-    if (!isCustomizing) return;
+    if (!isCustomizing || !widget.enabled) return;
     
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
@@ -80,15 +80,17 @@ const DashboardWidget = ({
 
   // Resize functionality disabled - widgets use dynamic sizing based on content
 
+  const isHidden = isCustomizing && !widget.enabled;
+
   return (
     <div
       className={`dashboard-widget relative rounded-xl content-card shadow-xl transition-all duration-200 ${
-        isCustomizing ? 'ring-2 ring-opacity-50 cursor-move' : ''
+        isCustomizing && widget.enabled ? 'ring-2 ring-opacity-50 cursor-move' : ''
       } ${isDragging ? 'z-50 shadow-2xl' : 'widget-card-hover'}`}
       style={{
         ...widgetStyle,
         backgroundColor: theme.cardBackground,
-        '--tw-ring-color': isCustomizing ? theme.primary : theme.primary + '4D' // 30% opacity for hover
+        '--tw-ring-color': isCustomizing && widget.enabled ? theme.primary : theme.primary + '4D' // 30% opacity for hover
       }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -96,27 +98,45 @@ const DashboardWidget = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       ref={widgetRef}
-      draggable={isCustomizing}
+      draggable={isCustomizing && widget.enabled}
     >
       {isCustomizing && (
         <div className="absolute top-1 right-1 z-20 flex items-center gap-1 bg-white rounded-md shadow-lg p-1 border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove?.(widget.id);
-            }}
-            className="p-1 rounded hover:bg-red-50 transition-colors text-red-600"
-            title="Remove widget"
-          >
-            <X size={14} />
-          </button>
+          {widget.enabled ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisibility?.(widget.id);
+              }}
+              className="p-1 rounded hover:bg-red-50 transition-colors text-red-600"
+              title="Hide widget"
+            >
+              <X size={14} />
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisibility?.(widget.id);
+              }}
+              className="p-1 rounded hover:bg-green-50 transition-colors text-green-600"
+              title="Show widget"
+            >
+              <Plus size={14} />
+            </button>
+          )}
         </div>
       )}
       
-      
-      <div className="h-full overflow-hidden flex flex-col relative">
+      <div className={`h-full overflow-hidden flex flex-col relative ${isHidden ? 'opacity-75' : ''}`}>
         {children}
       </div>
+      
+      {isHidden && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl pointer-events-none" style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}>
+          <span className="text-white font-semibold text-lg drop-shadow-lg">Hidden</span>
+        </div>
+      )}
     </div>
   );
 };

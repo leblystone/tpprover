@@ -40,3 +40,4 @@ function isAdmin() {
 
 Then redeploy Firestore rules: `firebase deploy --only firestore:rules`
 
+

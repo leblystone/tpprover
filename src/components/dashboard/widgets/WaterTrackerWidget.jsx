@@ -106,7 +106,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-            Hydration Tracking
+            Hydration
           </h3>
           <div className="flex items-center gap-2">
             <ModernTooltip text="Settings" position="top">
@@ -121,7 +121,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <Settings size={16} />
+                <Settings size={20} />
               </button>
             </ModernTooltip>
             <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />

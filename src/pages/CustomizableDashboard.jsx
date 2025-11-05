@@ -17,7 +17,8 @@ import {
   findEmptyPosition,
   resetDashboardLayout,
   getSizeConfig,
-  WIDGET_TYPES
+  WIDGET_TYPES,
+  compactGrid
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
@@ -497,8 +498,20 @@ export default function CustomizableDashboard() {
     }));
   }, [isCustomizing]);
 
-  const handleRemoveWidget = (widgetId) => {
-    setWidgets(prev => prev.filter(w => w.id !== widgetId));
+  const handleToggleWidgetVisibility = (widgetId) => {
+    setWidgets(prev => {
+      const newWidgets = prev.map(w => {
+        if (w.id === widgetId) {
+          return { ...w, enabled: !w.enabled };
+        }
+        return w;
+      });
+      // Compact the grid to rearrange enabled widgets and remove empty spaces
+      const compactedWidgets = compactGrid(newWidgets);
+      // Save layout after toggling visibility
+      saveDashboardLayout(compactedWidgets);
+      return compactedWidgets;
+    });
   };
 
   const handleMoveWidget = (draggedWidgetId, targetWidgetId) => {
@@ -667,6 +680,15 @@ export default function CustomizableDashboard() {
     return true;
   });
 
+  // In customizing mode, separate enabled and hidden widgets
+  // In normal mode, only show enabled widgets
+  const enabledWidgetsForGrid = isCustomizing 
+    ? widgets.filter(w => w.enabled) 
+    : enabledWidgets;
+  const hiddenWidgets = isCustomizing 
+    ? widgets.filter(w => !w.enabled) 
+    : [];
+
   return (
     <ViewContainer theme={theme}>
       <div className="space-y-2 overflow-x-hidden w-full max-w-full">
@@ -674,7 +696,7 @@ export default function CustomizableDashboard() {
         {/* Dashboard Layout - Flexible Grid */}
         <div className="overflow-x-hidden">
           <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min w-full max-w-full p-1">
-            {enabledWidgets.map((widget, index) => {
+            {enabledWidgetsForGrid.map((widget, index) => {
               // Use consistent widget sizing based on configuration
               const sizeConfig = getSizeConfig(widget.size);
               
@@ -729,7 +751,7 @@ export default function CustomizableDashboard() {
                     widget={widget}
                     theme={theme}
                     isCustomizing={isCustomizing}
-                    onRemove={handleRemoveWidget}
+                    onToggleVisibility={handleToggleWidgetVisibility}
                     onSettings={handleWidgetSettings}
                     onResize={handleResizeWidget}
                     onMove={handleMoveWidget}
@@ -801,6 +823,112 @@ export default function CustomizableDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Hidden Widgets Section - Only shown in customizing mode */}
+        {isCustomizing && hiddenWidgets.length > 0 && (
+          <div className="mt-4 p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px dashed ${theme.border}` }}>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+              Hidden Widgets
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {hiddenWidgets.map((widget) => {
+                const sizeConfig = getSizeConfig(widget.size);
+                let gridClasses = '';
+                switch (sizeConfig.w) {
+                  case 1:
+                    gridClasses = 'col-span-1';
+                    break;
+                  case 2:
+                    gridClasses = 'col-span-2';
+                    break;
+                  case 3:
+                    gridClasses = 'col-span-3';
+                    break;
+                  case 4:
+                    gridClasses = 'col-span-4';
+                    break;
+                  default:
+                    gridClasses = 'col-span-2';
+                }
+
+                let minHeight = '200px';
+                let maxHeight = '280px';
+                switch (sizeConfig.h) {
+                  case 1:
+                    minHeight = '200px';
+                    maxHeight = '280px';
+                    break;
+                  case 2:
+                    minHeight = '300px';
+                    maxHeight = '400px';
+                    break;
+                  case 3:
+                    minHeight = '450px';
+                    maxHeight = '600px';
+                    break;
+                }
+
+                return (
+                  <div key={widget.id} className={`${gridClasses} w-full max-w-full flex`}>
+                    <DashboardWidget
+                      widget={widget}
+                      theme={theme}
+                      isCustomizing={isCustomizing}
+                      onToggleVisibility={handleToggleWidgetVisibility}
+                      onSettings={handleWidgetSettings}
+                      onResize={handleResizeWidget}
+                      onMove={handleMoveWidget}
+                      style={{ minHeight, maxHeight }}
+                    >
+                      <WidgetFactory
+                        widget={widget}
+                        theme={theme}
+                        tasks={todaysTasks}
+                        incomingOrder={incomingOrder}
+                        upcomingBuys={scheduledBuys}
+                        pendingVendors={pendingVendors}
+                        goals={goals}
+                        metrics={metrics}
+                        supplements={supplements}
+                        isReadOnly={isReadOnly}
+                        onUpgrade={() => setShowUpgradeModal(true)}
+                        onTaskToggle={handleTaskToggle}
+                        onNewOrder={() => setShowNewOrder(true)}
+                        onAddBuy={() => setShowAddBuyModal(true)}
+                        onViewAllVendors={() => navigate('/app/vendors')}
+                        onCompleteVendor={(vendor) => {
+                          setEditingVendor(vendor);
+                          setShowNewVendor(true);
+                        }}
+                        onGoalToggle={handleGoalToggle}
+                        onAddGoal={() => setShowGoal(true)}
+                        onAddMetric={() => setShowMetrics(true)}
+                        onEditGoal={(goal) => {
+                          setEditingGoal(goal);
+                          setShowGoal(true);
+                        }}
+                        onEditMetric={(metric) => {
+                          setEditingMetric(metric);
+                          setShowMetrics(true);
+                        }}
+                        onAddSupplement={() => setShowAddSupplement(true)}
+                        onEditSupplement={(supplement) => {
+                          setEditingSupplement(supplement);
+                          setShowAddSupplement(true);
+                        }}
+                        onDeleteSupplement={(supplementId) => {
+                          if (deleteSupplement) {
+                            deleteSupplement(supplementId);
+                          }
+                        }}
+                      />
+                    </DashboardWidget>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {enabledWidgets.length === 0 && (
           <div className="text-center py-12">
