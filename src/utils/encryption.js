@@ -34,7 +34,10 @@ export function decryptData(encryptedData, password) {
     
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error('Decryption failed:', error);
+    // Only log in development mode to reduce console spam
+    if (import.meta.env.DEV) {
+      console.error('Decryption failed:', error);
+    }
     throw new Error('Failed to decrypt data - check password');
   }
 }

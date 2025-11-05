@@ -74,13 +74,19 @@ export function FirebaseProvider({ children }) {
     // Load user data from Firebase (decrypt)
     const loadFromFirebase = useCallback(async () => {
         if (!firebaseUser) {
-            console.log('Cannot load: user not authenticated');
+            if (import.meta.env.DEV) {
+                console.log('Cannot load: user not authenticated');
+            }
             return null;
         }
         
+        // Fail fast if password is required but not available
         if (!userPassword) {
-            console.log('⚠️ Password not available, attempting to load without decryption...');
-            // Try to load data anyway - it might be unencrypted or we can prompt for password
+            // Only log in development - don't spam console
+            if (import.meta.env.DEV) {
+                console.log('⚠️ Password not available - skipping Firebase load');
+            }
+            return null; // Return null immediately instead of attempting decrypt
         }
 
         try {
@@ -88,7 +94,7 @@ export function FirebaseProvider({ children }) {
             
             // CRITICAL FIX: Add timeout and better error handling for WiFi/VPN issues
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Firebase timeout - possibly blocked by firewall/VPN')), 15000)
+                setTimeout(() => reject(new Error('Firebase timeout - possibly blocked by firewall/VPN')), 10000) // Reduced from 15s to 10s
             );
             
             const loadPromise = loadUserData(firebaseUser.uid, userPassword);
@@ -98,12 +104,15 @@ export function FirebaseProvider({ children }) {
             setTimeout(() => setSyncStatus('idle'), 2000);
             return userData;
         } catch (error) {
-            console.error('Load from Firebase failed:', error);
-            
-            // Provide specific error messages for common WiFi/VPN issues
-            if (error.message.includes('timeout') || error.message.includes('network')) {
-                console.warn('🌐 Network issue detected - may be WiFi/VPN related');
-                console.log('💡 Try: 1) Switch to mobile data, 2) Disable VPN, 3) Use window.clearAppCache()');
+            // Only log errors in development mode
+            if (import.meta.env.DEV) {
+                console.error('Load from Firebase failed:', error);
+                
+                // Provide specific error messages for common WiFi/VPN issues
+                if (error.message.includes('timeout') || error.message.includes('network')) {
+                    console.warn('🌐 Network issue detected - may be WiFi/VPN related');
+                    console.log('💡 Try: 1) Switch to mobile data, 2) Disable VPN, 3) Use window.clearAppCache()');
+                }
             }
             
             setSyncStatus('error');

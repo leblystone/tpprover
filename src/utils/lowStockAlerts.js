@@ -1,5 +1,5 @@
 // src/utils/lowStockAlerts.js
-import { loadSettings } from '../pages/Settings';
+import { loadSettings } from './settingsHelpers';
 import { getNotificationTemplate, isNotificationEnabled, getNotificationVariables } from './notificationTemplates';
 
 /**

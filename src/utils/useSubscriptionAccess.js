@@ -25,7 +25,9 @@ export function useSubscriptionAccess() {
         // CRITICAL: Don't show trial expired during signup flow
         const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
         if (signupInProgress === 'true') {
-          console.log('🔄 Signup in progress - skipping subscription check');
+          if (import.meta.env.DEV) {
+            console.log('🔄 Signup in progress - skipping subscription check');
+          }
           setIsLoading(true);
           return;
         }
@@ -39,7 +41,9 @@ export function useSubscriptionAccess() {
             const localSub = localStorage.getItem('tpprover_subscription');
             if (localSub) {
               effectiveSubscription = JSON.parse(localSub);
-              console.log('📦 Using localStorage subscription fallback:', effectiveSubscription);
+              if (import.meta.env.DEV) {
+                console.log('📦 Using localStorage subscription fallback:', effectiveSubscription);
+              }
             }
           } catch (e) {
             console.error('Failed to parse localStorage subscription:', e);
@@ -48,7 +52,10 @@ export function useSubscriptionAccess() {
         
         // If still loading (no subscription yet), don't mark as expired
         if (!effectiveSubscription && isLoading) {
-          console.log('⏳ Still loading subscription data - not marking as expired yet');
+          // Only log in development mode to reduce console spam
+          if (import.meta.env.DEV) {
+            console.log('⏳ Still loading subscription data - not marking as expired yet');
+          }
           return;
         }
         
@@ -56,7 +63,9 @@ export function useSubscriptionAccess() {
         setIsLoading(false);
         
         if (!effectiveSubscription) {
-          console.log('❌ No subscription found after loading - marking as expired');
+          if (import.meta.env.DEV) {
+            console.log('❌ No subscription found after loading - marking as expired');
+          }
           setAccessInfo({
             hasAccess: false,
             isTrialExpired: true,

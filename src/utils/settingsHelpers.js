@@ -1,8 +1,29 @@
 // Settings persistence (local-only)
+// Cache settings to avoid repeated localStorage reads
+let settingsCache = null;
+let settingsCacheTimestamp = 0;
+const CACHE_DURATION = 5000; // 5 seconds cache
+
 export function loadSettings() {
-  try { 
+  try {
+    // Use cache if available and fresh
+    const now = Date.now();
+    if (settingsCache && (now - settingsCacheTimestamp) < CACHE_DURATION) {
+      return settingsCache;
+    }
+    
     const settings = JSON.parse(localStorage.getItem('tpprover_settings') || 'null')
-    console.log('📥 Settings loaded from localStorage:', settings)
+    
+    // Update cache
+    settingsCache = settings;
+    settingsCacheTimestamp = now;
+    
+    // Only log in development mode (first load only per session)
+    if (import.meta.env.DEV && !window._settingsLoaded) {
+      console.log('📥 Settings loaded from localStorage:', settings);
+      window._settingsLoaded = true;
+    }
+    
     return settings
   } catch (error) {
     console.error('❌ Failed to load settings:', error)
@@ -10,10 +31,24 @@ export function loadSettings() {
   }
 }
 
+// Clear cache when settings are saved
+export function clearSettingsCache() {
+  settingsCache = null;
+  settingsCacheTimestamp = 0;
+}
+
 export function saveSettings(obj) {
   try { 
     localStorage.setItem('tpprover_settings', JSON.stringify(obj))
-    console.log('✅ Settings saved to localStorage:', obj)
+    
+    // Update cache
+    settingsCache = obj;
+    settingsCacheTimestamp = Date.now();
+    
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      console.log('✅ Settings saved to localStorage:', obj)
+    }
   } catch (error) {
     console.error('❌ Failed to save settings:', error)
   }
@@ -79,7 +114,10 @@ export function getDefaultSettings() {
     },
   }
   
-  console.log('🔧 Default settings generated:', defaults)
+  // Only log in development mode
+  if (import.meta.env.DEV) {
+    console.log('🔧 Default settings generated:', defaults)
+  }
   return defaults
 }
 

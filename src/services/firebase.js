@@ -351,11 +351,25 @@ export async function loadUserData(userId, password) {
     }
     
     const encryptedData = docSnap.data();
+    
+    // Fail fast if password is missing and data is encrypted
+    if (!password && encryptedData && encryptedData.data && encryptedData.salt) {
+      throw new Error('Password required for decryption');
+    }
+    
+    // If no password and no encrypted data, return null (no data)
+    if (!password && (!encryptedData || !encryptedData.data)) {
+      return null;
+    }
+    
     const userData = decryptUserData(encryptedData, password);
     
     return userData;
   } catch (error) {
-    console.error('Failed to load user data:', error);
+    // Only log decryption errors in development
+    if (import.meta.env.DEV) {
+      console.error('Failed to load user data:', error);
+    }
     throw error;
   }
 }
