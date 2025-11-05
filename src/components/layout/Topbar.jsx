@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, Search, Upload, Edit, Plus, AlertTriangle, Trash2, X } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
@@ -16,9 +16,10 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const seg = pathParts[0] === 'app' ? (pathParts[1] || 'dashboard') : (pathParts[0] || 'dashboard');
   const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
   const [customizingState, setCustomizingState] = React.useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
   // Listen for customizing state changes from dashboard
-  React.useEffect(() => {
+  useEffect(() => {
     const handleCustomizingChange = (event) => {
       setCustomizingState(event.detail.isCustomizing);
     };
@@ -298,7 +299,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {/* Search for other pages */}
           {!onDashboard && seg !== 'settings' && seg !== 'account' && (
             <form 
-              className="search-box-wrapper" 
+              className={`search-box-wrapper ${isSearchActive ? 'is-active' : ''}`}
               style={{ color: theme.text, backgroundColor: theme.cardBackground }}
               onSubmit={(e) => { e.preventDefault(); }}
             >
@@ -307,7 +308,10 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 className="search-icon-button"
                 onClick={() => {
                   const input = document.querySelector(`.search-box-wrapper input[data-page="${seg}"]`);
-                  input?.focus();
+                  if (input) {
+                    input.focus();
+                    setIsSearchActive(true);
+                  }
                 }}
                 style={{ color: theme.textLight, opacity: 0.7 }}
               >
@@ -316,6 +320,8 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               <input 
                 type="text" 
                 data-page={seg}
+                onFocus={() => setIsSearchActive(true)}
+                onBlur={() => setIsSearchActive(false)}
                 onChange={(e) => window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: e.target.value } }))} 
                 placeholder={getPlaceholderForPage(seg)}
                 style={{ color: theme.text }}
@@ -328,6 +334,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                     input.value = '';
                     input.blur();
                     window.dispatchEvent(new CustomEvent(`tpp:${seg}-search`, { detail: { query: '' } }));
+                    setIsSearchActive(false);
                   }
                 }}
               />

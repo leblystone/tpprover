@@ -24,6 +24,7 @@ export const WIDGET_TYPES = {
 export const WIDGET_SIZES = {
   SMALL: 'small',      // 1x1
   MEDIUM: 'medium',    // 2x1 
+  TALL: 'tall',        // 1x2
   LARGE: 'large',      // 2x2
   WIDE: 'wide',        // 3x1
   FULL: 'full'         // full width
@@ -47,7 +48,7 @@ export const DEFAULT_WIDGETS = [
     id: 'quick_actions',
     type: WIDGET_TYPES.QUICK_ACTIONS,
     title: 'Quick Actions',
-    size: WIDGET_SIZES.LARGE,
+    size: WIDGET_SIZES.SMALL,
     position: { x: 2, y: 0 },
     enabled: true,
     settings: {}
@@ -397,6 +398,8 @@ export const getSizeConfig = (size) => {
       return { w: 1, h: 1 };
     case WIDGET_SIZES.MEDIUM:
       return { w: 2, h: 1 };
+    case WIDGET_SIZES.TALL:
+      return { w: 1, h: 2 };
     case WIDGET_SIZES.LARGE:
       return { w: 2, h: 2 };
     case WIDGET_SIZES.WIDE:

@@ -709,6 +709,10 @@ export default function CustomizableDashboard() {
                   minHeight = '300px';
                   maxHeight = '400px';
                   break;
+                case 3:
+                  minHeight = '450px';
+                  maxHeight = '600px';
+                  break;
                 default:
                   minHeight = '200px';
                   maxHeight = '280px';
@@ -720,7 +724,7 @@ export default function CustomizableDashboard() {
               }
 
               return (
-                <div key={`${widget.id}-${index}`} className={`${gridClasses} w-full max-w-full`}>
+                <div key={`${widget.id}-${index}`} className={`${gridClasses} w-full max-w-full flex`}>
                   <DashboardWidget
                     widget={widget}
                     theme={theme}
