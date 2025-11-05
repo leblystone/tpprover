@@ -602,7 +602,6 @@ export function clearMockData() {
                     filteredData = data.filter(item => {
                         // Remove items with isMock: true
                         if (item.isMock) {
-                            console.log(`🗑️ Removing mock item from ${key}:`, item.id || item.item || item.name);
                             return false;
                         }
                         
@@ -611,32 +610,30 @@ export function clearMockData() {
                             // Check for known mock vendors
                             const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
                             if (mockVendors.includes(item.vendor)) {
-                                console.log(`🗑️ Removing mock scheduled buy by vendor from ${key}:`, item.item || item.id);
                                 return false;
                             }
                             // Check for known mock IDs (201, 202, 203)
                             if (item.id === 201 || item.id === 202 || item.id === 203) {
-                                console.log(`🗑️ Removing mock scheduled buy by ID from ${key}:`, item.item || item.id);
                                 return false;
                             }
                             // Check for known mock items
                             const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
                             if (mockItems.includes(item.item)) {
-                                console.log(`🗑️ Removing mock scheduled buy by item name from ${key}:`, item.item || item.id);
                                 return false;
                             }
                         }
                         
                         // Also remove items that are clearly mock data based on content
                         if (item.vendor === 'Community Round' && item.peptide === 'BPC-157' && item.cost === '200') {
-                            console.log(`🗑️ Removing mock item by content from ${key}:`, item.id || item.item || item.name);
                             return false;
                         }
                         
                         return true;
                     });
-                    if (key === 'tpprover_scheduled_buys' && beforeCount !== filteredData.length) {
-                        console.log(`✅ Cleared ${beforeCount - filteredData.length} mock scheduled buys from localStorage`);
+                    const removedCount = beforeCount - filteredData.length;
+                    if (removedCount > 0) {
+                        const keyName = key.replace('tpprover_', '').replace(/_/g, ' ');
+                        console.log(`✅ Cleared ${removedCount} mock ${keyName} from localStorage`);
                     }
                 } else if (typeof data === 'object' && data !== null) {
                     // Handle calendar notes and other object structures
@@ -666,7 +663,7 @@ export function clearMockData() {
             }
         });
 
-        console.log('All mock data cleared.');
+        console.log('✅ All mock data cleared');
     } catch (e) {
         console.error("Failed to clear mock data:", e);
     }

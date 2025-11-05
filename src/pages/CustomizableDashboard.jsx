@@ -218,7 +218,6 @@ export default function CustomizableDashboard() {
 
     // Listen for sample data cleared event
     const handleSampleDataCleared = () => {
-      console.log('🔄 Sample data cleared - refreshing scheduled buys');
       loadAndFilterBuys();
     };
 
