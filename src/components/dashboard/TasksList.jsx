@@ -3,6 +3,7 @@ import { Pill, Check, Info, PenTool, Beaker, Pipette } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
+import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 // Preferred display names to match Reconstitution UI exactly
@@ -167,7 +168,8 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                                   const deliveryMethod = task.deliveryMethod || task.delivery;
                                   const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                                   
-                                  if (isInjection && !task.completed) {
+                                  // Only show injection site selector if tracking is enabled AND it's an injection task
+                                  if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
                                     setInjectionTask(task);
                                   } else {
                                     onToggle(task);

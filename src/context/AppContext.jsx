@@ -75,7 +75,15 @@ export function AppProvider({ children }) {
             if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
 
             const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-            if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
+            if (savedScheduledBuys) {
+                const parsed = JSON.parse(savedScheduledBuys);
+                // Filter out mock scheduled buys if sample data was cleared
+                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                const filtered = sampleDataCleared 
+                    ? parsed.filter(buy => !buy.isMock)
+                    : parsed;
+                setScheduledBuys(filtered);
+            }
         } catch (error) {
             console.error('❌ Failed to load localStorage data on mount:', error);
         } finally {
@@ -190,7 +198,14 @@ export function AppProvider({ children }) {
                     if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
                     if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
                     if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
-                    if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                    if (cloudAppData.scheduledBuys) {
+                        // Filter out mock scheduled buys if sample data was cleared
+                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                        const filteredScheduledBuys = sampleDataCleared 
+                            ? cloudAppData.scheduledBuys.filter(buy => !buy.isMock)
+                            : cloudAppData.scheduledBuys;
+                        setScheduledBuys(filteredScheduledBuys);
+                    }
                     
                     // Check if account is completely empty and needs demo data seeded
                     const totalItems = (cloudAppData.protocols?.length || 0) + 
@@ -222,7 +237,14 @@ export function AppProvider({ children }) {
                                     if (freshData.vendors) setVendors(freshData.vendors);
                                     if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
                                     if (freshData.stockpile) setStockpile(freshData.stockpile);
-                                    if (freshData.scheduledBuys) setScheduledBuys(freshData.scheduledBuys);
+                                    if (freshData.scheduledBuys) {
+                                        // Filter out mock scheduled buys if sample data was cleared
+                                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                                        const filteredScheduledBuys = sampleDataCleared 
+                                            ? freshData.scheduledBuys.filter(buy => !buy.isMock)
+                                            : freshData.scheduledBuys;
+                                        setScheduledBuys(filteredScheduledBuys);
+                                    }
                                     console.log('✅ Fresh demo data loaded into app state');
                                 }
                             }
@@ -260,7 +282,15 @@ export function AppProvider({ children }) {
                     if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
 
                     const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-                    if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
+                    if (savedScheduledBuys) {
+                        const parsed = JSON.parse(savedScheduledBuys);
+                        // Filter out mock scheduled buys if sample data was cleared
+                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                        const filtered = sampleDataCleared 
+                            ? parsed.filter(buy => !buy.isMock)
+                            : parsed;
+                        setScheduledBuys(filtered);
+                    }
                 }
 
                 // Load subscription from cloud
@@ -315,7 +345,15 @@ export function AppProvider({ children }) {
                 if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
 
                 const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-                if (savedScheduledBuys) setScheduledBuys(JSON.parse(savedScheduledBuys));
+                if (savedScheduledBuys) {
+                    const parsed = JSON.parse(savedScheduledBuys);
+                    // Filter out mock scheduled buys if sample data was cleared
+                    const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                    const filtered = sampleDataCleared 
+                        ? parsed.filter(buy => !buy.isMock)
+                        : parsed;
+                    setScheduledBuys(filtered);
+                }
                 
                 console.log('✅ Demo data loaded into AppContext state');
             } catch (error) {
@@ -495,7 +533,14 @@ export function AppProvider({ children }) {
                                     }
                                     if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
                                     if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
-                                    if (firebaseData.scheduledBuys) setScheduledBuys(firebaseData.scheduledBuys);
+                                    if (firebaseData.scheduledBuys) {
+                                        // Filter out mock scheduled buys if sample data was cleared
+                                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                                        const filteredScheduledBuys = sampleDataCleared 
+                                            ? firebaseData.scheduledBuys.filter(buy => !buy.isMock)
+                                            : firebaseData.scheduledBuys;
+                                        setScheduledBuys(filteredScheduledBuys);
+                                    }
                                     
                                     // CRITICAL: Update localStorage with Firebase data to prevent future data loss
                                     try {
@@ -508,7 +553,12 @@ export function AppProvider({ children }) {
                                         localStorage.setItem('tpprover_vendors', JSON.stringify(firebaseData.vendors || []));
                                         localStorage.setItem('tpprover_calendar_notes', JSON.stringify(firebaseData.calendarNotes || {}));
                                         localStorage.setItem('tpprover_stockpile', JSON.stringify(firebaseData.stockpile || []));
-                                        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(firebaseData.scheduledBuys || []));
+                                        // Filter out mock scheduled buys when saving to localStorage if sample data was cleared
+                                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                                        const filteredScheduledBuys = sampleDataCleared && firebaseData.scheduledBuys
+                                            ? firebaseData.scheduledBuys.filter(buy => !buy.isMock)
+                                            : (firebaseData.scheduledBuys || []);
+                                        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(filteredScheduledBuys));
                                     } catch (backupError) {
                                         console.error('❌ Failed to backup Firebase data to localStorage:', backupError);
                                     }
@@ -686,6 +736,13 @@ export function AppProvider({ children }) {
         }
 
         const userId = firebaseUser.uid;
+        
+        // Filter out mock scheduled buys if sample data was cleared before syncing
+        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+        const filteredScheduledBuys = sampleDataCleared && scheduledBuys
+            ? scheduledBuys.filter(buy => !buy.isMock)
+            : scheduledBuys;
+        
         const userData = {
             protocols,
             reconItems,
@@ -696,7 +753,7 @@ export function AppProvider({ children }) {
             vendors,
             calendarNotes,
             stockpile,
-            scheduledBuys
+            scheduledBuys: filteredScheduledBuys
         };
         
         // Only sync if we have some data to sync
@@ -921,7 +978,17 @@ export function AppProvider({ children }) {
             setStockpile(savedStockpile ? JSON.parse(savedStockpile) : []);
 
             const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-            setScheduledBuys(savedScheduledBuys ? JSON.parse(savedScheduledBuys) : []);
+            if (savedScheduledBuys) {
+                const parsed = JSON.parse(savedScheduledBuys);
+                // Filter out mock scheduled buys if sample data was cleared (extra safety check)
+                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                const filtered = sampleDataCleared 
+                    ? parsed.filter(buy => !buy.isMock)
+                    : parsed;
+                setScheduledBuys(filtered);
+            } else {
+                setScheduledBuys([]);
+            }
             
             // Re-enable Firebase sync after a short delay
             setTimeout(() => {

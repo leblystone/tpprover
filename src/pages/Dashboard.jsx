@@ -187,9 +187,14 @@ export default function Dashboard() {
         const raw = localStorage.getItem('tpprover_scheduled_buys');
         if (raw) {
             const buys = JSON.parse(raw);
+            // Filter out mock scheduled buys if sample data was cleared
+            const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+            const filteredBuys = sampleDataCleared 
+              ? buys.filter(b => !b.isMock)
+              : buys;
             const now = new Date();
             // Filter for buys that are still open or upcoming
-            const upcoming = buys.filter(b => new Date(b.openDate) >= now || (new Date(b.closeDate) >= now && new Date(b.openDate) <= now));
+            const upcoming = filteredBuys.filter(b => new Date(b.openDate) >= now || (new Date(b.closeDate) >= now && new Date(b.openDate) <= now));
             setUpcomingBuys(upcoming.map(b => ({
                 id: b.id,
                 name: b.item,
@@ -205,9 +210,14 @@ export default function Dashboard() {
                 const raw = localStorage.getItem('tpprover_scheduled_buys');
                 if (raw) {
                     const buys = JSON.parse(raw);
+                    // Filter out mock scheduled buys if sample data was cleared
+                    const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                    const filteredBuys = sampleDataCleared 
+                      ? buys.filter(b => !b.isMock)
+                      : buys;
                     const now = new Date();
                     // Filter for buys that are still open or upcoming
-                    const upcoming = buys.filter(b => new Date(b.openDate) >= now || (new Date(b.closeDate) >= now && new Date(b.openDate) <= now));
+                    const upcoming = filteredBuys.filter(b => new Date(b.openDate) >= now || (new Date(b.closeDate) >= now && new Date(b.openDate) <= now));
                     setUpcomingBuys(upcoming.map(b => ({
                         id: b.id,
                         name: b.item,

@@ -8,7 +8,6 @@ import './styles/App.css';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
 import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
-import SampleDataBanner from './components/ui/DemoDataBanner';
 import SuccessModal from './components/ui/SuccessModal';
 // Beta pages no longer needed - app is live
 // import BetaEnded from './pages/BetaEnded';
@@ -280,8 +279,8 @@ function App() {
             isTrialExpired,
             onUpgradeClick: () => setShowSubscriptionModal(true)
           } : null}
+          showSampleData={showDemoBanner}
         />
-        {showDemoBanner && <SampleDataBanner theme={theme} sticky />}
                <main className="flex-1 overflow-y-auto overflow-x-hidden main-content p-2 min-h-0" style={{ backgroundColor: theme.background, color: theme.text }}>
           <Suspense fallback={<div className="p-8">Loading...</div>}>
             <Outlet context={{ theme, installPrompt }} />

@@ -7,6 +7,7 @@ import { penColors } from '../../../utils/penColors';
 import { getChromeGradient } from '../../../utils/recon';
 import { getInjectionHistory } from '../../../utils/injectionTracking';
 import { debugLog } from '../../../utils/debugMode';
+import { isInjectionSiteTrackingEnabled } from '../../../utils/injectionSiteSettings';
 
 const DeliveryIcon = ({ task, theme }) => {
   // Handle peptide delivery methods
@@ -187,7 +188,8 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                       const deliveryMethod = task.deliveryMethod || task.delivery;
                       const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                       
-                      if (isInjection && !task.completed) {
+                      // Only show injection site selector if tracking is enabled AND it's an injection task
+                      if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
                         setInjectionTask(task);
                       } else {
                         onToggle(task);

@@ -3,7 +3,7 @@ import React from 'react';
 export default function AdminTabNavigation({ tabs, activeTab, onTabChange, theme: enhancedTheme }) {
   return (
     <div className="px-4 lg:px-6 py-2 overflow-x-auto border-b" style={{ scrollbarWidth: 'thin', borderColor: enhancedTheme.border + '30' }}>
-      <div className="flex items-center gap-1 flex-nowrap whitespace-nowrap">
+      <div className="flex items-center gap-1 flex-nowrap whitespace-nowrap justify-center">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

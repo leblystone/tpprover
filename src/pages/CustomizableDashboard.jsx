@@ -22,6 +22,8 @@ import {
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
 import { toKey } from '../components/calendar/MonthGrid';
+import { areAnalyticsEnabled, areGroupBuysEnabled } from '../utils/featureSettings';
+import { isInjectionSiteTrackingEnabled } from '../utils/injectionSiteSettings';
 
 // Import modals that might be needed
 import ReconCalculatorModal from '../components/recon/ReconCalculatorModal';
@@ -66,6 +68,9 @@ export default function CustomizableDashboard() {
   });
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
+  const [injectionSiteTrackingEnabled, setInjectionSiteTrackingEnabled] = useState(true);
 
   // Dashboard data state
   const [todaysTasks, setTodaysTasks] = useState([]);
@@ -100,10 +105,35 @@ export default function CustomizableDashboard() {
     }
   });
 
-  // Don't do anything special on mount - Login.jsx handles everything
+  // Check analytics, group buys, and injection site tracking settings on mount and when they change
   useEffect(() => {
-
-  }, []); // Run once on mount
+    const checkSettings = () => {
+      setAnalyticsEnabled(areAnalyticsEnabled());
+      setGroupBuysEnabled(areGroupBuysEnabled());
+      setInjectionSiteTrackingEnabled(isInjectionSiteTrackingEnabled());
+    };
+    
+    // Check on mount
+    checkSettings();
+    
+    // Listen for settings changes (cross-tab)
+    const handleStorageChange = (e) => {
+      if (e.key === 'tpprover_settings' || !e.key) {
+        checkSettings();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically in case settings changed in same window
+    // Reduced frequency to every 2 seconds for better performance
+    const interval = setInterval(checkSettings, 2000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Compute dashboard data
   const incomingOrder = useMemo(() => {
@@ -140,8 +170,13 @@ export default function CustomizableDashboard() {
       const raw = localStorage.getItem('tpprover_scheduled_buys');
       if (raw) {
         const buys = JSON.parse(raw);
+        // Filter out mock scheduled buys if sample data was cleared
+        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+        const filteredBuys = sampleDataCleared 
+          ? buys.filter(b => !b.isMock)
+          : buys;
         const now = new Date();
-        const upcoming = buys.filter(b => 
+        const upcoming = filteredBuys.filter(b => 
           new Date(b.openDate) >= now || 
           (new Date(b.closeDate) >= now && new Date(b.openDate) <= now)
         );
@@ -528,7 +563,35 @@ export default function CustomizableDashboard() {
   };
 
   // Filter enabled widgets - use array order for drag-and-drop, not position sorting
-  const enabledWidgets = widgets.filter(w => w.enabled);
+  // Also filter out analytics widgets if analytics is disabled
+  // And filter out group buy widgets if group buys are disabled
+  const enabledWidgets = widgets.filter(w => {
+    if (!w.enabled) return false;
+    
+    // Hide analytics-related widgets when analytics is disabled
+    if (!analyticsEnabled) {
+      const analyticsWidgetTypes = [
+        WIDGET_TYPES.COMPLIANCE,  // Research Consistency
+        WIDGET_TYPES.SPENDING,    // Spending
+        WIDGET_TYPES.LEAD_TIME    // Average Delivery
+      ];
+      if (analyticsWidgetTypes.includes(w.type)) {
+        return false;
+      }
+    }
+    
+    // Hide group buy widget when group buys are disabled
+    if (!groupBuysEnabled && w.type === WIDGET_TYPES.UPCOMING_BUYS) {
+      return false;
+    }
+    
+    // Hide injection history widget when injection site tracking is disabled
+    if (!injectionSiteTrackingEnabled && w.type === WIDGET_TYPES.INJECTION_HISTORY) {
+      return false;
+    }
+    
+    return true;
+  });
 
   return (
     <ViewContainer theme={theme}>

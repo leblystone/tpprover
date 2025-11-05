@@ -3,6 +3,7 @@ import { Check, X, Pill, Beaker, ShoppingCart, Pipette } from 'lucide-react';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCompletionStats } from '../../utils/taskCompletion';
 import TaskDisplay from './TaskDisplay';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
+import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
 // Normalize timeslot labels for consistent storage/IDs
 function normalizeSlot(slot) {
@@ -150,8 +151,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
             const deliveryMethod = taskData.deliveryMethod || taskData.delivery;
             const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
             
-            // If it's an injection and currently not completed, show injection modal
-            if (isInjection) {
+            // Only show injection site selector if tracking is enabled AND it's an injection task
+            if (isInjection && isInjectionSiteTrackingEnabled()) {
                 // Show injection site selector modal
                 setInjectionTask(taskData);
                 setLoading(false);
@@ -244,8 +245,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
             });
         }
         
-        // If there are injection tasks, show injection site selector for each one
-        if (injectionTasks.length > 0) {
+        // If there are injection tasks and tracking is enabled, show injection site selector for each one
+        if (injectionTasks.length > 0 && isInjectionSiteTrackingEnabled()) {
             setPendingInjectionTasks(injectionTasks);
             setInjectionTask(injectionTasks[0]); // Start with first injection task
             return; // Don't complete tasks yet, wait for injection site selection

@@ -3,7 +3,7 @@ import React from 'react'
 export default function Tabs({ value, onChange, options = [], theme, compact = false, stretch = false }) {
   const containerClass = `
     ${stretch ? 'w-full flex-1' : ''} 
-    ${compact ? 'flex gap-1 p-1.5 rounded-xl' : 'flex gap-2 p-2.5 rounded-xl'}
+    ${compact ? 'flex gap-1 p-1.5 rounded-xl justify-center' : 'flex gap-2 p-2.5 rounded-xl justify-center'}
   `.trim()
   
   const baseBtn = `
