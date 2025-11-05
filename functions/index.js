@@ -78,6 +78,7 @@ exports.adminGrantLifetimeAccess = onCall(
       }, { merge: true });
       
       // CRITICAL: Also write to userSubscriptions collection (where app reads from)
+      // Use merge: true to preserve other fields, but the subscription object will be completely replaced
       const subscriptionData = {
         hasLifetimeAccess: true,
         interval: 'lifetime',
@@ -91,6 +92,7 @@ exports.adminGrantLifetimeAccess = onCall(
         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
       };
       
+      // Use merge: true to preserve other document fields, but subscription object is completely replaced
       await db.collection('userSubscriptions').doc(userId).set({
         subscription: subscriptionData
       }, { merge: true });
@@ -1087,6 +1089,82 @@ exports.sendLifetimeAccessEmail = onCall(
     } catch (error) {
       logger.error(`❌ Error sending lifetime access email: ${error.message}`);
       throw new Error('Failed to send lifetime access email');
+    }
+  }
+);
+
+// ===== CONTACT FORM FUNCTION =====
+
+// Handle contact form submissions from landing page
+exports.submitContactForm = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { name, email, subject, message } = request.data;
+
+    if (!name || !email || !subject || !message) {
+      throw new Error('All fields are required');
+    }
+
+    logger.info(`📧 Contact form submission from: ${email} (${name})`);
+
+    try {
+      // Escape HTML to prevent XSS
+      const escapeHtml = (text) => {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+      };
+
+      const safeName = escapeHtml(name);
+      const safeEmail = escapeHtml(email);
+      const safeSubject = escapeHtml(subject);
+      const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+
+      // Format the email HTML
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
+          <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #2F3B3A; margin-bottom: 20px;">Contact Form Message Received</h2>
+            <div style="margin-bottom: 20px;">
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeName}</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Email:</strong> ${safeEmail}</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Subject:</strong> ${safeSubject}</p>
+            </div>
+            <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
+              <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
+            </div>
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
+              <p style="color: #6B7D7A; font-size: 12px; margin: 0;">This message was sent from The Pep Planner contact form.</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Send email using the emailService
+      const success = await emailService.sendEmail(
+        'contact@thepepplanner.com',
+        'Contact Form Message Received',
+        emailHtml
+      );
+
+      if (success) {
+        logger.info(`✅ Contact form email sent successfully from: ${email}`);
+        return { success: true, message: 'Message sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send contact form email from: ${email}`);
+        return { success: false, message: 'Failed to send email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending contact form email: ${error.message}`);
+      throw new Error('Failed to send contact form message');
     }
   }
 );

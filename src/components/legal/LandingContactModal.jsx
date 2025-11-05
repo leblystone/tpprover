@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, Send } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export default function LandingContactModal({ open, onClose }) {
     const [formData, setFormData] = useState({
@@ -22,22 +23,34 @@ export default function LandingContactModal({ open, onClose }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setSubmitStatus(null);
         
         try {
-            // Simulate sending to admin panel/email
-            // In a real implementation, this would send to your backend
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Call Firebase Function to send contact form email
+            const functions = getFunctions();
+            const submitContactForm = httpsCallable(functions, 'submitContactForm');
             
-            setSubmitStatus('success');
-            setFormData({ name: '', email: '', subject: '', message: '' });
+            const result = await submitContactForm({
+                name: formData.name,
+                email: formData.email,
+                subject: formData.subject,
+                message: formData.message
+            });
             
-            // Auto-close after 2 seconds
-            setTimeout(() => {
-                setSubmitStatus(null);
-                onClose();
-            }, 2000);
-            
+            if (result.data.success) {
+                setSubmitStatus('success');
+                setFormData({ name: '', email: '', subject: '', message: '' });
+                
+                // Auto-close after 2 seconds
+                setTimeout(() => {
+                    setSubmitStatus(null);
+                    onClose();
+                }, 2000);
+            } else {
+                setSubmitStatus('error');
+            }
         } catch (error) {
+            console.error('Error submitting contact form:', error);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);

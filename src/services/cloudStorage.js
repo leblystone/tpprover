@@ -157,7 +157,23 @@ export async function loadUserSubscription(userId) {
     // Primary: Check userSubscriptions collection (where Stripe subscriptions are stored)
     const data = await loadUserData(userId, COLLECTIONS.USER_SUBSCRIPTION);
     if (data?.subscription) {
-      return data.subscription;
+      const subscription = data.subscription;
+      
+      // CRITICAL FIX: Prioritize lifetime access over trial subscriptions
+      // If subscription has lifetime access, return it immediately (even if status is trialing)
+      if (subscription.hasLifetimeAccess || subscription.interval === 'lifetime' || subscription.plan === 'lifetime') {
+        console.log('✅ Found lifetime access in userSubscriptions collection');
+        // Ensure status is 'active' for lifetime subscriptions
+        return {
+          ...subscription,
+          status: 'active',
+          interval: 'lifetime',
+          hasLifetimeAccess: true
+        };
+      }
+      
+      // If it's a trial subscription, still return it (but lifetime should have been checked above)
+      return subscription;
     }
     
     // Fallback: Check users/{userId} subscription field (where lifetime access is granted)

@@ -176,8 +176,10 @@ export default function Landing() {
               <div className="flex-1 flex flex-col items-center justify-center -mt-4 md:mt-0">
                <button
                  onClick={handleSignIn}
-                 className="px-3 md:px-6 lg:px-8 py-2 md:py-3 lg:py-4 rounded-lg text-sm md:text-base lg:text-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center group"
+                 className="px-4 md:px-7 lg:px-10 py-2.5 md:py-3.5 lg:py-5 rounded-lg text-base md:text-lg lg:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center group"
                  style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
+                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b8b78'}
+                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7F9E95'}
                >
                  Get Started
                  <Pen className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 ml-1 md:ml-2 group-hover:scale-110 transition-transform" />
@@ -281,13 +283,13 @@ export default function Landing() {
               onClick={() => setShowIOSPopup(true)}
             >
               <div 
-                className="flex items-center justify-center px-2 sm:px-8 py-2 sm:py-4 rounded-lg shadow-lg"
+                className="flex items-center justify-center px-1 sm:px-6 py-1.5 sm:py-3 rounded-lg shadow-lg"
                 style={{ backgroundColor: '#4c6b52' }}
               >
-                <Apple className="w-7 h-7 sm:w-10 sm:h-10 text-white mr-2 sm:mr-4" />
+                <Apple className="w-6 h-6 sm:w-8 sm:h-8 text-white mr-2 sm:mr-4" />
                 <div className="text-white text-center">
-                  <div className="text-[11px] sm:text-sm font-medium">Download on the</div>
-                  <div className="text-[14px] sm:text-xl font-semibold">App Store</div>
+                  <div className="text-[10px] sm:text-xs font-medium">Download on the</div>
+                  <div className="text-[12px] sm:text-lg font-semibold">App Store</div>
                 </div>
               </div>
             </button>
@@ -388,8 +390,10 @@ export default function Landing() {
           </h2>
           <button
             onClick={handleSignIn}
-            className="px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center mx-auto group"
+            className="px-7 sm:px-10 py-3.5 sm:py-5 rounded-lg text-lg sm:text-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center mx-auto group"
             style={{ backgroundColor: '#FFFFFF', color: '#7F9E95' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F5F0'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
           >
             Get Started
             <Pen className="w-5 h-5 ml-2 group-hover:scale-110 transition-transform" />

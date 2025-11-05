@@ -49,7 +49,7 @@ export default function WelcomeOnboarding({ theme }) {
 							<div className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>Create a Protocol</div>
 							<div className="text-xs opacity-80" style={{ color: theme?.text }}>Plan dosing schedules and durations.</div>
 						</button>
-						<button className="group p-4 rounded-xl border text-left hover:shadow transition" style={{ borderColor: theme?.border }} onClick={() => go('/recon')}>
+						<button className="group p-4 rounded-xl border text-left hover:shadow transition" style={{ borderColor: theme?.border }} onClick={() => go('/app/recon')}>
 							<div className="text-sm font-semibold mb-1" style={{ color: theme?.text }}>Try the Recon Calculator</div>
 							<div className="text-xs opacity-80" style={{ color: theme?.text }}>Quickly compute reconstitution amounts.</div>
 						</button>

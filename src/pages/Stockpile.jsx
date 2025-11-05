@@ -494,8 +494,7 @@ export default function Stockpile() {
                                                                     try {
                                                                         const payload = { peptide: g.name, mg: String(item.mg), vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, cost: item.cost };
                                                                         localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
-                                                                        window.history.pushState({}, '', '/recon');
-                                                                        window.dispatchEvent(new PopStateEvent('popstate'));
+                                                                        navigate('/app/recon');
                                                                     } catch { }
                                                                 }}
                                                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
