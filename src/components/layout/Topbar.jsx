@@ -164,14 +164,19 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         {/* Spacer to push icons to the right when no tabs */}
         {(!tabs || tabs.length === 0) && <div className="flex-1" />}
         
-        {/* Mobile tabs - show all tabs */}
+        {/* Mobile tabs - show all tabs with scrollable container */}
         {tabs && tabs.length > 0 && (
-          <div className="lg:hidden flex items-center gap-1 px-1 py-1 rounded-lg absolute left-1/2 transform -translate-x-1/2" style={{ backgroundColor: `${theme.primary}08` }}>
+          <div className="lg:hidden flex items-center gap-0.5 px-1 py-1 rounded-lg absolute left-1/2 transform -translate-x-1/2 max-w-[calc(100vw-180px)] overflow-x-auto mobile-tabs-container" style={{ backgroundColor: `${theme.primary}08`, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <style>{`
+              .mobile-tabs-container::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
             {tabs.map(tab => (
               <button
                 key={tab.value}
                 onClick={() => onTabChange(tab.value)}
-                className={`px-2 py-1 text-xs uppercase tracking-tight rounded-lg transition-all duration-200 relative whitespace-nowrap ${
+                className={`px-1.5 py-0.5 text-[10px] uppercase tracking-tighter rounded-lg transition-all duration-200 relative whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.value 
                     ? 'shadow-sm' 
                     : 'hover:opacity-80'
@@ -193,34 +198,34 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               </button>
             ))}
             {onActionClick && (
-              <div 
-                className="h-5 w-px mx-1" 
-                style={{ backgroundColor: theme.border }}
-              />
-            )}
-            {onActionClick && (
-              <button 
-                className="p-1.5 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200" 
-                style={{ 
-                  color: actionDisabled ? theme.textLight : '#ffffff', 
-                  backgroundColor: actionDisabled ? theme.textLight : theme.primary,
-                  opacity: actionDisabled ? 0.6 : 1,
-                  cursor: actionDisabled ? 'not-allowed' : 'pointer'
-                }} 
-                onClick={onActionClick}
-                disabled={actionDisabled}
-                title="Add New"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+              <>
+                <div 
+                  className="h-4 w-px mx-0.5 flex-shrink-0" 
+                  style={{ backgroundColor: theme.border }}
+                />
+                <button 
+                  className="p-1 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 flex-shrink-0" 
+                  style={{ 
+                    color: actionDisabled ? theme.textLight : '#ffffff', 
+                    backgroundColor: actionDisabled ? theme.textLight : theme.primary,
+                    opacity: actionDisabled ? 0.6 : 1,
+                    cursor: actionDisabled ? 'not-allowed' : 'pointer'
+                  }} 
+                  onClick={onActionClick}
+                  disabled={actionDisabled}
+                  title="Add New"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </>
             )}
           </div>
         )}
         
         <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 ml-auto">
-          {/* Sample Data Chip Notification */}
+          {/* Sample Data Chip Notification - Show on dashboard mobile, hidden on other pages mobile to prevent overlap */}
           {showSampleData && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200" 
+            <div className={`${onDashboard ? 'flex' : 'hidden md:flex'} items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200`}
               style={{ 
                 backgroundColor: theme.mode === 'dark' || theme.background === '#1a1a1a' ? '#3D2F26' : '#F5F1EB',
                 color: theme.mode === 'dark' || theme.background === '#1a1a1a' ? '#E8DDD4' : '#8B5A3C',

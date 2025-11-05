@@ -47,7 +47,7 @@ export const DEFAULT_WIDGETS = [
     id: 'quick_actions',
     type: WIDGET_TYPES.QUICK_ACTIONS,
     title: 'Quick Actions',
-    size: WIDGET_SIZES.SMALL,
+    size: WIDGET_SIZES.LARGE,
     position: { x: 2, y: 0 },
     enabled: true,
     settings: {}

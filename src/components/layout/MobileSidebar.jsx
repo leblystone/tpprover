@@ -49,11 +49,10 @@ export default function MobileSidebar({ open, onClose, theme }) {
           transition: 'opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)'
         }}
       />
-      <div className="absolute top-0 left-0 h-full w-full shadow-xl px-4 py-2 pb-4 flex flex-col" style={{ 
+      <div className="absolute top-0 left-0 h-full w-full shadow-xl px-4 py-2 pb-4 flex flex-col mobile-nav-container" style={{ 
         transform: visible ? 'translateX(0%) scale(1)' : 'translateX(-100%) scale(0.95)', 
         opacity: visible ? 1 : 0,
         transition: 'transform 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
-        paddingTop: 'env(safe-area-inset-top, 1rem)',
         willChange: 'transform, opacity',
         transformOrigin: 'left center',
         backgroundColor: theme.cardBackground
