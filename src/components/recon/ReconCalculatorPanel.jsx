@@ -42,15 +42,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
 
   useEffect(() => {
     // Only process prefill if it's new and different from the last one
-    if (prefill && prefill !== lastPrefillRef.current) {
-      lastPrefillRef.current = prefill;
+    const prefillStr = prefill ? JSON.stringify(prefill) : '';
+    if (prefill && prefillStr !== lastPrefillRef.current) {
+      lastPrefillRef.current = prefillStr;
       
       // Wizard prefill (multi-peptide)
       if (prefill.peptides && prefill.peptides.length > 0) {
         const vendors = [...new Set(prefill.peptides.map(p => p.vendor).filter(Boolean))].join(', ');
         const totalCost = prefill.peptides.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
         
-        setFormRef.current(prev => ({
+        setForm(prev => ({
           ...prev,
           vendor: vendors,
           peptides: prefill.peptides.map((pep, index) => ({ ...pep, id: pep.id || index + 1, doseUnit: pep.doseUnit || 'mcg' }))
@@ -60,12 +61,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
       // Simple prefill (single peptide from stockpile page, etc.)
       else if (prefill.peptide) {
         const p = { id: 1, name: prefill.peptide || '', mg: prefill.mg || '', dose: '', doseUnit: 'mcg' };
-        setFormRef.current(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
+        setForm(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
         setCost(prefill.cost || '');
       }
       // Handle formData prefill (from modal)
       else if (prefill.vendor !== undefined || prefill.water !== undefined || prefill.peptides) {
-        setFormRef.current(prev => ({
+        setForm(prev => ({
           ...prev,
           vendor: prefill.vendor !== undefined ? prefill.vendor : prev.vendor,
           water: prefill.water !== undefined ? prefill.water : prev.water,
@@ -83,6 +84,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
 
       try { localStorage.removeItem('tpprover_recon_prefill') } catch {}
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefill])
   
   // Sync form state FROM parent formData to local state (one-way sync)
