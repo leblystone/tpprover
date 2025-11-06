@@ -574,6 +574,131 @@ export function seedInitialData() {
     }
 }
 
+/**
+ * Finds the original mock data item by ID
+ */
+function findOriginalMockItem(itemId, dataType) {
+    const mockDataMap = {
+        vendors: MOCK_VENDORS,
+        orders: MOCK_ORDERS,
+        scheduled_buys: MOCK_SCHEDULED_BUYS,
+        protocols: MOCK_PROTOCOLS,
+        supplements: MOCK_SUPPLEMENTS,
+        recon_items: MOCK_RECON_ITEMS,
+        metrics: MOCK_METRICS,
+    };
+    
+    const mockData = mockDataMap[dataType];
+    if (!mockData) return null;
+    
+    return mockData.find(item => item.id === itemId) || null;
+}
+
+/**
+ * Checks if a demo item has been edited by comparing text fields with original mock data
+ * Only checks actual text changes, not just opening/viewing the item
+ */
+function hasDemoItemBeenEdited(item, dataType) {
+    // If item doesn't have isMock flag, it's not demo data
+    if (!item.isMock) return false;
+    
+    // If item is explicitly marked as edited, respect that
+    if (item.wasEdited === true) return true;
+    
+    // Find original mock data
+    const original = findOriginalMockItem(item.id, dataType);
+    if (!original) return false; // Can't find original, assume not edited
+    
+    // Compare text fields based on data type
+    if (dataType === 'vendors') {
+        // Check name and notes (text fields)
+        const nameChanged = (item.name || '').trim() !== (original.name || '').trim();
+        const notesChanged = (item.notes || '').trim() !== (original.notes || '').trim();
+        return nameChanged || notesChanged;
+    }
+    
+    if (dataType === 'orders') {
+        // Check vendor name (orders may have vendor field from UI, or we need to look up from vendorId)
+        let vendorChanged = false;
+        if (item.vendor && original.vendorId) {
+            // Compare vendor name with original vendor name from vendorId
+            const originalVendor = MOCK_VENDORS.find(v => v.id === original.vendorId);
+            if (originalVendor) {
+                vendorChanged = (item.vendor || '').trim() !== (originalVendor.name || '').trim();
+            }
+        } else if (item.vendor && original.vendor) {
+            vendorChanged = (item.vendor || '').trim() !== (original.vendor || '').trim();
+        } else if (item.vendorId !== original.vendorId) {
+            // If vendorId changed, it's been edited
+            vendorChanged = true;
+        }
+        
+        const notesChanged = (item.notes || '').trim() !== (original.notes || '').trim();
+        const trackingChanged = (item.trackingNumber || '').trim() !== (original.trackingNumber || '').trim();
+        
+        // Check if item names changed
+        const originalItemNames = (original.items || []).map(i => (i.name || '').trim()).join(',');
+        const currentItemNames = (item.items || []).map(i => (i.name || '').trim()).join(',');
+        const itemsChanged = originalItemNames !== currentItemNames;
+        
+        return vendorChanged || notesChanged || trackingChanged || itemsChanged;
+    }
+    
+    if (dataType === 'protocols') {
+        // Check protocol name and notes
+        const nameChanged = (item.protocolName || '').trim() !== (original.protocolName || '').trim();
+        const notesChanged = (item.notes || '').trim() !== (original.notes || '').trim();
+        
+        // Check if peptide names changed
+        const originalPeptideNames = (original.peptides || []).map(p => (p.name || '').trim()).join(',');
+        const currentPeptideNames = (item.peptides || []).map(p => (p.name || '').trim()).join(',');
+        const peptidesChanged = originalPeptideNames !== currentPeptideNames;
+        
+        return nameChanged || notesChanged || peptidesChanged;
+    }
+    
+    if (dataType === 'supplements') {
+        // Check name
+        return (item.name || '').trim() !== (original.name || '').trim();
+    }
+    
+    if (dataType === 'recon_items') {
+        // Check peptide name and notes
+        const peptideChanged = (item.peptide || '').trim() !== (original.peptide || '').trim();
+        const notesChanged = (item.notes || '').trim() !== (original.notes || '').trim();
+        return peptideChanged || notesChanged;
+    }
+    
+    if (dataType === 'metrics') {
+        // Check notes
+        return (item.notes || '').trim() !== (original.notes || '').trim();
+    }
+    
+    if (dataType === 'scheduled_buys') {
+        // Check item name, vendor, and notes
+        const itemChanged = (item.item || '').trim() !== (original.item || '').trim();
+        const vendorChanged = (item.vendor || '').trim() !== (original.vendor || '').trim();
+        const notesChanged = (item.notes || '').trim() !== (original.notes || '').trim();
+        return itemChanged || vendorChanged || notesChanged;
+    }
+    
+    return false;
+}
+
+/**
+ * Marks a demo item as edited if it has been modified from original mock data
+ * Call this when saving/updating items
+ */
+export function markDemoItemAsEditedIfChanged(item, dataType) {
+    if (!item || !item.isMock) return item;
+    
+    if (hasDemoItemBeenEdited(item, dataType)) {
+        return { ...item, wasEdited: true };
+    }
+    
+    return item;
+}
+
 export function clearMockData() {
     try {
         const ALL_DATA_KEYS = [
@@ -599,9 +724,32 @@ export function clearMockData() {
 
                 if (Array.isArray(data)) {
                     const beforeCount = data.length;
+                    // Map data type from localStorage key to match mock data types
+                    const dataTypeMap = {
+                        'tpprover_vendors': 'vendors',
+                        'tpprover_orders': 'orders',
+                        'tpprover_scheduled_buys': 'scheduled_buys',
+                        'tpprover_protocols': 'protocols',
+                        'tpprover_supplements': 'supplements',
+                        'tpprover_recon_items': 'recon_items',
+                        'tpprover_metrics': 'metrics',
+                    };
+                    const normalizedDataType = dataTypeMap[key] || null;
+                    
                     filteredData = data.filter(item => {
-                        // Remove items with isMock: true
-                        if (item.isMock) {
+                        // If item has isMock: true, check if it's been edited
+                        if (item.isMock && normalizedDataType) {
+                            // Check if this demo item has been edited
+                            const edited = hasDemoItemBeenEdited(item, normalizedDataType);
+                            if (edited) {
+                                console.log(`🛡️ Preserving edited demo ${normalizedDataType} item:`, item.id, item.name || item.protocolName || item.item || item.peptide || 'unnamed');
+                                // Remove isMock flag so it becomes user data, but preserve wasEdited flag
+                                return true; // Keep the item, but we'll remove isMock below
+                            }
+                            // Not edited, safe to remove
+                            return false;
+                        } else if (item.isMock && !normalizedDataType) {
+                            // For data types we don't track (like stockpile, recon_history), just remove mock items
                             return false;
                         }
                         
@@ -610,15 +758,22 @@ export function clearMockData() {
                             // Check for known mock vendors
                             const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
                             if (mockVendors.includes(item.vendor)) {
+                                // Check if edited first
+                                const edited = hasDemoItemBeenEdited(item, 'scheduled_buys');
+                                if (edited) return true;
                                 return false;
                             }
                             // Check for known mock IDs (201, 202, 203)
                             if (item.id === 201 || item.id === 202 || item.id === 203) {
+                                const edited = hasDemoItemBeenEdited(item, 'scheduled_buys');
+                                if (edited) return true;
                                 return false;
                             }
                             // Check for known mock items
                             const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
                             if (mockItems.includes(item.item)) {
+                                const edited = hasDemoItemBeenEdited(item, 'scheduled_buys');
+                                if (edited) return true;
                                 return false;
                             }
                         }
@@ -630,6 +785,20 @@ export function clearMockData() {
                         
                         return true;
                     });
+                    
+                    // Remove isMock flag from edited items (they become user data)
+                    filteredData = filteredData.map(item => {
+                        // If item is mock and was detected as edited, remove isMock flag
+                        if (item.isMock && normalizedDataType) {
+                            const edited = hasDemoItemBeenEdited(item, normalizedDataType);
+                            if (edited) {
+                                // Remove isMock flag so it becomes user data
+                                const { isMock, ...itemWithoutMock } = item;
+                                return { ...itemWithoutMock, wasEdited: true };
+                            }
+                        }
+                        return item;
+                    });
                     const removedCount = beforeCount - filteredData.length;
                     if (removedCount > 0) {
                         const keyName = key.replace('tpprover_', '').replace(/_/g, ' ');
@@ -640,7 +809,20 @@ export function clearMockData() {
                     filteredData = Object.entries(data).reduce((acc, [itemKey, value]) => {
                         // For calendar notes, check if the value has isMock property
                         if (typeof value === 'object' && value !== null && value.isMock) {
-                            // Skip mock calendar entries
+                            // Check if this calendar note has been edited
+                            // Find original mock note by date
+                            const originalNote = MOCK_NOTES[itemKey];
+                            if (originalNote) {
+                                const textChanged = (value.text || '').trim() !== (originalNote.text || '').trim();
+                                if (textChanged) {
+                                    // Keep edited note but remove isMock flag
+                                    const { isMock, ...noteWithoutMock } = value;
+                                    acc[itemKey] = noteWithoutMock;
+                                    console.log(`🛡️ Preserving edited calendar note:`, itemKey);
+                                    return acc;
+                                }
+                            }
+                            // Not edited, skip mock calendar entries
                             return acc;
                         } else if (typeof value === 'object' && value !== null && !value.isMock) {
                             // Keep non-mock objects
