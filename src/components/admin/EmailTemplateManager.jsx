@@ -461,8 +461,27 @@ export default function EmailTemplateManager({ theme }) {
       for (const [key, tpl] of entries) {
         console.log(`  - Saving template: ${key} (${tpl.name})`);
         try {
-          await setDoc(doc(db, 'emailTemplates', key), { ...tpl, colors }, { merge: true });
-          console.log(`    ✅ Saved: ${key}`);
+          // First, get the existing template from Firestore to preserve html field if it exists
+          const existingDoc = await getDoc(doc(db, 'emailTemplates', key));
+          const existingData = existingDoc.exists() ? existingDoc.data() : {};
+          
+          // Merge: preserve html from existing if not in current template, otherwise use current
+          const templateToSave = {
+            ...tpl,
+            colors,
+            // Preserve html field if it exists in Firestore but not in current state
+            html: tpl.html !== undefined ? tpl.html : (existingData.html || undefined)
+          };
+          
+          // Remove undefined values to avoid overwriting with undefined
+          Object.keys(templateToSave).forEach(k => {
+            if (templateToSave[k] === undefined) {
+              delete templateToSave[k];
+            }
+          });
+          
+          await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
+          console.log(`    ✅ Saved: ${key} (has html: ${!!templateToSave.html})`);
         } catch (templateError) {
           console.error(`    ❌ Failed to save template ${key}:`, templateError);
           throw new Error(`Failed to save template "${tpl.name}": ${templateError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
