@@ -70,9 +70,11 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
       clearTimeout(timeoutRef.current);
     }
 
-    // Set saving state
-    isSavingActiveRef.current = true;
-    setIsSaving(true);
+    // Set saving state only if not already saving
+    if (!isSavingActiveRef.current) {
+      isSavingActiveRef.current = true;
+      setIsSaving(true);
+    }
 
     // Auto-save after delay
     timeoutRef.current = setTimeout(async () => {
@@ -112,16 +114,11 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
     }, delay);
 
     return () => {
-      // Only clear timeout and reset state if we're canceling an active save
+      // Only clear the timeout on cleanup, don't modify state
+      // State will be reset when the timeout completes
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
-        // Only reset saving state if we were in the process of saving
-        // This prevents the cleanup from causing unnecessary re-renders
-        if (isSavingActiveRef.current) {
-          isSavingActiveRef.current = false;
-          setIsSaving(false);
-        }
       }
     };
   }, [formData, storageKey, delay]);

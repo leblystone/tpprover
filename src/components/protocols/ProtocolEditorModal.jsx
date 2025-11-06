@@ -30,24 +30,35 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         setForm, 
         2000, // 2 second delay
         async (formData) => {
-            // Auto-save to protocols list if this is an existing protocol
-            // Note: Don't call onSave() here - it closes the modal!
-            // The useAutoSave hook will dispatch 'tpp:protocol-autosaved' event
-            // which the Protocols page listens to for silent updates
-            if (protocol?.id && formData && Object.keys(formData).length > 0) {
+            // Auto-save to protocols list if there's meaningful data
+            const hasProtocolName = formData?.protocolName && formData.protocolName.trim().length > 0;
+            const hasPeptides = formData?.peptides && formData.peptides.length > 0 && 
+                formData.peptides.some(p => p.name && p.name.trim().length > 0);
+            const hasNotes = formData?.notes && formData.notes.trim().length > 0;
+            
+            if (formData && (hasProtocolName || hasPeptides || hasNotes)) {
                 try {
-                    console.log('🔄 Auto-saving existing protocol:', protocol.id);
-                    // Event is dispatched by useAutoSave hook automatically
+                    if (protocol?.id) {
+                        console.log('🔄 Auto-saving existing protocol:', protocol.id);
+                        // Event is dispatched by useAutoSave hook automatically for existing protocols
+                    } else {
+                        console.log('🔄 Auto-saving new protocol draft');
+                        // For new protocols, we don't auto-save to the protocols list yet
+                        // Just keep the localStorage draft for now
+                    }
                 } catch (error) {
                     console.warn('Auto-save to protocols failed:', error);
                 }
+            } else {
+                console.log('🚫 Skipping autosave - insufficient data:', {
+                    hasProtocolName,
+                    hasPeptides,
+                    hasNotes
+                });
             }
         }
     );
     
-    // State for save operations
-    const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
-    const [saveError, setSaveError] = useState(null);
 
     useEffect(() => {
         if (!open) return;
@@ -359,10 +370,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
             titleExtra={
                 <AutoSaveIndicator 
-                    isSaving={isSaving || isSavingToProtocols}
+                    isSaving={isSaving}
                     lastSaved={lastSaved}
                     theme={theme}
                     compact={true}
+                    iconOnly={true}
                 />
             }
             theme={theme}
@@ -370,45 +382,24 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             maxWidth="max-w-4xl"
             footer={
                 <div className="flex items-center justify-between w-full">
-                    {form?.id ? (
-                        // Existing protocol - show delete button
+                    {form?.id && (
                         <button onClick={() => onDelete?.(form)} className="px-3 py-2 rounded-md border text-sm font-medium" style={{ borderColor: theme?.border, color: '#b91c1c' }}>
                             Delete Protocol
                         </button>
-                    ) : (
-                        // New protocol - show save/cancel buttons
-                        <div className="flex items-center justify-end gap-2 w-full">
-                            <button 
-                                onClick={handleClose} 
-                                className="px-4 py-2 rounded-md border text-sm font-medium" 
-                                style={{ borderColor: theme?.border, color: theme?.text }}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                onClick={handleFinalSave}
-                                disabled={isSavingToProtocols}
-                                className="px-4 py-2 rounded-md text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                                style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
-                            >
-                                {isSavingToProtocols ? 'Saving...' : 'Save'}
-                            </button>
-                        </div>
                     )}
+                    <div className="flex items-center justify-end gap-2" style={{ marginLeft: form?.id ? 'auto' : '0' }}>
+                        <button 
+                            onClick={handleClose} 
+                            className="px-4 py-2 rounded-md border text-sm font-medium" 
+                            style={{ borderColor: theme?.border, color: theme?.text }}
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
             }
         >
             <div className="space-y-5">
-                {/* Error Display */}
-                {saveError && (
-                    <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-red-800">{saveError}</span>
-                        </div>
-                    </div>
-                )}
-                
                 {/* Protocol Basics - Visual Cards */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="space-y-4">

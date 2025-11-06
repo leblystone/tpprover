@@ -9,7 +9,17 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator'
 export default function ReconCalculatorModal({ open, onClose, theme, prefill }) {
   const { setReconItems } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
-  const [form, setForm] = useState({});
+  const hasLoadedRef = useRef(false);
+  const [form, setForm] = useState({
+    peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }],
+    vendor: '',
+    water: 2,
+    deliveryMethod: 'pipette',
+    administrationRoute: 'subq',
+    penType: '',
+    penColor: '',
+    cost: ''
+  });
   
   // Auto-save functionality - only saves to localStorage, not to recon items
   // Drafts are saved to recon items only when modal closes
@@ -25,23 +35,28 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   const [isSavingToRecon, setIsSavingToRecon] = useState(false);
   const [saveError, setSaveError] = useState(null);
   
+  // Only initialize form data when modal opens if no autosaved data was loaded
   useEffect(() => {
-    if (open) {
-      const initialData = prefill || {
-        peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }],
-        vendor: '',
-        water: 2,
-        deliveryMethod: 'pipette',
-        administrationRoute: 'subq',
-        penType: '',
-        penColor: '',
-        cost: ''
+    if (open && prefill && !hasLoadedRef.current) {
+      const initialData = {
+        peptides: prefill.peptides || [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }],
+        vendor: prefill.vendor || '',
+        water: prefill.water || 2,
+        deliveryMethod: prefill.deliveryMethod || 'pipette',
+        administrationRoute: prefill.administrationRoute || 'subq',
+        penType: prefill.penType || '',
+        penColor: prefill.penColor || '',
+        cost: prefill.cost || ''
       };
       // Ensure peptides is always an array
       if (!initialData.peptides || !Array.isArray(initialData.peptides)) {
         initialData.peptides = [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }];
       }
       setForm(initialData);
+      hasLoadedRef.current = true;
+    } else if (!open) {
+      // Reset the flag when modal closes
+      hasLoadedRef.current = false;
     }
   }, [open, prefill]);
 
