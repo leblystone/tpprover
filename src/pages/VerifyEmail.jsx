@@ -106,10 +106,134 @@ export default function VerifyEmail() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p style={{ color: theme.text }}>Verifying your email...</p>
+        <div className="text-center p-8">
+          {/* Animated Logo Container */}
+          <div className="relative w-32 h-32 mx-auto mb-8">
+            {/* Outer rotating ring */}
+            <div 
+              className="absolute inset-0 rounded-full animate-spin"
+              style={{ 
+                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%)`,
+                opacity: 0.2,
+                animation: 'spin 3s linear infinite'
+              }}
+            />
+            
+            {/* Middle pulsing ring */}
+            <div 
+              className="absolute inset-2 rounded-full"
+              style={{ 
+                background: `linear-gradient(135deg, ${theme.primaryLight} 0%, ${theme.primary} 100%)`,
+                opacity: 0.15,
+                animation: 'pulse 2s ease-in-out infinite'
+              }}
+            />
+            
+            {/* Inner content circle */}
+            <div 
+              className="absolute inset-4 rounded-full flex items-center justify-center"
+              style={{ 
+                backgroundColor: theme.cardBackground,
+                boxShadow: `0 8px 32px ${theme.primary}20`
+              }}
+            >
+              {/* Animated envelope icon */}
+              <svg 
+                className="w-12 h-12" 
+                style={{ color: theme.primary }}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
+                />
+                {/* Animated checkmark */}
+                <circle 
+                  cx="17" 
+                  cy="7" 
+                  r="3" 
+                  fill={theme.success}
+                  className="animate-pulse"
+                />
+              </svg>
+            </div>
+            
+            {/* Orbiting dots */}
+            <div 
+              className="absolute top-0 left-1/2 w-3 h-3 rounded-full -ml-1.5"
+              style={{ 
+                backgroundColor: theme.primary,
+                animation: 'spin 3s linear infinite'
+              }}
+            />
+            <div 
+              className="absolute bottom-0 left-1/2 w-3 h-3 rounded-full -ml-1.5"
+              style={{ 
+                backgroundColor: theme.primaryLight,
+                animation: 'spin 3s linear infinite reverse'
+              }}
+            />
+          </div>
+          
+          {/* Text content */}
+          <h2 
+            className="text-2xl font-bold mb-3"
+            style={{ color: theme.text }}
+          >
+            Verifying Your Email
+          </h2>
+          <p 
+            className="text-base mb-2"
+            style={{ color: theme.textLight }}
+          >
+            Please wait while we confirm your email address...
+          </p>
+          
+          {/* Animated dots */}
+          <div className="flex items-center justify-center space-x-2 mt-6">
+            <div 
+              className="w-2 h-2 rounded-full"
+              style={{ 
+                backgroundColor: theme.primary,
+                animation: 'bounce 1.4s ease-in-out infinite'
+              }}
+            />
+            <div 
+              className="w-2 h-2 rounded-full"
+              style={{ 
+                backgroundColor: theme.primary,
+                animation: 'bounce 1.4s ease-in-out 0.2s infinite'
+              }}
+            />
+            <div 
+              className="w-2 h-2 rounded-full"
+              style={{ 
+                backgroundColor: theme.primary,
+                animation: 'bounce 1.4s ease-in-out 0.4s infinite'
+              }}
+            />
+          </div>
         </div>
+        
+        {/* Add custom keyframes */}
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.15; }
+            50% { transform: scale(1.05); opacity: 0.25; }
+          }
+          @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-8px); }
+          }
+        `}</style>
       </div>
     );
   }
