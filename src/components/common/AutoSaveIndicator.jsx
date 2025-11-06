@@ -62,7 +62,7 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
           <Clock size={20} className="animate-spin" style={{ color: '#ffffff' }} />
         ) : showTime && lastSaved ? (
           <div className="flex items-center gap-1.5">
-            <Clock size={16} className="animate-pulse" style={{ color: '#ffffff', opacity: 0.8 }} />
+            <Clock size={20} className="animate-spin" style={{ color: '#ffffff' }} />
             {!iconOnly && (
               <span className="text-xs font-medium" style={{ color: '#ffffff', opacity: 0.9 }}>
                 {displayTime || 'just now'}
