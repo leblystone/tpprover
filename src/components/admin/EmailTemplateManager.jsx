@@ -468,9 +468,17 @@ export default function EmailTemplateManager({ theme }) {
           const existingDoc = await getDoc(doc(db, 'emailTemplates', key));
           const existingData = existingDoc.exists() ? existingDoc.data() : {};
           
-          // Build template to save: include all current fields + colors + preserve html
+          // Build template to save: start with current template fields, but exclude undefined html
+          // Create a clean copy without undefined values
+          const cleanTemplate = { ...tpl };
+          // Remove html if it's undefined (Firestore doesn't allow undefined values)
+          if (cleanTemplate.html === undefined) {
+            delete cleanTemplate.html;
+          }
+          
+          // Build final template to save
           const templateToSave = {
-            ...tpl,  // All current template fields (simple fields + html if in state)
+            ...cleanTemplate,  // All current template fields (without undefined html)
             colors,  // Always include colors
           };
           
@@ -485,7 +493,14 @@ export default function EmailTemplateManager({ theme }) {
             templateToSave.html = existingData.html;
             console.log(`    📝 Template html not in state, preserving from Firestore`);
           }
-          // If neither exists, don't include html field (will use generated HTML)
+          // If neither exists, html field won't be in templateToSave (will use generated HTML)
+          
+          // Remove any remaining undefined values (Firestore doesn't allow them)
+          Object.keys(templateToSave).forEach(k => {
+            if (templateToSave[k] === undefined) {
+              delete templateToSave[k];
+            }
+          });
           
           // Save with merge to preserve any other fields we're not explicitly updating
           await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
