@@ -15,6 +15,13 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
   const timeoutRef = useRef(null);
   const previousDataRef = useRef(null);
   const isSubmittedRef = useRef(false);
+  const isSavingActiveRef = useRef(false);
+
+  // Store setFormData in ref to avoid dependency issues
+  const setFormDataRef = useRef(setFormData);
+  useEffect(() => {
+    setFormDataRef.current = setFormData;
+  }, [setFormData]);
 
   // Load saved data on mount
   useEffect(() => {
@@ -25,14 +32,18 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
       if (saved) {
         const parsedData = JSON.parse(saved);
         if (parsedData.data && Object.keys(parsedData.data).length > 0) {
-          setFormData(parsedData.data);
+          // Set previous data ref to prevent autosave from triggering
+          previousDataRef.current = parsedData.data;
+          setFormDataRef.current(parsedData.data);
           setLastSaved(new Date(parsedData.timestamp));
         }
       }
     } catch (error) {
       console.warn('Failed to load auto-saved data:', error);
     }
-  }, [storageKey, setFormData]);
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
 
   // Store onAutoSave in a ref to prevent it from being a dependency
   const onAutoSaveRef = useRef(onAutoSave);
@@ -60,6 +71,7 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
     }
 
     // Set saving state
+    isSavingActiveRef.current = true;
     setIsSaving(true);
 
     // Auto-save after delay
@@ -93,15 +105,24 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
       } catch (error) {
         console.warn('Failed to auto-save data:', error);
       } finally {
+        isSavingActiveRef.current = false;
         setIsSaving(false);
+        timeoutRef.current = null;
       }
     }, delay);
 
     return () => {
+      // Only clear timeout and reset state if we're canceling an active save
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+        // Only reset saving state if we were in the process of saving
+        // This prevents the cleanup from causing unnecessary re-renders
+        if (isSavingActiveRef.current) {
+          isSavingActiveRef.current = false;
+          setIsSaving(false);
+        }
       }
-      setIsSaving(false);
     };
   }, [formData, storageKey, delay]);
 
