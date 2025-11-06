@@ -306,7 +306,6 @@ export default function EmailTemplateManager({ theme }) {
   const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
   const [sendingToAll, setSendingToAll] = useState(false);
   const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
-  const [editMode, setEditMode] = useState('simple'); // 'simple' or 'advanced'
 
   // Available variables for each template type
   const templateVariables = {
@@ -464,38 +463,18 @@ export default function EmailTemplateManager({ theme }) {
       for (const [key, tpl] of entries) {
         console.log(`  - Saving template: ${key} (${tpl.name})`);
         try {
-          // Get existing template from Firestore to preserve html field
-          const existingDoc = await getDoc(doc(db, 'emailTemplates', key));
-          const existingData = existingDoc.exists() ? existingDoc.data() : {};
-          
-          // Build template to save: start with current template fields, but exclude undefined html
-          // Create a clean copy without undefined values
+          // Build template to save: include all current fields + colors
+          // Remove html field entirely - we always generate from simple fields
           const cleanTemplate = { ...tpl };
-          // Remove html if it's undefined (Firestore doesn't allow undefined values)
-          if (cleanTemplate.html === undefined) {
-            delete cleanTemplate.html;
-          }
+          delete cleanTemplate.html; // Never save html field - always generate from simple fields
           
           // Build final template to save
           const templateToSave = {
-            ...cleanTemplate,  // All current template fields (without undefined html)
+            ...cleanTemplate,  // All current template fields (without html)
             colors,  // Always include colors
           };
           
-          // Preserve html field: use current if exists, otherwise keep existing from Firestore
-          // This ensures html is never lost when saving in simple mode
-          if (tpl.html !== undefined && tpl.html !== null && tpl.html !== '') {
-            // Current state has html - use it
-            templateToSave.html = tpl.html;
-            console.log(`    📝 Template has html in state, preserving it`);
-          } else if (existingData.html !== undefined && existingData.html !== null && existingData.html !== '') {
-            // No html in current state, but exists in Firestore - preserve it
-            templateToSave.html = existingData.html;
-            console.log(`    📝 Template html not in state, preserving from Firestore`);
-          }
-          // If neither exists, html field won't be in templateToSave (will use generated HTML)
-          
-          // Remove any remaining undefined values (Firestore doesn't allow them)
+          // Remove any undefined values (Firestore doesn't allow them)
           Object.keys(templateToSave).forEach(k => {
             if (templateToSave[k] === undefined) {
               delete templateToSave[k];
@@ -504,7 +483,7 @@ export default function EmailTemplateManager({ theme }) {
           
           // Save with merge to preserve any other fields we're not explicitly updating
           await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
-          console.log(`    ✅ Saved: ${key} (has html: ${!!templateToSave.html}, mode: ${editMode})`);
+          console.log(`    ✅ Saved: ${key}`);
         } catch (templateError) {
           console.error(`    ❌ Failed to save template ${key}:`, templateError);
           throw new Error(`Failed to save template "${tpl.name}": ${templateError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
@@ -721,20 +700,9 @@ export default function EmailTemplateManager({ theme }) {
     `;
   };
 
-  // Generate preview HTML
+  // Generate preview HTML - always from simple fields
   const generatePreviewHTML = () => {
-    const template = currentTemplate;
-    
-    // If custom HTML exists, use it (but still replace variables for preview)
-    if (template.html) {
-      let html = template.html;
-      // Replace color variables in custom HTML
-      html = html.replace(/\$\{colors\.(\w+)\}/g, (match, colorKey) => colors[colorKey] || match);
-      return html;
-    }
-    
-    // Otherwise generate from simple fields
-    return generateHTMLFromTemplate(template);
+    return generateHTMLFromTemplate(currentTemplate);
   };
 
   // Copy HTML to clipboard
@@ -1078,51 +1046,7 @@ export default function EmailTemplateManager({ theme }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Left: Editor */}
         <div className="space-y-6">
-          {/* Edit Mode Toggle */}
-          <div className="flex items-center justify-between p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div>
-              <h3 className="text-sm font-medium mb-1" style={{ color: theme.text }}>
-                Editor Mode
-              </h3>
-              <p className="text-xs" style={{ color: theme.textLight }}>
-                {editMode === 'simple' ? 'Simple form-based editing' : 'Full HTML control from header to footer'}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setEditMode('simple')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  editMode === 'simple' ? 'opacity-100' : 'opacity-50 hover:opacity-75'
-                }`}
-                style={editMode === 'simple' ? {
-                  backgroundColor: theme.primary,
-                  color: theme.textOnPrimary
-                } : {
-                  backgroundColor: theme.secondary,
-                  color: theme.text
-                }}
-              >
-                Simple
-              </button>
-              <button
-                onClick={() => setEditMode('advanced')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  editMode === 'advanced' ? 'opacity-100' : 'opacity-50 hover:opacity-75'
-                }`}
-                style={editMode === 'advanced' ? {
-                  backgroundColor: theme.primary,
-                  color: theme.textOnPrimary
-                } : {
-                  backgroundColor: theme.secondary,
-                  color: theme.text
-                }}
-              >
-                Advanced HTML
-              </button>
-            </div>
-          </div>
-
-          {editMode === 'simple' ? (
+          {/* Simple Form Editor */}
           <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <h3 className="text-lg font-semibold mb-4" style={{ color: theme.text }}>
               Edit Template
@@ -1315,69 +1239,6 @@ export default function EmailTemplateManager({ theme }) {
               />
             </div>
           </div>
-          ) : (
-          /* Advanced HTML Editor */
-          <div className="p-6 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-                Advanced HTML Editor
-              </h3>
-              <button
-                onClick={() => {
-                  // Generate HTML from simple fields (ignore existing html field)
-                  const template = { ...currentTemplate };
-                  delete template.html; // Remove html to generate from simple fields
-                  const html = generateHTMLFromTemplate(template);
-                  updateTemplate('html', html);
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90"
-                style={{ backgroundColor: theme.secondary, color: theme.text }}
-                title="Generate HTML from simple fields"
-              >
-                Generate from Simple Fields
-              </button>
-            </div>
-            
-            <div className="mb-4 p-3 rounded-lg text-xs" style={{ backgroundColor: theme.primaryLighter || '#F0F2F8', color: theme.text }}>
-              <p className="font-medium mb-2">💡 Tips:</p>
-              <ul className="list-disc list-inside space-y-1 text-xs" style={{ color: theme.textLight }}>
-                <li>Edit the entire email HTML from header to footer</li>
-                <li>Use variables like %USERNAME%, %USEREMAIL%, %DAYSLEFT%, etc.</li>
-                <li>Colors are available: {colors.primary}, {colors.secondary}, {colors.sage}</li>
-                <li>Logo URL will use Firebase Storage URL automatically</li>
-              </ul>
-            </div>
-
-            <textarea
-              value={currentTemplate.html || generateHTMLFromTemplate(currentTemplate)}
-              onChange={(e) => updateTemplate('html', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border-2 text-sm font-mono focus:outline-none focus:ring-2 transition-all"
-              style={{ 
-                borderColor: theme.primary + '40',
-                backgroundColor: theme.primaryLighter || '#F0F2F8',
-                color: theme.text,
-                boxShadow: `0 2px 4px ${theme.primary}10`,
-                minHeight: '600px',
-                fontFamily: 'Monaco, "Courier New", monospace',
-                fontSize: '12px',
-                lineHeight: '1.5'
-              }}
-              placeholder="<!DOCTYPE html>..."
-              spellCheck={false}
-            />
-            
-            <div className="mt-4 p-3 rounded-lg text-xs" style={{ backgroundColor: theme.coffeeCream || '#F5E6D3', color: theme.text }}>
-              <p className="font-medium mb-2">📋 Available Variables:</p>
-              <div className="flex flex-wrap gap-2">
-                {templateVariables[selectedTemplate]?.map((v, i) => (
-                  <code key={i} className="px-2 py-1 rounded" style={{ backgroundColor: theme.white, color: theme.primary }}>
-                    %{v.name}%
-                  </code>
-                ))}
-              </div>
-            </div>
-          </div>
-          )}
 
           {/* Color Customization - Compact */}
           <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
