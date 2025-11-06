@@ -462,39 +462,41 @@ export default function AccountSubscription() {
             </div>
           )}
 
-          {/* Actions */}
-          <div 
-            className="p-4 rounded-lg space-y-3"
-            style={{ backgroundColor: theme.cardBackground }}
-          >
-            <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Subscription Management</h4>
-            <div className="space-y-2">
-              <button
-                onClick={handleManageBilling}
-                className="w-full flex items-center justify-between p-3 rounded-lg transition-all hover:opacity-90"
-                style={{ backgroundColor: theme.secondary }}
-              >
-                <div className="flex items-center gap-3">
-                  <Settings size={20} style={{ color: theme.accent }} />
-                  <span className="font-medium" style={{ color: theme.text }}>Manage Billing</span>
-                </div>
-                <ExternalLink size={16} style={{ color: theme.mutedText }} />
-              </button>
-              
-              {sub.status === 'active' && (
+          {/* Actions - Only show for paid subscriptions, not for lifetime granted accounts */}
+          {!(sub.interval === 'lifetime' && sub.lifetimeReason && !sub.paymentMethodId) && (
+            <div 
+              className="p-4 rounded-lg space-y-3"
+              style={{ backgroundColor: theme.cardBackground }}
+            >
+              <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Subscription Management</h4>
+              <div className="space-y-2">
                 <button
-                  onClick={handleCancelSubscription}
+                  onClick={handleManageBilling}
                   className="w-full flex items-center justify-between p-3 rounded-lg transition-all hover:opacity-90"
                   style={{ backgroundColor: theme.secondary }}
                 >
                   <div className="flex items-center gap-3">
-                    <X size={20} style={{ color: '#EF4444' }} />
-                    <span className="font-medium" style={{ color: '#EF4444' }}>Cancel Subscription</span>
+                    <Settings size={20} style={{ color: theme.accent }} />
+                    <span className="font-medium" style={{ color: theme.text }}>Manage Billing</span>
                   </div>
+                  <ExternalLink size={16} style={{ color: theme.mutedText }} />
                 </button>
-              )}
+                
+                {sub.status === 'active' && (
+                  <button
+                    onClick={handleCancelSubscription}
+                    className="w-full flex items-center justify-between p-3 rounded-lg transition-all hover:opacity-90"
+                    style={{ backgroundColor: theme.secondary }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <X size={20} style={{ color: '#EF4444' }} />
+                      <span className="font-medium" style={{ color: '#EF4444' }}>Cancel Subscription</span>
+                    </div>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

@@ -7,7 +7,7 @@ export const TermsOfServiceContent = () => (
         <p>By using The Pep Planner application ("App," "Service," "we," "us"), a product of The Pep Planner LLC, you agree to these Terms of Service ("Terms"). Please read them carefully.</p>
 
         <div className="p-4 bg-red-50 border-2 border-red-300 rounded-md">
-            <h3 className="font-bold text-red-800 text-base">⚠️ CRITICAL: NOT FOR HUMAN USE</h3>
+            <h3 className="font-bold text-red-800 text-sm">⚠️ CRITICAL: NOT FOR HUMAN USE</h3>
             <p className="text-red-700 font-medium">This application is designed EXCLUSIVELY for research purposes. All peptides and substances tracked in this application are for RESEARCH USE ONLY and are NOT INTENDED FOR HUMAN CONSUMPTION. Any information provided is strictly for educational and research tracking purposes.</p>
         </div>
 
@@ -114,7 +114,7 @@ export const TermsOfServiceContent = () => (
 
         <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-                <strong>Last Updated:</strong> {new Date().toLocaleDateString()}
+                <strong>Last Updated:</strong> October 27, 2025
             </p>
             <p className="text-sm text-gray-600 mt-2">
                 If you have any questions about these Terms, please contact us at contact@thepepplanner.com.

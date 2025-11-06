@@ -20,6 +20,13 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
     return () => window.removeEventListener('resize', updateIsOpen)
   }, [])
 
+  // Helper to convert hex to rgba
+  const hexToRgba = (hex, alpha = 1) => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
 
   const links = [
     { to: '/app/dashboard', label: 'Dashboard', icon: Home, tourId: 'dashboard-welcome' },
@@ -36,12 +43,17 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
     { to: '/app/settings', icon: Settings, label: 'Settings' },
   ]
 
+  // Use primaryLight with transparency, or primary with low opacity
+  const activeBgColor = theme.primaryLight 
+    ? hexToRgba(theme.primaryLight, 0.4)
+    : hexToRgba(theme.primary, 0.2)
+
   return (
     <>
       <style>{`
         .sidebar-link-active {
-          background-color: ${theme.primary};
-          color: ${theme.textOnPrimary};
+          background-color: ${activeBgColor};
+          color: ${theme.primary};
           border-radius: 0.5rem;
         }
         .sidebar-link:hover:not(.sidebar-link-active) {
@@ -61,7 +73,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
           {links.map(({ to, icon: Icon, label, tourId }) => (
             <NavLink key={to} to={to} title={label} data-tour={tourId} 
               className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 ${isActive ? 'sidebar-link-active' : ''}`}
-              style={({ isActive }) => ({ color: isActive ? theme.textOnPrimary : theme.textLight })}
+              style={({ isActive }) => ({ color: isActive ? theme.primary : theme.textLight })}
             >
               <Icon className="h-6 w-6 flex-shrink-0" />
               <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>
@@ -93,7 +105,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
             <NavLink key={to} to={to} title={label} data-tour={tourId}
               className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg ${isActive ? 'sidebar-link-active' : ''}`}
               style={({ isActive }) => ({ 
-                color: isActive ? theme.textOnPrimary : (theme.isDark ? '#a8b5a0' : theme.textLight),
+                color: isActive ? theme.primary : (theme.isDark ? '#a8b5a0' : theme.textLight),
                 backgroundColor: isActive ? undefined : (theme.isDark ? '#1f2937' : 'transparent')
               })}
             >

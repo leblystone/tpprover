@@ -84,7 +84,7 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                 {/* Tab Navigation */}
                 <div className="flex border-b" style={{ borderColor: '#DDE6DE' }}>
                     <button
-                        className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                        className={`flex-1 px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium transition-colors ${
                             currentTab === 'terms' 
                                 ? 'border-b-2' 
                                 : 'hover:opacity-70'
@@ -99,14 +99,15 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                         }
                         onClick={() => setCurrentTab('terms')}
                     >
-                        <div className="flex items-center justify-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            Terms of Service
-                            {scrolledToBottom.terms && <CheckCircle className="w-4 h-4" style={{ color: '#5FAF8B' }} />}
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-nowrap whitespace-nowrap">
+                            <FileText className="w-4 h-4 flex-shrink-0" />
+                            <span className="hidden sm:inline">Terms of Service</span>
+                            <span className="sm:hidden">Terms</span>
+                            {scrolledToBottom.terms && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#5FAF8B' }} />}
                         </div>
                     </button>
                     <button
-                        className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                        className={`flex-1 px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium transition-colors ${
                             currentTab === 'privacy' 
                                 ? 'border-b-2' 
                                 : 'hover:opacity-70'
@@ -121,16 +122,17 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                         }
                         onClick={() => setCurrentTab('privacy')}
                     >
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-nowrap whitespace-nowrap">
                             <Shield 
-                                className={`w-4 h-4 ${
+                                className={`w-4 h-4 flex-shrink-0 ${
                                     scrolledToBottom.terms && !scrolledToBottom.privacy 
                                         ? 'animate-pulse' 
                                         : ''
                                 }`} 
                             />
-                            Privacy Policy
-                            {scrolledToBottom.privacy && <CheckCircle className="w-4 h-4" style={{ color: '#5FAF8B' }} />}
+                            <span className="hidden sm:inline">Privacy Policy</span>
+                            <span className="sm:hidden">Privacy</span>
+                            {scrolledToBottom.privacy && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#5FAF8B' }} />}
                         </div>
                     </button>
                 </div>
@@ -185,8 +187,9 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                 
                 {/* Footer */}
                 <div className="p-6 border-t" style={{ borderColor: '#DDE6DE', backgroundColor: '#F5F5F0' }}>
-                    <div className="flex items-center justify-between">
-                        <div className="text-sm" style={{ color: '#6B7D7A' }}>
+                    <div className="flex flex-col gap-4">
+                        {/* Status text row */}
+                        <div className="text-sm text-center" style={{ color: '#6B7D7A' }}>
                             {!canProceed && (
                                 <p>Please scroll through both documents completely to proceed</p>
                             )}
@@ -194,18 +197,20 @@ export default function SignupAgreementModal({ open, onAccept, onClose, theme })
                                 <p className="font-medium" style={{ color: '#5FAF8B' }}>✓ Ready to proceed</p>
                             )}
                         </div>
-                        <div className="flex gap-3">
+                        
+                        {/* Buttons row - two column grid */}
+                        <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={onClose}
-                                className="px-4 py-2 transition-colors hover:opacity-70"
-                                style={{ color: '#6B7D7A' }}
+                                className="px-4 py-2 rounded-lg transition-colors hover:opacity-70"
+                                style={{ color: '#6B7D7A', backgroundColor: '#E8EDEB' }}
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={onAccept}
                                 disabled={!canProceed}
-                                className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                                className={`px-4 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap ${
                                     canProceed 
                                         ? 'hover:opacity-90' 
                                         : 'cursor-not-allowed'
