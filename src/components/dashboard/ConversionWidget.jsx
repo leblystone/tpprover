@@ -167,17 +167,18 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
 
   // Real-time countdown timer
   useEffect(() => {
-    const updateCountdown = () => {
-      // Use actualSubscription first, fallback to subscription prop
-      const subData = actualSubscription || subscription;
-      
-      if (!subData?.currentPeriodEnd) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
+    // Use actualSubscription first, fallback to subscription prop
+    const subData = actualSubscription || subscription;
+    const endDateValue = subData?.currentPeriodEnd;
+    
+    if (!endDateValue) {
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
 
+    const updateCountdown = () => {
       const now = new Date();
-      const end = new Date(subData.currentPeriodEnd);
+      const end = new Date(endDateValue);
       const diffTime = end.getTime() - now.getTime();
 
       if (diffTime <= 0) {
@@ -200,7 +201,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [actualSubscription?.currentPeriodEnd, subscription?.currentPeriodEnd]);
+  }, [actualSubscription?.currentPeriodEnd, subscription?.currentPeriodEnd, actualSubscription, subscription]);
 
   // Use actualSubscription first, fallback to subscription prop
   const subData = actualSubscription || subscription;
