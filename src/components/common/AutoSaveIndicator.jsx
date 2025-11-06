@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Save, Clock } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 
-const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = false, showTimeAnimation = false }) => {
+const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = false, iconOnly = false }) => {
   const [showTime, setShowTime] = useState(false);
   const [displayTime, setDisplayTime] = useState('');
   const lastSavedRef = useRef(null);
 
   useEffect(() => {
-    // Only trigger animation when lastSaved actually changes (not on every render)
-    if (showTimeAnimation && lastSaved && lastSaved.getTime() !== lastSavedRef.current?.getTime()) {
+    // Only trigger time animation when lastSaved actually changes
+    if (lastSaved && lastSaved.getTime() !== lastSavedRef.current?.getTime()) {
       lastSavedRef.current = lastSaved;
       
       // Show time animation for 2 seconds before showing save icon
@@ -29,7 +29,7 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
       updateTime();
       const interval = setInterval(updateTime, 1000);
       
-      // After 2 seconds, switch to save icon
+      // After 2 seconds, switch to save icon only
       const timeout = setTimeout(() => {
         setShowTime(false);
         clearInterval(interval);
@@ -39,10 +39,8 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
         clearInterval(interval);
         clearTimeout(timeout);
       };
-    } else if (!showTimeAnimation || !lastSaved) {
-      setShowTime(false);
     }
-  }, [lastSaved, showTimeAnimation]);
+  }, [lastSaved]);
 
   if (!isSaving && !lastSaved) return null;
 
@@ -56,18 +54,20 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Compact version for headers - with time animation option
+  // Compact version for headers - icon only
   if (compact) {
     return (
       <div className="flex items-center gap-2">
         {isSaving ? (
           <Clock size={20} className="animate-spin" style={{ color: '#ffffff' }} />
-        ) : showTimeAnimation && showTime && lastSaved ? (
+        ) : showTime && lastSaved ? (
           <div className="flex items-center gap-1.5">
             <Clock size={16} className="animate-pulse" style={{ color: '#ffffff', opacity: 0.8 }} />
-            <span className="text-xs font-medium" style={{ color: '#ffffff', opacity: 0.9 }}>
-              {displayTime || 'just now'}
-            </span>
+            {!iconOnly && (
+              <span className="text-xs font-medium" style={{ color: '#ffffff', opacity: 0.9 }}>
+                {displayTime || 'just now'}
+              </span>
+            )}
           </div>
         ) : lastSaved ? (
           <Save size={20} style={{ color: '#ffffff' }} />

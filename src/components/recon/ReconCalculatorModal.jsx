@@ -179,7 +179,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
           onClearForm={clearSavedData} 
           theme={theme}
           compact={true}
-          showTimeAnimation={true}
+          iconOnly={true}
         />
       }
       theme={theme} 
