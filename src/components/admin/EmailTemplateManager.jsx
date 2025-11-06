@@ -407,9 +407,12 @@ export default function EmailTemplateManager({ theme }) {
           const snap = await getDoc(doc(db, 'emailTemplates', key));
           if (snap.exists()) {
             const data = snap.data();
+            // Always preserve html field if it exists in Firestore, even when merging with defaults
             loaded[key] = {
               ...loaded[key],
               ...data,
+              // Explicitly preserve html field - it should always be included if it exists
+              html: data.html !== undefined ? data.html : loaded[key].html
             };
           }
         }
@@ -461,27 +464,32 @@ export default function EmailTemplateManager({ theme }) {
       for (const [key, tpl] of entries) {
         console.log(`  - Saving template: ${key} (${tpl.name})`);
         try {
-          // First, get the existing template from Firestore to preserve html field if it exists
+          // Get existing template from Firestore to preserve html field
           const existingDoc = await getDoc(doc(db, 'emailTemplates', key));
           const existingData = existingDoc.exists() ? existingDoc.data() : {};
           
-          // Merge: preserve html from existing if not in current template, otherwise use current
+          // Build template to save: include all current fields + colors + preserve html
           const templateToSave = {
-            ...tpl,
-            colors,
-            // Preserve html field if it exists in Firestore but not in current state
-            html: tpl.html !== undefined ? tpl.html : (existingData.html || undefined)
+            ...tpl,  // All current template fields (simple fields + html if in state)
+            colors,  // Always include colors
           };
           
-          // Remove undefined values to avoid overwriting with undefined
-          Object.keys(templateToSave).forEach(k => {
-            if (templateToSave[k] === undefined) {
-              delete templateToSave[k];
-            }
-          });
+          // Preserve html field: use current if exists, otherwise keep existing from Firestore
+          // This ensures html is never lost when saving in simple mode
+          if (tpl.html !== undefined && tpl.html !== null && tpl.html !== '') {
+            // Current state has html - use it
+            templateToSave.html = tpl.html;
+            console.log(`    📝 Template has html in state, preserving it`);
+          } else if (existingData.html !== undefined && existingData.html !== null && existingData.html !== '') {
+            // No html in current state, but exists in Firestore - preserve it
+            templateToSave.html = existingData.html;
+            console.log(`    📝 Template html not in state, preserving from Firestore`);
+          }
+          // If neither exists, don't include html field (will use generated HTML)
           
+          // Save with merge to preserve any other fields we're not explicitly updating
           await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
-          console.log(`    ✅ Saved: ${key} (has html: ${!!templateToSave.html})`);
+          console.log(`    ✅ Saved: ${key} (has html: ${!!templateToSave.html}, mode: ${editMode})`);
         } catch (templateError) {
           console.error(`    ❌ Failed to save template ${key}:`, templateError);
           throw new Error(`Failed to save template "${tpl.name}": ${templateError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
