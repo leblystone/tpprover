@@ -677,8 +677,13 @@ export default function Dashboard() {
       try { setReconPrefill(e.detail || JSON.parse(localStorage.getItem('tpprover_recon_prefill')||'{}')) } catch {}
       setShowRecon(true)
     }
+    // Listen for both event name formats for compatibility
+    window.addEventListener('tpp:openRecon', onOpenRecon)
     window.addEventListener('tpp:open_recon', onOpenRecon)
-    return () => window.removeEventListener('tpp:open_recon', onOpenRecon)
+    return () => {
+      window.removeEventListener('tpp:openRecon', onOpenRecon)
+      window.removeEventListener('tpp:open_recon', onOpenRecon)
+    }
   }, [])
 
 

@@ -15,6 +15,8 @@ import { useAppContext } from '../context/AppContext'
 import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted } from '../utils/taskCompletion'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import InjectionSiteSelector from '../components/common/InjectionSiteSelector'
+import { isInjectionSiteTrackingEnabled } from '../utils/injectionSiteSettings'
 
 const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
 let colorIndex = 0;
@@ -156,6 +158,10 @@ export default function Calendar() {
   const [quickEditDate, setQuickEditDate] = useState(null);
   const [quickEditData, setQuickEditData] = useState(null);
   const [todayPulse, setTodayPulse] = useState(false);
+  // Injection site tracking state for week view mark all done
+  const [injectionTask, setInjectionTask] = useState(null);
+  const [pendingInjectionTasks, setPendingInjectionTasks] = useState([]);
+  const [pendingMarkAllContext, setPendingMarkAllContext] = useState(null); // { date, timeSlot, slotKey, allTaskIds }
   // Load persisted notes (entries) and done slots
   useEffect(() => {
     try { const raw = localStorage.getItem('tpprover_calendar_notes'); if (raw) setEntries(JSON.parse(raw)) } catch {}
@@ -167,9 +173,37 @@ export default function Calendar() {
   const loadData = React.useCallback(() => {
         try {
           const supps = supplements
-          // For the current month, mark days with supplement counts
-          const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-          const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+          // Calculate date range based on view mode
+          // For week view, include the full week (may span across months)
+          // For month view, use the current month
+          let start, end;
+          if (viewMode === 'week') {
+            // Calculate week start based on settings
+            const weekStartsOn = (() => {
+              try {
+                const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+                return settings.region?.weekStartsOn || 'monday';
+              } catch {
+                return 'monday';
+              }
+            })();
+            const d = new Date(currentDate);
+            const day = d.getDay(); // 0=Sun..6=Sat
+            if (weekStartsOn === 'sunday') {
+              d.setDate(d.getDate() - day);
+            } else {
+              const iso = (day + 6) % 7; // 0=Mon..6=Sun
+              d.setDate(d.getDate() - iso);
+            }
+            d.setHours(0, 0, 0, 0);
+            start = new Date(d);
+            end = new Date(d);
+            end.setDate(end.getDate() + 6); // 7 days total (0-6)
+          } else {
+            // Month view: use full month range
+            start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+            end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+          }
           const next = {}
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dayKey = d.toLocaleDateString('en-US', { weekday: 'short' })
@@ -723,7 +757,7 @@ export default function Calendar() {
         } catch (e) {
           console.error('[Calendar Debug] Error in loadData:', e);
         }
-  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals]);
+  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals, viewMode]);
 
   useEffect(() => {
     loadData(); // Initial load
@@ -758,6 +792,150 @@ export default function Calendar() {
     // Refresh calendar data to reflect changes
     setDone(getCalendarDone());
     setCalendarBump(Date.now());
+  }, []);
+
+  // Handle marking all tasks as done for a time slot in week view
+  const handleMarkAllDone = React.useCallback((date, timeSlot, scheduled) => {
+    const dateKey = toKey(date);
+    const slotKey = timeSlot === 'AM' ? 'AM' : 'PM';
+    const taskIds = [];
+
+    // Collect all task IDs for this slot
+    if (scheduled.peptides) {
+      scheduled.peptides.forEach(peptide => {
+        const task = {
+          type: 'peptide',
+          name: peptide.name,
+          dose: peptide.dose || '',
+          unit: peptide.unit || '',
+          time: slotKey
+        };
+        taskIds.push(generateTaskId(task));
+      });
+    }
+
+    if (scheduled.supplements) {
+      scheduled.supplements.forEach(supplement => {
+        const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
+        const task = {
+          type: 'supplement',
+          name: suppData.name,
+          dose: suppData.dose || '',
+          unit: '',
+          time: slotKey
+        };
+        taskIds.push(generateTaskId(task));
+      });
+    }
+
+    // Check for injection tasks
+    const injectionTasks = [];
+    
+    if (scheduled.peptides) {
+      scheduled.peptides.forEach(peptide => {
+        const deliveryMethod = peptide.deliveryMethod || peptide.delivery;
+        const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+        if (isInjection) {
+          injectionTasks.push({ ...peptide, time: slotKey, type: 'peptide' });
+        }
+      });
+    }
+    
+    if (scheduled.supplements) {
+      scheduled.supplements.forEach(supplement => {
+        const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
+        const deliveryMethod = suppData.deliveryMethod || suppData.delivery;
+        const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+        if (isInjection) {
+          injectionTasks.push({ ...suppData, time: slotKey, type: 'supplement' });
+        }
+      });
+    }
+
+    // If there are injection tasks and tracking is enabled, show injection site selector for each one
+    if (injectionTasks.length > 0 && isInjectionSiteTrackingEnabled()) {
+      // Store context for completing all tasks after injection flow
+      setPendingMarkAllContext({ date, timeSlot, slotKey, allTaskIds: taskIds });
+      setPendingInjectionTasks(injectionTasks);
+      setInjectionTask(injectionTasks[0]); // Start with first injection task
+      return; // Don't complete tasks yet, wait for injection site selection
+    }
+
+    // Mark all tasks as completed (no injection tasks or tracking disabled)
+    taskIds.forEach(taskId => {
+      toggleTaskCompletion(taskId, true, dateKey, slotKey);
+    });
+
+    // Refresh calendar data
+    setDone(getCalendarDone());
+    setCalendarBump(Date.now());
+  }, []);
+
+  // Handle injection site confirmation for week view mark all done
+  const handleInjectionConfirm = React.useCallback((injectionSite) => {
+    if (injectionSite && injectionSite.trim()) {
+      // Injection site recorded (handled by InjectionSiteSelector)
+    }
+    
+    // Complete the current injection task
+    if (injectionTask && pendingMarkAllContext) {
+      const { date, slotKey } = pendingMarkAllContext;
+      const dateKey = toKey(date);
+      
+      // Build proper task object for taskId generation
+      const task = {
+        type: injectionTask.type || (injectionTask.deliveryMethod ? 'peptide' : 'supplement'),
+        name: injectionTask.name,
+        dose: injectionTask.dose || '',
+        unit: injectionTask.unit || '',
+        time: slotKey
+      };
+      
+      const taskId = generateTaskId(task);
+      
+      // Mark this injection task as completed
+      toggleTaskCompletion(taskId, true, dateKey, slotKey);
+    }
+    
+    // Move to next injection task or finish
+    if (Array.isArray(pendingInjectionTasks) && pendingInjectionTasks.length > 1) {
+      const remainingTasks = pendingInjectionTasks.slice(1);
+      setPendingInjectionTasks(remainingTasks);
+      setInjectionTask(remainingTasks[0]);
+    } else {
+      // All injection tasks completed - now complete ALL remaining tasks
+      const context = pendingMarkAllContext;
+      if (context) {
+        const dateKey = toKey(context.date);
+        
+        // Complete all tasks (both injection and non-injection)
+        context.allTaskIds.forEach(taskId => {
+          // Check if already completed (injection tasks were already done)
+          const isCompleted = isTaskCompleted(taskId, dateKey, context.slotKey);
+          if (!isCompleted) {
+            toggleTaskCompletion(taskId, true, dateKey, context.slotKey);
+          }
+        });
+        
+        setPendingMarkAllContext(null);
+      }
+      
+      // Clean up injection state
+      setInjectionTask(null);
+      setPendingInjectionTasks([]);
+      
+      // Refresh calendar data
+      setDone(getCalendarDone());
+      setCalendarBump(Date.now());
+    }
+  }, [injectionTask, pendingInjectionTasks, pendingMarkAllContext]);
+
+  // Handle injection site cancellation for week view
+  const handleInjectionCancel = React.useCallback(() => {
+    // Cancel doesn't complete tasks - just clear the injection flow
+    setInjectionTask(null);
+    setPendingInjectionTasks([]);
+    setPendingMarkAllContext(null);
   }, []);
 
 
@@ -966,6 +1144,7 @@ export default function Calendar() {
               }} 
               onNotesClick={setEditingNotesFor}
               onTaskToggle={handleTaskToggle}
+              onMarkAllDone={handleMarkAllDone}
             />
           </div>
         )}
@@ -1001,6 +1180,16 @@ export default function Calendar() {
         theme={theme}
         isVisible={showIconKey}
         onClose={() => setShowIconKey(false)}
+      />
+
+      {/* Injection Site Selector for week view mark all done */}
+      <InjectionSiteSelector
+        taskName={injectionTask?.name}
+        task={injectionTask}
+        onConfirm={handleInjectionConfirm}
+        onCancel={handleInjectionCancel}
+        theme={theme}
+        isVisible={!!injectionTask}
       />
 
       <UpgradeModal 

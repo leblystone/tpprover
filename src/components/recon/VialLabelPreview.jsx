@@ -79,7 +79,8 @@ export default function VialLabelPreview({
           alt="Vial" 
           className={compact ? "w-56 h-auto" : "w-full h-auto"}
           style={{ 
-            maxWidth: compact ? '224px' : '100%',
+            maxWidth: compact ? '224px' : 'min(100%, 280px)',
+            width: compact ? '224px' : 'auto',
             filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08))'
           }}
         />

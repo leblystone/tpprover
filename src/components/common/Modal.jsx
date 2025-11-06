@@ -42,11 +42,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     background: `linear-gradient(135deg, #7F9E95, #5F7F76)`,
     color: '#FFFFFF'
   };
-  const titleClass = isModern ? 'text-2xl font-bold' : 'text-lg font-bold';
+  const titleClass = isModern ? 'text-lg font-semibold' : 'text-lg font-bold';
   const titleExtraClass = isModern ? 'text-sm opacity-90' : 'text-sm text-white/90 mt-0.5';
   
   const content = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-x-hidden">
       <div 
         className={`absolute inset-0 ${backdropClass}`}
         onClick={onClose}
@@ -63,6 +63,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
           backgroundColor: theme?.cardBackground || '#FFFFFF', 
           maxHeight: '90vh', 
           minHeight: 'auto',
+          maxWidth: 'calc(100vw - 2rem)',
           boxShadow: theme?.isDark 
             ? '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.1)' 
             : '0 20px 60px rgba(0,0,0,0.15)'
@@ -83,12 +84,12 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             {titleExtra && (
               <div className={titleExtraClass}>{titleExtra}</div>
             )}
-            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
-              <X size={20} />
+            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
+              <X size={24} />
             </button>
           </div>
         </div>
-        <div className="p-6 overflow-y-auto" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
+        <div className="p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.cardBackground || '#FFFFFF' }}>
           {children}
         </div>
         {footer && (

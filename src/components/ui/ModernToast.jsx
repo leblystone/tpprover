@@ -175,7 +175,8 @@ const ModernToastContainer = ({ theme }) => {
         type
       };
 
-      setToasts(prev => [...prev, newToast]);
+      // Replace existing toast instead of stacking
+      setToasts([newToast]);
     };
 
     window.addEventListener('tpp:toast', handleToast);

@@ -20,7 +20,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
         <div className="space-y-3">
             <div className="space-y-3">
                 {(titration || []).map((step, index) => (
-                    <div key={index} className="p-4 border rounded-lg" style={{borderColor: theme.border, backgroundColor: theme.cardBackground}}>
+                    <div key={index} className="p-4 rounded-lg" style={{backgroundColor: theme.cardBackground}}>
                         <div className="flex items-center justify-between mb-3">
                             <div className="text-sm font-medium" style={{ color: theme.text }}>Step {index + 1}</div>
                             <button 
@@ -37,26 +37,27 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                             <div>
                                 <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textLight }}>Dose</label>
                                 <div 
-                                    className="flex items-stretch border rounded-lg overflow-hidden"
-                                    style={{ borderColor: theme.border }}
+                                    className="flex items-stretch rounded-lg overflow-hidden"
+                                    style={{ 
+                                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.4)' : '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}
                                 >
                                     <input 
                                         type="text"
-                                        value={step.dose}
+                                        value={step.dose || ''}
                                         onChange={e => updateStep(index, 'dose', e.target.value)}
                                         placeholder="250"
-                                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                                        className="flex-1 px-3 py-2 outline-none min-w-0 border-0 focus:ring-0"
                                         style={{ 
-                                            backgroundColor: theme.inputBackground || '#fff',
+                                            backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                                             color: theme.text 
                                         }}
                                     />
                                     
                                     {/* Unit Selector Pills */}
                                     <div 
-                                        className="flex items-center gap-0.5 px-1 py-1 border-l flex-shrink-0"
+                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                                         style={{ 
-                                            borderColor: theme.border,
                                             backgroundColor: theme.cardBackground || '#f9fafb'
                                         }}
                                     >
@@ -83,26 +84,27 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                             <div>
                                 <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textLight }}>Duration</label>
                                 <div 
-                                    className="flex items-stretch border rounded-lg overflow-hidden"
-                                    style={{ borderColor: theme.border }}
+                                    className="flex items-stretch rounded-lg overflow-hidden"
+                                    style={{ 
+                                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.4)' : '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}
                                 >
                                     <input 
                                         type="text"
-                                        value={step.durationCount}
+                                        value={step.durationCount || ''}
                                         onChange={e => updateStep(index, 'durationCount', e.target.value)}
                                         placeholder="7"
-                                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                                        className="flex-1 px-3 py-2 outline-none min-w-0 border-0 focus:ring-0"
                                         style={{ 
-                                            backgroundColor: theme.inputBackground || '#fff',
+                                            backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                                             color: theme.text 
                                         }}
                                     />
                                     
                                     {/* Single 'days' pill */}
                                     <div 
-                                        className="flex items-center px-1.5 py-1.5 border-l flex-shrink-0"
+                                        className="flex items-center px-1.5 py-1.5 flex-shrink-0"
                                         style={{ 
-                                            borderColor: theme.border,
                                             backgroundColor: theme.cardBackground || '#f9fafb'
                                         }}
                                     >
@@ -122,8 +124,12 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
             <button 
                 type="button" 
                 onClick={addStep} 
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-xs font-semibold border-dashed border-2 transition-colors hover:bg-gray-50"
-                style={{ borderColor: theme.border, color: theme.text }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-xs font-semibold transition-all hover:opacity-90"
+                style={{ 
+                    backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                    color: theme.primary,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                }}
             >
                 <PlusCircle size={14} /> Add Step
             </button>

@@ -345,11 +345,38 @@ export default function Recon() {
 								const calc = calculateRecon({ ...item, mg: totalMg, dose: totalDoseInMcg });
 								const costPerDose = item.cost ? formatCurrency(item.cost / calc.dosesPerVial) : null
 								return (
-									<div key={item.id} className="rounded-lg p-4 shadow-md content-card flex flex-col justify-between widget-card-hover" style={{ backgroundColor: theme.cardBackground }}>
+									<div 
+										key={item.id} 
+										className={`rounded-lg p-4 shadow-md content-card flex flex-col justify-between widget-card-hover ${item.isDraft ? 'cursor-pointer' : ''}`} 
+										style={{ backgroundColor: theme.cardBackground, borderLeft: item.isDraft ? `4px solid ${theme.primary}80` : undefined }}
+										onClick={item.isDraft ? () => {
+											// Open calculator tab with draft data
+											setPrefill({
+												peptides: item.peptides || [{ name: item.peptide, mg: item.mg, dose: item.dose, doseUnit: 'mcg' }],
+												vendor: item.vendor || '',
+												water: item.water || 2,
+												deliveryMethod: item.deliveryMethod || 'pipette',
+												administrationRoute: item.administrationRoute || 'subq',
+												penType: item.penType || '',
+												penColor: item.penColor || '',
+												cost: item.cost || ''
+											});
+											setActiveTab('calculator');
+											// Remove draft from list (will be replaced when saved)
+											setReconItems(prev => prev.filter(i => i.id !== item.id));
+										} : undefined}
+									>
 										<div>
 											<div className="flex justify-between items-start">
 												<div>
-													<div className="font-semibold text-base" style={{ color: theme.text }}>{item.name || item.peptide}</div>
+													<div className="flex items-center gap-2">
+														<div className="font-semibold text-base" style={{ color: theme.text }}>{item.name || item.peptide}</div>
+														{item.isDraft && (
+															<span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+																Draft
+															</span>
+														)}
+													</div>
 													<div className="text-sm flex items-center gap-2 mt-1" style={{ color: theme.textLight }}><Package size={14} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
 												</div>
 												<div className="text-xs text-gray-500">{formatMMDDYYYY(item.date)}</div>

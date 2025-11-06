@@ -18,21 +18,32 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
     setForm,
     2000, // 2 second delay
     async (formData) => {
-      // Auto-save to vendors list if this is an existing vendor
-      if (vendor?.id && formData && Object.keys(formData).length > 0) {
+      // Auto-save to vendors list if there's meaningful data
+      const hasName = formData?.name && formData.name.trim().length > 0;
+      const hasContacts = formData?.contacts?.some(c => c.value && c.value.trim().length > 0);
+      const hasNotes = formData?.notes && formData.notes.trim().length > 0;
+      
+      if (formData && (hasName || hasContacts || hasNotes)) {
         try {
-          console.log('🔄 Auto-saving existing vendor:', vendor.id);
+          if (vendor?.id) {
+            console.log('🔄 Auto-saving existing vendor:', vendor.id);
+          } else {
+            console.log('🔄 Auto-saving new vendor draft');
+          }
           await onSave?.(formData);
         } catch (error) {
           console.warn('Auto-save to vendors failed:', error);
         }
+      } else {
+        console.log('🚫 Skipping autosave - insufficient data:', {
+          hasName,
+          hasContacts,
+          hasNotes
+        });
       }
     }
   );
   
-  // State for save operations
-  const [isSavingToVendors, setIsSavingToVendors] = useState(false);
-  const [saveError, setSaveError] = useState(null);
   useEffect(() => {
     if (open) {
       const base = vendor ? { ...createEmptyVendor(), ...vendor } : createEmptyVendor()
@@ -62,23 +73,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   const updateContact = (idx, key, value) => setForm(prev => ({ ...prev, contacts: prev.contacts.map((c, i) => i === idx ? { ...c, [key]: value } : c) }))
   const removeContact = (idx) => setForm(prev => ({ ...prev, contacts: prev.contacts.filter((_, i) => i !== idx) }))
 
-  // Prevent modal from closing if there's unsaved data
+  // Close handler - autosave handles data persistence, so no confirmation needed
   const handleClose = () => {
-    // Check if there's meaningful data that hasn't been saved
-    const hasData = form && (
-      form.name || 
-      form.contacts?.some(c => c.value) ||
-      form.notes ||
-      form.payments?.notes
-    );
-    
-    if (hasData && !isSavingToVendors) {
-      const shouldClose = window.confirm(
-        'You have unsaved changes. Are you sure you want to close without saving?'
-      );
-      if (!shouldClose) return;
-    }
-    
     onClose();
   };
 
@@ -90,17 +86,12 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       titleExtra={
         <div className="flex items-center gap-2">
           <AutoSaveIndicator 
-            isSaving={isSaving || isSavingToVendors}
+            isSaving={isSaving}
             lastSaved={lastSaved}
             theme={theme}
             compact={true}
             iconOnly={true}
           />
-          {(isSaving || isSavingToVendors) && (
-            <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
-              {isSavingToVendors ? 'Saving...' : 'Auto-saving...'}
-            </span>
-          )}
         </div>
       }
       theme={theme} 
@@ -111,51 +102,10 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         {vendor?.id && (
           <button onClick={() => onDelete?.(vendor.id)} className="px-3 py-2 rounded-md border mr-auto bg-red-600 text-white hover:bg-red-700">Delete</button>
         )}
-        <button onClick={handleClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Cancel</button>
-        <button 
-          onClick={async () => {
-            try {
-              setIsSavingToVendors(true);
-              setSaveError(null);
-              
-              const dataToSave = { ...form };
-              if (dataToSave.isStub) {
-                  delete dataToSave.isStub; // Remove the stub flag
-              }
-              console.log('💾 Saving vendor data:', dataToSave);
-              
-              // Call the save function
-              await onSave?.(dataToSave);
-              
-              // Only clear auto-save and close modal after successful save
-              markAsSubmitted();
-              onClose();
-            } catch (error) {
-              console.error('❌ Failed to save vendor:', error);
-              setSaveError('Failed to save vendor. Please try again.');
-            } finally {
-              setIsSavingToVendors(false);
-            }
-          }}
-          disabled={isSavingToVendors}
-          className="px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" 
-          style={{ backgroundColor: theme?.primary, color: theme?.white }}
-        >
-          {isSavingToVendors ? 'Saving...' : 'Save'}
-        </button>
+        <button onClick={handleClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Close</button>
       </div>
     )}    >
       <div className="relative space-y-4">
-        {/* Error Display */}
-        {saveError && (
-          <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-sm font-medium text-red-800">{saveError}</span>
-            </div>
-          </div>
-        )}
-        
         {/* VENDOR INFO Section Header */}
         <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
           <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VENDOR INFO</h4>

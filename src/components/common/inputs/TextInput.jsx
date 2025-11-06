@@ -35,7 +35,7 @@ export default function TextInput({ label, value, onChange, placeholder, theme, 
           className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none themed-input ${type === 'number' ? 'no-spin' : ''}`}
           style={{ 
             border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground, 
+            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
             color: theme.text,
             boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
           }}

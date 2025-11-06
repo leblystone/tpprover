@@ -34,6 +34,12 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
     }
   }, [storageKey, setFormData]);
 
+  // Store onAutoSave in a ref to prevent it from being a dependency
+  const onAutoSaveRef = useRef(onAutoSave);
+  useEffect(() => {
+    onAutoSaveRef.current = onAutoSave;
+  }, [onAutoSave]);
+
   // Auto-save when form data changes
   useEffect(() => {
     if (isSubmittedRef.current) return; // Don't save if form was just submitted
@@ -65,13 +71,14 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
         };
         
         localStorage.setItem(storageKey, JSON.stringify(saveData));
-        setLastSaved(new Date());
+        const savedTime = new Date();
+        setLastSaved(savedTime);
         previousDataRef.current = formData;
         
-        // Call additional auto-save callback if provided
-        if (onAutoSave && typeof onAutoSave === 'function') {
+        // Call additional auto-save callback if provided (use ref to avoid dependency)
+        if (onAutoSaveRef.current && typeof onAutoSaveRef.current === 'function') {
           try {
-            await onAutoSave(formData);
+            await onAutoSaveRef.current(formData);
           } catch (error) {
             console.warn('Additional auto-save callback failed:', error);
           }

@@ -73,13 +73,6 @@ const TaskDisplay = ({
   useEffect(() => {
     const checkCompletion = () => {
       const completed = dateKey ? isTaskCompleted(taskId, dateKey, timeSlot) : (task.completed || false);
-      console.log('🔍 TaskDisplay checking completion:', {
-        taskName: task.name,
-        taskId,
-        dateKey,
-        timeSlot,
-        completed
-      });
       setIsCompleted(completed);
     };
     
@@ -88,7 +81,6 @@ const TaskDisplay = ({
     
     // Listen for task completion events to update
     const handleTaskCompletionChange = (e) => {
-      console.log('📡 TaskDisplay received task completion event:', e.detail);
       checkCompletion();
     };
     

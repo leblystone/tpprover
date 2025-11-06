@@ -682,9 +682,17 @@ export default function CustomizableDashboard() {
 
   // In customizing mode, separate enabled and hidden widgets
   // In normal mode, only show enabled widgets
-  const enabledWidgetsForGrid = isCustomizing 
+  const enabledWidgetsForGrid = (isCustomizing 
     ? widgets.filter(w => w.enabled) 
-    : enabledWidgets;
+    : enabledWidgets).sort((a, b) => {
+    // Sort by position to maintain layout order after compaction
+    const aY = a.position?.y || 0;
+    const bY = b.position?.y || 0;
+    if (aY !== bY) return aY - bY;
+    const aX = a.position?.x || 0;
+    const bX = b.position?.x || 0;
+    return aX - bX;
+  });
   const hiddenWidgets = isCustomizing 
     ? widgets.filter(w => !w.enabled) 
     : [];
@@ -746,7 +754,7 @@ export default function CustomizableDashboard() {
               }
 
               return (
-                <div key={`${widget.id}-${index}`} className={`${gridClasses} w-full max-w-full flex`}>
+                <div key={`${widget.id}-${widget.position?.x}-${widget.position?.y}-${widget.enabled}`} className={`${gridClasses} w-full max-w-full flex`}>
                   <DashboardWidget
                     widget={widget}
                     theme={theme}

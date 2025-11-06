@@ -173,7 +173,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               backgroundColor: `${theme.primary}08`, 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
-              maxWidth: isSearchActive ? 'calc(100vw - 240px)' : 'calc(100vw - 120px)',
+              maxWidth: isSearchActive ? 'calc(100vw - 180px)' : 'calc(100vw - 80px)',
               transition: 'max-width 0.3s ease',
               willChange: 'max-width'
             }}
@@ -208,32 +208,27 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 )}
               </button>
             ))}
-            {onActionClick && (
-              <>
-                <div 
-                  className="h-4 w-px mx-0.5 flex-shrink-0" 
-                  style={{ backgroundColor: theme.border }}
-                />
-                <button 
-                  className="p-1 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 flex-shrink-0" 
-                  style={{ 
-                    color: actionDisabled ? theme.textLight : '#ffffff', 
-                    backgroundColor: actionDisabled ? theme.textLight : theme.primary,
-                    opacity: actionDisabled ? 0.6 : 1,
-                    cursor: actionDisabled ? 'not-allowed' : 'pointer'
-                  }} 
-                  onClick={onActionClick}
-                  disabled={actionDisabled}
-                  title="Add New"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </>
-            )}
           </div>
         )}
         
         <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
+          {/* Mobile Add button - positioned in right container to avoid cutoff */}
+          {tabs && tabs.length > 0 && onActionClick && (
+            <button 
+              className="lg:hidden p-1.5 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 flex-shrink-0" 
+              style={{ 
+                color: actionDisabled ? theme.textLight : '#ffffff', 
+                backgroundColor: actionDisabled ? theme.textLight : theme.primary,
+                opacity: actionDisabled ? 0.6 : 1,
+                cursor: actionDisabled ? 'not-allowed' : 'pointer'
+              }} 
+              onClick={onActionClick}
+              disabled={actionDisabled}
+              title="Add New"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
           {/* Sample Data Chip Notification - Show on dashboard mobile, hidden on other pages mobile to prevent overlap */}
           {showSampleData && (
             <div className={`${onDashboard ? 'flex' : 'hidden md:flex'} items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200`}
@@ -275,7 +270,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             />
           )}
           {/* Search for other pages */}
-          {!onDashboard && seg !== 'settings' && seg !== 'account' && (
+          {!onDashboard && seg !== 'settings' && seg !== 'account' && seg !== 'calendar' && (
             <form 
               className={`search-box-wrapper ${isSearchActive ? 'is-active' : ''}`}
               style={{ color: theme.text, backgroundColor: theme.cardBackground }}

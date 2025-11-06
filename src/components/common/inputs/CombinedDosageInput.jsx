@@ -34,8 +34,7 @@ export default function CombinedDosageInput({
             <div 
                 className="flex items-stretch rounded-lg overflow-hidden"
                 style={{ 
-                    border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.4)' : '0 1px 2px rgba(0,0,0,0.05)'
                 }}
             >
                 {/* Amount Input */}
@@ -44,7 +43,7 @@ export default function CombinedDosageInput({
                     value={value?.amount || ''}
                     onChange={(e) => handleAmountChange(e.target.value)}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 outline-none min-w-0"
+                    className="flex-1 px-3 py-2 outline-none min-w-0 border-0 focus:ring-0"
                     style={{ 
                         backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                         color: theme.text 
@@ -56,7 +55,6 @@ export default function CombinedDosageInput({
                 <div 
                     className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
                     style={{ 
-                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
                         backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                     }}
                 >

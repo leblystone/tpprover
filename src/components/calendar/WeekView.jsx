@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
 import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette } from 'lucide-react'
-import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
+import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
+import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method
@@ -48,7 +49,7 @@ function DeliveryIndicator({ item, theme }) {
       return <Pipette size={12} style={{ color: theme.primary }} />;
 }
 
-export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump }) {
+export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone }) {
   const [forceRender, setForceRender] = useState(0);
   
   // Force re-render when calendarBump changes (task completion sync)
@@ -215,9 +216,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     }
 
     return (
-      <div key={date.toISOString()} data-day-key={dayKey} className="w-full rounded border" style={{ borderColor: theme.border }}>
-        <div className="p-2 border-b flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: isToday ? theme.primary : theme.accent }}>
-          <span className="font-semibold text-sm flex items-center gap-1" style={{ color: isToday ? theme.textOnPrimary : theme.primaryDark }}>{isToday ? 'Today' : dayOfWeek}{allTasksCompleted && <span title="All tasks done">✓</span>}</span>
+      <div key={date.toISOString()} data-day-key={dayKey} className="w-full rounded border" style={{ borderColor: isToday ? theme.primary : theme.accent }}>
+        <div className="p-2 border-b flex items-center justify-between" style={{ borderColor: isToday ? theme.primary : theme.accent, backgroundColor: isToday ? theme.primary : theme.accent }}>
+          <span className="font-semibold text-sm flex items-center gap-1" style={{ color: isToday ? theme.textOnPrimary : (theme.isDark ? '#29303b' : theme.primaryDark) }}>{isToday ? 'Today' : dayOfWeek}{allTasksCompleted && <span title="All tasks done">✓</span>}</span>
           <span 
             className={`font-bold text-lg flex items-center justify-center rounded-full w-8 h-8`}
             style={{
@@ -232,7 +233,19 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-2">
                 {/* AM Slot */}
                 <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
-                    <div className="text-xs font-semibold mb-1" style={{ color: theme.textLight }}>AM</div>
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="text-xs font-semibold" style={{ color: theme.textLight }}>AM</div>
+                        {dayScheduled?.bySlot?.AM && (dayScheduled.bySlot.AM.peptides?.length > 0 || dayScheduled.bySlot.AM.supplements?.length > 0) && (
+                            <MarkAllButton
+                                date={date}
+                                timeSlot="AM"
+                                scheduled={dayScheduled.bySlot.AM}
+                                theme={theme}
+                                onMarkAllDone={onMarkAllDone}
+                                calendarBump={calendarBump}
+                            />
+                        )}
+                    </div>
                     <SlotContent 
                         scheduled={dayScheduled?.bySlot?.AM} 
                         theme={theme} 
@@ -245,7 +258,19 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 {/* Separator and PM Slot */}
                 <div className="mt-2 border-t pt-2 sm:mt-0 sm:border-t-0 sm:border-l sm:pl-2" style={{ borderColor: theme.border }}>
                     <div className="rounded p-1 min-h-[60px]" style={{ backgroundColor: theme.cardBackground }}>
-                        <div className="text-xs font-semibold mb-1" style={{ color: theme.textLight }}>PM</div>
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="text-xs font-semibold" style={{ color: theme.textLight }}>PM</div>
+                            {dayScheduled?.bySlot?.PM && (dayScheduled.bySlot.PM.peptides?.length > 0 || dayScheduled.bySlot.PM.supplements?.length > 0) && (
+                                <MarkAllButton
+                                    date={date}
+                                    timeSlot="PM"
+                                    scheduled={dayScheduled.bySlot.PM}
+                                    theme={theme}
+                                    onMarkAllDone={onMarkAllDone}
+                                    calendarBump={calendarBump}
+                                />
+                            )}
+                        </div>
                         <SlotContent 
                             scheduled={dayScheduled?.bySlot?.PM} 
                             theme={theme} 
@@ -343,6 +368,135 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
       {days.map(renderDay)}
     </div>
   )
+}
+
+// Subtle Mark All button component
+function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calendarBump }) {
+  const dateKey = toKey(date);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalTasks, setTotalTasks] = useState(0);
+  
+  // Calculate completion status
+  useEffect(() => {
+    let total = 0;
+    let completed = 0;
+    
+    const slotKey = timeSlot === 'AM' ? 'AM' : 'PM';
+    
+    // Count peptides
+    if (scheduled.peptides) {
+      scheduled.peptides.forEach(peptide => {
+        total++;
+        const task = {
+          type: 'peptide',
+          name: peptide.name,
+          dose: peptide.dose || '',
+          unit: peptide.unit || '',
+          time: slotKey
+        };
+        const taskId = generateTaskId(task);
+        if (isTaskCompleted(taskId, dateKey, slotKey)) {
+          completed++;
+        }
+      });
+    }
+    
+    // Count supplements
+    if (scheduled.supplements) {
+      scheduled.supplements.forEach(supplement => {
+        total++;
+        const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
+        const task = {
+          type: 'supplement',
+          name: suppData.name,
+          dose: suppData.dose || '',
+          unit: '',
+          time: slotKey
+        };
+        const taskId = generateTaskId(task);
+        if (isTaskCompleted(taskId, dateKey, slotKey)) {
+          completed++;
+        }
+      });
+    }
+    
+    setTotalTasks(total);
+    setCompletedCount(completed);
+  }, [dateKey, timeSlot, scheduled, calendarBump]);
+  
+  // Listen for completion changes
+  useEffect(() => {
+    const handleTaskCompletionChange = () => {
+      let total = 0;
+      let completed = 0;
+      const slotKey = timeSlot === 'AM' ? 'AM' : 'PM';
+      
+      if (scheduled.peptides) {
+        scheduled.peptides.forEach(peptide => {
+          total++;
+          const task = {
+            type: 'peptide',
+            name: peptide.name,
+            dose: peptide.dose || '',
+            unit: peptide.unit || '',
+            time: slotKey
+          };
+          const taskId = generateTaskId(task);
+          if (isTaskCompleted(taskId, dateKey, slotKey)) {
+            completed++;
+          }
+        });
+      }
+      
+      if (scheduled.supplements) {
+        scheduled.supplements.forEach(supplement => {
+          total++;
+          const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
+          const task = {
+            type: 'supplement',
+            name: suppData.name,
+            dose: suppData.dose || '',
+            unit: '',
+            time: slotKey
+          };
+          const taskId = generateTaskId(task);
+          if (isTaskCompleted(taskId, dateKey, slotKey)) {
+            completed++;
+          }
+        });
+      }
+      
+      setTotalTasks(total);
+      setCompletedCount(completed);
+    };
+    
+    window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+  }, [dateKey, timeSlot, scheduled]);
+  
+  if (totalTasks === 0) return null;
+  if (completedCount === totalTasks) {
+    return (
+      <div className="flex items-center gap-1" style={{ color: theme.success }}>
+        <Check size={10} />
+        <span className="text-[9px] font-medium">Done</span>
+      </div>
+    );
+  }
+  
+  return (
+    <button
+      onClick={() => onMarkAllDone && onMarkAllDone(date, timeSlot, scheduled)}
+      className="text-[9px] font-medium px-1.5 py-0.5 rounded transition-all hover:opacity-80"
+      style={{
+        backgroundColor: theme.primary + (theme.isDark ? '30' : '20'),
+        color: theme.primary
+      }}
+      title={`Mark all ${timeSlot} tasks as done`}
+    >
+      Mark All
+    </button>
+  );
 }
 
 function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {

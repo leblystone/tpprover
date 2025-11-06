@@ -282,6 +282,21 @@ export default function Protocols() {
     );
   }, [protocols, searchQuery]);
 
+  // Check for draft start protocol data
+  const hasDraftStart = React.useCallback((protocolId) => {
+    try {
+      const storageKey = `tpprover_start_protocol_draft_${protocolId}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsedData = JSON.parse(saved);
+        return parsedData.data && Object.keys(parsedData.data).length > 0;
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }, []);
+
   return (
     <>
       <ProtocolsHelpPanel theme={theme} />
@@ -335,6 +350,7 @@ export default function Protocols() {
                     onStartClick={handleStartClick}
                     onEditClick={handleEditClick}
                     onHistoryClick={setHistoryProtocol}
+                    hasDraftStart={hasDraftStart(p.id)}
                   />
                 ))}
               </div>
@@ -448,8 +464,8 @@ export default function Protocols() {
     >
         <div className="space-y-4">
             {/* PROTOCOL SETTINGS Section Header */}
-            <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>PROTOCOL SETTINGS</h4>
+            <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>PROTOCOL SETTINGS</h4>
             </div>
 
             <div>
@@ -474,27 +490,20 @@ export default function Protocols() {
             {/* Page Break */}
             <div className="border-t" style={{ borderColor: theme.border }}></div>
 
-            <div className="p-4 rounded-lg border" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
-                <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#ef4444' }}>
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                    </div>
-                    <div className="flex-1">
-                        <div className="text-sm font-medium mb-1" style={{ color: '#dc2626' }}>End Protocol Early</div>
-                        <div className="text-xs mb-3" style={{ color: '#991b1b' }}>This will end the protocol as of today and start any washout period.</div>
-                        <button
-                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-                            style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
-                            onClick={() => {
-                                endProtocol(manageConfirm);
-                                setManageConfirm(null);
-                            }}
-                        >
-                            End Protocol Now
-                        </button>
-                    </div>
+            <div className="p-3 rounded-lg border" style={{ borderColor: '#fecaca', backgroundColor: '#fef2f2' }}>
+                <div className="flex flex-col items-center text-center">
+                    <div className="text-sm font-medium mb-0.5" style={{ color: '#dc2626' }}>End Protocol Early</div>
+                    <div className="text-xs mb-2" style={{ color: '#991b1b' }}>This will end the protocol as of today and start any washout period.</div>
+                    <button
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+                        style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                        onClick={() => {
+                            endProtocol(manageConfirm);
+                            setManageConfirm(null);
+                        }}
+                    >
+                        End Protocol Now
+                    </button>
                 </div>
             </div>
         </div>

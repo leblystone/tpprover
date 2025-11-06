@@ -46,8 +46,12 @@ export default function SearchableDropdown({
             <input
                 ref={inputRef}
                 type="text"
-                className="w-full text-left p-2 border rounded bg-gray-50"
-                style={{ borderColor: theme.border }}
+                className="w-full text-left p-2 rounded border-0 focus:ring-0 outline-none"
+                style={{ 
+                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                    color: theme.text,
+                    border: 'none'
+                }}
                 placeholder={placeholder}
                 value={isOpen ? query : (selectedOption ? selectedOption.label : '')}
                 onChange={(e) => {
@@ -61,15 +65,35 @@ export default function SearchableDropdown({
             />
             {isOpen && (
                 <div 
-                    className="absolute mt-1 w-full bg-white border rounded shadow-lg z-20" 
-                    style={{ borderColor: theme.border }}
+                    className="absolute mt-1 w-full rounded shadow-lg z-20 border-0" 
+                    style={{ 
+                        backgroundColor: theme.isDark ? '#1f2937' : '#fff',
+                        border: 'none',
+                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.5)' : '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
                 >
                     <ul>
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map(option => (
                                 <li
                                     key={option.value}
-                                    className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+                                    className="p-2 cursor-pointer flex justify-between items-center transition-colors"
+                                    style={{
+                                        backgroundColor: value === option.value 
+                                            ? (theme.isDark ? '#374151' : theme.secondary)
+                                            : 'transparent',
+                                        color: theme.text
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (value !== option.value) {
+                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (value !== option.value) {
+                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                        }
+                                    }}
                                     onClick={() => handleSelect(option.value)}
                                 >
                                     <span>{option.label}</span>
@@ -77,7 +101,7 @@ export default function SearchableDropdown({
                                 </li>
                             ))
                         ) : (
-                            <li className="p-2 text-gray-500">No options match your search.</li>
+                            <li className="p-2" style={{ color: theme.textLight }}>No options match your search.</li>
                         )}
                     </ul>
                 </div>

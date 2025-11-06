@@ -141,23 +141,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       }));
   };
 
-  // Prevent modal from closing if there's unsaved data
+  // Close handler - autosave handles data persistence, so no confirmation needed
   const handleClose = () => {
-    // Check if there's meaningful data that hasn't been saved
-    const hasData = form && (
-      form.vendor || 
-      form.items?.some(item => item.name || item.quantity > 1) ||
-      form.notes ||
-      form.tracking
-    );
-    
-    if (hasData && !isSavingToOrders) {
-      const shouldClose = window.confirm(
-        'You have unsaved changes. Are you sure you want to close without saving?'
-      );
-      if (!shouldClose) return;
-    }
-    
     onClose();
   };
 
@@ -176,11 +161,6 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             compact={true}
             iconOnly={true}
           />
-          {(isSaving || isSavingToOrders) && (
-            <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
-              {isSavingToOrders ? 'Saving...' : 'Auto-saving...'}
-            </span>
-          )}
         </div>
       }
       theme={theme}
@@ -194,71 +174,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleClose} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme?.border, color: theme?.text }}>Cancel</button>
-            <button 
-              onClick={async () => {
-                try {
-                  setIsSavingToOrders(true);
-                  setSaveError(null);
-                  
-                  // Validate that we have meaningful data before saving
-                  const hasVendor = form?.vendor && form.vendor.trim().length > 0;
-                  const hasItemsWithData = form?.items?.some(item => 
-                    item.name && item.name.trim().length > 0 && 
-                    (item.quantity > 0 || item.price || item.mg)
-                  );
-                  const hasNotes = form?.notes && form.notes.trim().length > 0;
-                  
-                  if (!hasVendor && !hasItemsWithData && !hasNotes) {
-                    setSaveError('Please enter at least a vendor name, item details, or notes before saving.');
-                    return;
-                  }
-                  
-                  console.log('💾 Saving order:', JSON.stringify({ ...form, attachments }, null, 2));
-                  
-                  // Track status change for toast notification
-                  const previousStatus = originalStatus || order?.status || 'Order Placed';
-                  const newStatus = form?.status || 'Order Placed';
-                  
-                  // Call the save function
-                  await onSave?.({ ...form, attachments });
-                  
-                  // Show toast if status changed to Shipped or Delivered
-                  const statusChanged = previousStatus.toLowerCase() !== newStatus.toLowerCase();
-                  if (statusChanged) {
-                    if (newStatus.toLowerCase().includes('ship')) {
-                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                        detail: { 
-                          message: '🚚 Order marked as shipped!', 
-                          type: 'info' 
-                        } 
-                      }));
-                    } else if (newStatus.toLowerCase().includes('deliver')) {
-                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                        detail: { 
-                          message: '📦 Order marked as delivered!', 
-                          type: 'success' 
-                        } 
-                      }));
-                    }
-                  }
-                  
-                  // Only clear auto-save and close modal after successful save
-                  markAsSubmitted();
-                  onClose();
-                } catch (error) {
-                  console.error('❌ Failed to save order:', error);
-                  setSaveError('Failed to save order. Please try again.');
-                } finally {
-                  setIsSavingToOrders(false);
-                }
-              }}
-              disabled={isSavingToOrders}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
-              style={{ backgroundColor: theme?.primary, color: theme?.textOnPrimary }}
-            >
-              {isSavingToOrders ? 'Saving...' : 'Save'}
-            </button>
+            <button onClick={handleClose} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme?.border, color: theme?.text }}>Close</button>
           </div>
         </div>
       )}

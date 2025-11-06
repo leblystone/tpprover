@@ -40,7 +40,7 @@ const formatPenType = (penType) => {
     return penTypes[penType] || `🖊️ ${penType}`;
 }
 
-export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false }) {
+export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     
     const handleShare = () => {
@@ -165,7 +165,9 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                             }}
                         >
                             <Play size={16} className="icon-hover" />
-                            <span className="text-hover">{isActive ? 'Manage' : 'Start Protocol'}</span>
+                            <span className="text-hover">
+                                {isActive ? 'Manage' : (hasDraftStart ? 'Drafted Start' : 'Start Protocol')}
+                            </span>
                         </button>
                         <button 
                             data-tour="protocol-share" 

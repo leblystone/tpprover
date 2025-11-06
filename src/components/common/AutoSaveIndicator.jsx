@@ -1,8 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Save, Clock } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 
-const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = false }) => {
+const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = false, showTimeAnimation = false }) => {
+  const [showTime, setShowTime] = useState(false);
+  const [displayTime, setDisplayTime] = useState('');
+  const lastSavedRef = useRef(null);
+
+  useEffect(() => {
+    // Only trigger animation when lastSaved actually changes (not on every render)
+    if (showTimeAnimation && lastSaved && lastSaved.getTime() !== lastSavedRef.current?.getTime()) {
+      lastSavedRef.current = lastSaved;
+      
+      // Show time animation for 2 seconds before showing save icon
+      setShowTime(true);
+      const updateTime = () => {
+        const now = new Date();
+        const diff = now - lastSaved;
+        if (diff < 60000) {
+          setDisplayTime('just now');
+        } else if (diff < 3600000) {
+          setDisplayTime(`${Math.floor(diff / 60000)}m ago`);
+        } else {
+          setDisplayTime(lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      };
+      
+      updateTime();
+      const interval = setInterval(updateTime, 1000);
+      
+      // After 2 seconds, switch to save icon
+      const timeout = setTimeout(() => {
+        setShowTime(false);
+        clearInterval(interval);
+      }, 2000);
+      
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    } else if (!showTimeAnimation || !lastSaved) {
+      setShowTime(false);
+    }
+  }, [lastSaved, showTimeAnimation]);
+
   if (!isSaving && !lastSaved) return null;
 
   const formatTime = (date) => {
@@ -15,15 +56,22 @@ const AutoSaveIndicator = ({ isSaving, lastSaved, onClearForm, theme, compact = 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Compact version for headers
+  // Compact version for headers - with time animation option
   if (compact) {
     return (
       <div className="flex items-center gap-2">
         {isSaving ? (
-          <Clock size={16} className="animate-spin" style={{ color: '#ffffff' }} />
-        ) : (
-          <Save size={16} style={{ color: '#ffffff' }} />
-        )}
+          <Clock size={20} className="animate-spin" style={{ color: '#ffffff' }} />
+        ) : showTimeAnimation && showTime && lastSaved ? (
+          <div className="flex items-center gap-1.5">
+            <Clock size={16} className="animate-pulse" style={{ color: '#ffffff', opacity: 0.8 }} />
+            <span className="text-xs font-medium" style={{ color: '#ffffff', opacity: 0.9 }}>
+              {displayTime || 'just now'}
+            </span>
+          </div>
+        ) : lastSaved ? (
+          <Save size={20} style={{ color: '#ffffff' }} />
+        ) : null}
       </div>
     );
   }

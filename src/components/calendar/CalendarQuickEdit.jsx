@@ -34,23 +34,15 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
     const [forceRender, setForceRender] = useState(0);
     const [injectionTask, setInjectionTask] = useState(null);
     const [pendingInjectionTasks, setPendingInjectionTasks] = useState([]);
+    const [pendingMarkAllContext, setPendingMarkAllContext] = useState(null); // Store { timeSlot, slotKey, allTaskIds }
 
     // Convert date string to Date object if needed
     const dateObj = typeof date === 'string' ? new Date(date) : date;
 
-    // Debug: Log the scheduled data structure
-    console.log('🔍 CalendarQuickEdit received data:', {
-        date,
-        scheduledData,
-        bySlot: scheduledData?.bySlot,
-        amSlot: scheduledData?.bySlot?.AM,
-        pmSlot: scheduledData?.bySlot?.PM
-    });
 
     // Listen for task completion events to force re-render
     useEffect(() => {
         const handleTaskCompletionChange = (e) => {
-            console.log('📡 CalendarQuickEdit received task completion event:', e.detail);
             setForceRender(prev => prev + 1);
         };
         
@@ -160,13 +152,6 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
             }
         }
         
-        console.log('🔄 CalendarQuickEdit: Toggling task', {
-            taskId,
-            currentStatus,
-            newStatus,
-            date,
-            timeSlot
-        });
         
         // Update local state immediately for responsive UI
         setCompletedTasks(prev => ({
@@ -229,7 +214,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                 const deliveryMethod = peptide.deliveryMethod || peptide.delivery;
                 const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                 if (isInjection) {
-                    injectionTasks.push(peptide);
+                    // Store with time property for proper taskId generation
+                    injectionTasks.push({ ...peptide, time: slotKey, type: 'peptide' });
                 }
             });
         }
@@ -240,19 +226,22 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                 const deliveryMethod = suppData.deliveryMethod || suppData.delivery;
                 const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
                 if (isInjection) {
-                    injectionTasks.push(suppData);
+                    // Store with time property for proper taskId generation
+                    injectionTasks.push({ ...suppData, time: slotKey, type: 'supplement' });
                 }
             });
         }
         
         // If there are injection tasks and tracking is enabled, show injection site selector for each one
         if (injectionTasks.length > 0 && isInjectionSiteTrackingEnabled()) {
+            // Store context for completing all tasks after injection flow
+            setPendingMarkAllContext({ timeSlot, slotKey, allTaskIds: taskIds });
             setPendingInjectionTasks(injectionTasks);
             setInjectionTask(injectionTasks[0]); // Start with first injection task
             return; // Don't complete tasks yet, wait for injection site selection
         }
 
-        // Mark all tasks as completed
+        // Mark all tasks as completed (no injection tasks or tracking disabled)
         const newCompletedTasks = { ...completedTasks };
         if (!newCompletedTasks[timeSlot]) newCompletedTasks[timeSlot] = {};
 
@@ -268,15 +257,28 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
     // Handle injection site confirmation
     const handleInjectionConfirm = (injectionSite) => {
         if (injectionSite && injectionSite.trim()) {
-            console.log(`💉 Shot location recorded for ${injectionTask.name}: ${injectionSite}`);
+            // Injection site recorded
         }
         
         // Complete the current injection task
         if (injectionTask) {
-            const taskId = generateTaskId(injectionTask);
-            const slotKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-            const timeSlot = normalizeSlot(injectionTask.time);
+            // Build proper task object for taskId generation using stored context
+            const context = pendingMarkAllContext;
+            const slotKey = context?.slotKey || normalizeSlot(injectionTask.time || 'AM');
+            const timeSlot = context?.timeSlot || normalizeSlot(injectionTask.time || 'AM');
             
+            // Build task object with correct properties
+            const task = {
+                type: injectionTask.type || (injectionTask.deliveryMethod ? 'peptide' : 'supplement'),
+                name: injectionTask.name,
+                dose: injectionTask.dose || '',
+                unit: injectionTask.unit || '',
+                time: slotKey
+            };
+            
+            const taskId = generateTaskId(task);
+            
+            // Mark this injection task as completed
             toggleTaskCompletion(taskId, true, date, slotKey);
             
             // Update local state
@@ -294,7 +296,26 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
             setPendingInjectionTasks(remainingTasks);
             setInjectionTask(remainingTasks[0]);
         } else {
-            // All injection tasks completed
+            // All injection tasks completed - now complete ALL remaining tasks
+            const context = pendingMarkAllContext;
+            if (context) {
+                const newCompletedTasks = { ...completedTasks };
+                if (!newCompletedTasks[context.timeSlot]) newCompletedTasks[context.timeSlot] = {};
+                
+                // Complete all tasks (both injection and non-injection)
+                context.allTaskIds.forEach(taskId => {
+                    // Only mark tasks that aren't already completed
+                    if (!newCompletedTasks[context.timeSlot][taskId]) {
+                        newCompletedTasks[context.timeSlot][taskId] = true;
+                        toggleTaskCompletion(taskId, true, date, context.slotKey);
+                    }
+                });
+                
+                setCompletedTasks(newCompletedTasks);
+                setPendingMarkAllContext(null);
+            }
+            
+            // Clean up injection state
             setInjectionTask(null);
             setPendingInjectionTasks([]);
             onTasksUpdated?.();
@@ -303,8 +324,10 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
 
     // Handle injection site cancellation
     const handleInjectionCancel = () => {
+        // Cancel doesn't complete tasks - just clear the injection flow
         setInjectionTask(null);
         setPendingInjectionTasks([]);
+        setPendingMarkAllContext(null);
     };
 
     // Use React.useMemo to ensure this recalculates when forceRender changes
@@ -352,23 +375,24 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
 
         return (
             <div key={timeSlot} className="space-y-3">
-                <div className="flex items-center justify-between sticky top-0 py-3 px-4 -mx-4 rounded-xl" 
-                     style={{ 
-                         backgroundColor: theme.secondary,
-                         zIndex: 10
-                     }}>
+                {/* Clean time slot header */}
+                <div className="flex items-center justify-between pb-2 border-b"
+                     style={{ borderColor: theme.border }}>
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center" 
-                             style={{ backgroundColor: theme.primary + '20' }}>
-                            <span className="text-sm font-bold" style={{ color: theme.primary }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" 
+                             style={{ 
+                                 backgroundColor: theme.primary + (theme.isDark ? '25' : '15'),
+                                 color: theme.primary
+                             }}>
+                            <span className="text-xs font-bold">
                                 {normalizeSlot(timeSlot)}
                             </span>
                         </div>
                         <div>
-                            <h4 className="text-base font-semibold" style={{ color: theme.text }}>
+                            <h4 className="text-sm font-semibold" style={{ color: theme.text }}>
                                 {labelForSlot(timeSlot)}
                             </h4>
-                            <p className="text-xs" style={{ color: theme.textLight }}>
+                            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
                                 {completedCount} of {totalTasks} completed
                             </p>
                         </div>
@@ -376,28 +400,32 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                     {completedCount < totalTasks && (
                         <button
                             onClick={() => handleMarkAllCompleted(timeSlot)}
-                            className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{
                                 backgroundColor: theme.primary,
                                 color: theme.textOnPrimary
                             }}
                             disabled={loading}
                         >
-                            Mark All Done
+                            Mark All
                         </button>
                     )}
                     {completedCount === totalTasks && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: theme.success + '20' }}>
-                            <Check size={18} style={{ color: theme.success }} />
-                            <span className="text-sm font-semibold" style={{ color: theme.success }}>Complete</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" 
+                             style={{ 
+                                 backgroundColor: theme.success + (theme.isDark ? '25' : '15'),
+                                 color: theme.success 
+                             }}>
+                            <Check size={14} />
+                            <span className="text-xs font-semibold">Done</span>
                         </div>
                     )}
                 </div>
 
-                <div className="space-y-2 pl-2">
+                {/* Tasks list - cleaner spacing */}
+                <div className="space-y-2">
                     {/* Render peptides */}
                     {peptides.map((peptide, index) => {
-                        console.log(`🔍 Processing peptide ${index} in ${timeSlot}:`, peptide);
                         const task = {
                             type: 'peptide',
                             name: peptide.name,
@@ -409,7 +437,6 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             penColor: peptide.penColor,
                             penType: peptide.penType
                         };
-                        console.log(`🔍 Created task for ${timeSlot}:`, task);
                         const taskId = generateTaskId(task);
                         const isCompleted = completedTasks[timeSlot]?.[taskId] || false;
 
@@ -471,42 +498,90 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
         day: 'numeric'
     });
 
+    // Calculate overall completion stats
+    const allSlots = Object.keys(scheduledData.bySlot || {});
+    let totalTasksOverall = 0;
+    let completedTasksOverall = 0;
+    
+    allSlots.forEach(timeSlot => {
+        const slotData = scheduledData.bySlot[timeSlot];
+        const peptides = slotData?.peptides || [];
+        const supplements = slotData?.supplements || [];
+        const slotKey = normalizeSlot(timeSlot);
+        
+        // Count peptides
+        peptides.forEach(peptide => {
+            totalTasksOverall++;
+            const task = {
+                type: 'peptide',
+                name: typeof peptide === 'object' ? peptide.name : peptide,
+                dose: typeof peptide === 'object' ? (peptide.dose || '') : '',
+                unit: typeof peptide === 'object' ? (peptide.unit || '') : '',
+                time: slotKey
+            };
+            const taskId = generateTaskId(task);
+            if (isTaskCompleted(taskId, date, slotKey)) {
+                completedTasksOverall++;
+            }
+        });
+        
+        // Count supplements
+        supplements.forEach(supplement => {
+            totalTasksOverall++;
+            const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
+            const task = {
+                type: 'supplement',
+                name: suppData.name,
+                dose: suppData.dose || '',
+                unit: '',
+                time: slotKey
+            };
+            const taskId = generateTaskId(task);
+            if (isTaskCompleted(taskId, date, slotKey)) {
+                completedTasksOverall++;
+            }
+        });
+    });
+
     return (
         <>
             <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+            <div className="rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                  style={{ backgroundColor: theme.cardBackground }}>
-                {/* Modern header */}
-                <div className="relative p-6 pb-8" style={{ 
-                    backgroundColor: theme.primary,
-                    color: theme.textOnPrimary
-                }}>
+                {/* Clean header */}
+                <div className="relative p-5 border-b flex items-center justify-between"
+                     style={{ 
+                         borderColor: theme.border,
+                         backgroundColor: theme.cardBackground
+                     }}>
+                    <div className="flex-1">
+                        <h3 className="text-xl font-bold mb-1" style={{ color: theme.text }}>
+                            {dateDisplay}
+                        </h3>
+                        <p className="text-sm" style={{ color: theme.textLight }}>
+                            {completedTasksOverall} of {totalTasksOverall} tasks completed
+                        </p>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-all"
-                        style={{ color: theme.textOnPrimary }}
+                        className="p-2 rounded-lg hover:opacity-70 transition-all"
+                        style={{ 
+                            color: theme.textLight,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+                        }}
                     >
                         <X size={20} />
                     </button>
-                    
-                    <div className="pr-12">
-                        <h3 className="text-2xl font-bold mb-2">
-                            Quick Edit Tasks
-                        </h3>
-                        <p className="text-sm opacity-90">
-                            {dateDisplay}
-                        </p>
-                    </div>
                 </div>
 
                 {/* Content area with scroll */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex-1 overflow-y-auto p-5 space-y-4">
                     {Object.keys(scheduledData.bySlot).map(timeSlot => 
                         renderTimeSlot(timeSlot, scheduledData.bySlot[timeSlot])
                     )}
                     
                     {Object.keys(scheduledData.bySlot).length === 0 && (
-                        <div className="text-center py-12">
+                        <div className="text-center py-16">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" 
                                  style={{ backgroundColor: theme.secondary }}>
                                 <Check size={32} style={{ color: theme.textLight }} />

@@ -31,10 +31,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         2000, // 2 second delay
         async (formData) => {
             // Auto-save to protocols list if this is an existing protocol
+            // Note: Don't call onSave() here - it closes the modal!
+            // The useAutoSave hook will dispatch 'tpp:protocol-autosaved' event
+            // which the Protocols page listens to for silent updates
             if (protocol?.id && formData && Object.keys(formData).length > 0) {
                 try {
                     console.log('🔄 Auto-saving existing protocol:', protocol.id);
-                    await onSave?.(formData);
+                    // Event is dispatched by useAutoSave hook automatically
                 } catch (error) {
                     console.warn('Auto-save to protocols failed:', error);
                 }
@@ -107,14 +110,68 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             } else {
                 initialData.duration.unit = 'Week';
             }
+            // Ensure duration.count is always a string (never undefined)
+            if (initialData.duration.count === undefined || initialData.duration.count === null) {
+                initialData.duration.count = '';
+            } else {
+                initialData.duration.count = String(initialData.duration.count);
+            }
+            // Ensure duration.noEnd is always a boolean
+            if (initialData.duration.noEnd === undefined || initialData.duration.noEnd === null) {
+                initialData.duration.noEnd = false;
+            }
+            
             initialData.washout = initialData.washout || {};
             if (initialData.washout.unit) {
                 initialData.washout.unit = toEditorUnit(initialData.washout.unit);
             }
-            if (initialData.washout.enabled && (initialData.washout.duration == null || initialData.washout.duration === '') && (initialData.washout.count != null && initialData.washout.count !== '')) {
-                initialData.washout.duration = initialData.washout.count;
+            // Ensure washout.duration is always a string (never undefined)
+            if (initialData.washout.duration === undefined || initialData.washout.duration === null) {
+                initialData.washout.duration = '';
+            } else {
+                initialData.washout.duration = String(initialData.washout.duration);
+            }
+            // Ensure washout.enabled is always a boolean
+            if (initialData.washout.enabled === undefined || initialData.washout.enabled === null) {
+                initialData.washout.enabled = false;
+            }
+            if (initialData.washout.enabled && initialData.washout.duration === '' && (initialData.washout.count != null && initialData.washout.count !== '')) {
+                initialData.washout.duration = String(initialData.washout.count);
             }
         } catch {}
+        
+        // Normalize peptide data to ensure all input values are defined
+        if (initialData.peptides && Array.isArray(initialData.peptides)) {
+            initialData.peptides = initialData.peptides.map(peptide => {
+                const normalized = { ...peptide };
+                // Ensure unitValue is always a string
+                if (normalized.unitValue === undefined || normalized.unitValue === null) {
+                    normalized.unitValue = '';
+                }
+                // Normalize titration steps
+                if (normalized.titration && Array.isArray(normalized.titration)) {
+                    normalized.titration = normalized.titration.map(step => ({
+                        ...step,
+                        dose: step.dose === undefined || step.dose === null ? '' : String(step.dose),
+                        durationCount: step.durationCount === undefined || step.durationCount === null ? '' : String(step.durationCount),
+                        doseUnit: step.doseUnit || 'mcg',
+                        durationUnit: step.durationUnit || 'days'
+                    }));
+                }
+                return normalized;
+            });
+        }
+        
+        // Normalize shared titration for blended protocols
+        if (initialData.sharedTitration && Array.isArray(initialData.sharedTitration)) {
+            initialData.sharedTitration = initialData.sharedTitration.map(step => ({
+                ...step,
+                dose: step.dose === undefined || step.dose === null ? '' : String(step.dose),
+                durationCount: step.durationCount === undefined || step.durationCount === null ? '' : String(step.durationCount),
+                doseUnit: step.doseUnit || 'mcg',
+                durationUnit: step.durationUnit || 'days'
+            }));
+        }
 
         setForm(initialData);
     }, [open, protocol]);
@@ -283,23 +340,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         }
     };
 
-    // Prevent modal from closing if there's unsaved data
+    // Close handler - auto-save handles all changes, so no confirmation needed
     const handleClose = () => {
-        // Check if there's meaningful data that hasn't been saved
-        const hasData = form && (
-            form.protocolName || 
-            form.purpose ||
-            form.peptides?.some(p => p.name) ||
-            form.notes
-        );
-        
-        if (hasData && !isSavingToProtocols) {
-            const shouldClose = window.confirm(
-                'You have unsaved changes. Are you sure you want to close without saving?'
-            );
-            if (!shouldClose) return;
-        }
-        
+        // Auto-save is handling all changes, so we can close without confirmation
+        // For new protocols, data is auto-saved to localStorage
+        // For existing protocols, data is auto-saved to both localStorage and the protocols list
         onClose();
     };
 
@@ -313,19 +358,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     : (form?.id ? "Edit Protocol" : "New Protocol")
             }
             titleExtra={
-                <div className="flex items-center gap-2">
-                    <AutoSaveIndicator 
-                        isSaving={isSaving || isSavingToProtocols}
-                        lastSaved={lastSaved}
-                        theme={theme}
-                        compact={true}
-                    />
-                    {(isSaving || isSavingToProtocols) && (
-                        <span className="text-xs opacity-75" style={{ color: theme.textOnPrimary }}>
-                            {isSavingToProtocols ? 'Saving...' : 'Auto-saving...'}
-                        </span>
-                    )}
-                </div>
+                <AutoSaveIndicator 
+                    isSaving={isSaving || isSavingToProtocols}
+                    lastSaved={lastSaved}
+                    theme={theme}
+                    compact={true}
+                />
             }
             theme={theme}
             variant="modern"
@@ -490,22 +528,14 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 <div className="space-y-6">
                     {/* Shared Settings for Blended Protocols */}
                     {form.protocolType === 'blended' && form.peptides?.length > 1 && (
-                        <div className="p-6 rounded-xl border-2" 
+                        <div className="p-4 rounded-xl border-2" 
                              style={{ borderColor: theme.primary + '40', backgroundColor: theme.primary + '08' }}>
-                            <h4 className="font-semibold mb-3" style={{ color: theme.text }}>
+                            <h4 className="font-semibold mb-1.5 text-sm" style={{ color: theme.text }}>
                                 Shared Protocol Settings
                             </h4>
-                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+                            <p className="text-xs" style={{ color: theme.textLight }}>
                                 These settings apply to all peptides since they'll be mixed together
                             </p>
-                            <DosingScheduleEditor
-                                frequency={form.peptides[0]?.frequency || { type: 'daily', time: ['AM'] }}
-                                onChange={(newFreq) => {
-                                    const updatedPeptides = form.peptides.map(p => ({ ...p, frequency: newFreq }));
-                                    handleChange('peptides', updatedPeptides);
-                                }}
-                                theme={theme}
-                            />
                         </div>
                     )}
                     
@@ -518,7 +548,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                      border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
                                      boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                                      backgroundColor: index % 2 === 0 
-                                         ? (theme.isDark ? '#1f2937' : theme.cardBackground)
+                                         ? (theme.isDark ? '#0f172a' : theme.cardBackground)  // Darker for better contrast with input fields
                                          : (theme.isDark ? '#111827' : theme.secondary + '80')
                                  }}>
                                 {/* Peptide Header with Number */}
@@ -659,7 +689,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 >
                                     <input 
                                         type="text"
-                                        value={form.duration?.noEnd ? '' : String(form.duration?.count || '')}
+                                        value={form.duration?.noEnd ? '' : (form.duration?.count ?? '')}
                                         onChange={e => handleDurationChange('count', e.target.value)}
                                         placeholder="4"
                                         disabled={form.duration?.noEnd}
@@ -727,7 +757,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 >
                                     <input 
                                         type="text"
-                                        value={form.washout?.enabled ? form.washout?.duration || '' : ''}
+                                        value={form.washout?.enabled ? (form.washout?.duration ?? '') : ''}
                                         onChange={e => handleWashoutChange('duration', e.target.value)}
                                         placeholder="2"
                                         disabled={!form.washout?.enabled}
@@ -787,7 +817,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         theme={theme} 
                         placeholder="Add any personal notes for this protocol..." 
                         multiline 
-                        rows={3}
+                        rows={6}
                     />
                 </div>
             </div>

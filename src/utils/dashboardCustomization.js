@@ -532,6 +532,10 @@ export const compactGrid = (widgets) => {
 
   // Helper functions for grid management
   const isPositionAvailable = (x, y, width, height) => {
+    // Check bounds
+    if (x < 0 || y < 0 || x + width > GRID_COLS) return false;
+    
+    // Check if position is already occupied
     for (let row = y; row < y + height; row++) {
       for (let col = x; col < x + width; col++) {
         if (grid[row] && grid[row][col]) return false;

@@ -98,8 +98,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     {/* Units - 1/3 width */}
                                     <div className="col-span-1">
                                         <div 
-                                            className="flex items-stretch border rounded-lg overflow-hidden"
-                                            style={{ borderColor: theme.border }}
+                                            className="flex items-stretch rounded-lg overflow-hidden"
                                         >
                                             {/* Input field for units - numeric values only */}
                                             <input
@@ -112,8 +111,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                         unitValue: newValue
                                                     });
                                                 }}
-                                                placeholder="Optional"
-                                                className="flex-1 px-2 py-2 outline-none min-w-0"
+                                                className="flex-1 px-2 py-2 outline-none min-w-0 border-0 focus:ring-0"
                                                 style={{ 
                                                     backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
                                                     color: theme.text 
@@ -122,9 +120,8 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             
                                             {/* Unit Selector - Single 'units' pill */}
                                             <div 
-                                                className="flex items-center px-1.5 py-1.5 border-l flex-shrink-0"
+                                                className="flex items-center px-1.5 py-1.5 flex-shrink-0"
                                                 style={{ 
-                                                    borderColor: theme.border,
                                                     backgroundColor: theme.cardBackground || '#f9fafb'
                                                 }}
                                             >
@@ -136,6 +133,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                 </div>
                                             </div>
                                         </div>
+                                        <p className="text-xs mt-1 italic" style={{ color: theme.textLight }}>Optional</p>
                                     </div>
                                 </div>
                         </div>

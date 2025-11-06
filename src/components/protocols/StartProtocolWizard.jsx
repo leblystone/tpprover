@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../common/Modal';
-import { ChevronRight, ChevronsRight, Info, CheckCircle } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -8,9 +8,10 @@ import { formatMMDDYYYY } from '../../utils/date';
 import { formatCurrency } from '../../utils/currencyUtils';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
+import AutoSaveIndicator from '../common/AutoSaveIndicator';
 
 
-const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
+const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
     const [action, setAction] = useState(null); // 'select', 'add'
     const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '1', vendor: '' });
 
@@ -25,17 +26,15 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
             });
     }, [stockpile, peptide]);
 
-    const handleSaveNew = () => {
-        onSaveNew(peptide.id, { ...quickAddForm, name: peptide.name });
-        setAction(null);
-    };
-
     const isSkipped = linkedVialId === 'skipped';
 
     if (linkedVialId && !isSkipped) {
         const selectedVial = stockpile.find(item => item.id === linkedVialId);
         return (
-            <div className="p-3 rounded-md border-2" style={{ borderColor: theme.primary }}>
+            <div className="p-3 rounded-md" style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : (theme.primary + '10'),
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
                  <div className="flex items-center justify-between">
                     <div>
                         <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
@@ -45,7 +44,7 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
                     </div>
                     <div className="flex items-center gap-2">
                         <CheckCircle className="h-5 w-5" style={{ color: theme.primary }} />
-                        <button onClick={() => onUnlink(peptide.id)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Unlink</button>
+                        <button onClick={() => onUnlink(peptideId)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Unlink</button>
                     </div>
                 </div>
             </div>
@@ -54,7 +53,10 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
 
     if (isSkipped) {
         return (
-            <div className="p-3 rounded-md border-2 bg-gray-50" style={{ borderColor: theme.border }}>
+            <div className="p-3 rounded-md" style={{ 
+                backgroundColor: theme.isDark ? '#374151' : '#f9fafb',
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
                  <div className="flex items-center justify-between">
                     <div>
                         <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
@@ -63,7 +65,7 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => onUnlink(peptide.id)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Undo</button>
+                        <button onClick={() => onUnlink(peptideId)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Undo</button>
                     </div>
                 </div>
             </div>
@@ -72,11 +74,14 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
 
     if (action === 'select') {
         return (
-            <div className="p-3 rounded-md border" style={{ borderColor: theme.border }}>
+            <div className="p-3 rounded-md" style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
                 <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>{peptide.name}</p>
                 <SearchableDropdown
                     options={vialOptions}
-                    onChange={(vialId) => onSelectVial(peptide.id, vialId)}
+                    onChange={(vialId) => onSelectVial(peptideId, vialId)}
                     theme={theme}
                     placeholder="Select a vial..."
                 />
@@ -86,8 +91,15 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
     }
     
     if (action === 'add') {
+        const handleSaveNew = () => {
+            onSaveNew(peptideId, { ...quickAddForm, name: peptide.name });
+            setAction(null);
+        };
          return (
-            <div className="p-3 rounded-md border bg-gray-50/50" style={{ borderColor: theme.border }}>
+            <div className="p-3 rounded-md" style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            }}>
                 <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>Add {peptide.name} to Stockpile</p>
                 <div className="space-y-2">
                     <TextInput label="mg (per vial)" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="e.g., 10" />
@@ -95,7 +107,7 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
                     <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
                 </div>
                 <div className="mt-3 flex items-center justify-end gap-2">
-                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-lg border font-medium transition-all" style={{ borderColor: theme.border }}>Cancel</button>
+                     <button onClick={() => setAction(null)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
                      <button onClick={handleSaveNew} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save & Link</button>
                 </div>
             </div>
@@ -104,11 +116,14 @@ const PeptideLinkerRow = ({ peptide, stockpile, linkedVialId, onSelectVial, onSa
     
     // Default view with choices
     return (
-        <div className="p-3 rounded-md border flex items-center justify-between" style={{ borderColor: theme.border }}>
+        <div className="p-3 rounded-md flex items-center justify-between" style={{ 
+            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+        }}>
             <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
             <div className="flex items-center gap-2">
-                <button onClick={() => onSkip(peptide.id)} className="px-3 py-1.5 text-xs rounded-lg border font-medium transition-all" style={{ borderColor: theme.border }}>Skip</button>
-                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg border font-medium transition-all" style={{ borderColor: theme.border }}>Add New</button>
+                <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
+                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
                 <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select Vial</button>
             </div>
         </div>
@@ -122,28 +137,165 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10));
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
 
+    // Auto-save wizard state - manual implementation to avoid infinite loops
+    const storageKey = `tpprover_start_protocol_draft_${protocol?.id || 'new'}`;
+    const [isSaving, setIsSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState(null);
+    const autoSaveTimeoutRef = React.useRef(null);
+    const previousStateRef = React.useRef(null);
+    const isRestoringRef = React.useRef(false);
+
+    // Auto-save effect
+    useEffect(() => {
+        if (!open || !protocol) return;
+        if (isRestoringRef.current) {
+            isRestoringRef.current = false;
+            return;
+        }
+
+        const currentState = {
+            stage,
+            linkedData,
+            startDate,
+            reconStrategy
+        };
+
+        // Skip if data hasn't changed
+        if (JSON.stringify(currentState) === JSON.stringify(previousStateRef.current)) {
+            return;
+        }
+
+        // Skip if form is empty
+        if (!currentState.linkedData || Object.keys(currentState.linkedData).length === 0) {
+            return;
+        }
+
+        // Clear existing timeout
+        if (autoSaveTimeoutRef.current) {
+            clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        setIsSaving(true);
+
+        // Auto-save after delay
+        autoSaveTimeoutRef.current = setTimeout(() => {
+            try {
+                const saveData = {
+                    data: currentState,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem(storageKey, JSON.stringify(saveData));
+                setLastSaved(new Date());
+                previousStateRef.current = currentState;
+            } catch (error) {
+                console.warn('Failed to auto-save wizard state:', error);
+            } finally {
+                setIsSaving(false);
+            }
+        }, 2000);
+
+        return () => {
+            if (autoSaveTimeoutRef.current) {
+                clearTimeout(autoSaveTimeoutRef.current);
+            }
+        };
+    }, [stage, linkedData, startDate, reconStrategy, open, protocol, storageKey]);
+
+    const clearSavedData = React.useCallback(() => {
+        try {
+            localStorage.removeItem(storageKey);
+            setLastSaved(null);
+            previousStateRef.current = null;
+        } catch (error) {
+            console.warn('Failed to clear saved data:', error);
+        }
+    }, [storageKey]);
+
+    const markAsSubmitted = React.useCallback(() => {
+        clearSavedData();
+    }, [clearSavedData]);
+
+    // Load saved draft or initialize fresh state when modal opens
     useEffect(() => {
         if (open && protocol) {
+            try {
+                const saved = localStorage.getItem(storageKey);
+                if (saved) {
+                    const parsedData = JSON.parse(saved);
+                    if (parsedData.data && Object.keys(parsedData.data).length > 0) {
+                        const savedState = parsedData.data;
+                        isRestoringRef.current = true; // Prevent auto-save from triggering
+                        if (savedState.stage) setStage(savedState.stage);
+                        if (savedState.linkedData) setLinkedData(savedState.linkedData);
+                        if (savedState.startDate) setStartDate(savedState.startDate);
+                        if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
+                        previousStateRef.current = savedState;
+                        setLastSaved(new Date(parsedData.timestamp));
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load saved draft:', e);
+            }
+
+            // Initialize fresh state if no saved draft
+            isRestoringRef.current = true;
             setStage('linking');
-            const initialData = protocol.peptides.reduce((acc, p) => {
-                acc[p.id] = { status: 'pending' };
-                return acc;
-            }, {});
+            const initialData = {};
+            protocol.peptides.forEach((p, index) => {
+                const peptideId = p.id || `peptide-${index}`;
+                const uniqueKey = initialData[peptideId] ? `peptide-${index}` : peptideId;
+                initialData[uniqueKey] = { status: 'pending' };
+            });
             setLinkedData(initialData);
             setReconStrategy(null);
+            previousStateRef.current = { stage: 'linking', linkedData: initialData, startDate, reconStrategy: null };
         }
-    }, [open, protocol]);
+    }, [open, protocol, storageKey]);
 
-    const handleSelectVial = (peptideId, vialId) => {
-        setLinkedData(prev => ({ ...prev, [peptideId]: { status: 'linked', vialId } }));
-    };
+    const handleSelectVial = React.useCallback((peptideId, vialId) => {
+        setLinkedData(prev => {
+            // Ensure we only update the specific peptide and preserve all others
+            // Create a completely new object to avoid any reference issues
+            const updated = {};
+            // First, copy all existing entries
+            Object.keys(prev).forEach(key => {
+                updated[key] = { ...prev[key] };
+            });
+            // Then update only the specific peptide
+            updated[peptideId] = { status: 'linked', vialId };
+            return updated;
+        });
+    }, []);
 
     const handleUnlinkPeptide = (peptideId) => {
-        setLinkedData(prev => ({ ...prev, [peptideId]: { status: 'pending' } }));
+        setLinkedData(prev => {
+            // Ensure we only update the specific peptide and preserve all others
+            // Create a completely new object to avoid any reference issues
+            const updated = {};
+            // First, copy all existing entries
+            Object.keys(prev).forEach(key => {
+                updated[key] = { ...prev[key] };
+            });
+            // Then update only the specific peptide
+            updated[peptideId] = { status: 'pending' };
+            return updated;
+        });
     };
 
     const handleSkipPeptide = (peptideId) => {
-        setLinkedData(prev => ({ ...prev, [peptideId]: { status: 'skipped' } }));
+        setLinkedData(prev => {
+            // Ensure we only update the specific peptide and preserve all others
+            // Create a completely new object to avoid any reference issues
+            const updated = {};
+            // First, copy all existing entries
+            Object.keys(prev).forEach(key => {
+                updated[key] = { ...prev[key] };
+            });
+            // Then update only the specific peptide
+            updated[peptideId] = { status: 'skipped' };
+            return updated;
+        });
     };
 
     const handleSaveNewAndLink = (peptideId, newItemData) => {
@@ -157,12 +309,25 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         const updatedStockpile = [newItem, ...stockpile];
         setStockpile(updatedStockpile);
 
-        // Now link it
-        setLinkedData(prev => ({ ...prev, [peptideId]: { status: 'linked', vialId: newItem.id } }));
+        // Now link it - ensure we only update the specific peptide
+        setLinkedData(prev => {
+            // Create a completely new object to avoid any reference issues
+            const updated = {};
+            // First, copy all existing entries
+            Object.keys(prev).forEach(key => {
+                updated[key] = { ...prev[key] };
+            });
+            // Then update only the specific peptide
+            updated[peptideId] = { status: 'linked', vialId: newItem.id };
+            return updated;
+        });
     };
 
     const handleContinue = () => {
-        const linkedPeptides = protocol.peptides.filter(p => linkedData[p.id]?.status === 'linked');
+        const linkedPeptides = protocol.peptides.filter((p, index) => {
+            const peptideId = p.id || `peptide-${index}`;
+            return linkedData[peptideId]?.status === 'linked';
+        });
         
         if (linkedPeptides.length > 1) {
             setStage('recon_strategy');
@@ -178,22 +343,26 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         if (!protocol) return null;
         return (
             <div>
-                <h3 className="font-semibold text-lg" style={{ color: theme.text }}>Link Peptides to Your Stockpile</h3>
-                <p className="text-sm mt-1 mb-4" style={{ color: theme.textLight }}>For each peptide in your protocol, select a vial from your stockpile, add a new one, or skip.</p>
+                <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>For each peptide in your protocol, select a vial from your stockpile, add a new one, or skip.</p>
                 <div className="space-y-3">
-                    {protocol.peptides.map(p => (
-                        <PeptideLinkerRow
-                            key={p.id}
-                            peptide={p}
-                            stockpile={stockpile}
-                            linkedVialId={linkedData[p.id]?.status === 'linked' ? linkedData[p.id].vialId : (linkedData[p.id]?.status === 'skipped' ? 'skipped' : null)}
-                            onSelectVial={handleSelectVial}
-                            onSaveNew={handleSaveNewAndLink}
-                            onSkip={handleSkipPeptide}
-                            onUnlink={handleUnlinkPeptide}
-                            theme={theme}
-                        />
-                    ))}
+                    {protocol.peptides.map((p, index) => {
+                        // Ensure we have a unique identifier - use index as fallback if ID is missing
+                        const peptideId = p.id || `peptide-${index}`;
+                        return (
+                            <PeptideLinkerRow
+                                key={peptideId}
+                                peptide={p}
+                                peptideId={peptideId}
+                                stockpile={stockpile}
+                                linkedVialId={linkedData[peptideId]?.status === 'linked' ? linkedData[peptideId].vialId : (linkedData[peptideId]?.status === 'skipped' ? 'skipped' : null)}
+                                onSelectVial={handleSelectVial}
+                                onSaveNew={handleSaveNewAndLink}
+                                onSkip={handleSkipPeptide}
+                                onUnlink={handleUnlinkPeptide}
+                                theme={theme}
+                            />
+                        );
+                    })}
                 </div>
                  <div className="mt-6 flex justify-end">
                     <button 
@@ -211,21 +380,26 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     // Bringing back the other render functions
     const linkedPeptides = useMemo(() => {
         if (!protocol) return [];
-        return protocol.peptides.filter(p => linkedData[p.id]?.status === 'linked');
+        return protocol.peptides.filter((p, index) => {
+            const peptideId = p.id || `peptide-${index}`;
+            return linkedData[peptideId]?.status === 'linked';
+        });
     }, [linkedData, protocol]);
 
     const renderReconStrategyStep = () => {
         return (
             <div>
-                <h3 className="font-semibold text-lg" style={{ color: theme.text }}>Reconstitution Strategy</h3>
-                <p className="text-sm mt-4" style={{ color: theme.textLight }}>
-                    You've linked {linkedPeptides.length} peptide(s). How would you like to reconstitute them?
+                <p className="text-sm text-center italic mb-4" style={{ color: theme.textLight, wordBreak: 'keep-all', whiteSpace: 'normal' }}>
+                    You've linked {linkedPeptides.length} peptide(s). How would you like to <span style={{ whiteSpace: 'nowrap' }}>reconstitute</span> them?
                 </p>
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button 
                         onClick={() => { setReconStrategy('separate'); setStage('reconstituting'); }}
-                        className="p-4 border rounded-lg text-left hover:bg-gray-50"
-                        style={{ borderColor: theme.border }}
+                        className="p-4 rounded-lg text-left transition-all hover:opacity-90"
+                        style={{ 
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                        }}
                     >
                         <h4 className="font-semibold" style={{ color: theme.text }}>Separately</h4>
                         <p className="text-xs mt-1" style={{ color: theme.textLight }}>
@@ -234,8 +408,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </button>
                     <button 
                         onClick={() => { setReconStrategy('blended'); setStage('reconstituting'); }}
-                        className="p-4 border rounded-lg text-left hover:bg-gray-50"
-                        style={{ borderColor: theme.border }}
+                        className="p-4 rounded-lg text-left transition-all hover:opacity-90"
+                        style={{ 
+                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                        }}
                     >
                         <h4 className="font-semibold" style={{ color: theme.text }}>Blended</h4>
                         <p className="text-xs mt-1" style={{ color: theme.textLight }}>
@@ -244,9 +421,19 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </button>
                 </div>
                  <div className="mt-4 text-center">
-                     <button onClick={() => setStage('confirm')} className="text-sm text-gray-500 hover:underline">
-                        Skip reconstitution
-                    </button>
+                    <div className="flex justify-between items-center">
+                        <button 
+                            onClick={handleBack}
+                            className="px-4 py-2 rounded-md text-sm flex items-center gap-2"
+                            style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}
+                        >
+                            <ChevronLeft size={16} />
+                            Back
+                        </button>
+                        <button onClick={() => setStage('confirm')} className="text-sm text-gray-500 hover:underline">
+                            Skip reconstitution
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -254,17 +441,18 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     
     const renderReconstitutingStep = () => {
          const prefill = {
-            peptides: linkedPeptides.map(p => {
-                const vialId = linkedData[p.id].vialId;
+            peptides: linkedPeptides.map((p, index) => {
+                const peptideId = p.id || `peptide-${index}`;
+                const vialId = linkedData[peptideId]?.vialId;
                 const vial = stockpile.find(item => item.id === vialId);
-                if (!vial) return { id: p.id, name: p.name, mg: '', dose: '' };
+                if (!vial) return { id: peptideId, name: p.name, mg: '', dose: '' };
                 const totalCost = Number(vial.cost) || 0;
                 const quantity = Number(vial.quantity) || 1;
                 // For recon calculations, we need the cost of ONE vial being reconstituted
                 // If user entered total cost for multiple vials, divide by quantity to get per-vial cost
                 const singleVialCost = quantity > 0 ? totalCost / quantity : 0;
                 return {
-                    id: p.id, name: p.name, mg: vial.mg,
+                    id: peptideId, name: p.name, mg: vial.mg,
                     dose: p.dosage?.amount || '', doseUnit: p.dosage?.unit || 'mcg',
                     cost: singleVialCost, vendor: vial.vendor,
                 };
@@ -274,14 +462,17 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         };
         return (
              <div>
-                <h3 className="font-semibold text-lg" style={{ color: theme.text }}>Reconstitute for {protocol.protocolName}</h3>
-                <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                    You've chosen a <span className="font-semibold">{reconStrategy}</span> strategy. Please confirm the details below.
+                <p className="text-sm italic text-center mb-4" style={{ color: theme.textLight }}>
+                    Confirm your vial(s) for the {reconStrategy === 'separate' ? 'separate' : 'blended'} protocol.
                 </p>
                 <div className="mt-4">
                     <ReconCalculatorPanel
                         theme={theme}
                         prefill={prefill}
+                        noCard={true}
+                        reconStrategy={reconStrategy}
+                        allowRemovePeptide={false}
+                        allowAddPeptide={false}
                         onSave={(reconData) => {
                             const newReconId = `recon-${Date.now()}`;
 
@@ -306,14 +497,27 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 localStorage.setItem('tpprover_recon_items', JSON.stringify([newReconItem, ...items]));
                             } catch (e) { console.error("Failed to save new recon item", e); }
                             let updatedLinkedData = { ...linkedData };
-                            linkedPeptides.forEach(p => {
-                                updatedLinkedData[p.id] = { ...updatedLinkedData[p.id], reconId: newReconId };
+                            linkedPeptides.forEach((p, index) => {
+                                const peptideId = p.id || `peptide-${index}`;
+                                updatedLinkedData[peptideId] = { ...updatedLinkedData[peptideId], reconId: newReconId };
                             });
                             setLinkedData(updatedLinkedData);
                             setStage('confirm');
                         }}
                     />
                 </div>
+                {canGoBack() && (
+                    <div className="mt-4 flex justify-start">
+                        <button 
+                            onClick={handleBack}
+                            className="px-4 py-2 rounded-md text-sm flex items-center gap-2"
+                            style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}
+                        >
+                            <ChevronLeft size={16} />
+                            Back
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };
@@ -322,27 +526,30 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         return (
              <div className="space-y-6">
                 {/* Header */}
-                <div>
-                    <h3 className="font-semibold text-lg" style={{ color: theme.text }}>Ready to Start</h3>
-                    <p className="text-sm mt-1 italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
-                </div>
+                <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
 
                 {/* Start Date Input */}
-                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="p-4 rounded-lg" style={{ 
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                }}>
                     <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
                         Start Date
                     </label>
                     <input 
                         type="date" 
-                        className="w-full px-3 py-2 rounded-md border transition-all focus:ring-2 focus:ring-opacity-50" 
+                        className="w-full px-3 py-2 rounded-md transition-all focus:ring-2 focus:ring-opacity-50 border-0 focus:ring-0" 
                         value={startDate} 
                         onChange={e => setStartDate(e.target.value)} 
-                        style={{ borderColor: theme.border, backgroundColor: theme.inputBackground || '#fff', color: theme.text }} 
+                        style={{ backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), color: theme.text }} 
                     />
                 </div>
 
                 {/* Protocol Summary Card */}
-                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="p-4 rounded-lg" style={{ 
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                }}>
                     <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Protocol Summary</div>
                     <div className="space-y-3 text-xs" style={{ color: theme.textLight }}>
                         <div className="flex justify-between">
@@ -396,7 +603,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 </div>
 
                 {/* What Happens Next */}
-                <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="p-4 rounded-lg" style={{ 
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                }}>
                     <div className="text-sm font-medium mb-4" style={{ color: theme.text }}>What Happens Next</div>
                     <div className="grid grid-cols-1 gap-3">
                         <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
@@ -436,17 +646,118 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex justify-end gap-2 pt-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg border font-medium transition-all" style={{ borderColor: theme.border, color: theme.text }}>
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={() => onStart({ ...protocol, startDate, active: true, linkedItems: linkedData })}
-                        className="px-4 py-2 rounded-lg font-medium transition-all"
-                        style={{ backgroundColor: theme.primary, color: '#ffffff' }}
-                    >
-                        Start Protocol
-                    </button>
+                <div className="flex justify-between gap-2 pt-2">
+                    <div>
+                        {canGoBack() && (
+                            <button 
+                                onClick={handleBack}
+                                className="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
+                                style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}
+                            >
+                                <ChevronLeft size={16} />
+                                Back
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={onClose} className="px-4 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.text }}>
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={() => {
+                                markAsSubmitted(); // Clear draft on successful start
+                                onStart({ ...protocol, startDate, active: true, linkedItems: linkedData });
+                            }}
+                            className="px-4 py-2 rounded-lg font-medium transition-all"
+                            style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+                        >
+                            Start Protocol
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Progress indicator component
+    const stages = [
+        { id: 'linking', label: 'Link Peptides' },
+        { id: 'recon_strategy', label: 'Strategy' },
+        { id: 'reconstituting', label: 'Reconstitute' },
+        { id: 'confirm', label: 'Confirm' }
+    ];
+
+    const getCurrentStageIndex = () => {
+        return stages.findIndex(s => s.id === stage);
+    };
+
+    const canGoBack = () => {
+        return getCurrentStageIndex() > 0;
+    };
+
+    const handleBack = () => {
+        const currentIndex = getCurrentStageIndex();
+        if (currentIndex > 0) {
+            setStage(stages[currentIndex - 1].id);
+        }
+    };
+
+    const renderProgressIndicator = () => {
+        const currentIndex = getCurrentStageIndex();
+        return (
+            <div className="mb-2 overflow-x-hidden">
+                <div className="flex items-center justify-between" style={{ minWidth: 0 }}>
+                    {stages.map((s, index) => {
+                        const isActive = index === currentIndex;
+                        const isCompleted = index < currentIndex;
+                        const isClickable = index < currentIndex; // Can click to go back to completed stages
+                        
+                        return (
+                            <React.Fragment key={s.id}>
+                                <div className="flex flex-col items-center flex-1">
+                                    <button
+                                        onClick={() => isClickable && setStage(s.id)}
+                                        disabled={!isClickable}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                                            isClickable ? 'cursor-pointer hover:scale-110' : 'cursor-default'
+                                        }`}
+                                        style={{
+                                            backgroundColor: isActive 
+                                                ? theme.primary 
+                                                : isCompleted 
+                                                    ? theme.secondary 
+                                                    : theme.isDark ? '#374151' : '#e5e7eb',
+                                            color: isActive 
+                                                ? '#ffffff' 
+                                                : isCompleted 
+                                                    ? theme.primary 
+                                                    : theme.textLight,
+                                            border: isActive ? `2px solid ${theme.primary}` : 'none'
+                                        }}
+                                    >
+                                        {isCompleted ? '✓' : index + 1}
+                                    </button>
+                                    <span 
+                                        className="text-xs mt-1.5 text-center"
+                                        style={{ 
+                                            color: isActive ? theme.primary : theme.textLight,
+                                            fontWeight: isActive ? '600' : '400'
+                                        }}
+                                    >
+                                        {s.label}
+                                    </span>
+                                </div>
+                                {index < stages.length - 1 && (
+                                    <div 
+                                        className="flex-1 h-0.5 mx-2 mt-[-16px]"
+                                        style={{ 
+                                            backgroundColor: isCompleted ? theme.primary : (theme.isDark ? '#374151' : '#e5e7eb')
+                                        }}
+                                    />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -470,8 +781,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             title="Start Protocol"
             theme={theme}
             variant="modern"
-            maxWidth="max-w-2xl"
+            maxWidth="max-w-4xl"
+            titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} compact />}
         >
+            {renderProgressIndicator()}
             {renderContent()}
         </Modal>
     );

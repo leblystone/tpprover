@@ -66,7 +66,12 @@ const SchedulingPreview = ({ protocol, theme }) => {
   const weeklyTasks = calculateWeeklyTasks(protocol.peptides);
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3" style={{ backgroundColor: theme.info + '10', borderColor: theme.info + '40' }}>
+    <div className="rounded-lg p-4 space-y-3" style={{ 
+      backgroundColor: theme.isDark ? '#1f2937' : (theme.info + '10'), 
+      borderColor: theme.isDark ? theme.border : (theme.info + '40'),
+      borderWidth: '1px',
+      borderStyle: 'solid'
+    }}>
       
       <div className="text-sm space-y-2" style={{ color: theme.text }}>
         <div className="flex items-start gap-2">
@@ -84,7 +89,10 @@ const SchedulingPreview = ({ protocol, theme }) => {
         <div className="border-t pt-2" style={{ borderColor: theme.border }}>
           <div className="font-medium mb-2">Daily Schedule:</div>
           {protocol.peptides.map((peptide, index) => (
-            <div key={index} className="bg-white rounded p-2 mb-2 text-xs" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}` }}>
+            <div key={index} className="rounded p-2 mb-2 text-xs" style={{ 
+              backgroundColor: theme.isDark ? '#0f172a' : (theme.cardBackground || '#fff'),
+              border: theme.isDark ? 'none' : `1px solid ${theme.border}`
+            }}>
               <div className="font-medium" style={{ color: theme.text }}>
                 {peptide.name}
               </div>
