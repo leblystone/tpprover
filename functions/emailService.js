@@ -213,6 +213,24 @@ async function loadEmailTemplate(templateType) {
     if (templateDoc.exists) {
       const data = templateDoc.data();
       logger.info(`✅ Found template ${templateType} in Firestore`);
+      
+      // If template doesn't have colors, try to load from _branding doc
+      if (!data.colors) {
+        logger.info(`🎨 Template ${templateType} missing colors, loading from _branding...`);
+        try {
+          const brandingRef = admin.firestore().collection('emailTemplates').doc('_branding');
+          const brandingDoc = await brandingRef.get();
+          if (brandingDoc.exists && brandingDoc.data().colors) {
+            data.colors = brandingDoc.data().colors;
+            logger.info(`✅ Loaded colors from _branding doc`);
+          }
+        } catch (brandingError) {
+          logger.warn(`⚠️ Could not load colors from _branding:`, brandingError);
+        }
+      } else {
+        logger.info(`✅ Template ${templateType} has embedded colors`);
+      }
+      
       return data;
     } else {
       logger.warn(`⚠️ Template ${templateType} not found in Firestore`);
@@ -220,6 +238,7 @@ async function loadEmailTemplate(templateType) {
     return null;
   } catch (error) {
     logger.error(`❌ Failed to load email template ${templateType}:`, error);
+    logger.error(`❌ Error stack:`, error.stack);
     return null;
   }
 }
@@ -237,6 +256,8 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
     text: '#1F2937',
     textLight: '#6B7280'
   };
+
+  logger.info('🎨 Using colors:', Object.keys(colors));
 
   // Replace variables in template text fields BEFORE generating HTML
   const processedTemplate = { ...template };
@@ -269,12 +290,25 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
   }
 
   // Generate HTML from processed template
-  let html = template.html || generateDefaultHTML(processedTemplate, colors);
+  // If template.html exists, use it (from advanced editor), otherwise generate from simple fields
+  let html;
+  if (template.html) {
+    logger.info('📝 Using custom HTML from template.html field');
+    html = template.html;
+  } else {
+    logger.info('📝 Generating HTML from simple template fields');
+    html = generateDefaultHTML(processedTemplate, colors);
+  }
   
   // Also replace variables in custom HTML if provided
   Object.entries(variables).forEach(([key, value]) => {
     const replacement = value || '';
     html = html.replace(new RegExp(`%${key.toUpperCase()}%`, 'g'), replacement);
+  });
+
+  // Replace color variables in HTML if they exist (for advanced editor)
+  html = html.replace(/\$\{colors\.(\w+)\}/g, (match, colorKey) => {
+    return colors[colorKey] || match;
   });
 
   return html;
@@ -388,18 +422,24 @@ exports.sendPasswordResetEmail = async (userEmail, resetLink) => {
 exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
   // Try Firestore template
   try {
+    logger.info('📧 Attempting to load custom trialEnding template...');
     const customTemplate = await loadEmailTemplate('trialEnding');
     if (customTemplate) {
-      logger.info('✅ Using custom trialEnding template from Firestore');
+      logger.info('✅ Custom trialEnding template found in Firestore');
+      logger.info('📋 Template has html field:', !!customTemplate.html);
+      logger.info('🎨 Template has colors:', !!customTemplate.colors);
       const subject = customTemplate.subject || `Your trial ends in ${daysLeft} days - The Pep Planner`;
       const html = generateEmailHTML(customTemplate, { daysLeft });
+      logger.info('✅ Generated HTML from custom template, length:', html.length);
       return sendEmail(userEmail, subject, html);
     } else {
       logger.warn('⚠️ No custom trialEnding template found in Firestore, using default');
     }
   } catch (e) {
     logger.error('❌ Failed to load custom trialEnding template:', e);
+    logger.error('❌ Error stack:', e.stack);
   }
+  logger.info('📧 Falling back to hardcoded trialEnding template');
   const subject = `Your trial ends in ${daysLeft} days - The Pep Planner`;
   const html = emailTemplates.trialEndingEmail(daysLeft, userEmail);
   return sendEmail(userEmail, subject, html);
@@ -410,13 +450,24 @@ exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
  */
 exports.sendSubscriptionConfirmationEmail = async (userEmail, plan, interval, price) => {
   try {
+    logger.info('📧 Attempting to load custom subscription template...');
     const customTemplate = await loadEmailTemplate('subscription');
     if (customTemplate) {
+      logger.info('✅ Custom subscription template found in Firestore');
+      logger.info('📋 Template has html field:', !!customTemplate.html);
+      logger.info('🎨 Template has colors:', !!customTemplate.colors);
       const subject = customTemplate.subject || 'Subscription Confirmed - The Pep Planner';
       const html = generateEmailHTML(customTemplate, { plan, interval, price });
+      logger.info('✅ Generated HTML from custom template, length:', html.length);
       return sendEmail(userEmail, subject, html);
+    } else {
+      logger.warn('⚠️ No custom subscription template found in Firestore, using default');
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    logger.error('❌ Error loading/generating custom subscription template:', e);
+    logger.error('❌ Error stack:', e.stack);
+  }
+  logger.info('📧 Falling back to hardcoded subscription template');
   const subject = 'Subscription Confirmed - The Pep Planner';
   const html = emailTemplates.subscriptionConfirmedEmail(plan, interval, price);
   return sendEmail(userEmail, subject, html);
@@ -446,15 +497,24 @@ exports.sendLifetimeAccessGrantedEmail = async (userEmail, reason = 'Beta tester
  */
 exports.sendSubscriptionConfirmedEmail = async (userEmail, plan) => {
   try {
+    logger.info('📧 Attempting to load custom subscription template (sendSubscriptionConfirmedEmail)...');
     const customTemplate = await loadEmailTemplate('subscription');
     if (customTemplate) {
+      logger.info('✅ Custom subscription template found in Firestore');
+      logger.info('📋 Template has html field:', !!customTemplate.html);
+      logger.info('🎨 Template has colors:', !!customTemplate.colors);
       const subject = customTemplate.subject || 'Subscription Confirmed - The Pep Planner';
       const html = generateEmailHTML(customTemplate, { plan, interval: 'month', price: '$8.99' });
+      logger.info('✅ Generated HTML from custom template, length:', html.length);
       return sendEmail(userEmail, subject, html);
+    } else {
+      logger.warn('⚠️ No custom subscription template found in Firestore, using default');
     }
   } catch (e) { 
-    logger.warn('Failed to load custom subscription template, using default:', e);
+    logger.error('❌ Failed to load custom subscription template:', e);
+    logger.error('❌ Error stack:', e.stack);
   }
+  logger.info('📧 Falling back to hardcoded subscription template');
   const subject = 'Subscription Confirmed - The Pep Planner';
   const html = emailTemplates.subscriptionConfirmedEmail(plan, 'month', '$8.99');
   return sendEmail(userEmail, subject, html);
