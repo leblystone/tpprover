@@ -204,7 +204,7 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
 /**
  * Load email template from Firestore
  */
-async function loadEmailTemplate(templateType) {
+exports.loadEmailTemplate = async function loadEmailTemplate(templateType) {
   try {
     logger.info(`📧 Loading email template: ${templateType}`);
     const templateRef = admin.firestore().collection('emailTemplates').doc(templateType);

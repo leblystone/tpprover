@@ -126,7 +126,46 @@ exports.testEmailSystem = onCall(
       emailName = 'Welcome Email';
     } else if (templateType === 'trialEnding') {
       logger.info('Testing trial ending email...');
+      
+      // Try to load custom template from Firestore first
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
       try {
+        logger.info('📧 Attempting to load custom trialEnding template from Firestore...');
+        const customTemplate = await loadEmailTemplate('trialEnding');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom trialEnding template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            daysLeft: 2
+          });
+          subjectText = customTemplate.subject || 'Your trial ends in 2 days - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            daysLeft: 2
+          });
+          subjectText = templateData.subject || 'Your trial ends in 2 days - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Your Trial Ends in 2 Days ⏰</h1>
+              <p>Your 7-day free trial will end in 2 days. Continue your research journey!</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Your trial ends in 2 days - The Pep Planner';
+        }
+        
+        // Send the email
         const sgMail = require('@sendgrid/mail');
         const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
         
@@ -142,20 +181,16 @@ exports.testEmailSystem = onCall(
             email: 'contact@thepepplanner.com',
             name: 'The Pep Planner'
           },
-          subject: 'Your trial ends in 2 days - The Pep Planner',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #6366f1;">Your Trial Ends in 2 Days ⏰</h1>
-              <p>Your 7-day free trial will end in 2 days. Continue your research journey!</p>
-              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-            </div>
-          `
+          subject: subjectText,
+          html: htmlContent
         };
         
         await sgMail.send(msg);
         emailResult = true;
+        logger.info('✅ Trial ending test email sent successfully');
       } catch (error) {
-        logger.error('Trial ending email failed:', error);
+        logger.error('❌ Trial ending email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Trial Ending Email';
@@ -231,7 +266,50 @@ exports.testEmailSystem = onCall(
       emailName = 'Password Reset Email';
     } else if (templateType === 'subscription') {
       logger.info('Testing subscription email...');
+      
+      // Try to load custom template from Firestore first
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
       try {
+        logger.info('📧 Attempting to load custom subscription template from Firestore...');
+        const customTemplate = await loadEmailTemplate('subscription');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom subscription template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            plan: 'Pro Plan',
+            interval: 'month',
+            price: '$8.99'
+          });
+          subjectText = customTemplate.subject || 'Subscription Confirmed - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            plan: 'Pro Plan',
+            interval: 'month',
+            price: '$8.99'
+          });
+          subjectText = templateData.subject || 'Subscription Confirmed - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback to simple hardcoded template
+          logger.warn('⚠️ No custom template found, using simple fallback');
+          htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #6366f1;">Welcome to Pro Plan! 🎉</h1>
+              <p>Thank you for subscribing to The Pep Planner! You now have full access.</p>
+              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
+            </div>
+          `;
+          subjectText = 'Subscription Confirmed - The Pep Planner';
+        }
+        
+        // Send the email
         const sgMail = require('@sendgrid/mail');
         const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
         
@@ -247,20 +325,16 @@ exports.testEmailSystem = onCall(
             email: 'contact@thepepplanner.com',
             name: 'The Pep Planner'
           },
-          subject: 'Subscription Confirmed - The Pep Planner',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #6366f1;">Welcome to Pro Plan! 🎉</h1>
-              <p>Thank you for subscribing to The Pep Planner! You now have full access.</p>
-              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-            </div>
-          `
+          subject: subjectText,
+          html: htmlContent
         };
         
         await sgMail.send(msg);
         emailResult = true;
+        logger.info('✅ Subscription test email sent successfully');
       } catch (error) {
-        logger.error('Subscription email failed:', error);
+        logger.error('❌ Subscription email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Subscription Confirmed Email';
