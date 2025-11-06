@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import TextInput from '../common/inputs/TextInput'
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
 import CustomDropdown from '../common/inputs/CustomDropdown'
@@ -16,6 +16,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   const form = formData !== undefined ? formData : internalForm;
   const setForm = setFormData !== undefined ? setFormData : setInternalForm;
   
+  // Store setForm in ref to prevent dependency issues
+  const setFormRef = useRef(setForm);
+  useEffect(() => {
+    setFormRef.current = setForm;
+  }, [setForm]);
+  
+  // Track if we've already processed the prefill
+  const prefillProcessedRef = useRef(false);
+  const lastPrefillRef = useRef(null);
+  
   // Ensure peptides array always exists
   const safeForm = {
     ...form,
@@ -31,13 +41,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   const [touchEnd, setTouchEnd] = useState(null);
 
   useEffect(() => {
-    if (prefill) {
+    // Only process prefill if it's new and different from the last one
+    if (prefill && prefill !== lastPrefillRef.current) {
+      lastPrefillRef.current = prefill;
+      
       // Wizard prefill (multi-peptide)
       if (prefill.peptides && prefill.peptides.length > 0) {
         const vendors = [...new Set(prefill.peptides.map(p => p.vendor).filter(Boolean))].join(', ');
         const totalCost = prefill.peptides.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
         
-        setForm(prev => ({
+        setFormRef.current(prev => ({
           ...prev,
           vendor: vendors,
           peptides: prefill.peptides.map((pep, index) => ({ ...pep, id: pep.id || index + 1, doseUnit: pep.doseUnit || 'mcg' }))
@@ -47,12 +60,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
       // Simple prefill (single peptide from stockpile page, etc.)
       else if (prefill.peptide) {
         const p = { id: 1, name: prefill.peptide || '', mg: prefill.mg || '', dose: '', doseUnit: 'mcg' };
-        setForm(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
+        setFormRef.current(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
         setCost(prefill.cost || '');
       }
       // Handle formData prefill (from modal)
       else if (prefill.vendor !== undefined || prefill.water !== undefined || prefill.peptides) {
-        setForm(prev => ({
+        setFormRef.current(prev => ({
           ...prev,
           vendor: prefill.vendor !== undefined ? prefill.vendor : prev.vendor,
           water: prefill.water !== undefined ? prefill.water : prev.water,
@@ -70,23 +83,23 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
 
       try { localStorage.removeItem('tpprover_recon_prefill') } catch {}
     }
-  }, [prefill, setForm])
+  }, [prefill])
   
-  // Sync form changes back to parent (for controlled mode)
+  // Sync form state FROM parent formData to local state (one-way sync)
   useEffect(() => {
-    if (formData !== undefined && setFormData) {
-      // Update delivery method and other state when form changes
-      if (form.deliveryMethod && form.deliveryMethod !== deliveryMethod) {
-        setDeliveryMethod(form.deliveryMethod);
+    if (formData !== undefined) {
+      // Update local state to match parent formData
+      if (formData.deliveryMethod && formData.deliveryMethod !== deliveryMethod) {
+        setDeliveryMethod(formData.deliveryMethod);
       }
-      if (form.administrationRoute && form.administrationRoute !== administrationRoute) {
-        setAdministrationRoute(form.administrationRoute);
+      if (formData.administrationRoute && formData.administrationRoute !== administrationRoute) {
+        setAdministrationRoute(formData.administrationRoute);
       }
-      if (form.penColor && form.penColor !== penColor) {
-        setPenColor(form.penColor);
+      if (formData.penColor && formData.penColor !== penColor) {
+        setPenColor(formData.penColor);
       }
     }
-  }, [form, formData, setFormData, deliveryMethod, administrationRoute, penColor])
+  }, [formData?.deliveryMethod, formData?.administrationRoute, formData?.penColor])
 
   const totalMg = useMemo(() => {
     if (!safeForm.peptides || !Array.isArray(safeForm.peptides)) return 0;
