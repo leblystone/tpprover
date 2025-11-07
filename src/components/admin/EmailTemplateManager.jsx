@@ -608,19 +608,22 @@ export default function EmailTemplateManager({ theme }) {
 
   // Update feature in list
   const updateFeature = (index, value) => {
-    const newFeatures = [...currentTemplate.features];
+    const features = currentTemplate.features || [];
+    const newFeatures = [...features];
     newFeatures[index] = value;
     updateTemplate('features', newFeatures);
   };
 
   // Add feature
   const addFeature = () => {
-    updateTemplate('features', [...currentTemplate.features, 'New feature']);
+    const features = currentTemplate.features || [];
+    updateTemplate('features', [...features, 'New feature']);
   };
 
   // Remove feature
   const removeFeature = (index) => {
-    const newFeatures = currentTemplate.features.filter((_, i) => i !== index);
+    const features = currentTemplate.features || [];
+    const newFeatures = features.filter((_, i) => i !== index);
     updateTemplate('features', newFeatures);
   };
 
@@ -1172,7 +1175,7 @@ export default function EmailTemplateManager({ theme }) {
             </div>
 
             {/* Features List */}
-            {selectedTemplate === 'welcome' || selectedTemplate === 'verification' ? (
+            {selectedTemplate === 'welcome' || selectedTemplate === 'verification' || selectedTemplate === 'lifetimeAccessGranted' ? (
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium" style={{ color: theme.text }}>
@@ -1186,7 +1189,7 @@ export default function EmailTemplateManager({ theme }) {
                     + Add Feature
                   </button>
                 </div>
-                {currentTemplate.features.map((feature, index) => (
+                {(currentTemplate.features || []).map((feature, index) => (
                   <div key={index} className="flex gap-2 mb-2">
                     <input
                       type="text"
