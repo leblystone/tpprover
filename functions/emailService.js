@@ -4,6 +4,7 @@
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const emailTemplates = require('./emailTemplates');
+const { fetchFounderState } = require('./founderOffer');
 
 // SendGrid API key will be stored in Firebase environment config
 // Run: firebase functions:config:set sendgrid.api_key="YOUR_SENDGRID_API_KEY"
@@ -281,6 +282,7 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
   processedTemplate.highlightMessage = replaceVars(template.highlightMessage);
   processedTemplate.ctaText = replaceVars(template.ctaText);
   processedTemplate.ctaLink = replaceVars(template.ctaLink);
+  processedTemplate.postCtaNote = replaceVars(template.postCtaNote);
   processedTemplate.subject = replaceVars(template.subject);
   processedTemplate.heading = replaceVars(template.heading);
   
@@ -378,6 +380,12 @@ function generateDefaultHTML(template, colors) {
         </center>
         ` : ''}
 
+        ${template.postCtaNote ? `
+        <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; font-style: italic; text-align: center; margin: 16px 0 24px 0;">
+          <strong>${template.postCtaNote}</strong>
+        </p>
+        ` : ''}
+
         <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin-top: 24px;">
           Happy Researching! ✌🏻,<br>
           <strong style="color: ${colors.primary};">The Pep Planner Team</strong>
@@ -420,6 +428,13 @@ exports.sendPasswordResetEmail = async (userEmail, resetLink) => {
  * Send trial ending soon reminder
  */
 exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
+  let founderState = null;
+  try {
+    founderState = await fetchFounderState();
+  } catch (fetchError) {
+    logger.warn('⚠️ Unable to load founder offer state for trial email:', fetchError.message);
+  }
+
   // Try Firestore template
   try {
     logger.info('📧 Attempting to load custom trialEnding template...');
@@ -429,7 +444,7 @@ exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
       logger.info('📋 Template has html field:', !!customTemplate.html);
       logger.info('🎨 Template has colors:', !!customTemplate.colors);
       const subject = customTemplate.subject || `Your trial ends in ${daysLeft} days - The Pep Planner`;
-      const html = generateEmailHTML(customTemplate, { daysLeft });
+      const html = generateEmailHTML(customTemplate, { daysLeft, founderState });
       logger.info('✅ Generated HTML from custom template, length:', html.length);
       return sendEmail(userEmail, subject, html);
     } else {
@@ -441,7 +456,7 @@ exports.sendTrialEndingEmail = async (userEmail, daysLeft) => {
   }
   logger.info('📧 Falling back to hardcoded trialEnding template');
   const subject = `Your trial ends in ${daysLeft} days - The Pep Planner`;
-  const html = emailTemplates.trialEndingEmail(daysLeft, userEmail);
+  const html = emailTemplates.trialEndingEmail(daysLeft, userEmail, founderState);
   return sendEmail(userEmail, subject, html);
 };
 

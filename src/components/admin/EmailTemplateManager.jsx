@@ -681,6 +681,12 @@ export default function EmailTemplateManager({ theme }) {
         </center>
         ` : ''}
 
+        ${template.postCtaNote ? `
+        <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; font-style: italic; text-align: center; margin: 16px 0 24px 0;">
+          <strong>${template.postCtaNote}</strong>
+        </p>
+        ` : ''}
+
         <p style="font-size: 16px; line-height: 1.6; color: ${colors.text}; margin-top: 24px;">
           Happy Researching! ✌🏻,<br>
           <strong style="color: ${colors.primary};">The Pep Planner Team</strong>
@@ -1228,7 +1234,7 @@ export default function EmailTemplateManager({ theme }) {
                 type="text"
                 value={currentTemplate.ctaLink}
                 onChange={(e) => updateTemplate('ctaLink', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm mb-2 focus:outline-none focus:ring-2 transition-all"
                 style={{ 
                   borderColor: theme.primary + '40',
                   backgroundColor: theme.primaryLighter || '#F0F2F8',
@@ -1236,6 +1242,27 @@ export default function EmailTemplateManager({ theme }) {
                   boxShadow: `0 2px 4px ${theme.primary}10`
                 }}
                 placeholder="Button link URL"
+              />
+            </div>
+
+            {/* Post-CTA Note (Optional) */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                Note Below Button (Optional)
+              </label>
+              <textarea
+                value={currentTemplate.postCtaNote || ''}
+                onChange={(e) => updateTemplate('postCtaNote', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: theme.coffeeLatte || '#D4A574' + '60',
+                  backgroundColor: theme.coffeeCream || '#F5E6D3',
+                  color: theme.text,
+                  boxShadow: `0 2px 4px ${theme.coffeeLatte || '#D4A574'}20`,
+                  fontStyle: 'italic'
+                }}
+                rows="2"
+                placeholder="Optional italicized note below the button (e.g., conditions, terms, etc.)"
               />
             </div>
           </div>
