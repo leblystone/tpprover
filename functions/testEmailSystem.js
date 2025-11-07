@@ -684,6 +684,357 @@ exports.testEmailSystem = onCall(
         emailResult = false;
       }
       emailName = 'Gift Expiring Soon Email';
+    } else if (templateType === 'giftPurchaseConfirmation') {
+      logger.info('Testing gift purchase confirmation email...');
+      
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
+      try {
+        logger.info('📧 Attempting to load custom giftPurchaseConfirmation template from Firestore...');
+        const customTemplate = await loadEmailTemplate('giftPurchaseConfirmation');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom giftPurchaseConfirmation template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            giftGiverEmail: testEmail,
+            giftGiverName: 'Test Giver',
+            recipientEmail: 'recipient@example.com',
+            giftMessage: 'This is a test gift message',
+            giftId: 'test-gift-123',
+            subscriptionType: 'Monthly Plan',
+            pricePaid: '$29.99'
+          });
+          subjectText = customTemplate.subject || '🎁 Gift Purchase Confirmed - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            giftGiverEmail: testEmail,
+            giftGiverName: 'Test Giver',
+            recipientEmail: 'recipient@example.com',
+            giftMessage: 'This is a test gift message',
+            giftId: 'test-gift-123',
+            subscriptionType: 'Monthly Plan',
+            pricePaid: '$29.99'
+          });
+          subjectText = templateData.subject || '🎁 Gift Purchase Confirmed - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          logger.info('📧 Using emailService.sendGiftPurchaseConfirmationEmail function');
+          emailResult = await emailService.sendGiftPurchaseConfirmationEmail(
+            testEmail,
+            'Test Giver',
+            'recipient@example.com',
+            'This is a test gift message',
+            'test-gift-123',
+            'Monthly Plan',
+            '$29.99'
+          );
+          emailName = 'Gift Purchase Confirmation Email';
+          if (emailResult) {
+            logger.info('✅ Gift purchase confirmation test email sent successfully');
+          } else {
+            logger.error('❌ Failed to send gift purchase confirmation email');
+          }
+          results.tests.giftPurchaseConfirmationEmail = {
+            success: emailResult,
+            message: emailResult ? 'Email sent successfully' : 'Email failed to send'
+          };
+          return results;
+        }
+        
+        if (htmlContent) {
+          const sgMail = require('@sendgrid/mail');
+          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+          
+          if (!apiKey || !apiKey.startsWith('SG.')) {
+            throw new Error('Invalid SendGrid API key');
+          }
+          
+          sgMail.setApiKey(apiKey);
+          
+          const msg = {
+            to: testEmail,
+            from: {
+              email: 'contact@thepepplanner.com',
+              name: 'The Pep Planner'
+            },
+            subject: subjectText,
+            html: htmlContent
+          };
+          
+          await sgMail.send(msg);
+          emailResult = true;
+          logger.info('✅ Gift purchase confirmation test email sent successfully');
+        }
+      } catch (error) {
+        logger.error('❌ Gift purchase confirmation email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
+        emailResult = false;
+      }
+      emailName = 'Gift Purchase Confirmation Email';
+    } else if (templateType === 'giftRedeemed') {
+      logger.info('Testing gift redeemed (recipient) email...');
+      
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
+      try {
+        logger.info('📧 Attempting to load custom giftRedeemed template from Firestore...');
+        const customTemplate = await loadEmailTemplate('giftRedeemed');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom giftRedeemed template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            giftGiverName: 'Test Giver',
+            subscriptionType: 'Monthly Plan',
+            subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+          });
+          subjectText = customTemplate.subject || '🎉 Gift Successfully Redeemed - Welcome to The Pep Planner!';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            giftGiverName: 'Test Giver',
+            subscriptionType: 'Monthly Plan',
+            subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+          });
+          subjectText = templateData.subject || '🎉 Gift Successfully Redeemed - Welcome to The Pep Planner!';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          logger.info('📧 Using emailService.sendGiftRedeemedEmail function');
+          emailResult = await emailService.sendGiftRedeemedEmail(
+            testEmail,
+            'Test Giver',
+            'Monthly Plan',
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+          );
+          emailName = 'Gift Redeemed (Recipient) Email';
+          if (emailResult) {
+            logger.info('✅ Gift redeemed test email sent successfully');
+          } else {
+            logger.error('❌ Failed to send gift redeemed email');
+          }
+          results.tests.giftRedeemedEmail = {
+            success: emailResult,
+            message: emailResult ? 'Email sent successfully' : 'Email failed to send'
+          };
+          return results;
+        }
+        
+        if (htmlContent) {
+          const sgMail = require('@sendgrid/mail');
+          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+          
+          if (!apiKey || !apiKey.startsWith('SG.')) {
+            throw new Error('Invalid SendGrid API key');
+          }
+          
+          sgMail.setApiKey(apiKey);
+          
+          const msg = {
+            to: testEmail,
+            from: {
+              email: 'contact@thepepplanner.com',
+              name: 'The Pep Planner'
+            },
+            subject: subjectText,
+            html: htmlContent
+          };
+          
+          await sgMail.send(msg);
+          emailResult = true;
+          logger.info('✅ Gift redeemed test email sent successfully');
+        }
+      } catch (error) {
+        logger.error('❌ Gift redeemed email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
+        emailResult = false;
+      }
+      emailName = 'Gift Redeemed (Recipient) Email';
+    } else if (templateType === 'giftRedeemedNotification') {
+      logger.info('Testing gift redeemed notification (giver notice) email...');
+      
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
+      try {
+        logger.info('📧 Attempting to load custom giftRedeemedNotification template from Firestore...');
+        const customTemplate = await loadEmailTemplate('giftRedeemedNotification');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom giftRedeemedNotification template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          // Remove features if they exist for this template
+          const templateWithoutFeatures = { ...customTemplate };
+          if (templateWithoutFeatures.features) {
+            delete templateWithoutFeatures.features;
+          }
+          htmlContent = generateEmailHTML(templateWithoutFeatures, { 
+            giftGiverName: 'Test Giver',
+            recipientEmail: 'recipient@example.com',
+            subscriptionType: 'Monthly Plan'
+          });
+          subjectText = customTemplate.subject || '🎉 Your Gift Was Redeemed - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          // Remove features if they exist for this template
+          const templateWithoutFeatures = { ...templateData };
+          if (templateWithoutFeatures.features) {
+            delete templateWithoutFeatures.features;
+          }
+          htmlContent = generateEmailHTML(templateWithoutFeatures, { 
+            giftGiverName: 'Test Giver',
+            recipientEmail: 'recipient@example.com',
+            subscriptionType: 'Monthly Plan'
+          });
+          subjectText = templateData.subject || '🎉 Your Gift Was Redeemed - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          logger.info('📧 Using emailService.sendGiftRedeemedNotificationEmail function');
+          emailResult = await emailService.sendGiftRedeemedNotificationEmail(
+            testEmail,
+            'Test Giver',
+            'recipient@example.com',
+            'Monthly Plan'
+          );
+          emailName = 'Gift Redeemed Notification (Giver Notice) Email';
+          if (emailResult) {
+            logger.info('✅ Gift redeemed notification test email sent successfully');
+          } else {
+            logger.error('❌ Failed to send gift redeemed notification email');
+          }
+          results.tests.giftRedeemedNotificationEmail = {
+            success: emailResult,
+            message: emailResult ? 'Email sent successfully' : 'Email failed to send'
+          };
+          return results;
+        }
+        
+        if (htmlContent) {
+          const sgMail = require('@sendgrid/mail');
+          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+          
+          if (!apiKey || !apiKey.startsWith('SG.')) {
+            throw new Error('Invalid SendGrid API key');
+          }
+          
+          sgMail.setApiKey(apiKey);
+          
+          const msg = {
+            to: testEmail,
+            from: {
+              email: 'contact@thepepplanner.com',
+              name: 'The Pep Planner'
+            },
+            subject: subjectText,
+            html: htmlContent
+          };
+          
+          await sgMail.send(msg);
+          emailResult = true;
+          logger.info('✅ Gift redeemed notification test email sent successfully');
+        }
+      } catch (error) {
+        logger.error('❌ Gift redeemed notification email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
+        emailResult = false;
+      }
+      emailName = 'Gift Redeemed Notification (Giver Notice) Email';
+    } else if (templateType === 'giftNotification') {
+      logger.info('Testing gift received notification email...');
+      
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
+      try {
+        logger.info('📧 Attempting to load custom giftNotification template from Firestore...');
+        const customTemplate = await loadEmailTemplate('giftNotification');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom giftNotification template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            recipientName: 'Test Recipient',
+            giftGiverName: 'Test Giver',
+            giftMessage: 'This is a test gift message',
+            giftId: 'test-gift-123',
+            subscriptionType: 'Monthly Plan'
+          });
+          subjectText = customTemplate.subject || '🎁 You\'ve Been Gifted Access to The Pep Planner!';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            recipientName: 'Test Recipient',
+            giftGiverName: 'Test Giver',
+            giftMessage: 'This is a test gift message',
+            giftId: 'test-gift-123',
+            subscriptionType: 'Monthly Plan'
+          });
+          subjectText = templateData.subject || '🎁 You\'ve Been Gifted Access to The Pep Planner!';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          logger.info('📧 Using emailService.sendGiftNotificationEmail function');
+          emailResult = await emailService.sendGiftNotificationEmail(
+            testEmail,
+            'Test Recipient',
+            'Test Giver',
+            'This is a test gift message',
+            'test-gift-123',
+            'Monthly Plan'
+          );
+          emailName = 'Gift Received Notification Email';
+          if (emailResult) {
+            logger.info('✅ Gift notification test email sent successfully');
+          } else {
+            logger.error('❌ Failed to send gift notification email');
+          }
+          results.tests.giftNotificationEmail = {
+            success: emailResult,
+            message: emailResult ? 'Email sent successfully' : 'Email failed to send'
+          };
+          return results;
+        }
+        
+        if (htmlContent) {
+          const sgMail = require('@sendgrid/mail');
+          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+          
+          if (!apiKey || !apiKey.startsWith('SG.')) {
+            throw new Error('Invalid SendGrid API key');
+          }
+          
+          sgMail.setApiKey(apiKey);
+          
+          const msg = {
+            to: testEmail,
+            from: {
+              email: 'contact@thepepplanner.com',
+              name: 'The Pep Planner'
+            },
+            subject: subjectText,
+            html: htmlContent
+          };
+          
+          await sgMail.send(msg);
+          emailResult = true;
+          logger.info('✅ Gift notification test email sent successfully');
+        }
+      } catch (error) {
+        logger.error('❌ Gift notification email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
+        emailResult = false;
+      }
+      emailName = 'Gift Received Notification Email';
     } else if (templateType === 'manualLifetimeGrant') {
       logger.info('Testing manual lifetime grant email...');
       
@@ -700,7 +1051,8 @@ exports.testEmailSystem = onCall(
           logger.info('📋 Template fields:', Object.keys(customTemplate));
           htmlContent = generateEmailHTML(customTemplate, { 
             userName: 'Test User',
-            userEmail: testEmail
+            userEmail: testEmail,
+            reason: 'Test reason: This is a test email to verify the lifetime access grant functionality.'
           });
           subjectText = customTemplate.subject || '✅ Lifetime Access Granted by Admin - The Pep Planner';
           logger.info('✅ Using custom template from Firestore');
@@ -710,14 +1062,15 @@ exports.testEmailSystem = onCall(
           logger.info('🔍 Template data fields:', Object.keys(templateData));
           htmlContent = generateEmailHTML(templateData, { 
             userName: 'Test User',
-            userEmail: testEmail
+            userEmail: testEmail,
+            reason: 'Test reason: This is a test email to verify the lifetime access grant functionality.'
           });
           subjectText = templateData.subject || '✅ Lifetime Access Granted by Admin - The Pep Planner';
           logger.info('✅ Using custom template from admin panel');
         } else {
           // Final fallback: use the email service function
           logger.info('📧 Using emailService.sendLifetimeAccessEmail function');
-          emailResult = await emailService.sendLifetimeAccessEmail(testEmail, 'Test User');
+          emailResult = await emailService.sendLifetimeAccessEmail(testEmail, 'Test User', 'Test reason: This is a test email to verify the lifetime access grant functionality.');
           emailName = 'Manual Lifetime Grant Email';
           if (emailResult) {
             logger.info('✅ Manual lifetime grant test email sent successfully');
@@ -842,6 +1195,82 @@ exports.testEmailSystem = onCall(
         emailResult = false;
       }
       emailName = 'Lifetime Access Granted Email';
+    } else if (templateType === 'customAnnouncement') {
+      logger.info('Testing custom announcement/maintenance email...');
+      
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
+      try {
+        logger.info('📧 Attempting to load custom customAnnouncement template from Firestore...');
+        const customTemplate = await loadEmailTemplate('customAnnouncement');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom customAnnouncement template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User',
+            userEmail: testEmail,
+            firstName: 'Test'
+          });
+          subjectText = customTemplate.subject || 'Important Update - The Pep Planner';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User',
+            userEmail: testEmail,
+            firstName: 'Test'
+          });
+          subjectText = templateData.subject || 'Important Update - The Pep Planner';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          logger.info('📧 Using emailService.sendCustomAnnouncementEmail function');
+          emailResult = await emailService.sendCustomAnnouncementEmail(testEmail, 'Test User');
+          emailName = 'Custom Announcement / Maintenance Email';
+          if (emailResult) {
+            logger.info('✅ Custom announcement test email sent successfully');
+          } else {
+            logger.error('❌ Failed to send custom announcement email');
+          }
+          results.tests.customAnnouncementEmail = {
+            success: emailResult,
+            message: emailResult ? 'Email sent successfully' : 'Email failed to send'
+          };
+          return results;
+        }
+        
+        if (htmlContent) {
+          const sgMail = require('@sendgrid/mail');
+          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+          
+          if (!apiKey || !apiKey.startsWith('SG.')) {
+            throw new Error('Invalid SendGrid API key');
+          }
+          
+          sgMail.setApiKey(apiKey);
+          
+          const msg = {
+            to: testEmail,
+            from: {
+              email: 'contact@thepepplanner.com',
+              name: 'The Pep Planner'
+            },
+            subject: subjectText,
+            html: htmlContent
+          };
+          
+          await sgMail.send(msg);
+          emailResult = true;
+          logger.info('✅ Custom announcement test email sent successfully');
+        }
+      } catch (error) {
+        logger.error('❌ Custom announcement email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
+        emailResult = false;
+      }
+      emailName = 'Custom Announcement / Maintenance Email';
     } else {
       // Default: send all emails for general testing
       logger.info('Testing all email types...');

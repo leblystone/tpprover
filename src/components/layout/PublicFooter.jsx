@@ -22,6 +22,7 @@ export default function PublicFooter() {
     legal: [
       { label: 'Privacy Policy', path: '/privacy' },
       { label: 'Terms of Service', path: '/terms' },
+      { label: 'Cancellation Policy', path: '/cancellation-policy' },
       { label: 'Cookie Policy', path: '/privacy' },
       { label: 'GDPR', path: '/privacy' }
     ]

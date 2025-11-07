@@ -33,6 +33,7 @@ import LandingTermsModal from '../components/legal/LandingTermsModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
 import IOSInstallBanner from '../components/landing/IOSInstallBanner';
+import { isNative } from '../utils/platform';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -40,6 +41,15 @@ export default function Landing() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const [showIOSPopup, setShowIOSPopup] = useState(false);
+
+  // Redirect mobile/native app users to login page
+  useEffect(() => {
+    if (isNative()) {
+      startTransition(() => {
+        navigate('/login', { replace: true });
+      });
+    }
+  }, [navigate]);
 
   const handleGetStarted = () => {
     startTransition(() => {

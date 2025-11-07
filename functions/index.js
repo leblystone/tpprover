@@ -11,6 +11,7 @@ const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
 const stripeWebhooks = require('./stripeWebhooks');
 const giftAccess = require('./giftAccess');
+const founderOffer = require('./founderOffer');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 
@@ -24,6 +25,7 @@ exports.updatePaymentMethod = stripe.updatePaymentMethod;
 exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
 exports.completeGiftFromSession = stripe.completeGiftFromSession;
+exports.getFounderOfferStatus = founderOffer.getFounderOfferStatus;
 
 // Admin Functions - Use Admin SDK to bypass client-side security rules
 exports.adminGrantLifetimeAccess = onCall(
@@ -1077,7 +1079,7 @@ exports.sendLifetimeAccessEmail = onCall(
 
     try {
       const emailService = require('./emailService');
-      const success = await emailService.sendLifetimeAccessEmail(userEmail, userName);
+      const success = await emailService.sendLifetimeAccessEmail(userEmail, userName, reason);
       
       if (success) {
         logger.info(`✅ Lifetime access email sent successfully to: ${userEmail}`);

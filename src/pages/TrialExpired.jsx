@@ -4,13 +4,36 @@ import { Clock, CreditCard } from 'lucide-react';
 import { Zap } from '../icons/lucide-safe';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useAppContext } from '../context/AppContext';
+import { useFounderOffer } from '../context/FounderOfferContext';
 import { createCheckoutSession } from '../services/stripe';
 import { STRIPE_CONFIG } from '../config/stripe';
+import { formatCurrency } from '../utils/currencyUtils';
+import { SUBSCRIPTION_PLANS, getPlanPricing } from '../utils/subscriptionPlans';
 import logo from '../assets/tpp_logo.png';
 
 export default function TrialExpired() {
   const theme = themes[defaultThemeName];
   const { user } = useAppContext();
+  const founderOffer = useFounderOffer();
+
+  const discount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
+
+  const buildPlanDisplay = (key) => {
+    const data = getPlanPricing(key, discount);
+    return {
+      ...data,
+      base: formatCurrency(data.price),
+      founder: formatCurrency(data.founderPrice),
+      savings: formatCurrency(Math.max(data.savings, 0))
+    };
+  };
+
+  const planPricing = {
+    monthly: buildPlanDisplay('monthly'),
+    annual: buildPlanDisplay('annual'),
+    lifetime: buildPlanDisplay('lifetime'),
+  };
+  const discountActive = discount > 0;
 
   const handleSubscribe = async (plan) => {
     try {
@@ -19,11 +42,18 @@ export default function TrialExpired() {
         return;
       }
 
-      // TrialExpired shows during lockout - checkout will return to current location
+      let priceId = plan.priceId;
+      if (plan.key === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
+        priceId = STRIPE_CONFIG.founder.lifetimePrice;
+      }
+
       await createCheckoutSession(
-        plan.priceId,
+        priceId,
         user.email,
-        user.uid || user.email
+        user.uid || user.email,
+        null,
+        false,
+        { planName: plan.name }
       );
     } catch (error) {
       console.error('Subscription error:', error);
@@ -33,28 +63,35 @@ export default function TrialExpired() {
 
   const plans = [
     {
-      name: 'Monthly',
-      price: '$6',
-      interval: '/month',
-      priceId: STRIPE_CONFIG.MONTHLY_PRICE_ID,
-      description: 'Perfect for trying out premium features'
+      key: 'monthly',
+      name: SUBSCRIPTION_PLANS.monthly.label,
+      intervalLabel: 'per month',
+      description: 'Perfect for trying out premium features',
+      priceId: STRIPE_CONFIG.prices.monthly,
+      display: planPricing.monthly,
+      cta: SUBSCRIPTION_PLANS.monthly.cta,
+      badge: discountActive ? `Save ${planPricing.monthly.savings} / mo` : null,
     },
     {
-      name: 'Annual',
-      price: '$79',
-      interval: '/year',
-      priceId: STRIPE_CONFIG.ANNUAL_PRICE_ID,
-      description: 'Save $13 compared to monthly',
+      key: 'annual',
+      name: SUBSCRIPTION_PLANS.annual.label,
+      intervalLabel: 'per year',
+      description: 'Best value for consistent research',
+      priceId: STRIPE_CONFIG.prices.annual,
+      display: planPricing.annual,
+      cta: SUBSCRIPTION_PLANS.annual.cta,
       popular: true,
-      savings: 'Save $13'
+      badge: discountActive ? `Save ${planPricing.annual.savings} / yr` : 'Save $17.89',
     },
     {
-      name: 'Lifetime',
-      price: '$199',
-      interval: 'one-time',
-      priceId: STRIPE_CONFIG.LIFETIME_PRICE_ID,
+      key: 'lifetime',
+      name: SUBSCRIPTION_PLANS.lifetime.label,
+      intervalLabel: 'one-time',
       description: 'Pay once, use forever',
-      savings: 'Best Value'
+      priceId: STRIPE_CONFIG.prices.lifetime,
+      display: planPricing.lifetime,
+      cta: SUBSCRIPTION_PLANS.lifetime.cta,
+      badge: discountActive ? `Save ${planPricing.lifetime.savings} one-time` : 'Best Value',
     }
   ];
 
@@ -106,15 +143,14 @@ export default function TrialExpired() {
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-xs font-semibold">
-                    Most Popular
+                    {founderOffer.isFounder ? 'Founder Locked' : 'Most Popular'}
                   </span>
                 </div>
               )}
-              
-              {plan.savings && !plan.popular && (
+              {!plan.popular && plan.badge && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-1 rounded-full text-xs font-semibold">
-                    {plan.savings}
+                    {plan.badge}
                   </span>
                 </div>
               )}
@@ -124,12 +160,19 @@ export default function TrialExpired() {
                   {plan.name}
                 </h3>
                 
-                <div className="mb-4">
-                  <span className="text-3xl font-bold" style={{ color: theme.primary }}>
-                    {plan.price}
+                <div className="mb-4 flex items-center justify-center gap-2">
+                  <span className="text-3xl font-bold flex items-center gap-2" style={{ color: theme.primary }}>
+                    {discountActive ? (
+                      <>
+                        <span className="line-through text-xl text-gray-500">{plan.display.base}</span>
+                        <span>{plan.display.founder}</span>
+                      </>
+                    ) : (
+                      plan.display.base
+                    )}
                   </span>
-                  <span className="text-gray-600 ml-1">
-                    {plan.interval}
+                  <span className="text-gray-600">
+                    {plan.intervalLabel}
                   </span>
                 </div>
                 
@@ -151,7 +194,7 @@ export default function TrialExpired() {
                   }
                 >
                   <CreditCard size={16} />
-                  Subscribe Now
+                  {plan.cta}
                 </button>
               </div>
             </div>

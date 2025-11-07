@@ -48,7 +48,18 @@ export default function Account() {
           return (
             <button
               key={index}
-              onClick={() => navigate(section.path)}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔵 Account button clicked:', section.title, '→', section.path);
+                try {
+                  navigate(section.path);
+                  console.log('✅ Navigate called successfully');
+                } catch (error) {
+                  console.error('❌ Navigate failed:', error);
+                }
+              }}
               className="w-full p-4 rounded-lg transition-all hover:opacity-90 text-left"
               style={{
                 backgroundColor: theme.cardBackground

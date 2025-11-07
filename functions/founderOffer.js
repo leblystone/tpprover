@@ -3,7 +3,7 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
 const DEFAULT_CAP = parseInt(process.env.FOUNDER_CAP || '100', 10);
-const DEFAULT_DISCOUNT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '50', 10);
+const DEFAULT_DISCOUNT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '25', 10);
 
 // Lazy-load Firestore references to avoid initialization errors
 function getDb() {

@@ -598,6 +598,8 @@ export default function Login() {
         
         // CRITICAL SECURITY: Check for user change and clear data immediately
         const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+        const isNewAccount = !lastUserEmail || lastUserEmail !== user.email;
+        
         if (lastUserEmail && lastUserEmail !== user.email) {
           console.log('🚨 SECURITY: User change detected during signup!');
           console.log('  Previous user:', lastUserEmail);
@@ -613,6 +615,17 @@ export default function Login() {
             console.log('🔑 Auth token RE-SET after user change clear');
           } catch (e) {
             console.error('❌ Failed to re-set auth token:', e);
+          }
+        }
+        
+        // Reset theme to default (sage) for new accounts
+        if (isNewAccount) {
+          console.log('🎨 New account signup - resetting theme to default (sage)');
+          try {
+            localStorage.setItem('tpprover_theme', defaultThemeName);
+            console.log('✅ Theme reset to default:', defaultThemeName);
+          } catch (error) {
+            console.error('❌ Failed to reset theme for new account:', error);
           }
         }
         

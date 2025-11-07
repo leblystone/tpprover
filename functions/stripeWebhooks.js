@@ -6,6 +6,10 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const emailService = require('./emailService');
 
+const FieldValue = admin.firestore.FieldValue;
+const DEFAULT_FOUNDER_CAP = parseInt(process.env.FOUNDER_CAP || '100', 10);
+const DEFAULT_FOUNDER_DISCOUNT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '50', 10);
+
 // Load environment variables
 require('dotenv').config();
 
@@ -71,6 +75,10 @@ exports.stripeWebhook = onRequest(
 
     try {
       switch (event.type) {
+        case 'checkout.session.completed':
+          await handleCheckoutSessionCompleted(event);
+          break;
+
         // Payment Intent Events
         case 'payment_intent.succeeded':
           await handlePaymentSucceeded(event, stripe);
@@ -146,6 +154,141 @@ exports.stripeWebhook = onRequest(
     }
   }
 );
+
+/**
+ * Handle checkout session completed (for founder pricing tracking)
+ */
+async function handleCheckoutSessionCompleted(event) {
+  const session = event.data.object;
+  const metadata = session.metadata || {};
+
+  if (!metadata || metadata.founderApplied !== 'true') {
+    return;
+  }
+
+  if (metadata.isGift === 'true') {
+    logger.info('🎁 Checkout session completed for gift purchase; founder tracking skipped.');
+    return;
+  }
+
+  const userId = metadata.userId;
+  if (!userId) {
+    logger.warn('⚠️ Founder checkout completed but no userId provided in metadata.');
+    return;
+  }
+
+  if (session.payment_status !== 'paid') {
+    logger.warn(`⚠️ Checkout session ${session.id} for user ${userId} not marked as paid yet (status: ${session.payment_status}).`);
+    return;
+  }
+
+  const founderType = metadata.founderType || 'new';
+  const discountPercent = parseInt(metadata.founderDiscountPercent || DEFAULT_FOUNDER_DISCOUNT, 10);
+  const founderCouponId = metadata.founderCouponId || null;
+  const amountPaid = typeof session.amount_total === 'number' ? session.amount_total / 100 : null;
+  const currency = session.currency ? session.currency.toUpperCase() : 'USD';
+  const planName = metadata.planName || (session.mode === 'subscription' ? 'Subscription' : 'Lifetime');
+
+  const db = admin.firestore();
+  const configRef = db.collection('appConfig').doc('founderOffer');
+  const analyticsRef = db.collection('analytics').doc('founderCount');
+  const userRef = db.collection('users').doc(userId);
+  const subscriptionRef = db.collection('userSubscriptions').doc(userId);
+
+  await db.runTransaction(async (transaction) => {
+    const configSnap = await transaction.get(configRef);
+    const analyticsSnap = await transaction.get(analyticsRef);
+    const userSnap = await transaction.get(userRef);
+
+    const configData = configSnap.exists ? configSnap.data() : {};
+    const analyticsData = analyticsSnap.exists ? analyticsSnap.data() : {};
+
+    let totalGranted = Number(configData.totalGranted || 0);
+    let analyticsTotal = Number(analyticsData.totalFounders || 0);
+    const cap = Number(configData.cap || DEFAULT_FOUNDER_CAP);
+    const existingFounderNumber = userSnap.exists ? (userSnap.data().founderNumber || null) : null;
+
+    const isNewFounder = founderType === 'new' || (!existingFounderNumber && founderType === 'none');
+
+    if (isNewFounder && totalGranted >= cap) {
+      logger.warn(`⚠️ Founder cap reached (${cap}); not incrementing for user ${userId}.`);
+    }
+
+    let updatedFounderNumber = existingFounderNumber;
+    if (isNewFounder && totalGranted < cap) {
+      totalGranted += 1;
+      analyticsTotal = Math.max(analyticsTotal, totalGranted);
+      updatedFounderNumber = totalGranted;
+
+      transaction.set(configRef, {
+        totalGranted,
+        updatedAt: FieldValue.serverTimestamp(),
+        lastGrantedAt: FieldValue.serverTimestamp(),
+        lastSessionId: session.id,
+      }, { merge: true });
+
+      transaction.set(analyticsRef, {
+        totalFounders: analyticsTotal,
+        lastUpdated: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } else {
+      const highest = Math.max(totalGranted, analyticsTotal, existingFounderNumber || 0);
+      updatedFounderNumber = existingFounderNumber || (highest > 0 ? highest : totalGranted);
+
+      if (highest !== totalGranted) {
+        transaction.set(configRef, {
+          totalGranted: highest,
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+
+      if (highest !== analyticsTotal) {
+        transaction.set(analyticsRef, {
+          totalFounders: highest,
+          lastUpdated: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+    }
+
+    const userUpdatePayload = {
+      isFounder: true,
+      founderGrantedAt: FieldValue.serverTimestamp(),
+      founderNumber: updatedFounderNumber || totalGranted || analyticsTotal || 1,
+    };
+    userUpdatePayload['subscription.isFounder'] = true;
+    userUpdatePayload['subscription.founderPricing'] = true;
+    userUpdatePayload['subscription.founderDiscountPercent'] = discountPercent;
+    userUpdatePayload['subscription.founderCurrency'] = currency;
+    userUpdatePayload['subscription.founderCheckoutSessionId'] = session.id;
+    userUpdatePayload['subscription.founderPlanName'] = planName;
+    if (amountPaid !== null) {
+      userUpdatePayload['subscription.founderLockedRate'] = amountPaid;
+    }
+    if (founderCouponId) {
+      userUpdatePayload['subscription.founderCouponId'] = founderCouponId;
+    }
+
+    transaction.set(userRef, userUpdatePayload, { merge: true });
+
+    const subscriptionUpdatePayload = {
+      userId,
+      lastUpdated: FieldValue.serverTimestamp(),
+    };
+    subscriptionUpdatePayload['subscription.isFounder'] = true;
+    subscriptionUpdatePayload['subscription.founderPricing'] = true;
+    subscriptionUpdatePayload['subscription.founderDiscountPercent'] = discountPercent;
+    subscriptionUpdatePayload['subscription.founderCurrency'] = currency;
+    subscriptionUpdatePayload['subscription.founderCheckoutSessionId'] = session.id;
+    subscriptionUpdatePayload['subscription.founderPlanName'] = planName;
+    if (amountPaid !== null) {
+      subscriptionUpdatePayload['subscription.founderLockedRate'] = amountPaid;
+    }
+
+    transaction.set(subscriptionRef, subscriptionUpdatePayload, { merge: true });
+  });
+
+  logger.info(`👑 Founder checkout completed for user ${userId}. Type: ${founderType}, discount: ${discountPercent}%, session: ${session.id}`);
+}
 
 /**
  * Handle successful payment intent

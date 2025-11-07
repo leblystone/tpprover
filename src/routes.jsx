@@ -6,6 +6,7 @@ import Rover from './pages/Rover.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import { lazyWithRetry } from './utils/lazyWithRetry.jsx'
 
+const LandingWrapper = lazyWithRetry(() => import('./components/common/LandingWrapper.jsx'), 'LandingWrapper')
 const Landing = lazyWithRetry(() => import('./pages/Landing.jsx'), 'Landing')
 const Home = lazyWithRetry(() => import('./pages/Home.jsx'), 'Home')
 const Dashboard = lazyWithRetry(() => import('./pages/CustomizableDashboard.jsx'), 'CustomizableDashboard')
@@ -44,6 +45,7 @@ const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
 const Contact = lazyWithRetry(() => import('./pages/Contact.jsx'), 'Contact')
 const Privacy = lazyWithRetry(() => import('./pages/Privacy.jsx'), 'Privacy')
 const Terms = lazyWithRetry(() => import('./pages/Terms.jsx'), 'Terms')
+const CancellationPolicy = lazyWithRetry(() => import('./pages/CancellationPolicy.jsx'), 'CancellationPolicy')
 const Blog = lazyWithRetry(() => import('./pages/Blog.jsx'), 'Blog')
 const DeleteAccount = lazyWithRetry(() => import('./pages/DeleteAccount.jsx'), 'DeleteAccount')
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword.jsx'), 'ResetPassword')
@@ -60,7 +62,7 @@ const LaunchRedirect = () => <Navigate to="/countdown" replace />;
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Landing />,
+    element: <LandingWrapper />,
     errorElement: <NotFound />,
   },
   {
@@ -124,6 +126,11 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/cancellation-policy',
+    element: <CancellationPolicy />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/delete-account',
     element: <DeleteAccount />,
     errorElement: <NotFound />,
@@ -178,7 +185,11 @@ export const router = createBrowserRouter([
         element: <App />,
         errorElement: <NotFound />,
         children: [
-          { index: true, element: <Home /> },
+          { path: 'account', element: <Account /> },
+          { path: 'account/profile', element: <AccountProfile /> },
+          { path: 'account/subscription', element: <AccountSubscription /> },
+          { path: 'account/security', element: <AccountSecurity /> },
+          { path: 'account/legal', element: <AccountLegal /> },
           { path: 'dashboard', element: <Dashboard /> },
           { path: 'orders', element: <Orders /> },
           { path: 'protocols', element: <Protocols /> },
@@ -196,15 +207,11 @@ export const router = createBrowserRouter([
           { path: 'settings/privacy', element: <SettingsPrivacy /> },
           { path: 'settings/legal', element: <SettingsLegal /> },
           { path: 'settings/data', element: <SettingsData /> },
-          { path: 'account', element: <Account /> },
-          { path: 'account/profile', element: <AccountProfile /> },
-          { path: 'account/subscription', element: <AccountSubscription /> },
-          { path: 'account/security', element: <AccountSecurity /> },
-          { path: 'account/legal', element: <AccountLegal /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
           { path: 'beta-survey', element: <BetaEndedSurvey /> },
           { path: 'launch-coming-soon', element: <LaunchComingSoon /> },
+          { index: true, element: <Navigate to="/app/dashboard" replace /> },
         ]
       }
     ]

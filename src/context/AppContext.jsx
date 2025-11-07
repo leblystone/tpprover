@@ -10,6 +10,7 @@ import {
 } from '../services/cloudStorage';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
+import { defaultThemeName } from '../theme/themes';
 
 const AppContext = createContext();
 
@@ -149,6 +150,10 @@ export function AppProvider({ children }) {
                 // Check if user has data in cloud storage
                 const hasCloudData = await hasUserData(userId);
                 
+                // Check user preferences from cloud storage
+                const cloudPreferences = await loadUserPreferences(userId);
+                const hasThemeInCloud = cloudPreferences?.theme;
+                
                 // CRITICAL: Check if demo data was cleared on another platform
                 const userState = await loadUserState(userId);
                 const demoDataClearedInCloud = userState?.demoDataCleared === true;
@@ -163,6 +168,23 @@ export function AppProvider({ children }) {
                     localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
                 }
                 
+                // Check if this is a recently created account (within last 24 hours)
+                // This catches accounts created just before the theme reset fix was deployed
+                const savedUser = localStorage.getItem('tpprover_user');
+                let isRecentlyCreated = false;
+                if (savedUser) {
+                    try {
+                        const parsedUser = JSON.parse(savedUser);
+                        if (parsedUser.createdAt) {
+                            const createdAt = new Date(parsedUser.createdAt).getTime();
+                            const hoursSinceCreation = (Date.now() - createdAt) / (1000 * 60 * 60);
+                            isRecentlyCreated = hoursSinceCreation < 24; // Within last 24 hours
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Failed to parse user createdAt:', e);
+                    }
+                }
+                
                 if (!hasCloudData) {
                     // New user - decide between migrating existing local data vs fresh demo seed
                     const currentEmail = (firebaseUser.email || '').toLowerCase();
@@ -170,7 +192,7 @@ export function AppProvider({ children }) {
 
                     const hasLocalData = Object.keys(localStorage).some(key => 
                         key.startsWith('tpprover_') && 
-                        !['tpprover_auth_token', 'tpprover_user', 'tpprover_last_user_email'].includes(key)
+                        !['tpprover_auth_token', 'tpprover_user', 'tpprover_last_user_email', 'tpprover_theme', 'tpprover_settings'].includes(key)
                     );
 
                     const canMigrateSafely = hasLocalData && lastEmail && lastEmail === currentEmail;
@@ -181,8 +203,30 @@ export function AppProvider({ children }) {
                         // Clear local cache after migration
                         clearLocalStorageData();
                     } else {
-                        // Brand new user - demo data is now seeded by Login.jsx directly to Firestore
+                        // Brand new user - reset theme to default (sage) for new accounts
+                        console.log('🎨 New account detected - resetting theme to default (sage)');
+                        try {
+                            localStorage.setItem('tpprover_theme', defaultThemeName);
+                            console.log('✅ Theme reset to default:', defaultThemeName);
+                        } catch (error) {
+                            console.error('❌ Failed to reset theme for new account:', error);
+                        }
+                        // Demo data is now seeded by Login.jsx directly to Firestore
                         // No need to seed here, just wait for data to load from cloud
+                    }
+                } else if (isRecentlyCreated && !hasThemeInCloud) {
+                    // Account created recently (within 24 hours) but no theme in cloud storage
+                    // This catches accounts created just before the fix was deployed
+                    // Reset theme to default if it's not already sage
+                    const currentTheme = localStorage.getItem('tpprover_theme');
+                    if (currentTheme && currentTheme !== defaultThemeName) {
+                        console.log('🎨 Recently created account detected without theme in cloud - resetting to default (sage)');
+                        try {
+                            localStorage.setItem('tpprover_theme', defaultThemeName);
+                            console.log('✅ Theme reset to default for recently created account:', defaultThemeName);
+                        } catch (error) {
+                            console.error('❌ Failed to reset theme for recently created account:', error);
+                        }
                     }
                 }
 

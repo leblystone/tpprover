@@ -90,13 +90,6 @@ function App() {
     // Show welcome modal for all new Firebase users - wait for user to be loaded
     if (!user) return; // Wait for user to be loaded
     
-    // Prevent showing modal multiple times in the same session
-    const welcomeShownThisSession = sessionStorage.getItem('tpp_welcome_shown');
-    if (welcomeShownThisSession === 'true') {
-      console.log('🎉 Welcome modal already shown this session - skipping');
-      return;
-    }
-    
     // Add a small delay to ensure auth token and cloud data is loaded
     const checkWelcomeModal = async () => {
       try {
@@ -109,14 +102,9 @@ function App() {
           return;
         }
         
-        // Double check the session flag in case another render beat us here
-        if (sessionStorage.getItem('tpp_welcome_shown') === 'true') {
-          return;
-        }
-        
         const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
         
-        // Load user state from cloud storage
+        // Load user state from cloud storage FIRST to check onboarding status
         const { loadUserState } = await import('./services/cloudStorage');
         const { firebaseUser } = await import('./config/firebase').then(m => ({ firebaseUser: user }));
         
@@ -125,13 +113,33 @@ function App() {
           const hasOnboarded = userState?.hasOnboarded || false;
           const sampleDataCleared = userState?.sampleDataCleared || false;
           
+          // For users who have already onboarded, respect sessionStorage flag
+          // (prevent showing modal multiple times in same session)
+          if (hasOnboarded) {
+            const welcomeShownThisSession = sessionStorage.getItem('tpp_welcome_shown');
+            if (welcomeShownThisSession === 'true') {
+              console.log('🎉 Welcome modal already shown this session for onboarded user - skipping');
+              return;
+            }
+            // User is onboarded, don't show welcome modal
+            return;
+          }
+          
+          // For new users who haven't onboarded:
+          // Clear any stale sessionStorage flag (from previous test sessions)
+          // This ensures the modal can show even after page refreshes during testing
+          sessionStorage.removeItem('tpp_welcome_shown');
+          
           // Show welcome for new users:
           // 1. User hasn't onboarded AND
           // 2. User is a Firebase user (authenticated) AND
           // 3. Sample data hasn't been explicitly cleared
           if (!hasOnboarded && isFirebaseUser && !sampleDataCleared) {
+            console.log('✅ New user detected - showing welcome modal');
             // Don't set session flag here - let the modal component set it when actually displayed
             setShowWelcome(true);
+          } else {
+            console.log('ℹ️ Welcome modal conditions not met:', { hasOnboarded, isFirebaseUser, sampleDataCleared });
           }
         }
       } catch (error) {

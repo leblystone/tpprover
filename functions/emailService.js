@@ -113,13 +113,13 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
  * Send lifetime access granted email (for manual admin grants)
  * Uses manualLifetimeGrant template instead of lifetimeAccessGranted
  */
-exports.sendLifetimeAccessEmail = async (userEmail, userName = null) => {
+exports.sendLifetimeAccessEmail = async (userEmail, userName = null, reason = null) => {
   // Try to load manual grant template from Firestore first
   try {
     const customTemplate = await loadEmailTemplate('manualLifetimeGrant');
     if (customTemplate) {
       const subject = customTemplate.subject || '✅ Lifetime Access Granted by Admin - The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { userName, userEmail });
+      const html = generateEmailHTML(customTemplate, { userName, userEmail, reason });
       return sendEmail(userEmail, subject, html);
     }
   } catch (error) {
@@ -131,7 +131,7 @@ exports.sendLifetimeAccessEmail = async (userEmail, userName = null) => {
     const customTemplate = await loadEmailTemplate('lifetimeAccessGranted');
     if (customTemplate) {
       const subject = customTemplate.subject || '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
-      const html = generateEmailHTML(customTemplate, { userName, userEmail });
+      const html = generateEmailHTML(customTemplate, { userName, userEmail, reason });
       return sendEmail(userEmail, subject, html);
     }
   } catch (error) {
@@ -681,7 +681,12 @@ exports.sendGiftRedeemedNotificationEmail = async (giftGiverEmail, giftGiverName
     const customTemplate = await loadEmailTemplate('giftRedeemedNotification');
     if (customTemplate) {
       const subject = customTemplate.subject || '🎉 Your Gift Was Redeemed - The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { giftGiverName, recipientEmail, subscriptionType });
+      // Remove features from giftRedeemedNotification template - it shouldn't show "What you can do"
+      const templateWithoutFeatures = { ...customTemplate };
+      if (templateWithoutFeatures.features) {
+        delete templateWithoutFeatures.features;
+      }
+      const html = generateEmailHTML(templateWithoutFeatures, { giftGiverName, recipientEmail, subscriptionType });
       return sendEmail(giftGiverEmail, subject, html);
     }
   } catch (e) { /* ignore */ }

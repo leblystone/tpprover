@@ -142,6 +142,12 @@ export default function AccountLegal() {
               actionText={agreementData.privacyAgreement ? 'View' : 'Agree'}
               theme={theme}
             />
+            <LegalDocumentLink
+              title="Cancellation Policy"
+              description="View our cancellation and refund policy"
+              onAction={() => window.open('/cancellation-policy', '_blank')}
+              theme={theme}
+            />
           </div>
         </div>
 
@@ -222,6 +228,31 @@ const LegalDocumentCard = ({ title, agreement, onAction, actionText, theme }) =>
       style={{ backgroundColor: theme.accent, color: theme.accentText }}
     >
       {actionText}
+    </button>
+  </div>
+)
+
+const LegalDocumentLink = ({ title, description, onAction, theme }) => (
+  <div 
+    className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:opacity-80 transition-all"
+    style={{ backgroundColor: theme.secondary }}
+    onClick={onAction}
+  >
+    <div className="flex-1 pr-4">
+      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{title}</div>
+      <div className="text-xs" style={{ color: theme.mutedText }}>
+        {description}
+      </div>
+    </div>
+    <button 
+      onClick={(e) => {
+        e.stopPropagation()
+        onAction()
+      }}
+      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+      style={{ backgroundColor: theme.accent, color: theme.accentText }}
+    >
+      View
     </button>
   </div>
 )

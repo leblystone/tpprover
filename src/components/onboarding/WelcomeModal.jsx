@@ -19,8 +19,9 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                     Welcome to The Pep Planner!
                 </h1>
                 
-                <p className="text-gray-600 mb-6">
-                    The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 7 days and take a look around! Happy researching! 🧪
+                <p className="text-gray-600 mb-6" style={{ hyphens: 'none', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                    The Pep Planner helps organize, track, and ultimately make your research easier! Developed with the pep community in mind; it's the cornerstone tool you need. Take the next 7 days and take a look around!<br />
+                    Happy researching! 🧪
                 </p>
 
                 <div className="flex justify-center mb-6">

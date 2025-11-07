@@ -399,6 +399,9 @@ export default function Contact() {
               <a href="/terms" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
                 Terms of Service
               </a>
+              <a href="/cancellation-policy" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
+                Cancellation Policy
+              </a>
               <a href="/contact" className="text-sm hover:opacity-75 transition-opacity" style={{ color: theme.textLight }}>
                 Contact
               </a>

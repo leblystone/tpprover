@@ -3,34 +3,86 @@ import Modal from './Modal';
 import { createCheckoutSession } from '../../services/stripe';
 import { STRIPE_CONFIG } from '../../config/stripe';
 import { useAppContext } from '../../context/AppContext';
+import { useFounderOffer } from '../../context/FounderOfferContext';
+import { formatCurrency } from '../../utils/currencyUtils';
+import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
 import { Crown } from '../../icons/lucide-safe';
 import GiftPurchaseModal from './GiftPurchaseModal';
 
 export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
+  const founderOffer = useFounderOffer();
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [showGiftModal, setShowGiftModal] = React.useState(false);
 
-  const handleSelectPlan = async (plan) => {
+  const effectiveDiscount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
+  const monthlyPlan = getPlanPricing('monthly', effectiveDiscount);
+  const annualPlan = getPlanPricing('annual', effectiveDiscount);
+  const lifetimePlan = getPlanPricing('lifetime', effectiveDiscount);
+
+  const founderStatusMessage = React.useMemo(() => {
+    if (founderOffer.loading) {
+      return 'Checking Founder spot availability…';
+    }
+    if (founderOffer.isFounder) {
+      return `You’re locked in${founderOffer.founderNumber ? ` as Founder #${founderOffer.founderNumber}` : ''}. Your research rate never increases.`;
+    }
+    if (founderOffer.founderActive && (founderOffer.remaining ?? 0) > 0) {
+      const spots = Math.max(0, founderOffer.remaining);
+      return `${spots} Founder spot${spots === 1 ? '' : 's'} left • ${founderOffer.discountPercent}% off forever.`;
+    }
+    return 'Founder pricing is currently closed. Standard research pricing applies.';
+  }, [founderOffer]);
+
+  const founderBadgeLabel = founderOffer.isFounder
+    ? 'Founder pricing locked'
+    : founderOffer.founderActive
+      ? `Founder ${effectiveDiscount}% off`
+      : 'Standard pricing';
+
+  const monthlyBase = formatCurrency(monthlyPlan.price);
+  const monthlyFounder = formatCurrency(monthlyPlan.founderPrice);
+  const monthlySavings = formatCurrency(Math.max(monthlyPlan.savings, 0));
+
+  const annualBase = formatCurrency(annualPlan.price);
+  const annualFounder = formatCurrency(annualPlan.founderPrice);
+  const annualSavings = formatCurrency(Math.max(annualPlan.savings, 0));
+
+  const lifetimeBase = formatCurrency(lifetimePlan.price);
+  const lifetimeFounder = formatCurrency(lifetimePlan.founderPrice);
+  const lifetimeSavings = formatCurrency(Math.max(lifetimePlan.savings, 0));
+
+  const handleSelectPlan = async (planKey) => {
+    const plan = SUBSCRIPTION_PLANS[planKey];
+    if (!plan) {
+      console.warn('Unknown plan selected:', planKey);
+      return;
+    }
+
     console.log('🚀 SubscriptionModal: Selected plan:', plan);
     setIsProcessing(true);
     
-    // Show processing message
-    
     try {
-      // Determine the correct Stripe price ID based on plan
-      let priceId = '';
-      if (plan.name.toLowerCase() === 'monthly') {
-        priceId = STRIPE_CONFIG.prices.monthly;
-      } else if (plan.name.toLowerCase() === 'annual') {
-        priceId = STRIPE_CONFIG.prices.annual;
-      } else if (plan.name.toLowerCase() === 'lifetime') {
-        priceId = STRIPE_CONFIG.prices.lifetime;
+      let priceId = STRIPE_CONFIG.prices[plan.key] || '';
+
+      if (plan.key === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
+        priceId = STRIPE_CONFIG.founder.lifetimePrice;
+      }
+
+      if (!priceId) {
+        throw new Error(`Stripe price ID missing for plan ${plan.key}`);
       }
 
       // Close modal and redirect to Stripe checkout immediately - return to dashboard
       onClose();
-      await createCheckoutSession(priceId, user?.email || 'demo@example.com', user?.uid || 'demo_user');
+      await createCheckoutSession(
+        priceId,
+        user?.email || 'demo@example.com',
+        user?.uid || 'demo_user',
+        null,
+        false,
+        { planName: plan.label }
+      );
       
       // Reset processing state
       setIsProcessing(false);
@@ -69,21 +121,23 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
     >
       <div className="p-2">
         <div className="space-y-4">
-          {/* Founder's Pricing Alert */}
+          {/* Founders Offer */}
           <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
                 <Crown size={12} className="text-white" />
               </div>
               <div className="text-lg font-bold" style={{ color: '#344E41' }}>
-                Founder's Pricing
+                Founders Offer
               </div>
             </div>
             
-            <div className="rounded-lg p-3 mb-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
-              <p className="text-xs leading-relaxed" style={{ color: '#3A5A40' }}>
-                As an early supporter, you get grandfathered pricing that <strong>never increases</strong> - 
-                even as we add new features and increase value as we grow!
+            <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
+              <p className="text-xs leading-relaxed font-semibold" style={{ color: '#3A5A40' }}>
+                Be apart of the first 100 founder researchers!
+              </p>
+              <p className="text-xs leading-relaxed italic" style={{ color: '#3A5A40' }}>
+                You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
               </p>
             </div>
           </div>
@@ -94,21 +148,36 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
             <div 
               className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
               style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-              onClick={() => !isProcessing && handleSelectPlan({ name: 'Monthly', price: 8.99, interval: 'month' })}
+              onClick={() => !isProcessing && handleSelectPlan('monthly')}
             >
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                 <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
-                <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$8.99</div>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
+                  {effectiveDiscount > 0 ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{monthlyBase}</span>
+                      <span>{monthlyFounder}</span>
+                    </>
+                  ) : (
+                    monthlyBase
+                  )}
+                </div>
                 <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
+                {effectiveDiscount > 0 && (
+                  <div className="text-xs mt-2 font-medium" style={{ color: theme.accent || '#2F3B3A' }}>
+                    Save {monthlySavings} / mo
+                  </div>
+                )}
               </div>
 
               {/* Action Button */}
               <button 
                 className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                disabled={isProcessing}
               >
-                Start Monthly
+                {isProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.monthly.cta}
               </button>
             </div>
 
@@ -116,25 +185,33 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
             <div 
               className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
               style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-              onClick={() => !isProcessing && handleSelectPlan({ name: 'Annual', price: 89.99, interval: 'year' })}
+              onClick={() => !isProcessing && handleSelectPlan('annual')}
             >
               {/* Popular Badge */}
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
-                  Popular
+                  {founderOffer.isFounder ? 'Founder Locked' : 'Most Popular'}
                 </div>
               </div>
 
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                 <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
-                <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>$89.99</div>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
+                  {effectiveDiscount > 0 ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{annualBase}</span>
+                      <span>{annualFounder}</span>
+                    </>
+                  ) : (
+                    annualBase
+                  )}
+                </div>
                 <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
                 
-                {/* Subtitle Badge */}
                 <div className="text-center mt-1">
                   <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
-                    Save $17.89
+                    {effectiveDiscount > 0 ? `Save ${annualSavings} / yr` : 'Save $17.89'}
                   </span>
                 </div>
               </div>
@@ -143,8 +220,9 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
               <button 
                 className="w-full py-2 rounded-lg font-medium text-sm transition-all hover:opacity-90"
                 style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
+                disabled={isProcessing}
               >
-                Start Annual
+                {isProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.annual.cta}
               </button>
             </div>
           </div>
@@ -153,12 +231,12 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
           <div 
             className={`relative rounded-lg border-2 p-6 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
             style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-            onClick={() => !isProcessing && handleSelectPlan({ name: 'Lifetime', price: 249.99, interval: 'lifetime' })}
+            onClick={() => !isProcessing && handleSelectPlan('lifetime')}
           >
             {/* Limited Time Badge */}
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
               <div className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
-                Limited Time Only
+                Limited Offer
               </div>
             </div>
             
@@ -170,15 +248,30 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
                 </div>
                 <div className="space-y-1">
                   <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
-                  <div className="text-base font-semibold" style={{ color: theme.text }}>$249.99</div>
+                  <div className="text-base font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                    {effectiveDiscount > 0 ? (
+                      <>
+                        <span className="line-through text-sm" style={{ color: theme.textLight }}>{lifetimeBase}</span>
+                        <span>{lifetimeFounder}</span>
+                      </>
+                    ) : (
+                      lifetimeBase
+                    )}
+                  </div>
                   <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • All features included</div>
+                  {effectiveDiscount > 0 && (
+                    <div className="text-xs font-semibold" style={{ color: theme.accent || '#2F3B3A' }}>
+                      Save {lifetimeSavings} one-time
+                    </div>
+                  )}
                 </div>
               </div>
               <button 
                 className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                disabled={isProcessing}
               >
-                Join Forever
+                {isProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
               </button>
             </div>
           </div>

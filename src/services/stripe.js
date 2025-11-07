@@ -102,6 +102,8 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
     
     let result;
     try {
+      const planNameForMetadata = options.planName || options.plan?.name || options.plan?.label || '';
+
       result = await createCheckoutSessionFn({
         priceId,
         userEmail,
@@ -109,7 +111,8 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
         successUrl: `${baseUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}${cancelPath}`,
         isGift: isGift || false,
-        giftData: options.giftData || undefined
+        giftData: options.giftData || undefined,
+        planName: planNameForMetadata || undefined
       });
     } catch (funcError) {
       // Check if this is a "function not deployed" error

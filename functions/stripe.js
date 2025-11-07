@@ -1,4 +1,6 @@
-const {onCall} = require("firebase-functions/v2/https");
+const { onCall } = require("firebase-functions/v2/https");
+const admin = require('firebase-admin');
+const { buildFounderOfferResponse } = require('./founderOffer');
 
 // Load environment variables from .env file (Firebase Functions v2)
 require('dotenv').config();
@@ -14,6 +16,11 @@ if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY === 'sk_test_fallback_key') {
 }
 
 const stripe = require("stripe")(STRIPE_SECRET_KEY || "sk_test_fallback_key");
+
+const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || "price_1SJNIw50b3cktl9X7tr7Efox";
+const FOUNDER_LIFETIME_PRICE_ID = process.env.STRIPE_FOUNDER_LIFETIME_PRICE_ID || null;
+const FOUNDER_COUPON_ID = process.env.STRIPE_FOUNDER_COUPON_ID || null;
+const FOUNDER_DISCOUNT_PERCENT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '50', 10);
 
 // Create Stripe Checkout Session
 exports.createCheckoutSession = onCall(
@@ -55,20 +62,76 @@ exports.createCheckoutSession = onCall(
         console.log("🔍 Using price ID:", priceId);
         console.log("🔍 Using secret key (first 20 chars):", STRIPE_SECRET_KEY.substring(0, 20));
         
-        // Lifetime price ID (one-time payment, not recurring)
-        const LIFETIME_PRICE_ID = "price_1SJNIw50b3cktl9X7tr7Efox";
+        const safePriceId = String(priceId);
+        const isLifetimeRequest = [DEFAULT_LIFETIME_PRICE_ID, FOUNDER_LIFETIME_PRICE_ID]
+          .filter(Boolean)
+          .includes(safePriceId);
+        const sessionMode = (isGift || isLifetimeRequest) ? "payment" : "subscription";
         
-        // Gift purchases are ALWAYS one-time payments (payment mode, not subscription)
-        // Regular subscriptions use subscription mode (except lifetime which is also payment mode)
-        const isLifetime = priceId === LIFETIME_PRICE_ID;
-        const sessionMode = (isGift || isLifetime) ? "payment" : "subscription";
-        
-        console.log("🔍 Session mode:", sessionMode, isGift ? "(Gift - one-time payment)" : isLifetime ? "(Lifetime - one-time payment)" : "(Recurring subscription)");
-        
-        const session = await stripe.checkout.sessions.create({
+        console.log("🔍 Session mode:", sessionMode, isGift ? "(Gift - one-time payment)" : isLifetimeRequest ? "(Lifetime - one-time payment)" : "(Recurring subscription)");
+
+        let founderState = null;
+        let founderApplied = false;
+        let founderType = isGift ? 'gift' : 'none';
+        let founderRemaining = 0;
+        let founderCap = 0;
+        let founderDiscountPercent = FOUNDER_DISCOUNT_PERCENT;
+        let effectivePriceId = safePriceId;
+        const discounts = [];
+
+        if (!isGift) {
+          try {
+            founderState = await buildFounderOfferResponse(userId);
+            founderRemaining = founderState.remaining;
+            founderCap = founderState.cap;
+            founderDiscountPercent = founderState.founderDiscountPercent || founderState.discountPercent || FOUNDER_DISCOUNT_PERCENT;
+
+            const founderEligible = founderState.enabled && (founderState.isFounder || founderRemaining > 0);
+            if (founderEligible) {
+              founderApplied = true;
+              founderType = founderState.isFounder ? 'existing' : 'new';
+            } else {
+              founderType = founderState.enabled ? 'exhausted' : 'disabled';
+            }
+          } catch (founderError) {
+            console.error('❌ Failed to load founder offer state:', founderError);
+            founderType = 'error';
+          }
+        }
+
+        if (founderApplied) {
+          if (sessionMode === "subscription") {
+            if (FOUNDER_COUPON_ID) {
+              discounts.push({ coupon: FOUNDER_COUPON_ID });
+            } else {
+              console.warn('⚠️ Founder coupon ID not configured; skipping founder discount for subscription.');
+              founderApplied = false;
+              founderType = 'coupon_missing';
+            }
+          } else {
+            if (FOUNDER_LIFETIME_PRICE_ID) {
+              effectivePriceId = FOUNDER_LIFETIME_PRICE_ID;
+            } else if (FOUNDER_COUPON_ID) {
+              discounts.push({ coupon: FOUNDER_COUPON_ID });
+            } else {
+              console.warn('⚠️ Founder pricing not configured for lifetime plan; skipping founder discount.');
+              founderApplied = false;
+              founderType = 'price_missing';
+            }
+          }
+        }
+
+        if (!founderApplied && FOUNDER_LIFETIME_PRICE_ID && safePriceId === FOUNDER_LIFETIME_PRICE_ID) {
+          console.warn('⚠️ Founder lifetime price requested but founder discount not applied. Reverting to standard lifetime price.');
+          effectivePriceId = DEFAULT_LIFETIME_PRICE_ID;
+        }
+
+        const planName = request.data?.planName || (isLifetimeRequest ? 'Lifetime' : sessionMode === 'subscription' ? 'Research Subscription' : 'Checkout');
+
+        const sessionPayload = {
           payment_method_types: ["card"],
           line_items: [{
-            price: priceId,
+            price: effectivePriceId,
             quantity: 1,
           }],
           mode: sessionMode,
@@ -78,6 +141,12 @@ exports.createCheckoutSession = onCall(
           metadata: {
             userId: userId,
             isGift: isGift ? "true" : "false", // Store as string for metadata
+            founderApplied: founderApplied ? "true" : "false",
+            founderType,
+            founderCap: String(founderCap || 0),
+            founderRemainingAtCheckout: String(founderRemaining || 0),
+            founderDiscountPercent: founderApplied ? String(founderDiscountPercent || FOUNDER_DISCOUNT_PERCENT) : '',
+            founderCouponId: founderApplied && FOUNDER_COUPON_ID ? FOUNDER_COUPON_ID : '',
             // Attach gift info so we can securely finalize after payment
             recipientEmail: giftData?.recipientEmail || '',
             recipientName: giftData?.recipientName || '',
@@ -85,8 +154,15 @@ exports.createCheckoutSession = onCall(
             giftMessage: giftData?.giftMessage || '',
             subscriptionType: giftData?.subscriptionType || '',
             priceAtPurchase: String(giftData?.pricePaid || ''),
+            planName,
           },
-        });
+        };
+
+        if (discounts.length > 0) {
+          sessionPayload.discounts = discounts;
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionPayload);
         return {id: session.id};
       } catch (error) {
         console.error("Checkout session error:", error);

@@ -2,6 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Lock, ArrowRight } from 'lucide-react';
 import Modal from './Modal';
+import { useFounderOffer } from '../../context/FounderOfferContext';
+import { formatCurrency } from '../../utils/currencyUtils';
+import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
 
 /**
  * Modal displayed when user tries to perform an action in read-only mode
@@ -9,6 +12,31 @@ import Modal from './Modal';
  */
 export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perform this action', theme }) {
   const navigate = useNavigate();
+  const founderOffer = useFounderOffer();
+
+  const discount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
+  const monthlyPlan = getPlanPricing('monthly', discount);
+  const annualPlan = getPlanPricing('annual', discount);
+  const lifetimePlan = getPlanPricing('lifetime', discount);
+
+  const discountActive = discount > 0;
+  const monthlyBase = formatCurrency(monthlyPlan.price);
+  const monthlyFounder = formatCurrency(monthlyPlan.founderPrice);
+  const monthlySavings = formatCurrency(Math.max(monthlyPlan.savings, 0));
+
+  const annualBase = formatCurrency(annualPlan.price);
+  const annualFounder = formatCurrency(annualPlan.founderPrice);
+  const annualSavings = formatCurrency(Math.max(annualPlan.savings, 0));
+
+  const lifetimeBase = formatCurrency(lifetimePlan.price);
+  const lifetimeFounder = formatCurrency(lifetimePlan.founderPrice);
+  const lifetimeSavings = formatCurrency(Math.max(lifetimePlan.savings, 0));
+
+  const founderBadgeLabel = founderOffer.isFounder
+    ? 'Founder pricing locked'
+    : founderOffer.founderActive
+      ? `Founder ${discount}% off`
+      : 'Standard pricing';
 
   const handleUpgradeClick = () => {
     navigate('/account');
@@ -47,6 +75,27 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
           </p>
         </div>
 
+        <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L15 9L22 10L17 15L18.5 22L12 18.5L5.5 22L7 15L2 10L9 9L12 2Z"/>
+              </svg>
+            </div>
+            <div className="text-lg font-bold" style={{ color: '#344E41' }}>
+              Founders Offer
+            </div>
+          </div>
+          <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
+            <p className="text-xs leading-relaxed font-semibold" style={{ color: '#3A5A40' }}>
+              Be apart of the first 100 founder researchers!
+            </p>
+            <p className="text-xs leading-relaxed italic" style={{ color: '#3A5A40' }}>
+              You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
+            </p>
+          </div>
+        </div>
+
 
         {/* Plan Selection */}
         <div className="mt-6 space-y-4">
@@ -61,8 +110,22 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                 <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Monthly</h3>
-                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$8.99</div>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: '#344E41' }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: '#5C7659' }}>{monthlyBase}</span>
+                      <span>{monthlyFounder}</span>
+                    </>
+                  ) : (
+                    monthlyBase
+                  )}
+                </div>
                 <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per month</div>
+                {discountActive && (
+                  <div className="text-xs mt-2 font-medium" style={{ color: '#3A5A40' }}>
+                    Save {monthlySavings} / mo
+                  </div>
+                )}
               </div>
 
               {/* Action Button */}
@@ -90,13 +153,20 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                 <h3 className="text-base font-bold" style={{ color: '#344E41' }}>Annual</h3>
-                <div className="text-xl font-bold mt-1" style={{ color: '#344E41' }}>$89.99</div>
+                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: '#344E41' }}>
+                  {discountActive ? (
+                    <>
+                      <span className="line-through text-sm" style={{ color: '#5C7659' }}>{annualBase}</span>
+                      <span>{annualFounder}</span>
+                    </>
+                  ) : (
+                    annualBase
+                  )}
+                </div>
                 <div className="text-xs mt-1" style={{ color: '#5C7659' }}>per year</div>
-                
-                {/* Subtitle Badge */}
                 <div className="text-center mt-1">
                   <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#A3B18A' }}>
-                    Save $17.89
+                    {discountActive ? `Save ${annualSavings} / yr` : 'Save $17.89'}
                   </span>
                 </div>
               </div>
@@ -130,7 +200,22 @@ export default function UpgradeModal({ isOpen, onClose, actionAttempted = 'perfo
                 </div>
                 <div>
                   <div className="font-bold text-base" style={{ color: '#344E41' }}>Lifetime Access</div>
-                  <div className="text-sm" style={{ color: '#5C7659' }}>$249.99 • Never pay again</div>
+                  <div className="text-sm flex items-center gap-2" style={{ color: '#5C7659' }}>
+                    {discountActive ? (
+                      <>
+                        <span className="line-through text-xs" style={{ color: '#A3B18A' }}>{lifetimeBase}</span>
+                        <span>{lifetimeFounder}</span>
+                      </>
+                    ) : (
+                      lifetimeBase
+                    )}
+                    <span>• Never pay again</span>
+                  </div>
+                  {discountActive && (
+                    <div className="text-xs font-medium" style={{ color: '#3A5A40' }}>
+                      Save {lifetimeSavings} one-time
+                    </div>
+                  )}
                 </div>
               </div>
               <button 
