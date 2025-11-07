@@ -54,8 +54,22 @@ exports.sendEmail = async function sendEmail(to, subject, html) {
     };
 
     const result = await sgMail.send(msg);
-    logger.info('✅ Email sent successfully to:', to, 'Status:', result[0]?.statusCode);
-    return true;
+    const statusCode = result[0]?.statusCode;
+    const headers = result[0]?.headers;
+    
+    logger.info('✅ Email sent successfully to:', to);
+    logger.info('📊 SendGrid Response Status:', statusCode);
+    logger.info('📊 SendGrid Response Headers:', JSON.stringify(headers));
+    logger.info('📊 Full SendGrid Response:', JSON.stringify(result));
+    
+    // SendGrid returns 202 for accepted emails
+    if (statusCode === 202) {
+      logger.info('✅ Email accepted by SendGrid and queued for delivery');
+      return true;
+    } else {
+      logger.warn('⚠️ Unexpected SendGrid status code:', statusCode);
+      return true; // Still return true if SendGrid accepted it
+    }
     
   } catch (error) {
     logger.error('❌ Failed to send email:', error);
@@ -114,34 +128,56 @@ exports.sendVerificationEmail = async (userEmail, verificationLink) => {
  * Uses manualLifetimeGrant template instead of lifetimeAccessGranted
  */
 exports.sendLifetimeAccessEmail = async (userEmail, userName = null, reason = null) => {
+  logger.info(`📧 sendLifetimeAccessEmail called for: ${userEmail}`);
+  logger.info(`📧 Parameters: userName=${userName}, reason=${reason}`);
+  
   // Try to load manual grant template from Firestore first
   try {
+    logger.info('📧 Attempting to load manualLifetimeGrant template from Firestore...');
     const customTemplate = await loadEmailTemplate('manualLifetimeGrant');
     if (customTemplate) {
+      logger.info('✅ Found manualLifetimeGrant template in Firestore');
       const subject = customTemplate.subject || '✅ Lifetime Access Granted by Admin - The Pep Planner';
+      logger.info(`📧 Generating HTML with subject: ${subject}`);
       const html = generateEmailHTML(customTemplate, { userName, userEmail, reason });
-      return sendEmail(userEmail, subject, html);
+      logger.info(`📧 HTML generated, length: ${html.length} characters`);
+      const result = await sendEmail(userEmail, subject, html);
+      logger.info(`📧 sendEmail returned: ${result}`);
+      return result;
+    } else {
+      logger.info('⚠️ manualLifetimeGrant template not found in Firestore');
     }
   } catch (error) {
     logger.warn('Failed to load manual lifetime grant template, trying fallback:', error);
+    logger.warn('Error details:', error.message, error.stack);
   }
   
   // Fallback to regular lifetime access template if manual grant template doesn't exist
   try {
+    logger.info('📧 Attempting to load lifetimeAccessGranted template from Firestore...');
     const customTemplate = await loadEmailTemplate('lifetimeAccessGranted');
     if (customTemplate) {
+      logger.info('✅ Found lifetimeAccessGranted template in Firestore');
       const subject = customTemplate.subject || '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
       const html = generateEmailHTML(customTemplate, { userName, userEmail, reason });
-      return sendEmail(userEmail, subject, html);
+      const result = await sendEmail(userEmail, subject, html);
+      logger.info(`📧 sendEmail returned: ${result}`);
+      return result;
+    } else {
+      logger.info('⚠️ lifetimeAccessGranted template not found in Firestore');
     }
   } catch (error) {
     logger.warn('Failed to load lifetime access template, using default:', error);
+    logger.warn('Error details:', error.message, error.stack);
   }
   
   // Final fallback to hardcoded template
+  logger.info('📧 Using hardcoded template fallback');
   const subject = '✅ Lifetime Access Granted by Admin - The Pep Planner';
   const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User');
-  return sendEmail(userEmail, subject, html);
+  const result = await sendEmail(userEmail, subject, html);
+  logger.info(`📧 sendEmail returned: ${result}`);
+  return result;
 };
 
 /**
