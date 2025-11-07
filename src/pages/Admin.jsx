@@ -39,6 +39,7 @@ import {
 import AgreementTracking from '../components/admin/AgreementTracking';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
+import EmailTriggerManager from '../components/admin/EmailTriggerManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
 
@@ -1528,7 +1529,8 @@ function Admin() {
                 items={[
                   { id: 'announcements', label: 'Announcements', icon: Radio, count: announcements.length, color: theme.primary },
                   { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#10b981' },
-                  { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#06b6d4' }
+                  { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#06b6d4' },
+                  { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, count: 0, color: '#8b5cf6' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1607,6 +1609,7 @@ function Admin() {
               { id: 'gifts', label: 'Gifts', icon: Star, color: '#ec4899', short: 'Gifts' },
               { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981', short: 'Notify' },
               { id: 'emails', label: 'Email Templates', icon: Mail, color: '#06b6d4', short: 'Email' },
+              { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, color: '#8b5cf6', short: 'Triggers' },
               { id: 'improvements', label: 'Improvements', icon: Target, color: '#8b5cf6', short: 'Ideas' }
             ].map(tab => {
               const Icon = tab.icon;
@@ -3041,6 +3044,12 @@ function Admin() {
         {activeTab === 'emails' && (
           <div className="space-y-6">
             <EmailTemplateManager theme={theme} />
+          </div>
+        )}
+
+        {activeTab === 'emailTriggers' && (
+          <div className="space-y-6">
+            <EmailTriggerManager theme={theme} />
           </div>
         )}
 
