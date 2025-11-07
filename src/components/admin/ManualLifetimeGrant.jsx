@@ -24,44 +24,57 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
     setResult(null);
 
     try {
-      // Find the user by email using optimized query (much faster!)
-      const user = await getUserByEmail(email.trim());
-
-      if (!user) {
-        setResult({ 
-          type: 'error', 
-          message: `User with email "${email}" not found in Firebase. Make sure they have signed up first.` 
-        });
-        setLoading(false);
-        return;
+      // Try to find the user by email (optional - user may not exist yet)
+      // This is completely optional - we can grant access even if user doesn't exist yet
+      let user = null;
+      try {
+        user = await getUserByEmail(email.trim());
+        if (!user) {
+          console.log('✅ User not found in Firestore - will create pre-grant for:', email.trim());
+        } else {
+          console.log('✅ User found:', user.email);
+        }
+      } catch (error) {
+        // getUserByEmail might throw an error, but that's okay - we'll create a pre-grant
+        console.log('✅ User lookup failed (will create pre-grant):', error.message || error);
       }
 
       // Grant lifetime access using Cloud Function (bypasses client-side security rules)
+      // This works for BOTH existing users AND users who haven't signed up yet
       const functions = getFunctions();
       const adminGrantLifetimeAccess = httpsCallable(functions, 'adminGrantLifetimeAccess');
       
       // Get admin password from localStorage (set when admin panel is authenticated)
       const adminPassword = 'j&jm9102'; // Same password used for admin panel login
       
-      await adminGrantLifetimeAccess({
+      console.log('📧 Calling adminGrantLifetimeAccess with:', {
+        email: email.trim(),
+        userId: user ? (user.uid || user.id) : null,
+        reason: reason,
+        hasUser: !!user
+      });
+      
+      const grantResult = await adminGrantLifetimeAccess({
         adminPassword,
-        userId: user.uid || user.id,
-        email: user.email,
+        userId: user ? (user.uid || user.id) : null, // null if user doesn't exist - this is OK!
+        email: email.trim(),
         reason: reason,
         grantedBy: 'admin-manual'
       });
+      
+      console.log('✅ Grant result:', grantResult.data);
 
-      // Send lifetime access email notification
+      // Send lifetime access email notification (works for any email, even if user doesn't exist)
       try {
         const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
         const emailResult = await sendLifetimeAccessEmail({
-          userEmail: user.email,
-          userName: user.displayName || user.email.split('@')[0],
+          userEmail: email.trim(),
+          userName: user ? (user.displayName || user.email.split('@')[0]) : email.split('@')[0],
           reason: reason
         });
         const emailData = emailResult.data;
         if (emailData && emailData.success) {
-          console.log('✅ Lifetime access email sent to:', user.email);
+          console.log('✅ Lifetime access email sent to:', email.trim());
         } else {
           console.warn('⚠️ Failed to send lifetime access email:', emailData?.message || 'Unknown error');
         }
@@ -70,9 +83,13 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         // Don't fail the whole operation if email fails
       }
 
+      const successMessage = user 
+        ? `✅ Successfully granted lifetime access to ${email.trim()}. Email notification sent!`
+        : `✅ Lifetime access pre-granted to ${email.trim()}. Access will be activated when they sign up. Email notification sent!`;
+      
       setResult({ 
         type: 'success', 
-        message: `✅ Successfully granted lifetime access to ${user.email}. Email notification sent!` 
+        message: successMessage
       });
 
       // Clear form
@@ -85,11 +102,36 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       }
 
     } catch (error) {
-      console.error('Error granting lifetime access:', error);
-      setResult({ 
-        type: 'error', 
-        message: `Failed to grant access: ${error.message}` 
+      console.error('❌ Error granting lifetime access:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        code: error.code,
+        data: error.details || error.data
       });
+      
+      // Extract error message - could be from Cloud Function or network error
+      let errorMessage = error.message || 'Unknown error';
+      
+      // If error has details/data, check there too
+      if (error.details || error.data) {
+        const errorData = error.details || error.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      }
+      
+      // Check if the error mentions user not found - but we should still allow pre-granting
+      if (errorMessage.toLowerCase().includes('not found') || errorMessage.toLowerCase().includes('signed up')) {
+        setResult({ 
+          type: 'error', 
+          message: `⚠️ ${errorMessage}. Note: Pre-granting should work even if the user hasn't signed up. Please check the backend logs.` 
+        });
+      } else {
+        setResult({ 
+          type: 'error', 
+          message: `Failed to grant access: ${errorMessage}` 
+        });
+      }
     } finally {
       setLoading(false);
     }

@@ -16,7 +16,7 @@ const { fetchFounderState } = require('./founderOffer');
  * @param {string} html - Email HTML content
  * @returns {Promise<boolean>}
  */
-exports.sendEmail = async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html) {
   try {
     // Get SendGrid API key from environment variables (Firebase Functions v2)
     // The secret is automatically injected as an environment variable when the function is called
@@ -137,19 +137,32 @@ exports.sendLifetimeAccessEmail = async (userEmail, userName = null, reason = nu
     const customTemplate = await loadEmailTemplate('manualLifetimeGrant');
     if (customTemplate) {
       logger.info('✅ Found manualLifetimeGrant template in Firestore');
+      logger.info('📋 Template fields available:', Object.keys(customTemplate));
+      logger.info('📋 Template has subject:', !!customTemplate.subject);
+      logger.info('📋 Template has heading:', !!customTemplate.heading);
+      logger.info('📋 Template has greeting:', !!customTemplate.greeting);
+      logger.info('📋 Template has mainMessage:', !!customTemplate.mainMessage);
+      logger.info('📋 Template has reason variable support:', !!customTemplate.mainMessage?.includes('%REASON%'));
+      
       const subject = customTemplate.subject || '✅ Lifetime Access Granted by Admin - The Pep Planner';
       logger.info(`📧 Generating HTML with subject: ${subject}`);
+      logger.info(`📧 Variables being passed: userName=${userName}, userEmail=${userEmail}, reason=${reason}`);
+      
       const html = generateEmailHTML(customTemplate, { userName, userEmail, reason });
       logger.info(`📧 HTML generated, length: ${html.length} characters`);
+      logger.info('✅ Using manualLifetimeGrant template from Firestore');
+      
       const result = await sendEmail(userEmail, subject, html);
       logger.info(`📧 sendEmail returned: ${result}`);
       return result;
     } else {
-      logger.info('⚠️ manualLifetimeGrant template not found in Firestore');
+      logger.warn('⚠️ manualLifetimeGrant template not found in Firestore - template returned null');
+      logger.warn('⚠️ This means the template document does not exist or is empty');
     }
   } catch (error) {
-    logger.warn('Failed to load manual lifetime grant template, trying fallback:', error);
-    logger.warn('Error details:', error.message, error.stack);
+    logger.error('❌ Failed to load manual lifetime grant template:', error);
+    logger.error('❌ Error message:', error.message);
+    logger.error('❌ Error stack:', error.stack);
   }
   
   // Fallback to regular lifetime access template if manual grant template doesn't exist
@@ -241,7 +254,7 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
 /**
  * Load email template from Firestore
  */
-exports.loadEmailTemplate = async function loadEmailTemplate(templateType) {
+async function loadEmailTemplate(templateType) {
   try {
     logger.info(`📧 Loading email template: ${templateType}`);
     const templateRef = admin.firestore().collection('emailTemplates').doc(templateType);
@@ -250,6 +263,16 @@ exports.loadEmailTemplate = async function loadEmailTemplate(templateType) {
     if (templateDoc.exists) {
       const data = templateDoc.data();
       logger.info(`✅ Found template ${templateType} in Firestore`);
+      logger.info(`📋 Template document ID: ${templateDoc.id}`);
+      logger.info(`📋 Template has ${Object.keys(data).length} fields`);
+      logger.info(`📋 Template field names: ${Object.keys(data).join(', ')}`);
+      
+      // Log key template fields
+      if (data.name) logger.info(`📋 Template name: ${data.name}`);
+      if (data.subject) logger.info(`📋 Template subject: ${data.subject}`);
+      if (data.heading) logger.info(`📋 Template heading: ${data.heading}`);
+      if (data.greeting) logger.info(`📋 Template greeting: ${data.greeting.substring(0, 50)}...`);
+      if (data.mainMessage) logger.info(`📋 Template mainMessage: ${data.mainMessage.substring(0, 50)}...`);
       
       // If template doesn't have colors, try to load from _branding doc
       if (!data.colors) {
@@ -260,6 +283,8 @@ exports.loadEmailTemplate = async function loadEmailTemplate(templateType) {
           if (brandingDoc.exists && brandingDoc.data().colors) {
             data.colors = brandingDoc.data().colors;
             logger.info(`✅ Loaded colors from _branding doc`);
+          } else {
+            logger.warn(`⚠️ _branding doc not found or missing colors`);
           }
         } catch (brandingError) {
           logger.warn(`⚠️ Could not load colors from _branding:`, brandingError);
@@ -268,9 +293,12 @@ exports.loadEmailTemplate = async function loadEmailTemplate(templateType) {
         logger.info(`✅ Template ${templateType} has embedded colors`);
       }
       
+      logger.info(`✅ Returning template data for ${templateType}`);
       return data;
     } else {
       logger.warn(`⚠️ Template ${templateType} not found in Firestore`);
+      logger.warn(`⚠️ Document path: emailTemplates/${templateType}`);
+      logger.warn(`⚠️ Document exists: ${templateDoc.exists}`);
     }
     return null;
   } catch (error) {
@@ -280,10 +308,13 @@ exports.loadEmailTemplate = async function loadEmailTemplate(templateType) {
   }
 }
 
+// Export loadEmailTemplate so it can be used by other modules
+exports.loadEmailTemplate = loadEmailTemplate;
+
 /**
  * Generate email HTML from admin template
  */
-exports.generateEmailHTML = function generateEmailHTML(template, variables = {}) {
+function generateEmailHTML(template, variables = {}) {
   const colors = template.colors || {
     primary: '#344E41',
     primaryLight: '#3A5A40',
@@ -351,6 +382,9 @@ exports.generateEmailHTML = function generateEmailHTML(template, variables = {})
 
   return html;
 }
+
+// Export generateEmailHTML so it can be used by other modules
+exports.generateEmailHTML = generateEmailHTML;
 
 /**
  * Generate default HTML from template data

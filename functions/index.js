@@ -42,62 +42,90 @@ exports.adminGrantLifetimeAccess = onCall(
         throw new Error('Invalid admin password');
       }
       
-      if (!userId || !email) {
-        throw new Error('userId and email are required');
+      if (!email) {
+        throw new Error('email is required');
       }
       
-      logger.info('🎁 Admin granting lifetime access to:', email, userId);
+      const normalizedEmail = email.toLowerCase().trim();
+      logger.info('🎁 Admin granting lifetime access to:', normalizedEmail, userId || 'no userId (pre-grant)');
       
       // Use Admin SDK to write directly (bypasses security rules)
       const db = admin.firestore();
       
-      // Create lifetime access document
-      await db.collection('lifetimeAccess').doc(userId).set({
-        userId,
-        email: email.toLowerCase(),
-        hasLifetimeAccess: true,
-        reason: reason || 'Beta tester',
-        grantedBy: grantedBy || 'admin',
-        grantedAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: 'active',
-        metadata: {
-          isBetaTester: (reason || '').toLowerCase().includes('beta'),
-          isFounder: (reason || '').toLowerCase().includes('founder'),
-          isManualGrant: true
-        }
-      }, { merge: true });
-      
-      // Update user document
-      await db.collection('users').doc(userId).set({
-        subscription: {
+      // If userId is provided, grant access to existing user
+      // If userId is not provided, create a pre-grant that will be applied when user signs up
+      if (userId) {
+        // User exists - grant access immediately
+        logger.info('✅ User exists, granting lifetime access immediately');
+        
+        // Create lifetime access document
+        await db.collection('lifetimeAccess').doc(userId).set({
+          userId,
+          email: normalizedEmail,
           hasLifetimeAccess: true,
+          reason: reason || 'Beta tester',
+          grantedBy: grantedBy || 'admin',
+          grantedAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'active',
+          metadata: {
+            isBetaTester: (reason || '').toLowerCase().includes('beta'),
+            isFounder: (reason || '').toLowerCase().includes('founder'),
+            isManualGrant: true
+          }
+        }, { merge: true });
+        
+        // Update user document
+        await db.collection('users').doc(userId).set({
+          subscription: {
+            hasLifetimeAccess: true,
+            lifetimeReason: reason || 'Beta tester',
+            lifetimeGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
+            plan: 'lifetime',
+            status: 'active'
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        
+        // CRITICAL: Also write to userSubscriptions collection (where app reads from)
+        const subscriptionData = {
+          hasLifetimeAccess: true,
+          interval: 'lifetime',
+          status: 'active',
+          plan: 'lifetime',
           lifetimeReason: reason || 'Beta tester',
           lifetimeGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
-          plan: 'lifetime',
-          status: 'active'
-        },
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      
-      // CRITICAL: Also write to userSubscriptions collection (where app reads from)
-      // Use merge: true to preserve other fields, but the subscription object will be completely replaced
-      const subscriptionData = {
-        hasLifetimeAccess: true,
-        interval: 'lifetime',
-        status: 'active',
-        plan: 'lifetime',
-        lifetimeReason: reason || 'Beta tester',
-        lifetimeGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
-        currentPeriodEnd: null, // Lifetime has no end date
-        currentPeriodStart: admin.firestore.FieldValue.serverTimestamp(),
-        userId: userId,
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
-      };
-      
-      // Use merge: true to preserve other document fields, but subscription object is completely replaced
-      await db.collection('userSubscriptions').doc(userId).set({
-        subscription: subscriptionData
-      }, { merge: true });
+          currentPeriodEnd: null, // Lifetime has no end date
+          currentPeriodStart: admin.firestore.FieldValue.serverTimestamp(),
+          userId: userId,
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('userSubscriptions').doc(userId).set({
+          subscription: subscriptionData
+        }, { merge: true });
+      } else {
+        // User doesn't exist yet - create pre-grant that will be applied on signup
+        logger.info('⚠️ User does not exist yet, creating pre-grant for email:', normalizedEmail);
+        
+        // Create a pre-grant document keyed by email (not userId)
+        // This will be checked when the user signs up
+        await db.collection('lifetimeAccessPreGrants').doc(normalizedEmail).set({
+          email: normalizedEmail,
+          hasLifetimeAccess: true,
+          reason: reason || 'Beta tester',
+          grantedBy: grantedBy || 'admin',
+          grantedAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'pending', // Will be activated when user signs up
+          metadata: {
+            isBetaTester: (reason || '').toLowerCase().includes('beta'),
+            isFounder: (reason || '').toLowerCase().includes('founder'),
+            isManualGrant: true,
+            isPreGrant: true
+          }
+        }, { merge: true });
+        
+        logger.info('✅ Pre-grant created - will be applied when user signs up');
+      }
       
       logger.info('✅ Lifetime access granted successfully');
       
@@ -928,10 +956,77 @@ exports.onUserCreated = onDocumentCreated(
   async (event) => {
   const userData = event.data.data();
   const userId = event.params.userId;
+  const userEmail = userData.email?.toLowerCase().trim();
   
-  logger.info(`👋 New user created: ${userId} (${userData.email})`);
+  logger.info(`👋 New user created: ${userId} (${userEmail})`);
   
   try {
+    // Check for pre-granted lifetime access (granted before user signed up)
+    const db = admin.firestore();
+    const preGrantRef = db.collection('lifetimeAccessPreGrants').doc(userEmail);
+    const preGrantDoc = await preGrantRef.get();
+    
+    if (preGrantDoc.exists()) {
+      const preGrant = preGrantDoc.data();
+      logger.info(`🎁 Found pre-granted lifetime access for: ${userEmail}`);
+      
+      if (preGrant.status === 'pending' && preGrant.hasLifetimeAccess) {
+        // Apply the pre-grant to the new user
+        logger.info(`✅ Applying pre-granted lifetime access to user: ${userId}`);
+        
+        // Create lifetime access document
+        await db.collection('lifetimeAccess').doc(userId).set({
+          userId,
+          email: userEmail,
+          hasLifetimeAccess: true,
+          reason: preGrant.reason || 'Beta tester',
+          grantedBy: preGrant.grantedBy || 'admin',
+          grantedAt: preGrant.grantedAt || admin.firestore.FieldValue.serverTimestamp(),
+          status: 'active',
+          metadata: preGrant.metadata || {}
+        }, { merge: true });
+        
+        // Update user document
+        await db.collection('users').doc(userId).set({
+          subscription: {
+            hasLifetimeAccess: true,
+            lifetimeReason: preGrant.reason || 'Beta tester',
+            lifetimeGrantedAt: preGrant.grantedAt || admin.firestore.FieldValue.serverTimestamp(),
+            plan: 'lifetime',
+            status: 'active'
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        
+        // Write to userSubscriptions collection
+        const subscriptionData = {
+          hasLifetimeAccess: true,
+          interval: 'lifetime',
+          status: 'active',
+          plan: 'lifetime',
+          lifetimeReason: preGrant.reason || 'Beta tester',
+          lifetimeGrantedAt: preGrant.grantedAt || admin.firestore.FieldValue.serverTimestamp(),
+          currentPeriodEnd: null,
+          currentPeriodStart: preGrant.grantedAt || admin.firestore.FieldValue.serverTimestamp(),
+          userId: userId,
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('userSubscriptions').doc(userId).set({
+          subscription: subscriptionData
+        }, { merge: true });
+        
+        // Mark pre-grant as applied
+        await preGrantRef.update({
+          status: 'applied',
+          appliedAt: admin.firestore.FieldValue.serverTimestamp(),
+          appliedToUserId: userId
+        });
+        
+        logger.info(`✅ Pre-granted lifetime access applied successfully to: ${userId}`);
+      }
+    }
+    
     // Send welcome email
     await emailService.sendWelcomeEmail(userData.email, userData.displayName || null);
     logger.info(`✅ Welcome email sent to: ${userData.email}`);

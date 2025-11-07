@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { checkLifetimeAccessFirestore } from '../services/firebase';
 
 // Define all beta testing periods
 // To add a new beta period for future testing rounds, simply add a new object to this array:
@@ -49,6 +50,38 @@ export function getBetaPeriods() {
 }
 
 export function useBadgeStats() {
+    // State to track Firestore beta tester status
+    const [firestoreBetaTester, setFirestoreBetaTester] = useState(null);
+
+    // Sync beta tester status from Firestore
+    useEffect(() => {
+        const syncBetaTesterFromFirestore = async () => {
+            try {
+                const user = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
+                if (!user?.uid) return;
+
+                // Check Firestore for beta tester status
+                const lifetimeAccess = await checkLifetimeAccessFirestore(user.uid);
+                const isBetaTesterInFirestore = lifetimeAccess?.metadata?.isBetaTester === true || 
+                                                (lifetimeAccess?.reason && lifetimeAccess.reason.toLowerCase().includes('beta'));
+                
+                if (isBetaTesterInFirestore) {
+                    // Sync to localStorage for badge logic
+                    localStorage.setItem('tpprover_is_tester', 'true');
+                    setFirestoreBetaTester(true);
+                    console.log('✅ Beta tester badge synced from Firestore');
+                } else {
+                    setFirestoreBetaTester(false);
+                }
+            } catch (error) {
+                console.error('Error syncing beta tester status from Firestore:', error);
+                setFirestoreBetaTester(false);
+            }
+        };
+
+        syncBetaTesterFromFirestore();
+    }, []);
+
     const allBadges = useMemo(() => {
     return [
       // Core
@@ -99,7 +132,13 @@ export function useBadgeStats() {
         
         // Check if user is a beta tester based on signup date during beta periods
         const isBetaTesterByDate = isBetaTester(user.createdAt)
-        const isBetaTesterFinal = legacyTester || isBetaTesterByDate
+        
+        // Include Firestore beta tester status
+        // Priority: Firestore true > localStorage/date checks > Firestore false
+        // If Firestore explicitly says true, grant badge
+        // Otherwise, fall back to localStorage/date checks (for legacy users or during Firestore check)
+        const isBetaTesterFinal = firestoreBetaTester === true || 
+                                  (firestoreBetaTester !== true && (legacyTester || isBetaTesterByDate))
         
         const isFounder = (() => { try { const v = localStorage.getItem('tpprover_is_founder'); return v === '1' || v === 'true' } catch { return false } })()
         
@@ -147,7 +186,7 @@ export function useBadgeStats() {
         const accountAgeDays = user.createdAt ? Math.floor((new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24)) : 0;
 
         return { delivered, internationalOrders, groupBuys, activeProtocols, stockpile, lowStock, supplementCount, totalSpend, streak, isBetaTester: isBetaTesterFinal, isFounder, vendors, stacks, accountAgeDays };
-    }, []);
+    }, [firestoreBetaTester]);
 
     const earnedBadges = useMemo(() => {
         return allBadges.filter(b => b.check(stats));
