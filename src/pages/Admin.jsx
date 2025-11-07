@@ -564,6 +564,8 @@ function Admin() {
     setLoading(prev => ({ ...prev, lifetimeUsers: true }));
     try {
       console.log('🔍 Loading lifetime users from Firebase...');
+      console.log('🔑 Firebase auth check:', auth.currentUser?.email || 'NOT LOGGED IN TO FIREBASE');
+      
       const users = await getAllLifetimeUsers();
       setLifetimeUsers(users);
       
@@ -574,8 +576,33 @@ function Admin() {
       } catch (e) {
         console.log('📱 No localStorage lifetime users found');
       }
+      
+      // Alert if no users found but we're authenticated
+      if (users.length === 0 && auth.currentUser) {
+        console.warn('⚠️ No lifetime users found but you are logged into Firebase');
+        console.warn('⚠️ This might mean:');
+        console.warn('   1. No lifetime grants have been made yet');
+        console.warn('   2. The grants failed silently (check Cloud Functions logs)');
+        console.warn('   3. You need to check Firestore directly');
+      }
+      
+      if (users.length === 0 && !auth.currentUser) {
+        console.error('🚫 NOT LOGGED INTO FIREBASE! Lifetime users cannot be loaded.');
+        console.error('🚫 You must be logged into the main app first with an admin email.');
+      }
     } catch (error) {
       console.error('❌ Error loading lifetime users:', error);
+      
+      // Show helpful alert for permission errors
+      if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+        alert('🚫 PERMISSION ERROR: You must be logged into Firebase with an admin email to view lifetime users.\n\n' +
+              'Current Firebase user: ' + (auth.currentUser?.email || 'NOT LOGGED IN') + '\n\n' +
+              'Steps to fix:\n' +
+              '1. Log out of The Pep Planner\n' +
+              '2. Log back in with: lebrockmaldonado@gmail.com\n' +
+              '3. Then visit /admin and refresh\n\n' +
+              'Check the browser console for more details.');
+      }
     } finally {
       setLoading(prev => ({ ...prev, lifetimeUsers: false }));
     }
@@ -773,31 +800,42 @@ function Admin() {
 
   const handleOpenUserModal = async (user) => {
     try {
+      console.log('🔍 handleOpenUserModal called with user:', user);
       const userId = user?.id || user?.uid;
       if (!userId) {
         throw new Error('Missing researcher ID');
       }
 
+      // Open modal immediately with basic user data
+      console.log('✅ Setting modal open and selectedUser...');
+      setSelectedUser(user);
+      setIsUserModalOpen(true);
+      console.log('✅ Modal state updated. isUserModalOpen should be true now');
+      
+      // Attempt to load detailed profile in the background
       setLoading(prev => ({ ...prev, selectedUser: true }));
       setIsLoadingUserDetails(true);
-
-      const profile = await getAdminUserProfile(userId);
-
-      setSelectedUser({
-        ...user,
-        ...profile,
-        id: profile.id || userId,
-        uid: profile.uid || userId
-      });
-      setIsUserModalOpen(true);
+      
+      try {
+        const profile = await getAdminUserProfile(userId);
+        setSelectedUser({
+          ...user,
+          ...profile,
+          id: profile.id || userId,
+          uid: profile.uid || userId
+        });
+      } catch (profileError) {
+        console.warn('⚠️ Could not load detailed profile, using basic user data:', profileError.message);
+        // Modal already open with basic user data, just mark loading as done
+      } finally {
+        setIsLoadingUserDetails(false);
+        setLoading(prev => ({ ...prev, selectedUser: false }));
+      }
     } catch (error) {
       console.error('❌ Failed to load researcher details:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: error.message || 'Failed to load researcher details.', type: 'error' }
       }));
-    } finally {
-      setIsLoadingUserDetails(false);
-      setLoading(prev => ({ ...prev, selectedUser: false }));
     }
   };
 
@@ -3334,19 +3372,25 @@ function Admin() {
 
         </div>
       </div>
-      {isUserModalOpen && selectedUser && (
-        <UserDetailModal 
-          user={selectedUser} 
-          onClose={() => {
-            setIsUserModalOpen(false);
-            setSelectedUser(null);
-          }}
-          theme={theme}
-          onResetPassword={handleResetPassword}
-          onExtendTrial={handleExtendTrial}
-          isExtendingTrial={isExtendingTrial}
-          isLoadingDetails={isLoadingUserDetails}
-        />
+      {console.log('🔍 Checking modal render condition:', { isUserModalOpen, selectedUser: !!selectedUser })}
+      {isUserModalOpen && selectedUser ? (
+        <>
+          {console.log('✅ Modal SHOULD render now!')}
+          <UserDetailModal 
+            user={selectedUser} 
+            onClose={() => {
+              setIsUserModalOpen(false);
+              setSelectedUser(null);
+            }}
+            theme={theme}
+            onResetPassword={handleResetPassword}
+            onExtendTrial={handleExtendTrial}
+            isExtendingTrial={isExtendingTrial}
+            isLoadingDetails={isLoadingUserDetails}
+          />
+        </>
+      ) : (
+        console.log('❌ Modal NOT rendering:', { isUserModalOpen, hasUser: !!selectedUser })
       )}
 
       {/* Research Topic Edit Modal */}

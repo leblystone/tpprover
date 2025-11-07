@@ -24,8 +24,8 @@ export default function UserTable({ users, searchTerm, theme, onViewUser }) {
           </tr>
         </thead>
         <tbody className="divide-y" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          {filteredUsers.map(user => (
-            <tr key={user.uid}>
+          {filteredUsers.map((user, index) => (
+            <tr key={user.uid || user.id || `${user.email}-${index}`}>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10">

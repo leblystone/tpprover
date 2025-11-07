@@ -10,6 +10,14 @@ export default function UserDetailModal({
   isExtendingTrial = false,
   isLoadingDetails = false
 }) {
+  // Safety check
+  if (!user) {
+    console.error('❌ UserDetailModal: No user provided!');
+    return null;
+  }
+
+  console.log('✅ UserDetailModal rendering with user:', user);
+
   // Check if user has lifetime access
   const [extensionDays, setExtensionDays] = useState('3');
   const [extensionNote, setExtensionNote] = useState('');

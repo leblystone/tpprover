@@ -117,6 +117,15 @@ service cloud.firestore {
       allow write: if isAdmin(); // Only admin can grant lifetime access
     }
     
+    // Lifetime access pre-grants - admin can read/write all, users can check their email
+    match /lifetimeAccessPreGrants/{emailId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email == emailId ||
+        isAdmin()
+      );
+      allow write: if isAdmin(); // Only admin can create pre-grants
+    }
+    
     // Config collection - admin can read/write, others can read feature flags
     match /config/{configId} {
       allow read: if true; // Anyone can read config (for feature flags, etc.)

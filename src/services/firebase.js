@@ -1292,15 +1292,22 @@ export async function checkLifetimeAccessFirestore(userId) {
  */
 export async function getAllLifetimeUsers() {
   try {
+    console.log('🔍 getAllLifetimeUsers: Starting query...');
+    console.log('🔑 Current Firebase user:', auth.currentUser?.email || 'NOT LOGGED IN');
+    
     const users = [];
 
     // Active lifetime access documents (users who already exist)
     const lifetimeRef = collection(db, 'lifetimeAccess');
     const lifetimeQuery = query(lifetimeRef, where('hasLifetimeAccess', '==', true));
+    
+    console.log('📊 Querying lifetimeAccess collection...');
     const lifetimeSnapshot = await getDocs(lifetimeQuery);
+    console.log(`✅ lifetimeAccess query complete: ${lifetimeSnapshot.size} documents found`);
 
     lifetimeSnapshot.forEach(docSnapshot => {
       const data = docSnapshot.data() || {};
+      console.log('📄 Found lifetime user:', data.email, '(userId:', docSnapshot.id, ')');
       users.push({
         id: docSnapshot.id,
         userId: docSnapshot.id,
@@ -1319,10 +1326,14 @@ export async function getAllLifetimeUsers() {
     // Pending pre-grants for emails that haven't signed up yet
     const preGrantRef = collection(db, 'lifetimeAccessPreGrants');
     const preGrantQuery = query(preGrantRef, where('status', '==', 'pending'));
+    
+    console.log('📊 Querying lifetimeAccessPreGrants collection...');
     const preGrantSnapshot = await getDocs(preGrantQuery);
+    console.log(`✅ lifetimeAccessPreGrants query complete: ${preGrantSnapshot.size} documents found`);
 
     preGrantSnapshot.forEach(docSnapshot => {
       const data = docSnapshot.data() || {};
+      console.log('📄 Found pre-grant:', data.email || docSnapshot.id);
       users.push({
         id: `pregrant-${docSnapshot.id}`,
         preGrantId: docSnapshot.id,
@@ -1349,10 +1360,24 @@ export async function getAllLifetimeUsers() {
 
     users.sort((a, b) => getTimestampValue(b.grantedAt) - getTimestampValue(a.grantedAt));
 
-    console.log(`📋 Found ${users.length} lifetime entries (active: ${lifetimeSnapshot.size}, pending: ${preGrantSnapshot.size})`);
+    console.log(`📋 TOTAL: Found ${users.length} lifetime entries (active: ${lifetimeSnapshot.size}, pending: ${preGrantSnapshot.size})`);
+    if (users.length > 0) {
+      console.log('📋 Sample entries:', users.slice(0, 3).map(u => ({ email: u.email, source: u.source, isPreGrant: u.isPreGrant })));
+    }
     return users;
   } catch (error) {
     console.error('❌ Failed to get lifetime users:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Current user:', auth.currentUser?.email || 'NOT LOGGED IN');
+    
+    // If permission denied, show helpful message
+    if (error.code === 'permission-denied') {
+      console.error('🚫 PERMISSION DENIED: You must be logged into Firebase with an admin email!');
+      console.error('🚫 Admin emails: lebrockmaldonado@gmail.com, contact@thepepplanner.com');
+      console.error('🚫 Current user:', auth.currentUser?.email || 'NOT LOGGED IN');
+    }
+    
     return [];
   }
 }
