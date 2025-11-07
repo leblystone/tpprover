@@ -762,6 +762,86 @@ exports.testEmailSystem = onCall(
         emailResult = false;
       }
       emailName = 'Manual Lifetime Grant Email';
+    } else if (templateType === 'lifetimeAccessGranted') {
+      logger.info('Testing lifetime access granted email...');
+      
+      // Try to load custom template from Firestore first
+      let htmlContent, subjectText;
+      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
+      
+      try {
+        logger.info('📧 Attempting to load custom lifetimeAccessGranted template from Firestore...');
+        const customTemplate = await loadEmailTemplate('lifetimeAccessGranted');
+        
+        if (customTemplate) {
+          logger.info('✅ Custom lifetimeAccessGranted template found in Firestore');
+          logger.info('📋 Template fields:', Object.keys(customTemplate));
+          htmlContent = generateEmailHTML(customTemplate, { 
+            userName: 'Test User',
+            userEmail: testEmail,
+            reason: 'Beta tester'
+          });
+          subjectText = customTemplate.subject || '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
+          logger.info('✅ Using custom template from Firestore');
+        } else if (templateData) {
+          // Fallback to templateData from admin panel
+          logger.info('📧 No Firestore template, using templateData from admin panel');
+          logger.info('🔍 Template data fields:', Object.keys(templateData));
+          htmlContent = generateEmailHTML(templateData, { 
+            userName: 'Test User',
+            userEmail: testEmail,
+            reason: 'Beta tester'
+          });
+          subjectText = templateData.subject || '🎉 You\'ve Been Granted Lifetime Access to The Pep Planner!';
+          logger.info('✅ Using custom template from admin panel');
+        } else {
+          // Final fallback: use the email service function
+          logger.info('📧 Using emailService.sendLifetimeAccessGrantedEmail function');
+          emailResult = await emailService.sendLifetimeAccessGrantedEmail(testEmail, 'Beta tester');
+          emailName = 'Lifetime Access Granted Email';
+          if (emailResult) {
+            logger.info('✅ Lifetime access granted test email sent successfully');
+          } else {
+            logger.error('❌ Failed to send lifetime access granted email');
+          }
+          results.tests.lifetimeAccessGrantedEmail = {
+            success: emailResult,
+            message: emailResult ? 'Email sent successfully' : 'Email failed to send'
+          };
+          return results;
+        }
+        
+        // Send the email if we generated HTML
+        if (htmlContent) {
+          const sgMail = require('@sendgrid/mail');
+          const apiKey = process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.trim() : null;
+          
+          if (!apiKey || !apiKey.startsWith('SG.')) {
+            throw new Error('Invalid SendGrid API key');
+          }
+          
+          sgMail.setApiKey(apiKey);
+          
+          const msg = {
+            to: testEmail,
+            from: {
+              email: 'contact@thepepplanner.com',
+              name: 'The Pep Planner'
+            },
+            subject: subjectText,
+            html: htmlContent
+          };
+          
+          await sgMail.send(msg);
+          emailResult = true;
+          logger.info('✅ Lifetime access granted test email sent successfully');
+        }
+      } catch (error) {
+        logger.error('❌ Lifetime access granted email failed:', error);
+        logger.error('❌ Error stack:', error.stack);
+        emailResult = false;
+      }
+      emailName = 'Lifetime Access Granted Email';
     } else {
       // Default: send all emails for general testing
       logger.info('Testing all email types...');
