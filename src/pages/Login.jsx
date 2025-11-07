@@ -6,6 +6,7 @@ import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import SignupAgreementModal from '../components/legal/SignupAgreementModal';
+import LandingContactModal from '../components/legal/LandingContactModal';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import { clearAllUserData, clearAllLocalStorage } from '../utils/clearUserData';
@@ -119,6 +120,7 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [needsPasswordForSync, setNeedsPasswordForSync] = useState(false);
     const [showAgreementModal, setShowAgreementModal] = useState(false);
+    const [showContact, setShowContact] = useState(false);
     const [passwordValidation, setPasswordValidation] = useState({ valid: true, errors: [], tips: [] });
     const [emailValidation, setEmailValidation] = useState({ valid: true, error: '', tip: '' });
     const [isReturningUser, setIsReturningUser] = useState(false);
@@ -1117,6 +1119,32 @@ export default function Login() {
                         </div>
                     </div>
 
+                    <div className="mt-4 flex justify-center">
+                        <button
+                            type="button"
+                            onClick={() => setShowContact(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full border transition-transform"
+                            style={{
+                                color: theme.textOnPrimary || '#FFFFFF',
+                                borderColor: 'transparent',
+                                backgroundColor: theme.primary,
+                                boxShadow: '0 6px 18px rgba(127, 158, 149, 0.25)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.primaryDark || '#6b8b78';
+                                e.currentTarget.style.boxShadow = '0 10px 24px rgba(95, 127, 118, 0.35)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.primary;
+                                e.currentTarget.style.boxShadow = '0 6px 18px rgba(127, 158, 149, 0.25)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            Support
+                        </button>
+                    </div>
+
                     {/* Download Section - Simplified */}
                     <div className="mt-6 pt-6 border-t w-full max-w-md" style={{ borderColor: theme.border }}>
                         <p className="text-xs text-center mb-3" style={{ color: theme.textLight }}>Also available on</p>
@@ -1191,6 +1219,11 @@ export default function Login() {
                     theme={theme}
                 />
             )}
+
+            <LandingContactModal
+                open={showContact}
+                onClose={() => setShowContact(false)}
+            />
 
             {/* iOS Coming Soon Popup */}
             {showIOSPopup && (
