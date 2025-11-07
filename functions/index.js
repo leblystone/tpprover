@@ -1066,7 +1066,7 @@ exports.sendCustomAnnouncementEmail = onCall(
 exports.sendLifetimeAccessEmail = onCall(
   {
     cors: true,
-    secrets: ['SENDGRID_API_KEY']
+    secrets: ['SENDGRID_API_KEY', 'LOGO_URL']
   },
   async (request) => {
     const { userEmail, userName, reason } = request.data;
@@ -1076,6 +1076,7 @@ exports.sendLifetimeAccessEmail = onCall(
     }
 
     logger.info(`📧 Sending lifetime access email to: ${userEmail}`);
+    logger.info(`📧 Email params: userName=${userName}, reason=${reason}`);
 
     try {
       const emailService = require('./emailService');
@@ -1090,7 +1091,14 @@ exports.sendLifetimeAccessEmail = onCall(
       }
     } catch (error) {
       logger.error(`❌ Error sending lifetime access email: ${error.message}`);
-      throw new Error('Failed to send lifetime access email');
+      logger.error(`❌ Error stack: ${error.stack}`);
+      logger.error(`❌ Full error:`, error);
+      // Return error details instead of throwing to avoid INTERNAL error
+      return { 
+        success: false, 
+        message: `Failed to send lifetime access email: ${error.message}`,
+        error: error.message
+      };
     }
   }
 );

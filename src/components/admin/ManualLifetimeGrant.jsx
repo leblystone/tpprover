@@ -54,12 +54,17 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       // Send lifetime access email notification
       try {
         const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
-        await sendLifetimeAccessEmail({
+        const emailResult = await sendLifetimeAccessEmail({
           userEmail: user.email,
           userName: user.displayName || user.email.split('@')[0],
           reason: reason
         });
-        console.log('✅ Lifetime access email sent to:', user.email);
+        const emailData = emailResult.data;
+        if (emailData && emailData.success) {
+          console.log('✅ Lifetime access email sent to:', user.email);
+        } else {
+          console.warn('⚠️ Failed to send lifetime access email:', emailData?.message || 'Unknown error');
+        }
       } catch (emailError) {
         console.warn('⚠️ Failed to send lifetime access email:', emailError);
         // Don't fail the whole operation if email fails
@@ -118,21 +123,29 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
     try {
       const functions = getFunctions();
       const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
-      await sendLifetimeAccessEmail({
+      const result = await sendLifetimeAccessEmail({
         userEmail: email,
         userName: email.split('@')[0],
         reason: reason
       });
       
-      setResult({ 
-        type: 'success', 
-        message: `✅ Test email sent successfully to ${email}!` 
-      });
+      const data = result.data;
+      if (data && data.success) {
+        setResult({ 
+          type: 'success', 
+          message: `✅ Test email sent successfully to ${email}! Check your inbox (and spam folder).` 
+        });
+      } else {
+        setResult({ 
+          type: 'error', 
+          message: `Failed to send test email: ${data?.message || 'Unknown error'}` 
+        });
+      }
     } catch (error) {
       console.error('Error sending test email:', error);
       setResult({ 
         type: 'error', 
-        message: `Failed to send test email: ${error.message}` 
+        message: `Failed to send test email: ${error.message || 'Network error'}` 
       });
     } finally {
       setTestingEmail(false);
@@ -166,12 +179,18 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         await Promise.allSettled(
           batch.map(async (user) => {
             try {
-              await sendLifetimeAccessEmail({
+              const result = await sendLifetimeAccessEmail({
                 userEmail: user.email,
                 userName: user.displayName || user.email.split('@')[0],
                 reason: reason
               });
-              successCount++;
+              const data = result.data;
+              if (data && data.success) {
+                successCount++;
+              } else {
+                console.error(`Failed to send to ${user.email}:`, data?.message || 'Unknown error');
+                failCount++;
+              }
             } catch (error) {
               console.error(`Failed to send to ${user.email}:`, error);
               failCount++;
