@@ -14,7 +14,7 @@ const DEFAULT_TEMPLATES = {
     mainMessage: "The Pep Planner is your complete research management platform, designed to help you organize protocols, track progress, and optimize your research journey.",
     ctaText: 'Get Started',
     ctaLink: 'https://thepepplanner.app/app/dashboard',
-    highlightTitle: '🎁 Your 7-Day Free Trial is Active!',
+    highlightTitle: '🎁 Your Research Trial is Active!',
     highlightMessage: 'Full access to all features. No credit card required.',
     features: [
       'Create Custom Protocols – Build and manage research protocols',
@@ -101,7 +101,7 @@ const DEFAULT_TEMPLATES = {
     subject: 'Your trial ends in 2 days - The Pep Planner',
     heading: 'Your Trial Ends in 2 Days ⏰',
     greeting: "Hi there! We hope you're enjoying The Pep Planner.",
-    mainMessage: 'Your 7-day free trial will end in 2 days. To continue accessing your research data and all features, please choose a subscription plan.',
+    mainMessage: 'Your 10-day research trial will end in 2 days. To continue accessing your research data and all features, please choose a subscription plan.',
     ctaText: 'View Plans & Pricing',
     ctaLink: 'https://thepepplanner.app/app/account',
     highlightTitle: '✨ Continue Your Research Journey',
@@ -212,8 +212,8 @@ const DEFAULT_TEMPLATES = {
     heading: 'Lifetime Access Granted',
     greeting: 'An administrator has granted your account lifetime access to The Pep Planner.',
     mainMessage: 'You now have permanent access to all features with no recurring billing. This is a special research authorization applied directly to your account.',
-    ctaText: 'Open Dashboard',
-    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    ctaText: 'Create Your Account',
+    ctaLink: 'https://thepepplanner.app/login?email=%USEREMAIL%&signup=true&pregrant=true',
     highlightTitle: 'Access Details',
     highlightMessage: 'Status: Active • Type: Admin Granted • Expires: Never',
     features: [

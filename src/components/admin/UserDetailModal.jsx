@@ -1,13 +1,103 @@
-import React from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader } from 'lucide-react';
 
-export default function UserDetailModal({ user, onClose, theme: enhancedTheme, onResetPassword }) {
+export default function UserDetailModal({
+  user,
+  onClose,
+  theme: enhancedTheme,
+  onResetPassword,
+  onExtendTrial,
+  isExtendingTrial = false,
+  isLoadingDetails = false
+}) {
   // Check if user has lifetime access
+  const [extensionDays, setExtensionDays] = useState('3');
+  const [extensionNote, setExtensionNote] = useState('');
+  const [localMessage, setLocalMessage] = useState(null);
+  const [localMessageType, setLocalMessageType] = useState('success');
+
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
   const isLifetimeGranted = user.subscription?.lifetimeReason && !user.subscription?.paymentMethodId;
   const subscriptionStatus = user.subscription?.status || 'unknown';
   const subscriptionPlan = user.subscription?.plan?.name || user.subscription?.plan || 'No subscription';
   const subscriptionInterval = user.subscription?.interval || 'N/A';
+
+  const trialEndDate = useMemo(() => {
+    if (!user) return null;
+    if (user.subscription?.currentPeriodEnd) {
+      const parsed = new Date(user.subscription.currentPeriodEnd);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    if (user.trialEndDate?.toDate) {
+      return user.trialEndDate.toDate();
+    }
+    if (typeof user.trialEndDate === 'string') {
+      const parsed = new Date(user.trialEndDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    return null;
+  }, [user]);
+
+  const trialDaysRemaining = useMemo(() => {
+    if (!trialEndDate) return null;
+    const diff = trialEndDate.getTime() - Date.now();
+    if (diff <= 0) return 0;
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }, [trialEndDate]);
+
+  const trialStatusLabel = user.subscription?.status || (trialEndDate ? (trialEndDate.getTime() > Date.now() ? 'trialing' : 'expired') : 'unknown');
+  const trialPlanName = subscriptionPlan !== 'No subscription' ? subscriptionPlan : 'Research Trial';
+  const extensionHistory = useMemo(() => {
+    if (!Array.isArray(user.trialExtensionHistory)) return [];
+    return [...user.trialExtensionHistory].sort((a, b) => {
+      const aTime = new Date(a.extendedAt || a.newEnd || 0).getTime();
+      const bTime = new Date(b.extendedAt || b.newEnd || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [user.trialExtensionHistory]);
+
+  const handleExtendTrialClick = async () => {
+    if (!onExtendTrial || !user) {
+      return;
+    }
+
+    const parsedDays = Number(extensionDays);
+    if (!Number.isFinite(parsedDays) || parsedDays <= 0) {
+      setLocalMessage('Enter at least one full day to extend research access.');
+      setLocalMessageType('error');
+      return;
+    }
+
+    try {
+      setLocalMessage(null);
+      await onExtendTrial({
+        userId: user.uid || user.id,
+        days: parsedDays,
+        note: extensionNote.trim()
+      });
+      setLocalMessage('Additional research time added successfully. Ask the researcher to refresh their session.');
+      setLocalMessageType('success');
+      setExtensionNote('');
+    } catch (error) {
+      setLocalMessage(error.message || 'Unable to extend the research trial right now.');
+      setLocalMessageType('error');
+    }
+  };
+
+  const trialEndDisplay = trialEndDate
+    ? trialEndDate.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : 'Not scheduled';
+  const trialDaysText = trialDaysRemaining === null
+    ? 'No active trial'
+    : trialDaysRemaining === 0
+      ? 'Expired'
+      : `${trialDaysRemaining} day${trialDaysRemaining === 1 ? '' : 's'} remaining`;
+  const disableExtendAction = isExtendingTrial || isLoadingDetails;
+  const extensionButtonLabel = isExtendingTrial ? 'Adding Time…' : 'Add Research Time';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -231,6 +321,136 @@ export default function UserDetailModal({ user, onClose, theme: enhancedTheme, o
               )}
             </div>
           </div>
+
+          {!hasLifetimeAccess && (
+            <div className="rounded-xl border p-5" 
+              style={{ 
+                borderColor: enhancedTheme.border,
+                backgroundColor: enhancedTheme.cardBackground
+              }}>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
+                    boxShadow: `0 2px 8px ${enhancedTheme.warning}30`
+                  }}>
+                  <Clock size={16} style={{ color: '#FFFFFF' }} />
+                </div>
+                <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Research Trial Controls</h4>
+              </div>
+
+              {isLoadingDetails ? (
+                <div className="flex items-center justify-center gap-2 py-6 text-sm" style={{ color: enhancedTheme.textLight }}>
+                  <Loader size={18} className="animate-spin" />
+                  <span>Loading current research window…</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg" 
+                      style={{ 
+                        backgroundColor: enhancedTheme.background,
+                        border: `1px solid ${enhancedTheme.border}30`
+                      }}>
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: enhancedTheme.textLight }}>Trial ends</p>
+                      <p className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>{trialEndDisplay}</p>
+                      <p className="text-xs mt-1" style={{ color: enhancedTheme.textLight }}>{trialDaysText}</p>
+                    </div>
+                    <div className="p-3 rounded-lg" 
+                      style={{ 
+                        backgroundColor: enhancedTheme.background,
+                        border: `1px solid ${enhancedTheme.border}30`
+                      }}>
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: enhancedTheme.textLight }}>Status</p>
+                      <p className="text-sm font-semibold capitalize" style={{ color: enhancedTheme.text }}>{trialStatusLabel}</p>
+                      <p className="text-xs mt-1" style={{ color: enhancedTheme.textLight }}>{trialPlanName}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Days to add</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={extensionDays}
+                        onChange={(e) => setExtensionDays(e.target.value)}
+                        className="w-full sm:w-24 px-3 py-2 rounded border text-sm"
+                        style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background, color: enhancedTheme.text }}
+                        disabled={disableExtendAction}
+                      />
+                      <button
+                        onClick={handleExtendTrialClick}
+                        disabled={disableExtendAction}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        style={{ 
+                          backgroundColor: enhancedTheme.warning,
+                          color: '#FFFFFF',
+                          boxShadow: `0 4px 15px ${enhancedTheme.warning}30`
+                        }}
+                      >
+                        {extensionButtonLabel}
+                      </button>
+                    </div>
+                    <textarea
+                      rows={2}
+                      placeholder="Optional note for audit trail (visible to admins only)"
+                      value={extensionNote}
+                      onChange={(e) => setExtensionNote(e.target.value)}
+                      className="w-full px-3 py-2 rounded border text-sm"
+                      style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background, color: enhancedTheme.text }}
+                      disabled={disableExtendAction}
+                    />
+                    {localMessage && (
+                      <div className="px-3 py-2 rounded text-xs" 
+                        style={{ 
+                          backgroundColor: localMessageType === 'error' ? '#fef2f2' : enhancedTheme.success + '20',
+                          color: localMessageType === 'error' ? '#b91c1c' : enhancedTheme.success,
+                          border: `1px solid ${localMessageType === 'error' ? '#fecaca' : enhancedTheme.success + '40'}`
+                        }}
+                      >
+                        {localMessage}
+                      </div>
+                    )}
+                    <p className="text-[11px]" style={{ color: enhancedTheme.textLight }}>
+                      Researchers may need to sign out and back in to sync the refreshed countdown from The Pep Planner cloud.
+                    </p>
+                  </div>
+
+                  {extensionHistory.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Extension history</p>
+                      <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                        {extensionHistory.map((entry, index) => {
+                          const newEnd = entry.newEnd ? new Date(entry.newEnd) : null;
+                          const entryLabel = newEnd && !Number.isNaN(newEnd.getTime())
+                            ? newEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : 'Unknown end date';
+                          return (
+                            <div key={`${entry.newEnd || index}-${index}`} className="p-3 rounded-lg" 
+                              style={{ backgroundColor: enhancedTheme.background, border: `1px solid ${enhancedTheme.border}30` }}>
+                              <div className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
+                                +{entry.addedDays} day{entry.addedDays === 1 ? '' : 's'} • {entryLabel}
+                              </div>
+                              <p className="text-[11px]" style={{ color: enhancedTheme.textLight }}>
+                                Extended by {entry.extendedBy || 'admin'} at {entry.extendedAt ? new Date(entry.extendedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'unknown time'}
+                              </p>
+                              {entry.note && (
+                                <p className="text-[11px] mt-1" style={{ color: enhancedTheme.textLight }}>
+                                  Note: {entry.note}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Admin Actions */}
           <div className="rounded-xl border p-5"

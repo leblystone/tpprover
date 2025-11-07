@@ -102,7 +102,7 @@ export default function TrialExpired() {
         <div className="text-center mb-8">
           <img src={logo} alt="The Pep Planner Logo" className="h-16 w-16 rounded-full shadow-lg object-cover mx-auto mb-4" />
           <h1 className="text-3xl font-bold mb-2" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
-          <p className="text-lg text-gray-600">Your 7-day lab access has ended</p>
+          <p className="text-lg text-gray-600">Your research trial has ended</p>
         </div>
 
         {/* Lab Access Ended Message */}

@@ -161,7 +161,7 @@ exports.welcomeEmail = (userName, userEmail) => {
       </p>
 
       <div class="highlight-box">
-        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your 7-Day Free Trial is Active!</p>
+        <p style="margin: 0; font-weight: 600; color: ${COLORS.primary};">🎁 Your Research Trial is Active!</p>
         <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textLight};">
           Full access to all features. No credit card required.
         </p>
@@ -788,7 +788,7 @@ exports.trialEndingEmail = (daysLeft, userEmail, founderState = null) => {
       </p>
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
-        Your 7-day free trial will end in <strong>${daysLeft} days</strong>. 
+        Your 10-day research trial will end in <strong>${daysLeft} day${daysLeft === 1 ? '' : 's'}</strong>. 
         To continue accessing your research data and all features, please choose a subscription plan.
       </p>
 

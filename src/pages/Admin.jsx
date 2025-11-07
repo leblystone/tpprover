@@ -23,12 +23,15 @@ import {
   respondToFeedback,
   getAnalytics,
   getUserList,
+  getAdminUserProfile,
   getFeatureFlags,
   updateFeatureFlag,
   getAllLifetimeUsers,
   grantLifetimeAccessFirestore,
   revokeLifetimeAccess,
-  loginUser
+  cancelLifetimePreGrant,
+  loginUser,
+  extendTrialForUser
 } from '../services/firebase';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -469,6 +472,8 @@ function Admin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
+  const [isExtendingTrial, setIsExtendingTrial] = useState(false);
   const [subscriptions, setSubscriptions] = useState({
     active: 0,
     beta: 0,
@@ -496,7 +501,9 @@ function Admin() {
     submitting: false,
     analytics: false,
     subscriptions: false,
-    lifetimeUsers: false
+    lifetimeUsers: false,
+    trialExtension: false,
+    selectedUser: false
   });
   const [formData, setFormData] = useState({
     title: '',
@@ -571,6 +578,25 @@ function Admin() {
       console.error('❌ Error loading lifetime users:', error);
     } finally {
       setLoading(prev => ({ ...prev, lifetimeUsers: false }));
+    }
+  };
+
+  const handleCancelPreGrant = async (email) => {
+    if (!email) {
+      alert('Unable to cancel: email not provided');
+      return;
+    }
+
+    const confirmed = window.confirm(`Cancel lifetime pre-grant for ${email}? This user will no longer have access when they sign up.`);
+    if (!confirmed) return;
+
+    try {
+      await cancelLifetimePreGrant(email);
+      await loadLifetimeUsers();
+      alert(`Pre-grant for ${email} has been cancelled.`);
+    } catch (error) {
+      console.error('❌ Failed to cancel pre-grant:', error);
+      alert(`Failed to cancel pre-grant: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -742,6 +768,80 @@ function Admin() {
       console.error('❌ Error loading user data:', error);
     } finally {
       setLoading(prev => ({ ...prev, subscriptions: false }));
+    }
+  };
+
+  const handleOpenUserModal = async (user) => {
+    try {
+      const userId = user?.id || user?.uid;
+      if (!userId) {
+        throw new Error('Missing researcher ID');
+      }
+
+      setLoading(prev => ({ ...prev, selectedUser: true }));
+      setIsLoadingUserDetails(true);
+
+      const profile = await getAdminUserProfile(userId);
+
+      setSelectedUser({
+        ...user,
+        ...profile,
+        id: profile.id || userId,
+        uid: profile.uid || userId
+      });
+      setIsUserModalOpen(true);
+    } catch (error) {
+      console.error('❌ Failed to load researcher details:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: error.message || 'Failed to load researcher details.', type: 'error' }
+      }));
+    } finally {
+      setIsLoadingUserDetails(false);
+      setLoading(prev => ({ ...prev, selectedUser: false }));
+    }
+  };
+
+  const handleExtendTrial = async ({ userId, days, note }) => {
+    if (!userId || !days) {
+      throw new Error('Researcher ID and extension days are required');
+    }
+
+    try {
+      setIsExtendingTrial(true);
+      setLoading(prev => ({ ...prev, trialExtension: true }));
+
+      const adminEmail = auth.currentUser?.email || email || 'admin@thepepplanner.com';
+      await extendTrialForUser(userId, days, note, adminEmail);
+
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Research trial extended successfully.', type: 'success' }
+      }));
+
+      const [updatedUsers, updatedProfile] = await Promise.all([
+        getUserList(),
+        getAdminUserProfile(userId)
+      ]);
+
+      setUsers(updatedUsers);
+      setUserList(updatedUsers);
+      setSelectedUser(prev => {
+        if (!prev) return updatedProfile;
+        return {
+          ...prev,
+          ...updatedProfile
+        };
+      });
+
+      return updatedProfile;
+    } catch (error) {
+      console.error('❌ Failed to extend trial access:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: error.message || 'Failed to extend research trial.', type: 'error' }
+      }));
+      throw error;
+    } finally {
+      setIsExtendingTrial(false);
+      setLoading(prev => ({ ...prev, trialExtension: false }));
     }
   };
 
@@ -1992,10 +2092,7 @@ function Admin() {
                 users={users} 
                 searchTerm={searchTerm} 
                 theme={theme}
-                onViewUser={(user) => {
-                  setSelectedUser(user);
-                  setIsUserModalOpen(true);
-                }}
+                onViewUser={handleOpenUserModal}
               />
             </div>
 
@@ -2709,9 +2806,13 @@ function Admin() {
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
-                  Lifetime Access Users ({lifetimeUsers.length})
+                  Lifetime Access Entries ({lifetimeUsers.length})
                 </h2>
               </div>
+
+              <p style={{ color: theme.textLight, fontSize: '13px', marginBottom: '16px' }}>
+                Includes activated lifetime accounts and pending pre-grants awaiting user signup.
+              </p>
 
               {loading.lifetimeUsers ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: theme.textLight }}>
@@ -2743,69 +2844,125 @@ function Admin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {lifetimeUsers.map((user, idx) => (
-                        <tr key={user.id || idx} style={{ borderBottom: `1px solid ${theme.border}` }}>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.text, minWidth: '200px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Award size={14} style={{ color: theme.warning, flexShrink: 0 }} />
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {user.email}
+                      {lifetimeUsers.map((user, idx) => {
+                        const IconComponent = user.isPreGrant ? Clock : Award;
+                        const iconColor = user.isPreGrant
+                          ? (theme.warning || '#b45309')
+                          : (theme.warning || '#f59e0b');
+
+                        const statusBadge = (() => {
+                          const statusValue = (user.status || '').toLowerCase();
+                          if (user.isPreGrant || statusValue === 'pending') {
+                            return {
+                              label: 'Pending Activation',
+                              bg: theme.warningBg || `${theme.warning || '#f59e0b'}20`,
+                              color: theme.warning || '#b45309'
+                            };
+                          }
+                          if (statusValue === 'active') {
+                            return {
+                              label: 'Active',
+                              bg: theme.successBg || `${theme.success || '#10b981'}20`,
+                              color: theme.success || '#047857'
+                            };
+                          }
+                          if (statusValue === 'revoked') {
+                            return {
+                              label: 'Revoked',
+                              bg: theme.errorBg || `${theme.error || '#ef4444'}20`,
+                              color: theme.error || '#b91c1c'
+                            };
+                          }
+                          return {
+                            label: (user.status || 'Unknown').replace(/\b\w/g, char => char.toUpperCase()),
+                            bg: theme.textLight ? `${theme.textLight}20` : '#e5e7eb',
+                            color: theme.textLight || '#4b5563'
+                          };
+                        })();
+
+                        const grantedDate = user.grantedAt?.toDate
+                          ? formatMMDDYYYY(user.grantedAt.toDate())
+                          : (user.grantedAt ? new Date(user.grantedAt).toLocaleDateString() : 'N/A');
+
+                        return (
+                          <tr key={user.id || idx} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                            <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.text, minWidth: '200px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <IconComponent size={14} style={{ color: iconColor, flexShrink: 0 }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {user.email}
+                                </span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, minWidth: '150px' }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
+                                {user.reason || 'N/A'}
                               </span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, minWidth: '150px' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
-                              {user.reason || 'N/A'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, whiteSpace: 'nowrap' }}>
-                            {user.grantedAt?.toDate ? 
-                              formatMMDDYYYY(user.grantedAt.toDate()) : 
-                              user.grantedAt ? new Date(user.grantedAt).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td style={{ padding: '8px 12px', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                            <span style={{
-                              padding: '3px 10px',
-                              borderRadius: '10px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              backgroundColor: user.status === 'active' ? theme.successBg : '#fee',
-                              color: user.status === 'active' ? theme.success : '#c00',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {user.status || 'active'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                            <button
-                              onClick={async () => {
-                                if (window.confirm(`Revoke lifetime access for ${user.email}?`)) {
-                                  try {
-                                    await revokeLifetimeAccess(user.userId || user.id, 'admin', 'Manual revocation');
-                                    await loadLifetimeUsers();
-                                    alert('Lifetime access revoked');
-                                  } catch (error) {
-                                    console.error('Error revoking access:', error);
-                                    alert('Failed to revoke access');
-                                  }
-                                }
-                              }}
-                              style={{
-                                padding: '4px 10px',
-                                backgroundColor: theme.error,
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '5px',
+                            </td>
+                            <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, whiteSpace: 'nowrap' }}>
+                              {grantedDate}
+                            </td>
+                            <td style={{ padding: '8px 12px', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                padding: '3px 10px',
+                                borderRadius: '10px',
                                 fontSize: '11px',
-                                cursor: 'pointer',
+                                fontWeight: '600',
+                                backgroundColor: statusBadge.bg,
+                                color: statusBadge.color,
                                 whiteSpace: 'nowrap'
-                              }}
-                            >
-                              Revoke
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              }}>
+                                {statusBadge.label}
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              {user.isPreGrant ? (
+                                <button
+                                  onClick={() => handleCancelPreGrant(user.email)}
+                                  style={{
+                                    padding: '4px 10px',
+                                    backgroundColor: theme.warning || '#f59e0b',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Cancel Pre-Grant
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={async () => {
+                                    if (window.confirm(`Revoke lifetime access for ${user.email}?`)) {
+                                      try {
+                                        await revokeLifetimeAccess(user.userId || user.id, 'admin', 'Manual revocation');
+                                        await loadLifetimeUsers();
+                                        alert('Lifetime access revoked');
+                                      } catch (error) {
+                                        console.error('Error revoking access:', error);
+                                        alert('Failed to revoke access');
+                                      }
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '4px 10px',
+                                    backgroundColor: theme.error,
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  Revoke
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -3180,8 +3337,15 @@ function Admin() {
       {isUserModalOpen && selectedUser && (
         <UserDetailModal 
           user={selectedUser} 
-          onClose={() => setIsUserModalOpen(false)}
+          onClose={() => {
+            setIsUserModalOpen(false);
+            setSelectedUser(null);
+          }}
           theme={theme}
+          onResetPassword={handleResetPassword}
+          onExtendTrial={handleExtendTrial}
+          isExtendingTrial={isExtendingTrial}
+          isLoadingDetails={isLoadingUserDetails}
         />
       )}
 

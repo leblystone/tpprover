@@ -336,7 +336,11 @@ function generateEmailHTML(template, variables = {}) {
     let result = text;
     Object.entries(variables).forEach(([key, value]) => {
       // Handle null/undefined values gracefully
-      const replacement = value || '';
+      let replacement = value || '';
+      // URL encode email addresses when used in URLs
+      if (key === 'userEmail' && replacement && text.includes('?')) {
+        replacement = encodeURIComponent(replacement);
+      }
       result = result.replace(new RegExp(`%${key.toUpperCase()}%`, 'g'), replacement);
     });
     return result;

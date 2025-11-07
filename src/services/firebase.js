@@ -12,7 +12,8 @@ import {
   limit,
   serverTimestamp,
   increment,
-  addDoc
+  addDoc,
+  Timestamp
 } from 'firebase/firestore';
 import { 
   createUserWithEmailAndPassword, 
@@ -735,12 +736,198 @@ export async function getUserList() {
         createdAt: userData.createdAt,
         lastActive: userData.lastActive,
         inviteCodeUsed: userData.inviteCodeUsed,
-        isActive: userData.isActive
+        isActive: userData.isActive,
+        subscription: userData.subscription || null,
+        trialEndDate: userData.trialEndDate || null,
+        trialExtensionHistory: userData.trialExtensionHistory || []
       });
     });
     return users;
   } catch (error) {
     console.error('Failed to get user list:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch comprehensive profile data for admin review, including subscription + extension history
+ * @param {string} userId
+ * @returns {Promise<Object>}
+ */
+export async function getAdminUserProfile(userId) {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const subscriptionRef = doc(db, 'userSubscriptions', userId);
+
+    const [userSnap, subscriptionSnap] = await Promise.all([
+      getDoc(userRef),
+      getDoc(subscriptionRef)
+    ]);
+
+    if (!userSnap.exists()) {
+      throw new Error('Researcher record not found');
+    }
+
+    const userData = userSnap.data();
+    const subscriptionDoc = subscriptionSnap.exists() ? subscriptionSnap.data() : {};
+    const subscriptionData = subscriptionDoc.subscription || userData.subscription || null;
+
+    const extensionHistory = [];
+    if (Array.isArray(userData.trialExtensionHistory)) {
+      extensionHistory.push(...userData.trialExtensionHistory);
+    }
+    if (Array.isArray(subscriptionDoc.trialExtensionHistory)) {
+      extensionHistory.push(...subscriptionDoc.trialExtensionHistory);
+    }
+
+    // Deduplicate entries by newEnd timestamp to avoid duplicates when both collections contain the same data
+    const dedupedHistoryMap = new Map();
+    extensionHistory.forEach((entry) => {
+      if (!entry) return;
+      const key = entry.newEnd || `${entry.extendedAt || ''}-${entry.addedDays || ''}`;
+      if (!dedupedHistoryMap.has(key)) {
+        dedupedHistoryMap.set(key, entry);
+      }
+    });
+
+    const combinedHistory = Array.from(dedupedHistoryMap.values()).sort((a, b) => {
+      const aTime = new Date(a.extendedAt || a.newEnd || 0).getTime();
+      const bTime = new Date(b.extendedAt || b.newEnd || 0).getTime();
+      return bTime - aTime;
+    });
+
+    return {
+      id: userId,
+      uid: userId,
+      email: userData.email,
+      displayName: userData.displayName,
+      createdAt: userData.createdAt,
+      lastActive: userData.lastActive,
+      inviteCodeUsed: userData.inviteCodeUsed,
+      isActive: userData.isActive,
+      subscription: subscriptionData,
+      trialEndDate: userData.trialEndDate || null,
+      trialExtensionHistory: combinedHistory
+    };
+  } catch (error) {
+    console.error('❌ Failed to load admin user profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Extend a researcher's trial access window
+ * @param {string} userId
+ * @param {number} additionalDays
+ * @param {string} [note]
+ * @param {string} [adminEmail]
+ * @returns {Promise<{ newEnd: string }>} new end date ISO string
+ */
+export async function extendTrialForUser(userId, additionalDays, note = '', adminEmail = 'admin@thepepplanner.com') {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const days = Number(additionalDays);
+    if (!Number.isFinite(days) || days <= 0) {
+      throw new Error('Extension days must be greater than zero');
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const subscriptionRef = doc(db, 'userSubscriptions', userId);
+
+    const [userSnap, subscriptionSnap] = await Promise.all([
+      getDoc(userRef),
+      getDoc(subscriptionRef)
+    ]);
+
+    if (!userSnap.exists()) {
+      throw new Error('Researcher record not found');
+    }
+
+    const userData = userSnap.data();
+    const subscriptionDoc = subscriptionSnap.exists() ? subscriptionSnap.data() : {};
+    const existingSubscription = subscriptionDoc.subscription || userData.subscription || {};
+
+    const now = new Date();
+    const existingEndSource = existingSubscription.currentPeriodEnd || userData.subscription?.currentPeriodEnd || null;
+
+    let baseEndDate = existingEndSource ? new Date(existingEndSource) : null;
+    if (!baseEndDate || Number.isNaN(baseEndDate.getTime()) || baseEndDate < now) {
+      baseEndDate = now;
+    }
+
+    const newEndDate = new Date(baseEndDate);
+    newEndDate.setDate(newEndDate.getDate() + days);
+    const newEndIso = newEndDate.toISOString();
+
+    const extensionEntry = {
+      addedDays: days,
+      extendedBy: adminEmail || 'admin@thepepplanner.com',
+      extendedAt: new Date().toISOString(),
+      note: note || '',
+      previousEnd: existingSubscription.currentPeriodEnd || null,
+      newEnd: newEndIso
+    };
+
+    const updatedSubscription = {
+      ...existingSubscription,
+      id: existingSubscription.id || `trial_${Date.now()}`,
+      plan: existingSubscription.plan || '10-Day Research Trial',
+      price: existingSubscription.price ?? 0,
+      currency: existingSubscription.currency || 'USD',
+      interval: 'trial',
+      status: 'trialing',
+      startedAt: existingSubscription.startedAt || existingSubscription.currentPeriodStart || now.toISOString(),
+      currentPeriodStart: existingSubscription.currentPeriodStart || existingSubscription.startedAt || now.toISOString(),
+      currentPeriodEnd: newEndIso,
+      paymentMethod: existingSubscription.paymentMethod || null,
+      adminExtended: true,
+      lastUpdated: new Date().toISOString()
+    };
+
+    const subscriptionHistory = Array.isArray(subscriptionDoc.trialExtensionHistory)
+      ? [...subscriptionDoc.trialExtensionHistory]
+      : [];
+    subscriptionHistory.push(extensionEntry);
+
+    await setDoc(subscriptionRef, {
+      subscription: updatedSubscription,
+      trialExtensionHistory: subscriptionHistory
+    }, { merge: true });
+
+    const userHistory = Array.isArray(userData.trialExtensionHistory)
+      ? [...userData.trialExtensionHistory]
+      : [];
+    userHistory.push(extensionEntry);
+
+    await setDoc(userRef, {
+      subscription: {
+        ...(userData.subscription || {}),
+        plan: updatedSubscription.plan,
+        interval: 'trial',
+        status: 'trialing',
+        currentPeriodEnd: newEndIso,
+        currentPeriodStart: updatedSubscription.currentPeriodStart,
+        adminExtended: true,
+        lastUpdated: serverTimestamp()
+      },
+      trialEndDate: Timestamp.fromDate(newEndDate),
+      trialExtensionHistory: userHistory,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    return {
+      newEnd: newEndIso,
+      extensionEntry
+    };
+  } catch (error) {
+    console.error('❌ Failed to extend trial access:', error);
     throw error;
   }
 }
@@ -1105,19 +1292,64 @@ export async function checkLifetimeAccessFirestore(userId) {
  */
 export async function getAllLifetimeUsers() {
   try {
-    const lifetimeRef = collection(db, 'lifetimeAccess');
-    const q = query(lifetimeRef, where('hasLifetimeAccess', '==', true));
-    const snapshot = await getDocs(q);
-    
     const users = [];
-    snapshot.forEach(doc => {
+
+    // Active lifetime access documents (users who already exist)
+    const lifetimeRef = collection(db, 'lifetimeAccess');
+    const lifetimeQuery = query(lifetimeRef, where('hasLifetimeAccess', '==', true));
+    const lifetimeSnapshot = await getDocs(lifetimeQuery);
+
+    lifetimeSnapshot.forEach(docSnapshot => {
+      const data = docSnapshot.data() || {};
       users.push({
-        id: doc.id,
-        ...doc.data()
+        id: docSnapshot.id,
+        userId: docSnapshot.id,
+        email: data.email || '',
+        reason: data.reason || '',
+        grantedAt: data.grantedAt || data.lifetimeGrantedAt || null,
+        grantedBy: data.grantedBy || 'admin',
+        status: data.status || 'active',
+        hasLifetimeAccess: data.hasLifetimeAccess ?? true,
+        activatedAt: data.activatedAt || data.appliedAt || null,
+        isPreGrant: false,
+        source: 'lifetimeAccess'
       });
     });
-    
-    console.log('📋 Found', users.length, 'lifetime users');
+
+    // Pending pre-grants for emails that haven't signed up yet
+    const preGrantRef = collection(db, 'lifetimeAccessPreGrants');
+    const preGrantQuery = query(preGrantRef, where('status', '==', 'pending'));
+    const preGrantSnapshot = await getDocs(preGrantQuery);
+
+    preGrantSnapshot.forEach(docSnapshot => {
+      const data = docSnapshot.data() || {};
+      users.push({
+        id: `pregrant-${docSnapshot.id}`,
+        preGrantId: docSnapshot.id,
+        email: (data.email || docSnapshot.id || '').toLowerCase(),
+        reason: data.reason || '',
+        grantedAt: data.grantedAt || null,
+        grantedBy: data.grantedBy || 'admin',
+        status: data.status || 'pending',
+        hasLifetimeAccess: data.hasLifetimeAccess ?? true,
+        activatedAt: null,
+        isPreGrant: true,
+        source: 'preGrant'
+      });
+    });
+
+    // Sort by grant date (newest first)
+    const getTimestampValue = (value) => {
+      if (!value) return 0;
+      if (typeof value.toMillis === 'function') return value.toMillis();
+      if (typeof value.seconds === 'number') return value.seconds * 1000;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    };
+
+    users.sort((a, b) => getTimestampValue(b.grantedAt) - getTimestampValue(a.grantedAt));
+
+    console.log(`📋 Found ${users.length} lifetime entries (active: ${lifetimeSnapshot.size}, pending: ${preGrantSnapshot.size})`);
     return users;
   } catch (error) {
     console.error('❌ Failed to get lifetime users:', error);
@@ -1184,4 +1416,21 @@ export async function bulkImportLifetimeUsers(lifetimeUsers) {
   }
   
   return { success, failed };
+}
+
+export async function cancelLifetimePreGrant(email) {
+  try {
+    if (!email) {
+      throw new Error('Email is required to cancel pre-grant');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const preGrantDocRef = doc(db, 'lifetimeAccessPreGrants', normalizedEmail);
+    await deleteDoc(preGrantDocRef);
+    console.log('🗑️ Cancelled lifetime pre-grant for:', normalizedEmail);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to cancel lifetime pre-grant:', error);
+    throw error;
+  }
 }

@@ -6,6 +6,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 export default function ManualLifetimeGrant({ theme, onUserAdded }) {
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('Beta tester');
+  const [customReason, setCustomReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
@@ -39,6 +40,8 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         console.log('✅ User lookup failed (will create pre-grant):', error.message || error);
       }
 
+      const combinedReason = customReason.trim() ? `${reason} – ${customReason.trim()}` : reason;
+
       // Grant lifetime access using Cloud Function (bypasses client-side security rules)
       // This works for BOTH existing users AND users who haven't signed up yet
       const functions = getFunctions();
@@ -50,7 +53,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       console.log('📧 Calling adminGrantLifetimeAccess with:', {
         email: email.trim(),
         userId: user ? (user.uid || user.id) : null,
-        reason: reason,
+        reason: combinedReason,
         hasUser: !!user
       });
       
@@ -58,7 +61,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         adminPassword,
         userId: user ? (user.uid || user.id) : null, // null if user doesn't exist - this is OK!
         email: email.trim(),
-        reason: reason,
+        reason: combinedReason,
         grantedBy: 'admin-manual'
       });
       
@@ -70,7 +73,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
         const emailResult = await sendLifetimeAccessEmail({
           userEmail: email.trim(),
           userName: user ? (user.displayName || user.email.split('@')[0]) : email.split('@')[0],
-          reason: reason
+          reason: combinedReason
         });
         const emailData = emailResult.data;
         if (emailData && emailData.success) {
@@ -84,8 +87,8 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       }
 
       const successMessage = user 
-        ? `✅ Successfully granted lifetime access to ${email.trim()}. Email notification sent!`
-        : `✅ Lifetime access pre-granted to ${email.trim()}. Access will be activated when they sign up. Email notification sent!`;
+        ? `✅ Successfully granted lifetime access to ${email.trim()} (${combinedReason}). Email notification sent!`
+        : `✅ Lifetime access pre-granted to ${email.trim()} (${combinedReason}). Access will be activated when they sign up. Email notification sent!`;
       
       setResult({ 
         type: 'success', 
@@ -95,6 +98,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       // Clear form
       setEmail('');
       setReason('Beta tester');
+      setCustomReason('');
 
       // Notify parent component to refresh the list
       if (onUserAdded) {
@@ -165,17 +169,18 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
     try {
       const functions = getFunctions();
       const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
+      const combinedReason = customReason.trim() ? `${reason} – ${customReason.trim()}` : reason;
       const result = await sendLifetimeAccessEmail({
         userEmail: email,
         userName: email.split('@')[0],
-        reason: reason
+        reason: combinedReason
       });
       
       const data = result.data;
       if (data && data.success) {
         setResult({ 
           type: 'success', 
-          message: `✅ Test email sent successfully to ${email}! Check your inbox (and spam folder).` 
+          message: `✅ Test email sent successfully to ${email}! (Reason: ${combinedReason}). Check your inbox (and spam folder).` 
         });
       } else {
         setResult({ 
@@ -210,6 +215,8 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       
       setSendProgress({ sent: 0, total: users.length });
       
+      const combinedReason = customReason.trim() ? `${reason} – ${customReason.trim()}` : reason;
+
       let successCount = 0;
       let failCount = 0;
 
@@ -224,7 +231,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
               const result = await sendLifetimeAccessEmail({
                 userEmail: user.email,
                 userName: user.displayName || user.email.split('@')[0],
-                reason: reason
+                reason: combinedReason
               });
               const data = result.data;
               if (data && data.success) {
@@ -336,6 +343,22 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
               <option value="Special case">Special case</option>
               <option value="Manual grant">Manual grant</option>
             </select>
+            <input
+              type="text"
+              value={customReason}
+              onChange={(e) => setCustomReason(e.target.value)}
+              placeholder="Add extra context (optional)"
+              className="mt-3 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50"
+              style={{
+                backgroundColor: theme.background,
+                borderColor: theme.border,
+                color: theme.text,
+                focusRingColor: theme.primary
+              }}
+            />
+            <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+              This note is appended to the selected reason and appears in the email as %REASON%.
+            </p>
           </div>
 
           <div className="flex gap-3">

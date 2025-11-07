@@ -50,7 +50,7 @@ export default function TrialExpiredModal({ open, onClose, onSignUp, theme }) {
         {/* Message */}
         <div className="text-center space-y-3">
           <p className="text-base text-gray-700">
-            Your free trial has expired. To continue organizing your peptide research and accessing all features, please choose a subscription plan.
+            Your research trial has expired. To continue organizing your peptide research and accessing all features, please choose a subscription plan.
           </p>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">

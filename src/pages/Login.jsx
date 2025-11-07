@@ -101,10 +101,13 @@ export default function Login() {
     const { setUser } = useAppContext();
     const { firebaseUser, isFirebaseLoading, setPassword: setFirebasePassword } = useFirebase();
     const isTrialMode = searchParams.get('trial') === 'true';
+    const isSignupMode = searchParams.get('signup') === 'true';
+    const isPreGranted = searchParams.get('pregrant') === 'true';
+    const emailFromUrl = searchParams.get('email');
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
-    // Default to signup mode if coming from trial link, otherwise login
-    const [mode, setMode] = useState(isTrialMode ? 'signup' : 'login'); // 'login' | 'signup'
+    // Default to signup mode if coming from trial link or signup=true, otherwise login
+    const [mode, setMode] = useState(isTrialMode || isSignupMode ? 'signup' : 'login'); // 'login' | 'signup'
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -142,6 +145,22 @@ export default function Login() {
                 return;
             }
             
+            // If coming from pre-grant email link, check if the logged-in user matches the email
+            // If not, don't auto-redirect - let them sign up with the pre-granted email
+            if (isPreGranted && emailFromUrl) {
+                const normalizedUrlEmail = emailFromUrl.toLowerCase().trim();
+                const normalizedFirebaseEmail = firebaseUser.email?.toLowerCase().trim();
+                
+                if (normalizedUrlEmail !== normalizedFirebaseEmail) {
+                    console.log('⚠️ Pre-granted email does not match logged-in user. Staying on login page.');
+                    console.log('📧 Pre-granted email:', normalizedUrlEmail);
+                    console.log('👤 Logged-in user:', normalizedFirebaseEmail);
+                    // Don't redirect - let them sign up with the pre-granted email
+                    // Clear the current user session so they can sign up with the pre-granted email
+                    return;
+                }
+            }
+            
             // User is already logged in, redirect to dashboard
             setUser({ email: firebaseUser.email, uid: firebaseUser.uid });
             startTransition(() => {
@@ -155,7 +174,19 @@ export default function Login() {
             setNeedsPasswordForSync(true);
             localStorage.removeItem('tpp_need_password_for_sync'); // Clear the flag
         }
-    }, [firebaseUser, isFirebaseLoading, setUser, navigate]);
+        
+        // Pre-fill email from URL parameter if provided
+        if (emailFromUrl && !email) {
+            setEmail(emailFromUrl);
+            console.log('📧 Pre-filled email from URL:', emailFromUrl);
+        }
+        
+        // Show message if coming from pre-grant email
+        if (isPreGranted && emailFromUrl) {
+            setError('');
+            console.log('🎁 Pre-granted user detected:', emailFromUrl);
+        }
+    }, [firebaseUser, isFirebaseLoading, setUser, navigate, emailFromUrl, isPreGranted, email]);
 
     // DEVELOPMENT/TESTING: Add console command for force logout
     useEffect(() => {
@@ -634,14 +665,14 @@ export default function Login() {
         
         try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
         
-        // Create 7-day trial subscription and save to BOTH cloud AND localStorage
+        // Create 10-day research trial subscription and save to BOTH cloud AND localStorage
         try {
           const now = new Date();
           const end = new Date(now);
-          end.setDate(end.getDate() + 7);
+          end.setDate(end.getDate() + 10);
           const trial = {
             id: String(Date.now()),
-            plan: '7-Day Free Trial',
+            plan: '10-Day Research Trial',
             price: 0,
             interval: 'trial',
             currency: 'USD',
@@ -678,9 +709,9 @@ export default function Login() {
           // This is critical - we should still create a minimal trial
           const minimalTrial = {
             id: String(Date.now()),
-            plan: '7-Day Free Trial',
+            plan: '10-Day Research Trial',
             status: 'trialing',
-            currentPeriodEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            currentPeriodEnd: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
           };
           try {
             localStorage.setItem('tpprover_subscription', JSON.stringify(minimalTrial));
@@ -1009,6 +1040,21 @@ export default function Login() {
                                         <span className="font-medium">Passwords do not match</span>
                                     </div>
                                     <div className="mt-1 text-red-500">💡 Make sure both password fields are identical</div>
+                                </div>
+                            )}
+
+                            {/* Pre-granted user message */}
+                            {isPreGranted && emailFromUrl && mode === 'signup' && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                                    <div className="flex items-start gap-2">
+                                        <div className="text-green-600 mt-0.5">🎁</div>
+                                        <div className="flex-1">
+                                            <div className="font-medium text-green-800 mb-1">Lifetime Access Pre-Granted!</div>
+                                            <div className="text-sm text-green-700">
+                                                Your account has been pre-approved for lifetime access. Create your account below to activate it.
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

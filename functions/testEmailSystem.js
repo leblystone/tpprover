@@ -158,7 +158,7 @@ exports.testEmailSystem = onCall(
           htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #6366f1;">Your Trial Ends in 2 Days ⏰</h1>
-              <p>Your 7-day free trial will end in 2 days. Continue your research journey!</p>
+              <p>Your 10-day research trial will end in 2 days. Continue your research journey!</p>
               <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
             </div>
           `;

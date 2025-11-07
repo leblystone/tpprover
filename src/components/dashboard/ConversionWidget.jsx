@@ -210,10 +210,11 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const hasLifetimeAccess = subData?.hasLifetimeAccess || 
                             subData?.interval === 'lifetime' || 
                             subData?.plan === 'lifetime';
+  const trialPlanNames = ['10-Day Research Trial', '7-Day Free Trial'];
   
   // Don't show if user has active PAID subscription (including lifetime)
   // Show for: trial users, expired trials, canceled subscriptions, or no subscription
-  const isActivePaidSubscription = (subData?.status === 'active' && subData?.plan !== '7-Day Free Trial') || hasLifetimeAccess;
+  const isActivePaidSubscription = (subData?.status === 'active' && !trialPlanNames.includes(subData?.plan)) || hasLifetimeAccess;
   
   if (isActivePaidSubscription || isDismissed) {
     return null;
@@ -226,7 +227,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
     const now = new Date();
     const end = new Date(subData.currentPeriodEnd);
     const diffTime = end - now;
-    // Use Math.floor() so 7-day trial shows as 7 days initially, not 8
+    // Use Math.floor() so the trial shows an accurate whole-day countdown
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
   };
@@ -240,7 +241,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
               <div className="flex items-center gap-2">
                 <Crown size={18} style={{ color: theme.isDark ? '#d97706' : theme.primary }} />
                 <span className="font-semibold text-base" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>
-                  7-Day Researcher Access
+                  10-Day Research Trial
                 </span>
               </div>
               <div className="flex items-center gap-2">

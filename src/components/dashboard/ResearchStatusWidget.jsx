@@ -16,7 +16,7 @@ export default function ResearchStatusWidget({ theme, subscription }) {
     const now = new Date();
     const end = new Date(subscription.currentPeriodEnd);
     const diffTime = end - now;
-    // Use Math.floor() so 7-day trial shows as 7 days initially, not 8
+    // Use Math.floor() so the trial shows an accurate whole-day countdown
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
   };
@@ -283,7 +283,7 @@ export default function ResearchStatusWidget({ theme, subscription }) {
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs" style={{ color: theme.text }}>
                 <CheckCircle size={12} style={{ color: theme.primary }} />
-                <span>7-day lab access trial</span>
+                <span>10-day research trial access</span>
               </div>
               <div className="flex items-center gap-2 text-xs" style={{ color: theme.text }}>
                 <CheckCircle size={12} style={{ color: theme.primary }} />
