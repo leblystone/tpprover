@@ -45,6 +45,7 @@ import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import EmailTriggerManager from '../components/admin/EmailTriggerManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
+import UserDetailModal from '../components/admin/UserDetailModal';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -855,24 +856,43 @@ function Admin() {
         detail: { message: 'Research trial extended successfully.', type: 'success' }
       }));
 
-      const [updatedUsers, updatedProfile] = await Promise.all([
-        getUserList(),
-        getAdminUserProfile(userId)
-      ]);
+      // Try to reload user list (may fail due to permissions)
+      try {
+        const updatedUsers = await getUserList();
+        setUsers(updatedUsers);
+        setUserList(updatedUsers);
+      } catch (userListError) {
+        console.warn('⚠️ Could not reload user list after extension:', userListError.message);
+      }
 
-      setUsers(updatedUsers);
-      setUserList(updatedUsers);
-      setSelectedUser(prev => {
-        if (!prev) return updatedProfile;
-        return {
-          ...prev,
-          ...updatedProfile
-        };
-      });
-
-      return updatedProfile;
+      // Try to reload detailed profile (may fail due to permissions, but that's okay)
+      try {
+        const updatedProfile = await getAdminUserProfile(userId);
+        setSelectedUser(prev => {
+          if (!prev) return updatedProfile;
+          return {
+            ...prev,
+            ...updatedProfile
+          };
+        });
+        return updatedProfile;
+      } catch (profileError) {
+        console.warn('⚠️ Could not reload detailed profile after extension:', profileError.message);
+        // Just keep the existing selectedUser, the extension still worked
+        return null;
+      }
     } catch (error) {
       console.error('❌ Failed to extend trial access:', error);
+      
+      // Check if the actual extension succeeded (Cloud Function call)
+      // The error might be from the profile reload, not the extension itself
+      if (error.message && error.message.includes('Trial extended')) {
+        // Extension worked, just the reload failed - that's okay
+        console.log('✅ Extension succeeded, but profile reload failed (permissions)');
+        return null;
+      }
+      
+      // Real extension error
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: error.message || 'Failed to extend research trial.', type: 'error' }
       }));
@@ -3626,70 +3646,6 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function UserDetailModal({ user, onClose, theme }) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: theme.cardBackground }}>
-        <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: theme.border }}>
-          <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>User Details</h2>
-          <button onClick={onClose} className="p-1 hover:opacity-70">
-            <X size={20} style={{ color: theme.textLight }} />
-          </button>
-        </div>
-        
-        <div className="p-6 space-y-6">
-          {/* User Info Header */}
-          <div className="flex items-center gap-4">
-            <img className="h-20 w-20 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
-            <div>
-              <h3 className="text-xl font-bold" style={{ color: theme.text }}>{user.displayName || 'No Name'}</h3>
-              <p className="text-sm" style={{ color: theme.textLight }}>{user.email}</p>
-              <div className="mt-2">
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {user.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Key Dates */}
-          <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Key Information</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="p-3 rounded" style={{ backgroundColor: theme.background }}>
-                <p className="font-medium">Registration Date</p>
-                <p style={{ color: theme.textLight }}>{user.createdAt?.toDate().toLocaleString() || 'N/A'}</p>
-              </div>
-              <div className="p-3 rounded" style={{ backgroundColor: theme.background }}>
-                <p className="font-medium">Last Active</p>
-                <p style={{ color: theme.textLight }}>{user.lastActive?.toDate().toLocaleString() || 'N/A'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Subscription Details (Placeholder) */}
-          <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Subscription Details</h4>
-            <div className="p-4 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-              <p style={{ color: theme.textLight }}>Stripe integration coming soon...</p>
-            </div>
-          </div>
-
-          {/* Admin Actions (Placeholder) */}
-          <div>
-            <h4 className="font-semibold mb-2" style={{ color: theme.text }}>Admin Actions</h4>
-            <div className="flex gap-2">
-              <button onClick={() => handleImpersonateUser(user.uid)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Impersonate User</button>
-              <button onClick={() => handleResetPassword(user.email)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.warning + '80', color: theme.textOnPrimary }}>Reset Password</button>
-              <button onClick={() => handleSuspendUser(user.uid, user.disabled)} className="px-4 py-2 text-sm font-semibold rounded" style={{ backgroundColor: theme.error, color: theme.textOnPrimary }}>{user.disabled ? 'Enable' : 'Suspend'} User</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

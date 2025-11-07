@@ -190,6 +190,131 @@ exports.adminRevokeLifetimeAccess = onCall(
   }
 );
 
+exports.adminExtendTrialPeriod = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    try {
+      const { adminPassword, userId, days, note, adminEmail } = request.data;
+      
+      const ADMIN_PASSWORD = 'j&jm9102';
+      if (adminPassword !== ADMIN_PASSWORD) {
+        throw new Error('Invalid admin password');
+      }
+      
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      
+      if (!days || days <= 0) {
+        throw new Error('days must be a positive number');
+      }
+      
+      logger.info(`⏰ Admin extending trial for user ${userId} by ${days} days`);
+      
+      const db = admin.firestore();
+      const now = new Date();
+      
+      // Get existing subscription data
+      const userRef = db.collection('users').doc(userId);
+      const subscriptionRef = db.collection('userSubscriptions').doc(userId);
+      
+      const [userDoc, subscriptionDoc] = await Promise.all([
+        userRef.get(),
+        subscriptionRef.get()
+      ]);
+      
+      const userData = userDoc.data() || {};
+      const subscriptionData = subscriptionDoc.data() || {};
+      const existingSubscription = subscriptionData.subscription || userData.subscription || {};
+      
+      // Calculate new end date
+      let currentEnd = now;
+      if (existingSubscription.currentPeriodEnd) {
+        const parsedEnd = new Date(existingSubscription.currentPeriodEnd);
+        if (!isNaN(parsedEnd.getTime()) && parsedEnd > now) {
+          currentEnd = parsedEnd;
+        }
+      }
+      
+      const newEndDate = new Date(currentEnd.getTime() + days * 24 * 60 * 60 * 1000);
+      const newEndIso = newEndDate.toISOString();
+      
+      // Create extension history entry
+      const extensionEntry = {
+        extendedAt: now.toISOString(),
+        extendedBy: adminEmail || 'admin@thepepplanner.com',
+        addedDays: days,
+        note: note || '',
+        oldEnd: currentEnd.toISOString(),
+        newEnd: newEndIso
+      };
+      
+      // Update subscription
+      const updatedSubscription = {
+        ...existingSubscription,
+        plan: '10-Day Research Trial',
+        interval: 'trial',
+        status: 'trialing',
+        startedAt: existingSubscription.startedAt || existingSubscription.currentPeriodStart || now.toISOString(),
+        currentPeriodStart: existingSubscription.currentPeriodStart || existingSubscription.startedAt || now.toISOString(),
+        currentPeriodEnd: newEndIso,
+        paymentMethod: existingSubscription.paymentMethod || null,
+        adminExtended: true,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      // Get existing history
+      const subscriptionHistory = Array.isArray(subscriptionData.trialExtensionHistory)
+        ? [...subscriptionData.trialExtensionHistory]
+        : [];
+      subscriptionHistory.push(extensionEntry);
+      
+      const userHistory = Array.isArray(userData.trialExtensionHistory)
+        ? [...userData.trialExtensionHistory]
+        : [];
+      userHistory.push(extensionEntry);
+      
+      // Update both collections
+      await Promise.all([
+        subscriptionRef.set({
+          subscription: updatedSubscription,
+          trialExtensionHistory: subscriptionHistory
+        }, { merge: true }),
+        
+        userRef.set({
+          subscription: {
+            ...(userData.subscription || {}),
+            plan: updatedSubscription.plan,
+            interval: 'trial',
+            status: 'trialing',
+            currentPeriodEnd: newEndIso,
+            currentPeriodStart: updatedSubscription.currentPeriodStart,
+            adminExtended: true,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+          },
+          trialEndDate: admin.firestore.Timestamp.fromDate(newEndDate),
+          trialExtensionHistory: userHistory,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true })
+      ]);
+      
+      logger.info(`✅ Trial extended successfully. New end date: ${newEndIso}`);
+      
+      return { 
+        success: true, 
+        message: `Trial extended by ${days} days`,
+        newEndDate: newEndIso,
+        extensionEntry
+      };
+    } catch (error) {
+      logger.error('❌ Error extending trial:', error);
+      throw new Error(`Failed to extend trial: ${error.message}`);
+    }
+  }
+);
+
 // Scheduled Functions for Notifications - Now runs hourly to check all timezones
 exports.scheduledResearchReminders = onSchedule({
   schedule: '0 * * * *',

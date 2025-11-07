@@ -18,6 +18,16 @@ export default function UserDetailModal({
 
   console.log('✅ UserDetailModal rendering with user:', user);
 
+  // Scroll to top when modal opens
+  React.useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   // Check if user has lifetime access
   const [extensionDays, setExtensionDays] = useState('3');
   const [extensionNote, setExtensionNote] = useState('');
@@ -108,8 +118,8 @@ export default function UserDetailModal({
   const extensionButtonLabel = isExtendingTrial ? 'Adding Time…' : 'Add Research Time';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative overflow-hidden" 
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 backdrop-blur-sm flex items-start justify-center overflow-y-auto" style={{ paddingTop: '2rem', paddingBottom: '2rem', paddingLeft: '1rem', paddingRight: '1rem' }}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" 
         style={{ 
           backgroundColor: enhancedTheme.cardBackground,
           border: `1px solid ${enhancedTheme.border}`,

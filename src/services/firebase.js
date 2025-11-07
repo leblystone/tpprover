@@ -23,6 +23,7 @@ import {
   onAuthStateChanged,
   fetchSignInMethodsForEmail
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../config/firebase.js';
 import { encryptUserData, decryptUserData, hashPassword } from '../utils/encryption.js';
 
@@ -838,93 +839,25 @@ export async function extendTrialForUser(userId, additionalDays, note = '', admi
       throw new Error('Extension days must be greater than zero');
     }
 
-    const userRef = doc(db, 'users', userId);
-    const subscriptionRef = doc(db, 'userSubscriptions', userId);
+    console.log(`⏰ Calling Cloud Function to extend trial for ${userId} by ${days} days`);
 
-    const [userSnap, subscriptionSnap] = await Promise.all([
-      getDoc(userRef),
-      getDoc(subscriptionRef)
-    ]);
+    // Call the Cloud Function (uses Admin SDK to bypass client permissions)
+    const functions = getFunctions();
+    const extendTrialFunction = httpsCallable(functions, 'adminExtendTrialPeriod');
+    
+    const result = await extendTrialFunction({
+      adminPassword: 'j&jm9102',
+      userId,
+      days,
+      note,
+      adminEmail
+    });
 
-    if (!userSnap.exists()) {
-      throw new Error('Researcher record not found');
-    }
-
-    const userData = userSnap.data();
-    const subscriptionDoc = subscriptionSnap.exists() ? subscriptionSnap.data() : {};
-    const existingSubscription = subscriptionDoc.subscription || userData.subscription || {};
-
-    const now = new Date();
-    const existingEndSource = existingSubscription.currentPeriodEnd || userData.subscription?.currentPeriodEnd || null;
-
-    let baseEndDate = existingEndSource ? new Date(existingEndSource) : null;
-    if (!baseEndDate || Number.isNaN(baseEndDate.getTime()) || baseEndDate < now) {
-      baseEndDate = now;
-    }
-
-    const newEndDate = new Date(baseEndDate);
-    newEndDate.setDate(newEndDate.getDate() + days);
-    const newEndIso = newEndDate.toISOString();
-
-    const extensionEntry = {
-      addedDays: days,
-      extendedBy: adminEmail || 'admin@thepepplanner.com',
-      extendedAt: new Date().toISOString(),
-      note: note || '',
-      previousEnd: existingSubscription.currentPeriodEnd || null,
-      newEnd: newEndIso
-    };
-
-    const updatedSubscription = {
-      ...existingSubscription,
-      id: existingSubscription.id || `trial_${Date.now()}`,
-      plan: existingSubscription.plan || '10-Day Research Trial',
-      price: existingSubscription.price ?? 0,
-      currency: existingSubscription.currency || 'USD',
-      interval: 'trial',
-      status: 'trialing',
-      startedAt: existingSubscription.startedAt || existingSubscription.currentPeriodStart || now.toISOString(),
-      currentPeriodStart: existingSubscription.currentPeriodStart || existingSubscription.startedAt || now.toISOString(),
-      currentPeriodEnd: newEndIso,
-      paymentMethod: existingSubscription.paymentMethod || null,
-      adminExtended: true,
-      lastUpdated: new Date().toISOString()
-    };
-
-    const subscriptionHistory = Array.isArray(subscriptionDoc.trialExtensionHistory)
-      ? [...subscriptionDoc.trialExtensionHistory]
-      : [];
-    subscriptionHistory.push(extensionEntry);
-
-    await setDoc(subscriptionRef, {
-      subscription: updatedSubscription,
-      trialExtensionHistory: subscriptionHistory
-    }, { merge: true });
-
-    const userHistory = Array.isArray(userData.trialExtensionHistory)
-      ? [...userData.trialExtensionHistory]
-      : [];
-    userHistory.push(extensionEntry);
-
-    await setDoc(userRef, {
-      subscription: {
-        ...(userData.subscription || {}),
-        plan: updatedSubscription.plan,
-        interval: 'trial',
-        status: 'trialing',
-        currentPeriodEnd: newEndIso,
-        currentPeriodStart: updatedSubscription.currentPeriodStart,
-        adminExtended: true,
-        lastUpdated: serverTimestamp()
-      },
-      trialEndDate: Timestamp.fromDate(newEndDate),
-      trialExtensionHistory: userHistory,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-
+    console.log('✅ Trial extended successfully via Cloud Function:', result.data);
+    
     return {
-      newEnd: newEndIso,
-      extensionEntry
+      newEnd: result.data.newEndDate,
+      extensionEntry: result.data.extensionEntry
     };
   } catch (error) {
     console.error('❌ Failed to extend trial access:', error);
