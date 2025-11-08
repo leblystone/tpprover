@@ -8,7 +8,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
 const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Aminos','Oils','Pricey','Untested','Slow Shipping','Bad Test','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Puck Problem']
 
-export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, activeTab, isReadOnly = false, onUpgrade }) {
+export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onAutoSave, onDelete, activeTab, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState(createEmptyVendor())
   
   // Auto-save functionality with vendor persistence
@@ -30,7 +30,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           } else {
             console.log('🔄 Auto-saving new vendor draft');
           }
-          await onSave?.(formData);
+          // Use onAutoSave if provided, otherwise fall back to onSave
+          await (onAutoSave || onSave)?.(formData);
         } catch (error) {
           console.warn('Auto-save to vendors failed:', error);
         }

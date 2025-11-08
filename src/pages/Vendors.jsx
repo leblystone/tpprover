@@ -171,32 +171,47 @@ export default function Vendors() {
 				</div>
 			)}
 			
-			<VendorDetailsModal 
-				open={showAddModal}
-				onClose={() => { setShowAddModal(false); setEditingVendor(null) }}
-				theme={theme}
-				vendor={editingVendor}
-                activeTab={activeTab}
-				onSave={(data) => {
-					console.log('📝 Vendor save callback triggered:', { editingVendor, data }); // Debug log
-					if (editingVendor?.id) {
-						console.log('🔄 Updating existing vendor:', editingVendor.id);
-						// Preserve the original ID when updating
-						updateVendor({ ...data, id: editingVendor.id });
-					} else {
-						console.log('➕ Adding new vendor');
-						// Generate new ID only for new vendors
-						addVendor({ ...data, id: data.id || Date.now() });
-					}
-					setShowAddModal(false)
-					setEditingVendor(null)
-				}}
-				onDelete={(id) => {
-					deleteVendor(id);
-					setShowAddModal(false)
-					setEditingVendor(null)
-				}}
-			/>
+		<VendorDetailsModal 
+			open={showAddModal}
+			onClose={() => { setShowAddModal(false); setEditingVendor(null) }}
+			theme={theme}
+			vendor={editingVendor}
+            activeTab={activeTab}
+			onAutoSave={(data) => {
+				console.log('💾 Auto-save triggered:', { editingVendor, data });
+				// Auto-save: Update data without closing the modal
+				if (editingVendor?.id) {
+					console.log('🔄 Auto-saving existing vendor:', editingVendor.id);
+					updateVendor({ ...data, id: editingVendor.id });
+				} else {
+					console.log('➕ Auto-saving new vendor draft');
+					// For new vendors, create them with the generated ID
+					const vendorId = data.id || Date.now();
+					addVendor({ ...data, id: vendorId });
+					// Update editingVendor so subsequent saves update instead of create
+					setEditingVendor({ ...data, id: vendorId });
+				}
+				// Don't close modal - user is still editing
+			}}
+			onSave={(data) => {
+				console.log('📝 Manual save triggered:', { editingVendor, data });
+				// Manual save: Update data and close the modal
+				if (editingVendor?.id) {
+					console.log('🔄 Saving existing vendor:', editingVendor.id);
+					updateVendor({ ...data, id: editingVendor.id });
+				} else {
+					console.log('➕ Saving new vendor');
+					addVendor({ ...data, id: data.id || Date.now() });
+				}
+				setShowAddModal(false)
+				setEditingVendor(null)
+			}}
+			onDelete={(id) => {
+				deleteVendor(id);
+				setShowAddModal(false)
+				setEditingVendor(null)
+			}}
+		/>
 
 			<UpgradeModal 
 				isOpen={showUpgradeModal}
