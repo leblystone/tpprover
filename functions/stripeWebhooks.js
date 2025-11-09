@@ -16,6 +16,274 @@ require('dotenv').config();
 // Initialize Stripe instance (will be set in the handler after secrets are loaded)
 let stripe = null;
 
+function normalizeEmail(email) {
+  return typeof email === 'string' ? email.trim().toLowerCase() : null;
+}
+
+async function linkStripeCustomerToUser(customerId, userId, email) {
+  if (!customerId || !userId) {
+    return;
+  }
+
+  const db = admin.firestore();
+  const payload = {
+    userId,
+    email: normalizeEmail(email),
+    linkedAt: FieldValue.serverTimestamp(),
+  };
+
+  await db.collection('stripeCustomers').doc(customerId).set(payload, { merge: true });
+
+  await db.collection('users').doc(userId).set({
+    stripeCustomerId: customerId,
+    subscription: {
+      stripeCustomerId: customerId,
+      lastUpdated: FieldValue.serverTimestamp()
+    },
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+async function findUserIdByEmail(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) {
+    return null;
+  }
+
+  const snapshot = await admin.firestore()
+    .collection('users')
+    .where('email', '==', normalized)
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  return snapshot.docs[0].id;
+}
+
+async function resolveUserContext({ customerId, userIdHint, emailHint }) {
+  const db = admin.firestore();
+
+  if (userIdHint) {
+    return { userId: userIdHint, email: normalizeEmail(emailHint) };
+  }
+
+  if (customerId) {
+    const mappingDoc = await db.collection('stripeCustomers').doc(customerId).get();
+    if (mappingDoc.exists) {
+      const data = mappingDoc.data();
+      return { userId: data.userId, email: normalizeEmail(data.email) };
+    }
+  }
+
+  if (emailHint) {
+    const resolvedUserId = await findUserIdByEmail(emailHint);
+    if (resolvedUserId) {
+      if (customerId) {
+        await linkStripeCustomerToUser(customerId, resolvedUserId, emailHint);
+      }
+      return { userId: resolvedUserId, email: normalizeEmail(emailHint) };
+    }
+  }
+
+  return null;
+}
+
+function extractPlanDetails(stripeSubscription, invoice) {
+  const price = stripeSubscription?.items?.data?.[0]?.price || invoice?.lines?.data?.[0]?.price || null;
+  const intervalRaw = price?.recurring?.interval;
+  let interval = null;
+  if (intervalRaw === 'year') {
+    interval = 'year';
+  } else if (intervalRaw === 'month') {
+    interval = 'month';
+  } else if (intervalRaw) {
+    interval = intervalRaw;
+  }
+
+  const planName =
+    price?.nickname ||
+    stripeSubscription?.plan?.nickname ||
+    invoice?.lines?.data?.[0]?.description ||
+    'Research Subscription';
+
+  const amount =
+    price?.unit_amount != null
+      ? price.unit_amount / 100
+      : invoice?.amount_due != null
+        ? invoice.amount_due / 100
+        : null;
+
+  const currency =
+    price?.currency
+      ? price.currency.toUpperCase()
+      : invoice?.currency
+        ? invoice.currency.toUpperCase()
+        : null;
+
+  const periodStart = stripeSubscription?.current_period_start
+    ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
+    : invoice?.lines?.data?.[0]?.period?.start
+      ? new Date(invoice.lines.data[0].period.start * 1000).toISOString()
+      : null;
+
+  const periodEnd = stripeSubscription?.current_period_end
+    ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+    : invoice?.lines?.data?.[0]?.period?.end
+      ? new Date(invoice.lines.data[0].period.end * 1000).toISOString()
+      : null;
+
+  const cancelAt = stripeSubscription?.cancel_at
+    ? new Date(stripeSubscription.cancel_at * 1000).toISOString()
+    : null;
+
+  const canceledAt = stripeSubscription?.canceled_at
+    ? new Date(stripeSubscription.canceled_at * 1000).toISOString()
+    : null;
+
+  return {
+    planName,
+    interval,
+    amount,
+    currency,
+    priceId: price?.id || null,
+    periodStart,
+    periodEnd,
+    cancelAt,
+    canceledAt,
+  };
+}
+
+function sanitizeObject(obj) {
+  if (!obj) return {};
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== undefined)
+  );
+}
+
+async function upsertSubscriptionState({
+  stripeSubscription,
+  invoice,
+  customer,
+  statusOverride,
+  paymentState,
+  userIdHint,
+  emailHint
+}) {
+  const customerId =
+    stripeSubscription?.customer ||
+    invoice?.customer ||
+    customer?.id ||
+    null;
+
+  const context = await resolveUserContext({
+    customerId,
+    userIdHint,
+    emailHint: emailHint || customer?.email
+  });
+
+  if (!context || !context.userId) {
+    logger.warn('⚠️ Unable to resolve user for Stripe customer', customerId, emailHint);
+    return;
+  }
+
+  if (customerId) {
+    await linkStripeCustomerToUser(customerId, context.userId, emailHint || customer?.email);
+  }
+
+  const planDetails = extractPlanDetails(stripeSubscription, invoice);
+  const subscriptionStatus = statusOverride || stripeSubscription?.status || (paymentState === 'payment_failed' ? 'past_due' : null);
+
+  if (!subscriptionStatus) {
+    logger.warn('⚠️ Subscription status unresolved for user', context.userId, 'customer', customerId);
+  }
+
+  const subscriptionRecord = sanitizeObject({
+    id: stripeSubscription?.id || invoice?.subscription || null,
+    stripeSubscriptionId: stripeSubscription?.id || invoice?.subscription || null,
+    stripeCustomerId: customerId,
+    status: subscriptionStatus,
+    plan: planDetails.planName,
+    priceId: planDetails.priceId,
+    amount: planDetails.amount,
+    currency: planDetails.currency,
+    interval: planDetails.interval,
+    currentPeriodStart: planDetails.periodStart,
+    currentPeriodEnd: planDetails.periodEnd,
+    cancelAt: planDetails.cancelAt,
+    cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end ?? false,
+    canceledAt: planDetails.canceledAt,
+    latestInvoiceId: invoice?.id || stripeSubscription?.latest_invoice || null,
+    latestInvoiceStatus: invoice?.status || null,
+    latestInvoiceAmountDue: invoice?.amount_due != null ? invoice.amount_due / 100 : null,
+    latestInvoiceHostedUrl: invoice?.hosted_invoice_url || null,
+    billingStatus: paymentState || null,
+    statusUpdatedAt: FieldValue.serverTimestamp(),
+  });
+
+  const lastInvoiceRecord = invoice ? sanitizeObject({
+    id: invoice.id,
+    amountDue: invoice.amount_due != null ? invoice.amount_due / 100 : null,
+    amountPaid: invoice.amount_paid != null ? invoice.amount_paid / 100 : null,
+    currency: invoice.currency ? invoice.currency.toUpperCase() : null,
+    status: invoice.status,
+    hostedInvoiceUrl: invoice.hosted_invoice_url || null,
+    createdAt: invoice.created ? new Date(invoice.created * 1000).toISOString() : null,
+    periodStart: invoice.lines?.data?.[0]?.period?.start ? new Date(invoice.lines.data[0].period.start * 1000).toISOString() : null,
+    periodEnd: invoice.lines?.data?.[0]?.period?.end ? new Date(invoice.lines.data[0].period.end * 1000).toISOString() : null,
+  }) : null;
+
+  const db = admin.firestore();
+  const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
+  const userRef = db.collection('users').doc(context.userId);
+
+  const subscriptionUpdate = {
+    subscription: {
+      ...subscriptionRecord,
+      lastUpdated: FieldValue.serverTimestamp(),
+    },
+    lastUpdated: FieldValue.serverTimestamp(),
+  };
+
+  if (lastInvoiceRecord) {
+    subscriptionUpdate.lastInvoice = lastInvoiceRecord;
+  }
+
+  await userSubscriptionsRef.set(subscriptionUpdate, { merge: true });
+
+  const userSubscriptionSnapshot = sanitizeObject({
+    status: subscriptionRecord.status,
+    plan: subscriptionRecord.plan,
+    interval: subscriptionRecord.interval,
+    currentPeriodEnd: subscriptionRecord.currentPeriodEnd,
+    currentPeriodStart: subscriptionRecord.currentPeriodStart,
+    cancelAt: subscriptionRecord.cancelAt || null,
+    cancelAtPeriodEnd: subscriptionRecord.cancelAtPeriodEnd ?? false,
+    stripeCustomerId: subscriptionRecord.stripeCustomerId,
+    stripeSubscriptionId: subscriptionRecord.stripeSubscriptionId,
+    latestInvoiceId: subscriptionRecord.latestInvoiceId,
+    latestInvoiceStatus: subscriptionRecord.latestInvoiceStatus,
+    latestInvoiceAmountDue: subscriptionRecord.latestInvoiceAmountDue,
+    billingStatus: subscriptionRecord.billingStatus,
+    lastPaymentStatus: paymentState || null,
+    lastUpdated: FieldValue.serverTimestamp(),
+  });
+
+  if (lastInvoiceRecord) {
+    userSubscriptionSnapshot.latestInvoice = lastInvoiceRecord;
+  }
+
+  await userRef.set({
+    stripeCustomerId: subscriptionRecord.stripeCustomerId,
+    subscription: userSubscriptionSnapshot,
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  logger.info(`✅ Subscription data synced for user ${context.userId} with status ${subscriptionRecord.status}`);
+}
+
 /**
  * Stripe Webhook Handler
  * Receives and processes Stripe webhook events
@@ -161,6 +429,33 @@ exports.stripeWebhook = onRequest(
 async function handleCheckoutSessionCompleted(event) {
   const session = event.data.object;
   const metadata = session.metadata || {};
+
+  try {
+    if (session.customer && metadata.userId) {
+      await linkStripeCustomerToUser(
+        session.customer,
+        metadata.userId,
+        session.customer_details?.email || session.customer_email || metadata.userEmail
+      );
+    }
+
+    if (session.mode === 'subscription' && session.subscription && session.customer) {
+      const [subscription, customer] = await Promise.all([
+        stripe.subscriptions.retrieve(session.subscription),
+        stripe.customers.retrieve(session.customer)
+      ]);
+
+      await upsertSubscriptionState({
+        stripeSubscription: subscription,
+        customer,
+        userIdHint: metadata.userId || subscription.metadata?.userId,
+        emailHint: session.customer_details?.email || session.customer_email || metadata.userEmail,
+        statusOverride: subscription.status
+      });
+    }
+  } catch (syncError) {
+    logger.error('❌ Failed to sync subscription after checkout completion:', syncError);
+  }
 
   if (!metadata || metadata.founderApplied !== 'true') {
     return;
@@ -395,6 +690,14 @@ async function handleSubscriptionCreated(event, stripe) {
     planName,
     timestamp: admin.firestore.FieldValue.serverTimestamp()
   });
+
+  await upsertSubscriptionState({
+    stripeSubscription: subscription,
+    customer,
+    userIdHint: subscription.metadata?.userId,
+    emailHint: userEmail,
+    statusOverride: subscription.status
+  });
 }
 
 /**
@@ -404,6 +707,13 @@ async function handleSubscriptionUpdated(event, stripe) {
   const subscription = event.data.object;
   logger.info(`📝 Subscription updated: ${subscription.id}`);
 
+  let customer = null;
+  try {
+    customer = await stripe.customers.retrieve(subscription.customer);
+  } catch (customerError) {
+    logger.warn(`⚠️ Failed to load customer ${subscription.customer} for subscription update`, customerError);
+  }
+
   // Log the event
   await admin.firestore().collection('stripeEvents').add({
     type: 'customer.subscription.updated',
@@ -411,6 +721,14 @@ async function handleSubscriptionUpdated(event, stripe) {
     customerId: subscription.customer,
     status: subscription.status,
     timestamp: admin.firestore.FieldValue.serverTimestamp()
+  });
+
+  await upsertSubscriptionState({
+    stripeSubscription: subscription,
+    customer,
+    userIdHint: subscription.metadata?.userId,
+    emailHint: customer?.email,
+    statusOverride: subscription.status
   });
 }
 
@@ -450,6 +768,15 @@ async function handleSubscriptionDeleted(event, stripe) {
     endDate,
     timestamp: admin.firestore.FieldValue.serverTimestamp()
   });
+
+  await upsertSubscriptionState({
+    stripeSubscription: subscription,
+    customer,
+    userIdHint: subscription.metadata?.userId,
+    emailHint: userEmail,
+    statusOverride: 'canceled',
+    paymentState: 'canceled'
+  });
 }
 
 /**
@@ -486,6 +813,25 @@ async function handleInvoicePaymentSucceeded(event, stripe) {
     currency: invoice.currency,
     timestamp: admin.firestore.FieldValue.serverTimestamp()
   });
+
+  let subscription = null;
+  if (invoice.subscription) {
+    try {
+      subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+    } catch (subscriptionError) {
+      logger.warn(`⚠️ Failed to retrieve subscription ${invoice.subscription} for payment success`, subscriptionError);
+    }
+  }
+
+  await upsertSubscriptionState({
+    stripeSubscription: subscription,
+    invoice,
+    customer,
+    userIdHint: subscription?.metadata?.userId,
+    emailHint: userEmail,
+    statusOverride: subscription?.status || 'active',
+    paymentState: 'payment_succeeded'
+  });
 }
 
 /**
@@ -521,6 +867,25 @@ async function handleInvoicePaymentFailed(event, stripe) {
     amount: invoice.amount_due,
     currency: invoice.currency,
     timestamp: admin.firestore.FieldValue.serverTimestamp()
+  });
+
+  let subscription = null;
+  if (invoice.subscription) {
+    try {
+      subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+    } catch (subscriptionError) {
+      logger.warn(`⚠️ Failed to retrieve subscription ${invoice.subscription} for payment failure`, subscriptionError);
+    }
+  }
+
+  await upsertSubscriptionState({
+    stripeSubscription: subscription,
+    invoice,
+    customer,
+    userIdHint: subscription?.metadata?.userId,
+    emailHint: userEmail,
+    statusOverride: subscription?.status || 'past_due',
+    paymentState: 'payment_failed'
   });
 }
 

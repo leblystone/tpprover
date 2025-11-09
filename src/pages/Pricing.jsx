@@ -288,7 +288,7 @@ export default function Pricing() {
                 <Zap className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
-                14-Day Free Trial
+                10-Day Free Trial
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
                 Try all features risk-free. No credit card required to get started.
