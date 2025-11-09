@@ -4,13 +4,21 @@
     --sar: env(safe-area-inset-right);
     --sab: env(safe-area-inset-bottom);
     --sal: env(safe-area-inset-left);
+    --android-safe-area-top: 0px;
+    --android-safe-area-right: 0px;
+    --android-safe-area-bottom: 0px;
+    --android-safe-area-left: 0px;
+    --safe-area-top: max(var(--sat, 0px), var(--android-safe-area-top, 0px));
+    --safe-area-right: max(var(--sar, 0px), var(--android-safe-area-right, 0px));
+    --safe-area-bottom: max(var(--sab, 0px), var(--android-safe-area-bottom, 0px));
+    --safe-area-left: max(var(--sal, 0px), var(--android-safe-area-left, 0px));
 }
 
 .main-content {
     transition: margin-left 0.3s ease-in-out;
     margin-left: 0; /* remove extra left gap */
     /* Add bottom padding for iOS home indicator */
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    padding-bottom: max(0.5rem, var(--safe-area-bottom));
 }
 
 .sidebar-container:hover + .topbar + .main-content,
@@ -130,8 +138,8 @@ html, body {
 
   /* Fix for topbar on narrow screens */
   header {
-    padding-left: max(0.75rem, env(safe-area-inset-left)) !important;
-    padding-right: max(0.75rem, env(safe-area-inset-right)) !important;
+    padding-left: max(0.75rem, var(--safe-area-left)) !important;
+    padding-right: max(0.75rem, var(--safe-area-right)) !important;
   }
 
   /* Ensure search boxes don't overflow */
@@ -144,16 +152,16 @@ html, body {
 @supports (padding: max(0px)) {
   /* Topbar respects notch */
   header {
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-left: max(1rem, var(--safe-area-left));
+    padding-right: max(1rem, var(--safe-area-right));
   }
 
   /* Mobile nav respects safe areas */
   .mobile-nav-container {
-    padding-top: max(1rem, env(safe-area-inset-top));
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-top: max(1rem, var(--safe-area-top));
+    padding-bottom: max(1rem, var(--safe-area-bottom));
+    padding-left: max(1rem, var(--safe-area-left));
+    padding-right: max(1rem, var(--safe-area-right));
   }
 }
 

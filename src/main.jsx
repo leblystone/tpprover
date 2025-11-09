@@ -9,10 +9,12 @@ import ChunkErrorBoundary from './components/common/ChunkErrorBoundary'
 import { toggleDebugMode, getDebugMode } from './utils/debugMode'
 import { initCacheBusting } from './utils/cacheBuster.js'
 import { isNative } from './utils/platform'
+import { setupSafeAreaSupport } from './utils/safeArea'
 import './index.css'
 
 // Initialize cache busting on app load
 initCacheBusting();
+setupSafeAreaSupport();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

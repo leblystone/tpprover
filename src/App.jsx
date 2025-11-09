@@ -262,7 +262,7 @@ function App() {
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
       <div className="flex-1 flex flex-col lg:ml-24 min-w-0" style={{
         // Add padding for mobile status bar
-        paddingTop: window.innerWidth < 1024 ? 'env(safe-area-inset-top, 24px)' : '0px'
+        paddingTop: window.innerWidth < 1024 ? 'max(var(--safe-area-top, 24px), 24px)' : '0px'
       }}>
         <Topbar 
           theme={theme} 
