@@ -39,6 +39,7 @@ import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
+import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -1035,8 +1036,18 @@ export default function CustomizableDashboard() {
         onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(o) => {
           const category = o.category || 'domestic';
-          const newOrder = { ...o, id: o.id || Date.now(), category, type: category };
-          setOrders(prev => [newOrder, ...prev]);
+          setOrders(prev => {
+            const normalizedPrev = ensurePublicOrderNumbers(prev);
+            const nextNumber = getNextPublicOrderNumber(normalizedPrev);
+            const newOrder = { 
+              ...o, 
+              id: o.id || Date.now(), 
+              category, 
+              type: category,
+              publicOrderNumber: nextNumber
+            };
+            return [newOrder, ...normalizedPrev];
+          });
           if (o.vendor) {
             setVendors(prev => {
               const existing = prev.find(v => v.name === o.vendor);

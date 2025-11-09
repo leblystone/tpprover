@@ -33,6 +33,7 @@ import { useBadgeStats } from '../utils/badges'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import UpgradeModal from '../components/common/UpgradeModal'
+import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 
 export default function Dashboard() {
   console.log('🏠 Dashboard component rendered');
@@ -1141,8 +1142,18 @@ export default function Dashboard() {
         onSave={(o) => {
           // Ensure category is set, default to 'domestic' if not specified
           const category = o.category || 'domestic';
-          const newOrder = { ...o, id: o.id || Date.now(), category, type: category };
-          setOrders(prev => [newOrder, ...prev]);
+          setOrders(prev => {
+            const normalizedPrev = ensurePublicOrderNumbers(prev);
+            const nextNumber = getNextPublicOrderNumber(normalizedPrev);
+            const newOrder = { 
+              ...o, 
+              id: o.id || Date.now(), 
+              category, 
+              type: category,
+              publicOrderNumber: nextNumber
+            };
+            return [newOrder, ...normalizedPrev];
+          });
           if (o.vendor) {
             setVendors(prev => {
               const existing = prev.find(v => v.name === o.vendor);

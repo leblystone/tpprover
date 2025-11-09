@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
@@ -39,6 +39,21 @@ export default function Recon() {
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
+	const updateEditingItem = useCallback((updates) => {
+		if (!updates) return;
+		setEditingItem(prev => ({ ...(prev || {}), ...updates }));
+	}, [setEditingItem]);
+
+	useEffect(() => {
+		if (showEditModal === true && !editingItem) {
+			if (draft && Object.keys(draft).length > 0) {
+				setEditingItem({ ...draft });
+			} else {
+				setEditingItem({ doseUnit: 'mcg' });
+			}
+		}
+	}, [showEditModal, editingItem, draft]);
 
     useEffect(() => {
 		try {
@@ -340,9 +355,18 @@ export default function Recon() {
                                         const dose = Number(p.dose) || 0;
                                         return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
                                     }, 0)
-                                    : item.dose;
+                                    : 0;
 
-								const calc = calculateRecon({ ...item, mg: totalMg, dose: totalDoseInMcg });
+                                const summaryDoseUnit = isBlend
+                                    ? 'mcg'
+                                    : (item.doseUnit || 'mcg');
+
+                                const rawDoseInput = isBlend ? totalDoseInMcg : item.dose;
+                                const hasDoseValue = rawDoseInput !== undefined && rawDoseInput !== null && rawDoseInput !== '';
+                                const summaryDoseValueForCalc = hasDoseValue ? Number(rawDoseInput) : 0;
+                                const displayDoseValue = hasDoseValue ? rawDoseInput : null;
+
+								const calc = calculateRecon({ ...item, mg: totalMg, dose: summaryDoseValueForCalc, doseUnit: summaryDoseUnit });
 								const costPerDose = item.cost ? formatCurrency(item.cost / calc.dosesPerVial) : null
 								return (
 									<div 
@@ -397,7 +421,7 @@ export default function Recon() {
 												<div className="text-sm space-y-2" style={{ color: theme.textLight }}>
 													<div className="flex items-center gap-2"><Beaker size={14} /> {totalMg} mg</div>
 													<div className="flex items-center gap-2"><Droplet size={14} /> {item.water} mL water</div>
-													<div className="flex items-center gap-2"><Droplet size={14} /> {totalDoseInMcg} mcg total dose</div>
+													<div className="flex items-center gap-2"><Droplet size={14} /> {displayDoseValue !== null ? `${displayDoseValue} ${summaryDoseUnit} total dose` : '-'}</div>
 												</div>
 												<div className="text-sm space-y-2" style={{ color: theme.textLight }}>
 													<div><span className="font-medium text-base pr-1" style={{color: theme.text}}>{calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}</span> units/dose</div>
@@ -555,21 +579,21 @@ export default function Recon() {
                         <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VIAL DETAILS</h4>
                     </div>
 
-                    <TextInput label="Peptide Name" value={getEditingPeptideName()} onChange={v => { setEditingItem(i => ({ ...i, peptide: v })); updateFormData({ peptide: v }); }} theme={theme} />
+                    <TextInput label="Peptide Name" value={getEditingPeptideName()} onChange={v => { updateEditingItem({ peptide: v }); updateFormData({ peptide: v }); }} theme={theme} />
                     <VendorSuggestInput 
                         label="Vendor" 
                         value={editingItem?.vendorId ? vendorMap[editingItem.vendorId] : (editingItem?.vendor || draft.vendor || '')} 
                         onChange={v => {
                             const selectedVendor = vendors.find(vendor => vendor.name === v);
-                            setEditingItem(i => ({ ...i, vendor: v, vendorId: selectedVendor ? selectedVendor.id : null }));
+                            updateEditingItem({ vendor: v, vendorId: selectedVendor ? selectedVendor.id : null });
                             updateFormData({ vendor: v, vendorId: selectedVendor ? selectedVendor.id : null });
                         }} 
                         theme={theme} 
                     />
                     {/* mg and water in one row */}
                     <div className="grid grid-cols-2 gap-3">
-                        <TextInput label="mg" type="number" value={getEditingMg()} onChange={v => { setEditingItem(i => ({ ...i, mg: v })); updateFormData({ mg: v }); }} theme={theme} />
-                        <TextInput label="Water (mL)" type="number" value={editingItem?.water || draft.water || ''} onChange={v => { setEditingItem(i => ({ ...i, water: v })); updateFormData({ water: v }); }} theme={theme} />
+                        <TextInput label="mg" type="number" value={getEditingMg()} onChange={v => { updateEditingItem({ mg: v }); updateFormData({ mg: v }); }} theme={theme} />
+                        <TextInput label="Water (mL)" type="number" value={editingItem?.water || draft.water || ''} onChange={v => { updateEditingItem({ water: v }); updateFormData({ water: v }); }} theme={theme} />
                     </div>
                     
                     {/* dose on its own row */}
@@ -586,7 +610,7 @@ export default function Recon() {
                                 type="number"
                                 value={getEditingDose()} 
                                 onChange={e => { 
-                                    setEditingItem(i => ({ ...i, dose: e.target.value })); 
+                                    updateEditingItem({ dose: e.target.value }); 
                                     updateFormData({ dose: e.target.value }); 
                                 }} 
                                 placeholder="250"
@@ -608,7 +632,7 @@ export default function Recon() {
                                         key={unit} 
                                         type="button" 
                                         onClick={() => { 
-                                            setEditingItem(i => ({ ...i, doseUnit: unit })); 
+                                            updateEditingItem({ doseUnit: unit }); 
                                             updateFormData({ doseUnit: unit }); 
                                         }}
                                         className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
@@ -643,7 +667,7 @@ export default function Recon() {
                     <div>
                         <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                             <button 
-                                onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'pipette' }))}
+                                onClick={() => updateEditingItem({ deliveryMethod: 'pipette' })}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     (editingItem?.deliveryMethod || 'pipette') === 'pipette' 
                                         ? 'text-white shadow-sm' 
@@ -664,7 +688,7 @@ export default function Recon() {
                                 <Pipette size={16} /> Syringe
                             </button>
                             <button 
-                                onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'pen' }))}
+                                onClick={() => updateEditingItem({ deliveryMethod: 'pen' })}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'pen' 
                                         ? 'text-white shadow-sm' 
@@ -685,7 +709,7 @@ export default function Recon() {
                                 <PenTool size={16} /> Pen
                             </button>
                             <button 
-                                onClick={() => setEditingItem(i => ({ ...i, deliveryMethod: 'nasal' }))}
+                                onClick={() => updateEditingItem({ deliveryMethod: 'nasal' })}
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                     editingItem?.deliveryMethod === 'nasal' 
                                         ? 'text-white shadow-sm' 
@@ -711,7 +735,7 @@ export default function Recon() {
                                 <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
                                 <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                                     <button 
-                                        onClick={() => setEditingItem(i => ({ ...i, administrationRoute: 'SubQ' }))}
+                                        onClick={() => updateEditingItem({ administrationRoute: 'SubQ' })}
                                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                             (editingItem?.administrationRoute || 'SubQ') === 'SubQ' 
                                                 ? 'text-white shadow-sm' 
@@ -732,7 +756,7 @@ export default function Recon() {
                                         SubQ
                                     </button>
                                     <button 
-                                        onClick={() => setEditingItem(i => ({ ...i, administrationRoute: 'IM' }))}
+                                        onClick={() => updateEditingItem({ administrationRoute: 'IM' })}
                                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                             editingItem?.administrationRoute === 'IM' 
                                                 ? 'text-white shadow-sm' 
@@ -753,7 +777,7 @@ export default function Recon() {
                                         IM
                                     </button>
                                     <button 
-                                        onClick={() => setEditingItem(i => ({ ...i, administrationRoute: 'IV' }))}
+                                        onClick={() => updateEditingItem({ administrationRoute: 'IV' })}
                                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                                             editingItem?.administrationRoute === 'IV' 
                                                 ? 'text-white shadow-sm' 
@@ -784,7 +808,7 @@ export default function Recon() {
                                         <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Type</label>
                                         <select
                                             value={editingItem?.penType || ''}
-                                            onChange={e => setEditingItem(i => ({ ...i, penType: e.target.value }))}
+                                            onChange={e => updateEditingItem({ penType: e.target.value })}
                                             className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
                                             style={{
                                                 borderColor: theme.border,
@@ -805,7 +829,7 @@ export default function Recon() {
                                         <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Color</label>
                                         <select
                                             value={editingItem?.penColor || ''}
-                                            onChange={e => setEditingItem(i => ({ ...i, penColor: e.target.value }))}
+                                            onChange={e => updateEditingItem({ penColor: e.target.value })}
                                             className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
                                             style={{
                                                 borderColor: theme.border,
@@ -835,7 +859,7 @@ export default function Recon() {
                     {/* Page Break */}
                     <div className="border-t" style={{ borderColor: theme.border }}></div>
 
-                    <TextInput label="Notes" value={editingItem?.notes || ''} onChange={v => setEditingItem(i => ({ ...i, notes: v }))} theme={theme} multiline />
+                    <TextInput label="Notes" value={editingItem?.notes || ''} onChange={v => updateEditingItem({ notes: v })} theme={theme} multiline />
                 </div>
 			</Modal>
 

@@ -38,6 +38,12 @@ export default function ScheduledBuysPanel({ theme }) {
         setScheduledBuys(prev => prev.filter(b => b.id !== id));
     };
 
+    const handleDeleteFromModal = (id) => {
+        handleDelete(id);
+        setIsModalOpen(false);
+        setEditingBuy(null);
+    };
+
     const handleOpenModal = (buy = null) => {
         setEditingBuy(buy);
         setIsModalOpen(true);
@@ -84,6 +90,7 @@ export default function ScheduledBuysPanel({ theme }) {
                 theme={theme}
                 buy={editingBuy}
                 onSave={handleSave}
+                onDelete={handleDeleteFromModal}
             />
         </div>
     );

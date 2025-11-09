@@ -104,15 +104,22 @@ function displayStatus(status) {
 
 const formatOrderTitle = (order) => {
     const items = order.items || [];
-    if (items.length === 0) {
-        return order.peptide || 'Unknown Order'; // Fallback for old data structure
+    const baseTitle = (() => {
+        if (items.length === 0) {
+            return order.peptide || 'Unknown Order'; // Fallback for old data structure
+        }
+        const names = items.map(item => item.name).filter(Boolean);
+        if (names.length <= 2) {
+            return names.join(' & ');
+        }
+        const remaining = names.length - 2;
+        return `${names.slice(0, 2).join(', ')} +${remaining} more`;
+    })();
+    const number = Number.parseInt(order?.publicOrderNumber, 10);
+    if (Number.isFinite(number) && number > 0) {
+        return `Order #${number} · ${baseTitle}`;
     }
-    const names = items.map(item => item.name).filter(Boolean);
-    if (names.length <= 2) {
-        return names.join(' & ');
-    }
-    const remaining = names.length - 2;
-    return `${names.slice(0, 2).join(', ')} +${remaining} more`;
+    return baseTitle;
 };
 
 const formatTotalQuantity = (order) => {

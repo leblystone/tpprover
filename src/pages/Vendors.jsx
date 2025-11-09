@@ -166,6 +166,21 @@ export default function Vendors() {
 								setShowAddModal(true);
 							}}
 							onManageProtocolClick={(vendor) => { alert(`Manage protocol for ${vendor.name}`) }}
+							onForceDelete={(vendor) => {
+								// Emergency delete for stuck cards
+								console.log('🚨 Force delete triggered for vendor:', vendor);
+								setVendors(prev => {
+									const filtered = prev.filter((v, i) => {
+										// Try multiple matching strategies
+										if (v.id != null && vendor.id != null && String(v.id) === String(vendor.id)) return false;
+										if (v.name && vendor.name && v.name.trim().toLowerCase() === vendor.name.trim().toLowerCase()) return false;
+										if (i === idx) return false; // Fallback: remove by index
+										return true;
+									});
+									console.log('✅ Force deleted - before:', prev.length, 'after:', filtered.length);
+									return filtered;
+								});
+							}}
 						/>
 					))}
 				</div>
@@ -179,37 +194,58 @@ export default function Vendors() {
             activeTab={activeTab}
 			onAutoSave={(data) => {
 				console.log('💾 Auto-save triggered:', { editingVendor, data });
-				// Auto-save: Update data without closing the modal
-				if (editingVendor?.id) {
-					console.log('🔄 Auto-saving existing vendor:', editingVendor.id);
-					updateVendor({ ...data, id: editingVendor.id });
-				} else {
-					console.log('➕ Auto-saving new vendor draft');
-					// For new vendors, create them with the generated ID
-					const vendorId = data.id || Date.now();
-					addVendor({ ...data, id: vendorId });
-					// Update editingVendor so subsequent saves update instead of create
+				// Auto-save: Always use addVendor which handles merge logic internally
+				const vendorId = editingVendor?.id || data.id || Date.now();
+				const vendorToSave = { ...data, id: vendorId };
+				
+				console.log('🔄 Auto-saving vendor:', vendorId, 'editingVendor:', editingVendor);
+				addVendor(vendorToSave);
+				
+				// Update editingVendor so subsequent operations use the same ID
+				if (!editingVendor?.id) {
 					setEditingVendor({ ...data, id: vendorId });
 				}
-				// Don't close modal - user is still editing
 			}}
 			onSave={(data) => {
 				console.log('📝 Manual save triggered:', { editingVendor, data });
-				// Manual save: Update data and close the modal
-				if (editingVendor?.id) {
-					console.log('🔄 Saving existing vendor:', editingVendor.id);
-					updateVendor({ ...data, id: editingVendor.id });
-				} else {
-					console.log('➕ Saving new vendor');
-					addVendor({ ...data, id: data.id || Date.now() });
-				}
+				// Manual save: Always use addVendor which handles merge logic internally
+				const vendorId = editingVendor?.id || data.id || Date.now();
+				addVendor({ ...data, id: vendorId });
 				setShowAddModal(false)
 				setEditingVendor(null)
 			}}
 			onDelete={(id) => {
-				deleteVendor(id);
-				setShowAddModal(false)
-				setEditingVendor(null)
+				console.log('🗑️ Delete triggered for vendor ID:', id, 'editingVendor:', editingVendor);
+				// Use the ID from editingVendor if provided ID is missing
+				const targetId = id || editingVendor?.id;
+				if (targetId) {
+					deleteVendor(targetId);
+					setShowAddModal(false)
+					setEditingVendor(null)
+				} else {
+					console.error('❌ Cannot delete: No vendor ID available');
+				}
+			}}
+			onForceDelete={(vendor) => {
+				// Emergency force delete for stuck vendors
+				console.log('🚨 Force delete triggered from modal for vendor:', vendor);
+				if (window.confirm(`⚠️ Force delete "${vendor?.name || 'this vendor'}"?\n\nThis bypasses normal deletion and removes the vendor by array position. Use this only if normal delete fails.`)) {
+					setVendors(prev => {
+						const filtered = prev.filter((v) => {
+							// Try multiple matching strategies
+							if (v.id != null && vendor.id != null && String(v.id) === String(vendor.id)) return false;
+							if (v.name && vendor.name && v.name.trim().toLowerCase() === vendor.name.trim().toLowerCase()) return false;
+							return true;
+						});
+						console.log('✅ Force deleted - before:', prev.length, 'after:', filtered.length);
+						return filtered;
+					});
+					setShowAddModal(false);
+					setEditingVendor(null);
+					window.dispatchEvent(new CustomEvent('tpp:toast', { 
+						detail: { message: 'Vendor force-deleted successfully', type: 'success' } 
+					}));
+				}
 			}}
 		/>
 

@@ -17,7 +17,17 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 <button 
                     type="button" 
                     onClick={onRemove} 
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600" 
+                    className="absolute -top-2 -right-2 p-1 text-white rounded-full transition-all hover:scale-110 active:scale-95" 
+                    style={{
+                        background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                    }}
                     aria-label="Remove item"
                 >
                     <X size={14} />
@@ -92,10 +102,11 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                     <div>
                         <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Quantity</label>
                         <div 
-                            className="flex items-stretch rounded-lg overflow-hidden"
+                            className="flex items-stretch rounded-lg overflow-hidden focus-within:ring-2"
                             style={{ 
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                                border: `1px solid ${theme.isDark ? '#4b5563' : theme.border}`,
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(15, 23, 42, 0.08)',
+                                transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
                             }}
                         >
                             <input 
@@ -103,10 +114,11 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 value={item.quantity || ''} 
                                 onChange={e => handleChange('quantity', e.target.value)} 
                                 placeholder="1"
-                                className="flex-1 px-3 py-2 outline-none min-w-0"
+                                className="flex-1 px-3 py-2 outline-none min-w-0 bg-transparent text-base"
                                 style={{
-                                    backgroundColor: theme.isDark ? '#374151' : (theme.inputBackground || '#fff'),
-                                    color: theme.text
+                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                    color: theme.text,
+                                    borderRight: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`
                                 }}
                             />
                             <div 
@@ -116,7 +128,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb')
                                 }}
                             >
-                                {['vial', 'bottle', 'kit'].map(unit => (
+                                {['vial', 'kit'].map(unit => (
                                     <button 
                                         key={unit} 
                                         type="button" 

@@ -10,10 +10,35 @@ import DocumentationUpload from '../common/DocumentationUpload';
 import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 
-export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
+export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onAutoSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
+
+  const primaryColor = theme?.primary || '#3b82f6';
+  const toSubtleBackground = (hex) => {
+    if (theme?.isDark) {
+      return 'transparent';
+    }
+
+    if (typeof hex === 'string' && hex.startsWith('#') && hex.length === 7) {
+      return `${hex}1A`;
+    }
+
+    return 'rgba(59, 130, 246, 0.08)';
+  };
+  const primaryStrongColor = theme?.primaryDark || primaryColor;
+  const subtlePrimaryBackground = toSubtleBackground(primaryColor);
+  const neutralBorderColor = theme?.border || '#d1d5db';
+  const neutralTextColor = theme?.mutedText || theme?.text || '#4b5563';
+  const dangerBorderColor = theme?.dangerBorder || '#fecaca';
+  const dangerTextColor = theme?.dangerText || '#b91c1c';
+
+  const formatCategoryLabel = (category) => {
+    if (!category) return 'Research Buy Queue';
+    if (category === 'groupbuy') return 'Group Buy';
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  };
   
   // Auto-save functionality with order persistence
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
@@ -34,7 +59,11 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         try {
           if (order?.id) {
             console.log('🔄 Auto-saving existing order:', order.id);
-            await onSave?.(formData);
+            if (onAutoSave) {
+              await onAutoSave(formData);
+            } else {
+              await onSave?.(formData);
+            }
           } else {
             console.log('🔄 Auto-saving new order draft');
             // For new orders, we don't auto-save to the orders list yet
@@ -68,6 +97,15 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     return itemsCost + shippingCost;
   }, [form.items, form.shippingCost]);
 
+  const vendorMap = useMemo(() => {
+    return (vendors || []).reduce((acc, vendor) => {
+      if (vendor?.id != null) {
+        acc[vendor.id] = vendor.name || '';
+      }
+      return acc;
+    }, {});
+  }, [vendors]);
+
   useEffect(() => {
     if (open) {
       const initialData = order ? { ...order } : { date: new Date().toISOString() };
@@ -92,6 +130,12 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       } else if (!initialData.items || initialData.items.length === 0) {
         initialData.items = [{ id: Date.now(), quantity: 1, unit: 'vial' }]; // Start with one empty item for new orders
       }
+
+      initialData.items = (initialData.items || []).map(item => ({
+        ...item,
+        unit: item.unit === 'bottle' ? 'vial' : (item.unit || 'vial'),
+        mgUnit: item.mgUnit || 'mg'
+      }));
 
       console.log('📝 OrderDetailsModal: Initializing form with data:', JSON.stringify(initialData, null, 2));
       setForm(initialData);
@@ -130,7 +174,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   const addItem = () => {
       setForm(prev => ({
           ...prev,
-          items: [...(prev.items || []), { id: Date.now(), quantity: 1, unit: 'vial' }]
+          items: [...(prev.items || []), { id: Date.now(), quantity: 1, unit: 'vial', mgUnit: 'mg' }]
       }));
   };
 
@@ -146,11 +190,85 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     onClose();
   };
 
+  useEffect(() => {
+    setForm(prev => {
+      if (!prev) return prev;
+      if (prev.attachments === attachments) {
+        return prev;
+      }
+      return { ...prev, attachments };
+    });
+  }, [attachments]);
+
+  const handleSave = async () => {
+    if (isReadOnly) {
+      if (onUpgrade) {
+        onUpgrade();
+      }
+      return;
+    }
+
+    if (!onSave) {
+      return;
+    }
+
+    setIsSavingToOrders(true);
+    setSaveError(null);
+
+    try {
+      const payload = { ...form, attachments };
+      await onSave(payload);
+      markAsSubmitted();
+
+      if (!form?.id) {
+        clearSavedData();
+      }
+
+      const categoryLabel = formatCategoryLabel(payload.category);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: {
+          message: `${categoryLabel} order saved!`,
+          type: 'success'
+        }
+      }));
+    } catch (error) {
+      console.error('❌ Failed to save order:', error);
+      setSaveError('We had trouble saving this order. Please try again.');
+    } finally {
+      setIsSavingToOrders(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!form?.id || !onDelete) {
+      return;
+    }
+
+    try {
+      await onDelete(form.id);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: {
+          message: 'Order removed from your research log',
+          type: 'info'
+        }
+      }));
+    } catch (error) {
+      console.error('❌ Failed to delete order:', error);
+      setSaveError('We could not delete this order right now.');
+    }
+  };
+
   return (
     <Modal
       open={open}
       onClose={handleClose}
-      title={`Order${form?.id ? ` #${form.id}` : ''}`}
+      title={
+        form?.publicOrderNumber
+          ? `Order #${form.publicOrderNumber}`
+          : form?.id
+            ? `Order #${form.id}`
+            : 'New Order'
+      }
       titleExtra={
         <div className="flex items-center gap-2">
           <AutoSaveIndicator 
@@ -167,14 +285,57 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       variant="modern"
       maxWidth={isReadOnly ? "max-w-md" : maxWidth}
       footer={(
-        <div className="w-full flex justify-between items-center">
-          <div>
+        <div className="w-full flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             {form?.id && (
-              <button onClick={() => onDelete?.(form.id)} className="px-3 py-2 rounded-md text-sm font-semibold bg-red-600 text-white hover:bg-red-700">Delete</button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                  color: '#ffffff',
+                  border: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                }}
+              >
+                Delete
+              </button>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleClose} className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" style={{ borderColor: theme?.border, color: theme?.text }}>Close</button>
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isSavingToOrders}
+                className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ 
+                  background: isSavingToOrders ? theme.secondary : `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`,
+                  color: theme?.textOnPrimary || '#ffffff',
+                  border: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSavingToOrders) {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSavingToOrders) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                  }
+                }}
+              >
+                {isSavingToOrders ? 'Saving…' : 'Save Changes'}
+              </button>
+            )}
           </div>
         </div>
       )}

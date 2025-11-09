@@ -2,50 +2,96 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 
-export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave }) {
-    const [form, setForm] = useState({ 
-        item: '', 
-        openDate: '', 
-        closeDate: '', 
-        vendor: '', 
+export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave, onDelete }) {
+    const [form, setForm] = useState({
+        item: '',
+        openDate: '',
+        closeDate: '',
+        vendor: '',
         location: '',
         participants: '',
         price: '',
-        notes: '' 
+        notes: '',
+        id: undefined
     });
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (open) {
             if (buy) {
-                setForm({ 
-                    item: '', 
-                    openDate: new Date().toISOString().slice(0, 10), 
-                    closeDate: new Date().toISOString().slice(0, 10), 
-                    vendor: '', 
+                setForm({
+                    item: '',
+                    openDate: new Date().toISOString().slice(0, 10),
+                    closeDate: new Date().toISOString().slice(0, 10),
+                    vendor: '',
                     location: '',
                     participants: '',
                     price: '',
                     notes: '',
+                    id: undefined,
                     ...buy 
                 });
             } else {
-                setForm({ 
-                    item: '', 
-                    openDate: new Date().toISOString().slice(0, 10), 
-                    closeDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), 
-                    vendor: '', 
+                setForm({
+                    item: '',
+                    openDate: new Date().toISOString().slice(0, 10),
+                    closeDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+                    vendor: '',
                     location: '',
                     participants: '',
                     price: '',
-                    notes: '' 
+                    notes: '',
+                    id: undefined
                 });
             }
         }
     }, [buy, open]);
 
-    const handleSave = () => {
-        onSave(form);
+    const payloadWithId = () => ({
+        ...form,
+        id: form.id || buy?.id
+    });
+
+    const handleSave = async () => {
+        if (!onSave || isSaving) return;
+        setIsSaving(true);
+        try {
+            await Promise.resolve(onSave(payloadWithId()));
+        } catch (error) {
+            console.error('Failed to save scheduled buy:', error);
+        } finally {
+            setIsSaving(false);
+        }
     };
+
+    const handleDelete = async () => {
+        if (!onDelete || isDeleting) return;
+        const targetId = form.id || buy?.id;
+        if (!targetId) return;
+        setIsDeleting(true);
+        try {
+            await Promise.resolve(onDelete(targetId));
+        } catch (error) {
+            console.error('Failed to delete scheduled buy:', error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const getSaveBackground = (saving) => {
+        const secondaryColor = theme?.secondary || '#d1d5db';
+        if (saving) {
+            return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
+        }
+        return `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`;
+    };
+
+    const defaultSaveShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+    const savingTextColor = theme?.text || '#111827';
+    const saveTextColor = isSaving ? savingTextColor : (theme?.textOnPrimary || '#ffffff');
+
+    const canDelete = Boolean(onDelete && (form.id || buy?.id));
 
     return (
         <Modal 
@@ -56,10 +102,66 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
             variant="modern"
             maxWidth="max-w-2xl"
             footer={
-                <>
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg border font-medium transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
-                    <button onClick={handleSave} className="px-4 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save</button>
-                </>
+                <div className="w-full flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <button 
+                            type="button"
+                            onClick={onClose} 
+                            className="px-4 py-2 rounded-lg border font-medium transition-all hover:bg-gray-50" 
+                            style={{ borderColor: theme.border, color: theme.text }}
+                        >
+                            Cancel
+                        </button>
+                        {canDelete && (
+                            <button 
+                                type="button"
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed"
+                                style={{
+                                    background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                                    color: '#ffffff',
+                                    border: 'none'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (isDeleting) return;
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                                }}
+                            >
+                                {isDeleting ? 'Deleting…' : 'Delete'}
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            type="button"
+                            onClick={handleSave} 
+                            disabled={isSaving}
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none"
+                            style={{ 
+                                background: getSaveBackground(isSaving),
+                                color: saveTextColor,
+                                border: 'none',
+                                boxShadow: isSaving ? 'none' : defaultSaveShadow
+                            }}
+                            onMouseEnter={(e) => {
+                                if (isSaving) return;
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = isSaving ? 'none' : defaultSaveShadow;
+                                e.currentTarget.style.background = getSaveBackground(isSaving);
+                            }}
+                        >
+                            {isSaving ? 'Saving…' : 'Save Changes'}
+                        </button>
+                    </div>
+                </div>
             }
         >
             <div className="space-y-3">

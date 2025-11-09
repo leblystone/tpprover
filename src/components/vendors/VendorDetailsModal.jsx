@@ -8,7 +8,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
 const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Aminos','Oils','Pricey','Untested','Slow Shipping','Bad Test','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Puck Problem']
 
-export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onAutoSave, onDelete, activeTab, isReadOnly = false, onUpgrade }) {
+export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onAutoSave, onDelete, onForceDelete, activeTab, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState(createEmptyVendor())
   
   // Auto-save functionality with vendor persistence
@@ -99,11 +99,68 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       variant="modern"
       maxWidth="max-w-4xl" 
       footer={(
-      <div className="w-full flex items-center justify-end gap-2">
-        {vendor?.id && (
-          <button onClick={() => onDelete?.(vendor.id)} className="px-3 py-2 rounded-md border mr-auto bg-red-600 text-white hover:bg-red-700">Delete</button>
-        )}
-        <button onClick={handleClose} className="px-3 py-2 rounded-md border" style={{ borderColor: theme?.border }}>Close</button>
+      <div className="w-full flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {(vendor?.id || form?.id) && (
+            <button 
+              onClick={() => {
+                const targetId = form?.id || vendor?.id;
+                console.log('🗑️ Modal delete clicked - vendor.id:', vendor?.id, 'form.id:', form?.id, 'using:', targetId);
+                // Try normal delete first, fall back to force delete if it fails
+                const vendorToDelete = { ...form, id: targetId };
+                onDelete?.(targetId);
+                // If delete fails (vendor not found), automatically try force delete
+                setTimeout(() => {
+                  const stillExists = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]')
+                    .some(v => String(v.id) === String(targetId) || (v.name && form?.name && v.name.trim().toLowerCase() === form.name.trim().toLowerCase()));
+                  if (stillExists && onForceDelete) {
+                    console.warn('⚠️ Normal delete failed, attempting force delete');
+                    onForceDelete(vendorToDelete);
+                  }
+                }, 100);
+              }} 
+              className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                color: '#ffffff',
+                border: 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+              }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => {
+              const vendorData = { ...form, id: form?.id || vendor?.id };
+              console.log('💾 Save button clicked:', vendorData);
+              onSave?.(vendorData);
+            }}
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+            style={{ 
+              background: `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`,
+              color: theme?.textOnPrimary || '#ffffff',
+              border: 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+            }}
+          >
+            Save Changes
+          </button>
+        </div>
       </div>
     )}    >
       <div className="relative space-y-4">

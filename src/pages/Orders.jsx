@@ -12,10 +12,12 @@ import { syncOrderDocumentationToStockpile, updateSyncedDocumentation, removeSyn
 import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
-	const { orders, setOrders, vendors, addVendor, setStockpile } = useAppContext();
+	const { orders: appOrders, setOrders, vendors, addVendor, setStockpile } = useAppContext();
+	const orders = useMemo(() => ensurePublicOrderNumbers(appOrders), [appOrders]);
 	const { isReadOnly } = useSubscriptionAccess();
 	const location = useLocation()
 	const [activeTab, setActiveTab] = useState('domestic')
@@ -105,7 +107,7 @@ export default function Orders() {
 	
 	const filteredOrdersByCategory = useMemo(() => {
 		return filteredOrders.filter(o => {
-			const orderCategory = o.category || o.type || 'domestic';
+			const orderCategory = (o.category || o.type || 'domestic').toLowerCase();
 			return orderCategory === activeTab;
 		})
 	}, [filteredOrders, activeTab]);
@@ -163,7 +165,7 @@ export default function Orders() {
 					vendor: newOrder.vendor || '',
 					vendorId: newOrder.vendorId,
 					purchaseDate: newOrder.date,
-					notes: `From order #${newOrder.id}`,
+					notes: `From order #${newOrder.publicOrderNumber ?? newOrder.id}`,
 					orderId: newOrder.id
 				};
 			});
@@ -206,7 +208,7 @@ export default function Orders() {
 					vendor: newOrder.vendor || '',
 					vendorId: newOrder.vendorId,
 					purchaseDate: newOrder.date,
-					notes: `From order #${newOrder.id}`,
+					notes: `From order #${newOrder.publicOrderNumber ?? newOrder.id}`,
 					orderId: newOrder.id
 				};
 			});
@@ -266,11 +268,11 @@ export default function Orders() {
 			<div className="mt-6">
 				{activeTab === 'groupbuy' ? (
 					<div>
-						{filteredOrders.length > 0 ? (
+						{filteredOrdersByCategory.length > 0 ? (
 							<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 								<div className="lg:col-span-2">
 									<OrderList 
-										orders={filteredOrders} 
+										orders={filteredOrdersByCategory} 
 										onEdit={(order) => { 
 											if (isReadOnly) {
 												setShowUpgradeModal(true);
@@ -384,6 +386,31 @@ export default function Orders() {
 				theme={theme}
 				order={editingOrder}
 				vendors={vendors}
+				onAutoSave={(data) => {
+					if (!editingOrder?.id) return;
+					try {
+						const vendorName = data.vendor || editingOrder.vendor || '';
+						if (vendorName && !vendors.some(v => v.name.toLowerCase() === vendorName.toLowerCase())) {
+							addVendor({ name: vendorName, isStub: true });
+						}
+
+						const vendorId = vendors.find(v => v.name === vendorName)?.id || editingOrder.vendorId || null;
+						const updatedOrder = { 
+							...editingOrder, 
+							...data, 
+							id: editingOrder.id, 
+							vendorId,
+							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber
+						};
+						handleStockpileUpdate(editingOrder, updatedOrder);
+						setOrders(prev => {
+							const normalizedPrev = ensurePublicOrderNumbers(prev);
+							return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
+						});
+					} catch (error) {
+						console.warn('⚠️ Auto-save update failed:', error);
+					}
+				}}
 				onSave={(data) => {
 					console.log('📋 Orders page received data:', data);
 					console.log('📋 Current activeTab:', activeTab);
@@ -396,19 +423,36 @@ export default function Orders() {
 					
 					const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
 					if (editingOrder) {
-						const updatedOrder = { ...editingOrder, ...data, vendorId };
+						const updatedOrder = { 
+							...editingOrder, 
+							...data, 
+							vendorId,
+							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber
+						};
 						console.log('📋 Updating existing order:', updatedOrder);
 						handleStockpileUpdate(editingOrder, updatedOrder);
-						setOrders(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
+						setOrders(prev => {
+							const normalizedPrev = ensurePublicOrderNumbers(prev);
+							return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
+						});
 					} else {
 						// Use 'category' field for consistency, fallback to activeTab for new orders
 						const category = data.category || activeTab;
-						const newOrder = { id: generateId(), ...data, vendorId, category, type: category };
+						const nextPublicNumber = getNextPublicOrderNumber(orders);
+						const newOrder = { 
+							id: generateId(), 
+							publicOrderNumber: nextPublicNumber,
+							...data, 
+							vendorId, 
+							category, 
+							type: category 
+						};
 						console.log('📋 Creating new order:', newOrder);
 						handleStockpileUpdate(null, newOrder);
 						setOrders(prev => {
 							console.log('📋 Adding to orders list, current length:', prev.length);
-							return [newOrder, ...prev];
+							const normalizedPrev = ensurePublicOrderNumbers(prev);
+							return [newOrder, ...normalizedPrev];
 						});
 					}
 					setShowAddModal(false)

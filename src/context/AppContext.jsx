@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { seedInitialData } from '../utils/seed';
+import { ensurePublicOrderNumbers } from '../utils/orderNumbers';
 import { logoutUser, onAuthChange } from '../services/firebase';
 import { useFirebase } from './FirebaseContext';
 import { isNative } from '../utils/platform';
@@ -61,7 +62,7 @@ export function AppProvider({ children }) {
             if (savedSupplements) setSupplements(JSON.parse(savedSupplements));
 
             const savedOrders = localStorage.getItem('tpprover_orders');
-            if (savedOrders) setOrders(JSON.parse(savedOrders));
+            if (savedOrders) setOrders(ensurePublicOrderNumbers(JSON.parse(savedOrders)));
 
             const savedMetrics = localStorage.getItem('tpprover_metrics');
             if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
@@ -310,8 +311,8 @@ export function AppProvider({ children }) {
                     const savedSupps = localStorage.getItem('tpprover_supplements');
                     if (savedSupps) setSupplements(JSON.parse(savedSupps));
 
-                    const savedOrders = localStorage.getItem('tpprover_orders');
-                    if (savedOrders) setOrders(JSON.parse(savedOrders));
+            const savedOrders = localStorage.getItem('tpprover_orders');
+                    if (savedOrders) setOrders(ensurePublicOrderNumbers(JSON.parse(savedOrders)));
 
                     const savedMetrics = localStorage.getItem('tpprover_metrics');
                     if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
@@ -373,8 +374,8 @@ export function AppProvider({ children }) {
                 const savedSupps = localStorage.getItem('tpprover_supplements');
                 if (savedSupps) setSupplements(JSON.parse(savedSupps));
 
-                const savedOrders = localStorage.getItem('tpprover_orders');
-                if (savedOrders) setOrders(JSON.parse(savedOrders));
+            const savedOrders = localStorage.getItem('tpprover_orders');
+                if (savedOrders) setOrders(ensurePublicOrderNumbers(JSON.parse(savedOrders)));
 
                 const savedMetrics = localStorage.getItem('tpprover_metrics');
                 if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
@@ -934,7 +935,66 @@ export function AppProvider({ children }) {
     }
 
     const addVendor = (newVendor) => {
-        setVendors(prev => [newVendor, ...prev]);
+        if (!newVendor) return;
+
+        const hasMeaningfulDetails = (vendor) => {
+            if (!vendor) return false;
+            const hasContacts = Array.isArray(vendor.contacts) && vendor.contacts.some(c => c?.value && c.value.trim().length > 0);
+            const hasNotes = !!(vendor.notes && vendor.notes.trim().length > 0);
+            const hasLabels = Array.isArray(vendor.labels) && vendor.labels.length > 0;
+            const hasPayments = vendor.payments && Object.values(vendor.payments).some(Boolean);
+            const hasRating = typeof vendor.rating === 'number' && vendor.rating > 0;
+            return hasContacts || hasNotes || hasLabels || hasPayments || hasRating;
+        };
+
+        setVendors(prev => {
+            const list = Array.isArray(prev) ? prev : [];
+            const normalizedName = (newVendor.name || '').trim().toLowerCase();
+
+            const existingIndexById = newVendor.id != null
+                ? list.findIndex(v => v && String(v.id) === String(newVendor.id))
+                : -1;
+
+            let existingIndex = existingIndexById;
+
+            if (existingIndex === -1 && normalizedName) {
+                existingIndex = list.findIndex(v => (v?.name || '').trim().toLowerCase() === normalizedName);
+            }
+
+            const targetId = newVendor.id != null
+                ? newVendor.id
+                : (existingIndex !== -1 && list[existingIndex]?.id != null
+                    ? list[existingIndex].id
+                    : Date.now());
+
+            if (existingIndex !== -1) {
+                const existingVendor = list[existingIndex] || {};
+                const mergedVendor = {
+                    ...existingVendor,
+                    ...newVendor,
+                    id: existingVendor.id != null ? existingVendor.id : targetId,
+                };
+
+                if (newVendor.isStub === undefined) {
+                    mergedVendor.isStub = !hasMeaningfulDetails(mergedVendor);
+                }
+                if (newVendor.needsCompletion === undefined) {
+                    mergedVendor.needsCompletion = mergedVendor.isStub;
+                }
+
+                return list.map((vendor, index) => index === existingIndex ? mergedVendor : vendor);
+            }
+
+            const createdVendor = { ...newVendor, id: targetId };
+            if (createdVendor.isStub === undefined) {
+                createdVendor.isStub = !hasMeaningfulDetails(createdVendor);
+            }
+            if (createdVendor.needsCompletion === undefined) {
+                createdVendor.needsCompletion = createdVendor.isStub;
+            }
+
+            return [createdVendor, ...list];
+        });
     };
 
     const updateVendor = (updatedVendor) => {
@@ -942,20 +1002,60 @@ export function AppProvider({ children }) {
     };
 
     const deleteVendor = (vendorId) => {
-        // SAFETY CHECK: Prevent accidental mass deletion
-        if (!vendorId) {
+        if (vendorId == null) {
             console.error('🚨 SAFETY: Cannot delete vendor - no ID provided');
             return;
         }
-        
-        // SAFETY CHECK: Confirm vendor exists before deletion
-        const vendorExists = vendors.find(v => v.id === vendorId);
-        if (!vendorExists) {
-            console.warn('⚠️ SAFETY: Vendor not found for deletion:', vendorId);
-            return;
-        }
-        
-        setVendors(prev => prev.filter(v => v.id !== vendorId));
+
+        setVendors(prev => {
+            const list = Array.isArray(prev) ? prev : [];
+            const targetId = String(vendorId);
+            
+            console.log('🔍 Attempting to delete vendor:', vendorId);
+            console.log('🔍 Current vendor list IDs:', list.map(v => ({ id: v?.id, name: v?.name })));
+
+            const indexToRemove = list.findIndex(vendor => {
+                if (!vendor) return false;
+                
+                // Try multiple matching strategies
+                const vendorIdStr = String(vendor.id);
+                const vendorIdNum = Number(vendor.id);
+                const targetIdNum = Number(vendorId);
+                
+                // Match by string comparison
+                if (vendor.id != null && vendorIdStr === targetId) {
+                    console.log('✅ Match found by string ID:', vendor.id);
+                    return true;
+                }
+                
+                // Match by number comparison
+                if (vendor.id != null && !isNaN(vendorIdNum) && !isNaN(targetIdNum) && vendorIdNum === targetIdNum) {
+                    console.log('✅ Match found by number ID:', vendor.id);
+                    return true;
+                }
+
+                // Fallback: match stubs without IDs by normalized name
+                if (vendor.id == null && typeof vendorId === 'object' && vendorId.name) {
+                    const nameA = (vendor.name || '').trim().toLowerCase();
+                    const nameB = (vendorId.name || '').trim().toLowerCase();
+                    if (nameA && nameA === nameB) {
+                        console.log('✅ Match found by name:', vendor.name);
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            if (indexToRemove === -1) {
+                console.warn('⚠️ SAFETY: Vendor not found for deletion:', vendorId);
+                console.warn('⚠️ Available vendors:', list);
+                return list;
+            }
+
+            console.log('✅ Deleting vendor at index:', indexToRemove, list[indexToRemove]);
+            return list.filter((_, index) => index !== indexToRemove);
+        });
     };
 
     const addSupplement = (newSupplement) => {
@@ -1007,7 +1107,7 @@ export function AppProvider({ children }) {
             setSupplements(savedSupps ? JSON.parse(savedSupps) : []);
 
             const savedOrders = localStorage.getItem('tpprover_orders');
-            setOrders(savedOrders ? JSON.parse(savedOrders) : []);
+            setOrders(savedOrders ? ensurePublicOrderNumbers(JSON.parse(savedOrders)) : []);
 
             const savedMetrics = localStorage.getItem('tpprover_metrics');
             setMetrics(savedMetrics ? JSON.parse(savedMetrics) : []);
@@ -1097,7 +1197,7 @@ export function AppProvider({ children }) {
             const savedOrders = localStorage.getItem('tpprover_orders');
             if (savedOrders && savedOrders !== '[]') {
                 const parsed = JSON.parse(savedOrders);
-                setOrders(parsed);
+                setOrders(ensurePublicOrderNumbers(parsed));
                 recoveredCount++;
             }
 
