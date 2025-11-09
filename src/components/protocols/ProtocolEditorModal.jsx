@@ -3,7 +3,6 @@ import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { PlusCircle, Trash2, Lock } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
-import DosingScheduleEditor from './DosingScheduleEditor';
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import useAutoSave from '../../utils/useAutoSave';
@@ -21,6 +20,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     });
 
     const [form, setForm] = useState(createEmpty);
+    const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
+    const [saveError, setSaveError] = useState(null);
     
     // Auto-save functionality with protocol persistence
     const storageKey = `tpprover_protocol_draft_${protocol?.id || 'new'}`;
@@ -101,8 +102,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         // If it's a blended protocol, sync the frequency from the first peptide to a shared root-level frequency
         if (initialData.blendMode === 'blended' && initialData.peptides.length > 0) {
             initialData.sharedFrequency = initialData.peptides[0].frequency;
-            initialData.sharedTitrationEnabled = initialData.peptides[0].titrationEnabled;
-            initialData.sharedTitration = initialData.peptides[0].titration;
         }
 
 
@@ -173,17 +172,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             });
         }
         
-        // Normalize shared titration for blended protocols
-        if (initialData.sharedTitration && Array.isArray(initialData.sharedTitration)) {
-            initialData.sharedTitration = initialData.sharedTitration.map(step => ({
-                ...step,
-                dose: step.dose === undefined || step.dose === null ? '' : String(step.dose),
-                durationCount: step.durationCount === undefined || step.durationCount === null ? '' : String(step.durationCount),
-                doseUnit: step.doseUnit || 'mcg',
-                durationUnit: step.durationUnit || 'days'
-            }));
-        }
-
         setForm(initialData);
     }, [open, protocol]);
     
@@ -282,6 +270,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     };
 
     const handleFinalSave = async () => {
+        if (isReadOnly) {
+            if (onUpgrade) {
+                onUpgrade();
+            }
+            return;
+        }
         try {
             setIsSavingToProtocols(true);
             setSaveError(null);
@@ -298,13 +292,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             // Map protocolType to blendMode for consistency with rest of app
             finalForm.blendMode = finalForm.protocolType;
 
-            // If blended, sync the shared frequency/titration back to all peptides
+            // If blended, sync the shared frequency back to all peptides
             if (finalForm.blendMode === 'blended') {
                 finalForm.peptides = finalForm.peptides.map(p => ({
                     ...p,
-                    frequency: finalForm.sharedFrequency,
-                    titrationEnabled: finalForm.sharedTitrationEnabled,
-                    titration: finalForm.sharedTitration
+                    frequency: finalForm.sharedFrequency
                 }));
             }
 
@@ -388,7 +380,26 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </button>
                     )}
                     <div className="flex items-center justify-end gap-2" style={{ marginLeft: form?.id ? 'auto' : '0' }}>
+                        {saveError && (
+                            <span className="text-sm" style={{ color: theme?.error || '#b91c1c', marginRight: '0.5rem' }}>
+                                {saveError}
+                            </span>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleFinalSave}
+                            disabled={isSavingToProtocols || isReadOnly}
+                            className="px-4 py-2 rounded-md text-sm font-medium transition-opacity"
+                            style={{
+                                backgroundColor: theme?.primary,
+                                color: theme?.textOnPrimary,
+                                opacity: (isSavingToProtocols || isReadOnly) ? 0.6 : 1
+                            }}
+                        >
+                            {isSavingToProtocols ? 'Saving…' : 'Save Protocol'}
+                        </button>
                         <button 
+                            type="button"
                             onClick={handleClose} 
                             className="px-4 py-2 rounded-md border text-sm font-medium" 
                             style={{ borderColor: theme?.border, color: theme?.text }}
@@ -606,53 +617,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </button>
                     </div>
 
-                    {/* Global Titration for Blended Protocols */}
-                    {form.protocolType === 'blended' && form.peptides?.length > 0 && (
-                        <div className="p-6 rounded-xl" 
-                             style={{ 
-                                 border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
-                                 backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                             }}>
-                            <h4 className="font-semibold mb-4" style={{ color: theme.text }}>
-                                Titration Schedule (Blended Protocol)
-                            </h4>
-                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                                This titration schedule applies to the entire blended protocol
-                            </p>
-                            
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={!!form.sharedTitrationEnabled} 
-                                            onChange={e => {
-                                                const isEnabled = e.target.checked;
-                                                handleChange('sharedTitrationEnabled', isEnabled);
-                                                // If enabling and no steps exist, add the first one automatically
-                                                if (isEnabled && (!form.sharedTitration || form.sharedTitration.length === 0)) {
-                                                    handleChange('sharedTitration', [{ dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'weeks' }]);
-                                                }
-                                            }} 
-                                            className="sr-only peer" 
-                                        />
-                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" 
-                                             style={{backgroundColor: form.sharedTitrationEnabled ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary)}}></div>
-                                    </label>
-                                    <span className="text-sm font-medium" style={{ color: theme.text }}>Enable Dosing Schedule (Titration)</span>
-                                </div>
-
-                                {form.sharedTitrationEnabled && (
-                                    <DosingScheduleEditor 
-                                        titration={form.sharedTitration || []}
-                                        onChange={t => handleChange('sharedTitration', t)}
-                                        theme={theme}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Separator */}

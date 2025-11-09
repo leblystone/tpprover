@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
-import { X, Pen, Droplets, Activity, Pipette } from 'lucide-react';
-import DosingScheduleEditor from './DosingScheduleEditor';
+import { Pen, Droplets, Pipette } from 'lucide-react';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 
@@ -472,46 +471,6 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                     </div>
                 )}
 
-                {/* TITRATION Section - Only show for separate protocols */}
-                {protocolType === 'separate' && (
-                <>
-                    <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Dosing Schedule (Optional)</h4>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="flex items-center gap-3">
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!item.titrationEnabled} 
-                                        onChange={e => {
-                                            const isEnabled = e.target.checked;
-                                            handleChange('titrationEnabled', isEnabled);
-                                            // If enabling and no steps exist, add the first one automatically
-                                            if (isEnabled && (!item.titration || item.titration.length === 0)) {
-                                                handleChange('titration', [{ dose: '', doseUnit: 'mcg', durationCount: '', durationUnit: 'weeks' }]);
-                                            }
-                                        }} 
-                                        className="sr-only peer" 
-                                    />
-                                    <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: item.titrationEnabled ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary)}}></div>
-                                </label>
-                                <span className="text-sm font-medium" style={{ color: theme.text }}>Enable Dosing Schedule (Titration)</span>
-                            </div>
-                        </div>
-
-                        {item.titrationEnabled && (
-                            <DosingScheduleEditor 
-                                titration={item.titration || []}
-                                onChange={t => handleChange('titration', t)}
-                                theme={theme}
-                            />
-                        )}
-                    </div>
-                </>
-                )}
         </div>
     );
 }
