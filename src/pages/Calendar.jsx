@@ -990,7 +990,7 @@ export default function Calendar() {
         if (!hasGB) {
           const d = new Date()
           d.setDate(Math.min(28, d.getDate() + 3))
-          const gb = { id: Date.now(), vendor: 'Community Round', peptide: 'BPC-157', mg: 10, cost: '200', status: 'Order Placed', date: d.toISOString().slice(0,10), group: { title: 'BPC-157 Round', participants: ['alice','bob'], notes: 'Mock preview' }, isMock: true }
+          const gb = { id: Date.now(), vendor: 'Community Round', peptide: 'BPC-157', mg: 10, cost: '200', status: 'Order Placed', date: d.toISOString().slice(0,10), group: { title: 'BPC-157 Round', participants: ['alice','bob'], notes: 'Mock preview' }, category: 'groupbuy', type: 'groupbuy', isMock: true }
           all.unshift(gb)
           localStorage.setItem('tpprover_orders', JSON.stringify(all))
         }

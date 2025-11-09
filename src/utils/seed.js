@@ -779,7 +779,11 @@ export function clearMockData() {
                         }
                         
                         // Also remove items that are clearly mock data based on content
-                        if (item.vendor === 'Community Round' && item.peptide === 'BPC-157' && item.cost === '200') {
+                        if (
+                            item.vendor === 'Community Round' &&
+                            item.peptide === 'BPC-157' &&
+                            Number(item.cost) === 200
+                        ) {
                             return false;
                         }
                         
