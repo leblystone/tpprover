@@ -337,7 +337,8 @@ export default function CustomizableDashboard() {
   useEffect(() => {
 
     const tasks = [];
-    const today = new Date();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayKey = today.toISOString().split('T')[0];
     
     // Add supplement tasks
@@ -366,7 +367,18 @@ export default function CustomizableDashboard() {
 
     // Add protocol/peptide tasks
     protocols.forEach(protocol => {
-      if (protocol.active === false) return;
+      if (!protocol) return;
+      
+      // Normalize active state from various sources/legacy values
+      const lifecycleStatus = String(protocol?.lifecycle?.status || protocol?.status || '').toLowerCase();
+      const activeFlag = protocol?.active;
+      const isActive = activeFlag === true ||
+        activeFlag === 'true' ||
+        activeFlag === 1 ||
+        lifecycleStatus === 'active' ||
+        lifecycleStatus === 'running';
+
+      if (!isActive) return;
       
       // Check for autosaved draft data
       let protocolData = protocol;
@@ -384,8 +396,21 @@ export default function CustomizableDashboard() {
         console.warn('Failed to load autosaved data for protocol:', protocol.id);
       }
       
-      const startDate = protocolData.startDate ? new Date(protocolData.startDate) : null;
-      const endDate = protocolData.endDate ? new Date(protocolData.endDate) : null;
+      let startDate = null;
+      if (protocolData.startDate) {
+        const parsed = new Date(`${protocolData.startDate}T00:00:00`);
+        if (!Number.isNaN(parsed.getTime())) {
+          startDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+        }
+      }
+
+      let endDate = null;
+      if (protocolData.endDate) {
+        const parsed = new Date(`${protocolData.endDate}T23:59:59`);
+        if (!Number.isNaN(parsed.getTime())) {
+          endDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+        }
+      }
       
       // Check if protocol is active today
       if (startDate && today < startDate) return;
