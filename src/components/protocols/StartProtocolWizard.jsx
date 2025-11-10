@@ -9,6 +9,7 @@ import { formatCurrency } from '../../utils/currencyUtils';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
+import { appendStockEvent } from '../../utils/stockHistory';
 
 
 const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
@@ -16,14 +17,29 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
     const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '1', vendor: '' });
 
     const vialOptions = useMemo(() => {
+        const peptideName = (peptide.name || '').toLowerCase();
+
         return stockpile
-            .filter(item => (item.name || '').toLowerCase() === (peptide.name || '').toLowerCase())
             .map(item => {
-                const cost = Number(item.cost) || 0;
+                const name = item.name || 'Unnamed compound';
+                const vendor = item.vendor || 'Vendor not set';
                 const quantity = Number(item.quantity) || 1;
+                const cost = Number(item.cost) || 0;
                 const costPerVial = quantity > 0 ? (cost / quantity) : 0;
-                return { value: item.id, label: `${item.mg}mg from ${item.vendor} - ${formatCurrency(costPerVial)} per vial` };
-            });
+                const mgDisplay = item.mg ? `${item.mg}mg` : 'Amount not set';
+                const costDisplay = costPerVial ? `${formatCurrency(costPerVial)}/vial` : 'Cost not set';
+
+                return {
+                    value: item.id,
+                    label: `${name} • ${vendor} • ${mgDisplay} • ${costDisplay}`,
+                    _matchScore: (name || '').toLowerCase() === peptideName ? 0 : 1
+                };
+            })
+            .sort((a, b) => {
+                if (a._matchScore !== b._matchScore) return a._matchScore - b._matchScore;
+                return a.label.localeCompare(b.label);
+            })
+            .map(({ _matchScore, ...option }) => option);
     }, [stockpile, peptide]);
 
     const isSkipped = linkedVialId === 'skipped';
@@ -83,7 +99,9 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     options={vialOptions}
                     onChange={(vialId) => onSelectVial(peptideId, vialId)}
                     theme={theme}
-                    placeholder="Select a vial..."
+                    placeholder="Type to search your stockpile..."
+                    idleMessage="Start typing to search your stockpile."
+                    emptyMessage="No stockpile entries found. Keep typing to refine your search."
                 />
                 <button onClick={() => setAction(null)} className="text-xs text-gray-500 mt-2 hover:underline">Cancel</button>
             </div>
@@ -136,6 +154,53 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [linkedData, setLinkedData] = useState({});
     const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10));
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
+
+    const adjustStockpileAfterRecon = React.useCallback((usageList) => {
+        if (!Array.isArray(usageList) || usageList.length === 0) return;
+
+        const usageMap = usageList.reduce((acc, usage) => {
+            if (!usage || !usage.stockpileId) return acc;
+            const qty = Number(usage.quantityUsed) || 1;
+            acc[usage.stockpileId] = (acc[usage.stockpileId] || 0) + qty;
+            return acc;
+        }, {});
+
+        if (Object.keys(usageMap).length === 0) return;
+
+        setStockpile(prev => {
+            let changed = false;
+            const updated = prev.map(item => {
+                const usedQty = usageMap[item.id];
+                if (!usedQty) return item;
+
+                const currentQty = Number(item.quantity) || 0;
+                const nextQty = Math.max(0, currentQty - usedQty);
+
+                if (nextQty === currentQty) {
+                    return item;
+                }
+
+                changed = true;
+
+                try {
+                    appendStockEvent({
+                        type: 'used',
+                        name: item.name,
+                        mg: item.mg,
+                        vendor: item.vendor,
+                        prevQty: currentQty,
+                        nextQty
+                    });
+                } catch (error) {
+                    console.warn('Failed to append stock event after protocol recon:', error);
+                }
+
+                return { ...item, quantity: String(nextQty) };
+            });
+
+            return changed ? updated : prev;
+        });
+    }, [setStockpile]);
 
     // Auto-save wizard state - manual implementation to avoid infinite loops
     const storageKey = `tpprover_start_protocol_draft_${protocol?.id || 'new'}`;
@@ -445,7 +510,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 const peptideId = p.id || `peptide-${index}`;
                 const vialId = linkedData[peptideId]?.vialId;
                 const vial = stockpile.find(item => item.id === vialId);
-                if (!vial) return { id: peptideId, name: p.name, mg: '', dose: '' };
+                if (!vial) return { id: peptideId, name: p.name, mg: '', dose: '', stockpileId: null, quantityUsed: 1 };
                 const totalCost = Number(vial.cost) || 0;
                 const quantity = Number(vial.quantity) || 1;
                 // For recon calculations, we need the cost of ONE vial being reconstituted
@@ -455,6 +520,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     id: peptideId, name: p.name, mg: vial.mg,
                     dose: p.dosage?.amount || '', doseUnit: p.dosage?.unit || 'mcg',
                     cost: singleVialCost, vendor: vial.vendor,
+                    stockpileId: vial.id,
+                    quantityUsed: 1,
+                    unit: vial.unit
                 };
             }),
             protocolName: protocol.protocolName,
@@ -479,7 +547,13 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             // We need to enrich the peptides with their original vial cost for accurate history
                             const peptidesWithDetails = reconData.peptides.map(p => {
                                 const originalPrefill = prefill.peptides.find(pref => pref.id === p.id);
-                                return { ...p, cost: originalPrefill?.cost || 0, vendor: originalPrefill?.vendor || '' };
+                                return { 
+                                    ...p, 
+                                    cost: originalPrefill?.cost || 0, 
+                                    vendor: originalPrefill?.vendor || '', 
+                                    stockpileId: p.stockpileId || originalPrefill?.stockpileId || null,
+                                    quantityUsed: p.quantityUsed || originalPrefill?.quantityUsed || 1
+                                };
                             });
 
                             const newReconItem = { 
@@ -496,6 +570,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 const items = raw ? JSON.parse(raw) : [];
                                 localStorage.setItem('tpprover_recon_items', JSON.stringify([newReconItem, ...items]));
                             } catch (e) { console.error("Failed to save new recon item", e); }
+
+                            adjustStockpileAfterRecon(peptidesWithDetails);
+
                             let updatedLinkedData = { ...linkedData };
                             linkedPeptides.forEach((p, index) => {
                                 const peptideId = p.id || `peptide-${index}`;
@@ -567,8 +644,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         <div>
                             <div className="mb-2 font-medium" style={{ color: theme.text }}>Compounds ({protocol.peptides?.length || 0}):</div>
                             <div className="space-y-2 ml-2">
-                                {protocol.peptides?.map((peptide, index) => (
-                                    <div key={peptide.id} className="flex items-start gap-2">
+                                {protocol.peptides?.map((peptide, index) => {
+                                    const peptideId = peptide.id || `confirm-peptide-${index}`;
+                                    return (
+                                    <div key={peptideId} className="flex items-start gap-2">
                                         <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
                                         <div className="flex-1">
                                             <div className="font-medium" style={{ color: theme.text }}>{peptide.name}</div>
@@ -596,7 +675,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                             </div>
                                         </div>
                                     </div>
-                                )) || <div className="text-xs italic">No compounds configured</div>}
+                                )}) || <div className="text-xs italic">No compounds configured</div>}
                             </div>
                         </div>
                     </div>

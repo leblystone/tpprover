@@ -16,19 +16,19 @@ import Modal from '../components/common/Modal'
 import { calculateRecon } from '../utils/recon'
 import { formatMMDDYYYY } from '../utils/date'
 import { useAppContext } from '../context/AppContext'
+import { appendStockEvent } from '../utils/stockHistory'
 import { generateId } from '../utils/string'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 
 export default function Recon() {
 	const { theme } = useOutletContext()
-    const { reconItems, setReconItems, vendors, reconHistory, setReconHistory } = useAppContext();
+    const { reconItems, setReconItems, vendors, reconHistory, setReconHistory, stockpile, setStockpile } = useAppContext();
     const { isReadOnly } = useSubscriptionAccess();
 	const [searchParams] = useSearchParams()
 	const [editingItem, setEditingItem] = useState(null)
 	const [showEditModal, setShowEditModal] = useState(false)
     const [viewItem, setViewItem] = useState(null)
-	const [stockpile, setStockpile] = useState([])
 
     // Autosave for Add/Edit Recon modal
     const [draft, setDraft] = useState({})
@@ -39,6 +39,21 @@ export default function Recon() {
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+	const getPrimaryActionGradient = useCallback((saving = false) => {
+		const secondaryColor = theme?.secondary || '#d1d5db';
+		if (saving) {
+			return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
+		}
+		return `linear-gradient(135deg, ${theme?.primary || '#2563eb'} 0%, ${theme?.primaryDark || theme?.primary || '#1d4ed8'} 100%)`;
+	}, [theme]);
+	const primaryActionDefaultShadow = useMemo(() => (
+		theme?.isDark ? '0 4px 10px rgba(0, 0, 0, 0.35)' : '0 4px 12px rgba(15, 23, 42, 0.18)'
+	), [theme]);
+	const primaryActionHoverShadow = useMemo(() => (
+		theme?.isDark ? '0 12px 28px rgba(0, 0, 0, 0.55)' : '0 12px 28px rgba(15, 23, 42, 0.24)'
+	), [theme]);
+	const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+	const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
 
 	const updateEditingItem = useCallback((updates) => {
 		if (!updates) return;
@@ -74,7 +89,7 @@ export default function Recon() {
 				setActiveTab('calculator')
 				// Show toast to let user know data was loaded
 				window.dispatchEvent(new CustomEvent('tpp:toast', { 
-					detail: { message: `✅ Loaded ${data.peptide} from stockpile`, type: 'success' } 
+					detail: { message: `✅ Loaded ${data.peptide} from stockpile!`, type: 'success' } 
 				}));
 			}
 		} catch {}
@@ -100,6 +115,53 @@ export default function Recon() {
 	};
 
 	const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
+
+    const adjustStockpileAfterRecon = useCallback((peptidesUsed) => {
+        if (!Array.isArray(peptidesUsed) || peptidesUsed.length === 0) return;
+
+        const usageMap = peptidesUsed.reduce((acc, pep) => {
+            if (!pep || !pep.stockpileId) return acc;
+            const qty = Number(pep.quantityUsed) || 1;
+            acc[pep.stockpileId] = (acc[pep.stockpileId] || 0) + qty;
+            return acc;
+        }, {});
+
+        if (Object.keys(usageMap).length === 0) return;
+
+        setStockpile(prev => {
+            let changed = false;
+            const updated = prev.map(item => {
+                const usedQty = usageMap[item.id];
+                if (!usedQty) return item;
+
+                const currentQty = Number(item.quantity) || 0;
+                const nextQty = Math.max(0, currentQty - usedQty);
+
+                if (nextQty === currentQty) {
+                    return item;
+                }
+
+                changed = true;
+
+                try {
+                    appendStockEvent({
+                        type: 'used',
+                        name: item.name,
+                        mg: item.mg,
+                        vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor,
+                        prevQty: currentQty,
+                        nextQty
+                    });
+                } catch (error) {
+                    console.warn('Failed to append stock event after recon save:', error);
+                }
+
+                return { ...item, quantity: String(nextQty) };
+            });
+
+            return changed ? updated : prev;
+        });
+    }, [setStockpile, vendorMap]);
 
 	// Helper functions to extract data from editing item
 	const getEditingPeptideName = () => {
@@ -142,6 +204,56 @@ export default function Recon() {
 		}
 		return 'mcg';
 	};
+
+	const handleCalculatorSave = useCallback((data) => {
+        if (isReadOnly) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
+        const peptides = Array.isArray(data?.peptides) ? data.peptides : [];
+        const peptideNames = peptides.length > 0
+            ? peptides.map(p => p.name || 'Unnamed').join(' + ')
+            : (data?.peptide || 'Unnamed');
+
+        const totalMg = peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
+        const totalDose = peptides.reduce((sum, p) => {
+            const dose = Number(p.dose) || 0;
+            return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
+        }, 0);
+
+        const vendorId = data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null;
+
+        const newItem = {
+            id: generateId(),
+            peptide: peptideNames,
+            mg: totalMg,
+            dose: totalDose,
+            vendor: data.vendor,
+            vendorId,
+            water: data.water,
+            deliveryMethod: data.deliveryMethod,
+            penColor: data.penColor,
+            cost: data.cost,
+            date: new Date().toISOString(),
+            peptides,
+            notes: ''
+        };
+
+        setReconItems(prev => [newItem, ...prev]);
+        adjustStockpileAfterRecon(peptides);
+
+        setPrefill(null);
+        try {
+            localStorage.removeItem('tpprover_recon_prefill');
+        } catch {}
+
+        setActiveTab('reconstituted');
+
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Calculation saved successfully!', type: 'success' }
+        }));
+    }, [isReadOnly, setShowUpgradeModal, vendors, setReconItems, adjustStockpileAfterRecon, setPrefill, setActiveTab]);
 
 	const filteredItems = reconItems.filter(i => {
 		const vendorName = i.vendorId ? vendorMap[i.vendorId] || '' : (i.vendor || '');
@@ -210,64 +322,13 @@ export default function Recon() {
 			{activeTab === 'calculator' && (
 				<div className="flex justify-center">
 					<div className="w-full lg:max-w-2xl">
-					<ReconCalculatorPanel theme={theme} prefill={prefill} isReadOnly={isReadOnly} onUpgrade={() => setShowUpgradeModal(true)} onSave={(data) => {
-						console.log('🔵 Recon.jsx: onSave called with data:', data);
-						console.log('🔵 isReadOnly:', isReadOnly);
-						
-						if (isReadOnly) {
-							console.log('🔴 BLOCKED: Read-only mode');
-							setShowUpgradeModal(true);
-							return;
-						}
-						
-						const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
-						const totalMg = data.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
-						const totalDose = data.peptides.reduce((sum, p) => {
-							const dose = Number(p.dose) || 0;
-							return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
-						}, 0);
-
-						const newItem = {
-								id: generateId(),
-								peptide: peptideNames,
-								mg: totalMg,
-								dose: totalDose, // This is now total mcg for calculation purposes
-								vendor: data.vendor, // Keep original for history/legacy
-								vendorId: vendors.find(v => v.name === data.vendor)?.id || null,
-								water: data.water,
-								deliveryMethod: data.deliveryMethod,
-								penColor: data.penColor,
-								cost: data.cost,
-								date: new Date().toISOString(),
-								peptides: data.peptides, // Save the full peptide list
-								notes: ''
-						};
-						
-						console.log('🔵 New item to save:', newItem);
-						console.log('🔵 Calling setReconItems...');
-						setReconItems(prev => {
-							console.log('🔵 Previous reconItems:', prev);
-							const updated = [newItem, ...prev];
-							console.log('🔵 Updated reconItems:', updated);
-							return updated;
-						});
-						
-						// Clear prefill data
-						setPrefill(null);
-						try {
-							localStorage.removeItem('tpprover_recon_prefill');
-						} catch {}
-						
-						// Switch to IN USE tab to show saved calculation
-						console.log('🔵 Switching to reconstituted tab');
-						setActiveTab('reconstituted');
-						
-						// Show success toast
-						console.log('🔵 Dispatching success toast');
-						window.dispatchEvent(new CustomEvent('tpp:toast', { 
-							detail: { message: 'Calculation saved successfully!', type: 'success' } 
-						}));
-					}} />
+					<ReconCalculatorPanel 
+                        theme={theme} 
+                        prefill={prefill} 
+                        isReadOnly={isReadOnly} 
+                        onUpgrade={() => setShowUpgradeModal(true)} 
+                        onSave={handleCalculatorSave} 
+                    />
 					</div>
 				</div>
 			)}
@@ -275,50 +336,13 @@ export default function Recon() {
 			<div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${activeTab === 'calculator' ? 'hidden' : ''}`}>
 				{/* Desktop: Show calculator in sidebar on other tabs */}
 				<div className="order-1 lg:order-2 hidden lg:block">
-				<ReconCalculatorPanel theme={theme} prefill={prefill} isReadOnly={isReadOnly} onUpgrade={() => setShowUpgradeModal(true)} onSave={(data) => {
-					if (isReadOnly) {
-						setShowUpgradeModal(true);
-						return;
-					}
-					
-					const peptideNames = data.peptides.map(p => p.name || 'Unnamed').join(' + ');
-					const totalMg = data.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
-					const totalDose = data.peptides.reduce((sum, p) => {
-                        const dose = Number(p.dose) || 0;
-                        return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
-                    }, 0);
-
-					const newItem = {
-							id: generateId(),
-							peptide: peptideNames,
-							mg: totalMg,
-							dose: totalDose, // This is now total mcg for calculation purposes
-							vendor: data.vendor, // Keep original for history/legacy
-                            vendorId: vendors.find(v => v.name === data.vendor)?.id || null,
-							water: data.water,
-							deliveryMethod: data.deliveryMethod,
-							penColor: data.penColor,
-							cost: data.cost,
-							date: new Date().toISOString(),
-                            peptides: data.peptides, // Save the full peptide list
-							notes: ''
-					};
-					setReconItems(prev => [newItem, ...prev]);
-					
-					// Clear prefill data
-					setPrefill(null);
-					try {
-						localStorage.removeItem('tpprover_recon_prefill');
-					} catch {}
-					
-					// Switch to IN USE tab to show saved calculation
-					setActiveTab('reconstituted');
-					
-					// Show success toast
-					window.dispatchEvent(new CustomEvent('tpp:toast', { 
-						detail: { message: 'Calculation saved successfully!', type: 'success' } 
-					}));
-				}} />
+				<ReconCalculatorPanel 
+                    theme={theme} 
+                    prefill={prefill} 
+                    isReadOnly={isReadOnly} 
+                    onUpgrade={() => setShowUpgradeModal(true)} 
+                    onSave={handleCalculatorSave} 
+                />
 				</div>
 
 			{/* Main content area */}
@@ -547,26 +571,41 @@ export default function Recon() {
 			</div>
 
             <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'New Reconstitution'} theme={theme} variant="modern" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
-				<div className="w-full flex justify-between items-center">
-					<div>
-						{editingItem && <button onClick={() => handleDelete(editingItem.id)} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all">Delete</button>}
-					</div>
-					<div className="flex items-center gap-2">
-						<button 
-							onClick={() => { setShowEditModal(null); setEditingItem(null) }} 
-							className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" 
-							style={{ borderColor: theme.border, color: theme.text }}
-							onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-							onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+				<div className="w-full flex items-center justify-between gap-3">
+					{editingItem ? (
+						<button
+							onClick={() => handleDelete(editingItem.id)}
+							className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+							style={{
+								background: terracottaGradient,
+								color: '#ffffff',
+								border: 'none'
+							}}
+							onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
+							onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
 						>
-							Cancel
+							Delete
 						</button>
-						<button 
-							onClick={() => handleSave(editingItem)} 
-							className="px-4 py-2 rounded-lg text-sm font-medium transition-all" 
-							style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-							onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + 'dd' : theme.primary + 'cc'}
-							onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
+					) : <span />}
+					<div className="flex items-center gap-2 ml-auto">
+						<button
+							onClick={() => handleSave(editingItem)}
+							className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+							style={{
+								background: getPrimaryActionGradient(false),
+								color: theme?.textOnPrimary || '#ffffff',
+								border: 'none',
+								boxShadow: primaryActionDefaultShadow
+							}}
+							onMouseEnter={(e) => {
+								e.currentTarget.style.transform = 'translateY(-1px)';
+								e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.transform = 'translateY(0)';
+								e.currentTarget.style.boxShadow = primaryActionDefaultShadow;
+								e.currentTarget.style.background = getPrimaryActionGradient(false);
+							}}
 						>
 							Save
 						</button>

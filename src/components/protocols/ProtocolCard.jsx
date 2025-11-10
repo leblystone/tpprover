@@ -42,6 +42,8 @@ const formatPenType = (penType) => {
 
 export default function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
+    const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+    const terracottaShadow = theme.isDark ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.12)';
     
     const handleShare = () => {
         setShareModalOpen(true);
@@ -53,7 +55,18 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                 <div className="flex-grow">
                     <div className="flex items-start justify-between">
                         <div className="font-semibold text-base">{p.protocolName || 'Unnamed Protocol'}</div>
-                        {!isPublicView && isActive && <div className="px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Active</div>}
+                        {!isPublicView && isActive && (
+                            <div
+                                className="px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 shadow-sm"
+                                style={{
+                                    background: terracottaGradient,
+                                    color: '#ffffff',
+                                    boxShadow: terracottaShadow
+                                }}
+                            >
+                                Active
+                            </div>
+                        )}
                     </div>
                     
                     <div className="space-y-1 mt-2 text-sm" style={{ color: theme.textLight }}>
@@ -145,7 +158,14 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                                 </div>
                             ));
                         })()}
-                        {p.notes && (<div className="flex items-start gap-2"><FileText size={14} className="mt-0.5 flex-shrink-0" /><p className="text-xs italic border-l-2 pl-2" style={{ borderColor: theme.border }}>{p.notes}</p></div>)}
+                        {p.notes && (
+                            <div className="flex items-start gap-2">
+                                <FileText size={14} className="mt-0.5 flex-shrink-0" />
+                                <p className="text-xs italic border-l-2 pl-2 break-words" style={{ borderColor: theme.border, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                    {p.notes}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

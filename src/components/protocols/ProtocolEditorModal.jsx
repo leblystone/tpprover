@@ -22,6 +22,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [form, setForm] = useState(createEmpty);
     const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const getPrimaryActionGradient = (saving) => {
+        const secondaryColor = theme?.secondary || '#d1d5db';
+        if (saving) {
+            return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
+        }
+        return `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`;
+    };
+    const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+    const primaryActionHoverShadow = theme?.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+    const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+    const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
     
     // Auto-save functionality with protocol persistence
     const storageKey = `tpprover_protocol_draft_${protocol?.id || 'new'}`;
@@ -373,15 +384,30 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             variant="modern"
             maxWidth="max-w-4xl"
             footer={
-                <div className="flex items-center justify-between w-full">
-                    {form?.id && (
-                        <button onClick={() => onDelete?.(form)} className="px-3 py-2 rounded-md border text-sm font-medium" style={{ borderColor: theme?.border, color: '#b91c1c' }}>
-                            Delete Protocol
+                <div className="w-full flex items-center justify-between gap-3">
+                    {form?.id ? (
+                        <button
+                            onClick={() => onDelete?.(form)}
+                            className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                            style={{
+                                background: terracottaGradient,
+                                color: '#ffffff',
+                                border: 'none',
+                                boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = terracottaHoverGradient;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = terracottaGradient;
+                            }}
+                        >
+                            Delete
                         </button>
-                    )}
-                    <div className="flex items-center justify-end gap-2" style={{ marginLeft: form?.id ? 'auto' : '0' }}>
+                    ) : <span />}
+                    <div className="flex items-center gap-3 ml-auto">
                         {saveError && (
-                            <span className="text-sm" style={{ color: theme?.error || '#b91c1c', marginRight: '0.5rem' }}>
+                            <span className="text-sm font-medium" style={{ color: theme?.error || '#b91c1c' }}>
                                 {saveError}
                             </span>
                         )}
@@ -389,22 +415,25 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             type="button"
                             onClick={handleFinalSave}
                             disabled={isSavingToProtocols || isReadOnly}
-                            className="px-4 py-2 rounded-md text-sm font-medium transition-opacity"
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75"
                             style={{
-                                backgroundColor: theme?.primary,
-                                color: theme?.textOnPrimary,
-                                opacity: (isSavingToProtocols || isReadOnly) ? 0.6 : 1
+                                background: getPrimaryActionGradient(isSavingToProtocols || isReadOnly),
+                                color: (isSavingToProtocols || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+                                border: 'none',
+                                boxShadow: (isSavingToProtocols || isReadOnly) ? 'none' : primaryActionDefaultShadow
+                            }}
+                            onMouseEnter={(e) => {
+                                if (isSavingToProtocols || isReadOnly) return;
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = (isSavingToProtocols || isReadOnly) ? 'none' : primaryActionDefaultShadow;
+                                e.currentTarget.style.background = getPrimaryActionGradient(isSavingToProtocols || isReadOnly);
                             }}
                         >
                             {isSavingToProtocols ? 'Saving…' : 'Save Protocol'}
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={handleClose} 
-                            className="px-4 py-2 rounded-md border text-sm font-medium" 
-                            style={{ borderColor: theme?.border, color: theme?.text }}
-                        >
-                            Close
                         </button>
                     </div>
                 </div>
@@ -631,7 +660,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-3">
-                            <div className="text-sm font-medium" style={{ color: theme.text }}>Duration</div>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="text-sm font-medium" style={{ color: theme.text }}>Duration</div>
+                                <div className="flex items-center gap-2">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={form.duration?.noEnd} onChange={e => handleDurationChange('noEnd', e.target.checked)} className="sr-only peer" />
+                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary) }}></div>
+                                    </label>
+                                    <span className="text-sm" style={{ color: theme.text }}>No end date</span>
+                                </div>
+                            </div>
                             <div className="space-y-3">
                                 {/* Combined Input with Pill Selector */}
                                 <div 
@@ -681,26 +719,21 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={form.duration?.noEnd} onChange={e => handleDurationChange('noEnd', e.target.checked)} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.duration?.noEnd ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary) }}></div>
-                                    </label>
-                                    <span className="text-sm" style={{ color: theme.text }}>No end date</span>
-                                </div>
                             </div>
                         </div>
                         
                         <div className="space-y-3">
-                            <div className="text-sm font-medium" style={{ color: theme.text }}>Washout Period</div>
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 mb-2">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="text-sm font-medium" style={{ color: theme.text }}>Washout Period</div>
+                                <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.washout?.enabled} onChange={e => handleWashoutChange('enabled', e.target.checked)} className="sr-only peer" />
                                         <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all" style={{backgroundColor: form.washout?.enabled ? theme.primary : (theme.isDark ? '#4b5563' : theme.secondary)}}></div>
                                     </label>
                                     <span className="text-sm" style={{ color: theme.text }}>Enable washout</span>
                                 </div>
+                            </div>
+                            <div className="space-y-3">
                                 {/* Combined Input with Pill Selector */}
                                 <div 
                                     className="flex items-stretch rounded-lg overflow-hidden"
@@ -764,6 +797,49 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 )}
 
+                {/* After Start Info */}
+                <div className="p-3 rounded-lg" style={{ 
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(15,23,42,0.08)'
+                }}>
+                    <div className="text-sm font-semibold mb-3" style={{ color: theme.text }}>What Happens After Starting</div>
+                    <div className="grid grid-cols-1 gap-2.5 text-sm">
+                        <div className="flex items-start gap-3 p-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                            <div className="space-y-0.5">
+                                <div className="font-medium" style={{ color: theme.text }}>Dashboard Integration</div>
+                                <div className="text-xs" style={{ color: theme.textLight }}>Daily research entries surface on your Dashboard.</div>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div className="space-y-0.5">
+                                <div className="font-medium" style={{ color: theme.text }}>Calendar Schedule</div>
+                                <div className="text-xs" style={{ color: theme.textLight }}>Research cadence appears on your Calendar automatically.</div>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.primary }}>
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div className="space-y-0.5">
+                                <div className="font-medium" style={{ color: theme.text }}>Progress Tracking</div>
+                                <div className="text-xs" style={{ color: theme.textLight }}>Mark research complete to track momentum across the study.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Notes Content */}
                 <div>
                     <TextInput 
@@ -772,7 +848,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         theme={theme} 
                         placeholder="Add any personal notes for this protocol..." 
                         multiline 
-                        rows={6}
+                        rows={3}
                     />
                 </div>
             </div>

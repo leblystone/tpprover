@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react'
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import TextInput from '../common/inputs/TextInput'
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
 import CustomDropdown from '../common/inputs/CustomDropdown'
@@ -39,6 +39,19 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   const [currentPeptideIndex, setCurrentPeptideIndex] = useState(0); // For pagination
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const getPrimaryActionGradient = useCallback((saving = false) => {
+    const secondaryColor = theme?.secondary || '#d1d5db';
+    if (saving) {
+      return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
+    }
+    return `linear-gradient(135deg, ${theme?.primary || '#2563eb'} 0%, ${theme?.primaryDark || theme?.primary || '#1d4ed8'} 100%)`;
+  }, [theme]);
+  const primaryActionDefaultShadow = useMemo(() => (
+    theme?.isDark ? '0 4px 8px rgba(0, 0, 0, 0.35)' : '0 4px 12px rgba(15, 23, 42, 0.18)'
+  ), [theme]);
+  const primaryActionHoverShadow = useMemo(() => (
+    theme?.isDark ? '0 12px 28px rgba(0, 0, 0, 0.55)' : '0 12px 28px rgba(15, 23, 42, 0.24)'
+  ), [theme]);
 
   useEffect(() => {
     // Only process prefill if it's new and different from the last one
@@ -60,7 +73,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
       } 
       // Simple prefill (single peptide from stockpile page, etc.)
       else if (prefill.peptide) {
-        const p = { id: 1, name: prefill.peptide || '', mg: prefill.mg || '', dose: '', doseUnit: 'mcg' };
+        const p = { 
+          id: 1, 
+          name: prefill.peptide || '', 
+          mg: prefill.mg || '', 
+          dose: '', 
+          doseUnit: 'mcg',
+          stockpileId: prefill.stockpileId || null,
+          quantityUsed: prefill.quantityUsed || 1
+        };
         setForm(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
         setCost(prefill.cost || '');
       }
@@ -735,8 +756,22 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
             onSave(dataToSave);
           }}
           type="button"
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold hover:opacity-90 transition-all"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+          style={{ 
+            background: getPrimaryActionGradient(false),
+            color: theme?.textOnPrimary || '#ffffff',
+            border: 'none',
+            boxShadow: primaryActionDefaultShadow
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = primaryActionDefaultShadow;
+            e.currentTarget.style.background = getPrimaryActionGradient(false);
+          }}
         >
           <FilePlus size={16} />
           Save Calculation
