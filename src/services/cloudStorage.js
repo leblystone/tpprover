@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 /**
@@ -220,6 +220,52 @@ export async function saveUserState(userId, state) {
  */
 export async function loadUserState(userId) {
   return await loadUserData(userId, COLLECTIONS.USER_STATE);
+}
+
+/**
+ * Subscribe to user state changes (sample data flags, onboarding, etc.)
+ */
+export function subscribeToUserState(userId, callback) {
+  try {
+    const userDoc = getUserDoc(userId, COLLECTIONS.USER_STATE);
+    return onSnapshot(
+      userDoc,
+      snapshot => {
+        if (typeof callback === 'function') {
+          callback(snapshot.exists() ? snapshot.data() : null);
+        }
+      },
+      error => {
+        console.error('❌ Failed to subscribe to user state:', error);
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error setting up user state subscription:', error);
+    return () => {};
+  }
+}
+
+/**
+ * Subscribe to main app data changes (protocols, orders, etc.)
+ */
+export function subscribeToAppData(userId, callback) {
+  try {
+    const userDoc = getUserDoc(userId, COLLECTIONS.USER_DATA);
+    return onSnapshot(
+      userDoc,
+      snapshot => {
+        if (typeof callback === 'function') {
+          callback(snapshot.exists() ? snapshot.data() : null);
+        }
+      },
+      error => {
+        console.error('❌ Failed to subscribe to app data:', error);
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error setting up app data subscription:', error);
+    return () => {};
+  }
 }
 
 /**
