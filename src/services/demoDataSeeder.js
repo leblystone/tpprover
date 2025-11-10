@@ -185,10 +185,10 @@ export async function seedSampleDataToCloud(userId, password) {
     console.log('🔄 Falling back to localStorage seeding...');
     try {
       const { seedInitialData } = await import('../utils/seed');
-    const fallbackTimestamp = new Date().toISOString();
-    try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
-    try { localStorage.setItem('tpprover_sample_data_cleared_at', fallbackTimestamp); } catch {}
-    try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+      const fallbackTimestamp = new Date().toISOString();
+      try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
+      try { localStorage.setItem('tpprover_sample_data_cleared_at', fallbackTimestamp); } catch {}
+      try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
       seedInitialData();
       return true;
     } catch (fallbackError) {

@@ -325,6 +325,36 @@ export function AppProvider({ children }) {
 
                 // Load app data from cloud
                 const cloudAppData = await loadAppData(userId);
+                const containsMockSampleData = (() => {
+                    if (!cloudAppData) return false;
+                    const arrayKeys = ['protocols', 'vendors', 'orders', 'supplements', 'reconItems', 'metrics', 'scheduledBuys', 'stockpile'];
+                    const hasMockInArrays = arrayKeys.some(key => Array.isArray(cloudAppData[key]) && cloudAppData[key].some(item => item?.isMock));
+                    const hasMockNotes = (() => {
+                        const notes = cloudAppData.calendarNotes;
+                        if (!notes || typeof notes !== 'object') return false;
+                        return Object.values(notes).some(note => note && typeof note === 'object' && note.isMock);
+                    })();
+                    return hasMockInArrays || hasMockNotes;
+                })();
+                if (containsMockSampleData) {
+                    const seededAt = cloudAppData?._metadata?.seededAt || new Date().toISOString();
+                    try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
+                    try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                    try { localStorage.setItem('tpprover_sample_data_cleared_at', seededAt); } catch {}
+                    if (sampleDataClearedInCloud) {
+                        try {
+                            const currentState = userState || {};
+                            await saveUserState(userId, { 
+                                ...currentState, 
+                                sampleDataCleared: false, 
+                                sampleDataClearedAt: seededAt 
+                            });
+                            console.log('✅ Normalized cloud sample data flag (sample data present)');
+                        } catch (error) {
+                            console.error('❌ Failed to normalize cloud sample data flag based on app data:', error);
+                        }
+                    }
+                }
                 if (cloudAppData) {
                     if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
                     if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
