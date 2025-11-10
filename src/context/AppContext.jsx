@@ -901,7 +901,7 @@ export function AppProvider({ children }) {
             window.removeEventListener('demo-data-cleared', handleDemoDataCleared);
             window.removeEventListener('demo-data-seeded', handleDemoDataSeeded);
         };
-    }, [firebaseUser]); // Re-run when Firebase auth initializes to load cloud data
+    }, [firebaseUser, hasPassword]); // Re-run when Firebase auth initializes or password becomes available to load cloud data
 
     // Auto-sync data to cloud storage when it changes
     useEffect(() => {
