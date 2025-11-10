@@ -65,6 +65,18 @@ export default function Stockpile() {
   // State for save operations
   const [isSavingToStockpile, setIsSavingToStockpile] = useState(false);
   const [saveError, setSaveError] = useState(null);
+
+  const getPrimaryActionGradient = (saving) => {
+    const secondaryColor = theme?.secondary || '#d1d5db';
+    if (saving) {
+      return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
+    }
+    return `linear-gradient(135deg, ${theme?.primary} 0%, ${theme?.primaryDark || theme?.primary} 100%)`;
+  };
+
+  const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+  const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+  const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
   const lowStock = useMemo(() => (items || []).filter(i => Number(i.quantity) <= 2).map(i => i.name), [items])
   const [vendorFilter, setVendorFilter] = useState('')
   const [query, setQuery] = useState('')
@@ -122,11 +134,13 @@ export default function Stockpile() {
           name, 
           unit: mgUnit,
           totalMg: 0, 
+          totalVials: 0,
           variants: {} 
         })
       }
       const g = map.get(groupKey)
       g.totalMg += qty * mgNum
+      g.totalVials += qty
       
       const variantKey = `${mg}__${mgUnit}`
       if (!g.variants[variantKey]) {
@@ -447,19 +461,21 @@ export default function Stockpile() {
             
             {/* Duplicate Detection */}
             <DuplicateDetection
-              groups={groups.filter(g => g.totalMg > 0)}
+              groups={groups.filter(g => g.totalVials > 0)}
               theme={theme}
               onMergeRequest={handleMergeRequest}
               onDismissSuggestion={handleDismissDuplicate}
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groups.filter(g => g.totalMg > 0).map(g => (
+                {groups.filter(g => g.totalVials > 0).map(g => (
                     <div key={g.name} className="relative p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between" style={{ backgroundColor: theme.cardBackground }}>
                         <div>
-                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center justify-between mb-2">
                                 <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
-                                <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>{g.totalMg} {g.unit || 'mg'}</div>
+                                <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                                  {g.totalMg > 0 ? `${g.totalMg} ${g.unit || 'mg'}` : `${g.totalVials} ${g.totalVials === 1 ? 'vial' : 'vials'}`}
+                                </div>
                             </div>
                             <div className="space-y-3">
                                 {Object.values(g.variants).sort((a, b) => String(a.mg).localeCompare(String(b.mg))).map(v => (
@@ -492,7 +508,16 @@ export default function Stockpile() {
                                                                 style={{ color: theme.primary }} 
                                                                 onClick={() => {
                                                                     try {
-                                                                        const payload = { peptide: g.name, mg: String(item.mg), vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, cost: item.cost };
+                                                                        const payload = { 
+                                                                            peptide: g.name, 
+                                                                            mg: String(item.mg), 
+                                                                            vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, 
+                                                                            cost: item.cost,
+                                                                            stockpileId: item.id,
+                                                                            quantity: item.quantity,
+                                                                            unit: item.unit,
+                                                                            quantityUsed: 1
+                                                                        };
                                                                         localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
                                                                         navigate('/app/recon');
                                                                     } catch { }
@@ -664,12 +689,12 @@ export default function Stockpile() {
       {/* Used / Depleted section - show on On Hand tab only */}
       {activeTab === 'onhand' && (
         <div className="space-y-6">
-            {groups.some(g => g.totalMg <= 0) && (
+      {groups.some(g => g.totalVials <= 0) && (
               <>
                 <div className="font-semibold" style={{ color: theme.primaryDark }}>Out of Stock</div>
                 <hr className="mb-2" style={{ borderColor: theme.border }} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
-                  {groups.filter(g => g.totalMg <= 0).map(g => (
+                  {groups.filter(g => g.totalVials <= 0).map(g => (
                     <div key={`oos-${g.name}`} className="relative p-3 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow" style={{ 
                       border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
                       backgroundColor: theme.cardBackground,
@@ -733,20 +758,7 @@ export default function Stockpile() {
         variant="modern"
         maxWidth="max-w-2xl" 
         footer={(
-        <>
-          <button 
-            onClick={handleCloseStockpileModal} 
-            className="px-4 py-2 rounded-lg text-sm font-medium border transition-all" 
-            style={{ borderColor: theme.border, color: theme.text }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            Cancel
-          </button>
+        <div className="w-full flex items-center justify-end gap-3">
           <button 
             onClick={async () => { 
               try {
@@ -784,22 +796,27 @@ export default function Stockpile() {
               }
             }} 
             disabled={isSavingToStockpile}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75" 
+            style={{ 
+              background: getPrimaryActionGradient(isSavingToStockpile),
+              color: isSavingToStockpile ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+              border: 'none',
+              boxShadow: isSavingToStockpile ? 'none' : primaryActionDefaultShadow
+            }}
             onMouseEnter={(e) => {
-              if (!isSavingToStockpile) {
-                e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + 'dd' : theme.primary + 'cc';
-              }
+              if (isSavingToStockpile) return;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
             }}
             onMouseLeave={(e) => {
-              if (!isSavingToStockpile) {
-                e.currentTarget.style.backgroundColor = theme.primary;
-              }
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = isSavingToStockpile ? 'none' : primaryActionDefaultShadow;
+              e.currentTarget.style.background = getPrimaryActionGradient(isSavingToStockpile);
             }}
           >
-            {isSavingToStockpile ? 'Saving...' : 'Save'}
+            {isSavingToStockpile ? 'Saving…' : 'Save Changes'}
           </button>
-        </>
+        </div>
       )}>
         <div className="space-y-6">
           {/* Error Display */}
@@ -909,7 +926,7 @@ export default function Stockpile() {
                     backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                   }}
                 >
-                  {['vial','bottle','kit'].map(k => (
+                  {['vial','kit'].map(k => (
                     <button 
                       key={k} 
                       type="button" 
@@ -946,8 +963,8 @@ export default function Stockpile() {
           
           {/* Date Acquired & Use By Date in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Date Acquired (Optional)" type="date" value={form.date} onChange={v => updateFormData({ date: v })} theme={theme} />
-            <TextInput label="Use By (Optional)" type="date" value={form.useByDate} onChange={v => updateFormData({ useByDate: v })} theme={theme} />
+            <TextInput label="Date Acquired" type="date" value={form.date} onChange={v => updateFormData({ date: v })} theme={theme} />
+            <TextInput label="Use By" type="date" value={form.useByDate} onChange={v => updateFormData({ useByDate: v })} theme={theme} />
           </div>
           </div>
         </div>
@@ -982,16 +999,7 @@ export default function Stockpile() {
         theme={theme} 
         maxWidth="max-w-3xl" 
         footer={(
-        <>
-          <button 
-            onClick={() => { setManageName(null); setManageRows([]); clearManageSavedData(); }} 
-            className="px-3 py-2 rounded-md border transition-colors" 
-            style={{ borderColor: theme.border, color: theme.text }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-          >
-            Cancel
-          </button>
+        <div className="w-full flex items-center justify-end gap-3">
           <button 
             onClick={() => {
               if (isReadOnly) {
@@ -1000,14 +1008,26 @@ export default function Stockpile() {
               }
               saveManage();
             }} 
-            className="px-3 py-2 rounded-md transition-colors" 
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + 'dd' : theme.primary + 'cc'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95" 
+            style={{ 
+              background: getPrimaryActionGradient(false),
+              color: theme?.textOnPrimary || '#ffffff',
+              border: 'none',
+              boxShadow: primaryActionDefaultShadow
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = primaryActionDefaultShadow;
+              e.currentTarget.style.background = getPrimaryActionGradient(false);
+            }}
           >
-            Save
+            Save Changes
           </button>
-        </>
+        </div>
       )}>
         <div className="space-y-3">
           <div className="flex items-center justify-end">
@@ -1040,95 +1060,209 @@ export default function Stockpile() {
             </div>
           )}
           {manageRows.map(row => (
-            <div key={row.id} className="space-y-2 p-3 rounded" style={{ 
-              border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-              backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-              boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-            }}>
-              <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
-                <div className="sm:col-span-2">
-                  <VendorSuggestInput label="Vendor" value={row.vendorId ? vendorMap[row.vendorId] : (row.vendor || '')} onChange={v => updateManageData(prev => prev.map(r => r.id === row.id ? { ...r, vendor: v, vendorId: (vendors || []).find(vnd => vnd.name === v)?.id || null } : r))} placeholder="Vendor" theme={theme} />
-                </div>
-                <div className="sm:col-span-1">
-                  <TextInput label="mg" value={row.mg} onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: v } : r))} placeholder="10" theme={theme} />
-                </div>
-                <div className="sm:col-span-3">
-                  <div className="text-sm font-medium mb-1" style={{ color: theme?.text }}>Quantity & Unit</div>
-                  <div className="flex items-center p-2 rounded" style={{ 
-                    border: theme.isDark ? 'none' : `1px solid ${theme?.border}`,
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                  }}>
-                    <input 
-                      className="flex-1 border-none outline-none text-sm bg-transparent" 
-                      value={row.quantity || ''} 
-                      onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))} 
-                      placeholder="1"
-                      style={{ color: theme.text }}
-                    />
-                    <div className="inline-flex rounded-full p-1 shadow-inner" style={{ backgroundColor: theme.isDark ? '#374151' : '#f3f4f6' }}>
-                        {['vial','kit'].map(k => (
-                            <button key={k} type="button" onClick={() => {
-                                const oldUnit = row.unit || 'vial';
-                                if (oldUnit === k) return;
-                                setManageRows(prev => prev.map(r => {
-                                    if (r.id !== row.id) return r;
-                                    const qty = Number(r.quantity) || 0;
-                                    let newQty = qty;
-                                    if (oldUnit === 'kit' && k === 'vial') {
-                                        newQty = qty * 10;
-                                    } else if (oldUnit === 'vial' && k === 'kit') {
-                                        if (qty > 0 && qty % 10 === 0) {
-                                            newQty = qty / 10;
-                                        } else {
-                                            alert("You can only convert to kits if you have a multiple of 10 vials.");
-                                            return r; // Return original row without changes
-                                        }
-                                    }
-                                    return { ...r, unit: k, quantity: String(newQty) };
-                                }));
-                            }}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${((row.unit || 'vial') === k) ? 'text-white' : ''}`}
-                                style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                onMouseEnter={(e) => {
-                                  if ((row.unit || 'vial') !== k) {
-                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#e5e7eb';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if ((row.unit || 'vial') !== k) {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                  }
-                                }}>
-                                {k.charAt(0).toUpperCase() + k.slice(1)}
-                            </button>
+            <div
+              key={row.id}
+              className="space-y-3 p-3 rounded-lg"
+              style={{
+                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                backgroundColor: theme.isDark ? '#111827' : theme.cardBackground,
+                boxShadow: theme.isDark ? '0 1px 3px rgba(0,0,0,0.35)' : '0 2px 4px rgba(15, 23, 42, 0.08)'
+              }}
+            >
+              <div className="space-y-2">
+                <VendorSuggestInput
+                  label="Vendor"
+                  value={row.vendorId ? vendorMap[row.vendorId] : (row.vendor || '')}
+                  onChange={v =>
+                    updateManageData(prev =>
+                      prev.map(r =>
+                        r.id === row.id
+                          ? { ...r, vendor: v, vendorId: (vendors || []).find(vnd => vnd.name === v)?.id || null }
+                          : r
+                      )
+                    )
+                  }
+                  placeholder="Vendor"
+                  theme={theme}
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Amount</label>
+                    <div
+                      className="flex items-stretch rounded-lg overflow-hidden"
+                      style={{
+                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={row.mg || ''}
+                        onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: e.target.value } : r))}
+                        placeholder="10 or 0.5"
+                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                        style={{
+                          backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
+                          color: theme.text
+                        }}
+                      />
+                      <div
+                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                        style={{
+                          borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                        }}
+                      >
+                        {['mg', 'mL'].map(unit => (
+                          <button
+                            key={unit}
+                            type="button"
+                            onClick={() => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mgUnit: unit } : r))}
+                            className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
+                              (row.mgUnit || 'mg') === unit
+                                ? 'text-white shadow-sm'
+                                : 'text-gray-600 hover:bg-gray-200'
+                            }`}
+                            style={(row.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
+                          >
+                            {unit}
+                          </button>
                         ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Quantity</label>
+                    <div
+                      className="flex items-stretch rounded-lg overflow-hidden"
+                      style={{
+                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={row.quantity || ''}
+                        onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))}
+                        placeholder="1"
+                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                        style={{
+                          backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
+                          color: theme.text
+                        }}
+                      />
+                      <div
+                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                        style={{
+                          borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                        }}
+                      >
+                        {['vial','kit'].map(k => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => {
+                              const oldUnit = row.unit || 'vial';
+                              if (oldUnit === k) return;
+                              setManageRows(prev => prev.map(r => {
+                                if (r.id !== row.id) return r;
+                                const qty = Number(r.quantity) || 0;
+                                let newQty = qty;
+                                if (oldUnit === 'kit' && k === 'vial') {
+                                  newQty = qty * 10;
+                                } else if (oldUnit === 'vial' && k === 'kit') {
+                                  if (qty > 0 && qty % 10 === 0) {
+                                    newQty = qty / 10;
+                                  } else {
+                                    alert("You can only convert to kits if you have a multiple of 10 vials.");
+                                    return r;
+                                  }
+                                }
+                                return { ...r, unit: k, quantity: String(newQty) };
+                              }));
+                            }}
+                            className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
+                              ((row.unit || 'vial') === k)
+                                ? 'text-white shadow-sm'
+                                : 'text-gray-600 hover:bg-gray-200'
+                            }`}
+                            style={((row.unit || 'vial') === k) ? { backgroundColor: theme.primary } : {}}
+                          >
+                            {k.charAt(0).toUpperCase() + k.slice(1)}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
-                <div className="sm:col-span-1">
-                  <TextInput label="Cost ($)" value={row.cost || ''} onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, cost: v } : r))} placeholder="$" theme={theme} />
-                </div>
-                <div className="sm:col-span-2">
-                  <TextInput label="Purity/Test %" value={row.purity || ''} onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, purity: v } : r))} placeholder="e.g., 98" theme={theme} />
-                </div>
-                <div className="sm:col-span-1">
-                  <TextInput label="Cap Color" value={row.capColor} onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))} placeholder="Blue" theme={theme} />
-                </div>
-                <div className="sm:col-span-2">
-                  <TextInput label="Batch # (optional)" value={row.batchNumber} onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, batchNumber: v } : r))} placeholder="#" theme={theme} />
-                </div>
+
+              <div>
+                <TextInput
+                  label="Cap/Crimp Color"
+                  value={row.capColor}
+                  onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))}
+                  placeholder="Blue"
+                  theme={theme}
+                />
               </div>
-              <div className="text-right">
-                <button className="px-2 py-1 rounded text-xs" style={{ backgroundColor: theme.accent, color: theme.accentText }} onClick={() => removeManageRow(row.id)}>Remove</button>
+              <div className="grid grid-cols-2 gap-2">
+                <TextInput
+                  label="Purity/Test %"
+                  value={row.purity || ''}
+                  onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, purity: v } : r))}
+                  placeholder="e.g., 98"
+                  theme={theme}
+                />
+                <TextInput
+                  label="Batch #"
+                  value={row.batchNumber}
+                  onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, batchNumber: v } : r))}
+                  placeholder="#"
+                  theme={theme}
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  className="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                  style={{
+                    background: terracottaGradient,
+                    color: '#ffffff',
+                    border: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = terracottaHoverGradient;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = terracottaGradient;
+                  }}
+                  onClick={() => removeManageRow(row.id)}
+                >
+                  Remove
+                </button>
               </div>
             </div>
           ))}
           <button 
-            className="px-3 py-2 rounded-md text-sm font-semibold border-dashed border" 
-            style={{ borderColor: theme.primary, color: theme.primary }} 
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95" 
+            style={{ 
+              background: theme.isDark ? '#1f2937' : `${theme.secondary}`,
+              color: theme.primary,
+              border: 'none'
+            }} 
+            onMouseEnter={(e) => {
+              if (theme.isDark) {
+                e.currentTarget.style.background = '#374151';
+              } else {
+                e.currentTarget.style.background = `${theme.primary}15`;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = theme.isDark ? '#1f2937' : `${theme.secondary}`;
+            }}
             onClick={() => {
               if (isReadOnly) {
                 setShowUpgradeModal(true);
@@ -1137,7 +1271,7 @@ export default function Stockpile() {
               addManageRow();
             }}
           >
-            + Add Row
+            + Add
           </button>
         </div>
       </Modal>
