@@ -285,8 +285,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       variant="modern"
       maxWidth={isReadOnly ? "max-w-md" : maxWidth}
       footer={(
-        <div className="w-full flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        <div className="w-full flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-1 justify-start">
             {form?.id && (
               <button
                 type="button"
@@ -308,7 +308,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 justify-end">
             {!isReadOnly && (
               <button
                 type="button"
