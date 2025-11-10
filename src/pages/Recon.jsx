@@ -363,10 +363,10 @@ export default function Recon() {
 
                                 const rawDoseInput = isBlend ? totalDoseInMcg : item.dose;
                                 const hasDoseValue = rawDoseInput !== undefined && rawDoseInput !== null && rawDoseInput !== '';
-                                const summaryDoseValueForCalc = hasDoseValue ? Number(rawDoseInput) : 0;
+                                const summaryDoseValueNumeric = hasDoseValue ? Number(rawDoseInput) : 0;
                                 const displayDoseValue = hasDoseValue ? rawDoseInput : null;
 
-								const calc = calculateRecon({ ...item, mg: totalMg, dose: summaryDoseValueForCalc, doseUnit: summaryDoseUnit });
+								const calc = calculateRecon({ ...item, mg: totalMg, dose: summaryDoseValueNumeric, doseUnit: summaryDoseUnit });
 								const costPerDose = item.cost ? formatCurrency(item.cost / calc.dosesPerVial) : null
 								return (
 									<div 
