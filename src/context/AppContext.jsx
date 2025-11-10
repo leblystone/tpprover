@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useMemo, useCallback, useRef } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { seedInitialData } from '../utils/seed';
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers';
 import { logoutUser, onAuthChange } from '../services/firebase';
@@ -7,8 +7,7 @@ import { isNative } from '../utils/platform';
 import { 
   saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
   saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
-  migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
-  subscribeToUserState, subscribeToAppData
+  migrateLocalStorageToCloud, clearLocalStorageData, hasUserData
 } from '../services/cloudStorage';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
@@ -19,16 +18,6 @@ const AppContext = createContext();
 export function useAppContext() {
     return useContext(AppContext);
 }
-
-const stableStringify = (value) => JSON.stringify(value, (_, val) => {
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-        return Object.keys(val).sort().reduce((acc, key) => {
-            acc[key] = val[key];
-            return acc;
-        }, {});
-    }
-    return val;
-});
 
 export function AppProvider({ children }) {
     const [protocols, setProtocols] = useState([]);
@@ -53,26 +42,6 @@ export function AppProvider({ children }) {
         }
     }, []);
     const [isClearingDemoData, setIsClearingDemoData] = useState(false);
-    const isApplyingCloudUpdateRef = useRef(false);
-    const currentAppDataRef = useRef(null);
-    const currentAppDataSerializedRef = useRef('');
-
-    useEffect(() => {
-        const snapshot = {
-            protocols,
-            reconItems,
-            reconHistory,
-            supplements,
-            orders,
-            metrics,
-            vendors,
-            calendarNotes,
-            stockpile,
-            scheduledBuys
-        };
-        currentAppDataRef.current = snapshot;
-        currentAppDataSerializedRef.current = stableStringify(snapshot);
-    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys]);
     
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
     useEffect(() => {
@@ -387,8 +356,24 @@ export function AppProvider({ children }) {
                     }
                 }
                 if (cloudAppData) {
-                    applyCloudAppData(cloudAppData);
-
+                    if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
+                    if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
+                    if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
+                    if (cloudAppData.supplements) setSupplements(cloudAppData.supplements);
+                    if (cloudAppData.orders) setOrders(cloudAppData.orders);
+                    if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
+                    if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
+                    if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
+                    if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
+                    if (cloudAppData.scheduledBuys) {
+                        // Filter out mock scheduled buys if sample data was cleared
+                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                        const filteredScheduledBuys = sampleDataCleared 
+                            ? cloudAppData.scheduledBuys.filter(buy => !buy.isMock)
+                            : cloudAppData.scheduledBuys;
+                        setScheduledBuys(filteredScheduledBuys);
+                    }
+                    
                     // Check if account is completely empty and needs demo data seeded
                     const totalItems = (cloudAppData.protocols?.length || 0) + 
                                       (cloudAppData.orders?.length || 0) + 
@@ -417,7 +402,23 @@ export function AppProvider({ children }) {
                                     const freshData = await loadAppData(userId);
                                     
                                     if (freshData) {
-                                        applyCloudAppData(freshData, { markAsCloudUpdate: true });
+                                        if (freshData.protocols) setProtocols(freshData.protocols);
+                                        if (freshData.reconItems) setReconItems(freshData.reconItems);
+                                        if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                                        if (freshData.supplements) setSupplements(freshData.supplements);
+                                        if (freshData.orders) setOrders(freshData.orders);
+                                        if (freshData.metrics) setMetrics(freshData.metrics);
+                                        if (freshData.vendors) setVendors(freshData.vendors);
+                                        if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                                        if (freshData.stockpile) setStockpile(freshData.stockpile);
+                                        if (freshData.scheduledBuys) {
+                                            // Filter out mock scheduled buys if sample data was cleared
+                                            const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                                            const filteredScheduledBuys = sampleDataCleared 
+                                                ? freshData.scheduledBuys.filter(buy => !buy.isMock)
+                                                : freshData.scheduledBuys;
+                                            setScheduledBuys(filteredScheduledBuys);
+                                        }
                                         console.log('✅ Fresh demo data loaded into app state');
                                     }
                                 }
@@ -902,64 +903,10 @@ export function AppProvider({ children }) {
         };
     }, [firebaseUser, hasPassword]); // Re-run when Firebase auth initializes or password becomes available to load cloud data
 
-    useEffect(() => {
-        if (!firebaseUser) {
-            return;
-        }
-
-        const userId = firebaseUser.uid;
-        const stateUnsubscribe = subscribeToUserState(userId, async (state) => {
-            if (!state) return;
-
-            const sampleDataClearedRemote = state.sampleDataCleared === true || state.demoDataCleared === true;
-            const remoteTimestampIso = state.sampleDataClearedAt || state.demoDataClearedAt || null;
-            const remoteTimestamp = remoteTimestampIso ? Date.parse(remoteTimestampIso) : 0;
-
-            const localFlag = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-            const localTimestampIso = localStorage.getItem('tpprover_sample_data_cleared_at');
-            const localTimestamp = localTimestampIso ? Date.parse(localTimestampIso) : 0;
-
-            if (sampleDataClearedRemote) {
-                if (!localFlag || remoteTimestamp > localTimestamp) {
-                    try {
-                        const { clearMockData } = await import('../utils/seed');
-                        clearMockData();
-                    } catch (error) {
-                        console.error('❌ Failed to clear sample data locally during sync:', error);
-                    }
-
-                    const timestampIso = remoteTimestampIso || new Date().toISOString();
-                    localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                    localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
-                    localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
-
-                    isApplyingCloudUpdateRef.current = true;
-                    refreshDataAfterClear();
-                    setTimeout(() => {
-                        isApplyingCloudUpdateRef.current = false;
-                    }, 0);
-                }
-            } else if (localFlag) {
-                localStorage.removeItem('tpprover_sample_data_cleared');
-                localStorage.removeItem('tpprover_sample_data_cleared_at');
-            }
-        });
-
-        const dataUnsubscribe = subscribeToAppData(userId, (cloudData) => {
-            if (!cloudData) return;
-            applyCloudAppData(cloudData, { markAsCloudUpdate: true });
-        });
-
-        return () => {
-            if (typeof stateUnsubscribe === 'function') stateUnsubscribe();
-            if (typeof dataUnsubscribe === 'function') dataUnsubscribe();
-        };
-    }, [firebaseUser, applyCloudAppData, refreshDataAfterClear]);
-
     // Auto-sync data to cloud storage when it changes
     useEffect(() => {
         // Don't sync during initial load, demo data clearing, or if user isn't authenticated
-        if (isInitialLoad || isClearingDemoData || isApplyingCloudUpdateRef.current || !firebaseUser) {
+        if (isInitialLoad || isClearingDemoData || !firebaseUser) {
             return;
         }
 
@@ -1013,7 +960,7 @@ export function AppProvider({ children }) {
             };
             saveAppData(userId, emptyData);
         }
-    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, firebaseUser, hasPassword, isInitialLoad, isClearingDemoData]); // FIXED: Only include data dependencies, remove functions
+    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, firebaseUser, hasPassword]); // FIXED: Only include data dependencies, remove functions
 
     const logout = async () => {
         try {
@@ -1071,10 +1018,6 @@ export function AppProvider({ children }) {
     // Persist data to localStorage whenever it changes
     const saveData = (key, data) => {
         try {
-            if (isApplyingCloudUpdateRef.current) {
-                localStorage.setItem(key, JSON.stringify(data));
-                return;
-            }
             // CRITICAL SAFETY CHECK: Never save empty arrays that could overwrite existing data
             if (Array.isArray(data) && data.length === 0) {
                 // Check if there's existing data in localStorage before overwriting with empty array
@@ -1275,7 +1218,7 @@ export function AppProvider({ children }) {
         setCalendarNotes(prev => ({...prev, [dateKey]: text}));
     };
 
-    const refreshDataAfterClear = useCallback(() => {
+    const refreshDataAfterClear = () => {
         // Prevent Firebase sync during demo data clearing
         setIsClearingDemoData(true);
         
@@ -1329,59 +1272,7 @@ export function AppProvider({ children }) {
             console.error("Error refreshing data after clear:", error);
             setIsClearingDemoData(false);
         }
-    }, []);
-
-    const applyCloudAppData = useCallback((cloudAppData, { markAsCloudUpdate = false } = {}) => {
-        if (!cloudAppData) {
-            return;
-        }
-
-        const sanitized = {
-            protocols: Array.isArray(cloudAppData.protocols) ? cloudAppData.protocols : [],
-            reconItems: Array.isArray(cloudAppData.reconItems) ? cloudAppData.reconItems : [],
-            reconHistory: Array.isArray(cloudAppData.reconHistory) ? cloudAppData.reconHistory : [],
-            supplements: Array.isArray(cloudAppData.supplements) ? cloudAppData.supplements : [],
-            orders: ensurePublicOrderNumbers(Array.isArray(cloudAppData.orders) ? cloudAppData.orders : []),
-            metrics: Array.isArray(cloudAppData.metrics) ? cloudAppData.metrics : [],
-            vendors: Array.isArray(cloudAppData.vendors) ? cloudAppData.vendors : [],
-            calendarNotes: cloudAppData.calendarNotes && typeof cloudAppData.calendarNotes === 'object' ? cloudAppData.calendarNotes : {},
-            stockpile: Array.isArray(cloudAppData.stockpile) ? cloudAppData.stockpile : [],
-            scheduledBuys: (() => {
-                const buys = Array.isArray(cloudAppData.scheduledBuys) ? cloudAppData.scheduledBuys : [];
-                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                return sampleDataCleared ? buys.filter(buy => !buy?.isMock) : buys;
-            })()
-        };
-
-        const serialized = stableStringify(sanitized);
-        if (currentAppDataSerializedRef.current === serialized) {
-            return;
-        }
-
-        if (markAsCloudUpdate) {
-            isApplyingCloudUpdateRef.current = true;
-        }
-
-        setProtocols(sanitized.protocols);
-        setReconItems(sanitized.reconItems);
-        setReconHistory(sanitized.reconHistory);
-        setSupplements(sanitized.supplements);
-        setOrders(sanitized.orders);
-        setMetrics(sanitized.metrics);
-        setVendors(sanitized.vendors);
-        setCalendarNotes(sanitized.calendarNotes);
-        setStockpile(sanitized.stockpile);
-        setScheduledBuys(sanitized.scheduledBuys);
-
-        currentAppDataRef.current = sanitized;
-        currentAppDataSerializedRef.current = serialized;
-
-        if (markAsCloudUpdate) {
-            setTimeout(() => {
-                isApplyingCloudUpdateRef.current = false;
-            }, 0);
-        }
-    }, [setProtocols, setReconItems, setReconHistory, setSupplements, setOrders, setMetrics, setVendors, setCalendarNotes, setStockpile, setScheduledBuys]);
+    };
 
     // CRITICAL: Enhanced data recovery function with detailed logging
     const recoverDataFromLocalStorage = () => {
