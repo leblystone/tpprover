@@ -432,8 +432,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 e.currentTarget.style.boxShadow = (isSavingToProtocols || isReadOnly) ? 'none' : primaryActionDefaultShadow;
                                 e.currentTarget.style.background = getPrimaryActionGradient(isSavingToProtocols || isReadOnly);
                             }}
+                            title={isReadOnly ? "Upgrade to save protocols" : "Save protocol changes"}
                         >
-                            {isSavingToProtocols ? 'Saving…' : 'Save Protocol'}
+                            {isSavingToProtocols ? 'Saving…' : (isReadOnly ? 'Save Protocol (Upgrade Required)' : 'Save Protocol')}
                         </button>
                     </div>
                 </div>

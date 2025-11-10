@@ -795,26 +795,27 @@ export default function Stockpile() {
                 setIsSavingToStockpile(false);
               }
             }} 
-            disabled={isSavingToStockpile}
+            disabled={isSavingToStockpile || isReadOnly}
             className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75" 
             style={{ 
-              background: getPrimaryActionGradient(isSavingToStockpile),
-              color: isSavingToStockpile ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+              background: getPrimaryActionGradient(isSavingToStockpile || isReadOnly),
+              color: (isSavingToStockpile || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
               border: 'none',
-              boxShadow: isSavingToStockpile ? 'none' : primaryActionDefaultShadow
+              boxShadow: (isSavingToStockpile || isReadOnly) ? 'none' : primaryActionDefaultShadow
             }}
             onMouseEnter={(e) => {
-              if (isSavingToStockpile) return;
+              if (isSavingToStockpile || isReadOnly) return;
               e.currentTarget.style.transform = 'translateY(-1px)';
               e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = isSavingToStockpile ? 'none' : primaryActionDefaultShadow;
-              e.currentTarget.style.background = getPrimaryActionGradient(isSavingToStockpile);
+              e.currentTarget.style.boxShadow = (isSavingToStockpile || isReadOnly) ? 'none' : primaryActionDefaultShadow;
+              e.currentTarget.style.background = getPrimaryActionGradient(isSavingToStockpile || isReadOnly);
             }}
+            title={isReadOnly ? "Upgrade to save stockpile items" : "Save stockpile changes"}
           >
-            {isSavingToStockpile ? 'Saving…' : 'Save Changes'}
+            {isSavingToStockpile ? 'Saving…' : (isReadOnly ? 'Save Changes (Upgrade Required)' : 'Save Changes')}
           </button>
         </div>
       )}>

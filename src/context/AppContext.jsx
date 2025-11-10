@@ -111,14 +111,14 @@ export function AppProvider({ children }) {
                     return;
                 }
                 
-                // CRITICAL: Check if sample data was just seeded (within last 15 seconds)
+                // CRITICAL: Check if demo data was just seeded (within last 15 seconds)
                 // This prevents overwriting freshly seeded data with empty cloud data
-                const hasSeededTimestamp = localStorage.getItem('tpprover_sample_seeded_at');
+                const hasSeededTimestamp = localStorage.getItem('tpprover_demo_seeded_at');
                 if (hasSeededTimestamp) {
                     const seededAt = parseInt(hasSeededTimestamp, 10);
                     const timeSinceSeeded = Date.now() - seededAt;
                     if (timeSinceSeeded < 15000) { // 15 seconds
-                        console.log(`⏸️ Initial cloud load: Sample data was just seeded ${Math.round(timeSinceSeeded/1000)}s ago, skipping to preserve it`);
+                        console.log(`⏸️ Initial cloud load: Demo data was just seeded ${Math.round(timeSinceSeeded/1000)}s ago, skipping to preserve it`);
                         return;
                     }
                 }
@@ -138,9 +138,9 @@ export function AppProvider({ children }) {
                     if (lastEmail && lastEmail !== currentEmail) {
                         console.log('🛡️ Account switch detected. Clearing local user data to prevent bleed.');
                         clearAllUserData();
-                        // Ensure sample data can seed for brand new account
+                        // Ensure demo can seed for brand new account
                         try { localStorage.removeItem('tpprover_has_seeded'); } catch {}
-                        try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
+                        try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
                     }
                     // Track current email for future comparisons
                     try { localStorage.setItem('tpprover_last_user_email', currentEmail); } catch {}
@@ -155,19 +155,29 @@ export function AppProvider({ children }) {
                 const cloudPreferences = await loadUserPreferences(userId);
                 const hasThemeInCloud = cloudPreferences?.theme;
                 
-                // CRITICAL: Check if sample data was cleared on another platform
+                // CRITICAL: Check if demo data was cleared on another platform
                 const userState = await loadUserState(userId);
-                // FIXED: Use correct property name (sampleDataCleared, not demoDataCleared)
-                const sampleDataClearedInCloud = userState?.sampleDataCleared === true;
-                const sampleDataClearedLocally = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                const demoDataClearedInCloud = userState?.demoDataCleared === true;
+                const demoDataClearedLocally = localStorage.getItem('tpprover_demo_data_cleared') === 'true';
                 
-                if (sampleDataClearedInCloud && !sampleDataClearedLocally) {
-                    console.log('🔄 Sample data was cleared on another platform - syncing local data');
-                    // Clear sample data locally to match cloud state
+                if (demoDataClearedInCloud && !demoDataClearedLocally) {
+                    console.log('🔄 Demo data was cleared on another platform - syncing local data');
+                    // Clear demo data locally to match cloud state
                     const { clearMockData } = await import('../utils/seed');
                     clearMockData();
-                    localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                    localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
+                    localStorage.setItem('tpprover_demo_data_cleared', 'true');
+                    localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+                } else if (!demoDataClearedInCloud && demoDataClearedLocally) {
+                    // CRITICAL FIX: If local flag exists but cloud doesn't have it, sync to cloud
+                    // This prevents sample data from reappearing when cloud data is empty
+                    console.log('🔄 Demo data was cleared locally but not in cloud - syncing to cloud');
+                    try {
+                        const currentState = userState || {};
+                        await saveUserState(userId, { ...currentState, sampleDataCleared: true });
+                        console.log('✅ Saved sample data cleared flag to cloud');
+                    } catch (error) {
+                        console.error('❌ Failed to save sample data cleared flag to cloud:', error);
+                    }
                 }
                 
                 // Check if this is a recently created account (within last 24 hours)
@@ -260,42 +270,50 @@ export function AppProvider({ children }) {
                                       (cloudAppData.supplements?.length || 0);
                     
                     if (totalItems === 0) {
-                        console.log('📭 Account has 0 items - auto-seeding demo data to Firestore...');
-                        try {
-                            const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
-                            const seeded = await seedDemoDataToCloud(userId, null);
-                            
-                            if (seeded) {
-                                console.log('✅ Demo data auto-seeded for empty account');
-                                console.log('🔄 Reloading data from Firestore...');
+                        // CRITICAL FIX: Check if user explicitly cleared sample data
+                        // This prevents sample data from reappearing after user removed it
+                        const sampleDataClearedLocally = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                        
+                        if (demoDataClearedInCloud || sampleDataClearedLocally) {
+                            console.log('ℹ️ Account has 0 items but user cleared sample data - respecting user preference, not seeding');
+                        } else {
+                            console.log('📭 Account has 0 items - auto-seeding demo data to Firestore...');
+                            try {
+                                const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
+                                const seeded = await seedDemoDataToCloud(userId, null);
                                 
-                                // Reload data from Firestore after seeding
-                                await new Promise(resolve => setTimeout(resolve, 500));
-                                const freshData = await loadAppData(userId);
-                                
-                                if (freshData) {
-                                    if (freshData.protocols) setProtocols(freshData.protocols);
-                                    if (freshData.reconItems) setReconItems(freshData.reconItems);
-                                    if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
-                                    if (freshData.supplements) setSupplements(freshData.supplements);
-                                    if (freshData.orders) setOrders(freshData.orders);
-                                    if (freshData.metrics) setMetrics(freshData.metrics);
-                                    if (freshData.vendors) setVendors(freshData.vendors);
-                                    if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
-                                    if (freshData.stockpile) setStockpile(freshData.stockpile);
-                                    if (freshData.scheduledBuys) {
-                                        // Filter out mock scheduled buys if sample data was cleared
-                                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                                        const filteredScheduledBuys = sampleDataCleared 
-                                            ? freshData.scheduledBuys.filter(buy => !buy.isMock)
-                                            : freshData.scheduledBuys;
-                                        setScheduledBuys(filteredScheduledBuys);
+                                if (seeded) {
+                                    console.log('✅ Demo data auto-seeded for empty account');
+                                    console.log('🔄 Reloading data from Firestore...');
+                                    
+                                    // Reload data from Firestore after seeding
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                    const freshData = await loadAppData(userId);
+                                    
+                                    if (freshData) {
+                                        if (freshData.protocols) setProtocols(freshData.protocols);
+                                        if (freshData.reconItems) setReconItems(freshData.reconItems);
+                                        if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                                        if (freshData.supplements) setSupplements(freshData.supplements);
+                                        if (freshData.orders) setOrders(freshData.orders);
+                                        if (freshData.metrics) setMetrics(freshData.metrics);
+                                        if (freshData.vendors) setVendors(freshData.vendors);
+                                        if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                                        if (freshData.stockpile) setStockpile(freshData.stockpile);
+                                        if (freshData.scheduledBuys) {
+                                            // Filter out mock scheduled buys if sample data was cleared
+                                            const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                                            const filteredScheduledBuys = sampleDataCleared 
+                                                ? freshData.scheduledBuys.filter(buy => !buy.isMock)
+                                                : freshData.scheduledBuys;
+                                            setScheduledBuys(filteredScheduledBuys);
+                                        }
+                                        console.log('✅ Fresh demo data loaded into app state');
                                     }
-                                    console.log('✅ Fresh demo data loaded into app state');
                                 }
+                            } catch (seedError) {
+                                console.error('❌ Failed to auto-seed demo data:', seedError);
                             }
-                        } catch (seedError) {
-                            console.error('❌ Failed to auto-seed demo data:', seedError);
                         }
                     }
                 } else {
