@@ -270,6 +270,12 @@ export async function migrateLocalStorageToCloud(userId) {
     const appData = {};
     const preferences = {};
     const state = {};
+    const DATA_KEY_MAPPING = {
+      recon_items: 'reconItems',
+      recon_history: 'reconHistory',
+      calendar_notes: 'calendarNotes',
+      scheduled_buys: 'scheduledBuys'
+    };
     
     localStorageKeys.forEach(key => {
       try {
@@ -284,7 +290,18 @@ export async function migrateLocalStorageToCloud(userId) {
              'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
              'tpprover_scheduled_buys'].includes(key)) {
           const dataKey = key.replace('tpprover_', '');
-          appData[dataKey] = parsedValue;
+          const mappedKey = DATA_KEY_MAPPING[dataKey] || dataKey;
+          
+          // Avoid overwriting existing camelCase data with empty arrays/objects
+          const hasMeaningfulValue = Array.isArray(parsedValue)
+            ? parsedValue.length > 0
+            : parsedValue && typeof parsedValue === 'object'
+              ? Object.keys(parsedValue).length > 0
+              : Boolean(parsedValue);
+          
+          if (hasMeaningfulValue || !(mappedKey in appData)) {
+            appData[mappedKey] = parsedValue;
+          }
         } else if (['tpprover_theme', 'tpprover_settings'].includes(key)) {
           const prefKey = key.replace('tpprover_', '');
           preferences[prefKey] = parsedValue;
