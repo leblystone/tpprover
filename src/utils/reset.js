@@ -21,8 +21,8 @@ const PRESERVED_KEYS = [
   'tpprover_last_user_email', // Track user changes for security
   'tpprover_auth_users',
   'tpprover_has_seeded',
-  'tpprover_demo_data_cleared',
-  'tpprover_demo_banner_dismissed',
+  'tpprover_sample_data_cleared',
+  'tpprover_sample_banner_dismissed',
 ];
 
 export function clearAppData(prefix = 'tpprover_') {

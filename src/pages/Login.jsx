@@ -501,9 +501,9 @@ export default function Login() {
           return false;
         }
         
-        // Clear previous seeding flags for fresh demo data on new signup
+        // Clear previous seeding flags for fresh sample data on new signup
         localStorage.removeItem('tpprover_has_seeded');
-        localStorage.removeItem('tpprover_demo_seeded_at');
+        localStorage.removeItem('tpprover_sample_seeded_at');
         // Clear welcome modal session flag for fresh signup
         sessionStorage.removeItem('tpp_welcome_shown');
         console.log('🧹 Cleared previous demo data flags for fresh signup');
