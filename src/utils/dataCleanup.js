@@ -80,8 +80,8 @@ export function fixDataInconsistencies() {
     // Clear all mock data
     clearMockData();
     
-    // Mark that sample data has been cleared to prevent re-seeding
-    localStorage.setItem('tpprover_sample_data_cleared', 'true');
+    // Mark that demo data has been cleared to prevent re-seeding
+    localStorage.setItem('tpprover_demo_data_cleared', 'true');
     
     // Diagnose again to confirm cleanup
     const afterIssues = diagnoseDashboardData();

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import logo from '../../assets/tpp_logo.png'
 
-export default function MobileSidebar({ open, onClose, theme }) {
+export default function MobileSidebar({ open, onClose, theme, onSupportClick }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -133,6 +133,28 @@ export default function MobileSidebar({ open, onClose, theme }) {
                 <span className="text-lg font-medium truncate">{label}</span>
               </NavLink>
             ))}
+            
+            {/* Support Button */}
+            <button
+              onClick={() => {
+                onClose()
+                onSupportClick()
+              }}
+              className="flex items-center gap-3 h-14 w-full px-4 sidebar-link transition-all duration-200 cursor-pointer"
+              style={{
+                animationDelay: visible ? `${(links.length + bottomLinks.length + 1) * 50}ms` : '0ms',
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateX(0)' : 'translateX(-20px)',
+                transition: 'opacity 200ms ease-out, transform 200ms ease-out',
+                color: theme.text,
+                backgroundColor: 'transparent',
+                border: 'none',
+                textDecoration: 'none'
+              }}
+            >
+              <Microscope className="h-6 w-6" />
+              <span className="text-lg font-medium truncate">Support</span>
+            </button>
           </div>
         </nav>
       </div>

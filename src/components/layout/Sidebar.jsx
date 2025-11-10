@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
-import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen } from 'lucide-react'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 
-const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
+const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
   const { logout } = useAppContext();
@@ -113,6 +113,22 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled }) => {
               <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>
             </NavLink>
           ))}
+          
+          {/* Support Button */}
+          <button 
+            onClick={onSupportClick}
+            title="Support"
+            className="flex items-center justify-start h-14 w-full sidebar-link p-4 rounded-lg cursor-pointer"
+            style={{ 
+              color: theme.isDark ? '#a8b5a0' : theme.textLight,
+              backgroundColor: theme.isDark ? '#1f2937' : 'transparent',
+              border: 'none',
+              textDecoration: 'none'
+            }}
+          >
+            <Microscope className="h-6 w-6 flex-shrink-0" />
+            <span className="text-sm font-semibold ml-4 sidebar-link-label">Support</span>
+          </button>
         </div>
       </aside>
     </>

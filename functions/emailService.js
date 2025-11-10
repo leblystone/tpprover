@@ -82,6 +82,9 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+// Export the base sendEmail function
+exports.sendEmail = sendEmail;
+
 /**
  * Send welcome email to new user
  */

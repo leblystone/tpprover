@@ -288,7 +288,7 @@ export async function migrateLocalStorageToCloud(userId) {
         } else if (['tpprover_theme', 'tpprover_settings'].includes(key)) {
           const prefKey = key.replace('tpprover_', '');
           preferences[prefKey] = parsedValue;
-        } else if (['tpprover_has_seeded', 'tpprover_sample_data_cleared', 'tpprover_has_onboarded',
+        } else if (['tpprover_has_seeded', 'tpprover_demo_data_cleared', 'tpprover_has_onboarded',
                    'tpprover_is_tester', 'tpprover_is_founder'].includes(key)) {
           const stateKey = key.replace('tpprover_', '');
           state[stateKey] = parsedValue;

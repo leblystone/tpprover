@@ -23,6 +23,7 @@ import './utils/debugUtils'; // Load debug utilities globally
 import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import SubscriptionModal from './components/common/SubscriptionModal';
+import SupportModal from './components/common/SupportModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
 
@@ -63,6 +64,7 @@ function App() {
   const [topbarTabs, setTopbarTabs] = useState(null);
   const [topbarAutoSave, setTopbarAutoSave] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   // Hardware back button handler for mobile apps
   useBackButtonHandler();
@@ -259,7 +261,7 @@ function App() {
 
   return (
     <div className="h-screen flex bg-gray-100 font-sans antialiased">
-      <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} />
+      <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onSupportClick={() => setShowSupportModal(true)} />
       <div className="flex-1 flex flex-col lg:ml-24 min-w-0" style={{
         // Add padding for mobile status bar
         paddingTop: window.innerWidth < 1024 ? 'max(var(--safe-area-top, 24px), 24px)' : '0px'
@@ -298,7 +300,8 @@ function App() {
       <MobileNav 
         theme={theme} 
         open={mobileMenuOpen} 
-        onClose={() => setMobileMenuOpen(false)} 
+        onClose={() => setMobileMenuOpen(false)}
+        onSupportClick={() => setShowSupportModal(true)}
       />
       <WelcomeModal
         open={showWelcome}
@@ -341,6 +344,11 @@ function App() {
         onClose={() => setShowSubscriptionModal(false)}
         theme={theme}
         currentPlan={subscriptionInterval}
+      />
+      <SupportModal 
+        open={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
+        theme={theme}
       />
       
       {/* Toast Notifications */}
