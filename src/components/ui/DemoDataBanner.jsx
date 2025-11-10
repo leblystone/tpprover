@@ -30,14 +30,16 @@ export default function SampleDataBanner({ theme, sticky = false }) {
             clearMockData();
             
             // Set flags to prevent re-seeding and hide banner
+            const clearedAt = new Date().toISOString();
             localStorage.setItem('tpprover_sample_data_cleared', 'true');
+            localStorage.setItem('tpprover_sample_data_cleared_at', clearedAt);
             localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
             
             // Save flag to cloud storage
             if (user?.uid) {
                 const { saveUserState, loadUserState } = await import('../../services/cloudStorage');
                 const currentState = await loadUserState(user.uid) || {};
-                await saveUserState(user.uid, { ...currentState, sampleDataCleared: true });
+                await saveUserState(user.uid, { ...currentState, sampleDataCleared: true, sampleDataClearedAt: clearedAt });
                 console.log('☁️ Saved sample data cleared flag to cloud');
                 
                 // Also sync the cleared data to cloud storage to ensure consistency

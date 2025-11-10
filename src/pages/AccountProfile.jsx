@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { getAuth, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
+import { getFirestore, doc, getDoc } from 'firebase/firestore'
 
 // Helper function to generate user initials
 function getUserInitials(email) {
@@ -14,6 +15,62 @@ function getUserInitials(email) {
     return (parts[0][0] + parts[1][0]).toUpperCase()
   }
   return email.substring(0, 2).toUpperCase()
+}
+
+function coerceToDate(value) {
+  if (!value) return null
+
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : value
+  }
+
+  if (typeof value === 'number') {
+    const date = new Date(value)
+    return isNaN(date.getTime()) ? null : date
+  }
+
+  if (typeof value === 'string') {
+    const date = new Date(value)
+    return isNaN(date.getTime()) ? null : date
+  }
+
+  if (typeof value === 'object') {
+    if (typeof value.toDate === 'function') {
+      try {
+        const date = value.toDate()
+        return coerceToDate(date)
+      } catch (error) {
+        console.error('Failed to convert value with toDate() to Date:', error)
+      }
+    }
+
+    if (typeof value.toMillis === 'function') {
+      try {
+        const millis = value.toMillis()
+        return coerceToDate(millis)
+      } catch (error) {
+        console.error('Failed to convert value with toMillis() to Date:', error)
+      }
+    }
+
+    if (typeof value.seconds === 'number') {
+      return coerceToDate(value.seconds * 1000)
+    }
+
+    if (typeof value._seconds === 'number') {
+      return coerceToDate(value._seconds * 1000)
+    }
+
+    if (value.creationTime) {
+      return coerceToDate(value.creationTime)
+    }
+
+    if (value.createdAt) {
+      return coerceToDate(value.createdAt)
+    }
+  }
+
+  return null
 }
 
 export default function AccountProfile() {
@@ -27,6 +84,41 @@ export default function AccountProfile() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSendingVerification, setIsSendingVerification] = useState(false)
   const [emailVerified, setEmailVerified] = useState(false)
+  const [cloudCreatedAt, setCloudCreatedAt] = useState(null)
+
+  const memberSinceDate = useMemo(() => {
+    const candidates = [
+      cloudCreatedAt,
+      user?.createdAt,
+      firebaseUser?.metadata?.creationTime,
+      firebaseUser?.metadata,
+      firebaseUser?.providerData?.[0]?.creationTime
+    ]
+
+    for (const candidate of candidates) {
+      const parsed = coerceToDate(candidate)
+      if (parsed) {
+        return parsed
+      }
+    }
+
+    return null
+  }, [cloudCreatedAt, user?.createdAt, firebaseUser])
+
+  const memberSinceDisplay = useMemo(() => {
+    if (!memberSinceDate) return 'Unknown'
+
+    try {
+      return memberSinceDate.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch (error) {
+      console.error('Failed to format member since date:', error)
+      return 'Unknown'
+    }
+  }, [memberSinceDate])
 
   // Initialize emailVerified state from firebaseUser
   useEffect(() => {
@@ -57,6 +149,42 @@ export default function AccountProfile() {
 
     return () => clearInterval(interval)
   }, [firebaseUser])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchCloudCreatedAt = async () => {
+      if (cloudCreatedAt || memberSinceDate || !firebaseUser?.uid) {
+        return
+      }
+
+      try {
+        const db = getFirestore()
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+
+        if (!isMounted) {
+          return
+        }
+
+        if (userDoc.exists()) {
+          const data = userDoc.data() || {}
+          const createdAtValue = data.createdAt || data.created_at || data.creationTime
+          const parsed = coerceToDate(createdAtValue)
+          if (parsed) {
+            setCloudCreatedAt(parsed)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load member since date from Firestore:', error)
+      }
+    }
+
+    fetchCloudCreatedAt()
+
+    return () => {
+      isMounted = false
+    }
+  }, [cloudCreatedAt, memberSinceDate, firebaseUser])
 
   const handleEmailUpdate = async () => {
     if (!emailDraft || emailDraft === user?.email) {
@@ -214,7 +342,7 @@ export default function AccountProfile() {
               <InfoCard
                 icon={Calendar}
                 label="Member Since"
-                value={user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
+                value={memberSinceDisplay}
                 theme={theme}
               />
               <EmailStatusCard

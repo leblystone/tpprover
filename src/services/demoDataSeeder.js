@@ -5,7 +5,8 @@
  */
 
 import { db } from '../config/firebase';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { loadUserState, saveUserState } from './cloudStorage';
 import { 
   MOCK_VENDORS, 
   MOCK_ORDERS, 
@@ -152,8 +153,24 @@ export async function seedSampleDataToCloud(userId, password) {
      const userDataRef = doc(db, 'userData', userId);
      await setDoc(userDataRef, cleanedSampleData, { merge: true });
      
-     console.log('✅ Sample data successfully seeded to Firestore (cloud backup)');
-     console.log(`📦 Total items: ${Object.values(cleanedSampleData._metadata.itemCount).reduce((a, b) => a + b, 0)}`);
+    console.log('✅ Sample data successfully seeded to Firestore (cloud backup)');
+    console.log(`📦 Total items: ${Object.values(cleanedSampleData._metadata.itemCount).reduce((a, b) => a + b, 0)}`);
+
+    try {
+      const statusTimestamp = new Date().toISOString();
+      try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
+      try { localStorage.setItem('tpprover_sample_data_cleared_at', statusTimestamp); } catch {}
+      try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+      const currentState = await loadUserState(userId) || {};
+      await saveUserState(userId, { 
+        ...currentState, 
+        sampleDataCleared: false, 
+        sampleDataClearedAt: statusTimestamp 
+      });
+      console.log('☁️ Sample data status reset to active in cloud state');
+    } catch (stateError) {
+      console.warn('⚠️ Sample data seeded but failed to update state metadata:', stateError);
+    }
     
     return true;
   } catch (error) {
@@ -168,6 +185,10 @@ export async function seedSampleDataToCloud(userId, password) {
     console.log('🔄 Falling back to localStorage seeding...');
     try {
       const { seedInitialData } = await import('../utils/seed');
+    const fallbackTimestamp = new Date().toISOString();
+    try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
+    try { localStorage.setItem('tpprover_sample_data_cleared_at', fallbackTimestamp); } catch {}
+    try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
       seedInitialData();
       return true;
     } catch (fallbackError) {

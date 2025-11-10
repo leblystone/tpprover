@@ -156,42 +156,108 @@ export function AppProvider({ children }) {
                 const hasThemeInCloud = cloudPreferences?.theme;
                 
                 // CRITICAL: Check if demo data was cleared on another platform
+                const parseTimestamp = (value) => {
+                    if (!value) return 0;
+                    const parsed = Date.parse(value);
+                    return Number.isNaN(parsed) ? 0 : parsed;
+                };
+
                 const userState = await loadUserState(userId);
                 const sampleDataClearedInCloud = (() => {
                     if (userState?.sampleDataCleared === true) return true;
                     if (userState?.demoDataCleared === true) return true; // legacy fallback
                     return false;
                 })();
+                const sampleDataClearedAtCloudRaw = userState?.sampleDataClearedAt || userState?.demoDataClearedAt || null;
+                const sampleDataClearedAtCloud = parseTimestamp(sampleDataClearedAtCloudRaw);
+
                 const legacySampleFlag = localStorage.getItem('tpprover_demo_data_cleared') === 'true';
                 const sampleDataClearedLocally = (() => {
                     const sampleFlag = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                     if (sampleFlag) return true;
                     if (legacySampleFlag) {
                         try { localStorage.setItem('tpprover_sample_data_cleared', 'true'); } catch {}
+                        const legacyTimestamp = new Date().toISOString();
+                        try { localStorage.setItem('tpprover_sample_data_cleared_at', legacyTimestamp); } catch {}
                         try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
                         return true;
                     }
                     return false;
                 })();
-                
-                if (sampleDataClearedInCloud && !sampleDataClearedLocally) {
-                    console.log('🔄 Demo data was cleared on another platform - syncing local data');
-                    // Clear demo data locally to match cloud state
-                    const { clearMockData } = await import('../utils/seed');
-                    clearMockData();
-                    localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                    try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
-                    localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
-                } else if (!sampleDataClearedInCloud && sampleDataClearedLocally) {
-                    // CRITICAL FIX: If local flag exists but cloud doesn't have it, sync to cloud
-                    // This prevents sample data from reappearing when cloud data is empty
-                    console.log('🔄 Demo data was cleared locally but not in cloud - syncing to cloud');
-                    try {
-                        const currentState = userState || {};
-                        await saveUserState(userId, { ...currentState, sampleDataCleared: true });
-                        console.log('✅ Saved sample data cleared flag to cloud');
-                    } catch (error) {
-                        console.error('❌ Failed to save sample data cleared flag to cloud:', error);
+                const localSampleClearedAtRaw = localStorage.getItem('tpprover_sample_data_cleared_at');
+                const sampleDataClearedAtLocal = (() => {
+                    const parsed = parseTimestamp(localSampleClearedAtRaw);
+                    if (parsed === 0 && sampleDataClearedLocally) {
+                        const fallback = new Date().toISOString();
+                        try { localStorage.setItem('tpprover_sample_data_cleared_at', fallback); } catch {}
+                        return parseTimestamp(fallback);
+                    }
+                    return parsed;
+                })();
+
+                const statusesDiffer = sampleDataClearedInCloud !== sampleDataClearedLocally;
+                const preferCloud = sampleDataClearedAtCloud > sampleDataClearedAtLocal;
+                const preferLocal = sampleDataClearedAtLocal > sampleDataClearedAtCloud;
+                const timestampsMissing = sampleDataClearedAtCloud === 0 && sampleDataClearedAtLocal === 0;
+
+                if (statusesDiffer) {
+                    if (preferCloud || (timestampsMissing && sampleDataClearedInCloud)) {
+                        if (sampleDataClearedInCloud) {
+                            console.log('🔄 Sample data was cleared on another platform - syncing local data');
+                            const { clearMockData } = await import('../utils/seed');
+                            clearMockData();
+                            localStorage.setItem('tpprover_sample_data_cleared', 'true');
+                            const timestampIso = sampleDataClearedAtCloudRaw || new Date().toISOString();
+                            localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
+                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+                        } else {
+                            console.log('🔄 Sample data was re-enabled in cloud - clearing local flag');
+                            try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
+                            const timestampIso = sampleDataClearedAtCloudRaw || new Date().toISOString();
+                            if (timestampIso) {
+                                localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
+                            } else {
+                                localStorage.removeItem('tpprover_sample_data_cleared_at');
+                            }
+                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                        }
+                    } else if (preferLocal || (timestampsMissing && sampleDataClearedLocally)) {
+                        console.log('🔄 Sample data status changed locally - syncing to cloud');
+                        try {
+                            const currentState = userState || {};
+                            const timestampIso = localSampleClearedAtRaw || new Date().toISOString();
+                            if (!localSampleClearedAtRaw) {
+                                try { localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso); } catch {}
+                            }
+                            await saveUserState(userId, { 
+                                ...currentState, 
+                                sampleDataCleared: sampleDataClearedLocally, 
+                                sampleDataClearedAt: timestampIso 
+                            });
+                            console.log('✅ Saved sample data status to cloud');
+                        } catch (error) {
+                            console.error('❌ Failed to save sample data status to cloud:', error);
+                        }
+                    } else {
+                        // Default to cloud state when timestamps are equal
+                        if (sampleDataClearedInCloud) {
+                            const { clearMockData } = await import('../utils/seed');
+                            clearMockData();
+                            localStorage.setItem('tpprover_sample_data_cleared', 'true');
+                            const timestampIso = sampleDataClearedAtCloudRaw || new Date().toISOString();
+                            localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
+                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
+                        } else {
+                            try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
+                            if (sampleDataClearedAtCloudRaw) {
+                                localStorage.setItem('tpprover_sample_data_cleared_at', sampleDataClearedAtCloudRaw);
+                            } else {
+                                localStorage.removeItem('tpprover_sample_data_cleared_at');
+                            }
+                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                        }
                     }
                 }
                 

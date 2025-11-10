@@ -254,6 +254,7 @@ export default function SettingsData() {
     try {
       // Clear the flag BEFORE seeding so the seed functions don't block it
       localStorage.removeItem('tpprover_sample_data_cleared');
+      localStorage.removeItem('tpprover_sample_data_cleared_at');
       localStorage.removeItem('tpprover_sample_banner_dismissed');
       
       const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
@@ -285,9 +286,17 @@ export default function SettingsData() {
     setIsRemovingSampleData(true);
     try {
       clearMockData();
+      const clearedAt = new Date().toISOString();
       
       localStorage.setItem('tpprover_sample_data_cleared', 'true');
+      localStorage.setItem('tpprover_sample_data_cleared_at', clearedAt);
       localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
+      
+      if (firebaseUser?.uid) {
+        const { saveUserState, loadUserState } = await import('../services/cloudStorage');
+        const currentState = await loadUserState(firebaseUser.uid) || {};
+        await saveUserState(firebaseUser.uid, { ...currentState, sampleDataCleared: true, sampleDataClearedAt: clearedAt });
+      }
       
       refreshDataAfterClear();
       
