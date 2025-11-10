@@ -157,17 +157,32 @@ export function AppProvider({ children }) {
                 
                 // CRITICAL: Check if demo data was cleared on another platform
                 const userState = await loadUserState(userId);
-                const demoDataClearedInCloud = userState?.demoDataCleared === true;
-                const demoDataClearedLocally = localStorage.getItem('tpprover_demo_data_cleared') === 'true';
+                const sampleDataClearedInCloud = (() => {
+                    if (userState?.sampleDataCleared === true) return true;
+                    if (userState?.demoDataCleared === true) return true; // legacy fallback
+                    return false;
+                })();
+                const legacySampleFlag = localStorage.getItem('tpprover_demo_data_cleared') === 'true';
+                const sampleDataClearedLocally = (() => {
+                    const sampleFlag = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                    if (sampleFlag) return true;
+                    if (legacySampleFlag) {
+                        try { localStorage.setItem('tpprover_sample_data_cleared', 'true'); } catch {}
+                        try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
+                        return true;
+                    }
+                    return false;
+                })();
                 
-                if (demoDataClearedInCloud && !demoDataClearedLocally) {
+                if (sampleDataClearedInCloud && !sampleDataClearedLocally) {
                     console.log('🔄 Demo data was cleared on another platform - syncing local data');
                     // Clear demo data locally to match cloud state
                     const { clearMockData } = await import('../utils/seed');
                     clearMockData();
-                    localStorage.setItem('tpprover_demo_data_cleared', 'true');
+                    localStorage.setItem('tpprover_sample_data_cleared', 'true');
+                    try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
                     localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
-                } else if (!demoDataClearedInCloud && demoDataClearedLocally) {
+                } else if (!sampleDataClearedInCloud && sampleDataClearedLocally) {
                     // CRITICAL FIX: If local flag exists but cloud doesn't have it, sync to cloud
                     // This prevents sample data from reappearing when cloud data is empty
                     console.log('🔄 Demo data was cleared locally but not in cloud - syncing to cloud');
@@ -274,7 +289,7 @@ export function AppProvider({ children }) {
                         // This prevents sample data from reappearing after user removed it
                         const sampleDataClearedLocally = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                         
-                        if (demoDataClearedInCloud || sampleDataClearedLocally) {
+                        if (sampleDataClearedInCloud || sampleDataClearedLocally) {
                             console.log('ℹ️ Account has 0 items but user cleared sample data - respecting user preference, not seeding');
                         } else {
                             console.log('📭 Account has 0 items - auto-seeding demo data to Firestore...');

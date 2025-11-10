@@ -99,7 +99,10 @@ function validatePassword(password) {
 export default function Login() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { setUser } = useAppContext();
+    const appContext = useAppContext();
+    const setUser = appContext?.setUser ?? (() => {
+        console.warn('useAppContext() returned undefined - falling back to no-op setUser. Ensure AppProvider is mounted.');
+    });
     const { firebaseUser, isFirebaseLoading, setPassword: setFirebasePassword } = useFirebase();
     const isTrialMode = searchParams.get('trial') === 'true';
     const isSignupMode = searchParams.get('signup') === 'true';

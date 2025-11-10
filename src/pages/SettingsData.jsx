@@ -232,7 +232,7 @@ export default function SettingsData() {
           'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile',
           'tpprover_scheduled_buys', 'tpprover_auth_token', 'tpprover_user',
           'tpprover_settings', 'tpprover_theme', 'tpprover_has_onboarded',
-          'tpprover_has_seeded', 'tpprover_demo_data_cleared', 
+          'tpprover_has_seeded', 'tpprover_sample_data_cleared', 'tpprover_demo_data_cleared',
           'tpprover_demo_banner_dismissed'
         ];
         allAppKeys.forEach(key => localStorage.removeItem(key));
