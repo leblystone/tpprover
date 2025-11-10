@@ -1,4 +1,4 @@
- import React from 'react'
+import React from 'react'
 
 export default function LoadingOverlay({ isVisible, message = 'Loading...', theme }) {
   if (!isVisible) return null
@@ -11,5 +11,4 @@ export default function LoadingOverlay({ isVisible, message = 'Loading...', them
     </div>
   )
 }
-
 

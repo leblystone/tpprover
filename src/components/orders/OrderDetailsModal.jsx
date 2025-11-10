@@ -231,6 +231,9 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           type: 'success'
         }
       }));
+
+      // Close the modal after successful save
+      onClose();
     } catch (error) {
       console.error('❌ Failed to save order:', error);
       setSaveError('We had trouble saving this order. Please try again.');

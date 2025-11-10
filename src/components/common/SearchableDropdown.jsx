@@ -6,6 +6,8 @@ export default function SearchableDropdown({
     value,
     onChange,
     placeholder = "Select an option...",
+    emptyMessage = "No options match your search.",
+    idleMessage = "Start typing to search.",
     theme
 }) {
     const [query, setQuery] = useState('');
@@ -13,12 +15,14 @@ export default function SearchableDropdown({
     const inputRef = useRef(null);
     const dropdownRef = useRef(null);
 
+    const trimmedQuery = query.trim();
+
     const filteredOptions = useMemo(() => {
-        if (!query) return options;
+        if (!trimmedQuery) return [];
         return options.filter(option => 
-            (option.label || '').toLowerCase().includes(query.toLowerCase())
+            (option.label || '').toLowerCase().includes(trimmedQuery.toLowerCase())
         );
-    }, [options, query]);
+    }, [options, trimmedQuery]);
 
     const selectedOption = options.find(opt => opt.value === value);
 
@@ -73,7 +77,9 @@ export default function SearchableDropdown({
                     }}
                 >
                     <ul>
-                        {filteredOptions.length > 0 ? (
+                        {!trimmedQuery ? (
+                            <li className="p-2" style={{ color: theme.textLight }}>{idleMessage}</li>
+                        ) : filteredOptions.length > 0 ? (
                             filteredOptions.map(option => (
                                 <li
                                     key={option.value}
@@ -101,7 +107,7 @@ export default function SearchableDropdown({
                                 </li>
                             ))
                         ) : (
-                            <li className="p-2" style={{ color: theme.textLight }}>No options match your search.</li>
+                            <li className="p-2" style={{ color: theme.textLight }}>{emptyMessage}</li>
                         )}
                     </ul>
                 </div>

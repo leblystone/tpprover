@@ -60,16 +60,19 @@ const SupplementsWidget = ({
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={onAddSupplement}
-                className="w-6 h-6 rounded-full border-2 flex items-center justify-center action-button-hover"
-                style={{ borderColor: theme.primary, color: theme.primary }}
+                className="p-1 rounded-full flex items-center justify-center action-button-hover transition-colors"
+                style={{ 
+                  color: theme.primary,
+                  backgroundColor: 'transparent'
+                }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + '30' : theme.primary + '20';
+                  e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + '20' : theme.primary + '12';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <Plus size={12} strokeWidth={3} className="icon-hover" />
+                <Plus size={11} strokeWidth={3} className="icon-hover" />
               </button>
             </ModernTooltip>
           </div>

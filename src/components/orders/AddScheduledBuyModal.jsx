@@ -3,11 +3,11 @@ import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 
 export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave, onDelete }) {
-    const [form, setForm] = useState({
-        item: '',
-        openDate: '',
-        closeDate: '',
-        vendor: '',
+    const [form, setForm] = useState({ 
+        item: '', 
+        openDate: '', 
+        closeDate: '', 
+        vendor: '', 
         location: '',
         participants: '',
         price: '',
@@ -20,11 +20,11 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
     useEffect(() => {
         if (open) {
             if (buy) {
-                setForm({
-                    item: '',
-                    openDate: new Date().toISOString().slice(0, 10),
-                    closeDate: new Date().toISOString().slice(0, 10),
-                    vendor: '',
+                setForm({ 
+                    item: '', 
+                    openDate: new Date().toISOString().slice(0, 10), 
+                    closeDate: new Date().toISOString().slice(0, 10), 
+                    vendor: '', 
                     location: '',
                     participants: '',
                     price: '',
@@ -33,11 +33,11 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                     ...buy 
                 });
             } else {
-                setForm({
-                    item: '',
-                    openDate: new Date().toISOString().slice(0, 10),
-                    closeDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-                    vendor: '',
+                setForm({ 
+                    item: '', 
+                    openDate: new Date().toISOString().slice(0, 10), 
+                    closeDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), 
+                    vendor: '', 
                     location: '',
                     participants: '',
                     price: '',
@@ -58,6 +58,8 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
         setIsSaving(true);
         try {
             await Promise.resolve(onSave(payloadWithId()));
+            // Close the modal after successful save
+            onClose();
         } catch (error) {
             console.error('Failed to save scheduled buy:', error);
         } finally {
@@ -104,14 +106,6 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
             footer={
                 <div className="w-full flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        <button 
-                            type="button"
-                            onClick={onClose} 
-                            className="px-4 py-2 rounded-lg border font-medium transition-all hover:bg-gray-50" 
-                            style={{ borderColor: theme.border, color: theme.text }}
-                        >
-                            Cancel
-                        </button>
                         {canDelete && (
                             <button 
                                 type="button"
