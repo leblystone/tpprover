@@ -591,13 +591,17 @@ function SyncFromStripeButton({ user, theme }) {
     setResult(null);
 
     try {
+      const userId = user.uid || user.id;
+      console.log('🔍 Syncing user:', userId, 'Full user object:', user);
+      
       const { getFunctions, httpsCallable } = await import('firebase/functions');
       const functions = getFunctions();
       const syncFunction = httpsCallable(functions, 'manualSyncSubscription');
       
-      const response = await syncFunction({ 
-        userId: user.uid || user.id
-      });
+      const payload = { userId };
+      console.log('📤 Sending payload to function:', payload);
+      
+      const response = await syncFunction(payload);
       
       if (response.data.success) {
         setResult({

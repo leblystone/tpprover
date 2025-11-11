@@ -10,9 +10,16 @@ const functions = require('firebase-functions');
  * Note: This is an admin function - should only be accessible from admin panel
  */
 exports.manualSyncSubscription = functions.https.onCall(async (data, context) => {
+  console.log('🔍 Function called with data:', JSON.stringify(data));
+  console.log('🔍 Context auth:', context.auth ? 'Authenticated' : 'Not authenticated');
+  
   const { userId, stripeCustomerId } = data;
+  
+  console.log('🔍 Extracted userId:', userId);
+  console.log('🔍 Extracted stripeCustomerId:', stripeCustomerId);
 
   if (!userId) {
+    console.error('❌ userId is missing from data object');
     throw new functions.https.HttpsError('invalid-argument', 'userId is required');
   }
 
