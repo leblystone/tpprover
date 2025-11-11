@@ -944,7 +944,7 @@ export default function Login() {
                             </h2>
                             <p className="text-sm mt-2" style={{ color: theme.textLight }}>
                                 {mode === 'login' && 'Sign in to your account'}
-                                {mode === 'signup' && 'Join The Pep Planner'}
+                                {mode === 'signup' && 'Try everything free for 10 days'}
                             </p>
                         </div>
 
