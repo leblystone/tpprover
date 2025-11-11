@@ -18,6 +18,14 @@ export default function DocumentationUpload({
   const [newItem, setNewItem] = useState({ type: 'link', title: '', url: '', notes: '' });
   const [isUploading, setIsUploading] = useState(false);
 
+  // Ensure controlled inputs always have defined values
+  const safeNewItem = {
+    type: newItem.type || 'link',
+    title: newItem.title || '',
+    url: newItem.url || '',
+    notes: newItem.notes || ''
+  };
+
   const handleAddItem = () => {
     if (!newItem.title.trim()) return;
     
@@ -236,13 +244,13 @@ export default function DocumentationUpload({
               <div className="flex gap-2">
                 {allowLinks && (
                   <button
-                    onClick={() => setNewItem({ ...newItem, type: 'link' })}
+                    onClick={() => setNewItem({ ...safeNewItem, type: 'link' })}
                     className={`px-3 py-2 text-sm rounded-md transition-colors ${
-                      newItem.type === 'link' ? 'text-white' : 'hover:bg-gray-100'
+                      safeNewItem.type === 'link' ? 'text-white' : 'hover:bg-gray-100'
                     }`}
                     style={{
-                      backgroundColor: newItem.type === 'link' ? theme.primary : 'transparent',
-                      color: newItem.type === 'link' ? theme.textOnPrimary : theme.text
+                      backgroundColor: safeNewItem.type === 'link' ? theme.primary : 'transparent',
+                      color: safeNewItem.type === 'link' ? theme.textOnPrimary : theme.text
                     }}
                   >
                     <Link size={14} className="inline mr-1" />
@@ -251,13 +259,13 @@ export default function DocumentationUpload({
                 )}
                 {allowImages && (
                   <button
-                    onClick={() => setNewItem({ ...newItem, type: 'image' })}
+                    onClick={() => setNewItem({ ...safeNewItem, type: 'image' })}
                     className={`px-3 py-2 text-sm rounded-md transition-colors ${
-                      newItem.type === 'image' ? 'text-white' : 'hover:bg-gray-100'
+                      safeNewItem.type === 'image' ? 'text-white' : 'hover:bg-gray-100'
                     }`}
                     style={{
-                      backgroundColor: newItem.type === 'image' ? theme.primary : 'transparent',
-                      color: newItem.type === 'image' ? theme.textOnPrimary : theme.text
+                      backgroundColor: safeNewItem.type === 'image' ? theme.primary : 'transparent',
+                      color: safeNewItem.type === 'image' ? theme.textOnPrimary : theme.text
                     }}
                   >
                     <Camera size={14} className="inline mr-1" />
@@ -274,8 +282,8 @@ export default function DocumentationUpload({
               </label>
               <input
                 type="text"
-                value={newItem.title}
-                onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
+                value={safeNewItem.title}
+                onChange={(e) => setNewItem({ ...safeNewItem, title: e.target.value })}
                 placeholder="e.g., COA Certificate, Product Photo"
                 className="w-full px-3 py-2 border rounded-md"
                 style={{ borderColor: theme.border }}
@@ -283,15 +291,15 @@ export default function DocumentationUpload({
             </div>
 
             {/* URL or File Upload */}
-            {newItem.type === 'link' ? (
+            {safeNewItem.type === 'link' ? (
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
                   URL
                 </label>
                 <input
                   type="url"
-                  value={newItem.url}
-                  onChange={(e) => setNewItem({ ...newItem, url: e.target.value })}
+                  value={safeNewItem.url}
+                  onChange={(e) => setNewItem({ ...safeNewItem, url: e.target.value })}
                   placeholder="https://example.com/coa.pdf"
                   className="w-full px-3 py-2 border rounded-md"
                   style={{ borderColor: theme.border }}
@@ -329,8 +337,8 @@ export default function DocumentationUpload({
                 Notes (Optional)
               </label>
               <textarea
-                value={newItem.notes}
-                onChange={(e) => setNewItem({ ...newItem, notes: e.target.value })}
+                value={safeNewItem.notes}
+                onChange={(e) => setNewItem({ ...safeNewItem, notes: e.target.value })}
                 placeholder="Additional notes about this documentation..."
                 rows={2}
                 className="w-full px-3 py-2 border rounded-md resize-none"
@@ -341,15 +349,15 @@ export default function DocumentationUpload({
             {/* Actions */}
             <div className="flex gap-2">
               <button
-                onClick={newItem.type === 'image' ? undefined : handleAddItem}
-                disabled={!newItem.title.trim() || (newItem.type === 'link' && !newItem.url.trim()) || isUploading}
+                onClick={safeNewItem.type === 'image' ? undefined : handleAddItem}
+                disabled={!safeNewItem.title.trim() || (safeNewItem.type === 'link' && !safeNewItem.url.trim()) || isUploading}
                 className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ 
                   backgroundColor: theme.primary, 
                   color: theme.textOnPrimary 
                 }}
               >
-                {isUploading ? 'Uploading...' : (newItem.type === 'image' ? 'Select Image' : 'Add')}
+                {isUploading ? 'Uploading...' : (safeNewItem.type === 'image' ? 'Select Image' : 'Add')}
               </button>
               <button
                 onClick={() => {
