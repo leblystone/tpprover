@@ -1371,6 +1371,12 @@ export function AppProvider({ children }) {
         const dataUnsubscribe = subscribeToAppData(userId, (remoteData) => {
             try {
                 if (!remoteData) return;
+                
+                // Prevent processing if we're already handling an update
+                if (isApplyingRemoteUpdateRef.current) {
+                    console.log('⏸️ Skipping app data sync - already processing an update');
+                    return;
+                }
 
                 // Debounce updates to prevent rapid-fire state changes
                 if (updateTimeoutId) {
