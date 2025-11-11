@@ -46,6 +46,7 @@ import EmailTriggerManager from '../components/admin/EmailTriggerManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
 import UserDetailModal from '../components/admin/UserDetailModal';
+import VersionManager from '../components/admin/VersionManager';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -1701,6 +1702,7 @@ function Admin() {
                 icon={Sliders}
                 items={[
                   { id: 'features', label: 'Feature Flags', icon: Sliders, count: Object.keys(featureFlags.betaFeatures || {}).length, color: '#f59e0b' },
+                  { id: 'version', label: 'App Version', icon: Smartphone, count: 0, color: '#8b5cf6' },
                   { id: 'agreements', label: 'Legal', icon: FileCheck, count: 0, color: '#ef4444' }
                 ]}
                 activeTab={activeTab}
@@ -2578,19 +2580,53 @@ function Admin() {
             {/* Feedback Categories & Trends */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feedback Categories</h2>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feedback Types</h2>
                 <div className="space-y-3">
-                  {Object.entries(feedbackAnalysis.categories).map(([category, count]) => (
-                    <div key={category} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
+                  {(() => {
+                    // Count feedback by type
+                    const typeCounts = {
+                      suggestion: feedback.filter(f => f.type === 'suggestion').length,
+                      bug: feedback.filter(f => f.type === 'bug').length,
+                      improvement: feedback.filter(f => f.type === 'improvement').length,
+                      general: feedback.filter(f => f.type === 'general').length,
+                      untyped: feedback.filter(f => !f.type).length
+                    };
+                    
+                    const typeConfigs = [
+                      { id: 'suggestion', label: 'Suggestions', icon: Lightbulb, color: theme.primary },
+                      { id: 'bug', label: 'Bug Reports', icon: AlertTriangle, color: theme.error },
+                      { id: 'improvement', label: 'Improvements', icon: Star, color: theme.warning },
+                      { id: 'general', label: 'General Feedback', icon: MessageCircle, color: theme.info }
+                    ];
+                    
+                    return typeConfigs.map(typeConfig => {
+                      const count = typeCounts[typeConfig.id];
+                      const TypeIcon = typeConfig.icon;
+                      
+                      return (
+                        <div key={typeConfig.id} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: typeConfig.color + '20' }}>
+                              <TypeIcon size={16} style={{ color: typeConfig.color }} />
+                            </div>
+                            <span className="text-sm font-medium" style={{ color: theme.text }}>{typeConfig.label}</span>
+                          </div>
+                          <span className="text-lg font-bold" style={{ color: typeConfig.color }}>{count}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                  {feedback.filter(f => !f.type).length > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
                       <div className="flex items-center gap-2">
-                        {category === 'bugs' && <AlertTriangle size={16} style={{ color: theme.error }} />}
-                        {category === 'features' && <Sparkles size={16} style={{ color: theme.info }} />}
-                        {category === 'praise' && <ThumbsUp size={16} style={{ color: theme.success }} />}
-                        <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{category}</span>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.textLight + '20' }}>
+                          <MessageSquare size={16} style={{ color: theme.textLight }} />
+                        </div>
+                        <span className="text-sm font-medium" style={{ color: theme.text }}>Legacy/Untyped</span>
                       </div>
-                      <span className="text-sm font-bold" style={{ color: theme.primaryDark }}>{count}</span>
+                      <span className="text-lg font-bold" style={{ color: theme.textLight }}>{feedback.filter(f => !f.type).length}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -2664,16 +2700,33 @@ function Admin() {
                     const statusConfig = statusColors[item.status] || statusColors.new;
                     const StatusIcon = statusConfig.icon;
 
+                    // Feedback type colors and icons
+                    const typeColors = {
+                      'suggestion': { bg: theme.primary + '15', color: theme.primary, icon: Lightbulb, label: 'Suggestion' },
+                      'bug': { bg: theme.error + '15', color: theme.error, icon: AlertTriangle, label: 'Bug' },
+                      'improvement': { bg: theme.warning + '15', color: theme.warning, icon: Star, label: 'Improvement' },
+                      'general': { bg: theme.info + '15', color: theme.info, icon: MessageCircle, label: 'General' }
+                    };
+                    const typeConfig = item.type ? typeColors[item.type] : null;
+                    const TypeIcon = typeConfig?.icon;
+
                     return (
                       <div key={item.id} className="p-4">
                         <div className="flex items-start justify-between gap-4 min-w-0">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <div className="flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium" 
                                    style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}>
                                 <StatusIcon size={12} />
                                 {item.status}
                               </div>
+                              {typeConfig && (
+                                <div className="flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium" 
+                                     style={{ backgroundColor: typeConfig.bg, color: typeConfig.color }}>
+                                  <TypeIcon size={12} />
+                                  {typeConfig.label}
+                                </div>
+                              )}
                               <span className="text-sm font-medium" style={{ color: theme.text }}>
                                 {item.userEmail}
                               </span>
@@ -3248,6 +3301,10 @@ function Admin() {
 
         {activeTab === 'agreements' && (
           <AgreementTracking theme={theme} />
+        )}
+
+        {activeTab === 'version' && (
+          <VersionManager theme={theme} />
         )}
 
         {activeTab === 'notifications' && (

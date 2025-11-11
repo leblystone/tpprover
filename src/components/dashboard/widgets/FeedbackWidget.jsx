@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { MessageCircle, Send, Heart, Lightbulb, Bug, Star, CheckCircle } from 'lucide-react';
+import { submitFeedback } from '../../../services/firebase';
+import { useAppContext } from '../../../context/AppContext';
 
 const FeedbackWidget = ({ widget, theme }) => {
+  const { user } = useAppContext();
   const [feedbackType, setFeedbackType] = useState('suggestion');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const feedbackTypes = [
     { id: 'suggestion', label: 'Suggest', icon: Lightbulb, color: theme.primary },
@@ -15,28 +20,49 @@ const FeedbackWidget = ({ widget, theme }) => {
 
   const selectedType = feedbackTypes.find(type => type.id === feedbackType);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    // Save feedback
-    const feedback = {
-      id: Date.now(),
-      type: feedbackType,
-      message: message.trim(),
-      timestamp: new Date().toISOString(),
-      status: 'submitted'
-    };
-    
-    const existingFeedback = JSON.parse(localStorage.getItem('tpp_user_feedback') || '[]');
-    existingFeedback.push(feedback);
-    localStorage.setItem('tpp_user_feedback', JSON.stringify(existingFeedback));
-    
-    setSubmitted(true);
-    setMessage('');
-    
-    // Reset after 3 seconds
-    setTimeout(() => setSubmitted(false), 3000);
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      console.log('📝 Submitting feedback from widget...', {
+        type: feedbackType,
+        message: message.trim(),
+        userEmail: user?.email || 'anonymous',
+        userId: user?.uid || null
+      });
+
+      // Submit to Firestore
+      const feedbackId = await submitFeedback({
+        type: feedbackType,
+        message: message.trim(),
+        userEmail: user?.email || 'anonymous',
+        userId: user?.uid || null,
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log('✅ Feedback submitted successfully with ID:', feedbackId);
+      
+      setSubmitted(true);
+      setMessage('');
+      
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setSubmitted(false);
+        setFeedbackType('suggestion');
+      }, 3000);
+    } catch (error) {
+      console.error('❌ Error submitting feedback:', error);
+      setError('Failed to submit. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -114,22 +140,28 @@ const FeedbackWidget = ({ widget, theme }) => {
               boxSizing: 'border-box'
             }}
             maxLength={300}
+            disabled={isSubmitting}
           />
+          {error && (
+            <p className="text-xs mt-1" style={{ color: theme.error }}>
+              {error}
+            </p>
+          )}
         </div>
 
         {/* Submit Button */}
         <div className="flex-shrink-0">
           <button
             type="submit"
-            disabled={!message.trim()}
+            disabled={!message.trim() || isSubmitting}
             className="w-full px-3 py-2 rounded-lg text-xs font-medium action-button-hover flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ 
               backgroundColor: selectedType?.color || theme.primary, 
               color: theme.textOnPrimary 
             }}
           >
-            <span className="text-hover">Send</span>
-            {selectedType?.icon && (
+            <span className="text-hover">{isSubmitting ? 'Sending...' : 'Send'}</span>
+            {selectedType?.icon && !isSubmitting && (
               <selectedType.icon size={12} className="icon-hover" />
             )}
           </button>
