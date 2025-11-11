@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, Edit, Beaker } from 'lucide-react';
+import { Settings, Edit, FlaskConical } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -728,7 +728,7 @@ export default function CustomizableDashboard() {
       <div className="space-y-2 overflow-x-hidden w-full max-w-full relative">
         {/* Decorative background icon - positioned within content area */}
         <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
-          <Beaker 
+          <FlaskConical 
             size={280} 
             strokeWidth={1}
             style={{ 
