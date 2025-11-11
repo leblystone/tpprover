@@ -286,6 +286,11 @@ export default function Login() {
           'tpprover_scheduled_buys'
         ];
         
+        // CRITICAL: Also backup sample data flags
+        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared');
+        const sampleDataClearedAt = localStorage.getItem('tpprover_sample_data_cleared_at');
+        const sampleBannerDismissed = localStorage.getItem('tpprover_sample_banner_dismissed');
+        
         dataKeys.forEach(key => {
           const data = localStorage.getItem(key);
           if (data) {
@@ -414,6 +419,19 @@ export default function Login() {
             }
           });
           
+        }
+        
+        // CRITICAL: Restore sample data flags regardless of whether there's existing data
+        if (sampleDataCleared) {
+          localStorage.setItem('tpprover_sample_data_cleared', sampleDataCleared);
+          console.log('💾 Restored sampleDataCleared flag:', sampleDataCleared);
+        }
+        if (sampleDataClearedAt) {
+          localStorage.setItem('tpprover_sample_data_cleared_at', sampleDataClearedAt);
+          console.log('💾 Restored sampleDataClearedAt timestamp:', sampleDataClearedAt);
+        }
+        if (sampleBannerDismissed) {
+          localStorage.setItem('tpprover_sample_banner_dismissed', sampleBannerDismissed);
         }
         
         console.log('🔄 Step 11: Setting user context...');
