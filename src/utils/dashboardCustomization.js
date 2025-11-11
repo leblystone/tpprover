@@ -18,7 +18,8 @@ export const WIDGET_TYPES = {
   GLOSSARY: 'glossary',
   FEEDBACK: 'feedback',
   NOTES: 'notes',
-  INJECTION_HISTORY: 'injection_history'
+  INJECTION_HISTORY: 'injection_history',
+  TIPS: 'tips'
 };
 
 export const WIDGET_SIZES = {
@@ -199,6 +200,17 @@ export const DEFAULT_WIDGETS = [
     position: { x: 1, y: 3 },
     enabled: true,
     settings: {}
+  },
+  {
+    id: 'tips',
+    type: WIDGET_TYPES.TIPS,
+    title: 'Tips & Features',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 2, y: 3 },
+    enabled: true,
+    settings: {
+      rotationInterval: 20
+    }
   },
   // Optional widgets (disabled by default but available for customization)
   {
@@ -385,6 +397,15 @@ export const WIDGET_METADATA = {
     settings: [
       { key: 'showRecent', label: 'Number of recent injections to show', type: 'number', default: 5, min: 1, max: 20 }
     ]
+  },
+  [WIDGET_TYPES.TIPS]: {
+    title: 'Tips & Features',
+    description: 'Rotating tips to help you discover app features and functionality',
+    icon: 'Lightbulb',
+    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
+    settings: [
+      { key: 'rotationInterval', label: 'Rotation interval (seconds)', type: 'number', default: 20, min: 10, max: 60 }
+    ]
   }
 };
 
@@ -418,7 +439,7 @@ export const loadDashboardLayout = () => {
   try {
     // Check if we need to force a reset due to widget size updates
     const layoutVersion = localStorage.getItem('tpprover_dashboard_version');
-    const currentVersion = '3.2'; // UPDATED LAYOUT: Research Glossary widget size changed to MEDIUM to match Supplements card
+    const currentVersion = '3.3'; // UPDATED LAYOUT: Added Tips & Features widget for user onboarding
     
     console.log('🔍 Dashboard version check:', { layoutVersion, currentVersion, match: layoutVersion === currentVersion });
     

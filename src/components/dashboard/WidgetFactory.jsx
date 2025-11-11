@@ -20,6 +20,7 @@ import GlossaryWidget from './widgets/GlossaryWidget';
 import FeedbackWidget from './widgets/FeedbackWidget';
 import NotesWidget from './widgets/NotesWidget';
 import InjectionHistoryWidget from './widgets/InjectionHistoryWidget';
+import TipsWidget from './widgets/TipsWidget';
 
 const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
   const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
@@ -229,6 +230,14 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
     case WIDGET_TYPES.INJECTION_HISTORY:
       return (
         <InjectionHistoryWidget 
+          widget={widget} 
+          theme={theme}
+        />
+      );
+
+    case WIDGET_TYPES.TIPS:
+      return (
+        <TipsWidget 
           widget={widget} 
           theme={theme}
         />

@@ -1336,15 +1336,37 @@ export function AppProvider({ children }) {
                             // Reload fresh data from Firestore (source of truth) instead of localStorage
                             const freshData = await loadAppData(userId);
                             if (freshData) {
-                                if (freshData.protocols) setProtocols(freshData.protocols);
-                                if (freshData.reconItems) setReconItems(freshData.reconItems);
+                                // Filter out ALL mock items since sample data was cleared
+                                if (freshData.protocols) {
+                                    const filtered = freshData.protocols.filter(p => !p.isMock);
+                                    setProtocols(filtered);
+                                }
+                                if (freshData.reconItems) {
+                                    const filtered = freshData.reconItems.filter(r => !r.isMock);
+                                    setReconItems(filtered);
+                                }
                                 if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
-                                if (freshData.supplements) setSupplements(freshData.supplements);
-                                if (freshData.orders) setOrders(freshData.orders);
-                                if (freshData.metrics) setMetrics(freshData.metrics);
-                                if (freshData.vendors) setVendors(freshData.vendors);
+                                if (freshData.supplements) {
+                                    const filtered = freshData.supplements.filter(s => !s.isMock);
+                                    setSupplements(filtered);
+                                }
+                                if (freshData.orders) {
+                                    const filtered = freshData.orders.filter(o => !o.isMock);
+                                    setOrders(filtered);
+                                }
+                                if (freshData.metrics) {
+                                    const filtered = freshData.metrics.filter(m => !m.isMock);
+                                    setMetrics(filtered);
+                                }
+                                if (freshData.vendors) {
+                                    const filtered = freshData.vendors.filter(v => !v.isMock);
+                                    setVendors(filtered);
+                                }
                                 if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
-                                if (freshData.stockpile) setStockpile(freshData.stockpile);
+                                if (freshData.stockpile) {
+                                    const filtered = freshData.stockpile.filter(s => !s.isMock);
+                                    setStockpile(filtered);
+                                }
                                 if (freshData.scheduledBuys) {
                                     const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
                                     setScheduledBuys(filtered);
@@ -1397,18 +1419,55 @@ export function AppProvider({ children }) {
 
                         // Reload from cloud storage
                         const freshData = await loadAppData(userId);
+                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                        
                         if (freshData) {
-                            if (freshData.protocols) setProtocols(freshData.protocols);
-                            if (freshData.reconItems) setReconItems(freshData.reconItems);
+                            // Filter out mock items if sample data was cleared
+                            if (freshData.protocols) {
+                                const filtered = sampleDataCleared 
+                                    ? freshData.protocols.filter(p => !p.isMock)
+                                    : freshData.protocols;
+                                setProtocols(filtered);
+                            }
+                            if (freshData.reconItems) {
+                                const filtered = sampleDataCleared 
+                                    ? freshData.reconItems.filter(r => !r.isMock)
+                                    : freshData.reconItems;
+                                setReconItems(filtered);
+                            }
                             if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
-                            if (freshData.supplements) setSupplements(freshData.supplements);
-                            if (freshData.orders) setOrders(freshData.orders);
-                            if (freshData.metrics) setMetrics(freshData.metrics);
-                            if (freshData.vendors) setVendors(freshData.vendors);
+                            if (freshData.supplements) {
+                                const filtered = sampleDataCleared 
+                                    ? freshData.supplements.filter(s => !s.isMock)
+                                    : freshData.supplements;
+                                setSupplements(filtered);
+                            }
+                            if (freshData.orders) {
+                                const filtered = sampleDataCleared 
+                                    ? freshData.orders.filter(o => !o.isMock)
+                                    : freshData.orders;
+                                setOrders(filtered);
+                            }
+                            if (freshData.metrics) {
+                                const filtered = sampleDataCleared 
+                                    ? freshData.metrics.filter(m => !m.isMock)
+                                    : freshData.metrics;
+                                setMetrics(filtered);
+                            }
+                            if (freshData.vendors) {
+                                const filtered = sampleDataCleared 
+                                    ? freshData.vendors.filter(v => !v.isMock)
+                                    : freshData.vendors;
+                                setVendors(filtered);
+                            }
                             if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
-                            if (freshData.stockpile) setStockpile(freshData.stockpile);
+                            if (freshData.stockpile) {
+                                const filtered = sampleDataCleared 
+                                    ? freshData.stockpile.filter(s => !s.isMock)
+                                    : freshData.stockpile;
+                                setStockpile(filtered);
+                            }
                             if (freshData.scheduledBuys) {
-                                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                                 const filtered = sampleDataCleared 
                                     ? freshData.scheduledBuys.filter(buy => !buy.isMock)
                                     : freshData.scheduledBuys;
