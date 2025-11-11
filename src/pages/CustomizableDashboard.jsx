@@ -1025,12 +1025,14 @@ export default function CustomizableDashboard() {
         isReadOnly={isReadOnly}
         onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(v) => {
+          // When user manually saves (completes profile), remove stub status
+          const savedVendor = { ...v, isStub: false, needsCompletion: false };
           setVendors(prev => {
-            const existing = prev.find(p => p.id === v.id);
+            const existing = prev.find(p => p.id === savedVendor.id);
             if (existing) {
-              return prev.map(p => p.id === v.id ? v : p);
+              return prev.map(p => p.id === savedVendor.id ? savedVendor : p);
             }
-            return [...prev, { ...v, id: Date.now() }];
+            return [...prev, { ...savedVendor, id: Date.now() }];
           });
           setEditingVendor(null);
           setShowNewVendor(false);

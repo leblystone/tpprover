@@ -206,14 +206,15 @@ export default function Vendors() {
 					setEditingVendor({ ...data, id: vendorId });
 				}
 			}}
-			onSave={(data) => {
-				console.log('📝 Manual save triggered:', { editingVendor, data });
-				// Manual save: Always use addVendor which handles merge logic internally
-				const vendorId = editingVendor?.id || data.id || Date.now();
-				addVendor({ ...data, id: vendorId });
-				setShowAddModal(false)
-				setEditingVendor(null)
-			}}
+		onSave={(data) => {
+			console.log('📝 Manual save triggered:', { editingVendor, data });
+			// Manual save: Always use addVendor which handles merge logic internally
+			const vendorId = editingVendor?.id || data.id || Date.now();
+			// When user manually saves (completes profile), remove stub status
+			addVendor({ ...data, id: vendorId, isStub: false, needsCompletion: false });
+			setShowAddModal(false)
+			setEditingVendor(null)
+		}}
 			onDelete={(id) => {
 				console.log('🗑️ Delete triggered for vendor ID:', id, 'editingVendor:', editingVendor);
 				// Use the ID from editingVendor if provided ID is missing
