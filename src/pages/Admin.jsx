@@ -2290,19 +2290,7 @@ function Admin() {
         {activeTab === 'subscriptions' && (
           <div className="space-y-6">
             {/* Beta User Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.info + '20' }}>
-                    <Users size={20} style={{ color: theme.info }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{subscriptions.total}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Total Beta Users</div>
-                  </div>
-                </div>
-              </div>
-              
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>

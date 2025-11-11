@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Check, AlertTriangle, Info, X } from 'lucide-react';
 
 const ModernToast = ({ message, type, onClose, theme }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
 
   useEffect(() => {
     // Fade in
@@ -27,6 +30,88 @@ const ModernToast = ({ message, type, onClose, theme }) => {
     setIsLeaving(true);
     setTimeout(onClose, 200);
   };
+
+  // Swipe handlers
+  const handleDragStart = (clientY) => {
+    setIsDragging(true);
+    setStartY(clientY);
+  };
+
+  const handleDragMove = (clientY) => {
+    if (!isDragging) return;
+    const deltaY = clientY - startY;
+    // Only allow upward swipes (negative values)
+    if (deltaY < 0) {
+      setDragY(deltaY);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    
+    // If swiped up more than 50px, dismiss
+    if (dragY < -50) {
+      setIsLeaving(true);
+      setTimeout(onClose, 200);
+    } else {
+      // Snap back
+      setDragY(0);
+    }
+  };
+
+  // Touch events
+  const handleTouchStart = (e) => {
+    handleDragStart(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    handleDragMove(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = () => {
+    handleDragEnd();
+  };
+
+  // Mouse events (for desktop)
+  const handleMouseDown = (e) => {
+    handleDragStart(e.clientY);
+  };
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    const deltaY = e.clientY - startY;
+    // Only allow upward swipes (negative values)
+    if (deltaY < 0) {
+      setDragY(deltaY);
+    }
+  }, [isDragging, startY]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    
+    // If swiped up more than 50px, dismiss
+    if (dragY < -50) {
+      setIsLeaving(true);
+      setTimeout(onClose, 200);
+    } else {
+      // Snap back
+      setDragY(0);
+    }
+  }, [isDragging, dragY, onClose]);
+
+  // Add global mouse listeners when dragging
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const getIcon = () => {
     switch (type) {
@@ -82,17 +167,23 @@ const ModernToast = ({ message, type, onClose, theme }) => {
 
   return (
     <div
-      className="max-w-sm w-full transition-all duration-500 ease-out"
+      className="max-w-sm w-full"
       style={{
         opacity: isVisible && !isLeaving ? 1 : 0,
         transform: isVisible && !isLeaving 
-          ? 'translateY(0)' 
+          ? `translateY(${dragY}px)` 
           : 'translateY(-100%)',
+        transition: isDragging ? 'none' : 'all 0.3s ease-out',
+        cursor: isDragging ? 'grabbing' : 'grab',
       }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
     >
       {/* Journal-style entry with clean, minimal design */}
       <div
-        className="relative overflow-hidden"
+        className="relative overflow-hidden select-none"
         style={{
           backgroundColor: theme.cardBackground || '#FFFFFF',
           border: `1px solid ${theme.border || '#E5E7EB'}`,
