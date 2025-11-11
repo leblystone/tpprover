@@ -229,10 +229,10 @@ export default function Stockpile() {
   const openManage = (peptideName) => {
     setManageName(peptideName)
     const rows = ((items || []) || []).filter(i => (i.name || '') === peptideName).map(i => ({ ...i }))
-    if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '' })
+    if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] })
     setManageRows(rows)
   }
-  const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '' }]))
+  const addManageRow = () => setManageRows(prev => ([...prev, { id: generateId(), name: manageName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] }]))
   const removeManageRow = (id) => setManageRows(prev => prev.filter(r => r.id !== id))
   
   // Merge functionality handlers
@@ -1225,6 +1225,21 @@ export default function Stockpile() {
                   placeholder="#"
                   theme={theme}
                   uppercase={true}
+                />
+              </div>
+
+              {/* Documentation Upload */}
+              <div className="mt-4">
+                <DocumentationUpload
+                  documentation={row.documentation || []}
+                  onChange={(documentation) => 
+                    setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, documentation } : r))
+                  }
+                  theme={theme}
+                  title="Documentation"
+                  placeholder="Add photos of vials, COA links, batch documentation, etc."
+                  allowImages={true}
+                  allowLinks={true}
                 />
               </div>
 

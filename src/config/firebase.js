@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 import { getEnvVar } from './appConfig.js';
 
 // Your web app's Firebase configuration
@@ -27,6 +28,9 @@ export const auth = getAuth(app);
 
 // Initialize Functions with correct region
 export const functions = getFunctions(app, 'us-central1');
+
+// Initialize Storage
+export const storage = getStorage(app);
 
 // Emulators disabled - using production Firebase services
 // if (import.meta.env.DEV && typeof window !== 'undefined') {

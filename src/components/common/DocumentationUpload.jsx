@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, X, Link, Image, FileText, Camera, ExternalLink } from 'lucide-react';
+import { Plus, X, Link, Image, FileText, Camera, ExternalLink, Loader } from 'lucide-react';
+import { uploadImageToStorage, deleteImageFromStorage } from '../../utils/storageUtils';
+import { useAppContext } from '../../context/AppContext';
 
 export default function DocumentationUpload({ 
   documentation = [], 
@@ -11,8 +13,10 @@ export default function DocumentationUpload({
   allowLinks = true,
   readonly = false 
 }) {
+  const { user } = useAppContext();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItem, setNewItem] = useState({ type: 'link', title: '', url: '', notes: '' });
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleAddItem = () => {
     if (!newItem.title.trim()) return;
@@ -32,17 +36,35 @@ export default function DocumentationUpload({
     setShowAddForm(false);
   };
 
-  const handleRemoveItem = (id) => {
-    onChange(documentation.filter(item => item.id !== id));
+  const handleRemoveItem = async (id) => {
+    const item = documentation.find(doc => doc.id === id);
+    
+    // If it's a Firebase Storage image, delete it from storage
+    if (item && item.type === 'image' && item.storagePath) {
+      try {
+        await deleteImageFromStorage(item.storagePath);
+      } catch (error) {
+        console.error('Failed to delete image from storage:', error);
+        // Continue anyway - we'll remove it from the list even if storage deletion fails
+      }
+    }
+    
+    onChange(documentation.filter(doc => doc.id !== id));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Image must be smaller than 2MB');
+    // Check if user is authenticated
+    if (!user) {
+      alert('You must be logged in to upload images');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be smaller than 5MB');
       return;
     }
 
@@ -52,26 +74,36 @@ export default function DocumentationUpload({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
+    setIsUploading(true);
+
+    try {
+      // Upload to Firebase Storage
+      const uploadResult = await uploadImageToStorage(file, user.uid, 'stockpile');
+      
       const item = {
         id: Date.now().toString(),
         type: 'image',
         title: newItem.title.trim() || file.name,
-        url: event.target.result, // Base64 data URL
+        url: uploadResult.url, // Firebase Storage URL
+        storagePath: uploadResult.path, // For deletion later
         notes: newItem.notes.trim(),
         dateAdded: new Date().toISOString(),
         source: 'manual',
-        fileSize: file.size,
-        fileName: file.name
+        fileSize: uploadResult.fileSize,
+        fileName: uploadResult.fileName
       };
 
       onChange([...documentation, item]);
       setNewItem({ type: 'link', title: '', url: '', notes: '' });
       setShowAddForm(false);
-    };
-
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert(`Failed to upload image: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      e.target.value = '';
+    }
   };
 
   const renderDocumentationItem = (item, index) => {
@@ -274,12 +306,20 @@ export default function DocumentationUpload({
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  className="w-full px-3 py-2 border rounded-md"
+                  disabled={isUploading}
+                  className="w-full px-3 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ borderColor: theme.border }}
                 />
-                <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                  Max 2MB. Supported: JPG, PNG, GIF, WebP
-                </p>
+                {isUploading ? (
+                  <div className="flex items-center gap-2 mt-2 text-sm" style={{ color: theme.primary }}>
+                    <Loader size={14} className="animate-spin" />
+                    <span>Uploading image...</span>
+                  </div>
+                ) : (
+                  <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                    Max 5MB. Supported: JPG, PNG, GIF, WebP
+                  </p>
+                )}
               </div>
             )}
 
@@ -302,21 +342,22 @@ export default function DocumentationUpload({
             <div className="flex gap-2">
               <button
                 onClick={newItem.type === 'image' ? undefined : handleAddItem}
-                disabled={!newItem.title.trim() || (newItem.type === 'link' && !newItem.url.trim())}
+                disabled={!newItem.title.trim() || (newItem.type === 'link' && !newItem.url.trim()) || isUploading}
                 className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ 
                   backgroundColor: theme.primary, 
                   color: theme.textOnPrimary 
                 }}
               >
-                {newItem.type === 'image' ? 'Select Image' : 'Add'}
+                {isUploading ? 'Uploading...' : (newItem.type === 'image' ? 'Select Image' : 'Add')}
               </button>
               <button
                 onClick={() => {
                   setShowAddForm(false);
                   setNewItem({ type: 'link', title: '', url: '', notes: '' });
                 }}
-                className="px-4 py-2 text-sm font-medium rounded-md transition-colors"
+                disabled={isUploading}
+                className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: theme.secondary, color: theme.text }}
               >
                 Cancel

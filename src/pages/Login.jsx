@@ -746,36 +746,15 @@ export default function Login() {
         
         setUser(user);
         
-        // CRITICAL: Seed demo data for new users - NOW USING FIRESTORE
-        try {
-          console.log('☁️ Seeding demo data to Firestore for new signup...');
-          
-          const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
-          const seeded = await seedDemoDataToCloud(firebaseUser.uid, password);
-          
-          if (seeded) {
-            console.log('✅ Demo data seeded successfully (localStorage + Firestore)');
-            
-            // Tiny delay for subscription to save (demo data loads instantly from localStorage)
-            console.log('⏱️ Waiting 100ms for subscription to save...');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            console.log('✅ Subscription saved');
-          } else {
-            console.warn('⚠️ Demo data seeding had issues');
-          }
-        } catch (seedError) {
-          console.error('❌ Failed to seed demo data:', seedError);
-        }
-        
         // Clear signup flag BEFORE navigating
         console.log('✅ Clearing signup flag before navigation');
         sessionStorage.removeItem('tpp_signup_in_progress');
         
         // Give a tiny delay to ensure flag is cleared
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 50));
         
-        // Force a full page reload to trigger AppContext to load fresh data from Firestore
-        console.log('🚀 Forcing full page reload to load demo data from Firestore');
+        // Navigate to dashboard
+        console.log('🚀 Navigating to dashboard');
         window.location.href = '/app/dashboard';
         return true;
       } catch (error) {
