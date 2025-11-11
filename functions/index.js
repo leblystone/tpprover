@@ -12,6 +12,7 @@ const quickEmailTest = require('./quickEmailTest');
 const stripeWebhooks = require('./stripeWebhooks');
 const giftAccess = require('./giftAccess');
 const founderOffer = require('./founderOffer');
+const manualSyncSubscription = require('./manualSyncSubscription');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 
@@ -314,6 +315,9 @@ exports.adminExtendTrialPeriod = onCall(
     }
   }
 );
+
+// Manual Subscription Sync - Admin function to resync subscriptions from Stripe
+exports.manualSyncSubscription = manualSyncSubscription.manualSyncSubscription;
 
 // Scheduled Functions for Notifications - Now runs hourly to check all timezones
 exports.scheduledResearchReminders = onSchedule({

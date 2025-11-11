@@ -6,10 +6,11 @@ import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import Modal from '../components/common/Modal'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
+import ImagePreviewModal from '../components/common/ImagePreviewModal'
 import StockpileCard from '../components/stockpile/StockpileCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
@@ -91,7 +92,20 @@ export default function Stockpile() {
   // Duplicate detection state
   const [dismissedDuplicates, setDismissedDuplicates] = useState(new Set())
   
+  // Documentation preview state
+  const [previewImage, setPreviewImage] = useState(null)
+  
   const vendorMap = useMemo(() => (vendors || []).reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
+  
+  // Copy link to clipboard
+  const handleCopyLink = (url, title) => {
+    navigator.clipboard.writeText(url).then(() => {
+      alert(`✓ "${title}" link copied to clipboard!`);
+    }).catch(err => {
+      console.error('Failed to copy link:', err);
+      alert('Failed to copy link. Please try again.');
+    });
+  };
   
   // Helper function to check use by date status
   const getUseByStatus = (useByDate) => {
@@ -544,22 +558,45 @@ export default function Stockpile() {
                                                     )}
                                                     {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
                                                     {item.documentation && item.documentation.length > 0 && (
-                                                        <div className="text-xs text-gray-400 pl-5 mt-1">
+                                                        <div className="text-xs pl-5 mt-1" style={{ color: theme.textLight }}>
                                                             <div className="flex items-center gap-2">
                                                                 <FileText size={12} />
                                                                 <span>Documentation: {item.documentation.length} item{item.documentation.length !== 1 ? 's' : ''}</span>
-                                                                <div className="flex gap-1">
+                                                                <div className="flex gap-1.5">
                                                                     {item.documentation.map((doc, index) => (
-                                                                        <a 
-                                                                            key={index}
-                                                                            href={doc.url} 
-                                                                            target="_blank" 
-                                                                            rel="noopener noreferrer"
-                                                                            className="text-blue-500 hover:text-blue-700 underline text-xs"
-                                                                            title={doc.name}
-                                                                        >
-                                                                            {doc.type === 'image' ? '📸' : '🔗'}
-                                                                        </a>
+                                                                        doc.type === 'image' ? (
+                                                                            <button
+                                                                                key={index}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setPreviewImage(doc);
+                                                                                }}
+                                                                                className="p-1 rounded hover:bg-opacity-20 transition-all"
+                                                                                style={{ 
+                                                                                    backgroundColor: theme.primary + '15',
+                                                                                    color: theme.primary
+                                                                                }}
+                                                                                title={`View ${doc.title}`}
+                                                                            >
+                                                                                <ImageIcon size={14} />
+                                                                            </button>
+                                                                        ) : (
+                                                                            <button
+                                                                                key={index}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleCopyLink(doc.url, doc.title);
+                                                                                }}
+                                                                                className="p-1 rounded hover:bg-opacity-20 transition-all"
+                                                                                style={{ 
+                                                                                    backgroundColor: theme.primary + '15',
+                                                                                    color: theme.primary
+                                                                                }}
+                                                                                title={`Copy ${doc.title} link`}
+                                                                            >
+                                                                                <LinkIcon size={14} />
+                                                                            </button>
+                                                                        )
                                                                     ))}
                                                                 </div>
                                                             </div>
@@ -770,6 +807,25 @@ export default function Stockpile() {
                   return;
                 }
                 
+                // Validate required fields
+                if (!form.name || !form.name.trim()) {
+                  setSaveError('Peptide name is required');
+                  setIsSavingToStockpile(false);
+                  return;
+                }
+                
+                if (!form.mg || form.mg.trim() === '') {
+                  setSaveError('Amount is required');
+                  setIsSavingToStockpile(false);
+                  return;
+                }
+                
+                if (!form.quantity || form.quantity.trim() === '') {
+                  setSaveError('Quantity is required');
+                  setIsSavingToStockpile(false);
+                  return;
+                }
+                
                 // Auto-create new vendor if it doesn't exist
                 if (form.vendor && !vendors.some(v => v.name.toLowerCase() === form.vendor.toLowerCase())) {
                     addVendor({ name: form.vendor, isStub: true });
@@ -795,7 +851,7 @@ export default function Stockpile() {
                 setIsSavingToStockpile(false);
               }
             }} 
-            disabled={isSavingToStockpile || isReadOnly}
+            disabled={isSavingToStockpile || isReadOnly || !form.name?.trim() || !form.mg?.trim() || !form.quantity?.trim()}
             className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75" 
             style={{ 
               background: getPrimaryActionGradient(isSavingToStockpile || isReadOnly),
@@ -1408,6 +1464,15 @@ export default function Stockpile() {
         onClose={() => setShowUpgradeModal(false)}
         actionAttempted="manage stockpile"
         theme={theme}
+      />
+
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        image={previewImage}
+        open={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        theme={theme}
+        readonly={true}
       />
     </section>
   )
