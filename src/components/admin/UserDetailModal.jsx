@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle } from 'lucide-react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function UserDetailModal({
   user,
@@ -581,6 +581,104 @@ export default function UserDetailModal({
   );
 }
 
+// Sync from Stripe Button Component
+function SyncFromStripeButton({ user, theme }) {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setResult(null);
+
+    try {
+      const { getFunctions, httpsCallable } = await import('firebase/functions');
+      const functions = getFunctions();
+      const syncFunction = httpsCallable(functions, 'manualSyncSubscription');
+      
+      const response = await syncFunction({ userId: user.uid || user.id });
+      
+      if (response.data.success) {
+        setResult({
+          type: 'success',
+          message: `✅ Success! Synced subscription: ${response.data.plan} (${response.data.interval})`
+        });
+        
+        // Trigger a refresh after 2 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        setResult({
+          type: 'error',
+          message: response.data.message || 'Sync failed'
+        });
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      setResult({
+        type: 'error',
+        message: error.message || 'Failed to sync subscription from Stripe'
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  return (
+    <div className="p-4 rounded-lg flex flex-col gap-3"
+      style={{ backgroundColor: theme.warning + '10', border: `2px solid ${theme.warning}30` }}>
+      <div className="flex items-start gap-2">
+        <AlertTriangle size={16} style={{ color: theme.warning }} className="mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold" style={{ color: theme.warning }}>⚠️ EMPTY SUBSCRIPTION DATA</p>
+          <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+            This user has no subscription data in Firestore. If they have a paid subscription in Stripe, click below to sync it.
+          </p>
+        </div>
+      </div>
+      
+      <button
+        onClick={handleSync}
+        disabled={isSyncing}
+        className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{ 
+          backgroundColor: theme.warning,
+          color: '#FFFFFF',
+          boxShadow: `0 4px 15px ${theme.warning}30`
+        }}
+      >
+        {isSyncing ? (
+          <>
+            <Loader size={16} className="animate-spin" />
+            Syncing from Stripe...
+          </>
+        ) : (
+          <>
+            <RefreshCw size={16} />
+            Sync Subscription from Stripe
+          </>
+        )}
+      </button>
+
+      {result && (
+        <div className="p-3 rounded text-xs"
+          style={{ 
+            backgroundColor: result.type === 'success' ? theme.success + '20' : theme.error + '20',
+            color: result.type === 'success' ? theme.success : theme.error,
+            border: `1px solid ${result.type === 'success' ? theme.success + '40' : theme.error + '40'}`
+          }}>
+          {result.message}
+          {result.type === 'success' && (
+            <div className="mt-1 text-[10px]" style={{ color: theme.textLight }}>
+              Page will refresh in 2 seconds...
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Subscription Debug Component
 function SubscriptionDebugSection({ user, theme }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -716,6 +814,11 @@ function SubscriptionDebugSection({ user, theme }) {
                   </p>
                 </div>
               </div>
+            )}
+
+            {/* Empty subscription fix */}
+            {(!subscription.status || Object.keys(subscription).length === 0) && (
+              <SyncFromStripeButton user={user} theme={theme} />
             )}
           </div>
         )}
