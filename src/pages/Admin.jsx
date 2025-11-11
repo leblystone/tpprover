@@ -3946,55 +3946,121 @@ function Admin() {
 }
 
 function UserTable({ users, searchTerm, theme, onViewUser }) {
+  const [copiedUid, setCopiedUid] = useState(null);
+  
   const filteredUsers = users.filter(user => {
     const term = searchTerm.toLowerCase();
     const email = user.email?.toLowerCase() || '';
     const name = user.displayName?.toLowerCase() || '';
-    return email.includes(term) || name.includes(term);
+    const uid = user.uid?.toLowerCase() || '';
+    return email.includes(term) || name.includes(term) || uid.includes(term);
   });
 
+  const copyToClipboard = (text, uid) => {
+    navigator.clipboard.writeText(text);
+    setCopiedUid(uid);
+    setTimeout(() => setCopiedUid(null), 2000);
+  };
+
   if (filteredUsers.length === 0) {
-    return <p style={{ color: theme.textLight }}>No users found.</p>;
+    return <p style={{ color: theme.textLight }}>No users found matching "{searchTerm}"</p>;
   }
 
   return (
     <div className="overflow-x-auto">
+      <div className="text-xs mb-2" style={{ color: theme.textLight }}>
+        Showing {filteredUsers.length} of {users.length} users
+      </div>
       <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
         <thead style={{ backgroundColor: theme.background }}>
           <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>User</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Status</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Last Active</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Actions</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>User Info</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>UID</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Device</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Status</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Created</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Last Active</th>
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          {filteredUsers.map(user => (
-            <tr key={user.uid}>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 h-10 w-10">
-                    <img className="h-10 w-10 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
+          {filteredUsers.map(user => {
+            const hasLifetime = user.subscription?.hasLifetimeAccess;
+            const deviceInfo = user.deviceInfo || {};
+            const deviceType = deviceInfo.deviceType || 'unknown';
+            const mobileOS = deviceInfo.mobileOS;
+            
+            return (
+              <tr key={user.uid} className="hover:bg-opacity-50" style={{ backgroundColor: 'transparent' }}>
+                <td className="px-4 py-3">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-8 w-8">
+                      <img className="h-8 w-8 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random&size=32`} alt="" />
+                    </div>
+                    <div className="ml-3">
+                      <div className="text-sm font-medium flex items-center gap-2" style={{ color: theme.text }}>
+                        {user.displayName || 'No Name'}
+                        {hasLifetime && <Crown size={12} style={{ color: '#f59e0b' }} title="Lifetime Access" />}
+                      </div>
+                      <div className="text-xs" style={{ color: theme.textLight }}>{user.email}</div>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <div className="text-sm font-medium" style={{ color: theme.text }}>{user.displayName || 'No Name'}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>{user.email}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1">
+                    <code className="text-xs font-mono px-2 py-1 rounded" style={{ backgroundColor: theme.background, color: theme.text }}>
+                      {user.uid?.substring(0, 8)}...
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(user.uid, user.uid)}
+                      className="p-1 rounded hover:bg-gray-100"
+                      title="Copy full UID"
+                    >
+                      {copiedUid === user.uid ? <Check size={12} style={{ color: theme.success }} /> : <Copy size={12} style={{ color: theme.textLight }} />}
+                    </button>
                   </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {user.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
-                {user.lastActive?.toDate().toLocaleDateString()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button onClick={() => onViewUser(user)} className="text-indigo-600 hover:text-indigo-900">View</button>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1">
+                    {deviceType === 'mobile' && <Smartphone size={14} style={{ color: theme.info }} />}
+                    {deviceType === 'tablet' && <Smartphone size={14} style={{ color: theme.warning }} />}
+                    {deviceType === 'desktop' && <Monitor size={14} style={{ color: theme.success }} />}
+                    <div>
+                      <div className="text-xs capitalize" style={{ color: theme.text }}>{deviceType}</div>
+                      {mobileOS && <div className="text-[10px]" style={{ color: theme.textLight }}>{mobileOS}</div>}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="space-y-1">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {user.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    {hasLifetime && (
+                      <div className="text-[10px] font-semibold" style={{ color: '#f59e0b' }}>
+                        Lifetime
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-xs" style={{ color: theme.textLight }}>
+                  {user.createdAt?.toDate ? user.createdAt.toDate().toLocaleDateString() : 'Unknown'}
+                </td>
+                <td className="px-4 py-3 text-xs" style={{ color: theme.textLight }}>
+                  {user.lastActive?.toDate ? user.lastActive.toDate().toLocaleDateString() : 'Never'}
+                </td>
+                <td className="px-4 py-3 text-sm font-medium">
+                  <button 
+                    onClick={() => onViewUser(user)} 
+                    className="px-3 py-1 rounded text-xs font-semibold hover:opacity-80"
+                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  >
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
