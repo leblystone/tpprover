@@ -302,8 +302,7 @@ async function upsertSubscriptionState({
 exports.stripeWebhook = onRequest(
   {
     cors: true,
-    invoker: 'public', // Allow unauthenticated access for Stripe webhooks
-    secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
+    invoker: 'public' // Allow unauthenticated access for Stripe webhooks
   },
   async (request, response) => {
     const sig = request.headers['stripe-signature'];
