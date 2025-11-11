@@ -727,13 +727,13 @@ export default function CustomizableDashboard() {
     <ViewContainer theme={theme}>
       <div className="space-y-2 overflow-x-hidden w-full max-w-full relative">
         {/* Decorative background icon - positioned within content area */}
-        <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden md:block">
+        <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
           <Beaker 
-            size={240} 
-            strokeWidth={0.8}
+            size={280} 
+            strokeWidth={1}
             style={{ 
-              color: theme.border,
-              opacity: 0.18
+              color: theme.primary || '#3B82F6',
+              opacity: 0.22
             }}
           />
         </div>
