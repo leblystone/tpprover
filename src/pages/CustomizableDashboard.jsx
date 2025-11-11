@@ -725,19 +725,18 @@ export default function CustomizableDashboard() {
 
   return (
     <ViewContainer theme={theme}>
-      {/* Decorative background icon */}
-      <div className="fixed bottom-4 right-4 pointer-events-none z-0 hidden lg:block">
-        <Beaker 
-          size={280} 
-          strokeWidth={0.5}
-          style={{ 
-            color: theme.border,
-            opacity: 0.08
-          }}
-        />
-      </div>
-      
-      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative z-10">
+      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative">
+        {/* Decorative background icon - positioned within content area */}
+        <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden md:block">
+          <Beaker 
+            size={240} 
+            strokeWidth={0.8}
+            style={{ 
+              color: theme.border,
+              opacity: 0.18
+            }}
+          />
+        </div>
 
         {/* Dashboard Layout - Flexible Grid */}
         <div className="overflow-x-hidden">
