@@ -2550,33 +2550,6 @@ function Admin() {
 
         {activeTab === 'feedback' && (
           <div className="space-y-6">
-            {/* Feedback Analytics Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.info + '20' }}>
-                    <MessageSquare size={20} style={{ color: theme.info }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.info }}>{feedback.length}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Total Feedback</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
-                    <Hash size={20} style={{ color: theme.warning }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.warning }}>{Object.keys(feedbackAnalysis.categories).length}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Categories</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Feedback Categories & Trends */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
