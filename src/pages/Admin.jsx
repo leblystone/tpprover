@@ -212,8 +212,19 @@ const calculateDeviceBreakdown = (users) => {
     return breakdown;
   }
   
+  let usersWithDeviceInfo = 0;
+  let usersWithoutDeviceInfo = 0;
+  
   users.forEach(user => {
     const deviceInfo = user.deviceInfo || {};
+    const hasDeviceInfo = user.deviceInfo && user.deviceInfo.deviceType;
+    
+    if (hasDeviceInfo) {
+      usersWithDeviceInfo++;
+    } else {
+      usersWithoutDeviceInfo++;
+    }
+    
     const deviceType = deviceInfo.deviceType || 'desktop';
     const mobileOS = deviceInfo.mobileOS;
     const browser = deviceInfo.browser || 'Other';
@@ -230,14 +241,28 @@ const calculateDeviceBreakdown = (users) => {
       breakdown.desktop.count++;
     }
     
-    // Count browsers
-    breakdown.browsers[browser] = (breakdown.browsers[browser] || 0) + 1;
+    // Count browsers (only if we have device info)
+    if (hasDeviceInfo && browser) {
+      breakdown.browsers[browser] = (breakdown.browsers[browser] || 0) + 1;
+    }
+  });
+  
+  // Log device info stats
+  console.log('📊 Device Breakdown Stats:', {
+    totalUsers: users.length,
+    usersWithDeviceInfo,
+    usersWithoutDeviceInfo,
+    breakdown
   });
   
   // Calculate percentages
   breakdown.mobile.percentage = Math.round((breakdown.mobile.count / users.length) * 100);
   breakdown.tablet.percentage = Math.round((breakdown.tablet.count / users.length) * 100);
   breakdown.desktop.percentage = Math.round((breakdown.desktop.count / users.length) * 100);
+  
+  // Add metadata about device info tracking
+  breakdown.usersWithDeviceInfo = usersWithDeviceInfo;
+  breakdown.usersWithoutDeviceInfo = usersWithoutDeviceInfo;
   
   return breakdown;
 };
@@ -863,7 +888,9 @@ function Admin() {
           mobile: { count: 0, percentage: 0, byOS: { iOS: 0, Android: 0, Other: 0 } }, 
           desktop: { count: 0, percentage: 0 }, 
           tablet: { count: 0, percentage: 0 },
-          browsers: {}
+          browsers: {},
+          usersWithDeviceInfo: 0,
+          usersWithoutDeviceInfo: 0
         },
         totalUsers: 0,
         activeUsers: 0
@@ -2206,6 +2233,42 @@ function Admin() {
                           style={{ width: `${analytics.deviceBreakdown.desktop.percentage}%`, backgroundColor: theme.success }}
                         />
                       </div>
+                    </div>
+                  )}
+                  
+                  {/* Browser Breakdown */}
+                  {analytics.deviceBreakdown.browsers && Object.keys(analytics.deviceBreakdown.browsers).length > 0 && (
+                    <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.border }}>
+                      <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>BROWSERS</div>
+                      <div className="space-y-1">
+                        {Object.entries(analytics.deviceBreakdown.browsers)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([browser, count]) => {
+                            const percentage = Math.round((count / analytics.deviceBreakdown.total) * 100);
+                            return (
+                              <div key={browser} className="flex items-center justify-between text-xs" style={{ color: theme.textLight }}>
+                                <span>• {browser}</span>
+                                <span>{count} ({percentage}%)</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Warning for users without device info */}
+                  {analytics.deviceBreakdown.usersWithoutDeviceInfo > 0 && (
+                    <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.warning + '15', borderColor: theme.warning, border: '1px solid' }}>
+                      <p className="text-xs font-semibold mb-1" style={{ color: theme.warning }}>
+                        ⚠️ Limited Device Data
+                      </p>
+                      <p className="text-xs" style={{ color: theme.text }}>
+                        {analytics.deviceBreakdown.usersWithoutDeviceInfo} of {analytics.deviceBreakdown.total} users don't have device info yet (defaulting to desktop). 
+                        They'll be tracked when they next log in.
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+                        Tracked: {analytics.deviceBreakdown.usersWithDeviceInfo} users ({Math.round((analytics.deviceBreakdown.usersWithDeviceInfo / analytics.deviceBreakdown.total) * 100)}%)
+                      </p>
                     </div>
                   )}
                 </div>
