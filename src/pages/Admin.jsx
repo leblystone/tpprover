@@ -462,6 +462,7 @@ function Admin() {
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
+  const [selectedFeedbackTypeFilter, setSelectedFeedbackTypeFilter] = useState('all');
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
     featureUsage: {},
@@ -2550,71 +2551,74 @@ function Admin() {
 
         {activeTab === 'feedback' && (
           <div className="space-y-6">
-            {/* Feedback Categories & Trends */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feedback Types</h2>
-                <div className="space-y-3">
+            {/* Horizontal Feedback Type Filter Tabs */}
+            <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-4">
+                <div className="flex items-center gap-3 overflow-x-auto pb-2">
                   {(() => {
-                    // Count feedback by type
-                    const typeCounts = {
-                      suggestion: feedback.filter(f => f.type === 'suggestion').length,
-                      bug: feedback.filter(f => f.type === 'bug').length,
-                      improvement: feedback.filter(f => f.type === 'improvement').length,
-                      general: feedback.filter(f => f.type === 'general').length,
-                      untyped: feedback.filter(f => !f.type).length
+                    // Count NEW feedback by type
+                    const newFeedbackCounts = {
+                      all: feedback.filter(f => f.status === 'new').length,
+                      suggestion: feedback.filter(f => f.type === 'suggestion' && f.status === 'new').length,
+                      bug: feedback.filter(f => f.type === 'bug' && f.status === 'new').length,
+                      improvement: feedback.filter(f => f.type === 'improvement' && f.status === 'new').length,
+                      general: feedback.filter(f => f.type === 'general' && f.status === 'new').length,
                     };
                     
-                    const typeConfigs = [
+                    const typeFilters = [
+                      { id: 'all', label: 'All New', icon: MessageSquare, color: theme.primaryDark },
                       { id: 'suggestion', label: 'Suggestions', icon: Lightbulb, color: theme.primary },
-                      { id: 'bug', label: 'Bug Reports', icon: AlertTriangle, color: theme.error },
+                      { id: 'bug', label: 'Bugs', icon: AlertTriangle, color: theme.error },
                       { id: 'improvement', label: 'Improvements', icon: Star, color: theme.warning },
-                      { id: 'general', label: 'General Feedback', icon: MessageCircle, color: theme.info }
+                      { id: 'general', label: 'General', icon: MessageCircle, color: theme.info }
                     ];
                     
-                    return typeConfigs.map(typeConfig => {
-                      const count = typeCounts[typeConfig.id];
-                      const TypeIcon = typeConfig.icon;
+                    return typeFilters.map(filter => {
+                      const count = newFeedbackCounts[filter.id];
+                      const FilterIcon = filter.icon;
+                      const isActive = selectedFeedbackTypeFilter === filter.id;
                       
                       return (
-                        <div key={typeConfig.id} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: typeConfig.color + '20' }}>
-                              <TypeIcon size={16} style={{ color: typeConfig.color }} />
-                            </div>
-                            <span className="text-sm font-medium" style={{ color: theme.text }}>{typeConfig.label}</span>
+                        <button
+                          key={filter.id}
+                          onClick={() => setSelectedFeedbackTypeFilter(filter.id)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all"
+                          style={{ 
+                            backgroundColor: isActive ? filter.color + '25' : theme.background,
+                            color: isActive ? filter.color : theme.text,
+                            border: isActive ? `2px solid ${filter.color}` : `1px solid ${theme.border}`,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <FilterIcon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                          <span>{filter.label}</span>
+                          <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                               style={{ 
+                                 backgroundColor: isActive ? filter.color : theme.textLight + '30',
+                                 color: isActive ? theme.white : theme.textLight 
+                               }}>
+                            {count}
                           </div>
-                          <span className="text-lg font-bold" style={{ color: typeConfig.color }}>{count}</span>
-                        </div>
+                        </button>
                       );
                     });
                   })()}
-                  {feedback.filter(f => !f.type).length > 0 && (
-                    <div className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.textLight + '20' }}>
-                          <MessageSquare size={16} style={{ color: theme.textLight }} />
-                        </div>
-                        <span className="text-sm font-medium" style={{ color: theme.text }}>Legacy/Untyped</span>
-                      </div>
-                      <span className="text-lg font-bold" style={{ color: theme.textLight }}>{feedback.filter(f => !f.type).length}</span>
-                    </div>
-                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>Feedback Trends</h2>
-                <div className="space-y-3">
-                  {feedbackAnalysis.trends.map((trend, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: theme.background }}>
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: theme.text }}>{trend.week}</div>
-                        <div className="text-xs" style={{ color: theme.textLight }}>{trend.feedback} feedback items</div>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm font-medium" style={{ color: theme.success }}>
-                        <TrendingUp size={14} />
-                        {trend.change}
+            {/* Compact Feedback Trends */}
+            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Recent Trends</h2>
+                <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
+                  {feedbackAnalysis.trends.slice(0, 3).map((trend, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span>{trend.week}:</span>
+                      <span className="font-semibold" style={{ color: theme.text }}>{trend.feedback}</span>
+                      <div className="flex items-center gap-0.5" style={{ color: theme.success }}>
+                        <TrendingUp size={12} />
+                        <span className="text-xs">{trend.change}</span>
                       </div>
                     </div>
                   ))}
@@ -2661,8 +2665,30 @@ function Admin() {
                       User feedback will appear here when submitted
                     </p>
                   </div>
-                ) : (
-                  feedback.map((item) => {
+                ) : (() => {
+                  // Filter feedback based on selected type and status
+                  const filteredFeedback = feedback.filter(item => {
+                    // Only show 'new' status items
+                    if (item.status !== 'new') return false;
+                    
+                    // Apply type filter
+                    if (selectedFeedbackTypeFilter === 'all') return true;
+                    return item.type === selectedFeedbackTypeFilter;
+                  });
+
+                  if (filteredFeedback.length === 0) {
+                    return (
+                      <div className="p-8 text-center">
+                        <MessageSquare size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
+                        <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No new feedback in this category</h3>
+                        <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                          All caught up! 🎉
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return filteredFeedback.map((item) => {
                     const isExpanded = expandedFeedback === item.id;
                     const statusColors = {
                       'new': { bg: theme.warning + '15', color: theme.warning, icon: Clock },
@@ -2874,8 +2900,8 @@ function Admin() {
                         )}
                       </div>
                     );
-                  })
-                )}
+                  });
+                })()}
               </div>
             </div>
           </div>
