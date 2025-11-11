@@ -1288,58 +1288,78 @@ export function AppProvider({ children }) {
         console.log('🔄 Setting up real-time sync listeners for user:', firebaseUser.uid);
         const userId = firebaseUser.uid;
 
-        // Sample data state listener
+        // Sample data state listener with debounce
+        let sampleDataTimeoutId = null;
         const stateUnsubscribe = subscribeToUserState(userId, async (remoteState) => {
             try {
                 if (!remoteState) return;
 
-                const sampleDataClearedRemote = remoteState.sampleDataCleared === true || remoteState.demoDataCleared === true;
-                const remoteTimestampIso = remoteState.sampleDataClearedAt || remoteState.demoDataClearedAt || null;
-                const remoteTimestamp = remoteTimestampIso ? Date.parse(remoteTimestampIso) : 0;
-
-                const localFlag = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                const localTimestampIso = localStorage.getItem('tpprover_sample_data_cleared_at');
-                const localTimestamp = localTimestampIso ? Date.parse(localTimestampIso) : 0;
-
-                // Only apply if remote is newer
-                if (sampleDataClearedRemote && (!localFlag || remoteTimestamp > localTimestamp)) {
-                    console.log('🔄 Remote sample data cleared detected - syncing locally');
-                    isApplyingRemoteUpdateRef.current = true;
-                    
-                    try {
-                        const { clearMockData } = await import('../utils/seed');
-                        clearMockData();
-                    } catch (error) {
-                        console.error('❌ Failed to clear mock data:', error);
-                    }
-
-                    const timestampIso = remoteTimestampIso || new Date().toISOString();
-                    localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                    localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
-                    localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
-
-                    // Reload fresh data from Firestore (source of truth) instead of localStorage
-                    const freshData = await loadAppData(userId);
-                    if (freshData) {
-                        if (freshData.protocols) setProtocols(freshData.protocols);
-                        if (freshData.reconItems) setReconItems(freshData.reconItems);
-                        if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
-                        if (freshData.supplements) setSupplements(freshData.supplements);
-                        if (freshData.orders) setOrders(freshData.orders);
-                        if (freshData.metrics) setMetrics(freshData.metrics);
-                        if (freshData.vendors) setVendors(freshData.vendors);
-                        if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
-                        if (freshData.stockpile) setStockpile(freshData.stockpile);
-                        if (freshData.scheduledBuys) {
-                            const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
-                            setScheduledBuys(filtered);
-                        }
-                    }
-                    
-                    setTimeout(() => {
-                        isApplyingRemoteUpdateRef.current = false;
-                    }, 500);
+                // Prevent processing if we're already handling an update
+                if (isApplyingRemoteUpdateRef.current) {
+                    console.log('⏸️ Skipping sample data sync - already processing an update');
+                    return;
                 }
+
+                // Debounce rapid-fire updates
+                if (sampleDataTimeoutId) {
+                    clearTimeout(sampleDataTimeoutId);
+                }
+
+                sampleDataTimeoutId = setTimeout(async () => {
+                    try {
+                        const sampleDataClearedRemote = remoteState.sampleDataCleared === true || remoteState.demoDataCleared === true;
+                        const remoteTimestampIso = remoteState.sampleDataClearedAt || remoteState.demoDataClearedAt || null;
+                        const remoteTimestamp = remoteTimestampIso ? Date.parse(remoteTimestampIso) : 0;
+
+                        const localFlag = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                        const localTimestampIso = localStorage.getItem('tpprover_sample_data_cleared_at');
+                        const localTimestamp = localTimestampIso ? Date.parse(localTimestampIso) : 0;
+
+                        // Only apply if remote is newer AND we're not already in sync
+                        if (sampleDataClearedRemote && (!localFlag || remoteTimestamp > localTimestamp)) {
+                            console.log('🔄 Remote sample data cleared detected - syncing locally');
+                            isApplyingRemoteUpdateRef.current = true;
+                            lastRemoteUpdateTimeRef.current = Date.now();
+                            
+                            try {
+                                const { clearMockData } = await import('../utils/seed');
+                                clearMockData();
+                            } catch (error) {
+                                console.error('❌ Failed to clear mock data:', error);
+                            }
+
+                            const timestampIso = remoteTimestampIso || new Date().toISOString();
+                            localStorage.setItem('tpprover_sample_data_cleared', 'true');
+                            localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
+                            localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
+
+                            // Reload fresh data from Firestore (source of truth) instead of localStorage
+                            const freshData = await loadAppData(userId);
+                            if (freshData) {
+                                if (freshData.protocols) setProtocols(freshData.protocols);
+                                if (freshData.reconItems) setReconItems(freshData.reconItems);
+                                if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                                if (freshData.supplements) setSupplements(freshData.supplements);
+                                if (freshData.orders) setOrders(freshData.orders);
+                                if (freshData.metrics) setMetrics(freshData.metrics);
+                                if (freshData.vendors) setVendors(freshData.vendors);
+                                if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                                if (freshData.stockpile) setStockpile(freshData.stockpile);
+                                if (freshData.scheduledBuys) {
+                                    const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
+                                    setScheduledBuys(filtered);
+                                }
+                            }
+                            
+                            setTimeout(() => {
+                                isApplyingRemoteUpdateRef.current = false;
+                            }, 2000); // Longer timeout to prevent re-triggering
+                        }
+                    } catch (error) {
+                        console.error('❌ Error processing sample data sync:', error);
+                        isApplyingRemoteUpdateRef.current = false;
+                    }
+                }, 500); // Debounce 500ms
             } catch (error) {
                 console.error('❌ Error in sample data sync listener:', error);
                 isApplyingRemoteUpdateRef.current = false;
@@ -1408,6 +1428,7 @@ export function AppProvider({ children }) {
             if (typeof stateUnsubscribe === 'function') stateUnsubscribe();
             if (typeof dataUnsubscribe === 'function') dataUnsubscribe();
             if (updateTimeoutId) clearTimeout(updateTimeoutId);
+            if (sampleDataTimeoutId) clearTimeout(sampleDataTimeoutId);
         };
     }, [firebaseUser, refreshDataAfterClear]);
 
