@@ -184,14 +184,62 @@ const calculateSessionData = (users) => {
   return sessionData;
 };
 
-const calculateDeviceBreakdown = () => {
-  // For now, return placeholder data - in production, this would come from analytics
-  // You could implement user-agent tracking in the future
-  return {
-    mobile: { count: 0, percentage: 60 },
-    desktop: { count: 0, percentage: 35 },
-    tablet: { count: 0, percentage: 5 }
+const calculateDeviceBreakdown = (users) => {
+  // Calculate real device breakdown from user data
+  const breakdown = {
+    total: users.length,
+    mobile: {
+      count: 0,
+      percentage: 0,
+      byOS: {
+        iOS: 0,
+        Android: 0,
+        Other: 0
+      }
+    },
+    tablet: {
+      count: 0,
+      percentage: 0
+    },
+    desktop: {
+      count: 0,
+      percentage: 0
+    },
+    browsers: {}
   };
+  
+  if (users.length === 0) {
+    return breakdown;
+  }
+  
+  users.forEach(user => {
+    const deviceInfo = user.deviceInfo || {};
+    const deviceType = deviceInfo.deviceType || 'desktop';
+    const mobileOS = deviceInfo.mobileOS;
+    const browser = deviceInfo.browser || 'Other';
+    
+    // Count by device type
+    if (deviceType === 'mobile') {
+      breakdown.mobile.count++;
+      if (mobileOS) {
+        breakdown.mobile.byOS[mobileOS] = (breakdown.mobile.byOS[mobileOS] || 0) + 1;
+      }
+    } else if (deviceType === 'tablet') {
+      breakdown.tablet.count++;
+    } else {
+      breakdown.desktop.count++;
+    }
+    
+    // Count browsers
+    breakdown.browsers[browser] = (breakdown.browsers[browser] || 0) + 1;
+  });
+  
+  // Calculate percentages
+  breakdown.mobile.percentage = Math.round((breakdown.mobile.count / users.length) * 100);
+  breakdown.tablet.percentage = Math.round((breakdown.tablet.count / users.length) * 100);
+  breakdown.desktop.percentage = Math.round((breakdown.desktop.count / users.length) * 100);
+  
+  return breakdown;
 };
 
 const analyzeFeedback = (feedbackList) => {
@@ -771,7 +819,7 @@ function Admin() {
       const userGrowth = calculateUserGrowth(userData);
       const featureUsage = calculateFeatureUsage(analyticsData);
       const sessionData = calculateSessionData(userData);
-      const deviceBreakdown = calculateDeviceBreakdown();
+      const deviceBreakdown = calculateDeviceBreakdown(userData);
       
       setAnalytics({
         userGrowth,
@@ -810,7 +858,13 @@ function Admin() {
         userGrowth: [],
         featureUsage: {},
         sessionData: [],
-        deviceBreakdown: { mobile: { count: 0, percentage: 60 }, desktop: { count: 0, percentage: 35 }, tablet: { count: 0, percentage: 5 } },
+        deviceBreakdown: { 
+          total: 0,
+          mobile: { count: 0, percentage: 0, byOS: { iOS: 0, Android: 0, Other: 0 } }, 
+          desktop: { count: 0, percentage: 0 }, 
+          tablet: { count: 0, percentage: 0 },
+          browsers: {}
+        },
         totalUsers: 0,
         activeUsers: 0
       });
@@ -2077,25 +2131,83 @@ function Admin() {
               }}>
                 <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
                 <div className="space-y-4">
-                  {Object.entries(analytics.deviceBreakdown).map(([device, data]) => (
-                    <div key={device} className="space-y-2">
+                  {/* Mobile */}
+                  {analytics.deviceBreakdown.mobile && (
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          {device === 'mobile' && <Smartphone size={16} style={{ color: theme.info }} />}
-                          {device === 'desktop' && <Monitor size={16} style={{ color: theme.success }} />}
-                          {device === 'tablet' && <Smartphone size={16} style={{ color: theme.warning }} />}
-                          <span className="text-sm font-medium capitalize" style={{ color: theme.text }}>{device}</span>
+                          <Smartphone size={16} style={{ color: theme.info }} />
+                          <span className="text-sm font-medium" style={{ color: theme.text }}>Mobile</span>
                         </div>
-                        <span className="text-sm" style={{ color: theme.textLight }}>{data.count} ({data.percentage}%)</span>
+                        <span className="text-sm" style={{ color: theme.textLight }}>
+                          {analytics.deviceBreakdown.mobile.count} ({analytics.deviceBreakdown.mobile.percentage}%)
+                        </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
-                          className="h-2 rounded-full bg-blue-500" 
-                          style={{ width: `${data.percentage}%` }}
+                          className="h-2 rounded-full" 
+                          style={{ width: `${analytics.deviceBreakdown.mobile.percentage}%`, backgroundColor: theme.info }}
+                        />
+                      </div>
+                      {/* Mobile OS Breakdown */}
+                      {analytics.deviceBreakdown.mobile.count > 0 && analytics.deviceBreakdown.mobile.byOS && (
+                        <div className="pl-6 space-y-1 mt-2">
+                          {Object.entries(analytics.deviceBreakdown.mobile.byOS).map(([os, count]) => {
+                            if (count === 0) return null;
+                            const osPercentage = Math.round((count / analytics.deviceBreakdown.mobile.count) * 100);
+                            return (
+                              <div key={os} className="flex items-center justify-between text-xs" style={{ color: theme.textLight }}>
+                                <span>• {os}</span>
+                                <span>{count} ({osPercentage}%)</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Tablet */}
+                  {analytics.deviceBreakdown.tablet && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Smartphone size={16} style={{ color: theme.warning }} />
+                          <span className="text-sm font-medium" style={{ color: theme.text }}>Tablet</span>
+                        </div>
+                        <span className="text-sm" style={{ color: theme.textLight }}>
+                          {analytics.deviceBreakdown.tablet.count} ({analytics.deviceBreakdown.tablet.percentage}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full" 
+                          style={{ width: `${analytics.deviceBreakdown.tablet.percentage}%`, backgroundColor: theme.warning }}
                         />
                       </div>
                     </div>
-                  ))}
+                  )}
+                  
+                  {/* Desktop */}
+                  {analytics.deviceBreakdown.desktop && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Monitor size={16} style={{ color: theme.success }} />
+                          <span className="text-sm font-medium" style={{ color: theme.text }}>Desktop</span>
+                        </div>
+                        <span className="text-sm" style={{ color: theme.textLight }}>
+                          {analytics.deviceBreakdown.desktop.count} ({analytics.deviceBreakdown.desktop.percentage}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full" 
+                          style={{ width: `${analytics.deviceBreakdown.desktop.percentage}%`, backgroundColor: theme.success }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

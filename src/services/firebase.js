@@ -26,6 +26,7 @@ import {
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../config/firebase.js';
 import { encryptUserData, decryptUserData, hashPassword } from '../utils/encryption.js';
+import { getCurrentDeviceInfo } from '../utils/deviceDetection.js';
 
 // ============================================================================
 // AUTHENTICATION
@@ -238,6 +239,9 @@ export async function registerUser(email, password, inviteCode) {
     console.log('📧 Firebase will send automatic verification email (firebaseapp.com)');
     console.log('📧 Custom verification email will also be sent via SendGrid');
     
+    // Get device information
+    const deviceInfo = getCurrentDeviceInfo();
+    
     // Try to create user document in Firestore (non-blocking)
     const userData = {
       email: email.toLowerCase(),
@@ -245,7 +249,8 @@ export async function registerUser(email, password, inviteCode) {
       createdAt: serverTimestamp(),
       lastActive: serverTimestamp(),
       isActive: true,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      deviceInfo: deviceInfo
     };
     
     try {
@@ -283,9 +288,13 @@ export async function loginUser(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Update last active timestamp
+    // Get current device information
+    const deviceInfo = getCurrentDeviceInfo();
+    
+    // Update last active timestamp and device info
     await updateDoc(doc(db, 'users', user.uid), {
-      lastActive: serverTimestamp()
+      lastActive: serverTimestamp(),
+      deviceInfo: deviceInfo
     });
     
     // Track login analytics

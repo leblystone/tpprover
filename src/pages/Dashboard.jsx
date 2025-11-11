@@ -44,12 +44,6 @@ export default function Dashboard() {
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
   const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
-  
-  // Mock minimal data to render the dashboard without external deps
-  const [vitamins, setVitamins] = useState([
-    { id: 1, name: 'Vitamin D3', dose: '5000 IU', schedule: 'AM' },
-    { id: 2, name: 'Magnesium', dose: '200 mg', schedule: 'PM' },
-  ])
 
   // Derive today's peptide tasks from active protocols
   const peptideLog = useMemo(() => {
