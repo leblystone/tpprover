@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code } from 'lucide-react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle } from 'lucide-react';
 
 export default function UserDetailModal({
   user,
@@ -311,6 +311,9 @@ export default function UserDetailModal({
           {/* Technical Details */}
           <TechnicalDetailsSection user={user} theme={enhancedTheme} />
 
+          {/* Subscription Debug Info */}
+          <SubscriptionDebugSection user={user} theme={enhancedTheme} />
+
           {/* Subscription Details */}
           <div className="rounded-xl border p-5 relative overflow-hidden"
             style={{ 
@@ -573,6 +576,149 @@ export default function UserDetailModal({
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Subscription Debug Component
+function SubscriptionDebugSection({ user, theme }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const subscription = user.subscription || {};
+  const trialEndDate = user.trialEndDate;
+
+  const getStatusColor = () => {
+    if (subscription.status === 'active' && subscription.interval !== 'trial') {
+      return theme.success;
+    } else if (subscription.status === 'trialing' || subscription.interval === 'trial') {
+      return theme.info;
+    } else if (subscription.status === 'canceled' || subscription.status === 'expired') {
+      return theme.error;
+    }
+    return theme.textLight;
+  };
+
+  return (
+    <div className="rounded-xl border p-5 relative overflow-hidden"
+      style={{ 
+        borderColor: theme.border,
+        backgroundColor: theme.cardBackground,
+        background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.warning}05 100%)`
+      }}>
+      <div className="relative z-10">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-all"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ 
+                background: `linear-gradient(135deg, ${theme.warning} 0%, ${theme.warning}DD 100%)`,
+                boxShadow: `0 2px 8px ${theme.warning}30`
+              }}>
+              <Shield size={16} style={{ color: '#FFFFFF' }} />
+            </div>
+            <h4 className="font-bold" style={{ color: theme.primaryDark }}>Subscription Debug Data</h4>
+          </div>
+          <div className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
+            {isExpanded ? 'Hide' : 'Show'} Raw Data
+          </div>
+        </button>
+        
+        {isExpanded && (
+          <div className="space-y-3">
+            {/* Status Overview */}
+            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background + '60', border: `2px solid ${getStatusColor()}30` }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>STATUS ANALYSIS:</div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span style={{ color: theme.textLight }}>subscription.status:</span>
+                  <code className="px-2 py-0.5 rounded font-mono" style={{ backgroundColor: theme.background, color: getStatusColor() }}>
+                    {subscription.status || 'undefined'}
+                  </code>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: theme.textLight }}>subscription.interval:</span>
+                  <code className="px-2 py-0.5 rounded font-mono" style={{ backgroundColor: theme.background, color: theme.text }}>
+                    {subscription.interval || 'undefined'}
+                  </code>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: theme.textLight }}>subscription.plan:</span>
+                  <code className="px-2 py-0.5 rounded font-mono" style={{ backgroundColor: theme.background, color: theme.text }}>
+                    {subscription.plan || 'undefined'}
+                  </code>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: theme.textLight }}>subscription.currentPeriodEnd:</span>
+                  <code className="px-2 py-0.5 rounded font-mono text-[10px]" style={{ backgroundColor: theme.background, color: theme.text }}>
+                    {subscription.currentPeriodEnd || 'undefined'}
+                  </code>
+                </div>
+              </div>
+            </div>
+
+            {/* What Admin Panel Sees */}
+            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.info + '10', border: `1px solid ${theme.info}30` }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: theme.info }}>WHAT ADMIN PANEL CHECKS:</div>
+              <div className="space-y-1 text-[11px]" style={{ color: theme.text }}>
+                <div>✓ Lifetime: hasLifetimeAccess={String(!!subscription.hasLifetimeAccess)} OR interval='lifetime'</div>
+                <div>✓ Subscribed: status='active' AND plan exists = {String(subscription.status === 'active' && !!subscription.plan)}</div>
+                <div>✓ Trialing: Has valid currentPeriodEnd and not expired</div>
+              </div>
+            </div>
+
+            {/* What User App Sees */}
+            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.success + '10', border: `1px solid ${theme.success}30` }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: theme.success }}>WHAT USER APP CHECKS:</div>
+              <div className="space-y-1 text-[11px]" style={{ color: theme.text }}>
+                <div>✓ Active Subscription: status='active' AND interval≠'trial' = {String(subscription.status === 'active' && subscription.interval !== 'trial')}</div>
+                <div>✓ Lifetime: interval='lifetime' = {String(subscription.interval === 'lifetime')}</div>
+                <div>✓ Trialing: status='trialing' = {String(subscription.status === 'trialing')}</div>
+              </div>
+            </div>
+
+            {/* Raw JSON */}
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs font-semibold mb-2 hover:opacity-80" style={{ color: theme.textLight }}>
+                📄 Full Raw Subscription Object
+              </summary>
+              <pre className="mt-2 p-3 rounded text-[10px] overflow-auto max-h-60" 
+                style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}` }}>
+                {JSON.stringify(subscription, null, 2)}
+              </pre>
+            </details>
+
+            {/* Stripe IDs */}
+            {(subscription.stripeCustomerId || subscription.stripeSubscriptionId) && (
+              <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background + '60' }}>
+                <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>STRIPE IDENTIFIERS:</div>
+                <div className="space-y-1 text-[10px] font-mono">
+                  {subscription.stripeCustomerId && (
+                    <div>Customer: {subscription.stripeCustomerId}</div>
+                  )}
+                  {subscription.stripeSubscriptionId && (
+                    <div>Subscription: {subscription.stripeSubscriptionId}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Action needed */}
+            {subscription.status === 'active' && subscription.interval === 'trial' && (
+              <div className="p-3 rounded-lg flex items-start gap-2"
+                style={{ backgroundColor: theme.error + '10', border: `1px solid ${theme.error}30` }}>
+                <AlertTriangle size={14} style={{ color: theme.error }} className="mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: theme.error }}>⚠️ ISSUE DETECTED</p>
+                  <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
+                    User has status='active' but interval='trial'. This should be status='trialing' for trials or interval='month'/'year' for paid subscriptions.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
