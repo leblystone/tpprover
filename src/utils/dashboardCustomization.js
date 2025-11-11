@@ -204,7 +204,7 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'tips',
     type: WIDGET_TYPES.TIPS,
-    title: 'Tips & Features',
+    title: 'Helpful Tips',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 2, y: 3 },
     enabled: true,
@@ -399,7 +399,7 @@ export const WIDGET_METADATA = {
     ]
   },
   [WIDGET_TYPES.TIPS]: {
-    title: 'Tips & Features',
+    title: 'Helpful Tips',
     description: 'Rotating tips to help you discover app features and functionality',
     icon: 'Lightbulb',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
