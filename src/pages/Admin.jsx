@@ -2284,7 +2284,6 @@ function Admin() {
                   )}
                 </div>
               </div>
-            </div>
           </div>
         )}
 
