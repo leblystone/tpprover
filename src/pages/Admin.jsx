@@ -2700,18 +2700,20 @@ function Admin() {
                     const statusConfig = statusColors[item.status] || statusColors.new;
                     const StatusIcon = statusConfig.icon;
 
-                    // Feedback type colors and icons
+                    // Feedback type colors and icons with vibrant styling
                     const typeColors = {
-                      'suggestion': { bg: theme.primary + '15', color: theme.primary, icon: Lightbulb, label: 'Suggestion' },
-                      'bug': { bg: theme.error + '15', color: theme.error, icon: AlertTriangle, label: 'Bug' },
-                      'improvement': { bg: theme.warning + '15', color: theme.warning, icon: Star, label: 'Improvement' },
-                      'general': { bg: theme.info + '15', color: theme.info, icon: MessageCircle, label: 'General' }
+                      'suggestion': { bg: theme.primary + '25', color: theme.primary, borderColor: theme.primary, icon: Lightbulb, label: 'Suggestion' },
+                      'bug': { bg: theme.error + '25', color: theme.error, borderColor: theme.error, icon: AlertTriangle, label: 'Bug' },
+                      'improvement': { bg: theme.warning + '25', color: theme.warning, borderColor: theme.warning, icon: Star, label: 'Improvement' },
+                      'general': { bg: theme.info + '25', color: theme.info, borderColor: theme.info, icon: MessageCircle, label: 'General' }
                     };
                     const typeConfig = item.type ? typeColors[item.type] : null;
                     const TypeIcon = typeConfig?.icon;
 
                     return (
-                      <div key={item.id} className="p-4">
+                      <div key={item.id} className="p-4" style={{ 
+                        borderLeft: typeConfig ? `4px solid ${typeConfig.borderColor}` : 'none'
+                      }}>
                         <div className="flex items-start justify-between gap-4 min-w-0">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -2721,9 +2723,13 @@ function Admin() {
                                 {item.status}
                               </div>
                               {typeConfig && (
-                                <div className="flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium" 
-                                     style={{ backgroundColor: typeConfig.bg, color: typeConfig.color }}>
-                                  <TypeIcon size={12} />
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm" 
+                                     style={{ 
+                                       backgroundColor: typeConfig.bg, 
+                                       color: typeConfig.color,
+                                       border: `2px solid ${typeConfig.borderColor}`
+                                     }}>
+                                  <TypeIcon size={14} strokeWidth={2.5} />
                                   {typeConfig.label}
                                 </div>
                               )}
