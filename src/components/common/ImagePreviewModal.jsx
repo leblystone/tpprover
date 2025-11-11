@@ -21,51 +21,55 @@ export default function ImagePreviewModal({
   const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
   const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
-      // Create a friendly filename - always save as PNG
-      const friendlyFilename = `${image.title.replace(/[^a-z0-9]/gi, '_')}_${new Date(image.dateAdded).toLocaleDateString('en-US').replace(/\//g, '-')}.png`;
+      // Create a friendly filename with original extension
+      const extension = image.fileName?.split('.').pop() || 'png';
+      const friendlyFilename = `${image.title.replace(/[^a-z0-9]/gi, '_')}_${new Date(image.dateAdded).toLocaleDateString('en-US').replace(/\//g, '-')}.${extension}`;
       
-      // Get the image element from the modal
-      const imgElement = document.querySelector('img[alt="' + image.title.replace(/"/g, '\\"') + '"]');
+      // Use fetch with proper CORS handling
+      const response = await fetch(image.url, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit'
+      });
       
-      if (!imgElement) {
-        throw new Error('Image not found');
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
       }
       
-      // Create a canvas to convert the image to a blob
-      const canvas = document.createElement('canvas');
-      canvas.width = imgElement.naturalWidth;
-      canvas.height = imgElement.naturalHeight;
+      const blob = await response.blob();
       
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(imgElement, 0, 0);
+      // Create blob URL and trigger download
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = friendlyFilename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
       
-      // Convert canvas to blob and trigger download
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          alert('Failed to create image file. Please try again.');
-          return;
-        }
-        
-        // Create blob URL
-        const blobUrl = URL.createObjectURL(blob);
-        
-        // Create download link
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = friendlyFilename;
-        document.body.appendChild(link);
-        link.click();
+      // Clean up
+      setTimeout(() => {
         document.body.removeChild(link);
-        
-        // Clean up blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-      }, 'image/png');
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
       
     } catch (error) {
       console.error('Failed to download image:', error);
-      alert('Failed to download image. Please try again.');
+      
+      // Fallback: Open in new tab with download header
+      try {
+        const extension = image.fileName?.split('.').pop() || 'png';
+        const friendlyFilename = `${image.title.replace(/[^a-z0-9]/gi, '_')}_${new Date(image.dateAdded).toLocaleDateString('en-US').replace(/\//g, '-')}.${extension}`;
+        
+        const downloadUrl = new URL(image.url);
+        downloadUrl.searchParams.set('response-content-disposition', `attachment; filename="${friendlyFilename}"`);
+        
+        window.open(downloadUrl.toString(), '_blank');
+      } catch (fallbackError) {
+        alert('Failed to download image. Please right-click the image and select "Save image as..."');
+      }
     }
   };
 

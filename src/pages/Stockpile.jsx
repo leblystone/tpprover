@@ -100,10 +100,20 @@ export default function Stockpile() {
   // Copy link to clipboard
   const handleCopyLink = (url, title) => {
     navigator.clipboard.writeText(url).then(() => {
-      alert(`✓ "${title}" link copied to clipboard!`);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: 'Link Copied 📋', 
+          type: 'success' 
+        } 
+      }));
     }).catch(err => {
       console.error('Failed to copy link:', err);
-      alert('Failed to copy link. Please try again.');
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: 'Failed to copy link', 
+          type: 'error' 
+        } 
+      }));
     });
   };
   
@@ -558,48 +568,42 @@ export default function Stockpile() {
                                                     )}
                                                     {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
                                                     {item.documentation && item.documentation.length > 0 && (
-                                                        <div className="text-xs pl-5 mt-1" style={{ color: theme.textLight }}>
-                                                            <div className="flex items-center gap-2">
-                                                                <FileText size={12} />
-                                                                <span>Documentation: {item.documentation.length} item{item.documentation.length !== 1 ? 's' : ''}</span>
-                                                                <div className="flex gap-1.5">
-                                                                    {item.documentation.map((doc, index) => (
-                                                                        doc.type === 'image' ? (
-                                                                            <button
-                                                                                key={index}
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    setPreviewImage(doc);
-                                                                                }}
-                                                                                className="p-1 rounded hover:bg-opacity-20 transition-all"
-                                                                                style={{ 
-                                                                                    backgroundColor: theme.primary + '15',
-                                                                                    color: theme.primary
-                                                                                }}
-                                                                                title={`View ${doc.title}`}
-                                                                            >
-                                                                                <ImageIcon size={14} />
-                                                                            </button>
-                                                                        ) : (
-                                                                            <button
-                                                                                key={index}
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleCopyLink(doc.url, doc.title);
-                                                                                }}
-                                                                                className="p-1 rounded hover:bg-opacity-20 transition-all"
-                                                                                style={{ 
-                                                                                    backgroundColor: theme.primary + '15',
-                                                                                    color: theme.primary
-                                                                                }}
-                                                                                title={`Copy ${doc.title} link`}
-                                                                            >
-                                                                                <LinkIcon size={14} />
-                                                                            </button>
-                                                                        )
-                                                                    ))}
+                                                        <div className="text-xs pl-5 mt-1 space-y-1">
+                                                            {item.documentation.map((doc, index) => (
+                                                                <div key={index} className="flex items-center gap-1.5">
+                                                                    {doc.type === 'image' ? (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setPreviewImage(doc);
+                                                                            }}
+                                                                            className="flex items-center gap-1.5 p-1 rounded hover:bg-opacity-20 transition-all"
+                                                                            style={{ 
+                                                                                color: theme.primary
+                                                                            }}
+                                                                            title={`View ${doc.title}`}
+                                                                        >
+                                                                            <ImageIcon size={12} />
+                                                                            <span className="text-xs hover:underline">{doc.title}</span>
+                                                                        </button>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleCopyLink(doc.url, doc.title);
+                                                                            }}
+                                                                            className="flex items-center gap-1.5 p-1 rounded hover:bg-opacity-20 transition-all"
+                                                                            style={{ 
+                                                                                color: theme.primary
+                                                                            }}
+                                                                            title={`Copy ${doc.title} link`}
+                                                                        >
+                                                                            <LinkIcon size={12} />
+                                                                            <span className="text-xs hover:underline">{doc.title}</span>
+                                                                        </button>
+                                                                    )}
                                                                 </div>
-                                                            </div>
+                                                            ))}
                                                         </div>
                                                     )}
                                                     <>
