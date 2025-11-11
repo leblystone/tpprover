@@ -215,12 +215,43 @@ const analyzeFeedback = (feedbackList) => {
     }
   });
   
+  // Calculate real trends from feedback timestamps
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const threeWeeksAgo = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
+  
+  const thisWeekCount = feedbackList.filter(item => {
+    const date = item.submittedAt?.toDate ? item.submittedAt.toDate() : new Date(item.timestamp || item.submittedAt);
+    return date >= oneWeekAgo;
+  }).length;
+  
+  const lastWeekCount = feedbackList.filter(item => {
+    const date = item.submittedAt?.toDate ? item.submittedAt.toDate() : new Date(item.timestamp || item.submittedAt);
+    return date >= twoWeeksAgo && date < oneWeekAgo;
+  }).length;
+  
+  const twoWeeksAgoCount = feedbackList.filter(item => {
+    const date = item.submittedAt?.toDate ? item.submittedAt.toDate() : new Date(item.timestamp || item.submittedAt);
+    return date >= threeWeeksAgo && date < twoWeeksAgo;
+  }).length;
+  
+  // Calculate percentage changes
+  const thisWeekChange = lastWeekCount > 0 
+    ? `${thisWeekCount > lastWeekCount ? '+' : ''}${Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)}%`
+    : thisWeekCount > 0 ? '+100%' : '0%';
+    
+  const lastWeekChange = twoWeeksAgoCount > 0 
+    ? `${lastWeekCount > twoWeeksAgoCount ? '+' : ''}${Math.round(((lastWeekCount - twoWeeksAgoCount) / twoWeeksAgoCount) * 100)}%`
+    : lastWeekCount > 0 ? '+100%' : '0%';
+  
   return {
     categories,
     sentiment,
     trends: [
-      { week: 'This week', feedback: feedbackList.length, change: '+12%' },
-      { week: 'Last week', feedback: Math.max(0, feedbackList.length - 5), change: '+8%' }
+      { week: 'This week', feedback: thisWeekCount, change: thisWeekChange },
+      { week: 'Last week', feedback: lastWeekCount, change: lastWeekChange },
+      { week: '2 weeks ago', feedback: twoWeeksAgoCount, change: '—' }
     ],
     autoResponses: []
   };
@@ -463,6 +494,7 @@ function Admin() {
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
   const [selectedFeedbackTypeFilter, setSelectedFeedbackTypeFilter] = useState('all');
+  const [selectedFeedbackStatusFilter, setSelectedFeedbackStatusFilter] = useState('new');
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
     featureUsage: {},
@@ -2551,37 +2583,33 @@ function Admin() {
 
         {activeTab === 'feedback' && (
           <div className="space-y-6">
-            {/* Horizontal Feedback Type Filter Tabs */}
+            {/* Status Filter Tabs */}
             <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="p-4">
+              <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+                <h3 className="text-xs font-semibold mb-3" style={{ color: theme.textLight }}>FILTER BY STATUS</h3>
                 <div className="flex items-center gap-3 overflow-x-auto pb-2">
                   {(() => {
-                    // Count NEW feedback by type
-                    const newFeedbackCounts = {
-                      all: feedback.filter(f => f.status === 'new').length,
-                      suggestion: feedback.filter(f => f.type === 'suggestion' && f.status === 'new').length,
-                      bug: feedback.filter(f => f.type === 'bug' && f.status === 'new').length,
-                      improvement: feedback.filter(f => f.type === 'improvement' && f.status === 'new').length,
-                      general: feedback.filter(f => f.type === 'general' && f.status === 'new').length,
-                    };
-                    
-                    const typeFilters = [
-                      { id: 'all', label: 'All New', icon: MessageSquare, color: theme.primaryDark },
-                      { id: 'suggestion', label: 'Suggestions', icon: Lightbulb, color: theme.primary },
-                      { id: 'bug', label: 'Bugs', icon: AlertTriangle, color: theme.error },
-                      { id: 'improvement', label: 'Improvements', icon: Star, color: theme.warning },
-                      { id: 'general', label: 'General', icon: MessageCircle, color: theme.info }
+                    const statusFilters = [
+                      { id: 'new', label: 'New', icon: Clock, color: theme.warning },
+                      { id: 'reviewed', label: 'Reviewed', icon: Eye, color: theme.info },
+                      { id: 'resolved', label: 'Resolved', icon: CheckCircle, color: theme.success },
+                      { id: 'all', label: 'All History', icon: LayoutDashboard, color: theme.primaryDark }
                     ];
                     
-                    return typeFilters.map(filter => {
-                      const count = newFeedbackCounts[filter.id];
+                    return statusFilters.map(filter => {
+                      const count = filter.id === 'all' 
+                        ? feedback.length 
+                        : feedback.filter(f => f.status === filter.id).length;
                       const FilterIcon = filter.icon;
-                      const isActive = selectedFeedbackTypeFilter === filter.id;
+                      const isActive = selectedFeedbackStatusFilter === filter.id;
                       
                       return (
                         <button
                           key={filter.id}
-                          onClick={() => setSelectedFeedbackTypeFilter(filter.id)}
+                          onClick={() => {
+                            setSelectedFeedbackStatusFilter(filter.id);
+                            setSelectedFeedbackTypeFilter('all'); // Reset type filter when changing status
+                          }}
                           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all"
                           style={{ 
                             backgroundColor: isActive ? filter.color + '25' : theme.background,
@@ -2605,6 +2633,77 @@ function Admin() {
                   })()}
                 </div>
               </div>
+              
+              {/* Type Filter Tabs - Only show for 'new' status */}
+              {selectedFeedbackStatusFilter !== 'all' && (
+                <div className="p-4">
+                  <h3 className="text-xs font-semibold mb-3" style={{ color: theme.textLight }}>FILTER BY TYPE</h3>
+                  <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                    {(() => {
+                      // Count feedback by type for the selected status
+                      const feedbackCounts = {
+                        all: feedback.filter(f => 
+                          selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter
+                        ).length,
+                        suggestion: feedback.filter(f => 
+                          f.type === 'suggestion' && 
+                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
+                        ).length,
+                        bug: feedback.filter(f => 
+                          f.type === 'bug' && 
+                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
+                        ).length,
+                        improvement: feedback.filter(f => 
+                          f.type === 'improvement' && 
+                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
+                        ).length,
+                        general: feedback.filter(f => 
+                          f.type === 'general' && 
+                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
+                        ).length,
+                      };
+                      
+                      const typeFilters = [
+                        { id: 'all', label: 'All Types', icon: MessageSquare, color: theme.primaryDark },
+                        { id: 'suggestion', label: 'Suggestions', icon: Lightbulb, color: theme.primary },
+                        { id: 'bug', label: 'Bugs', icon: AlertTriangle, color: theme.error },
+                        { id: 'improvement', label: 'Improvements', icon: Star, color: theme.warning },
+                        { id: 'general', label: 'General', icon: MessageCircle, color: theme.info }
+                      ];
+                      
+                      return typeFilters.map(filter => {
+                        const count = feedbackCounts[filter.id];
+                        const FilterIcon = filter.icon;
+                        const isActive = selectedFeedbackTypeFilter === filter.id;
+                        
+                        return (
+                          <button
+                            key={filter.id}
+                            onClick={() => setSelectedFeedbackTypeFilter(filter.id)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all"
+                            style={{ 
+                              backgroundColor: isActive ? filter.color + '25' : theme.background,
+                              color: isActive ? filter.color : theme.text,
+                              border: isActive ? `2px solid ${filter.color}` : `1px solid ${theme.border}`,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <FilterIcon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                            <span>{filter.label}</span>
+                            <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                                 style={{ 
+                                   backgroundColor: isActive ? filter.color : theme.textLight + '30',
+                                   color: isActive ? theme.white : theme.textLight 
+                                 }}>
+                              {count}
+                            </div>
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Compact Feedback Trends */}
@@ -2666,23 +2765,30 @@ function Admin() {
                     </p>
                   </div>
                 ) : (() => {
-                  // Filter feedback based on selected type and status
+                  // Filter feedback based on selected status and type
                   const filteredFeedback = feedback.filter(item => {
-                    // Only show 'new' status items
-                    if (item.status !== 'new') return false;
+                    // Apply status filter
+                    if (selectedFeedbackStatusFilter !== 'all' && item.status !== selectedFeedbackStatusFilter) {
+                      return false;
+                    }
                     
                     // Apply type filter
-                    if (selectedFeedbackTypeFilter === 'all') return true;
-                    return item.type === selectedFeedbackTypeFilter;
+                    if (selectedFeedbackTypeFilter !== 'all' && item.type !== selectedFeedbackTypeFilter) {
+                      return false;
+                    }
+                    
+                    return true;
                   });
 
                   if (filteredFeedback.length === 0) {
                     return (
                       <div className="p-8 text-center">
                         <MessageSquare size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
-                        <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No new feedback in this category</h3>
+                        <h3 className="font-semibold" style={{ color: theme.primaryDark }}>
+                          {selectedFeedbackStatusFilter === 'all' ? 'No feedback yet' : `No ${selectedFeedbackStatusFilter} feedback in this category`}
+                        </h3>
                         <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                          All caught up! 🎉
+                          {selectedFeedbackStatusFilter === 'new' ? 'All caught up! 🎉' : 'No feedback matches these filters.'}
                         </p>
                       </div>
                     );
