@@ -7,15 +7,10 @@ const functions = require('firebase-functions');
 /**
  * Manually sync a user's subscription from Stripe to Firestore
  * Usage: Call this with userId and we'll fetch from Stripe and update Firestore
+ * Note: This is an admin function - should only be accessible from admin panel
  */
 exports.manualSyncSubscription = functions.https.onCall(async (data, context) => {
-  const { userId, stripeCustomerId, adminPassword } = data;
-
-  // Require admin password
-  const ADMIN_PASSWORD = 'j&jm9102';
-  if (adminPassword !== ADMIN_PASSWORD) {
-    throw new functions.https.HttpsError('permission-denied', 'Invalid admin password');
-  }
+  const { userId, stripeCustomerId } = data;
 
   if (!userId) {
     throw new functions.https.HttpsError('invalid-argument', 'userId is required');

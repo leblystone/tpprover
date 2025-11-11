@@ -596,8 +596,7 @@ function SyncFromStripeButton({ user, theme }) {
       const syncFunction = httpsCallable(functions, 'manualSyncSubscription');
       
       const response = await syncFunction({ 
-        userId: user.uid || user.id,
-        adminPassword: 'j&jm9102'
+        userId: user.uid || user.id
       });
       
       if (response.data.success) {
