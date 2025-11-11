@@ -12,7 +12,8 @@ export default function TextInput({
   onBlur,
   dense = false,
   multiline = false,
-  rows = 3
+  rows = 3,
+  uppercase = false
 }) {
   return (
     <>
@@ -45,7 +46,7 @@ export default function TextInput({
             name={name}
             value={value}
             rows={rows}
-            onChange={e => onChange(e.target.value)}
+            onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder={placeholder}
@@ -57,7 +58,8 @@ export default function TextInput({
               backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
               color: theme.text,
               boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
-              whiteSpace: 'pre-wrap'
+              whiteSpace: 'pre-wrap',
+              textTransform: uppercase ? 'uppercase' : 'none'
             }}
           />
         ) : (
@@ -65,7 +67,7 @@ export default function TextInput({
             name={name}
             type={type}
             value={value}
-            onChange={e => onChange(e.target.value)}
+            onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder={placeholder}
@@ -76,7 +78,8 @@ export default function TextInput({
               border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
               backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
               color: theme.text,
-              boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+              boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+              textTransform: uppercase ? 'uppercase' : 'none'
             }}
           />
         )}

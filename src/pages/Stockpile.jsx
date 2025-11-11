@@ -947,7 +947,7 @@ export default function Stockpile() {
             </div>
           </div>
           
-          <TextInput label="Cap/Crimp Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Blue" theme={theme} />
+          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Blue" theme={theme} uppercase={true} />
           
           {/* ORDER DETAILS Section Header */}
           <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
@@ -959,7 +959,7 @@ export default function Stockpile() {
           {/* Purity & Batch Number in two columns */}
           <div className="grid grid-cols-2 gap-3">
             <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} />
-            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="#" theme={theme} />
+            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="#" theme={theme} uppercase={true} />
           </div>
           
           {/* Date Acquired & Use By Date in two columns */}
@@ -1202,11 +1202,12 @@ export default function Stockpile() {
 
               <div>
                 <TextInput
-                  label="Cap/Crimp Color"
+                  label="Crimp / Cap Color"
                   value={row.capColor}
                   onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))}
                   placeholder="Blue"
                   theme={theme}
+                  uppercase={true}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -1223,6 +1224,7 @@ export default function Stockpile() {
                   onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, batchNumber: v } : r))}
                   placeholder="#"
                   theme={theme}
+                  uppercase={true}
                 />
               </div>
 
