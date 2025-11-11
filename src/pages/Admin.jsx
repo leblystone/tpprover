@@ -3974,6 +3974,7 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
       trialEndDate = new Date(user.trialEndDate);
     }
 
+    // If trialEndDate exists, check if it's active or expired
     if (trialEndDate && !isNaN(trialEndDate.getTime())) {
       const now = new Date();
       if (trialEndDate > now) {
@@ -3983,12 +3984,29 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
       }
     }
 
+    // If no trialEndDate, check createdAt to determine if they're in default trial period
+    // Default trial period is 7 days from registration
+    if (user.createdAt) {
+      const createdDate = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
+      if (!isNaN(createdDate.getTime())) {
+        const trialPeriodDays = 7; // Default trial period
+        const defaultTrialEnd = new Date(createdDate.getTime() + (trialPeriodDays * 24 * 60 * 60 * 1000));
+        const now = new Date();
+        
+        if (defaultTrialEnd > now) {
+          return { label: 'Trialing', color: 'bg-blue-100 text-blue-800', dotColor: '#3b82f6' };
+        } else {
+          return { label: 'Trial Expired', color: 'bg-red-100 text-red-800', dotColor: '#ef4444' };
+        }
+      }
+    }
+
     // Check for expired subscription
     if (user.subscription?.status === 'canceled' || user.subscription?.status === 'expired' || user.subscription?.status === 'past_due') {
       return { label: 'Subscription Expired', color: 'bg-red-100 text-red-800', dotColor: '#ef4444' };
     }
 
-    // Default: Trial Expired (no trial date found)
+    // Default: Trial Expired (no data found)
     return { label: 'Trial Expired', color: 'bg-gray-100 text-gray-800', dotColor: '#6b7280' };
   };
 

@@ -738,21 +738,61 @@ export async function getUserList() {
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     const users = [];
+    
+    // Fetch all user subscriptions in parallel
+    const userIds = [];
+    const userDataMap = {};
+    
     querySnapshot.forEach((doc) => {
       const userData = doc.data();
-      users.push({
+      userIds.push(doc.id);
+      userDataMap[doc.id] = {
         id: doc.id,
+        uid: doc.id,
         email: userData.email,
+        displayName: userData.displayName,
+        photoURL: userData.photoURL,
         createdAt: userData.createdAt,
         lastActive: userData.lastActive,
         inviteCodeUsed: userData.inviteCodeUsed,
         isActive: userData.isActive,
+        deviceInfo: userData.deviceInfo,
         subscription: userData.subscription || null,
         trialEndDate: userData.trialEndDate || null,
         trialExtensionHistory: userData.trialExtensionHistory || []
-      });
+      };
     });
-    return users;
+    
+    // Fetch subscriptions from userSubscriptions collection
+    const subscriptionPromises = userIds.map(async (userId) => {
+      try {
+        const subscriptionDoc = await getDoc(doc(db, 'userSubscriptions', userId));
+        if (subscriptionDoc.exists()) {
+          const subData = subscriptionDoc.data();
+          return { userId, subscription: subData.subscription || subData };
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch subscription for ${userId}:`, err);
+      }
+      return { userId, subscription: null };
+    });
+    
+    const subscriptions = await Promise.all(subscriptionPromises);
+    
+    // Merge subscription data
+    subscriptions.forEach(({ userId, subscription }) => {
+      if (subscription && userDataMap[userId]) {
+        // Merge subscription data (prioritize userSubscriptions collection)
+        userDataMap[userId].subscription = subscription;
+        
+        // Also set trialEndDate if available in subscription
+        if (subscription.currentPeriodEnd && !userDataMap[userId].trialEndDate) {
+          userDataMap[userId].trialEndDate = subscription.currentPeriodEnd;
+        }
+      }
+    });
+    
+    return Object.values(userDataMap);
   } catch (error) {
     console.error('Failed to get user list:', error);
     throw error;

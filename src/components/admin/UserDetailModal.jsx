@@ -58,12 +58,30 @@ export default function UserDetailModal({
       trialEndDate = new Date(user.trialEndDate);
     }
 
+    // If trialEndDate exists, check if it's active or expired
     if (trialEndDate && !isNaN(trialEndDate.getTime())) {
       const now = new Date();
       if (trialEndDate > now) {
         return { label: 'Trialing', color: enhancedTheme.info, bgColor: enhancedTheme.info + '20', borderColor: enhancedTheme.info + '40' };
       } else {
         return { label: 'Trial Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+      }
+    }
+
+    // If no trialEndDate, check createdAt to determine if they're in default trial period
+    // Default trial period is 7 days from registration
+    if (user.createdAt) {
+      const createdDate = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
+      if (!isNaN(createdDate.getTime())) {
+        const trialPeriodDays = 7; // Default trial period
+        const defaultTrialEnd = new Date(createdDate.getTime() + (trialPeriodDays * 24 * 60 * 60 * 1000));
+        const now = new Date();
+        
+        if (defaultTrialEnd > now) {
+          return { label: 'Trialing', color: enhancedTheme.info, bgColor: enhancedTheme.info + '20', borderColor: enhancedTheme.info + '40' };
+        } else {
+          return { label: 'Trial Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+        }
       }
     }
 
