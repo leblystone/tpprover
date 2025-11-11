@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, Edit } from 'lucide-react';
+import { Settings, Edit, Beaker } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -725,7 +725,19 @@ export default function CustomizableDashboard() {
 
   return (
     <ViewContainer theme={theme}>
-      <div className="space-y-2 overflow-x-hidden w-full max-w-full">
+      {/* Decorative background icon */}
+      <div className="fixed bottom-4 right-4 pointer-events-none z-0 hidden lg:block">
+        <Beaker 
+          size={280} 
+          strokeWidth={0.5}
+          style={{ 
+            color: theme.border,
+            opacity: 0.08
+          }}
+        />
+      </div>
+      
+      <div className="space-y-2 overflow-x-hidden w-full max-w-full relative z-10">
 
         {/* Dashboard Layout - Flexible Grid */}
         <div className="overflow-x-hidden">
