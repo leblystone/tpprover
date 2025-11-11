@@ -3953,6 +3953,45 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
     return email.includes(term) || name.includes(term);
   });
 
+  const getSubscriptionStatus = (user) => {
+    // Check for lifetime access first
+    if (user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime') {
+      return { label: 'Lifetime', color: 'bg-amber-100 text-amber-800', dotColor: '#f59e0b' };
+    }
+
+    // Check for active paid subscription
+    if (user.subscription?.status === 'active' && user.subscription?.plan) {
+      return { label: 'Subscribed', color: 'bg-green-100 text-green-800', dotColor: '#22c55e' };
+    }
+
+    // Check trial status
+    let trialEndDate = null;
+    if (user.subscription?.currentPeriodEnd) {
+      trialEndDate = new Date(user.subscription.currentPeriodEnd);
+    } else if (user.trialEndDate?.toDate) {
+      trialEndDate = user.trialEndDate.toDate();
+    } else if (typeof user.trialEndDate === 'string') {
+      trialEndDate = new Date(user.trialEndDate);
+    }
+
+    if (trialEndDate && !isNaN(trialEndDate.getTime())) {
+      const now = new Date();
+      if (trialEndDate > now) {
+        return { label: 'Trialing', color: 'bg-blue-100 text-blue-800', dotColor: '#3b82f6' };
+      } else {
+        return { label: 'Trial Expired', color: 'bg-red-100 text-red-800', dotColor: '#ef4444' };
+      }
+    }
+
+    // Check for expired subscription
+    if (user.subscription?.status === 'canceled' || user.subscription?.status === 'expired' || user.subscription?.status === 'past_due') {
+      return { label: 'Subscription Expired', color: 'bg-red-100 text-red-800', dotColor: '#ef4444' };
+    }
+
+    // Default: Trial Expired (no trial date found)
+    return { label: 'Trial Expired', color: 'bg-gray-100 text-gray-800', dotColor: '#6b7280' };
+  };
+
   if (filteredUsers.length === 0) {
     return <p style={{ color: theme.textLight }}>No users found matching "{searchTerm}"</p>;
   }
@@ -3966,7 +4005,7 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
         <thead style={{ backgroundColor: theme.background }}>
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>User</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Status</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Subscription Status</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Last Active</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>Actions</th>
           </tr>
@@ -3974,6 +4013,7 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
         <tbody className="divide-y" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           {filteredUsers.map(user => {
             const hasLifetime = user.subscription?.hasLifetimeAccess;
+            const status = getSubscriptionStatus(user);
             
             return (
               <tr key={user.uid} className="hover:bg-opacity-50" style={{ backgroundColor: 'transparent' }}>
@@ -3992,8 +4032,9 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {user.isActive ? 'Active' : 'Inactive'}
+                  <span className={`px-3 py-1 inline-flex items-center gap-1.5 text-xs leading-5 font-semibold rounded-full ${status.color}`}>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.dotColor }} />
+                    {status.label}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>

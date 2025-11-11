@@ -35,6 +35,48 @@ export default function UserDetailModal({
   const [localMessageType, setLocalMessageType] = useState('success');
 
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
+
+  // Get subscription status
+  const getSubscriptionStatus = () => {
+    // Check for lifetime access first
+    if (hasLifetimeAccess) {
+      return { label: 'Lifetime Access', color: enhancedTheme.warning, bgColor: enhancedTheme.warning + '20', borderColor: enhancedTheme.warning + '40' };
+    }
+
+    // Check for active paid subscription
+    if (user.subscription?.status === 'active' && user.subscription?.plan) {
+      return { label: 'Subscribed', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+    }
+
+    // Check trial status
+    let trialEndDate = null;
+    if (user.subscription?.currentPeriodEnd) {
+      trialEndDate = new Date(user.subscription.currentPeriodEnd);
+    } else if (user.trialEndDate?.toDate) {
+      trialEndDate = user.trialEndDate.toDate();
+    } else if (typeof user.trialEndDate === 'string') {
+      trialEndDate = new Date(user.trialEndDate);
+    }
+
+    if (trialEndDate && !isNaN(trialEndDate.getTime())) {
+      const now = new Date();
+      if (trialEndDate > now) {
+        return { label: 'Trialing', color: enhancedTheme.info, bgColor: enhancedTheme.info + '20', borderColor: enhancedTheme.info + '40' };
+      } else {
+        return { label: 'Trial Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+      }
+    }
+
+    // Check for expired subscription
+    if (user.subscription?.status === 'canceled' || user.subscription?.status === 'expired' || user.subscription?.status === 'past_due') {
+      return { label: 'Subscription Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
+    }
+
+    // Default: Trial Expired
+    return { label: 'Trial Expired', color: enhancedTheme.textLight, bgColor: enhancedTheme.textLight + '20', borderColor: enhancedTheme.textLight + '40' };
+  };
+
+  const subscriptionStatusDisplay = getSubscriptionStatus();
   const isLifetimeGranted = user.subscription?.lifetimeReason && !user.subscription?.paymentMethodId;
   const subscriptionStatus = user.subscription?.status || 'unknown';
   const subscriptionPlan = user.subscription?.plan?.name || user.subscription?.plan || 'No subscription';
@@ -183,7 +225,7 @@ export default function UserDetailModal({
                   style={{ borderColor: enhancedTheme.primary }}
                 />
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
-                  style={{ backgroundColor: user.isActive ? enhancedTheme.success : enhancedTheme.error }}>
+                  style={{ backgroundColor: subscriptionStatusDisplay.color }}>
                   <div className="w-2 h-2 rounded-full bg-white" />
                 </div>
               </div>
@@ -197,14 +239,14 @@ export default function UserDetailModal({
                 </p>
                 <span className="px-3 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
                   style={{
-                    backgroundColor: user.isActive ? enhancedTheme.success + '20' : enhancedTheme.error + '20',
-                    color: user.isActive ? enhancedTheme.success : enhancedTheme.error,
-                    border: `1px solid ${user.isActive ? enhancedTheme.success + '40' : enhancedTheme.error + '40'}`
+                    backgroundColor: subscriptionStatusDisplay.bgColor,
+                    color: subscriptionStatusDisplay.color,
+                    border: `1px solid ${subscriptionStatusDisplay.borderColor}`
                   }}>
                   <div className="w-1.5 h-1.5 rounded-full" 
-                    style={{ backgroundColor: user.isActive ? enhancedTheme.success : enhancedTheme.error }} 
+                    style={{ backgroundColor: subscriptionStatusDisplay.color }} 
                   />
-                  {user.isActive ? 'Active Researcher' : 'Inactive'}
+                  {subscriptionStatusDisplay.label}
                 </span>
               </div>
             </div>
@@ -525,6 +567,7 @@ function TechnicalDetailsSection({ user, theme }) {
   const deviceType = deviceInfo.deviceType || 'Unknown';
   const mobileOS = deviceInfo.mobileOS;
   const browser = deviceInfo.browser || 'Unknown';
+  const userId = user.uid || user.id || 'N/A';
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);

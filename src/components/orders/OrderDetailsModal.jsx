@@ -296,7 +296,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       await onDelete(form.id);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: {
-          message: 'Order removed from your research log',
+          message: 'Order has been deleted! 🗑️',
           type: 'info'
         }
       }));
