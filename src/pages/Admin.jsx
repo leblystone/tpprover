@@ -143,6 +143,14 @@ const calculateUserGrowth = (users) => {
     });
   }
   
+  // Debug logging
+  console.log('📈 User Growth Data:', {
+    totalUsers,
+    usersWithDates,
+    last7Days: growthData.slice(-7),
+    totalNewThisMonth: growthData.reduce((sum, day) => sum + day.newUsers, 0)
+  });
+  
   return growthData;
 };
 
@@ -2042,27 +2050,46 @@ function Admin() {
               
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                  <div className="h-64 flex items-end justify-between gap-1 p-4 rounded-xl" style={{ 
-                    background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.background} 100%)`,
-                    boxShadow: `inset 0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
-                  }}>
-                    {analytics.userGrowth.slice(-14).map((day, index) => (
-                      <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
-                        <div 
-                          className="rounded-t-lg w-full transition-all hover:scale-105 cursor-pointer"
-                          style={{ 
-                            background: `linear-gradient(180deg, ${calmingPlacePalette.periwinkle.main} 0%, ${calmingPlacePalette.periwinkle.dark} 100%)`,
-                            height: `${(day.users / Math.max(...analytics.userGrowth.map(d => d.users))) * 200}px`,
-                            minHeight: '4px',
-                            boxShadow: `0 2px 8px ${calmingPlacePalette.periwinkle.main}40`
-                          }}
-                          title={`${day.date}: ${day.users} users`}
-                        />
-                        <span className="text-xs font-medium" style={{ color: theme.textLight }}>
-                          {new Date(day.date).getDate()}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-2">
+                      <h3 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Daily New Signups (Last 14 Days)</h3>
+                      <span className="text-xs" style={{ color: theme.textLight }}>
+                        Total: {analytics.userGrowth.slice(-14).reduce((sum, d) => sum + d.newUsers, 0)} new users
+                      </span>
+                    </div>
+                    <div className="h-56 flex items-end justify-between gap-1 p-4 rounded-xl" style={{ 
+                      background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.background} 100%)`,
+                      boxShadow: `inset 0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
+                    }}>
+                      {analytics.userGrowth.slice(-14).map((day, index) => {
+                        const maxNewUsers = Math.max(...analytics.userGrowth.slice(-14).map(d => d.newUsers), 1);
+                        const hasNewUsers = day.newUsers > 0;
+                        return (
+                          <div key={day.date} className="flex flex-col items-center gap-1 flex-1 relative group">
+                            <div 
+                              className="rounded-t-lg w-full transition-all hover:scale-105 cursor-pointer relative"
+                              style={{ 
+                                background: hasNewUsers 
+                                  ? `linear-gradient(180deg, ${calmingPlacePalette.periwinkle.main} 0%, ${calmingPlacePalette.periwinkle.dark} 100%)`
+                                  : `${theme.border}`,
+                                height: hasNewUsers ? `${(day.newUsers / maxNewUsers) * 180}px` : '2px',
+                                minHeight: '2px',
+                                boxShadow: hasNewUsers ? `0 2px 8px ${calmingPlacePalette.periwinkle.main}40` : 'none'
+                              }}
+                            >
+                              {hasNewUsers && (
+                                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                                  {day.newUsers} new user{day.newUsers > 1 ? 's' : ''}
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-xs font-medium" style={{ color: hasNewUsers ? theme.text : theme.textLight }}>
+                              {new Date(day.date).getDate()}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
                 
