@@ -3,26 +3,14 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { exportToCSV } from '../utils/export'
 import { clearAppData, clearSpecific } from '../utils/reset'
-import { clearMockData } from '../utils/seed'
-import SuccessModal from '../components/ui/SuccessModal'
-import SampleDataModal from '../components/ui/SampleDataModal'
-import RemoveSampleDataModal from '../components/ui/RemoveSampleDataModal'
-import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 
 export default function SettingsData() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
-  const { refreshDataAfterClear } = useAppContext()
   const { firebaseUser } = useFirebase()
 
   const [pwaPrompted, setPWAPrompted] = useState(false)
-  const [showDemoSuccessModal, setShowDemoSuccessModal] = useState(false)
-  const [sampleDataAction, setSampleDataAction] = useState('removed')
-  const [showSampleDataModal, setShowSampleDataModal] = useState(false)
-  const [showRemoveSampleDataModal, setShowRemoveSampleDataModal] = useState(false)
-  const [isAddingSampleData, setIsAddingSampleData] = useState(false)
-  const [isRemovingSampleData, setIsRemovingSampleData] = useState(false)
 
   useEffect(() => {
     const handler = (e) => {
@@ -249,68 +237,6 @@ export default function SettingsData() {
     clearSpecific(keys)
   }
 
-  const handleAddSampleData = async () => {
-    setIsAddingSampleData(true);
-    try {
-      // Clear the flag BEFORE seeding so the seed functions don't block it
-      localStorage.removeItem('tpprover_sample_data_cleared');
-      localStorage.removeItem('tpprover_sample_data_cleared_at');
-      localStorage.removeItem('tpprover_sample_banner_dismissed');
-      
-      const { seedSampleDataToCloud } = await import('../services/demoDataSeeder');
-      
-      if (firebaseUser) {
-        const seeded = await seedSampleDataToCloud(firebaseUser.uid, null);
-        if (seeded) {
-          setShowSampleDataModal(false);
-          
-          refreshDataAfterClear();
-          
-          setSampleDataAction('added');
-          setShowDemoSuccessModal(true);
-        } else {
-          alert('Failed to add sample data. Check console for details.');
-        }
-      } else {
-        alert('You must be logged in to add sample data.');
-      }
-    } catch (error) {
-      console.error('❌ Adding sample data failed:', error);
-      alert('Error adding sample data: ' + error.message);
-    } finally {
-      setIsAddingSampleData(false);
-    }
-  };
-
-  const handleRemoveSampleData = async () => {
-    setIsRemovingSampleData(true);
-    try {
-      clearMockData();
-      const clearedAt = new Date().toISOString();
-      
-      localStorage.setItem('tpprover_sample_data_cleared', 'true');
-      localStorage.setItem('tpprover_sample_data_cleared_at', clearedAt);
-      localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
-      
-      if (firebaseUser?.uid) {
-        const { saveUserState, loadUserState } = await import('../services/cloudStorage');
-        const currentState = await loadUserState(firebaseUser.uid) || {};
-        await saveUserState(firebaseUser.uid, { ...currentState, sampleDataCleared: true, sampleDataClearedAt: clearedAt });
-      }
-      
-      refreshDataAfterClear();
-      
-      setShowRemoveSampleDataModal(false);
-      setSampleDataAction('removed');
-      setShowDemoSuccessModal(true);
-    } catch (error) {
-      console.error('❌ Removing sample data failed:', error);
-      alert('Error removing sample data: ' + error.message);
-    } finally {
-      setIsRemovingSampleData(false);
-    }
-  };
-
   return (
     <section className="space-y-4">
       {/* Header */}
@@ -364,31 +290,6 @@ export default function SettingsData() {
           <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Export your data for safekeeping or import from a previous backup</p>
         </div>
 
-        {/* Sample Data Section */}
-        <div 
-          className="p-4 rounded-lg space-y-3"
-          style={{ backgroundColor: theme.cardBackground }}
-        >
-          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Sample Data</h4>
-          <div className="space-y-2">
-            <button 
-              onClick={() => setShowSampleDataModal(true)}
-              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all"
-              style={{ backgroundColor: theme.accent, color: theme.accentText }}
-            >
-              Add Sample Data
-            </button>
-            <button 
-              onClick={() => setShowRemoveSampleDataModal(true)}
-              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all"
-              style={{ backgroundColor: theme.secondary, color: theme.text }}
-            >
-              Remove Sample Data
-            </button>
-          </div>
-          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Add or remove sample data to explore app features</p>
-        </div>
-
         {/* Danger Zone Section */}
         <div 
           className="p-4 rounded-lg space-y-3"
@@ -420,30 +321,6 @@ export default function SettingsData() {
         </div>
       </div>
 
-      <SuccessModal
-        open={showDemoSuccessModal}
-        onClose={() => setShowDemoSuccessModal(false)}
-        title={sampleDataAction === 'added' ? "Sample Data Added!" : "Sample Data Removed!"}
-        message={sampleDataAction === 'added' 
-          ? "Sample data has been successfully added to help you explore the app features. Your personal entries remain safe and intact."
-          : "All sample data has been successfully removed. Your personal entries remain safe and intact."
-        }
-        theme={theme}
-      />
-      <SampleDataModal
-        open={showSampleDataModal}
-        onClose={() => setShowSampleDataModal(false)}
-        onAddSampleData={handleAddSampleData}
-        theme={theme}
-        isLoading={isAddingSampleData}
-      />
-      <RemoveSampleDataModal
-        open={showRemoveSampleDataModal}
-        onClose={() => setShowRemoveSampleDataModal(false)}
-        onRemoveSampleData={handleRemoveSampleData}
-        theme={theme}
-        isLoading={isRemovingSampleData}
-      />
     </section>
   )
 }

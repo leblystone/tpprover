@@ -17,7 +17,6 @@ import GoalsWidget from './widgets/GoalsWidget';
 import QuickActionsWidget from './widgets/QuickActionsWidget';
 import WaterTrackerWidget from './widgets/WaterTrackerWidget';
 import GlossaryWidget from './widgets/GlossaryWidget';
-import FeedbackWidget from './widgets/FeedbackWidget';
 import NotesWidget from './widgets/NotesWidget';
 import InjectionHistoryWidget from './widgets/InjectionHistoryWidget';
 import TipsWidget from './widgets/TipsWidget';
@@ -208,14 +207,6 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           theme={theme}
           isReadOnly={isReadOnly}
           onUpgrade={onUpgrade}
-        />
-      );
-
-    case WIDGET_TYPES.FEEDBACK:
-      return (
-        <FeedbackWidget 
-          widget={widget} 
-          theme={theme}
         />
       );
 

@@ -16,7 +16,6 @@ export const WIDGET_TYPES = {
   QUICK_ACTIONS: 'quick_actions',
   WATER_TRACKER: 'water_tracker',
   GLOSSARY: 'glossary',
-  FEEDBACK: 'feedback',
   NOTES: 'notes',
   INJECTION_HISTORY: 'injection_history',
   TIPS: 'tips'
@@ -193,15 +192,6 @@ export const DEFAULT_WIDGETS = [
     }
   },
   {
-    id: 'feedback',
-    type: WIDGET_TYPES.FEEDBACK,
-    title: 'Feedback',
-    size: WIDGET_SIZES.SMALL,
-    position: { x: 1, y: 3 },
-    enabled: true,
-    settings: {}
-  },
-  {
     id: 'tips',
     type: WIDGET_TYPES.TIPS,
     title: 'Helpful Tips',
@@ -374,13 +364,6 @@ export const WIDGET_METADATA = {
       { key: 'showRecent', label: 'Show recent searches', type: 'boolean', default: true },
       { key: 'showFavorites', label: 'Show favorite entries', type: 'boolean', default: true }
     ]
-  },
-  [WIDGET_TYPES.FEEDBACK]: {
-    title: 'Feedback',
-    description: 'Share feedback, suggestions, and report issues',
-    icon: 'MessageSquare',
-    availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM],
-    settings: []
   },
   [WIDGET_TYPES.NOTES]: {
     title: 'Research Notes',

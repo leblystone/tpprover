@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, Upload, Edit, Plus, AlertTriangle, Trash2, X } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus, X } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
 import TrialButton from '../common/TrialButton';
 import { useAppContext } from '../../context/AppContext';
-import { clearMockData } from '../../utils/seed';
-import ConfirmationModal from '../ui/ConfirmationModal';
 
-export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator, trialInfo, showSampleData = false }) {
+export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator, trialInfo }) {
   const location = useLocation();
   // Handle both /page and /app/page routing patterns
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -44,56 +42,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const searchInputRef = React.useRef(null);
-  const { user, refreshDataAfterClear } = useAppContext();
-  const [isRemovingSampleData, setIsRemovingSampleData] = useState(false);
-  const [showRemoveConfirmModal, setShowRemoveConfirmModal] = useState(false);
-
-  const handleRemoveSampleData = async () => {
-    if (isRemovingSampleData) return;
-
-    setIsRemovingSampleData(true);
-    try {
-      clearMockData();
-      const clearedAt = new Date().toISOString();
-      localStorage.setItem('tpprover_sample_data_cleared', 'true');
-      localStorage.setItem('tpprover_sample_data_cleared_at', clearedAt);
-      localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
-      
-      if (user?.uid) {
-        const { saveUserState, loadUserState } = await import('../../services/cloudStorage');
-        const currentState = await loadUserState(user.uid) || {};
-        await saveUserState(user.uid, { ...currentState, sampleDataCleared: true, sampleDataClearedAt: clearedAt });
-        
-        const { saveAppData } = await import('../../services/cloudStorage');
-        const clearedAppData = {
-          protocols: JSON.parse(localStorage.getItem('tpprover_protocols') || '[]'),
-          reconItems: JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]'),
-          reconHistory: JSON.parse(localStorage.getItem('tpprover_recon_history') || '[]'),
-          supplements: JSON.parse(localStorage.getItem('tpprover_supplements') || '[]'),
-          orders: JSON.parse(localStorage.getItem('tpprover_orders') || '[]'),
-          metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
-          vendors: JSON.parse(localStorage.getItem('tpprover_vendors') || '[]'),
-          calendarNotes: JSON.parse(localStorage.getItem('tpprover_calendar_notes') || '{}'),
-          stockpile: JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'),
-          scheduledBuys: JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]')
-        };
-        await saveAppData(user.uid, clearedAppData);
-      }
-      
-      refreshDataAfterClear();
-      window.dispatchEvent(new CustomEvent('sample-data-cleared'));
-      setIsRemovingSampleData(false);
-      setShowRemoveConfirmModal(false);
-    } catch (error) {
-      console.error('Error removing sample data:', error);
-      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Failed to remove sample data. Please try again or use the Settings page.', type: 'error' } 
-      }));
-      setIsRemovingSampleData(false);
-    }
-  };
-
-
+  const { user } = useAppContext();
 
   return (
     <>
@@ -231,31 +180,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               <Plus className="h-4 w-4" />
             </button>
           )}
-          {/* Sample Data Chip Notification - Show on dashboard mobile, hidden on other pages mobile to prevent overlap */}
-          {showSampleData && (
-            <div className={`${onDashboard ? 'flex' : 'hidden md:flex'} items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200`}
-              style={{ 
-                backgroundColor: theme.mode === 'dark' || theme.background === '#1a1a1a' ? '#3D2F26' : '#F5F1EB',
-                color: theme.mode === 'dark' || theme.background === '#1a1a1a' ? '#E8DDD4' : '#8B5A3C',
-                border: `1px solid ${theme.mode === 'dark' || theme.background === '#1a1a1a' ? '#A67B5B' : '#A67B5B'}`
-              }}>
-              <AlertTriangle size={12} className="flex-shrink-0" />
-              <span>Sample Data</span>
-              <button
-                onClick={() => setShowRemoveConfirmModal(true)}
-                disabled={isRemovingSampleData}
-                className="ml-1 p-0.5 rounded hover:opacity-80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                style={{ color: 'inherit' }}
-                title="Remove sample data"
-              >
-                {isRemovingSampleData ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2" style={{ borderColor: 'currentColor' }}></div>
-                ) : (
-                  <Trash2 size={12} />
-                )}
-              </button>
-            </div>
-          )}
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
             <div className="mr-2">
@@ -342,18 +266,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         </div>
       </header>
 
-      {/* Remove Sample Data Confirmation Modal */}
-      <ConfirmationModal
-        open={showRemoveConfirmModal}
-        onClose={() => setShowRemoveConfirmModal(false)}
-        onConfirm={handleRemoveSampleData}
-        title="Remove All Sample Data?"
-        message="This will remove all example protocols, orders, vendors, and other sample content. Your own data will not be affected."
-        confirmText="Remove Sample Data"
-        cancelText="Cancel"
-        type="primary"
-        theme={theme}
-      />
     </>
   );
 }

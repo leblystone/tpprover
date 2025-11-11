@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader } from 'lucide-react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code } from 'lucide-react';
 
 export default function UserDetailModal({
   user,
@@ -247,6 +247,9 @@ export default function UserDetailModal({
               </p>
             </div>
           </div>
+
+          {/* Technical Details */}
+          <TechnicalDetailsSection user={user} theme={enhancedTheme} />
 
           {/* Subscription Details */}
           <div className="rounded-xl border p-5 relative overflow-hidden"
@@ -515,6 +518,116 @@ export default function UserDetailModal({
   );
 }
 
+// Technical Details Component
+function TechnicalDetailsSection({ user, theme }) {
+  const [copiedUid, setCopiedUid] = useState(false);
+  const deviceInfo = user.deviceInfo || {};
+  const deviceType = deviceInfo.deviceType || 'Unknown';
+  const mobileOS = deviceInfo.mobileOS;
+  const browser = deviceInfo.browser || 'Unknown';
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedUid(true);
+    setTimeout(() => setCopiedUid(false), 2000);
+  };
+
+  return (
+    <div className="rounded-xl border p-5 relative overflow-hidden"
+      style={{ 
+        borderColor: theme.border,
+        backgroundColor: theme.cardBackground,
+        background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.info}05 100%)`
+      }}>
+      <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+        <Code size={100} style={{ color: theme.info }} />
+      </div>
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ 
+              background: `linear-gradient(135deg, ${theme.info} 0%, ${theme.info}DD 100%)`,
+              boxShadow: `0 2px 8px ${theme.info}30`
+            }}>
+            <Code size={16} style={{ color: '#FFFFFF' }} />
+          </div>
+          <h4 className="font-bold" style={{ color: theme.primaryDark }}>Technical Details</h4>
+        </div>
+        
+        <div className="space-y-3">
+          {/* UID */}
+          <div className="flex items-center justify-between p-3 rounded-lg"
+            style={{ backgroundColor: theme.background + '60' }}>
+            <span className="text-sm font-medium" style={{ color: theme.textLight }}>Firebase UID:</span>
+            <div className="flex items-center gap-2">
+              <code className="text-xs font-mono px-2 py-1 rounded" 
+                style={{ 
+                  backgroundColor: theme.background, 
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`
+                }}>
+                {user.uid}
+              </code>
+              <button
+                onClick={() => copyToClipboard(user.uid)}
+                className="p-1.5 rounded hover:bg-opacity-80 transition-all"
+                style={{ backgroundColor: theme.info + '20' }}
+                title="Copy UID"
+              >
+                {copiedUid ? <Check size={14} style={{ color: theme.success }} /> : <Copy size={14} style={{ color: theme.info }} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Device Type */}
+          <div className="flex items-center justify-between p-3 rounded-lg"
+            style={{ backgroundColor: theme.background + '60' }}>
+            <span className="text-sm font-medium" style={{ color: theme.textLight }}>Device Type:</span>
+            <div className="flex items-center gap-2">
+              {deviceType === 'mobile' && <Smartphone size={16} style={{ color: theme.info }} />}
+              {deviceType === 'tablet' && <Smartphone size={16} style={{ color: theme.warning }} />}
+              {deviceType === 'desktop' && <Monitor size={16} style={{ color: theme.success }} />}
+              {deviceType === 'Unknown' && <Monitor size={16} style={{ color: theme.textLight }} />}
+              <span className="text-sm font-semibold capitalize" style={{ color: theme.text }}>{deviceType}</span>
+            </div>
+          </div>
+
+          {/* Mobile OS (if applicable) */}
+          {mobileOS && (
+            <div className="flex items-center justify-between p-3 rounded-lg"
+              style={{ backgroundColor: theme.background + '60' }}>
+              <span className="text-sm font-medium" style={{ color: theme.textLight }}>Mobile OS:</span>
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>{mobileOS}</span>
+            </div>
+          )}
+
+          {/* Browser */}
+          <div className="flex items-center justify-between p-3 rounded-lg"
+            style={{ backgroundColor: theme.background + '60' }}>
+            <span className="text-sm font-medium" style={{ color: theme.textLight }}>Browser:</span>
+            <span className="text-sm font-semibold" style={{ color: theme.text }}>{browser}</span>
+          </div>
+
+          {/* No device info warning */}
+          {deviceType === 'Unknown' && (
+            <div className="p-3 rounded-lg flex items-start gap-2"
+              style={{ 
+                backgroundColor: theme.warning + '10',
+                border: `1px solid ${theme.warning}30`
+              }}>
+              <Coffee size={14} style={{ color: theme.warning }} className="mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold" style={{ color: theme.warning }}>Device info not available</p>
+                <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
+                  This user registered before device tracking was implemented. Device info will be captured on their next login.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 

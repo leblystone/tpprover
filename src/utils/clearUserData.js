@@ -5,9 +5,9 @@
 
 // List of ALL keys that should be KEPT (minimal - auth only)
 const KEYS_TO_KEEP = [
-  'tpprover_theme', // Keep for UX (instant load)
-  'tpprover_settings', // Keep for UX (instant load)
-  'tpprover_last_user_email', // Keep for security tracking
+  'tpprover_theme',
+  'tpprover_settings',
+  'tpprover_last_user_email',
 ];
 
 /**
@@ -43,25 +43,21 @@ export function clearAllUserData() {
  */
 export function clearAllLocalStorage() {
   console.log('🧹 CLEARING ALL LOCALSTORAGE (COMPLETE RESET)');
-  
   const keysToRemove = [];
-  
-  // Get all tpprover_ keys (no exceptions)
+
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('tpprover_')) {
       keysToRemove.push(key);
     }
   }
-  
-  console.log(`🧹 Removing ALL ${keysToRemove.length} localStorage keys`);
-  
-  // Remove all keys
+
+  console.log(`🧹 Removing ${keysToRemove.length} localStorage keys`);
   keysToRemove.forEach(key => {
     localStorage.removeItem(key);
   });
-  
-  console.log('✅ All localStorage cleared');
+
+  console.log('✅ LocalStorage cleared');
 }
 
 /**

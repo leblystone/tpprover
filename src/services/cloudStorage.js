@@ -305,16 +305,9 @@ export async function migrateLocalStorageToCloud(userId) {
         } else if (['tpprover_theme', 'tpprover_settings'].includes(key)) {
           const prefKey = key.replace('tpprover_', '');
           preferences[prefKey] = parsedValue;
-        } else if (['tpprover_has_seeded', 'tpprover_sample_data_cleared', 'tpprover_has_onboarded',
-                   'tpprover_is_tester', 'tpprover_is_founder'].includes(key)) {
+        } else if (['tpprover_has_onboarded', 'tpprover_is_tester', 'tpprover_is_founder'].includes(key)) {
           const stateKey = key.replace('tpprover_', '');
-          if (stateKey === 'sample_data_cleared') {
-            state.sampleDataCleared = parsedValue;
-          } else {
-            state[stateKey] = parsedValue;
-          }
-        } else if (key === 'tpprover_demo_data_cleared') {
-          state.sampleDataCleared = parsedValue;
+          state[stateKey] = parsedValue;
         }
       } catch (error) {
         console.warn(`⚠️ Failed to parse localStorage key ${key}:`, error);
@@ -361,7 +354,8 @@ export async function migrateLocalStorageToCloud(userId) {
  */
 export function clearLocalStorageData() {
   try {
-    const keysToRemove = Object.keys(localStorage).filter(key => key.startsWith('tpprover_'));
+    const keysToRemove = Object.keys(localStorage)
+      .filter(key => key.startsWith('tpprover_'));
     keysToRemove.forEach(key => localStorage.removeItem(key));
     return true;
   } catch (error) {

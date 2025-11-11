@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback, useRef } from 'react';
-import { seedInitialData } from '../utils/seed';
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers';
 import { logoutUser, onAuthChange } from '../services/firebase';
 import { useFirebase } from './FirebaseContext';
@@ -42,7 +41,6 @@ export function AppProvider({ children }) {
             setIsLoading(false);
         }
     }, []);
-    const [isClearingDemoData, setIsClearingDemoData] = useState(false);
     
     // Real-time sync control
     const isApplyingRemoteUpdateRef = useRef(false);
@@ -84,12 +82,7 @@ export function AppProvider({ children }) {
             const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
             if (savedScheduledBuys) {
                 const parsed = JSON.parse(savedScheduledBuys);
-                // Filter out mock scheduled buys if sample data was cleared
-                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                const filtered = sampleDataCleared 
-                    ? parsed.filter(buy => !buy.isMock)
-                    : parsed;
-                setScheduledBuys(filtered);
+                setScheduledBuys(parsed);
             }
         } catch (error) {
             console.error('❌ Failed to load localStorage data on mount:', error);
@@ -160,112 +153,6 @@ export function AppProvider({ children }) {
                 const cloudPreferences = await loadUserPreferences(userId);
                 const hasThemeInCloud = cloudPreferences?.theme;
                 
-                // CRITICAL: Check if demo data was cleared on another platform
-                const parseTimestamp = (value) => {
-                    if (!value) return 0;
-                    const parsed = Date.parse(value);
-                    return Number.isNaN(parsed) ? 0 : parsed;
-                };
-
-                const userState = await loadUserState(userId);
-                const sampleDataClearedInCloud = (() => {
-                    if (userState?.sampleDataCleared === true) return true;
-                    if (userState?.demoDataCleared === true) return true; // legacy fallback
-                    return false;
-                })();
-                const sampleDataClearedAtCloudRaw = userState?.sampleDataClearedAt || userState?.demoDataClearedAt || null;
-                const sampleDataClearedAtCloud = parseTimestamp(sampleDataClearedAtCloudRaw);
-
-                const legacySampleFlag = localStorage.getItem('tpprover_demo_data_cleared') === 'true';
-                const sampleDataClearedLocally = (() => {
-                    const sampleFlag = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                    if (sampleFlag) return true;
-                    if (legacySampleFlag) {
-                        try { localStorage.setItem('tpprover_sample_data_cleared', 'true'); } catch {}
-                        const legacyTimestamp = new Date().toISOString();
-                        try { localStorage.setItem('tpprover_sample_data_cleared_at', legacyTimestamp); } catch {}
-                        try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
-                        return true;
-                    }
-                    return false;
-                })();
-                const localSampleClearedAtRaw = localStorage.getItem('tpprover_sample_data_cleared_at');
-                const sampleDataClearedAtLocal = (() => {
-                    const parsed = parseTimestamp(localSampleClearedAtRaw);
-                    if (parsed === 0 && sampleDataClearedLocally) {
-                        const fallback = new Date().toISOString();
-                        try { localStorage.setItem('tpprover_sample_data_cleared_at', fallback); } catch {}
-                        return parseTimestamp(fallback);
-                    }
-                    return parsed;
-                })();
-
-                const statusesDiffer = sampleDataClearedInCloud !== sampleDataClearedLocally;
-                const preferCloud = sampleDataClearedAtCloud > sampleDataClearedAtLocal;
-                const preferLocal = sampleDataClearedAtLocal > sampleDataClearedAtCloud;
-                const timestampsMissing = sampleDataClearedAtCloud === 0 && sampleDataClearedAtLocal === 0;
-
-                if (statusesDiffer) {
-                    if (preferCloud || (timestampsMissing && sampleDataClearedInCloud)) {
-                        if (sampleDataClearedInCloud) {
-                            console.log('🔄 Sample data was cleared on another platform - syncing local data');
-                            const { clearMockData } = await import('../utils/seed');
-                            clearMockData();
-                            localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                            const timestampIso = sampleDataClearedAtCloudRaw || new Date().toISOString();
-                            localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
-                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
-                            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
-                        } else {
-                            console.log('🔄 Sample data was re-enabled in cloud - clearing local flag');
-                            try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
-                            const timestampIso = sampleDataClearedAtCloudRaw || new Date().toISOString();
-                            if (timestampIso) {
-                                localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
-                            } else {
-                                localStorage.removeItem('tpprover_sample_data_cleared_at');
-                            }
-                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
-                        }
-                    } else if (preferLocal || (timestampsMissing && sampleDataClearedLocally)) {
-                        console.log('🔄 Sample data status changed locally - syncing to cloud');
-                        try {
-                            const currentState = userState || {};
-                            const timestampIso = localSampleClearedAtRaw || new Date().toISOString();
-                            if (!localSampleClearedAtRaw) {
-                                try { localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso); } catch {}
-                            }
-                            await saveUserState(userId, { 
-                                ...currentState, 
-                                sampleDataCleared: sampleDataClearedLocally, 
-                                sampleDataClearedAt: timestampIso 
-                            });
-                            console.log('✅ Saved sample data status to cloud');
-                        } catch (error) {
-                            console.error('❌ Failed to save sample data status to cloud:', error);
-                        }
-                    } else {
-                        // Default to cloud state when timestamps are equal
-                        if (sampleDataClearedInCloud) {
-                            const { clearMockData } = await import('../utils/seed');
-                            clearMockData();
-                            localStorage.setItem('tpprover_sample_data_cleared', 'true');
-                            const timestampIso = sampleDataClearedAtCloudRaw || new Date().toISOString();
-                            localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
-                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
-                            localStorage.setItem('tpprover_demo_banner_dismissed', 'true');
-                        } else {
-                            try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
-                            if (sampleDataClearedAtCloudRaw) {
-                                localStorage.setItem('tpprover_sample_data_cleared_at', sampleDataClearedAtCloudRaw);
-                            } else {
-                                localStorage.removeItem('tpprover_sample_data_cleared_at');
-                            }
-                            try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
-                        }
-                    }
-                }
-                
                 // Check if this is a recently created account (within last 24 hours)
                 // This catches accounts created just before the theme reset fix was deployed
                 const savedUser = localStorage.getItem('tpprover_user');
@@ -330,36 +217,6 @@ export function AppProvider({ children }) {
 
                 // Load app data from cloud
                 const cloudAppData = await loadAppData(userId);
-                const containsMockSampleData = (() => {
-                    if (!cloudAppData) return false;
-                    const arrayKeys = ['protocols', 'vendors', 'orders', 'supplements', 'reconItems', 'metrics', 'scheduledBuys', 'stockpile'];
-                    const hasMockInArrays = arrayKeys.some(key => Array.isArray(cloudAppData[key]) && cloudAppData[key].some(item => item?.isMock));
-                    const hasMockNotes = (() => {
-                        const notes = cloudAppData.calendarNotes;
-                        if (!notes || typeof notes !== 'object') return false;
-                        return Object.values(notes).some(note => note && typeof note === 'object' && note.isMock);
-                    })();
-                    return hasMockInArrays || hasMockNotes;
-                })();
-                if (containsMockSampleData) {
-                    const seededAt = cloudAppData?._metadata?.seededAt || new Date().toISOString();
-                    try { localStorage.removeItem('tpprover_sample_data_cleared'); } catch {}
-                    try { localStorage.removeItem('tpprover_demo_data_cleared'); } catch {}
-                    try { localStorage.setItem('tpprover_sample_data_cleared_at', seededAt); } catch {}
-                    if (sampleDataClearedInCloud) {
-                        try {
-                            const currentState = userState || {};
-                            await saveUserState(userId, { 
-                                ...currentState, 
-                                sampleDataCleared: false, 
-                                sampleDataClearedAt: seededAt 
-                            });
-                            console.log('✅ Normalized cloud sample data flag (sample data present)');
-                        } catch (error) {
-                            console.error('❌ Failed to normalize cloud sample data flag based on app data:', error);
-                        }
-                    }
-                }
                 if (cloudAppData) {
                     if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
                     if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
@@ -371,66 +228,7 @@ export function AppProvider({ children }) {
                     if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
                     if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
                     if (cloudAppData.scheduledBuys) {
-                        // Filter out mock scheduled buys if sample data was cleared
-                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                        const filteredScheduledBuys = sampleDataCleared 
-                            ? cloudAppData.scheduledBuys.filter(buy => !buy.isMock)
-                            : cloudAppData.scheduledBuys;
-                        setScheduledBuys(filteredScheduledBuys);
-                    }
-                    
-                    // Check if account is completely empty and needs demo data seeded
-                    const totalItems = (cloudAppData.protocols?.length || 0) + 
-                                      (cloudAppData.orders?.length || 0) + 
-                                      (cloudAppData.vendors?.length || 0) + 
-                                      (cloudAppData.supplements?.length || 0);
-                    
-                    if (totalItems === 0) {
-                        // CRITICAL FIX: Check if user explicitly cleared sample data
-                        // This prevents sample data from reappearing after user removed it
-                        const sampleDataClearedLocally = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                        
-                        if (sampleDataClearedInCloud || sampleDataClearedLocally) {
-                            console.log('ℹ️ Account has 0 items but user cleared sample data - respecting user preference, not seeding');
-                        } else {
-                            console.log('📭 Account has 0 items - auto-seeding demo data to Firestore...');
-                            try {
-                                const { seedDemoDataToCloud } = await import('../services/demoDataSeeder');
-                                const seeded = await seedDemoDataToCloud(userId, null);
-                                
-                                if (seeded) {
-                                    console.log('✅ Demo data auto-seeded for empty account');
-                                    console.log('🔄 Reloading data from Firestore...');
-                                    
-                                    // Reload data from Firestore after seeding
-                                    await new Promise(resolve => setTimeout(resolve, 500));
-                                    const freshData = await loadAppData(userId);
-                                    
-                                    if (freshData) {
-                                        if (freshData.protocols) setProtocols(freshData.protocols);
-                                        if (freshData.reconItems) setReconItems(freshData.reconItems);
-                                        if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
-                                        if (freshData.supplements) setSupplements(freshData.supplements);
-                                        if (freshData.orders) setOrders(freshData.orders);
-                                        if (freshData.metrics) setMetrics(freshData.metrics);
-                                        if (freshData.vendors) setVendors(freshData.vendors);
-                                        if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
-                                        if (freshData.stockpile) setStockpile(freshData.stockpile);
-                                        if (freshData.scheduledBuys) {
-                                            // Filter out mock scheduled buys if sample data was cleared
-                                            const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                                            const filteredScheduledBuys = sampleDataCleared 
-                                                ? freshData.scheduledBuys.filter(buy => !buy.isMock)
-                                                : freshData.scheduledBuys;
-                                            setScheduledBuys(filteredScheduledBuys);
-                                        }
-                                        console.log('✅ Fresh demo data loaded into app state');
-                                    }
-                                }
-                            } catch (seedError) {
-                                console.error('❌ Failed to auto-seed demo data:', seedError);
-                            }
-                        }
+                        setScheduledBuys(cloudAppData.scheduledBuys);
                     }
                 } else {
                     // No cloud data found, load from localStorage as fallback
@@ -464,12 +262,7 @@ export function AppProvider({ children }) {
                     const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
                     if (savedScheduledBuys) {
                         const parsed = JSON.parse(savedScheduledBuys);
-                        // Filter out mock scheduled buys if sample data was cleared
-                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                        const filtered = sampleDataCleared 
-                            ? parsed.filter(buy => !buy.isMock)
-                            : parsed;
-                        setScheduledBuys(filtered);
+                        setScheduledBuys(parsed);
                     }
                 }
 
@@ -491,57 +284,6 @@ export function AppProvider({ children }) {
         };
 
         loadUserDataFromCloud();
-        
-        // Listen for demo data seeding events
-        const handleDemoDataSeeded = () => {
-            console.log('🔄 Demo data seeded - reloading from localStorage');
-            // Reload all data from localStorage
-            try {
-                const savedProtocols = localStorage.getItem('tpprover_protocols');
-                if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
-
-                const savedRecon = localStorage.getItem('tpprover_recon_items');
-                if (savedRecon) setReconItems(JSON.parse(savedRecon));
-                
-                const savedHistory = localStorage.getItem('tpprover_recon_history');
-                if (savedHistory) setReconHistory(JSON.parse(savedHistory));
-
-                const savedSupps = localStorage.getItem('tpprover_supplements');
-                if (savedSupps) setSupplements(JSON.parse(savedSupps));
-
-            const savedOrders = localStorage.getItem('tpprover_orders');
-                if (savedOrders) setOrders(ensurePublicOrderNumbers(JSON.parse(savedOrders)));
-
-                const savedMetrics = localStorage.getItem('tpprover_metrics');
-                if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
-
-                const savedVendors = localStorage.getItem('tpprover_vendors');
-                if (savedVendors) setVendors(JSON.parse(savedVendors));
-                
-                const savedNotes = localStorage.getItem('tpprover_calendar_notes');
-                if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
-
-                const savedStockpile = localStorage.getItem('tpprover_stockpile');
-                if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
-
-                const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-                if (savedScheduledBuys) {
-                    const parsed = JSON.parse(savedScheduledBuys);
-                    // Filter out mock scheduled buys if sample data was cleared
-                    const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                    const filtered = sampleDataCleared 
-                        ? parsed.filter(buy => !buy.isMock)
-                        : parsed;
-                    setScheduledBuys(filtered);
-                }
-                
-                console.log('✅ Demo data loaded into AppContext state');
-            } catch (error) {
-                console.error('❌ Error reloading demo data:', error);
-            }
-        };
-
-        window.addEventListener('demo-data-seeded', handleDemoDataSeeded);
 
         // Listen to Firebase auth changes instead of just localStorage
         const unsubscribe = onAuthChange(async (firebaseUser) => {
@@ -874,54 +616,21 @@ export function AppProvider({ children }) {
         };
         
         window.addEventListener('beforeunload', handleBeforeUnload);
-        
-        // Listen for demo data cleared event
-        const handleDemoDataCleared = () => {
-
-            // Instead of full reload, just clear demo data and refresh state
-            try {
-                // Import and call clearMockData directly
-                import('../utils/seed').then(({ clearMockData }) => {
-                    clearMockData();
-
-                    // Refresh the hasMockData calculation without full reload
-                    // Force a re-render by updating a state variable
-                    setIsClearingDemoData(true);
-
-                    // Re-enable sync after brief delay
-                    setTimeout(() => {
-                        setIsClearingDemoData(false);
-                    }, 500);
-                });
-            } catch (error) {
-                console.error('❌ Error during demo data clearing:', error);
-                setIsClearingDemoData(false);
-            }
-        };
-        window.addEventListener('demo-data-cleared', handleDemoDataCleared);
 
         return () => {
             if (unsubscribe) unsubscribe();
             window.removeEventListener('beforeunload', handleBeforeUnload);
-            window.removeEventListener('demo-data-cleared', handleDemoDataCleared);
-            window.removeEventListener('demo-data-seeded', handleDemoDataSeeded);
         };
     }, [firebaseUser, hasPassword]); // Re-run when Firebase auth initializes or password becomes available to load cloud data
 
     // Auto-sync data to cloud storage when it changes
     useEffect(() => {
-        // Don't sync during initial load, demo data clearing, remote updates, or if user isn't authenticated
-        if (isInitialLoad || isClearingDemoData || isApplyingRemoteUpdateRef.current || !firebaseUser) {
+        // Don't sync during initial load, remote updates, or if user isn't authenticated
+        if (isInitialLoad || isApplyingRemoteUpdateRef.current || !firebaseUser) {
             return;
         }
 
         const userId = firebaseUser.uid;
-        
-        // Filter out mock scheduled buys if sample data was cleared before syncing
-        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-        const filteredScheduledBuys = sampleDataCleared && scheduledBuys
-            ? scheduledBuys.filter(buy => !buy.isMock)
-            : scheduledBuys;
         
         const userData = {
             protocols,
@@ -933,7 +642,7 @@ export function AppProvider({ children }) {
             vendors,
             calendarNotes,
             stockpile,
-            scheduledBuys: filteredScheduledBuys
+            scheduledBuys
         };
         
         // Only sync if we have some data to sync
@@ -1223,62 +932,6 @@ export function AppProvider({ children }) {
         setCalendarNotes(prev => ({...prev, [dateKey]: text}));
     };
 
-    const refreshDataAfterClear = useCallback(() => {
-        // Prevent Firebase sync during demo data clearing
-        setIsClearingDemoData(true);
-        
-        // Reload all data from localStorage after clearing mock data
-        try {
-            const savedProtocols = localStorage.getItem('tpprover_protocols');
-            setProtocols(savedProtocols ? JSON.parse(savedProtocols) : []);
-
-            const savedRecon = localStorage.getItem('tpprover_recon_items');
-            setReconItems(savedRecon ? JSON.parse(savedRecon) : []);
-            
-            const savedHistory = localStorage.getItem('tpprover_recon_history');
-            setReconHistory(savedHistory ? JSON.parse(savedHistory) : []);
-
-            const savedSupps = localStorage.getItem('tpprover_supplements');
-            setSupplements(savedSupps ? JSON.parse(savedSupps) : []);
-
-            const savedOrders = localStorage.getItem('tpprover_orders');
-            setOrders(savedOrders ? ensurePublicOrderNumbers(JSON.parse(savedOrders)) : []);
-
-            const savedMetrics = localStorage.getItem('tpprover_metrics');
-            setMetrics(savedMetrics ? JSON.parse(savedMetrics) : []);
-
-            const savedVendors = localStorage.getItem('tpprover_vendors');
-            setVendors(savedVendors ? JSON.parse(savedVendors) : []);
-            
-            const savedNotes = localStorage.getItem('tpprover_calendar_notes');
-            setCalendarNotes(savedNotes ? JSON.parse(savedNotes) : {});
-
-            const savedStockpile = localStorage.getItem('tpprover_stockpile');
-            setStockpile(savedStockpile ? JSON.parse(savedStockpile) : []);
-
-            const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-            if (savedScheduledBuys) {
-                const parsed = JSON.parse(savedScheduledBuys);
-                // Filter out mock scheduled buys if sample data was cleared (extra safety check)
-                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                const filtered = sampleDataCleared 
-                    ? parsed.filter(buy => !buy.isMock)
-                    : parsed;
-                setScheduledBuys(filtered);
-            } else {
-                setScheduledBuys([]);
-            }
-            
-            // Re-enable Firebase sync after a short delay
-            setTimeout(() => {
-                setIsClearingDemoData(false);
-            }, 1000);
-        } catch (error) {
-            console.error("Error refreshing data after clear:", error);
-            setIsClearingDemoData(false);
-        }
-    }, []);
-
     // Real-time cross-browser sync listener
     useEffect(() => {
         if (!firebaseUser) {
@@ -1493,9 +1146,8 @@ export function AppProvider({ children }) {
             if (typeof stateUnsubscribe === 'function') stateUnsubscribe();
             if (typeof dataUnsubscribe === 'function') dataUnsubscribe();
             if (updateTimeoutId) clearTimeout(updateTimeoutId);
-            if (sampleDataTimeoutId) clearTimeout(sampleDataTimeoutId);
         };
-    }, [firebaseUser, refreshDataAfterClear]);
+    }, [firebaseUser]);
 
     // CRITICAL: Enhanced data recovery function with detailed logging
     const recoverDataFromLocalStorage = () => {
@@ -1667,17 +1319,6 @@ export function AppProvider({ children }) {
         }
     };
 
-    const hasMockData = useMemo(() => {
-        const allData = [...protocols, ...orders, ...vendors, ...supplements, ...reconItems, ...stockpile, ...metrics];
-        const hasArrayMockData = allData.some(item => item.isMock === true);
-        
-        // Also check calendar notes for mock data
-        const hasCalendarMockData = Object.values(calendarNotes).some(note => 
-            typeof note === 'object' && note.isMock === true
-        );
-        
-        return hasArrayMockData || hasCalendarMockData;
-    }, [protocols, orders, vendors, supplements, reconItems, stockpile, metrics, calendarNotes]);
 
     const value = {
         protocols,
@@ -1715,10 +1356,8 @@ export function AppProvider({ children }) {
         updateSupplement,
         deleteSupplement,
         updateCalendarNote,
-        refreshDataAfterClear,
         recoverDataFromLocalStorage,
         forceFirebaseReload,
-        hasMockData,
         isLoading,
     };
 
