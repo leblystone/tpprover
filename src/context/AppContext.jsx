@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useCallback, useRef } from 'react';
 import { seedInitialData } from '../utils/seed';
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers';
 import { logoutUser, onAuthChange } from '../services/firebase';
@@ -7,7 +7,8 @@ import { isNative } from '../utils/platform';
 import { 
   saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
   saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
-  migrateLocalStorageToCloud, clearLocalStorageData, hasUserData
+  migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
+  subscribeToUserState, subscribeToAppData
 } from '../services/cloudStorage';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
@@ -42,6 +43,10 @@ export function AppProvider({ children }) {
         }
     }, []);
     const [isClearingDemoData, setIsClearingDemoData] = useState(false);
+    
+    // Real-time sync control
+    const isApplyingRemoteUpdateRef = useRef(false);
+    const lastRemoteUpdateTimeRef = useRef(0);
     
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
     useEffect(() => {
@@ -905,8 +910,8 @@ export function AppProvider({ children }) {
 
     // Auto-sync data to cloud storage when it changes
     useEffect(() => {
-        // Don't sync during initial load, demo data clearing, or if user isn't authenticated
-        if (isInitialLoad || isClearingDemoData || !firebaseUser) {
+        // Don't sync during initial load, demo data clearing, remote updates, or if user isn't authenticated
+        if (isInitialLoad || isClearingDemoData || isApplyingRemoteUpdateRef.current || !firebaseUser) {
             return;
         }
 
@@ -1218,7 +1223,7 @@ export function AppProvider({ children }) {
         setCalendarNotes(prev => ({...prev, [dateKey]: text}));
     };
 
-    const refreshDataAfterClear = () => {
+    const refreshDataAfterClear = useCallback(() => {
         // Prevent Firebase sync during demo data clearing
         setIsClearingDemoData(true);
         
@@ -1272,7 +1277,139 @@ export function AppProvider({ children }) {
             console.error("Error refreshing data after clear:", error);
             setIsClearingDemoData(false);
         }
-    };
+    }, []);
+
+    // Real-time cross-browser sync listener
+    useEffect(() => {
+        if (!firebaseUser) {
+            return;
+        }
+
+        console.log('🔄 Setting up real-time sync listeners for user:', firebaseUser.uid);
+        const userId = firebaseUser.uid;
+
+        // Sample data state listener
+        const stateUnsubscribe = subscribeToUserState(userId, async (remoteState) => {
+            try {
+                if (!remoteState) return;
+
+                const sampleDataClearedRemote = remoteState.sampleDataCleared === true || remoteState.demoDataCleared === true;
+                const remoteTimestampIso = remoteState.sampleDataClearedAt || remoteState.demoDataClearedAt || null;
+                const remoteTimestamp = remoteTimestampIso ? Date.parse(remoteTimestampIso) : 0;
+
+                const localFlag = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                const localTimestampIso = localStorage.getItem('tpprover_sample_data_cleared_at');
+                const localTimestamp = localTimestampIso ? Date.parse(localTimestampIso) : 0;
+
+                // Only apply if remote is newer
+                if (sampleDataClearedRemote && (!localFlag || remoteTimestamp > localTimestamp)) {
+                    console.log('🔄 Remote sample data cleared detected - syncing locally');
+                    isApplyingRemoteUpdateRef.current = true;
+                    
+                    try {
+                        const { clearMockData } = await import('../utils/seed');
+                        clearMockData();
+                    } catch (error) {
+                        console.error('❌ Failed to clear mock data:', error);
+                    }
+
+                    const timestampIso = remoteTimestampIso || new Date().toISOString();
+                    localStorage.setItem('tpprover_sample_data_cleared', 'true');
+                    localStorage.setItem('tpprover_sample_data_cleared_at', timestampIso);
+                    localStorage.setItem('tpprover_sample_banner_dismissed', 'true');
+
+                    // Reload fresh data from Firestore (source of truth) instead of localStorage
+                    const freshData = await loadAppData(userId);
+                    if (freshData) {
+                        if (freshData.protocols) setProtocols(freshData.protocols);
+                        if (freshData.reconItems) setReconItems(freshData.reconItems);
+                        if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                        if (freshData.supplements) setSupplements(freshData.supplements);
+                        if (freshData.orders) setOrders(freshData.orders);
+                        if (freshData.metrics) setMetrics(freshData.metrics);
+                        if (freshData.vendors) setVendors(freshData.vendors);
+                        if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                        if (freshData.stockpile) setStockpile(freshData.stockpile);
+                        if (freshData.scheduledBuys) {
+                            const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
+                            setScheduledBuys(filtered);
+                        }
+                    }
+                    
+                    setTimeout(() => {
+                        isApplyingRemoteUpdateRef.current = false;
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('❌ Error in sample data sync listener:', error);
+                isApplyingRemoteUpdateRef.current = false;
+            }
+        });
+
+        // App data listener (debounced to prevent rapid updates)
+        let updateTimeoutId = null;
+        const dataUnsubscribe = subscribeToAppData(userId, (remoteData) => {
+            try {
+                if (!remoteData) return;
+
+                // Debounce updates to prevent rapid-fire state changes
+                if (updateTimeoutId) {
+                    clearTimeout(updateTimeoutId);
+                }
+
+                updateTimeoutId = setTimeout(async () => {
+                    try {
+                        const now = Date.now();
+                        // Prevent update loops - ignore if we just sent an update
+                        if (now - lastRemoteUpdateTimeRef.current < 2000) {
+                            return;
+                        }
+
+                        console.log('🔄 Remote app data update detected');
+                        lastRemoteUpdateTimeRef.current = now;
+                        isApplyingRemoteUpdateRef.current = true;
+
+                        // Reload from cloud storage
+                        const freshData = await loadAppData(userId);
+                        if (freshData) {
+                            if (freshData.protocols) setProtocols(freshData.protocols);
+                            if (freshData.reconItems) setReconItems(freshData.reconItems);
+                            if (freshData.reconHistory) setReconHistory(freshData.reconHistory);
+                            if (freshData.supplements) setSupplements(freshData.supplements);
+                            if (freshData.orders) setOrders(freshData.orders);
+                            if (freshData.metrics) setMetrics(freshData.metrics);
+                            if (freshData.vendors) setVendors(freshData.vendors);
+                            if (freshData.calendarNotes) setCalendarNotes(freshData.calendarNotes);
+                            if (freshData.stockpile) setStockpile(freshData.stockpile);
+                            if (freshData.scheduledBuys) {
+                                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                                const filtered = sampleDataCleared 
+                                    ? freshData.scheduledBuys.filter(buy => !buy.isMock)
+                                    : freshData.scheduledBuys;
+                                setScheduledBuys(filtered);
+                            }
+                        }
+
+                        setTimeout(() => {
+                            isApplyingRemoteUpdateRef.current = false;
+                        }, 500);
+                    } catch (error) {
+                        console.error('❌ Error applying remote app data:', error);
+                        isApplyingRemoteUpdateRef.current = false;
+                    }
+                }, 1000); // 1 second debounce
+            } catch (error) {
+                console.error('❌ Error in app data sync listener:', error);
+            }
+        });
+
+        return () => {
+            console.log('🔄 Cleaning up real-time sync listeners');
+            if (typeof stateUnsubscribe === 'function') stateUnsubscribe();
+            if (typeof dataUnsubscribe === 'function') dataUnsubscribe();
+            if (updateTimeoutId) clearTimeout(updateTimeoutId);
+        };
+    }, [firebaseUser, refreshDataAfterClear]);
 
     // CRITICAL: Enhanced data recovery function with detailed logging
     const recoverDataFromLocalStorage = () => {

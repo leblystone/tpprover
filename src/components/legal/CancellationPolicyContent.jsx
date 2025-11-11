@@ -113,3 +113,4 @@ export const CancellationPolicyContent = () => (
     </div>
 );
 
+

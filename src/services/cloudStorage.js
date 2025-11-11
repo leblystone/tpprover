@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 /**
@@ -367,5 +367,57 @@ export function clearLocalStorageData() {
   } catch (error) {
     console.error('❌ Failed to clear localStorage:', error);
     return false;
+  }
+}
+
+/**
+ * Subscribe to user state changes (sampleDataCleared flag, etc.)
+ * @param {string} userId - User ID
+ * @param {function} callback - Callback function that receives the state data
+ * @returns {function} Unsubscribe function
+ */
+export function subscribeToUserState(userId, callback) {
+  try {
+    const userDoc = getUserDoc(userId, COLLECTIONS.USER_STATE);
+    return onSnapshot(
+      userDoc,
+      snapshot => {
+        if (typeof callback === 'function') {
+          callback(snapshot.exists() ? snapshot.data() : null);
+        }
+      },
+      error => {
+        console.error('❌ Failed to subscribe to user state:', error);
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error setting up user state subscription:', error);
+    return () => {};
+  }
+}
+
+/**
+ * Subscribe to app data changes (protocols, orders, etc.)
+ * @param {string} userId - User ID
+ * @param {function} callback - Callback function that receives the app data
+ * @returns {function} Unsubscribe function
+ */
+export function subscribeToAppData(userId, callback) {
+  try {
+    const userDoc = getUserDoc(userId, COLLECTIONS.USER_DATA);
+    return onSnapshot(
+      userDoc,
+      snapshot => {
+        if (typeof callback === 'function') {
+          callback(snapshot.exists() ? snapshot.data() : null);
+        }
+      },
+      error => {
+        console.error('❌ Failed to subscribe to app data:', error);
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error setting up app data subscription:', error);
+    return () => {};
   }
 }

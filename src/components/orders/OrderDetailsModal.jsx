@@ -9,6 +9,7 @@ import VendorSuggestInput from '../vendors/VendorSuggestInput';
 import DocumentationUpload from '../common/DocumentationUpload';
 import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
+import { generateId } from '../../utils/string';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onAutoSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({});
@@ -216,7 +217,51 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     setSaveError(null);
 
     try {
-      const payload = { ...form, attachments };
+      const normalizedCategory = form.category || form.type || 'domestic';
+      const normalizedItems = (form.items || []).map((item, index) => {
+        const trimmedName = (item.name || '').trim();
+        const normalizedQuantity = item.quantity ?? '';
+        const normalizedPrice = item.price ?? '';
+        const normalizedMg = item.mg ?? '';
+
+        return {
+          ...item,
+          id: item.id || generateId(12),
+          name: trimmedName,
+          mg: normalizedMg,
+          mgUnit: item.mgUnit || 'mg',
+          quantity: normalizedQuantity,
+          unit: item.unit || 'vial',
+          price: normalizedPrice
+        };
+      }).filter(item => {
+        const hasQuantity = item.quantity !== undefined && item.quantity !== '' && Number(item.quantity) > 0;
+        return item.name || item.price || item.mg || hasQuantity;
+      });
+      const primaryItem = normalizedItems[0] || {};
+      const vendorName = (form.vendor || '').trim();
+      const computedCost = normalizedItems.reduce((sum, item) => {
+        const price = parseFloat(item.price) || 0;
+        const quantity = Number(item.quantity) || 1;
+        return sum + (price * quantity);
+      }, 0);
+
+      const payload = {
+        ...form,
+        vendor: vendorName,
+        vendorId: form.vendorId ?? null,
+        category: normalizedCategory,
+        type: normalizedCategory,
+        items: normalizedItems,
+        peptide: form.peptide || form.peptideName || primaryItem.name || '',
+        peptideName: form.peptideName || primaryItem.name || form.peptide || '',
+        mg: form.mg || primaryItem.mg || '',
+        unit: form.unit || primaryItem.unit || '',
+        quantity: form.quantity || primaryItem.quantity || '',
+        cost: form.cost || form.price || primaryItem.price || (computedCost ? computedCost.toString() : ''),
+        price: form.price || primaryItem.price || '',
+        attachments
+      };
       await onSave(payload);
       markAsSubmitted();
 

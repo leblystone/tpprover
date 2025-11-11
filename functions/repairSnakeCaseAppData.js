@@ -117,3 +117,4 @@ main()
   .finally(() => {
     admin.app().delete().catch(() => {});
   });
+

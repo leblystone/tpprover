@@ -50,3 +50,4 @@ export const setupSafeAreaSupport = () => {
   RESIZE_EVENTS.forEach((event) => window.addEventListener(event, requestViewportUpdate));
 };
 
+

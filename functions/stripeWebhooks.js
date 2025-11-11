@@ -9,6 +9,8 @@ const emailService = require('./emailService');
 const FieldValue = admin.firestore.FieldValue;
 const DEFAULT_FOUNDER_CAP = parseInt(process.env.FOUNDER_CAP || '100', 10);
 const DEFAULT_FOUNDER_DISCOUNT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '50', 10);
+const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || null;
+const FOUNDER_LIFETIME_PRICE_ID = process.env.STRIPE_FOUNDER_LIFETIME_PRICE_ID || null;
 
 // Load environment variables
 require('dotenv').config();
@@ -18,6 +20,14 @@ let stripe = null;
 
 function normalizeEmail(email) {
   return typeof email === 'string' ? email.trim().toLowerCase() : null;
+}
+
+function isLifetimePriceId(priceId) {
+  if (!priceId) return false;
+  const normalized = String(priceId);
+  return [DEFAULT_LIFETIME_PRICE_ID, FOUNDER_LIFETIME_PRICE_ID]
+    .filter(Boolean)
+    .includes(normalized);
 }
 
 async function linkStripeCustomerToUser(customerId, userId, email) {
@@ -601,6 +611,24 @@ async function handlePaymentSucceeded(event, stripe) {
     return;
   }
 
+  const metadata = paymentIntent.metadata || {};
+  const priceId = metadata.priceId || null;
+  const planName = metadata.planName || '';
+  const isLifetimePurchase = metadata.isLifetime === 'true' || isLifetimePriceId(priceId) || planName.toLowerCase().includes('lifetime');
+
+  if (isLifetimePurchase && metadata.isGift !== 'true') {
+    try {
+      await grantLifetimeAccessFromStripe({
+        userIdHint: metadata.userId,
+        userEmail,
+        metadata,
+        paymentIntent,
+      });
+    } catch (grantError) {
+      logger.error('❌ Failed to grant lifetime access from Stripe payment:', grantError);
+    }
+  }
+
   // Send payment successful email
   await emailService.sendPaymentSuccessfulEmail(
     userEmail,
@@ -1028,4 +1056,121 @@ async function handleDisputeClosed(event, stripe) {
   await emailService.sendDisputeResolutionEmail(userEmail, dispute.status, dispute.reason);
 
   logger.info(`✅ Dispute resolution sent to: ${userEmail}`);
+}
+
+async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, paymentIntent }) {
+  const db = admin.firestore();
+  const normalizedEmail = normalizeEmail(userEmail);
+
+  if (!normalizedEmail) {
+    logger.warn('⚠️ Unable to grant lifetime access without email.');
+    return;
+  }
+
+  let resolvedUserId = userIdHint;
+  if (!resolvedUserId) {
+    resolvedUserId = await findUserIdByEmail(normalizedEmail);
+  }
+
+  const amountPaid = typeof paymentIntent.amount === 'number' ? paymentIntent.amount / 100 : null;
+  const currency = paymentIntent.currency ? paymentIntent.currency.toUpperCase() : null;
+  const planName = metadata.planName || 'Lifetime Access';
+  const founderApplied = metadata.founderApplied === 'true';
+  const founderType = metadata.founderType && metadata.founderType !== 'none' ? metadata.founderType : null;
+  const reasonSegments = [planName];
+  if (founderApplied && founderType) {
+    reasonSegments.push(`Founder (${founderType})`);
+  } else if (founderApplied) {
+    reasonSegments.push('Founder Offer');
+  }
+  const reason = `${reasonSegments.join(' – ')} via Stripe`;
+
+  const metadataPayload = sanitizeObject({
+    stripePaymentIntentId: paymentIntent.id,
+    stripeChargeId: paymentIntent.latest_charge || null,
+    priceId: metadata.priceId || null,
+    planName,
+    amountPaid,
+    currency,
+    founderApplied,
+    founderType,
+    founderDiscountPercent: metadata.founderDiscountPercent ? Number(metadata.founderDiscountPercent) : undefined,
+  });
+
+  if (resolvedUserId) {
+    const lifetimeDocRef = db.collection('lifetimeAccess').doc(resolvedUserId);
+    const existingLifetimeDoc = await lifetimeDocRef.get();
+
+    if (existingLifetimeDoc.exists) {
+      const existingData = existingLifetimeDoc.data();
+      if (existingData?.status === 'active' && existingData?.metadata?.stripePaymentIntentId === paymentIntent.id) {
+        logger.info(`ℹ️ Lifetime access already recorded for user ${resolvedUserId}; skipping duplicate Stripe sync.`);
+        return;
+      }
+    }
+
+    await lifetimeDocRef.set({
+      userId: resolvedUserId,
+      email: normalizedEmail,
+      reason,
+      grantedBy: 'stripe-webhook',
+      grantedAt: FieldValue.serverTimestamp(),
+      status: 'active',
+      metadata: metadataPayload,
+    }, { merge: true });
+
+    const subscriptionData = sanitizeObject({
+      hasLifetimeAccess: true,
+      interval: 'lifetime',
+      status: 'active',
+      plan: 'lifetime',
+      lifetimeReason: reason,
+      lifetimeGrantedAt: FieldValue.serverTimestamp(),
+      currentPeriodEnd: null,
+      currentPeriodStart: FieldValue.serverTimestamp(),
+      userId: resolvedUserId,
+      stripePaymentIntentId: paymentIntent.id,
+      stripeCustomerId: paymentIntent.customer || null,
+      amountPaid,
+      currency,
+      isFounder: founderApplied ? true : undefined,
+      founderPricing: founderApplied ? true : undefined,
+      founderType,
+      founderDiscountPercent: founderApplied && metadata.founderDiscountPercent ? Number(metadata.founderDiscountPercent) : undefined,
+      founderPlanName: planName,
+      lastUpdated: FieldValue.serverTimestamp(),
+    });
+
+    await db.collection('userSubscriptions').doc(resolvedUserId).set({
+      subscription: subscriptionData,
+      lastUpdated: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    const userUpdatePayload = sanitizeObject({
+      stripeCustomerId: paymentIntent.customer || null,
+      subscription: subscriptionData,
+      updatedAt: FieldValue.serverTimestamp(),
+      isFounder: founderApplied ? true : undefined,
+      founderGrantedAt: founderApplied ? FieldValue.serverTimestamp() : undefined,
+      founderType,
+    });
+
+    await db.collection('users').doc(resolvedUserId).set(userUpdatePayload, { merge: true });
+
+    await emailService.sendLifetimeAccessGrantedEmail(userEmail, reason);
+    logger.info(`🎉 Lifetime access granted to user ${resolvedUserId} (${normalizedEmail}) via Stripe payment ${paymentIntent.id}`);
+  } else {
+    const preGrantRef = db.collection('lifetimeAccessPreGrants').doc(normalizedEmail);
+    await preGrantRef.set({
+      email: normalizedEmail,
+      reason,
+      grantedBy: 'stripe-webhook',
+      grantedAt: FieldValue.serverTimestamp(),
+      status: 'pending',
+      metadata: metadataPayload,
+    }, { merge: true });
+
+    await emailService.sendLifetimeAccessGrantedEmail(userEmail, reason);
+    logger.info(`🕒 Lifetime access pre-granted for ${normalizedEmail}; will activate on signup.`);
+  }
 }

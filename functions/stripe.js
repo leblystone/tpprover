@@ -128,6 +128,35 @@ exports.createCheckoutSession = onCall(
 
         const planName = request.data?.planName || (isLifetimeRequest ? 'Lifetime' : sessionMode === 'subscription' ? 'Research Subscription' : 'Checkout');
 
+        const metadata = {
+          userId: userId || '',
+          userEmail,
+          isGift: isGift ? 'true' : 'false',
+          founderApplied: founderApplied ? 'true' : 'false',
+          founderType,
+          planName,
+          isLifetime: isLifetimeRequest ? 'true' : 'false',
+          priceId: effectivePriceId,
+        };
+
+        if (founderApplied) {
+          metadata.founderCap = String(founderCap || 0);
+          metadata.founderRemainingAtCheckout = String(founderRemaining || 0);
+          metadata.founderDiscountPercent = String(founderDiscountPercent || FOUNDER_DISCOUNT_PERCENT);
+          if (FOUNDER_COUPON_ID) {
+            metadata.founderCouponId = FOUNDER_COUPON_ID;
+          }
+        }
+
+        if (isGift && giftData) {
+          if (giftData.recipientEmail) metadata.recipientEmail = giftData.recipientEmail;
+          if (giftData.recipientName) metadata.recipientName = giftData.recipientName;
+          if (giftData.giftGiverName) metadata.giftGiverName = giftData.giftGiverName;
+          if (giftData.giftMessage) metadata.giftMessage = giftData.giftMessage;
+          if (giftData.subscriptionType) metadata.subscriptionType = giftData.subscriptionType;
+          if (giftData.pricePaid != null) metadata.priceAtPurchase = String(giftData.pricePaid);
+        }
+
         const sessionPayload = {
           payment_method_types: ["card"],
           line_items: [{
@@ -138,25 +167,14 @@ exports.createCheckoutSession = onCall(
           success_url: successUrl,
           cancel_url: cancelUrl,
           customer_email: userEmail,
-          metadata: {
-            userId: userId,
-            isGift: isGift ? "true" : "false", // Store as string for metadata
-            founderApplied: founderApplied ? "true" : "false",
-            founderType,
-            founderCap: String(founderCap || 0),
-            founderRemainingAtCheckout: String(founderRemaining || 0),
-            founderDiscountPercent: founderApplied ? String(founderDiscountPercent || FOUNDER_DISCOUNT_PERCENT) : '',
-            founderCouponId: founderApplied && FOUNDER_COUPON_ID ? FOUNDER_COUPON_ID : '',
-            // Attach gift info so we can securely finalize after payment
-            recipientEmail: giftData?.recipientEmail || '',
-            recipientName: giftData?.recipientName || '',
-            giftGiverName: giftData?.giftGiverName || '',
-            giftMessage: giftData?.giftMessage || '',
-            subscriptionType: giftData?.subscriptionType || '',
-            priceAtPurchase: String(giftData?.pricePaid || ''),
-            planName,
-          },
+          metadata,
         };
+
+        if (sessionMode === 'payment') {
+          sessionPayload.payment_intent_data = {
+            metadata,
+          };
+        }
 
         if (discounts.length > 0) {
           sessionPayload.discounts = discounts;
