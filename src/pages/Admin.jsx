@@ -838,7 +838,25 @@ function Admin() {
         console.warn('⚠️ Analytics collection not accessible, using user-based estimates:', analyticsError.message);
         // Calculate realistic analytics estimates from user data
         const userCount = userData.length;
-        analyticsData.activeUsers = Math.max(1, Math.floor(userCount * 0.35)); // Estimate 35% active
+        
+        // Calculate REAL active users (logged in within last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const activeUsersReal = userData.filter(user => {
+          if (!user.lastActive || !user.lastActive.toDate) return false;
+          return user.lastActive.toDate() >= thirtyDaysAgo;
+        }).length;
+        
+        analyticsData.activeUsers = activeUsersReal;
+        
+        console.log('📊 Active Users Calculation:', {
+          totalUsers: userCount,
+          activeUsersLast30Days: activeUsersReal,
+          inactiveUsers: userCount - activeUsersReal,
+          activePercentage: Math.round((activeUsersReal / userCount) * 100) + '%'
+        });
+        
         analyticsData.featureUsage = {
           protocolsCreated: Math.floor(userCount * 2.3),
           ordersTracked: Math.floor(userCount * 1.7),
@@ -2122,64 +2140,30 @@ function Admin() {
               </div>
             </div>
 
-            {/* Feature Usage with Coffee Theme */}
-            <div className="rounded-xl border-2 p-5 content-card" style={{ 
-              borderColor: calmingPlacePalette.periwinkle.main + '50',
-              background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.cardBackground} 100%)`,
-              boxShadow: `0 4px 16px ${calmingPlacePalette.periwinkle.main}20, 0 2px 8px ${calmingPlacePalette.coffee.latte}10`
+            {/* Feature Usage - Compact */}
+            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
+              borderColor: calmingPlacePalette.periwinkle.main + '30',
+              background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.cardBackground} 100%)`
             }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Coffee size={20} style={{ color: calmingPlacePalette.coffee.latte }} />
-                <h2 className="text-base font-bold" style={{ color: calmingPlacePalette.periwinkle.darker }}>Feature Usage</h2>
+              <div className="flex items-center gap-2 mb-3">
+                <Activity size={16} style={{ color: calmingPlacePalette.periwinkle.main }} />
+                <h2 className="text-sm font-semibold" style={{ color: calmingPlacePalette.periwinkle.darker }}>Feature Usage (Estimated)</h2>
               </div>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
                 {Object.entries(analytics.featureUsage).map(([feature, data]) => (
-                  <div key={feature} className="p-3 rounded-lg border-2 transition-all hover:scale-105 hover:shadow-lg cursor-pointer" style={{ 
+                  <div key={feature} className="text-center p-2 rounded-lg" style={{ 
                     background: '#FFFFFF',
-                    borderColor: calmingPlacePalette.periwinkle.light,
-                    boxShadow: `0 2px 6px ${calmingPlacePalette.periwinkle.main}15`
+                    border: `1px solid ${calmingPlacePalette.periwinkle.light}`
                   }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold capitalize" style={{ color: calmingPlacePalette.periwinkle.darker }}>{feature}</span>
-                      {data.trend === 'up' ? (
-                        <TrendingUp size={14} style={{ color: calmingPlacePalette.accents.sage }} />
-                      ) : (
-                        <TrendingDown size={14} style={{ color: calmingPlacePalette.functional.error }} />
-                      )}
-                    </div>
-                    <div className="text-xl font-bold" style={{ color: calmingPlacePalette.periwinkle.main }}>{data.uses}</div>
-                    <div className="text-[10px] font-medium" style={{ color: theme.textLight }}>total uses</div>
+                    <div className="text-lg font-bold" style={{ color: calmingPlacePalette.periwinkle.main }}>{data.uses}</div>
+                    <div className="text-[10px] font-medium capitalize" style={{ color: theme.textLight }}>{feature}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Session Analytics - Compact */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
-                borderColor: theme.primary + '30',
-                background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
-              }}>
-                <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Session Duration</h2>
-                <div className="space-y-2">
-                  {analytics.sessionData.slice(-5).map((session) => (
-                    <div key={session.date} className="flex items-center justify-between p-2 rounded border" style={{ 
-                      backgroundColor: theme.background,
-                      borderColor: theme.border + '40'
-                    }}>
-                      <span className="text-xs" style={{ color: theme.text }}>{new Date(session.date).toLocaleDateString()}</span>
-                      <div className="text-right">
-                        <div className="text-sm font-medium" style={{ color: theme.primaryDark }}>
-                          {Math.floor(session.avgDuration / 60)}m {session.avgDuration % 60}s
-                        </div>
-                        <div className="text-[10px]" style={{ color: theme.textLight }}>{session.sessions} sessions</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
+            {/* Device Breakdown - Full Width */}
+            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
                 borderColor: theme.primary + '30',
                 background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
               }}>
@@ -2451,9 +2435,7 @@ function Admin() {
                   <h3 className="font-medium text-sm" style={{ color: theme.text }}>Not Currently Tracked:</h3>
                   <div className="space-y-2">
                     {[
-                      { label: 'Session Duration', icon: Clock },
                       { label: 'Page Views', icon: Eye },
-                      { label: 'Feature Usage', icon: Activity },
                       { label: 'Real-time Status', icon: Zap }
                     ].map((item, index) => (
                       <div key={index} className="flex items-center gap-2 text-sm">
@@ -2472,8 +2454,8 @@ function Admin() {
                   <div>
                     <p className="text-sm font-medium" style={{ color: theme.info }}>Enhanced Tracking Available</p>
                     <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                      We can implement detailed session tracking, page analytics, feature usage metrics, and real-time user status. 
-                      This would give you insights into user behavior, popular features, and engagement patterns.
+                      Additional analytics like page views and real-time user status can be implemented when needed. 
+                      Current tracking covers the essentials: user growth, active users, device types, and feature usage estimates.
                     </p>
                   </div>
                 </div>
