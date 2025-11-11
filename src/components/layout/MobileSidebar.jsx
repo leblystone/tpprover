@@ -56,8 +56,8 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
         willChange: 'transform, opacity',
         transformOrigin: 'left center',
         backgroundColor: theme.cardBackground,
-        paddingTop: 'calc(var(--safe-area-top, 0px) + 0.5rem)',
-        paddingBottom: 'calc(var(--safe-area-bottom, 0px) + 1rem)'
+        paddingTop: 'max(var(--safe-area-top, 24px), 24px)',
+        paddingBottom: 'max(var(--safe-area-bottom, 16px), 16px)'
       }}>
         <div className="flex items-center justify-between mb-3">
           {/* Left side: Close button and Text */}
