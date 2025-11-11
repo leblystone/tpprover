@@ -13,6 +13,3 @@ export function appendStockEvent(event) {
 export function getStockHistory() {
   try { return JSON.parse(localStorage.getItem('tpprover_stockpile_history') || '[]'); } catch { return []; }
 }
-
-
-DASH
