@@ -19,7 +19,7 @@ echo Android assets cleaned.
 echo.
 
 echo Step 3: Syncing to Android with fresh copy...
-call npx cap sync android --force
+call npx cap sync android
 if %errorlevel% neq 0 (
     echo ERROR: Capacitor sync failed!
     pause

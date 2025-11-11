@@ -26,6 +26,8 @@ import SubscriptionModal from './components/common/SubscriptionModal';
 import SupportModal from './components/common/SupportModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
+import UpdatePromptModal from './components/common/UpdatePromptModal';
+import { checkForUpdates } from './utils/versionChecker';
 
 function App() {
   const location = useLocation();
@@ -65,9 +67,68 @@ function App() {
   const [topbarAutoSave, setTopbarAutoSave] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
 
   // Hardware back button handler for mobile apps
   useBackButtonHandler();
+
+  // Check for app updates on launch
+  useEffect(() => {
+    const performUpdateCheck = async () => {
+      try {
+        const update = await checkForUpdates();
+        if (update) {
+          setUpdateInfo(update);
+          setShowUpdatePrompt(true);
+        }
+      } catch (error) {
+        console.error('Error checking for updates:', error);
+      }
+    };
+    
+    // Check after a short delay to not interfere with initial load
+    const timeoutId = setTimeout(performUpdateCheck, 2000);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // TEST HELPER: Manual test trigger (remove in production)
+  useEffect(() => {
+    window.testUpdatePrompt = (type = 'recommended') => {
+      const mockUpdates = {
+        optional: {
+          currentVersion: "1.0.3",
+          latestVersion: "1.0.4",
+          urgency: "optional",
+          isRequired: false,
+          releaseNotes: "Bug fixes and performance improvements",
+          storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+        },
+        recommended: {
+          currentVersion: "1.0.3",
+          latestVersion: "1.1.0",
+          urgency: "recommended",
+          isRequired: false,
+          releaseNotes: "Fixed those pesky bugs from yesterday\nMade the dashboard even prettier\nProtocols load faster now\nLots of small improvements you'll love",
+          storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+        },
+        critical: {
+          currentVersion: "1.0.3",
+          latestVersion: "2.0.0",
+          minimumVersion: "1.0.4",
+          urgency: "critical",
+          isRequired: true,
+          releaseNotes: "Important security updates to keep your data safe\nFixed critical issues\nYour app will be safer and faster",
+          storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+        }
+      };
+      
+      const mockData = mockUpdates[type] || mockUpdates.recommended;
+      console.log('🧪 Testing update prompt:', type, mockData);
+      setUpdateInfo(mockData);
+      setShowUpdatePrompt(true);
+    };
+  }, []);
 
   // App is now live - no beta restrictions
 
@@ -348,6 +409,12 @@ function App() {
       <SupportModal 
         open={showSupportModal}
         onClose={() => setShowSupportModal(false)}
+        theme={theme}
+      />
+      <UpdatePromptModal
+        open={showUpdatePrompt}
+        onClose={() => setShowUpdatePrompt(false)}
+        updateInfo={updateInfo}
         theme={theme}
       />
       

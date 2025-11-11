@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Send, Microscope, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAppContext } from '../../context/AppContext';
+import { submitFeedback } from '../../services/firebase';
 
 export default function SupportModal({ open, onClose, theme }) {
     const { user } = useAppContext();
@@ -11,6 +12,8 @@ export default function SupportModal({ open, onClose, theme }) {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState(null);
+    const [feedbackType, setFeedbackType] = useState(null); // 'bug' or 'suggestion'
+    const [feedbackMessage, setFeedbackMessage] = useState('');
 
     // Auto-fill email from logged in user
     useEffect(() => {
@@ -76,10 +79,47 @@ export default function SupportModal({ open, onClose, theme }) {
         }
     };
 
-    const handleDirectEmail = () => {
-        const subject = encodeURIComponent('In-App Support');
-        const body = encodeURIComponent(formData.message || 'Hello,\n\nI need assistance with The Pep Planner.\n\nBest regards,');
-        window.open(`mailto:contact@thepepplanner.com?subject=${subject}&body=${body}`);
+    const handleFeedbackSubmit = async (e) => {
+        e.preventDefault();
+        if (!feedbackMessage.trim()) return;
+
+        setIsSubmitting(true);
+        
+        try {
+            console.log('📝 Submitting feedback from support modal...', {
+                type: feedbackType,
+                message: feedbackMessage.trim(),
+                userEmail: user?.email || 'anonymous',
+                userId: user?.uid || null
+            });
+
+            await submitFeedback({
+                type: feedbackType,
+                message: feedbackMessage.trim(),
+                userEmail: user?.email || 'anonymous',
+                userId: user?.uid || null,
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            });
+            
+            console.log('✅ Feedback submitted successfully');
+            
+            setSubmitStatus('success');
+            setFeedbackMessage('');
+            setFeedbackType(null);
+            
+            // Auto-close after 2 seconds
+            setTimeout(() => {
+                setSubmitStatus(null);
+                onClose();
+            }, 2000);
+        } catch (error) {
+            console.error('❌ Error submitting feedback:', error);
+            setSubmitStatus('error');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (!open) return null;
@@ -182,7 +222,7 @@ export default function SupportModal({ open, onClose, theme }) {
                                         value={formData.message}
                                         onChange={handleInputChange}
                                         required
-                                        rows={5}
+                                        rows={3}
                                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none"
                                         style={{
                                             borderColor: theme.border,
@@ -228,25 +268,119 @@ export default function SupportModal({ open, onClose, theme }) {
 
                             <div className="border-t pt-4 mt-6" style={{ borderColor: theme.border }}>
                                 <p className="text-sm text-center mb-3" style={{ color: theme.textLight }}>
-                                    Or contact us directly:
+                                    Report an issue or share an idea:
                                 </p>
-                                <button
-                                    onClick={handleDirectEmail}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition-colors"
-                                    style={{ 
-                                        color: theme.primary,
-                                        borderColor: theme.primary
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = theme.background;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = 'transparent';
-                                    }}
-                                >
-                                    <Mail className="w-4 h-4" />
-                                    contact@thepepplanner.com
-                                </button>
+                                
+                                {feedbackType ? (
+                                    <form onSubmit={handleFeedbackSubmit} className="space-y-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                {feedbackType === 'bug' ? (
+                                                    <>
+                                                        <Bug className="w-5 h-5" style={{ color: theme.error }} />
+                                                        <span className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                            Report Bug
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Lightbulb className="w-5 h-5" style={{ color: theme.warning }} />
+                                                        <span className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                            Suggest Feature
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setFeedbackType(null);
+                                                    setFeedbackMessage('');
+                                                }}
+                                                className="text-xs"
+                                                style={{ color: theme.textLight }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                        
+                                        <textarea
+                                            value={feedbackMessage}
+                                            onChange={(e) => setFeedbackMessage(e.target.value)}
+                                            placeholder={feedbackType === 'bug' ? 'Describe the bug...' : 'Describe your idea...'}
+                                            required
+                                            rows={3}
+                                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none text-sm"
+                                            style={{
+                                                borderColor: theme.border,
+                                                backgroundColor: theme.white,
+                                                color: theme.text
+                                            }}
+                                        />
+                                        
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmitting || !feedbackMessage.trim()}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            style={{
+                                                backgroundColor: feedbackType === 'bug' ? theme.error : theme.warning,
+                                                color: '#ffffff'
+                                            }}
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                                    Submitting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Send className="w-4 h-4" />
+                                                    Submit {feedbackType === 'bug' ? 'Bug Report' : 'Suggestion'}
+                                                </>
+                                            )}
+                                        </button>
+                                    </form>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => setFeedbackType('bug')}
+                                            className="flex flex-col items-center gap-2 px-4 py-3 border rounded-lg transition-all hover:shadow-md"
+                                            style={{ 
+                                                borderColor: theme.error,
+                                                color: theme.error,
+                                                backgroundColor: 'transparent'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = theme.error + '10';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }}
+                                        >
+                                            <Bug className="w-6 h-6" />
+                                            <span className="text-sm font-medium">Report Bug</span>
+                                        </button>
+                                        
+                                        <button
+                                            onClick={() => setFeedbackType('suggestion')}
+                                            className="flex flex-col items-center gap-2 px-4 py-3 border rounded-lg transition-all hover:shadow-md"
+                                            style={{ 
+                                                borderColor: theme.warning,
+                                                color: theme.warning,
+                                                backgroundColor: 'transparent'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = theme.warning + '10';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }}
+                                        >
+                                            <Lightbulb className="w-6 h-6" />
+                                            <span className="text-sm font-medium">Suggest Feature</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
