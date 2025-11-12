@@ -13,17 +13,21 @@ import DocumentationUpload from '../components/common/DocumentationUpload'
 import ImagePreviewModal from '../components/common/ImagePreviewModal'
 import StockpileCard from '../components/stockpile/StockpileCard'
 import MergeConfirmationModal from '../components/stockpile/MergeConfirmationModal'
+import MergeSelectionModal from '../components/stockpile/MergeSelectionModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
 import StockpileHelpPanel from '../components/stockpile/StockpileHelpPanel'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import useAutoSave from '../utils/useAutoSave'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
+import { saveAppData } from '../services/cloudStorage'
+import { useFirebase } from '../context/FirebaseContext'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate();
-  const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems } = useAppContext();
+  const { vendors, addVendor, orders, stockpile: items, setStockpile: setItems, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
+  const { firebaseUser } = useFirebase();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('onhand')
   const [openAdd, setOpenAdd] = useState(false)
@@ -66,10 +70,45 @@ export default function Stockpile() {
   // Drag & Drop Merge functionality
   const [isDragMode, setIsDragMode] = useState(false)
   const [showMergeModal, setShowMergeModal] = useState(false)
+  const [showMergeSelectionModal, setShowMergeSelectionModal] = useState(false)
   const [mergeData, setMergeData] = useState({ source: null, target: null })
+  const [mergeSourceGroup, setMergeSourceGroup] = useState(null)
   
-  // Duplicate detection state
-  const [dismissedDuplicates, setDismissedDuplicates] = useState(new Set())
+  // Duplicate detection state - load from localStorage and persist across re-renders
+  const [dismissedDuplicates, setDismissedDuplicates] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tpprover_dismissed_duplicates');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  })
+  
+  // CRITICAL: Persist dismissed duplicates across cloud sync
+  // When items change (after cloud sync), ensure dismissed duplicates are preserved
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('tpprover_dismissed_duplicates');
+      if (saved) {
+        const parsed = new Set(JSON.parse(saved));
+        // Only update if localStorage has more dismissed items than current state
+        // This prevents losing dismissed duplicates after cloud sync reloads items
+        if (parsed.size > 0) {
+          setDismissedDuplicates(prev => {
+            // Merge with existing - localStorage is source of truth
+            const merged = new Set([...prev, ...parsed]);
+            // Only update if different
+            if (merged.size !== prev.size) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to reload dismissed duplicates:', e);
+    }
+  }, [items]) // Reload when items change (after cloud sync)
   
   // Documentation preview state
   const [previewImage, setPreviewImage] = useState(null)
@@ -136,6 +175,7 @@ export default function Stockpile() {
         map.set(groupKey, { 
           name, 
           unit: mgUnit,
+          groupKey, // Add groupKey property for duplicate detection
           totalMg: 0, 
           totalVials: 0,
           variants: {} 
@@ -244,19 +284,35 @@ export default function Stockpile() {
     setShowMergeModal(true)
   }
 
-  const handleConfirmMerge = (mergeConfig) => {
+  const handleSelectMergeGroup = (sourceGroup, targetGroup) => {
+    setMergeData({ source: sourceGroup, target: targetGroup })
+    setShowMergeModal(true)
+    setShowMergeSelectionModal(false)
+    setMergeSourceGroup(null)
+  }
+
+  const handleConfirmMerge = async (mergeConfig) => {
     const { sourceItems, targetItems, mergedName, mergedUnit } = mergeConfig
 
     try {
+      // CRITICAL: Update timestamps on merged items so they persist during cloud sync
+      const now = new Date().toISOString()
+      
       // Update all items to use the new merged name and unit
+      // This includes BOTH source and target items
       const updatedItems = items.map(item => {
         // Check if this item belongs to the source group
         const isSourceItem = sourceItems.some(sourceItem => sourceItem.id === item.id)
-        if (isSourceItem) {
+        // Check if this item belongs to the target group
+        const isTargetItem = targetItems.some(targetItem => targetItem.id === item.id)
+        
+        if (isSourceItem || isTargetItem) {
           return {
             ...item,
             name: mergedName,
-            mgUnit: mergedUnit
+            mgUnit: mergedUnit,
+            // CRITICAL: Update timestamp so merged items are seen as newer than server data
+            updatedAt: now
           }
         }
         return item
@@ -264,19 +320,80 @@ export default function Stockpile() {
 
       setItems(updatedItems)
       
+      // CRITICAL: Immediately sync to cloud to prevent server data from overwriting merge
+      // Save to localStorage immediately for persistence
+      try {
+        localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedItems))
+      } catch (e) {
+        console.error('Failed to save merged items to localStorage:', e)
+      }
+      
+      // CRITICAL: Force immediate cloud sync with skipMerge to overwrite server data
+      // This prevents the real-time listener from reloading old data and overwriting the merge
+      if (firebaseUser) {
+        try {
+          const userId = firebaseUser.uid;
+          // Get all app data to sync (needed for saveAppData)
+          const appData = {
+            protocols: protocols || [],
+            reconItems: reconItems || [],
+            reconHistory: reconHistory || [],
+            supplements: supplements || [],
+            orders: orders || [],
+            metrics: metrics || [],
+            vendors: vendors || [],
+            calendarNotes: calendarNotes || {},
+            stockpile: updatedItems, // Use merged items
+            scheduledBuys: scheduledBuys || []
+          };
+          
+          // Force immediate sync with skipMerge to overwrite server data
+          // This ensures merged items persist even if real-time listener triggers
+          await saveAppData(userId, appData, { skipMerge: true });
+          console.log('✅ Merged items synced to cloud immediately');
+        } catch (e) {
+          console.error('Failed to sync merged items to cloud:', e);
+          // Don't throw - the auto-sync will handle it
+        }
+      }
+      
       // Log the merge event
       appendStockEvent({
         name: `${mergeConfig.sourceGroup.name} + ${mergeConfig.targetGroup.name} → ${mergedName}`,
         details: `Combined ${sourceItems.length + targetItems.length} peptide entries into single inventory`
       })
 
+      // Show success toast
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: `Merge of ${mergedName} completed!`, 
+          type: 'success' 
+        } 
+      }))
+
       // Close modal and exit drag mode
       setShowMergeModal(false)
       setMergeData({ source: null, target: null })
       setIsDragMode(false)
       
+      // Also dismiss this duplicate pair so it doesn't show again
+      const duplicateKey = `${mergeConfig.sourceGroup.groupKey}-${mergeConfig.targetGroup.groupKey}`;
+      const newDismissed = new Set([...dismissedDuplicates, duplicateKey]);
+      setDismissedDuplicates(newDismissed);
+      try {
+        localStorage.setItem('tpprover_dismissed_duplicates', JSON.stringify(Array.from(newDismissed)));
+      } catch (e) {
+        console.error('Failed to save dismissed duplicates:', e);
+      }
+      
     } catch (error) {
       console.error('Failed to merge groups:', error)
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: `Failed to merge items. Please try again.`, 
+          type: 'error' 
+        } 
+      }))
     }
   }
 
@@ -291,7 +408,14 @@ export default function Stockpile() {
   // Duplicate detection handlers
   const handleDismissDuplicate = (duplicate) => {
     const key = `${duplicate.group1.groupKey}-${duplicate.group2.groupKey}`;
-    setDismissedDuplicates(prev => new Set([...prev, key]));
+    const newDismissed = new Set([...dismissedDuplicates, key]);
+    setDismissedDuplicates(newDismissed);
+    // Persist to localStorage
+    try {
+      localStorage.setItem('tpprover_dismissed_duplicates', JSON.stringify(Array.from(newDismissed)));
+    } catch (e) {
+      console.error('Failed to save dismissed duplicates:', e);
+    }
   }
 
   // Set topbar tabs via custom event
@@ -477,6 +601,7 @@ export default function Stockpile() {
               theme={theme}
               onMergeRequest={handleMergeRequest}
               onDismissSuggestion={handleDismissDuplicate}
+              dismissedDuplicates={dismissedDuplicates}
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -620,6 +745,38 @@ export default function Stockpile() {
                             </div>
                         </div>
                         <div className="mt-4 flex items-center justify-end gap-2">
+                            <button 
+                              className="p-1 rounded-md transition-colors" 
+                              style={{ 
+                                color: theme.primary,
+                                opacity: isReadOnly ? 0.6 : 1,
+                                cursor: isReadOnly ? 'not-allowed' : 'pointer'
+                              }} 
+                              onClick={() => {
+                                if (isReadOnly) {
+                                  setShowUpgradeModal(true);
+                                  return;
+                                }
+                                // Find another group to merge with (show selection modal)
+                                const otherGroups = groups.filter(og => og.groupKey !== g.groupKey && og.totalVials > 0);
+                                if (otherGroups.length > 0) {
+                                  setMergeSourceGroup(g);
+                                  setShowMergeSelectionModal(true);
+                                } else {
+                                  window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                    detail: { 
+                                      message: 'No other groups available to merge with', 
+                                      type: 'info' 
+                                    } 
+                                  }));
+                                }
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              title="Merge with another group"
+                            >
+                                <Merge size={16} />
+                            </button>
                             <button 
                               className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" 
                               style={{ 
@@ -1349,10 +1506,30 @@ export default function Stockpile() {
         </div>
       </Modal>
       
+      {/* Merge Selection Modal */}
+      <MergeSelectionModal
+        open={showMergeSelectionModal}
+        onClose={() => {
+          setShowMergeSelectionModal(false)
+          setMergeSourceGroup(null)
+        }}
+        sourceGroup={mergeSourceGroup}
+        availableGroups={groups.filter(g => g.groupKey !== mergeSourceGroup?.groupKey && g.totalVials > 0)}
+        onSelectGroup={handleSelectMergeGroup}
+        theme={theme}
+      />
+
       {/* Merge Confirmation Modal */}
       <MergeConfirmationModal
         open={showMergeModal}
-        onClose={() => setShowMergeModal(false)}
+        onClose={() => {
+          setShowMergeModal(false)
+          setMergeData({ source: null, target: null })
+        }}
+        onBack={() => {
+          setShowMergeModal(false)
+          setShowMergeSelectionModal(true)
+        }}
         onConfirm={handleConfirmMerge}
         mergeData={mergeData}
         theme={theme}
