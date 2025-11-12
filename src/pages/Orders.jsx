@@ -386,31 +386,6 @@ export default function Orders() {
 				theme={theme}
 				order={editingOrder}
 				vendors={vendors}
-				onAutoSave={(data) => {
-					if (!editingOrder?.id) return;
-					try {
-						const vendorName = data.vendor || editingOrder.vendor || '';
-						if (vendorName && !vendors.some(v => v.name.toLowerCase() === vendorName.toLowerCase())) {
-							addVendor({ name: vendorName, isStub: true });
-						}
-
-						const vendorId = vendors.find(v => v.name === vendorName)?.id || editingOrder.vendorId || null;
-						const updatedOrder = { 
-							...editingOrder, 
-							...data, 
-							id: editingOrder.id, 
-							vendorId,
-							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber
-						};
-						handleStockpileUpdate(editingOrder, updatedOrder);
-						setOrders(prev => {
-							const normalizedPrev = ensurePublicOrderNumbers(prev);
-							return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
-						});
-					} catch (error) {
-						console.warn('⚠️ Auto-save update failed:', error);
-					}
-				}}
 				onSave={(data) => {
 					console.log('📋 Orders page received data:', data);
 					console.log('📋 Current activeTab:', activeTab);

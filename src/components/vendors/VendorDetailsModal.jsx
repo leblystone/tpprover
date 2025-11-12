@@ -8,7 +8,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
 const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Aminos','Oils','Pricey','Untested','Slow Shipping','Bad Test','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Puck Problem']
 
-export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onAutoSave, onDelete, onForceDelete, activeTab, isReadOnly = false, onUpgrade }) {
+export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, onForceDelete, activeTab, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState(createEmptyVendor())
   
   // Auto-save functionality with vendor persistence
@@ -17,31 +17,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
     form,
     setForm,
     2000, // 2 second delay
-    async (formData) => {
-      // Auto-save to vendors list if there's meaningful data
-      const hasName = formData?.name && formData.name.trim().length > 0;
-      const hasContacts = formData?.contacts?.some(c => c.value && c.value.trim().length > 0);
-      const hasNotes = formData?.notes && formData.notes.trim().length > 0;
-      
-      if (formData && (hasName || hasContacts || hasNotes)) {
-        try {
-          if (vendor?.id) {
-            console.log('🔄 Auto-saving existing vendor:', vendor.id);
-          } else {
-            console.log('🔄 Auto-saving new vendor draft');
-          }
-          // Use onAutoSave if provided, otherwise fall back to onSave
-          await (onAutoSave || onSave)?.(formData);
-        } catch (error) {
-          console.warn('Auto-save to vendors failed:', error);
-        }
-      } else {
-        console.log('🚫 Skipping autosave - insufficient data:', {
-          hasName,
-          hasContacts,
-          hasNotes
-        });
-      }
+    async () => {
+      // Drafts are kept locally; vendors are only persisted on explicit save.
     }
   );
   

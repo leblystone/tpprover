@@ -192,21 +192,7 @@ export default function Vendors() {
 			theme={theme}
 			vendor={editingVendor}
             activeTab={activeTab}
-			onAutoSave={(data) => {
-				console.log('💾 Auto-save triggered:', { editingVendor, data });
-				// Auto-save: Always use addVendor which handles merge logic internally
-				const vendorId = editingVendor?.id || data.id || Date.now();
-				const vendorToSave = { ...data, id: vendorId };
-				
-				console.log('🔄 Auto-saving vendor:', vendorId, 'editingVendor:', editingVendor);
-				addVendor(vendorToSave);
-				
-				// Update editingVendor so subsequent operations use the same ID
-				if (!editingVendor?.id) {
-					setEditingVendor({ ...data, id: vendorId });
-				}
-			}}
-		onSave={(data) => {
+			onSave={(data) => {
 			console.log('📝 Manual save triggered:', { editingVendor, data });
 			// Manual save: Always use addVendor which handles merge logic internally
 			const vendorId = editingVendor?.id || data.id || Date.now();

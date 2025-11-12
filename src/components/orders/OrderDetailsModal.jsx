@@ -11,7 +11,7 @@ import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { generateId } from '../../utils/string';
 
-export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onAutoSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
+export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
@@ -47,40 +47,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     form,
     setForm,
     2000, // 2 second delay
-    async (formData) => {
-      // Auto-save to orders list if there's meaningful data
-      const hasVendor = formData?.vendor && formData.vendor.trim().length > 0;
-      const hasItemsWithData = formData?.items?.some(item => 
-        item.name && item.name.trim().length > 0 && 
-        (item.quantity > 0 || item.price || item.mg)
-      );
-      const hasNotes = formData?.notes && formData.notes.trim().length > 0;
-      
-      if (formData && (hasVendor || hasItemsWithData || hasNotes)) {
-        try {
-          if (order?.id) {
-            console.log('🔄 Auto-saving existing order:', order.id);
-            if (onAutoSave) {
-              await onAutoSave(formData);
-            } else {
-              await onSave?.(formData);
-            }
-          } else {
-            console.log('🔄 Auto-saving new order draft');
-            // For new orders, we don't auto-save to the orders list yet
-            // Just keep the localStorage draft for now
-          }
-        } catch (error) {
-          console.warn('Auto-save to orders failed:', error);
-        }
-      } else {
-        console.log('🚫 Skipping autosave - insufficient data:', {
-          hasVendor,
-          hasItemsWithData,
-          hasNotes,
-          formData: formData ? Object.keys(formData) : 'null'
-        });
-      }
+    async () => {
+      // Drafts are kept locally; orders are only persisted on explicit save.
     }
   );
   

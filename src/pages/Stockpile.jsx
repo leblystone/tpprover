@@ -36,30 +36,9 @@ export default function Stockpile() {
     form,
     setForm,
     2000, // 2 second delay
-    async (formData) => {
-      // Auto-save to stockpile list if there's meaningful data
-      if (formData && formData.name && formData.mg) {
-        try {
-          console.log('🔄 Auto-saving stockpile data');
-          // Auto-create new vendor if it doesn't exist
-          if (formData.vendor && !vendors.some(v => v.name.toLowerCase() === formData.vendor.toLowerCase())) {
-              addVendor({ name: formData.vendor, isStub: true });
-          }
-
-          const finalVendor = (vendors || []).find(v => v.name === formData.vendor);
-          let itemToAdd = { ...formData, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
-          
-          // Convert kit to vials before saving
-          if (itemToAdd.unit === 'kit') {
-              itemToAdd.quantity = (Number(itemToAdd.quantity) || 0) * 10;
-              itemToAdd.unit = 'vial';
-          }
-
-          setItems(prev => [itemToAdd, ...prev]); 
-        } catch (error) {
-          console.warn('Auto-save to stockpile failed:', error);
-        }
-      }
+    async () => {
+      // Intentionally left blank — we only persist the draft locally.
+      // Actual stockpile items are created when the user explicitly saves.
     }
   );
   
