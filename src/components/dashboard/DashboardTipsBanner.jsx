@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Lightbulb, X, FlaskConical, GitMerge } from 'lucide-react';
 import useLocalStorage from '../../utils/hooks';
 
 const DashboardTipsBanner = ({ theme }) => {
@@ -7,43 +7,43 @@ const DashboardTipsBanner = ({ theme }) => {
   const [isDismissed, setIsDismissed] = useLocalStorage('tpprover_dashboard_tips_dismissed', false);
   const [fadeIn, setFadeIn] = useState(true);
 
-  // Curated tips for new users - shorter, more actionable
+  // Simplified tips for new users
   const tips = [
     {
-      icon: '🚀',
-      text: 'Start by adding your stockpile - include reconstituted vials in your fridge!'
+      text: 'Open up that fridge & start adding in your stockpile🧪'
     },
     {
-      icon: '📋',
-      text: 'Tasks sync across devices. Completing a protocol auto-deducts from stockpile!'
+      text: 'Research data syncs across all devices📋'
     },
     {
-      icon: '🔄',
-      text: 'Reconstituting a peptide? It automatically adds to stockpile and creates tasks.'
+      text: 'Recon pulls from Stockpile & updates inventory!➖➕'
     },
     {
-      icon: '🎯',
-      text: 'Use Quick Actions widget to reconstitute, add orders, or create protocols instantly.'
+      text: 'Click💧droplet icon to recon that vial!'
     },
     {
-      icon: '💧',
-      text: 'Click the droplet icon on stockpile items to import details into the calculator.'
+      text: 'Add order tracking & receive dashboard updates!🚚'
     },
     {
-      icon: '📦',
-      text: 'Add tracking numbers to orders - we\'ll monitor delivery status for you.'
+      text: 'Customize your dashoboard experience↗️'
     },
     {
-      icon: '🎨',
-      text: 'Customize your dashboard - tap the edit icon to rearrange widgets.'
+      text: 'Add your protocols to start scheduling📆'
     },
     {
-      icon: '💾',
-      text: 'Everything auto-saves! Your data syncs automatically across devices.'
+      text: "We're in Beta!",
+      icon: FlaskConical
+    },
+    {
+      text: 'Tap vendor contact info - Telegram? Takes you there!'
+    },
+    {
+      text: "Accidentally entered 2 of the same? Merge em'",
+      icon: GitMerge
     }
   ];
 
-  // Auto-rotate tips every 15 seconds
+  // Auto-rotate tips every 5 seconds
   useEffect(() => {
     if (isDismissed) return;
 
@@ -53,26 +53,11 @@ const DashboardTipsBanner = ({ theme }) => {
         setCurrentTipIndex((prev) => (prev + 1) % tips.length);
         setFadeIn(true);
       }, 200);
-    }, 15000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [isDismissed, tips.length]);
 
-  const handlePrevious = () => {
-    setFadeIn(false);
-    setTimeout(() => {
-      setCurrentTipIndex((prev) => (prev - 1 + tips.length) % tips.length);
-      setFadeIn(true);
-    }, 200);
-  };
-
-  const handleNext = () => {
-    setFadeIn(false);
-    setTimeout(() => {
-      setCurrentTipIndex((prev) => (prev + 1) % tips.length);
-      setFadeIn(true);
-    }, 200);
-  };
 
   if (isDismissed) return null;
 
@@ -87,45 +72,24 @@ const DashboardTipsBanner = ({ theme }) => {
         borderTop: 'none'
       }}
     >
-      {/* Left side - Icon and tip text */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="flex-shrink-0">
-          <Lightbulb size={16} style={{ color: theme.primary }} />
-        </div>
-        
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          {/* Navigation arrows */}
-          <button
-            onClick={handlePrevious}
-            className="p-1 rounded transition-all hover:opacity-70 flex-shrink-0"
-            style={{ color: theme.textLight }}
-            aria-label="Previous tip"
-          >
-            <ChevronLeft size={14} />
-          </button>
+      {/* Left side - Lightbulb icon */}
+      <div className="flex-shrink-0">
+        <Lightbulb size={14} style={{ color: theme.primary }} />
+      </div>
 
-          {/* Tip content */}
-          <div 
-            className="flex items-center gap-2 flex-1 min-w-0 transition-opacity duration-200"
-            style={{ opacity: fadeIn ? 1 : 0 }}
-          >
-            <span className="text-base flex-shrink-0">{currentTip.icon}</span>
-            <span 
-              className="text-xs lg:text-sm truncate"
-              style={{ color: theme.textLight }}
-            >
-              {currentTip.text}
-            </span>
-          </div>
-
-          <button
-            onClick={handleNext}
-            className="p-1 rounded transition-all hover:opacity-70 flex-shrink-0"
+      {/* Center - Tip content */}
+      <div className="flex items-center justify-center flex-1 min-w-0">
+        <div 
+          className="flex items-center gap-2 transition-opacity duration-200"
+          style={{ opacity: fadeIn ? 1 : 0 }}
+        >
+          <span 
+            className="text-xs lg:text-sm"
             style={{ color: theme.textLight }}
-            aria-label="Next tip"
           >
-            <ChevronRight size={14} />
-          </button>
+            {currentTip.text}
+          </span>
+          {currentTip.icon && React.createElement(currentTip.icon, { size: 14, style: { color: theme.primary } })}
         </div>
       </div>
 
