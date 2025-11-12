@@ -82,11 +82,11 @@ exports.manualSyncSubscription = functions.https.onCall(async (data, context) =>
       status: activeSubscription.status,
       stripeSubscriptionId: activeSubscription.id,
       stripeCustomerId: customerId,
-      currentPeriodStart: new Date(activeSubscription.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(activeSubscription.current_period_end * 1000).toISOString(),
+      currentPeriodStart: activeSubscription.current_period_start ? new Date(activeSubscription.current_period_start * 1000).toISOString() : null,
+      currentPeriodEnd: activeSubscription.current_period_end ? new Date(activeSubscription.current_period_end * 1000).toISOString() : null,
       cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
       cancelAt: activeSubscription.cancel_at ? new Date(activeSubscription.cancel_at * 1000).toISOString() : null,
-      created: new Date(activeSubscription.created * 1000).toISOString(),
+      created: activeSubscription.created ? new Date(activeSubscription.created * 1000).toISOString() : null,
       lastUpdated: admin.firestore.FieldValue.serverTimestamp()
     };
 
