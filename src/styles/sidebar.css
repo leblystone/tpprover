@@ -14,3 +14,7 @@
 .sidebar-container:hover .sidebar-link-label {
     opacity: 1;
 }
+
+.sidebar-container:hover .beta-chip-container {
+    opacity: 1 !important;
+}

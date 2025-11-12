@@ -192,7 +192,7 @@ export default function Vendors() {
 			theme={theme}
 			vendor={editingVendor}
             activeTab={activeTab}
-			onSave={(data) => {
+		onSave={(data) => {
 			console.log('📝 Manual save triggered:', { editingVendor, data });
 			// Manual save: Always use addVendor which handles merge logic internally
 			const vendorId = editingVendor?.id || data.id || Date.now();

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope, NotebookPen } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import BetaModal from '../common/BetaModal'
 import logo from '../../assets/tpp_logo.png'
@@ -97,51 +97,69 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             </NavLink>
           ))}
           
-          {/* Beta Chip - Clickable - ABOVE page break */}
-          <div className="flex justify-end px-4 mb-3 mt-2">
-            <style>{`
-              @keyframes sway-mobile {
-                0%, 100% {
-                  transform: rotate(-3deg);
-                }
-                50% {
-                  transform: rotate(3deg);
-                }
+          <style>{`
+            @keyframes swing-mobile {
+              0%, 100% {
+                transform: rotate(0deg);
               }
-              .beta-icon-mobile {
-                animation: sway-mobile 2.5s ease-in-out infinite;
-                transform-origin: center center;
+              20% {
+                transform: rotate(15deg);
               }
-              .beta-chip-button-mobile {
-                cursor: pointer;
-                border: none;
+              40% {
+                transform: rotate(-10deg);
               }
-              .beta-chip-button-mobile:active .beta-icon-mobile {
-                animation: sway-mobile 1.2s ease-in-out infinite;
+              60% {
+                transform: rotate(5deg);
               }
-            `}</style>
-            <button
-              onClick={() => setShowBetaModal(true)}
-              className="beta-chip-button-mobile flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg transition-all active:scale-95 shadow-md"
-              style={{
-                backgroundColor: '#f0eee7',
-              }}
-            >
-              <BookOpen className="beta-icon-mobile h-5 w-5 flex-shrink-0" style={{ color: '#042617' }} />
-              <span 
-                className="font-bold text-sm tracking-widest"
-                style={{ 
-                  color: '#042617',
-                  fontFamily: '"Inter", "SF Pro Display", -apple-system, system-ui, sans-serif',
-                  letterSpacing: '0.2em'
+              80% {
+                transform: rotate(-5deg);
+              }
+            }
+            .beta-icon-mobile {
+              animation: swing-mobile 2s ease-in-out infinite;
+              transform-origin: top center;
+            }
+            .beta-chip-button-mobile {
+              cursor: pointer;
+              border: none;
+              transition: all 0.3s ease;
+            }
+            .beta-chip-button-mobile:hover {
+              background-color: #e8e6dd !important;
+            }
+            .beta-chip-button-mobile:active {
+              transform: scale(0.95);
+            }
+            .beta-chip-button-mobile:active .beta-icon-mobile {
+              animation: swing-mobile 1s ease-in-out infinite;
+            }
+          `}</style>
+          
+          <div className="mt-auto" style={{ borderColor: theme.border }}>
+            {/* Beta Chip - Clickable - Right ABOVE page break line */}
+            <div className="flex justify-center px-4 mb-2">
+              <button
+                onClick={() => setShowBetaModal(true)}
+                className="beta-chip-button-mobile flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl transition-all active:scale-95 shadow-lg"
+                style={{
+                  backgroundColor: '#f0eee7',
                 }}
               >
-                BETA
-              </span>
-            </button>
-          </div>
-          
-          <div className="mt-auto border-t pt-2" style={{ borderColor: theme.border }}>
+                <span 
+                  className="font-bold text-lg tracking-widest"
+                  style={{ 
+                    color: '#042617',
+                    fontFamily: '"Inter", "SF Pro Display", -apple-system, system-ui, sans-serif',
+                    letterSpacing: '0.2em'
+                  }}
+                >
+                  BETA
+                </span>
+                <NotebookPen className="beta-icon-mobile h-6 w-6 flex-shrink-0" style={{ color: '#042617' }} />
+              </button>
+            </div>
+            
+            <div className="border-t pt-2" style={{ borderColor: theme.border }}>
             {/* Physical Planner Shop Link */}
             <a
               href="https://thepepplanner.com"
@@ -204,6 +222,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
               <Microscope className="h-6 w-6" />
               <span className="text-lg font-medium truncate">Support</span>
             </button>
+            </div>
           </div>
         </nav>
       </div>

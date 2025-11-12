@@ -557,7 +557,7 @@ export default function Stockpile() {
                                                     {item.purity && <div className="flex items-center gap-2 pl-5"><Percent size={12} /> {item.purity}% Purity</div>}
                                                     {item.documentation && item.documentation.length > 0 && (
                                                         <div className="text-xs pl-5 mt-1 space-y-1">
-                                                            {item.documentation.map((doc, index) => (
+                                                                    {item.documentation.map((doc, index) => (
                                                                 <div key={index} className="flex items-center gap-1.5">
                                                                     {doc.type === 'image' ? (
                                                                         <button

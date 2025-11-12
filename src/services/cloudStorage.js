@@ -203,16 +203,16 @@ export async function saveAppData(userId, appData, options = {}) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
     // Fallback to simple save
     return await saveUserData(userId, {
-      protocols: appData.protocols || [],
-      reconItems: appData.reconItems || [],
-      reconHistory: appData.reconHistory || [],
-      supplements: appData.supplements || [],
-      orders: appData.orders || [],
-      metrics: appData.metrics || [],
-      vendors: appData.vendors || [],
-      calendarNotes: appData.calendarNotes || {},
-      stockpile: appData.stockpile || [],
-      scheduledBuys: appData.scheduledBuys || []
+    protocols: appData.protocols || [],
+    reconItems: appData.reconItems || [],
+    reconHistory: appData.reconHistory || [],
+    supplements: appData.supplements || [],
+    orders: appData.orders || [],
+    metrics: appData.metrics || [],
+    vendors: appData.vendors || [],
+    calendarNotes: appData.calendarNotes || {},
+    stockpile: appData.stockpile || [],
+    scheduledBuys: appData.scheduledBuys || []
     }, COLLECTIONS.USER_DATA);
   }
 }
