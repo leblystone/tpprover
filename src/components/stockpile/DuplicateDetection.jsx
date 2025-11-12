@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle, XCircle, AlertCircle, HelpCircle, Merge, Eye, EyeOff } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, AlertCircle, HelpCircle, Merge, Package, Beaker, ArrowRight, BookAlert, X } from 'lucide-react';
 import { findPotentialDuplicates, getConfidenceColor, getConfidenceIcon } from '../../utils/fuzzyMatch';
 
 const DuplicateDetection = ({ 
   groups, 
   theme, 
   onMergeRequest, 
-  onDismissSuggestion 
+  onDismissSuggestion,
+  dismissedDuplicates = new Set()
 }) => {
   const [duplicates, setDuplicates] = useState([]);
-  const [dismissedSuggestions, setDismissedSuggestions] = useState(new Set());
 
   // Find duplicates when groups change
   useEffect(() => {
@@ -24,7 +24,7 @@ const DuplicateDetection = ({
 
   // Filter out dismissed suggestions and show only high/medium confidence
   const filteredDuplicates = duplicates.filter(dup => 
-    !dismissedSuggestions.has(`${dup.group1.groupKey}-${dup.group2.groupKey}`) &&
+    !dismissedDuplicates.has(`${dup.group1.groupKey}-${dup.group2.groupKey}`) &&
     (dup.confidence === 'high' || dup.confidence === 'medium')
   );
 
@@ -33,8 +33,6 @@ const DuplicateDetection = ({
   };
 
   const handleDismissSuggestion = (duplicate) => {
-    const key = `${duplicate.group1.groupKey}-${duplicate.group2.groupKey}`;
-    setDismissedSuggestions(prev => new Set([...prev, key]));
     onDismissSuggestion?.(duplicate);
   };
 
@@ -62,106 +60,107 @@ const DuplicateDetection = ({
     return null;
   }
 
-  return (
-    <div className="mb-6 p-4 rounded-lg border" style={{ 
-      backgroundColor: theme.cardBackground,
-      borderColor: theme.border 
-    }}>
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <AlertTriangle size={20} style={{ color: theme.primary }} />
-        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-          Potential Duplicates Detected
-        </h3>
-      </div>
+  // Calculate vials for each group
+  const getGroupVials = (group) => {
+    return Object.values(group.variants || {}).reduce((sum, v) => sum + (v.totalVials || 0), 0);
+  };
 
-      {/* Duplicate suggestions */}
-      <div className="space-y-3">
-        {filteredDuplicates.map((duplicate, index) => (
+  return (
+    <div className="mb-4 space-y-3">
+      {filteredDuplicates.map((duplicate) => {
+        const group1Vials = getGroupVials(duplicate.group1);
+        const group2Vials = getGroupVials(duplicate.group2);
+        
+        return (
           <div
             key={`${duplicate.group1.groupKey}-${duplicate.group2.groupKey}`}
-            className="p-4 rounded-lg border-2 transition-all hover:shadow-md"
-            style={{
-              borderColor: getConfidenceColor(duplicate.confidence).split(' ')[2],
-              backgroundColor: getConfidenceColor(duplicate.confidence).split(' ')[1]
+            className="p-3 rounded-lg border-2 relative shadow-lg"
+            style={{ 
+              backgroundColor: theme.isDark ? '#1f2937' : '#fef3c7',
+              borderColor: theme.primary,
+              boxShadow: `0 4px 12px ${theme.primary}40`
             }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                {getConfidenceIcon(duplicate.confidence)}
-                <span className="font-medium text-sm">
-                  {getConfidenceText(duplicate.confidence)}
-                </span>
-                <span className="text-xs text-gray-500">
-                  ({Math.round(duplicate.similarity * 100)}% match)
-                </span>
+            {/* Dismiss button - upper right */}
+            <button
+              onClick={() => handleDismissSuggestion(duplicate)}
+              className="absolute top-2 right-2 p-1 rounded transition-all hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                color: '#ffffff'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+              }}
+            >
+              <X size={14} />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-2 pr-6">
+              <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
+                Potential Duplicates Found:
+              </h3>
+              <BookAlert size={16} className="animate-bounce" style={{ color: theme.primary }} />
+            </div>
+
+            {/* Peptide comparison with arrow */}
+            <div className="flex items-center gap-2 mb-3">
+              {/* Source Group */}
+              <div className="flex-1 p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Package size={12} style={{ color: theme.textLight }} />
+                  <span className="font-semibold text-xs" style={{ color: theme.text }}>From</span>
+                </div>
+                <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>{duplicate.group1.name}</div>
+                <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: theme.textLight }}>
+                  <div className="flex items-center gap-1">
+                    <Beaker size={10} />
+                    {duplicate.group1.totalMg} {duplicate.group1.unit || 'mg'}
+                  </div>
+                  <div>{group1Vials} {group1Vials === 1 ? 'vial' : 'vials'}</div>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleMergeRequest(duplicate)}
-                  className="flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium text-white transition-colors hover:opacity-90"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  <Merge size={14} />
-                  Merge
-                </button>
-                
-                <button
-                  onClick={() => handleDismissSuggestion(duplicate)}
-                  className="px-3 py-1 rounded-md text-sm font-medium transition-colors hover:opacity-90"
-                  style={{
-                    backgroundColor: theme.border,
-                    color: theme.text
-                  }}
-                >
-                  Dismiss
-                </button>
+
+              {/* Arrow */}
+              <div className="flex-shrink-0">
+                <ArrowRight size={20} style={{ color: theme.primary }} />
+              </div>
+
+              {/* Target Group */}
+              <div className="flex-1 p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Package size={12} style={{ color: theme.textLight }} />
+                  <span className="font-semibold text-xs" style={{ color: theme.text }}>Into</span>
+                </div>
+                <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>{duplicate.group2.name}</div>
+                <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: theme.textLight }}>
+                  <div className="flex items-center gap-1">
+                    <Beaker size={10} />
+                    {duplicate.group2.totalMg} {duplicate.group2.unit || 'mg'}
+                  </div>
+                  <div>{group2Vials} {group2Vials === 1 ? 'vial' : 'vials'}</div>
+                </div>
               </div>
             </div>
-            
-            {/* Peptide comparison */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3 rounded-md border" style={{ borderColor: theme.border }}>
-                <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>
-                  {duplicate.group1.name}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {duplicate.group1.totalMg} {duplicate.group1.unit} • {Object.keys(duplicate.group1.variants).length} variant{Object.keys(duplicate.group1.variants).length !== 1 ? 's' : ''}
-                </div>
-              </div>
-              
-              <div className="p-3 rounded-md border" style={{ borderColor: theme.border }}>
-                <div className="font-medium text-sm mb-1" style={{ color: theme.text }}>
-                  {duplicate.group2.name}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {duplicate.group2.totalMg} {duplicate.group2.unit} • {Object.keys(duplicate.group2.variants).length} variant{Object.keys(duplicate.group2.variants).length !== 1 ? 's' : ''}
-                </div>
-              </div>
-            </div>
-            
-            {/* Similarity explanation */}
-            <div className="mt-3 text-xs text-gray-500">
-              <strong>Why this might be a duplicate:</strong> The names are very similar and both contain the same unit type ({duplicate.group1.unit}).
-              {duplicate.confidence === 'high' && ' This is likely the same peptide with different spelling or formatting.'}
-              {duplicate.confidence === 'medium' && ' This could be the same peptide, but please verify before merging.'}
-              {duplicate.confidence === 'low' && ' This might be the same peptide, but the names are quite different. Please review carefully.'}
+
+            {/* Action buttons */}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => handleMergeRequest(duplicate)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors hover:opacity-90"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              >
+                <Merge size={12} />
+                Merge
+              </button>
             </div>
           </div>
-        ))}
-      </div>
-      
-      {/* Footer info */}
-      <div className="mt-4 p-3 rounded-md text-xs" style={{ backgroundColor: theme.primary + '10' }}>
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={14} style={{ color: theme.primary }} />
-          <span style={{ color: theme.text }}>
-            <strong>Smart Detection:</strong> This feature uses fuzzy matching to identify potential duplicates. 
-            Always verify peptide names and dosages before merging to ensure accuracy.
-          </span>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 };
