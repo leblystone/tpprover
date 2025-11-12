@@ -39,7 +39,7 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                             </p>
                             
                             <div className="rounded-lg p-4 sm:p-5" style={{ backgroundColor: '#f3f7f6', border: '2px solid #9bc2bb' }}>
-                                <p className="text-gray-800 font-medium mb-2">⌛ 10 Days to Test Drive Everything</p>
+                                <p className="text-gray-800 font-medium mb-2">⌛ 10 Days to Test Drive Everything During Beta</p>
                                 <p className="text-sm text-gray-700 leading-relaxed">
                                     Take <strong>10 full days</strong> to explore every corner: protocols, calendars, inventory tracking, the works. No credit card, no strings attached. Just see if it works for you.
                                 </p>

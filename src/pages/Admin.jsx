@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
