@@ -11,9 +11,25 @@ export default function BetaModal({ open, onClose, theme }) {
       maxWidth="max-w-2xl"
     >
       <div className="space-y-4">
+        <style>{`
+          @keyframes pulse-text {
+            0%, 100% {
+              opacity: 1;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.8;
+              transform: scale(1.02);
+            }
+          }
+          .pulsing-tagline {
+            animation: pulse-text 3s ease-in-out infinite;
+          }
+        `}</style>
+        
         <div className="text-center">
           <h3 
-            className="text-2xl font-bold mb-2"
+            className="text-lg font-bold mb-2 pulsing-tagline"
             style={{ color: theme?.primaryDark }}
           >
             Building with you, not for you
