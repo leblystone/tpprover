@@ -96,9 +96,19 @@ export default function Recon() {
 	}, [])
 
 	const handleSave = (item) => {
+		const now = new Date().toISOString();
 		const next = editingItem?.id
-			? reconItems.map(i => i.id === editingItem.id ? { ...i, ...item } : i)
-			: [{ id: generateId(), ...item }, ...reconItems]
+			? reconItems.map(i => i.id === editingItem.id ? { 
+				...i, 
+				...item, 
+				updatedAt: now 
+			} : i)
+			: [{ 
+				id: generateId(), 
+				...item, 
+				createdAt: now, 
+				updatedAt: now 
+			}, ...reconItems]
 		setReconItems(next)
 		setShowEditModal(false)
 	}
@@ -223,6 +233,7 @@ export default function Recon() {
         }, 0);
 
         const vendorId = data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null;
+        const now = new Date().toISOString();
 
         const newItem = {
             id: generateId(),
@@ -235,9 +246,11 @@ export default function Recon() {
             deliveryMethod: data.deliveryMethod,
             penColor: data.penColor,
             cost: data.cost,
-            date: new Date().toISOString(),
+            date: now,
             peptides,
-            notes: ''
+            notes: '',
+            createdAt: now,
+            updatedAt: now
         };
 
         setReconItems(prev => [newItem, ...prev]);

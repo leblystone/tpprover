@@ -765,13 +765,21 @@ export function AppProvider({ children }) {
         const index = protocols.findIndex(p => p.id === updatedProtocol.id);
         if (index > -1) {
             const newProtocols = [...protocols];
-            newProtocols[index] = updatedProtocol;
+            newProtocols[index] = {
+                ...updatedProtocol,
+                updatedAt: new Date().toISOString()
+            };
             setProtocols(newProtocols);
         }
     };
     
     const addProtocol = (newProtocol) => {
-        setProtocols(prev => [newProtocol, ...prev]);
+        const now = new Date().toISOString();
+        setProtocols(prev => [{
+            ...newProtocol,
+            createdAt: newProtocol.createdAt || now,
+            updatedAt: now
+        }, ...prev]);
     }
 
     const deleteProtocol = (protocolId) => {

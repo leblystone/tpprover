@@ -379,7 +379,15 @@ export default function Protocols() {
         onSave={(data) => {
           setOpenAdd(false)
           // New protocols should not be active until explicitly started
-          const cleaned = { id: generateId(), ...data, active: false, startDate: data.startDate || '' }
+          const now = new Date().toISOString();
+          const cleaned = { 
+            id: generateId(), 
+            ...data, 
+            active: false, 
+            startDate: data.startDate || '',
+            createdAt: now,
+            updatedAt: now
+          }
           addProtocol(cleaned);
         }}
       />

@@ -25,10 +25,19 @@ export default function ScheduledBuysPanel({ theme }) {
     }, [scheduledBuys]);
 
     const handleSave = (buy) => {
+        const now = new Date().toISOString();
         if (buy.id) {
-            setScheduledBuys(prev => prev.map(b => b.id === buy.id ? buy : b));
+            setScheduledBuys(prev => prev.map(b => b.id === buy.id ? { 
+                ...buy, 
+                updatedAt: now 
+            } : b));
         } else {
-            setScheduledBuys(prev => [...prev, { ...buy, id: generateId() }]);
+            setScheduledBuys(prev => [...prev, { 
+                ...buy, 
+                id: generateId(), 
+                createdAt: now, 
+                updatedAt: now 
+            }]);
         }
         setIsModalOpen(false);
         setEditingBuy(null);

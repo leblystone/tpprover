@@ -1167,7 +1167,15 @@ export default function Dashboard() {
         onClose={() => setShowNewProtocol(false)}
         theme={theme}
         onSave={(data) => {
-          const newProtocol = { id: Date.now(), ...data, active: false, startDate: data.startDate || '' };
+          const now = new Date().toISOString();
+          const newProtocol = { 
+            id: Date.now(), 
+            ...data, 
+            active: false, 
+            startDate: data.startDate || '',
+            createdAt: now,
+            updatedAt: now
+          };
           setProtocols(prev => [newProtocol, ...prev]);
           
           // bump calendar
@@ -1192,9 +1200,19 @@ export default function Dashboard() {
                 return;
             }
             
+            const now = new Date().toISOString();
             setMetrics(prev => {
-                if (data.id) return prev.map(x => x.id === data.id ? { ...x, ...data } : x)
-                return [{ id: Date.now(), ...data }, ...prev]
+                if (data.id) return prev.map(x => x.id === data.id ? { 
+                    ...x, 
+                    ...data, 
+                    updatedAt: now 
+                } : x)
+                return [{ 
+                    id: Date.now(), 
+                    ...data, 
+                    createdAt: now, 
+                    updatedAt: now 
+                }, ...prev]
             })
             setShowMetrics(false)
             setEditingMetric(null)
@@ -1251,7 +1269,13 @@ export default function Dashboard() {
                 return;
             }
             
-            const newBuy = { ...buy, id: generateId() };
+            const now = new Date().toISOString();
+            const newBuy = { 
+                ...buy, 
+                id: generateId(), 
+                createdAt: now, 
+                updatedAt: now 
+            };
             setScheduledBuys(prev => [...prev, newBuy]);
             
             // Update local upcomingBuys state immediately
