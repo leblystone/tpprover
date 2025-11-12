@@ -76,7 +76,7 @@ const DuplicateDetection = ({
             key={`${duplicate.group1.groupKey}-${duplicate.group2.groupKey}`}
             className="p-3 rounded-lg border relative"
             style={{ 
-              backgroundColor: theme.cardBackground,
+              backgroundColor: theme.isDark ? theme.cardBackground : '#faf9f7',
               borderColor: theme.border,
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
             }}
@@ -148,13 +148,13 @@ const DuplicateDetection = ({
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-3">
               <span className="text-xs italic" style={{ color: theme.textLight }}>
-                This will combine inventories, not create a new entry
+                Always verify peptide names and dosages before merging to ensure accuracy
               </span>
               <button
                 onClick={() => handleMergeRequest(duplicate)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors hover:opacity-90"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors hover:opacity-90 flex-shrink-0"
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
                 <Merge size={12} />
