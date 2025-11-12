@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
-import BetaChip from '../common/BetaChip';
+import BetaModal from '../common/BetaModal';
 import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
+import betaSupport from '../../assets/TPPBETAsUPPORT.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 
 const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [showBetaModal, setShowBetaModal] = useState(false)
   const location = useLocation()
   const { logout } = useAppContext();
 
@@ -62,6 +64,25 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           color: ${theme.textOnPrimary} !important;
           border-radius: 0.5rem;
         }
+        @keyframes pulse-glow {
+          0%, 100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
+          }
+          50% {
+            transform: scale(1.02);
+            filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.8));
+          }
+        }
+        .beta-support-image {
+          cursor: pointer;
+          transition: transform 0.2s ease;
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+        .beta-support-image:hover {
+          transform: scale(1.05) !important;
+          animation: none;
+        }
       `}</style>
       <aside 
         className="hidden lg:flex lg:w-24 lg:flex-col p-3 border-r card-shadow fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden"
@@ -69,7 +90,6 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
       >
         <div className="mb-4 mt-2 flex flex-col items-center gap-3">
           <img src={logo} alt="Logo" className="h-16 w-16 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-          <BetaChip theme={theme} />
         </div>
         <nav className="flex flex-col space-y-2 flex-1 overflow-y-auto overflow-x-hidden">
           {links.map(({ to, icon: Icon, label, tourId }) => (
@@ -86,6 +106,17 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`,
           paddingTop: '0.5rem'
         }}>
+          {/* Beta Support Image - Clickable */}
+          <div className="px-2 mb-3">
+            <img 
+              src={betaSupport} 
+              alt="Beta Support - Click for Info" 
+              className="beta-support-image w-full rounded-lg shadow-lg"
+              onClick={() => setShowBetaModal(true)}
+              title="Click to learn about our beta program"
+            />
+          </div>
+          
           {/* Physical Planner Shop Link */}
           <a 
             href="https://thepepplanner.com" 
@@ -133,6 +164,15 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           </button>
         </div>
       </aside>
+      
+      {/* Beta Modal */}
+      {showBetaModal && (
+        <BetaModal 
+          open={showBetaModal} 
+          onClose={() => setShowBetaModal(false)} 
+          theme={theme} 
+        />
+      )}
     </>
   )
 }

@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import BetaChip from '../common/BetaChip'
+import BetaModal from '../common/BetaModal'
 import logo from '../../assets/tpp_logo.png'
+import betaSupport from '../../assets/TPPBETAsUPPORT.png'
 
 export default function MobileSidebar({ open, onClose, theme, onSupportClick }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [showBetaModal, setShowBetaModal] = useState(false)
 
   useEffect(() => {
     const durationMs = 350
@@ -74,11 +76,6 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             {/* Right side: Logo */}
             <img src={logo} alt="The Pep Planner Logo" className="h-14 w-14 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
           </div>
-          
-          {/* Beta Chip */}
-          <div className="flex justify-start ml-2">
-            <BetaChip theme={theme} />
-          </div>
         </div>
         <nav className="flex-1 overflow-y-auto flex flex-col" style={{ backgroundColor: theme.cardBackground }}>
           {links.map(({ to, label, icon: Icon }, index) => (
@@ -101,6 +98,37 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             </NavLink>
           ))}
           <div className="mt-auto border-t pt-2" style={{ borderColor: theme.border }}>
+            {/* Beta Support Image - Clickable */}
+            <div className="px-4 mb-3 mt-2">
+              <style>{`
+                @keyframes pulse-glow-mobile {
+                  0%, 100% {
+                    transform: scale(1);
+                    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
+                  }
+                  50% {
+                    transform: scale(1.02);
+                    filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.8));
+                  }
+                }
+                .beta-support-image-mobile {
+                  cursor: pointer;
+                  transition: transform 0.2s ease;
+                  animation: pulse-glow-mobile 2s ease-in-out infinite;
+                }
+                .beta-support-image-mobile:active {
+                  transform: scale(0.98) !important;
+                  animation: none;
+                }
+              `}</style>
+              <img 
+                src={betaSupport} 
+                alt="Beta Support - Tap for Info" 
+                className="beta-support-image-mobile w-full rounded-lg shadow-lg"
+                onClick={() => setShowBetaModal(true)}
+              />
+            </div>
+            
             {/* Physical Planner Shop Link */}
             <a
               href="https://thepepplanner.com"
@@ -166,6 +194,15 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
           </div>
         </nav>
       </div>
+      
+      {/* Beta Modal */}
+      {showBetaModal && (
+        <BetaModal 
+          open={showBetaModal} 
+          onClose={() => setShowBetaModal(false)} 
+          theme={theme} 
+        />
+      )}
     </div>
   )
   return createPortal(overlay, document.body)
