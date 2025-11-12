@@ -74,11 +74,11 @@ const DuplicateDetection = ({
         return (
           <div
             key={`${duplicate.group1.groupKey}-${duplicate.group2.groupKey}`}
-            className="p-3 rounded-lg border-2 relative shadow-lg"
+            className="p-3 rounded-lg border relative"
             style={{ 
-              backgroundColor: theme.isDark ? '#1f2937' : '#fef3c7',
-              borderColor: theme.primary,
-              boxShadow: `0 4px 12px ${theme.primary}40`
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border,
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
             }}
           >
             {/* Dismiss button - upper right */}
@@ -148,7 +148,10 @@ const DuplicateDetection = ({
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs italic" style={{ color: theme.textLight }}>
+                This will combine inventories, not create a new entry
+              </span>
               <button
                 onClick={() => handleMergeRequest(duplicate)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors hover:opacity-90"
