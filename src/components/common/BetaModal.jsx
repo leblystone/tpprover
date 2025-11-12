@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TestTubeDiagonal } from 'lucide-react';
+import { FlaskRound, HeartHandshake } from 'lucide-react';
 import Modal from './Modal';
 import SupportModal from './SupportModal';
 
@@ -15,15 +15,20 @@ export default function BetaModal({ open, onClose, theme }) {
     // Beta modal stays open
   };
 
+  const handleCloseSupportAndBeta = () => {
+    setShowSupportModal(false);
+    onClose(); // Close both modals
+  };
+
   return (
     <>
     <Modal
-      open={open}
+      open={open && !showSupportModal}
       onClose={onClose}
       title={
         <div className="flex items-center gap-2">
-          <TestTubeDiagonal className="w-6 h-6" style={{ color: theme?.primary }} />
-          <span>We're in Beta</span>
+          <span>We're in Beta!</span>
+          <FlaskRound className="w-6 h-6" style={{ color: '#ffffff' }} />
         </div>
       }
       theme={theme}
@@ -57,7 +62,7 @@ export default function BetaModal({ open, onClose, theme }) {
             className="text-base leading-relaxed"
             style={{ color: theme?.textLight }}
           >
-            Thank you for being an early supporter! 🙏
+            Thank you for being an early supporter!
           </p>
         </div>
 
@@ -117,8 +122,8 @@ export default function BetaModal({ open, onClose, theme }) {
         <div 
           className="rounded-lg p-4 text-center"
           style={{
-            backgroundColor: theme?.isDark ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4',
-            border: `1px solid ${theme?.isDark ? 'rgba(34, 197, 94, 0.2)' : '#bbf7d0'}`
+            backgroundColor: theme?.isDark ? 'rgba(186, 166, 142, 0.1)' : 'rgba(186, 166, 142, 0.15)',
+            border: `1px solid ${theme?.isDark ? 'rgba(186, 166, 142, 0.2)' : 'rgba(165, 148, 127, 0.3)'}`
           }}
         >
           <p className="text-sm font-semibold mb-2" style={{ color: theme?.text }}>
@@ -132,18 +137,12 @@ export default function BetaModal({ open, onClose, theme }) {
               color: '#ffffff'
             }}
           >
-            Support
+            Reach Out!
           </button>
         </div>
-
-        <div className="text-center pt-2">
-          <button
-            onClick={onClose}
-            className="text-sm font-semibold hover:underline"
-            style={{ color: theme?.primary }}
-          >
-            Got it! Let's keep building 🚀
-          </button>
+        
+        <div className="flex justify-center pt-3">
+          <HeartHandshake className="w-8 h-8" style={{ color: '#a8b5a0' }} />
         </div>
       </div>
     </Modal>
@@ -151,7 +150,7 @@ export default function BetaModal({ open, onClose, theme }) {
     {/* Support Modal with back button */}
     <SupportModal 
       open={showSupportModal} 
-      onClose={handleCloseSupportAndReturnToBeta}
+      onClose={handleCloseSupportAndBeta}
       onBack={handleCloseSupportAndReturnToBeta}
       theme={theme}
       showBackButton={true}

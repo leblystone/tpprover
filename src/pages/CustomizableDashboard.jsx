@@ -39,6 +39,7 @@ import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
+import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 
 export default function CustomizableDashboard() {
@@ -725,6 +726,9 @@ export default function CustomizableDashboard() {
 
   return (
     <ViewContainer theme={theme}>
+      {/* Tips Banner - Compact header tips for new users */}
+      <DashboardTipsBanner theme={theme} />
+      
       <div className="space-y-2 overflow-x-hidden w-full max-w-full relative">
         {/* Decorative background icon - positioned within content area */}
         <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
