@@ -3902,12 +3902,19 @@ function Admin() {
 }
 
 function UserTable({ users, searchTerm, theme, onViewUser }) {
-  const filteredUsers = users.filter(user => {
-    const term = searchTerm.toLowerCase();
-    const email = user.email?.toLowerCase() || '';
-    const name = user.displayName?.toLowerCase() || '';
-    return email.includes(term) || name.includes(term);
-  });
+  const filteredUsers = users
+    .filter(user => {
+      const term = searchTerm.toLowerCase();
+      const email = user.email?.toLowerCase() || '';
+      const name = user.displayName?.toLowerCase() || '';
+      return email.includes(term) || name.includes(term);
+    })
+    .sort((a, b) => {
+      // Sort by signup date (newest first)
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+      return dateB - dateA; // Descending order (newest first)
+    });
 
   const getSubscriptionStatus = (user) => {
     // Check for lifetime access first
