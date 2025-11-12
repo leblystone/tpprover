@@ -761,7 +761,7 @@ export async function getUserList() {
         trialEndDate: userData.trialEndDate || null,
         trialExtensionHistory: userData.trialExtensionHistory || []
       };
-    });
+      });
     
     // Fetch subscriptions from userSubscriptions collection
     const subscriptionPromises = userIds.map(async (userId) => {
@@ -1305,27 +1305,41 @@ export async function getAllLifetimeUsers() {
       });
     });
 
-    // Pending pre-grants for emails that haven't signed up yet
+    // Pre-grants for emails (both pending and applied)
     const preGrantRef = collection(db, 'lifetimeAccessPreGrants');
-    const preGrantQuery = query(preGrantRef, where('status', '==', 'pending'));
     
     console.log('📊 Querying lifetimeAccessPreGrants collection...');
-    const preGrantSnapshot = await getDocs(preGrantQuery);
+    // Get ALL pre-grants (not just pending) so we can see activated ones too
+    const preGrantSnapshot = await getDocs(preGrantRef);
     console.log(`✅ lifetimeAccessPreGrants query complete: ${preGrantSnapshot.size} documents found`);
 
     preGrantSnapshot.forEach(docSnapshot => {
       const data = docSnapshot.data() || {};
-      console.log('📄 Found pre-grant:', data.email || docSnapshot.id);
+      const email = data.email || docSnapshot.id || '';
+      const status = data.status || 'pending';
+      console.log('📄 Found pre-grant:', email, '| Status:', status, '| Applied to:', data.appliedToUserId || 'N/A');
+      
+      // ⚠️ SECURITY CHECK: Flag suspicious wildcard emails
+      if (email.includes('*') || email === '' || email.length < 3) {
+        console.warn('🚨 SUSPICIOUS PRE-GRANT DETECTED:', {
+          docId: docSnapshot.id,
+          email,
+          status,
+          reason: data.reason
+        });
+      }
+      
       users.push({
         id: `pregrant-${docSnapshot.id}`,
         preGrantId: docSnapshot.id,
-        email: (data.email || docSnapshot.id || '').toLowerCase(),
+        email: email.toLowerCase(),
         reason: data.reason || '',
         grantedAt: data.grantedAt || null,
         grantedBy: data.grantedBy || 'admin',
-        status: data.status || 'pending',
+        status: status,
         hasLifetimeAccess: data.hasLifetimeAccess ?? true,
-        activatedAt: null,
+        activatedAt: data.appliedAt || null,
+        appliedToUserId: data.appliedToUserId || null,
         isPreGrant: true,
         source: 'preGrant'
       });

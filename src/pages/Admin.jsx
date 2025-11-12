@@ -2289,58 +2289,6 @@ function Admin() {
 
         {activeTab === 'subscriptions' && (
           <div className="space-y-6">
-            {/* Beta User Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.success + '20' }}>
-                    <CheckCircle size={20} style={{ color: theme.success }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.success }}>{subscriptions.active}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Active Users</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
-                    <TrendingUp size={20} style={{ color: theme.warning }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.warning }}>{subscriptions.thisWeek}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>This Week</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.accent + '20' }}>
-                    <Mail size={20} style={{ color: theme.accent }} />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold" style={{ color: theme.accent }}>{emailWhitelist.length}</div>
-                    <div className="text-sm" style={{ color: theme.textLight }}>Whitelisted Emails</div>
-                    {emailWhitelist.length > 0 && (
-                      <div className="text-xs mt-1 flex items-center gap-2">
-                        <span style={{ color: theme.success }}>
-                          {getSignupStats().signedUp} signed up
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded-full text-xs font-medium" style={{
-                          backgroundColor: theme.success + '15',
-                          color: theme.success
-                        }}>
-                          {getSignupStats().signupRate.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* User Search and Table */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <h2 className="text-lg font-semibold mb-4" style={{ color: theme.primaryDark }}>All Users</h2>
@@ -3245,6 +3193,13 @@ function Admin() {
 
                         const statusBadge = (() => {
                           const statusValue = (user.status || '').toLowerCase();
+                          if (statusValue === 'applied') {
+                            return {
+                              label: '✓ Activated',
+                              bg: theme.successBg || `${theme.success || '#10b981'}20`,
+                              color: theme.success || '#047857'
+                            };
+                          }
                           if (user.isPreGrant || statusValue === 'pending') {
                             return {
                               label: 'Pending Activation',
@@ -3280,11 +3235,18 @@ function Admin() {
                         return (
                           <tr key={user.id || idx} style={{ borderBottom: `1px solid ${theme.border}` }}>
                             <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.text, minWidth: '200px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <IconComponent size={14} style={{ color: iconColor, flexShrink: 0 }} />
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {user.email}
-                                </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <IconComponent size={14} style={{ color: iconColor, flexShrink: 0 }} />
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {user.email}
+                                  </span>
+                                </div>
+                                {user.status === 'applied' && user.appliedToUserId && (
+                                  <span style={{ fontSize: '11px', color: theme.textLight, marginLeft: '20px' }}>
+                                    → User ID: {user.appliedToUserId.substring(0, 8)}...
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.textLight, minWidth: '150px' }}>
@@ -3310,20 +3272,26 @@ function Admin() {
                             </td>
                             <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                               {user.isPreGrant ? (
-                                <button
-                                  onClick={() => handleCancelPreGrant(user.email)}
-                                  style={{
-                                    padding: '4px 10px',
-                                    backgroundColor: theme.warning || '#f59e0b',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '5px',
-                                    fontSize: '11px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Cancel Pre-Grant
-                                </button>
+                                user.status === 'applied' ? (
+                                  <span style={{ fontSize: '11px', color: theme.textLight, fontStyle: 'italic' }}>
+                                    Already Applied
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleCancelPreGrant(user.email)}
+                                    style={{
+                                      padding: '4px 10px',
+                                      backgroundColor: theme.warning || '#f59e0b',
+                                      color: '#fff',
+                                      border: 'none',
+                                      borderRadius: '5px',
+                                      fontSize: '11px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Cancel Pre-Grant
+                                  </button>
+                                )
                               ) : (
                                 <button
                                   onClick={async () => {
