@@ -3,11 +3,11 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 
 const defaultData = {
-  enabled: true,
+  enabled: false, // Disabled for beta pricing - prices are already at beta rates
   cap: 100,
   totalGranted: 0,
-  remaining: 100,
-  discountPercent: 25,
+  remaining: 0,
+  discountPercent: 0, // No discount - beta prices are the base prices
   isFounder: false,
   founderNumber: null,
   founderLockedRate: null,

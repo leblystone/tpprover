@@ -121,22 +121,20 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
     >
       <div className="p-2">
         <div className="space-y-4">
-          {/* Founders Offer */}
-          <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #D4D7CD, #A3B18A)', border: '2px solid #A3B18A' }}>
+          {/* Beta Pricing Banner */}
+          <div className="rounded-lg p-4 text-center shadow-sm" style={{ background: 'linear-gradient(to right, #DBEAFE, #93C5FD)', border: '2px solid #3B82F6' }}>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(to right, #3A5A40, #344E41)' }}>
-                <Crown size={12} className="text-white" />
-              </div>
-              <div className="text-lg font-bold" style={{ color: '#344E41' }}>
-                Founders Offer
+              <div className="text-2xl">🧪</div>
+              <div className="text-lg font-bold" style={{ color: '#1E40AF' }}>
+                Beta Pricing
               </div>
             </div>
             
-            <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
-              <p className="text-xs leading-relaxed font-semibold" style={{ color: '#3A5A40' }}>
-                Be apart of the first 100 founder researchers!
+            <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'rgba(219, 234, 254, 0.8)' }}>
+              <p className="text-xs leading-relaxed font-semibold" style={{ color: '#1E40AF' }}>
+                Building with you, not for you
               </p>
-              <p className="text-xs leading-relaxed italic" style={{ color: '#3A5A40' }}>
+              <p className="text-xs leading-relaxed italic" style={{ color: '#1E40AF' }}>
                 You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
               </p>
             </div>
@@ -153,22 +151,10 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                 <h3 className="text-base font-bold" style={{ color: theme.text }}>Monthly</h3>
-                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
-                  {effectiveDiscount > 0 ? (
-                    <>
-                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{monthlyBase}</span>
-                      <span>{monthlyFounder}</span>
-                    </>
-                  ) : (
-                    monthlyBase
-                  )}
+                <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>
+                  {monthlyBase}
                 </div>
                 <div className="text-xs mt-1" style={{ color: theme.textLight }}>per month</div>
-                {effectiveDiscount > 0 && (
-                  <div className="text-xs mt-2 font-medium" style={{ color: theme.accent || '#2F3B3A' }}>
-                    Save {monthlySavings} / mo
-                  </div>
-                )}
               </div>
 
               {/* Action Button */}
@@ -197,21 +183,14 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
               {/* Plan Title */}
               <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                 <h3 className="text-base font-bold" style={{ color: theme.text }}>Annual</h3>
-                <div className="text-xl font-bold mt-1 flex items-center justify-center gap-2" style={{ color: theme.text }}>
-                  {effectiveDiscount > 0 ? (
-                    <>
-                      <span className="line-through text-sm" style={{ color: theme.textLight }}>{annualBase}</span>
-                      <span>{annualFounder}</span>
-                    </>
-                  ) : (
-                    annualBase
-                  )}
+                <div className="text-xl font-bold mt-1" style={{ color: theme.text }}>
+                  {annualBase}
                 </div>
                 <div className="text-xs mt-1" style={{ color: theme.textLight }}>per year</div>
                 
                 <div className="text-center mt-1">
-                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: theme.primary }}>
-                    {effectiveDiscount > 0 ? `Save ${annualSavings} / yr` : 'Save $17.89'}
+                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}>
+                    📓 Same price as our planner!
                   </span>
                 </div>
               </div>
@@ -248,22 +227,10 @@ export default function SubscriptionModal({ isOpen, onClose, theme, currentPlan 
                 </div>
                 <div className="space-y-1">
                   <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
-                  <div className="text-base font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-                    {effectiveDiscount > 0 ? (
-                      <>
-                        <span className="line-through text-sm" style={{ color: theme.textLight }}>{lifetimeBase}</span>
-                        <span>{lifetimeFounder}</span>
-                      </>
-                    ) : (
-                      lifetimeBase
-                    )}
+                  <div className="text-base font-semibold" style={{ color: theme.text }}>
+                    {lifetimeBase}
                   </div>
                   <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • All features included</div>
-                  {effectiveDiscount > 0 && (
-                    <div className="text-xs font-semibold" style={{ color: theme.accent || '#2F3B3A' }}>
-                      Save {lifetimeSavings} one-time
-                    </div>
-                  )}
                 </div>
               </div>
               <button 
