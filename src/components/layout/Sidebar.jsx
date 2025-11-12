@@ -63,23 +63,24 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           color: ${theme.textOnPrimary} !important;
           border-radius: 0.5rem;
         }
-        @keyframes jump-bounce {
+        @keyframes sway {
           0%, 100% {
-            transform: translateY(0) rotate(-3deg);
+            transform: rotate(-3deg);
           }
           50% {
-            transform: translateY(-8px) rotate(3deg);
+            transform: rotate(3deg);
           }
         }
         .beta-icon {
-          animation: jump-bounce 1.5s ease-in-out infinite;
+          animation: sway 2.5s ease-in-out infinite;
+          transform-origin: center center;
         }
         .beta-chip-button {
           cursor: pointer;
           border: none;
         }
         .beta-chip-button:hover .beta-icon {
-          animation: jump-bounce 0.6s ease-in-out infinite;
+          animation: sway 1.2s ease-in-out infinite;
         }
       `}</style>
       <aside 
@@ -102,22 +103,22 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
         </nav>
         
         {/* Beta Chip - Clickable - ABOVE page break */}
-        <div className="px-2 mb-3">
+        <div className="flex justify-end px-2 mb-3">
           <button
             onClick={() => setShowBetaModal(true)}
-            className="beta-chip-button w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all hover:scale-105 shadow-md"
+            className="beta-chip-button flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg transition-all hover:scale-105 shadow-md"
             style={{
               backgroundColor: '#f0eee7',
             }}
             title="Click to learn about our beta program"
           >
-            <BookOpen className="beta-icon h-5 w-5" style={{ color: '#042617' }} />
+            <BookOpen className="beta-icon h-5 w-5 flex-shrink-0" style={{ color: '#042617' }} />
             <span 
-              className="font-bold text-xs tracking-widest"
+              className="font-bold text-sm tracking-widest"
               style={{ 
                 color: '#042617',
                 fontFamily: '"Inter", "SF Pro Display", -apple-system, system-ui, sans-serif',
-                letterSpacing: '0.15em'
+                letterSpacing: '0.2em'
               }}
             >
               BETA
