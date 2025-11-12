@@ -137,6 +137,104 @@ if ('serviceWorker' in navigator) {
           });
         };
         
+        // Advanced network diagnostics
+        window.diagnoseNetwork = async () => {
+          console.log('🔍 Running comprehensive network diagnostics...\n');
+          
+          // 1. Basic connectivity
+          console.log('1️⃣ Basic Connectivity:');
+          console.log('   Browser online status:', navigator.onLine ? '✅ Online' : '❌ Offline');
+          console.log('   Connection type:', navigator.connection?.effectiveType || 'Unknown');
+          console.log('   Download speed:', navigator.connection?.downlink ? `${navigator.connection.downlink} Mbps` : 'Unknown');
+          
+          // 2. Service Worker status
+          console.log('\n2️⃣ Service Worker Status:');
+          if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            if (registrations.length > 0) {
+              console.log('   ✅ Active service workers:', registrations.length);
+              registrations.forEach((reg, i) => {
+                console.log(`   SW ${i + 1}:`, reg.active?.scriptURL || 'Installing...');
+              });
+            } else {
+              console.log('   ⚠️ No active service workers');
+            }
+          } else {
+            console.log('   ❌ Service Worker not supported');
+          }
+          
+          // 3. Cache status
+          console.log('\n3️⃣ Cache Status:');
+          try {
+            const cacheNames = await caches.keys();
+            console.log('   Active caches:', cacheNames.length);
+            cacheNames.forEach(name => console.log('   -', name));
+          } catch (e) {
+            console.log('   ❌ Cannot access cache:', e.message);
+          }
+          
+          // 4. Firebase connectivity test
+          console.log('\n4️⃣ Firebase Connectivity Test:');
+          const firebaseTests = [
+            { name: 'Auth Domain', url: 'https://tpp-splendide.firebaseapp.com' },
+            { name: 'Firebase API', url: 'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=test' },
+            { name: 'Firestore', url: 'https://firestore.googleapis.com' }
+          ];
+          
+          for (const test of firebaseTests) {
+            try {
+              const start = Date.now();
+              const response = await fetch(test.url, { method: 'HEAD', mode: 'no-cors' });
+              const duration = Date.now() - start;
+              console.log(`   ✅ ${test.name}: Reachable (${duration}ms)`);
+            } catch (error) {
+              console.log(`   ❌ ${test.name}: BLOCKED or UNREACHABLE`);
+              console.log(`      Error: ${error.message}`);
+            }
+          }
+          
+          // 5. Browser extensions check
+          console.log('\n5️⃣ Potential Issues:');
+          const issues = [];
+          
+          // Check for ad blockers
+          const testAd = document.createElement('div');
+          testAd.className = 'ad advertisement adsbox';
+          testAd.style.position = 'absolute';
+          testAd.style.top = '-1px';
+          document.body.appendChild(testAd);
+          setTimeout(() => {
+            if (testAd.offsetHeight === 0) {
+              issues.push('⚠️ Ad blocker detected (may block Firebase)');
+            }
+            testAd.remove();
+          }, 100);
+          
+          // Check localStorage
+          try {
+            localStorage.setItem('test', 'test');
+            localStorage.removeItem('test');
+          } catch (e) {
+            issues.push('❌ localStorage blocked (privacy mode?)');
+          }
+          
+          if (issues.length === 0) {
+            console.log('   ✅ No obvious issues detected');
+          } else {
+            issues.forEach(issue => console.log('   ', issue));
+          }
+          
+          // 6. Recommendations
+          console.log('\n6️⃣ Recommendations:');
+          console.log('   1. Run: window.clearAppCache() - Clear all caches');
+          console.log('   2. Disable VPN/Proxy temporarily');
+          console.log('   3. Disable browser extensions (especially ad blockers)');
+          console.log('   4. Try incognito/private mode');
+          console.log('   5. Check firewall/antivirus settings');
+          console.log('   6. Try different network (mobile data vs WiFi)');
+          console.log('\n✅ Diagnostics complete!');
+        };
+        
         // Monitor network changes
         window.addEventListener('online', () => {
         });

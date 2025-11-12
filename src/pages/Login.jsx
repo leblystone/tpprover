@@ -460,7 +460,7 @@ export default function Login() {
         }
         
         if (error.code === 'auth/network-request-failed') {
-          setError('🌐 Network error: Unable to connect to authentication servers. This is usually caused by browser cache or service worker issues. Please try: 1) Hard refresh (Ctrl+Shift+R), 2) Clear browser cache, or 3) Open in incognito/private mode.');
+          setError('🌐 Network Error: Cannot reach authentication servers. Common causes:\n\n1️⃣ Browser cache issue → Run: window.clearAppCache()\n2️⃣ VPN/Firewall blocking Firebase → Try disabling VPN\n3️⃣ Ad blocker interference → Disable ad blocker\n4️⃣ DNS issue → Try different network\n\n💡 Open browser console (F12) and run: window.diagnoseNetwork()');
         } else if (error.code === 'auth/user-not-found') {
           setError('No account found with this email. Please create a new account.');
         } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -878,7 +878,7 @@ export default function Login() {
                 console.error('❌ Login error:', error);
                 setLoading(false);
                 if (error.message?.includes('timeout')) {
-                    setError('Login timed out. Please check your internet connection and try again. You can also run: window.emergencyCacheClear()');
+                    setError('Login timed out. Please check your internet connection and try again.');
                 } else {
                     setError(error.message || 'Login failed. Please try again.');
                 }

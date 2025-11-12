@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tpp-cache-v8-chunk-fix'; // Updated version - CHUNK LOADING FIX
-const STATIC_CACHE = 'tpp-static-v8';
-const DYNAMIC_CACHE = 'tpp-dynamic-v8';
+const CACHE_NAME = 'tpp-cache-v9-network-fix'; // Updated version - NETWORK TIMEOUT FIX
+const STATIC_CACHE = 'tpp-static-v9';
+const DYNAMIC_CACHE = 'tpp-dynamic-v9';
 
 // Essential assets to cache
 const STATIC_ASSETS = [
@@ -32,7 +32,7 @@ self.addEventListener('activate', (event) => {
       try {
         const cacheNames = await caches.keys();
         const deletePromises = cacheNames
-          .filter(name => !name.includes('v8')) // Delete old cache versions - CHUNK LOADING FIX
+          .filter(name => !name.includes('v9')) // Delete old cache versions - NETWORK TIMEOUT FIX
           .map(name => caches.delete(name));
         
         await Promise.all(deletePromises);
@@ -137,7 +137,8 @@ self.addEventListener('fetch', (event) => {
         // Not in cache, try network
         const networkResponse = await fetch(request, {
           // Add timeout to prevent hanging on slow WiFi
-          signal: AbortSignal.timeout(10000) // 10 second timeout
+          // Increased to 30 seconds for slow connections
+          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
         
         if (networkResponse.ok) {
