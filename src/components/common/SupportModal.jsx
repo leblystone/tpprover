@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb } from 'lucide-react';
+import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback } from '../../services/firebase';
 
-export default function SupportModal({ open, onClose, theme }) {
+export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
     const [formData, setFormData] = useState({
         email: '',
@@ -138,6 +138,16 @@ export default function SupportModal({ open, onClose, theme }) {
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: theme.border }}>
                     <div className="flex items-center gap-3">
+                        {showBackButton && onBack && (
+                            <button
+                                onClick={onBack}
+                                className="p-2 rounded-full transition-colors hover:opacity-70"
+                                style={{ backgroundColor: theme.background }}
+                                title="Back to Beta Info"
+                            >
+                                <ArrowLeft className="w-5 h-5" style={{ color: theme.primary }} />
+                            </button>
+                        )}
                         <div className="p-2 rounded-full" style={{ backgroundColor: theme.background }}>
                             <Microscope className="w-5 h-5" style={{ color: theme.primary }} />
                         </div>

@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Modal from './Modal';
+import SupportModal from './SupportModal';
 
 export default function BetaModal({ open, onClose, theme }) {
+  const [showSupportModal, setShowSupportModal] = useState(false);
+
+  const handleOpenSupport = () => {
+    setShowSupportModal(true);
+  };
+
+  const handleCloseSupportAndReturnToBeta = () => {
+    setShowSupportModal(false);
+    // Beta modal stays open
+  };
+
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
@@ -45,8 +58,8 @@ export default function BetaModal({ open, onClose, theme }) {
         <div 
           className="rounded-lg p-4"
           style={{
-            backgroundColor: theme?.isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
-            border: `1px solid ${theme?.isDark ? 'rgba(59, 130, 246, 0.2)' : '#bfdbfe'}`
+            backgroundColor: theme?.isDark ? 'rgba(240, 238, 231, 0.1)' : '#f0eee7',
+            border: `1px solid ${theme?.isDark ? 'rgba(240, 238, 231, 0.2)' : '#e0ddd3'}`
           }}
         >
           <p 
@@ -122,16 +135,16 @@ export default function BetaModal({ open, onClose, theme }) {
           <p className="text-sm font-semibold mb-2" style={{ color: theme?.text }}>
             Found a bug or have feedback?
           </p>
-          <a
-            href="mailto:support@tpprover.com"
-            className="inline-block px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+          <button
+            onClick={handleOpenSupport}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
             style={{
               backgroundColor: theme?.primary,
               color: '#ffffff'
             }}
           >
-            📧 Email Support
-          </a>
+            <span>🔬</span> Support
+          </button>
         </div>
 
         <div className="text-center pt-2">
@@ -145,6 +158,16 @@ export default function BetaModal({ open, onClose, theme }) {
         </div>
       </div>
     </Modal>
+    
+    {/* Support Modal with back button */}
+    <SupportModal 
+      open={showSupportModal} 
+      onClose={handleCloseSupportAndReturnToBeta}
+      onBack={handleCloseSupportAndReturnToBeta}
+      theme={theme}
+      showBackButton={true}
+    />
+    </>
   );
 }
 
