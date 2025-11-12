@@ -4,7 +4,6 @@ import ModernTooltip from '../ui/ModernTooltip';
 import BetaModal from '../common/BetaModal';
 import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
-import betaSupport from '../../assets/TPPBETAsUPPORT.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 
@@ -64,24 +63,23 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           color: ${theme.textOnPrimary} !important;
           border-radius: 0.5rem;
         }
-        @keyframes pulse-glow {
+        @keyframes jump-bounce {
           0%, 100% {
-            transform: scale(1);
-            filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
+            transform: translateY(0) rotate(-3deg);
           }
           50% {
-            transform: scale(1.02);
-            filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.8));
+            transform: translateY(-8px) rotate(3deg);
           }
         }
-        .beta-support-image {
-          cursor: pointer;
-          transition: transform 0.2s ease;
-          animation: pulse-glow 2s ease-in-out infinite;
+        .beta-icon {
+          animation: jump-bounce 1.5s ease-in-out infinite;
         }
-        .beta-support-image:hover {
-          transform: scale(1.05) !important;
-          animation: none;
+        .beta-chip-button {
+          cursor: pointer;
+          border: none;
+        }
+        .beta-chip-button:hover .beta-icon {
+          animation: jump-bounce 0.6s ease-in-out infinite;
         }
       `}</style>
       <aside 
@@ -102,21 +100,35 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
             </NavLink>
           ))}
         </nav>
+        
+        {/* Beta Chip - Clickable - ABOVE page break */}
+        <div className="px-2 mb-3">
+          <button
+            onClick={() => setShowBetaModal(true)}
+            className="beta-chip-button w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all hover:scale-105 shadow-md"
+            style={{
+              backgroundColor: '#f0eee7',
+            }}
+            title="Click to learn about our beta program"
+          >
+            <BookOpen className="beta-icon h-5 w-5" style={{ color: '#042617' }} />
+            <span 
+              className="font-bold text-xs tracking-widest"
+              style={{ 
+                color: '#042617',
+                fontFamily: '"Inter", "SF Pro Display", -apple-system, system-ui, sans-serif',
+                letterSpacing: '0.15em'
+              }}
+            >
+              BETA
+            </span>
+          </button>
+        </div>
+        
         <div className="mt-auto space-y-2 flex-shrink-0 overflow-x-hidden" style={{
           borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`,
           paddingTop: '0.5rem'
         }}>
-          {/* Beta Support Image - Clickable */}
-          <div className="px-2 mb-3">
-            <img 
-              src={betaSupport} 
-              alt="Beta Support - Click for Info" 
-              className="beta-support-image w-full rounded-lg shadow-lg"
-              onClick={() => setShowBetaModal(true)}
-              title="Click to learn about our beta program"
-            />
-          </div>
-          
           {/* Physical Planner Shop Link */}
           <a 
             href="https://thepepplanner.com" 

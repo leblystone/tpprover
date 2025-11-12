@@ -4,7 +4,6 @@ import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConi
 import { NavLink } from 'react-router-dom'
 import BetaModal from '../common/BetaModal'
 import logo from '../../assets/tpp_logo.png'
-import betaSupport from '../../assets/TPPBETAsUPPORT.png'
 
 export default function MobileSidebar({ open, onClose, theme, onSupportClick }) {
   const [visible, setVisible] = useState(false)
@@ -97,38 +96,51 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
               <span className="text-lg font-medium truncate">{label}</span>
             </NavLink>
           ))}
+          
+          {/* Beta Chip - Clickable - ABOVE page break */}
+          <div className="px-4 mb-3 mt-2">
+            <style>{`
+              @keyframes jump-bounce-mobile {
+                0%, 100% {
+                  transform: translateY(0) rotate(-3deg);
+                }
+                50% {
+                  transform: translateY(-8px) rotate(3deg);
+                }
+              }
+              .beta-icon-mobile {
+                animation: jump-bounce-mobile 1.5s ease-in-out infinite;
+              }
+              .beta-chip-button-mobile {
+                cursor: pointer;
+                border: none;
+              }
+              .beta-chip-button-mobile:active .beta-icon-mobile {
+                animation: jump-bounce-mobile 0.6s ease-in-out infinite;
+              }
+            `}</style>
+            <button
+              onClick={() => setShowBetaModal(true)}
+              className="beta-chip-button-mobile w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all active:scale-95 shadow-md"
+              style={{
+                backgroundColor: '#f0eee7',
+              }}
+            >
+              <BookOpen className="beta-icon-mobile h-5 w-5" style={{ color: '#042617' }} />
+              <span 
+                className="font-bold text-xs tracking-widest"
+                style={{ 
+                  color: '#042617',
+                  fontFamily: '"Inter", "SF Pro Display", -apple-system, system-ui, sans-serif',
+                  letterSpacing: '0.15em'
+                }}
+              >
+                BETA
+              </span>
+            </button>
+          </div>
+          
           <div className="mt-auto border-t pt-2" style={{ borderColor: theme.border }}>
-            {/* Beta Support Image - Clickable */}
-            <div className="px-4 mb-3 mt-2">
-              <style>{`
-                @keyframes pulse-glow-mobile {
-                  0%, 100% {
-                    transform: scale(1);
-                    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
-                  }
-                  50% {
-                    transform: scale(1.02);
-                    filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.8));
-                  }
-                }
-                .beta-support-image-mobile {
-                  cursor: pointer;
-                  transition: transform 0.2s ease;
-                  animation: pulse-glow-mobile 2s ease-in-out infinite;
-                }
-                .beta-support-image-mobile:active {
-                  transform: scale(0.98) !important;
-                  animation: none;
-                }
-              `}</style>
-              <img 
-                src={betaSupport} 
-                alt="Beta Support - Tap for Info" 
-                className="beta-support-image-mobile w-full rounded-lg shadow-lg"
-                onClick={() => setShowBetaModal(true)}
-              />
-            </div>
-            
             {/* Physical Planner Shop Link */}
             <a
               href="https://thepepplanner.com"
