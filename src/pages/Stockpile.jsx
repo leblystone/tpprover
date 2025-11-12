@@ -352,10 +352,19 @@ export default function Stockpile() {
 
     const cleaned = convertedRows.filter(r => (r.name || '').trim())
     const others = (items || []).filter(i => (i.name || '') !== manageName)
+    
+    // Add/update timestamps for modified items
+    const now = new Date().toISOString();
+    const cleanedWithTimestamps = cleaned.map(item => ({
+      ...item,
+      updatedAt: now,
+      createdAt: item.createdAt || now
+    }));
+    
     // Append history snapshots and usage markers
     try {
       const before = (items || []).filter(i => (i.name || '') === manageName)
-      const after = cleaned
+      const after = cleanedWithTimestamps
       // out-of-stock events
       before.forEach(b => {
         const afterMatch = after.find(a => String(a.mg) === String(b.mg) && (a.vendorId ? a.vendorId === b.vendorId : (a.vendor||'') === (b.vendor||'')))
@@ -375,7 +384,7 @@ export default function Stockpile() {
         }
       })
     } catch {}
-    setItems([...cleaned, ...others])
+    setItems([...cleanedWithTimestamps, ...others])
     markManageSubmitted(); // Clear auto-save data
     setManageName(null)
     setManageRows([])
@@ -815,7 +824,14 @@ export default function Stockpile() {
                 }
 
                 const finalVendor = (vendors || []).find(v => v.name === form.vendor);
-                let itemToAdd = { ...form, id: generateId(), vendorId: finalVendor ? finalVendor.id : null };
+                const now = new Date().toISOString();
+                let itemToAdd = { 
+                  ...form, 
+                  id: generateId(), 
+                  vendorId: finalVendor ? finalVendor.id : null,
+                  createdAt: now,
+                  updatedAt: now
+                };
                 
                 // Convert kit to vials before saving
                 if (itemToAdd.unit === 'kit') {

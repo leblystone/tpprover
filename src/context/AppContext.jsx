@@ -811,12 +811,16 @@ export function AppProvider({ children }) {
                     ? list[existingIndex].id
                     : Date.now());
 
+            const now = new Date().toISOString();
+            
             if (existingIndex !== -1) {
                 const existingVendor = list[existingIndex] || {};
                 const mergedVendor = {
                     ...existingVendor,
                     ...newVendor,
                     id: existingVendor.id != null ? existingVendor.id : targetId,
+                    updatedAt: now,
+                    createdAt: existingVendor.createdAt || now
                 };
 
                 if (newVendor.isStub === undefined) {
@@ -829,7 +833,12 @@ export function AppProvider({ children }) {
                 return list.map((vendor, index) => index === existingIndex ? mergedVendor : vendor);
             }
 
-            const createdVendor = { ...newVendor, id: targetId };
+            const createdVendor = { 
+                ...newVendor, 
+                id: targetId,
+                createdAt: now,
+                updatedAt: now
+            };
             if (createdVendor.isStub === undefined) {
                 createdVendor.isStub = !hasMeaningfulDetails(createdVendor);
             }

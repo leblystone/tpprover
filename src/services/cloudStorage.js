@@ -101,23 +101,120 @@ export async function loadUserData(userId, collection = COLLECTIONS.USER_DATA) {
 }
 
 /**
- * Save user's main application data (protocols, vendors, etc.)
+ * Helper: Add updatedAt timestamp to items if missing
  */
-export async function saveAppData(userId, appData) {
-  const dataToSave = {
-    protocols: appData.protocols || [],
-    reconItems: appData.reconItems || [],
-    reconHistory: appData.reconHistory || [],
-    supplements: appData.supplements || [],
-    orders: appData.orders || [],
-    metrics: appData.metrics || [],
-    vendors: appData.vendors || [],
-    calendarNotes: appData.calendarNotes || {},
-    stockpile: appData.stockpile || [],
-    scheduledBuys: appData.scheduledBuys || []
-  };
+function ensureTimestamps(items) {
+  if (!Array.isArray(items)) return items;
+  const now = new Date().toISOString();
+  return items.map(item => ({
+    ...item,
+    updatedAt: item.updatedAt || now
+  }));
+}
+
+/**
+ * Helper: Merge arrays with timestamp-based conflict resolution
+ * Server data wins if it has newer timestamps
+ */
+function mergeWithTimestamps(localItems, serverItems) {
+  if (!Array.isArray(localItems)) localItems = [];
+  if (!Array.isArray(serverItems)) serverItems = [];
   
-  return await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
+  const itemMap = new Map();
+  
+  // Add server items first
+  serverItems.forEach(item => {
+    if (item.id) {
+      itemMap.set(item.id, item);
+    }
+  });
+  
+  // Add or update with local items (only if they're newer or don't exist on server)
+  localItems.forEach(localItem => {
+    if (!localItem.id) return;
+    
+    const serverItem = itemMap.get(localItem.id);
+    
+    if (!serverItem) {
+      // New item not on server - add it
+      itemMap.set(localItem.id, localItem);
+    } else {
+      // Item exists on both - compare timestamps
+      const localTime = new Date(localItem.updatedAt || 0).getTime();
+      const serverTime = new Date(serverItem.updatedAt || 0).getTime();
+      
+      if (localTime > serverTime) {
+        // Local is newer - use it
+        itemMap.set(localItem.id, localItem);
+      }
+      // Otherwise keep server version (it's newer or same)
+    }
+  });
+  
+  return Array.from(itemMap.values());
+}
+
+/**
+ * Save user's main application data (protocols, vendors, etc.)
+ * Now with timestamp-based conflict resolution
+ */
+export async function saveAppData(userId, appData, options = {}) {
+  const { skipMerge = false } = options;
+  
+  try {
+    // Load existing server data for comparison
+    const serverData = skipMerge ? null : await loadAppData(userId);
+    
+    // Add timestamps to all items
+    const timestampedData = {
+      protocols: ensureTimestamps(appData.protocols || []),
+      reconItems: ensureTimestamps(appData.reconItems || []),
+      reconHistory: ensureTimestamps(appData.reconHistory || []),
+      supplements: ensureTimestamps(appData.supplements || []),
+      orders: ensureTimestamps(appData.orders || []),
+      metrics: ensureTimestamps(appData.metrics || []),
+      vendors: ensureTimestamps(appData.vendors || []),
+      stockpile: ensureTimestamps(appData.stockpile || []),
+      scheduledBuys: ensureTimestamps(appData.scheduledBuys || []),
+      calendarNotes: appData.calendarNotes || {}
+    };
+    
+    // If we have server data, merge intelligently
+    let dataToSave = timestampedData;
+    if (serverData && !skipMerge) {
+      dataToSave = {
+        protocols: mergeWithTimestamps(timestampedData.protocols, serverData.protocols),
+        reconItems: mergeWithTimestamps(timestampedData.reconItems, serverData.reconItems),
+        reconHistory: mergeWithTimestamps(timestampedData.reconHistory, serverData.reconHistory),
+        supplements: mergeWithTimestamps(timestampedData.supplements, serverData.supplements),
+        orders: mergeWithTimestamps(timestampedData.orders, serverData.orders),
+        metrics: mergeWithTimestamps(timestampedData.metrics, serverData.metrics),
+        vendors: mergeWithTimestamps(timestampedData.vendors, serverData.vendors),
+        stockpile: mergeWithTimestamps(timestampedData.stockpile, serverData.stockpile),
+        scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys),
+        calendarNotes: timestampedData.calendarNotes // TODO: Add timestamp merging for calendar notes
+      };
+      
+      console.log('🔄 Merged app data with server using timestamps');
+    }
+    
+    return await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
+  } catch (error) {
+    console.error('❌ Failed to save app data with timestamp merge:', error);
+    // Fallback to simple save
+    return await saveUserData(userId, {
+      protocols: appData.protocols || [],
+      reconItems: appData.reconItems || [],
+      reconHistory: appData.reconHistory || [],
+      supplements: appData.supplements || [],
+      orders: appData.orders || [],
+      metrics: appData.metrics || [],
+      vendors: appData.vendors || [],
+      calendarNotes: appData.calendarNotes || {},
+      stockpile: appData.stockpile || [],
+      scheduledBuys: appData.scheduledBuys || []
+    }, COLLECTIONS.USER_DATA);
+  }
 }
 
 /**

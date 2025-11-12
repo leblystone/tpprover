@@ -402,7 +402,8 @@ export default function Orders() {
 							...editingOrder, 
 							...data, 
 							vendorId,
-							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber
+							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber,
+							updatedAt: new Date().toISOString()
 						};
 						console.log('📋 Updating existing order:', updatedOrder);
 						handleStockpileUpdate(editingOrder, updatedOrder);
@@ -414,13 +415,16 @@ export default function Orders() {
 						// Use 'category' field for consistency, fallback to activeTab for new orders
 						const category = data.category || activeTab;
 						const nextPublicNumber = getNextPublicOrderNumber(orders);
+						const now = new Date().toISOString();
 						const newOrder = { 
 							id: generateId(), 
 							publicOrderNumber: nextPublicNumber,
 							...data, 
 							vendorId, 
 							category, 
-							type: category 
+							type: category,
+							createdAt: now,
+							updatedAt: now
 						};
 						console.log('📋 Creating new order:', newOrder);
 						handleStockpileUpdate(null, newOrder);
