@@ -3132,6 +3132,9 @@ function Admin() {
               }} 
             />
 
+            {/* Lifetime Access Audit Tool */}
+            <LifetimeAccessAudit theme={theme} />
+
             {/* Lifetime Users List */}
             <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -3886,6 +3889,193 @@ function Admin() {
       </div>
     </div>
     </>
+  );
+}
+
+// Lifetime Access Audit Component
+function LifetimeAccessAudit({ theme }) {
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditResults, setAuditResults] = useState(null);
+  const [showResults, setShowResults] = useState(false);
+
+  const runAudit = async () => {
+    setIsAuditing(true);
+    setShowResults(false);
+    
+    try {
+      const functions = getFunctions();
+      const auditFunction = httpsCallable(functions, 'auditLifetimeAccess');
+      const result = await auditFunction();
+      
+      setAuditResults(result.data.findings);
+      setShowResults(true);
+      
+      console.log('🔍 Audit Results:', result.data.findings);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { 
+          message: `Audit complete! Found ${result.data.findings.conflictingUsers.length} potential conflicts.`, 
+          type: result.data.findings.conflictingUsers.length > 0 ? 'warning' : 'success'
+        }
+      }));
+    } catch (error) {
+      console.error('❌ Audit failed:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: error.message || 'Audit failed', type: 'error' }
+      }));
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Shield size={20} style={{ color: theme.warning }} />
+          <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
+            Lifetime Access Audit
+          </h2>
+        </div>
+        <button
+          onClick={runAudit}
+          disabled={isAuditing}
+          className="px-4 py-2 rounded-lg font-semibold text-sm transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          style={{
+            backgroundColor: theme.warning,
+            color: '#FFFFFF',
+            opacity: isAuditing ? 0.5 : 1
+          }}
+        >
+          {isAuditing ? (
+            <>
+              <Loader className="animate-spin" size={14} />
+              Auditing...
+            </>
+          ) : (
+            <>
+              <Search size={14} />
+              Run Audit
+            </>
+          )}
+        </button>
+      </div>
+
+      <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+        Scan all users to find anyone with lifetime access data who might be showing as "Trialing" in the app. This is read-only and won't change any accounts.
+      </p>
+
+      {showResults && auditResults && (
+        <div className="mt-4 space-y-4">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
+              <div className="text-2xl font-bold" style={{ color: theme.text }}>{auditResults.totalUsers}</div>
+              <div className="text-xs" style={{ color: theme.textLight }}>Total Users</div>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.success + '20' }}>
+              <div className="text-2xl font-bold" style={{ color: theme.success }}>
+                {auditResults.summary.totalUsersWithLifetimeAccess}
+              </div>
+              <div className="text-xs" style={{ color: theme.textLight }}>Have Lifetime Access</div>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: auditResults.conflictingUsers.length > 0 ? theme.warning + '20' : theme.success + '20' }}>
+              <div className="text-2xl font-bold" style={{ color: auditResults.conflictingUsers.length > 0 ? theme.warning : theme.success }}>
+                {auditResults.conflictingUsers.length}
+              </div>
+              <div className="text-xs" style={{ color: theme.textLight }}>Conflicts Found</div>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
+              <div className="text-sm font-bold" style={{ color: theme.text }}>
+                {auditResults.summary.consistencyCheck.allThreeCollectionsMatch ? '✓ Synced' : '⚠️ Out of Sync'}
+              </div>
+              <div className="text-xs" style={{ color: theme.textLight }}>Collection Status</div>
+            </div>
+          </div>
+
+          {/* Conflicting Users Table */}
+          {auditResults.conflictingUsers.length > 0 ? (
+            <div className="rounded-lg border" style={{ borderColor: theme.border }}>
+              <div className="p-3" style={{ backgroundColor: theme.warning + '10', borderBottom: `1px solid ${theme.border}` }}>
+                <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color: theme.warning }}>
+                  <AlertTriangle size={16} />
+                  Users with Lifetime Access Conflicts
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.background }}>
+                      <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '12px', color: theme.textLight }}>Email</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '12px', color: theme.textLight }}>Conflict Type</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '12px', color: theme.textLight }}>Current Status</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '12px', color: theme.textLight }}>Granted By</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '12px', color: theme.textLight }}>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditResults.conflictingUsers.map((user, idx) => (
+                      <tr key={user.userId} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                        <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.text }}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{user.email}</span>
+                            <span className="text-xs opacity-60">{user.userId.substring(0, 8)}...</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '8px 12px', fontSize: '12px' }}>
+                          <span className="px-2 py-1 rounded" style={{ 
+                            backgroundColor: theme.warning + '20', 
+                            color: theme.warning,
+                            fontWeight: '500'
+                          }}>
+                            {user.conflictType}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 12px', fontSize: '12px', color: theme.text }}>
+                          {user.currentStatus}
+                        </td>
+                        <td style={{ padding: '8px 12px', fontSize: '12px', color: theme.text }}>
+                          {user.lifetimeGrantedBy}
+                        </td>
+                        <td style={{ padding: '8px 12px', fontSize: '12px', color: theme.textLight }}>
+                          {user.lifetimeReason}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: theme.success + '10', border: `1px solid ${theme.success}40` }}>
+              <CheckCircle size={24} className="mx-auto mb-2" style={{ color: theme.success }} />
+              <p className="text-sm font-medium" style={{ color: theme.success }}>
+                ✅ No conflicts found! All lifetime access grants are correctly set.
+              </p>
+            </div>
+          )}
+
+          {/* Data Locations Breakdown */}
+          <div className="p-3 rounded-lg text-xs" style={{ backgroundColor: theme.background, border: `1px solid ${theme.border}` }}>
+            <div className="font-semibold mb-2" style={{ color: theme.textLight }}>Lifetime Access Data Locations:</div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <span style={{ color: theme.text }}>lifetimeAccess: </span>
+                <span style={{ color: theme.warning }}>{auditResults.lifetimeInLifetimeCollection} users</span>
+              </div>
+              <div>
+                <span style={{ color: theme.text }}>users: </span>
+                <span style={{ color: theme.warning }}>{auditResults.lifetimeInUsersCollection} users</span>
+              </div>
+              <div>
+                <span style={{ color: theme.text }}>userSubscriptions: </span>
+                <span style={{ color: theme.warning }}>{auditResults.lifetimeInUserSubscriptions} users</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
+import BetaChip from '../common/BetaChip';
 import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
@@ -66,8 +67,9 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
         className="hidden lg:flex lg:w-24 lg:flex-col p-3 border-r card-shadow fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden"
         style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
       >
-        <div className="mb-4 mt-2 flex items-center justify-center">
+        <div className="mb-4 mt-2 flex flex-col items-center gap-3">
           <img src={logo} alt="Logo" className="h-16 w-16 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <BetaChip theme={theme} />
         </div>
         <nav className="flex flex-col space-y-2 flex-1 overflow-y-auto overflow-x-hidden">
           {links.map(({ to, icon: Icon, label, tourId }) => (

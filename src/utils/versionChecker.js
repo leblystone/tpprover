@@ -7,7 +7,7 @@ import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 // Current app version (matches package.json and android/ios builds)
-export const APP_VERSION = '1.0.3';
+export const APP_VERSION = '1.0.4';
 
 // Local storage keys
 const VERSION_CHECK_KEY = 'tpp_version_check';
@@ -15,7 +15,7 @@ const DISMISSAL_KEY = 'tpp_update_dismissal';
 
 /**
  * Parse version string into comparable object
- * @param {string} version - Version string like "1.0.3"
+ * @param {string} version - Version string like "1.0.4"
  * @returns {object} - { major, minor, patch }
  */
 export function parseVersion(version) {

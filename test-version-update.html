@@ -7,8 +7,8 @@
   <script type="module">
     // Simulate the update check
     const mockUpdateInfo = {
-      currentVersion: "1.0.3",
-      latestVersion: "1.0.4",
+      currentVersion: "1.0.4",
+      latestVersion: "1.0.5",
       minimumVersion: "1.0.0",
       urgency: "recommended",
       isRequired: false,
@@ -21,7 +21,7 @@
 
     window.testUpdate = (type) => {
       if (type === 'optional') {
-        mockUpdateInfo.latestVersion = "1.0.4";
+        mockUpdateInfo.latestVersion = "1.0.5";
         mockUpdateInfo.urgency = "optional";
         mockUpdateInfo.isRequired = false;
         mockUpdateInfo.releaseNotes = "Minor bug fixes\nPerformance improvements";
@@ -32,7 +32,7 @@
         mockUpdateInfo.releaseNotes = "🎉 New feature: Custom widgets\n✨ Enhanced dashboard\n🐛 Fixed multiple bugs\n⚡ Performance boost";
       } else if (type === 'critical') {
         mockUpdateInfo.latestVersion = "2.0.0";
-        mockUpdateInfo.minimumVersion = "1.0.4";
+        mockUpdateInfo.minimumVersion = "1.0.5";
         mockUpdateInfo.urgency = "critical";
         mockUpdateInfo.isRequired = true;
         mockUpdateInfo.releaseNotes = "⚠️ CRITICAL SECURITY UPDATE\n🔒 Important security fixes\n🛡️ Enhanced data protection";

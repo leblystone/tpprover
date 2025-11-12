@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import BetaChip from '../common/BetaChip'
 import logo from '../../assets/tpp_logo.png'
 
 export default function MobileSidebar({ open, onClose, theme, onSupportClick }) {
@@ -59,18 +60,25 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
         paddingTop: 'max(var(--safe-area-top, 24px), 24px)',
         paddingBottom: 'max(var(--safe-area-bottom, 16px), 16px)'
       }}>
-        <div className="flex items-center justify-between mb-3">
-          {/* Left side: Close button and Text */}
-          <div className="flex items-center gap-3">
-            <button onClick={onClose} className="p-2" style={{ color: theme.text }} aria-label="Close Menu"><Menu className="h-7 w-7" /></button>
-            <div className="text-left">
-              <h1 className="text-lg font-bold" style={{ color: theme.isDark ? '#d9dbcd' : theme.primaryDark }}>The Pep Planner</h1>
-              <p className="text-xs" style={{ color: theme.isDark ? '#d9dbcd' : theme.textLight }}>Organize your research.</p>
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            {/* Left side: Close button and Text */}
+            <div className="flex items-center gap-3">
+              <button onClick={onClose} className="p-2" style={{ color: theme.text }} aria-label="Close Menu"><Menu className="h-7 w-7" /></button>
+              <div className="text-left">
+                <h1 className="text-lg font-bold" style={{ color: theme.isDark ? '#d9dbcd' : theme.primaryDark }}>The Pep Planner</h1>
+                <p className="text-xs" style={{ color: theme.isDark ? '#d9dbcd' : theme.textLight }}>Organize your research.</p>
+              </div>
             </div>
+            
+            {/* Right side: Logo */}
+            <img src={logo} alt="The Pep Planner Logo" className="h-14 w-14 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
           </div>
           
-          {/* Right side: Logo */}
-          <img src={logo} alt="The Pep Planner Logo" className="h-14 w-14 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          {/* Beta Chip */}
+          <div className="flex justify-start ml-2">
+            <BetaChip theme={theme} />
+          </div>
         </div>
         <nav className="flex-1 overflow-y-auto flex flex-col" style={{ backgroundColor: theme.cardBackground }}>
           {links.map(({ to, label, icon: Icon }, index) => (

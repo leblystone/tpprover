@@ -5,7 +5,7 @@ import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, Info } from 'l
 
 export default function VersionManager({ theme }) {
   const [config, setConfig] = useState({
-    latestVersion: '1.0.3',
+    latestVersion: '1.0.4',
     minimumVersion: '1.0.0',
     releaseNotes: '',
     storeUrls: {
@@ -44,7 +44,7 @@ export default function VersionManager({ theme }) {
       // Validate version format
       const versionRegex = /^\d+\.\d+\.\d+$/;
       if (!versionRegex.test(config.latestVersion)) {
-        setMessage({ type: 'error', text: 'Invalid version format. Use X.Y.Z (e.g., 1.0.3)' });
+        setMessage({ type: 'error', text: 'Invalid version format. Use X.Y.Z (e.g., 1.0.4)' });
         return;
       }
       
@@ -175,7 +175,7 @@ export default function VersionManager({ theme }) {
             type="text"
             value={config.latestVersion}
             onChange={(e) => handleInputChange('latestVersion', e.target.value)}
-            placeholder="1.0.3"
+            placeholder="1.0.4"
             className="w-full px-4 py-2 rounded-lg text-sm"
             style={{
               background: theme.background,
@@ -184,7 +184,7 @@ export default function VersionManager({ theme }) {
             }}
           />
           <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-            Format: X.Y.Z (e.g., 1.0.3). Users below this version will see "Update Available"
+            Format: X.Y.Z (e.g., 1.0.4). Users below this version will see "Update Available"
           </p>
         </div>
 
@@ -317,7 +317,7 @@ export default function VersionManager({ theme }) {
         </h3>
         <div className="space-y-2 text-sm" style={{ color: theme.textLight }}>
           <p>
-            <strong>Version {config.latestVersion || '1.0.3'}:</strong> {config.releaseNotes || 'No release notes set'}
+            <strong>Version {config.latestVersion || '1.0.4'}:</strong> {config.releaseNotes || 'No release notes set'}
           </p>
           {config.minimumVersion && (
             <p style={{ color: '#ef4444' }}>

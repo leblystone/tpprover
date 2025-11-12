@@ -97,15 +97,15 @@ function App() {
     window.testUpdatePrompt = (type = 'recommended') => {
       const mockUpdates = {
         optional: {
-          currentVersion: "1.0.3",
-          latestVersion: "1.0.4",
+          currentVersion: "1.0.4",
+          latestVersion: "1.0.5",
           urgency: "optional",
           isRequired: false,
           releaseNotes: "Bug fixes and performance improvements",
           storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
         },
         recommended: {
-          currentVersion: "1.0.3",
+          currentVersion: "1.0.4",
           latestVersion: "1.1.0",
           urgency: "recommended",
           isRequired: false,
@@ -113,9 +113,9 @@ function App() {
           storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
         },
         critical: {
-          currentVersion: "1.0.3",
+          currentVersion: "1.0.4",
           latestVersion: "2.0.0",
-          minimumVersion: "1.0.4",
+          minimumVersion: "1.0.5",
           urgency: "critical",
           isRequired: true,
           releaseNotes: "Important security updates to keep your data safe\nFixed critical issues\nYour app will be safer and faster",

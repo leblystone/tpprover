@@ -109,28 +109,30 @@ export default function WelcomeModal({ open, onClose, onStartTour, theme }) {
                                 <div className="border border-gray-200 rounded-xl p-3 hover:border-gray-300 transition-all h-full text-center shadow-sm hover:shadow-md bg-white">
                                     <p className="font-semibold text-gray-800 text-sm">Monthly</p>
                                     <p className="text-[11px] text-gray-500 mb-1">Most flexible.</p>
-                                    <p className="text-[11px] text-gray-400 line-through">$8.99</p>
-                                    <p className="font-bold text-base" style={{ color: theme.primary }}>$6.74/mo</p>
+                                    <p className="font-bold text-base" style={{ color: theme.primary }}>$3.99/mo</p>
                                 </div>
 
-                                <div className="border border-gray-200 rounded-xl p-3 hover:border-gray-300 transition-all h-full text-center shadow-sm hover:shadow-md bg-white">
-                                    <p className="font-semibold text-gray-800 text-sm">Annual</p>
-                                    <p className="text-[11px] text-gray-500 mb-1">Save vs monthly.</p>
-                                    <p className="text-[11px] text-gray-400 line-through">$89.99</p>
-                                    <p className="font-bold text-base" style={{ color: theme.primary }}>$67.49/yr</p>
+                                <div className="border border-gray-200 rounded-xl p-3 hover:border-gray-300 transition-all h-full text-center shadow-sm hover:shadow-md bg-white relative">
+                                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                                        <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-700">
+                                            📓 Planner Price
+                                        </span>
+                                    </div>
+                                    <p className="font-semibold text-gray-800 text-sm mt-2">Annual</p>
+                                    <p className="text-[11px] text-gray-500 mb-1">Best value.</p>
+                                    <p className="font-bold text-base" style={{ color: theme.primary }}>$36.99/yr</p>
                                 </div>
 
                                 <div className="border border-gray-200 rounded-xl p-3 relative h-full col-span-2 sm:col-span-1 flex flex-col items-center justify-between text-center shadow-sm hover:shadow-md bg-white">
                                     <p className="font-semibold text-gray-800 text-sm">Lifetime access</p>
-                                    <p className="text-[11px] text-gray-600 mb-1">Pay once, keep workflows forever.</p>
-                                    <p className="text-[11px] text-gray-500 line-through">$249.99</p>
-                                    <p className="font-bold text-lg" style={{ color: theme.primary }}>$187.49</p>
+                                    <p className="text-[11px] text-gray-600 mb-1">Pay once, keep forever.</p>
+                                    <p className="font-bold text-lg" style={{ color: theme.primary }}>$99.99</p>
                                 </div>
                             </div>
 
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mt-2">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mt-2">
                                 <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                                    <strong>Founders Deal:</strong> For the early supporters I'm offering a limited time Founder discount as we build. It's our starting rate to compensate the year that's gone into our work! For our founders who choose to use the app consistently, that rate never goes up! In the meantime, try the app first – see if you love it for your research before worrying about pricing! 😊
+                                    <strong>🧪 Beta Pricing:</strong> We're actively building with your feedback! These prices reflect our beta status while we work out the kinks. Early adopters who subscribe now keep their rate forever—even after we exit beta. Try it first, see if you love it! 😊
                                 </p>
                             </div>
                         </div>

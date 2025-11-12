@@ -319,6 +319,10 @@ exports.adminExtendTrialPeriod = onCall(
 // Manual Subscription Sync - Admin function to resync subscriptions from Stripe
 exports.manualSyncSubscription = manualSyncSubscription.manualSyncSubscription;
 
+// Audit Lifetime Access - Read-only function to find conflicting lifetime grants
+const auditLifetimeAccess = require('./auditLifetimeAccess');
+exports.auditLifetimeAccess = auditLifetimeAccess.auditLifetimeAccess;
+
 // Scheduled Functions for Notifications - Now runs hourly to check all timezones
 exports.scheduledResearchReminders = onSchedule({
   schedule: '0 * * * *',
