@@ -33,23 +33,43 @@ const SAMPLE_MARKERS = [
   'Epithalon',
   'Tirzepatide',
   'Mock Order',
+  'Mock Order #001',
+  'Mock Order #002',
   'ResearchLabs Pro',
   'Peptide Research Co',
   'BioTech Solutions',
   'Elite Bio Research',
   'Upcoming Founder Welcome Webinar',
+  'Founder Welcome Webinar',
   'Community Round',
   'Founder Welcome',
+  'Group Buy',
   'Sample',
   'Demo',
   'Example'
 ];
 
+function containsSampleMarker(value) {
+  if (value === undefined || value === null) return false;
+  const str = String(value).toLowerCase();
+  return SAMPLE_MARKERS.some(marker => str.includes(marker.toLowerCase()));
+}
+
 /**
  * Check if an item is sample data
  */
 function isSampleItem(item) {
-  if (!item || typeof item !== 'object') return false;
+  if (item === undefined || item === null) return false;
+  
+  if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
+    return containsSampleMarker(item);
+  }
+
+  if (Array.isArray(item)) {
+    return item.some(entry => isSampleItem(entry));
+  }
+
+  if (typeof item !== 'object') return false;
   
   // Check isMock flag
   if (item.isMock === true) return true;
@@ -68,11 +88,7 @@ function isSampleItem(item) {
     item.notes
   ].filter(Boolean);
 
-  return fieldsToCheck.some((value) =>
-    SAMPLE_MARKERS.some((marker) =>
-      String(value).toLowerCase().includes(marker.toLowerCase())
-    )
-  );
+  return fieldsToCheck.some(containsSampleMarker);
 }
 
 /**
@@ -117,6 +133,12 @@ function stripSampleEntries(data) {
     Object.entries(data.calendarNotes).forEach(([key, value]) => {
       if (typeof value === 'object' && value !== null) {
         if (!isSampleItem(value)) {
+          cleanedNotes[key] = value;
+        } else {
+          removedNotes++;
+        }
+      } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        if (!containsSampleMarker(value)) {
           cleanedNotes[key] = value;
         } else {
           removedNotes++;
