@@ -47,11 +47,40 @@ export function AppProvider({ children }) {
     const lastRemoteUpdateTimeRef = useRef(0);
     
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
+    // SECURITY: Validate user ownership before loading to prevent data bleeding
     useEffect(() => {
         // Set flag to prevent welcome modal interference during initial load
         sessionStorage.setItem('tpp_initial_data_loading', 'true');
         
         try {
+            // CRITICAL SECURITY CHECK: Verify data ownership before loading
+            const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+            const currentUserData = localStorage.getItem('tpprover_user');
+            
+            // If we have user data, check if there's a mismatch
+            if (currentUserData) {
+                try {
+                    const parsedUser = JSON.parse(currentUserData);
+                    
+                    // If last user email doesn't match the stored user, this is stale data
+                    if (lastUserEmail && parsedUser.email && lastUserEmail !== parsedUser.email) {
+                        console.log('🚨 SECURITY: Stale user data detected during instant load');
+                        console.log('  Last user:', lastUserEmail);
+                        console.log('  Stored user:', parsedUser.email);
+                        console.log('  ⚠️ Skipping instant load to prevent data bleeding');
+                        
+                        // Clear the stale data immediately
+                        clearAllUserData();
+                        
+                        // Skip loading any data - let auth handler load fresh data
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Could not parse user data during security check:', e);
+                }
+            }
+            
+            // Safe to load data - no user mismatch detected
             const savedProtocols = localStorage.getItem('tpprover_protocols');
             if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
 
@@ -337,7 +366,21 @@ export function AppProvider({ children }) {
                             clearAllUserData();
                             verifyUserDataCleared();
                             
-                            console.log('✅ Confirmed: Account data cleared for new user');
+                            // CRITICAL: Also clear React state to prevent data bleeding in UI
+                            console.log('🧹 Clearing React state for new user...');
+                            setProtocols([]);
+                            setReconItems([]);
+                            setReconHistory([]);
+                            setSupplements([]);
+                            setOrders([]);
+                            setMetrics([]);
+                            setVendors([]);
+                            setCalendarNotes({});
+                            setStockpile([]);
+                            setScheduledBuys([]);
+                            setSubscription(null);
+                            
+                            console.log('✅ Confirmed: Account data cleared for new user (localStorage + React state)');
                         }
                         
                         // Update last user email
