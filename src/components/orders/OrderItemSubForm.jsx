@@ -41,7 +41,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         type="text"
                         value={item.name || ''}
                         onChange={e => handleChange('name', e.target.value)}
-                        placeholder="e.g., BPC-157, Superhuman, Lipo-C"
+                        placeholder="e.g., BPC-157, Lipo-C"
                         className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                         style={{
                             border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
@@ -67,7 +67,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 type="text"
                                 value={item.mg || ''} 
                                 onChange={e => handleChange('mg', e.target.value)} 
-                                placeholder="10 or 0.5"
+                                placeholder="10"
                                 className="flex-1 px-3 py-2 outline-none min-w-0"
                                 style={{
                                     backgroundColor: theme.isDark ? '#374151' : (theme.inputBackground || '#fff'),
@@ -113,7 +113,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 type="number"
                                 value={item.quantity || ''} 
                                 onChange={e => handleChange('quantity', e.target.value)} 
-                                placeholder="1"
+                                placeholder="e.g., 5"
                                 className="flex-1 px-3 py-2 outline-none min-w-0 bg-transparent text-base"
                                 style={{
                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',

@@ -13,7 +13,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   const [form, setForm] = useState({
     peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }],
     vendor: '',
-    water: 2,
+    water: '',
     deliveryMethod: 'pipette',
     administrationRoute: 'subq',
     penType: '',
@@ -41,7 +41,7 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       const initialData = {
         peptides: prefill.peptides || [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }],
         vendor: prefill.vendor || '',
-        water: prefill.water || 2,
+        water: prefill.water || '',
         deliveryMethod: prefill.deliveryMethod || 'pipette',
         administrationRoute: prefill.administrationRoute || 'subq',
         penType: prefill.penType || '',

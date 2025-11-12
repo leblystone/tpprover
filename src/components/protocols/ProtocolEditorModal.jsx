@@ -449,7 +449,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 type="text"
                                 value={form.protocolName || ''}
                                 onChange={e => handleChange('protocolName', e.target.value)}
-                                placeholder="e.g., Semaglutide, NAD+, etc."
+                                placeholder="e.g., Retatrutide, GLOW, etc."
                                 className="w-full px-4 py-3 text-lg font-medium rounded-xl focus:ring-2 focus:ring-opacity-50 transition-all focus:outline-none"
                                 style={{
                                     border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
@@ -516,7 +516,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             >
                                 <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Separate</div>
                                 <div className="text-xs" style={{ color: theme.textLight }}>
-                                    Individual timing
+                                    Individual doses
                                 </div>
                             </button>
                             <button

@@ -77,7 +77,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 
   useEffect(() => {
     if (open) {
-      const initialData = order ? { ...order } : { date: new Date().toISOString() };
+      const initialData = order ? { ...order } : { date: new Date().toISOString(), status: 'Order Placed' };
       
       // Ensure category defaults to 'domestic' if not set
       if (!initialData.category && !initialData.type) {
@@ -85,6 +85,11 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       } else if (initialData.type && !initialData.category) {
         // Migration: use 'type' as 'category' for consistency
         initialData.category = initialData.type;
+      }
+      
+      // Ensure new orders have status set
+      if (!order && !initialData.status) {
+        initialData.status = 'Order Placed';
       }
       
       // Migration for old single-item orders
@@ -97,7 +102,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           price: initialData.cost || ''
         }];
       } else if (!initialData.items || initialData.items.length === 0) {
-        initialData.items = [{ id: Date.now(), quantity: 1, unit: 'vial' }]; // Start with one empty item for new orders
+        initialData.items = [{ id: Date.now(), unit: 'vial' }]; // Start with one empty item for new orders
       }
 
       initialData.items = (initialData.items || []).map(item => ({
@@ -402,7 +407,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                         const selectedVendor = vendors.find(vendor => vendor.name === v);
                         setForm(prev => ({ ...prev, vendor: v, vendorId: selectedVendor ? selectedVendor.id : null }));
                     }}
-                    placeholder="Vendor"
+                    placeholder="e.g., Pharm..."
                     theme={theme}
                   />
                 </div>

@@ -121,8 +121,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
       if (formData.penColor && formData.penColor !== penColor) {
         setPenColor(formData.penColor);
       }
+      if (formData.cost !== undefined && formData.cost !== cost) {
+        setCost(formData.cost);
+      }
     }
-  }, [formData?.deliveryMethod, formData?.administrationRoute, formData?.penColor])
+  }, [formData?.deliveryMethod, formData?.administrationRoute, formData?.penColor, formData?.cost])
 
   const totalMg = useMemo(() => {
     if (!safeForm.peptides || !Array.isArray(safeForm.peptides)) return 0;
@@ -280,7 +283,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                         updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'doseUnit', newValue.unit);
                       }}
                       theme={theme}
-                      placeholder="250"
+                      placeholder="e.g., 250"
                       units={['mcg', 'mg', 'mL']}
                     />
                   </div>
@@ -298,7 +301,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                     setForm(prev => ({ ...prev, vendor: v }));
                   }
                 }} 
-                placeholder="(Optional)" 
+                placeholder="e.g., Pharm......" 
                 theme={theme} 
               />
               
@@ -312,7 +315,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                   setCost(v);
                   setForm(prev => ({ ...prev, cost: v }));
                 }} 
-                placeholder="e.g., 45.00" 
+                placeholder="e.g., 60" 
                 theme={theme} 
               />
             </div>

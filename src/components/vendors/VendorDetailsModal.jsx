@@ -60,7 +60,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
     <Modal 
       open={open} 
       onClose={handleClose} 
-      title={form.name || 'Vendor Details'} 
+      title={form.name || 'New Vendor'} 
       titleExtra={
         <div className="flex items-center gap-2">
           <AutoSaveIndicator 
@@ -408,12 +408,12 @@ function NameSuggestions({ anchorValue, onPick, theme }) {
 
 function getContactPlaceholder(type) {
   switch ((type || '').toLowerCase()) {
-    case 'name': return 'John Doe'
+    case 'name': return 'e.g., Pharm...'
     case 'email': return 'name@example.com'
     case 'phone': return '(555) 555-5555'
-    case 'whatsapp': return '+1 555 555 5555 or wa.me/...' 
-    case 'telegram': return '@handle'
-    case 'discord': return 'user#1234'
+    case 'whatsapp': return '+1 555-555-5555' 
+    case 'telegram': return '@ telegramname'
+    case 'discord': return '@ discordname'
     case 'website': return 'https://example.com'
     case 'facebook': return 'facebook.com/username'
     case 'other': return 'Enter contact information'

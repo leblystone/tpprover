@@ -67,17 +67,6 @@ const handleImpersonateUser = async (uid) => {
   }
 };
 
-const handleResetPassword = async (email) => {
-  try {
-    console.log(`Requesting password reset for email: ${email}`);
-    alert(`This action requires a backend function to securely trigger a password reset email. In a real app, you would call a Firebase Cloud Function that uses the Firebase Admin SDK to generate a password reset link.`);
-    // Example backend call:
-    // await sendPasswordResetEmail(auth, email);
-  } catch (error) {
-    console.error("Password reset failed", error);
-    alert("Password reset failed. Check the console for more information.");
-  }
-};
 
 const handleSuspendUser = async (uid, currentStatus) => {
   try {
@@ -3710,7 +3699,6 @@ function Admin() {
               setSelectedUser(null);
             }}
             theme={theme}
-            onResetPassword={handleResetPassword}
             onExtendTrial={handleExtendTrial}
             isExtendingTrial={isExtendingTrial}
             isLoadingDetails={isLoadingUserDetails}

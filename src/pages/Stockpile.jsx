@@ -757,7 +757,7 @@ export default function Stockpile() {
       <Modal 
         open={openAdd} 
         onClose={handleCloseStockpileModal} 
-        title="Add Peptide" 
+        title="Add to Stockpile" 
         titleExtra={
           <div className="flex items-center gap-2">
             <AutoSaveIndicator 
@@ -882,7 +882,7 @@ export default function Stockpile() {
                 type="text"
                 value={form.name}
                 onChange={e => updateFormData({ name: e.target.value })}
-                placeholder="e.g., BPC-157, Superhuman, Super Shredder, Lipo"
+                placeholder="e.g., BPC-157, Lipo-C"
                 className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
                 style={{
                   border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
@@ -907,7 +907,7 @@ export default function Stockpile() {
                   type="text"
                   value={form.mg || ''} 
                   onChange={e => updateFormData({ mg: e.target.value })} 
-                  placeholder="10 or 0.5"
+                  placeholder="10"
                   className="flex-1 px-3 py-2 outline-none min-w-0"
                   style={{
                     backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
@@ -952,7 +952,7 @@ export default function Stockpile() {
                   type="text"
                   value={form.quantity || ''} 
                   onChange={e => updateFormData({ quantity: e.target.value })} 
-                  placeholder="1"
+                  placeholder="5"
                   className="flex-1 px-3 py-2 outline-none min-w-0"
                   style={{
                     backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
@@ -986,19 +986,19 @@ export default function Stockpile() {
             </div>
           </div>
           
-          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Blue" theme={theme} uppercase={true} />
+          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Clear Crimp/Gold Cap" theme={theme} uppercase={true} />
           
           {/* ORDER DETAILS Section Header */}
           <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
             <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>ORDER DETAILS</h4>
           </div>
           
-          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="Vendor" theme={theme} />
+          <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="e.g., Pharm..." theme={theme} />
           
           {/* Purity & Batch Number in two columns */}
           <div className="grid grid-cols-2 gap-3">
             <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} />
-            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="#" theme={theme} uppercase={true} />
+            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} />
           </div>
           
           {/* Date Acquired & Use By Date in two columns */}
@@ -1140,7 +1140,7 @@ export default function Stockpile() {
                         type="text"
                         value={row.mg || ''}
                         onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, mg: e.target.value } : r))}
-                        placeholder="10 or 0.5"
+                        placeholder="10"
                         className="flex-1 px-3 py-2 outline-none min-w-0"
                         style={{
                           backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
@@ -1185,7 +1185,7 @@ export default function Stockpile() {
                         type="text"
                         value={row.quantity || ''}
                         onChange={e => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: e.target.value } : r))}
-                        placeholder="1"
+                        placeholder="5"
                         className="flex-1 px-3 py-2 outline-none min-w-0"
                         style={{
                           backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
@@ -1244,7 +1244,7 @@ export default function Stockpile() {
                   label="Crimp / Cap Color"
                   value={row.capColor}
                   onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))}
-                  placeholder="Blue"
+                  placeholder="Clear Crimp/Gold Cap"
                   theme={theme}
                   uppercase={true}
                 />
@@ -1261,7 +1261,7 @@ export default function Stockpile() {
                   label="Batch #"
                   value={row.batchNumber}
                   onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, batchNumber: v } : r))}
-                  placeholder="#"
+                  placeholder="# XXX"
                   theme={theme}
                   uppercase={true}
                 />

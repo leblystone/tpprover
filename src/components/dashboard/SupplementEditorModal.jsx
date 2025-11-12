@@ -92,7 +92,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                             type="text"
                             value={form.name}
                             onChange={e => setForm({ ...form, name: e.target.value })}
-                            placeholder="Vit C, B12 Injection, etc."
+                            placeholder="B12 Injection, Vitamin D"
                             className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
                             style={{
                                 borderColor: theme.border,
@@ -108,7 +108,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                             type="text"
                             value={form.dose}
                             onChange={e => setForm({ ...form, dose: e.target.value })}
-                            placeholder="2 tablets, 1ml, 2 scoops, etc."
+                            placeholder="2 tablets, 1 mL"
                             className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
                             style={{
                                 borderColor: theme.border,

@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Lock, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function UserDetailModal({
   user,
   onClose,
   theme: enhancedTheme,
-  onResetPassword,
   onExtendTrial,
   isExtendingTrial = false,
   isLoadingDetails = false
@@ -552,28 +551,6 @@ export default function UserDetailModal({
               </div>
               <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Emergency Actions</h4>
             </div>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => {
-                  if (window.confirm(`Send password reset email to ${user.email}?`)) {
-                    onResetPassword?.(user.email);
-                  }
-                }}
-                className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
-                style={{ 
-                  backgroundColor: enhancedTheme.warning,
-                  color: '#FFFFFF',
-                  boxShadow: `0 4px 15px ${enhancedTheme.warning}30`
-                }}
-              >
-                <Lock size={16} />
-                Reset Password
-              </button>
-            </div>
-            <p className="text-xs mt-3 flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
-              <Coffee size={10} className="opacity-60" />
-              Password reset requires backend function. For immediate access, check Stripe or contact support.
-            </p>
           </div>
         </div>
       </div>

@@ -77,13 +77,13 @@ export default function ColorSwatchDropdown({
             {/* Dropdown Menu with Color Swatches */}
             {isOpen && (
                 <div 
-                    className="absolute z-50 w-full mt-1 p-3 bg-white border rounded-md shadow-lg"
+                    className="absolute z-50 w-full mt-1 p-2 bg-white border rounded-md shadow-lg"
                     style={{ 
                         borderColor: theme.border,
-                        backgroundColor: theme.cardBackground 
+                        backgroundColor: theme.cardBackground
                     }}
                 >
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-7 gap-1.5">
                         {colors.map(({ name, hex }) => {
                             const isSelected = value === hex || value === name;
                             const style = {

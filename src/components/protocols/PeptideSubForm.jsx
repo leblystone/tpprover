@@ -71,7 +71,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         value={item.name || ''} 
                         onChange={v => handleChange('name', v)} 
                         theme={theme} 
-                        placeholder="e.g., BPC-157, Superhuman, Super Shredder, Lipo-C" 
+                        placeholder="e.g., BPC-157, Lipo-C" 
                     />
                     
                     <div>
@@ -90,7 +90,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }}
                                             theme={theme}
                                             deliveryMethod={item.deliveryMethod}
-                                            placeholder="250, 0.5, or 2"
+                                            placeholder="250"
                                         />
                                     </div>
                                     
@@ -98,6 +98,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     <div className="col-span-1">
                                         <div 
                                             className="flex items-stretch rounded-lg overflow-hidden"
+                                            style={{
+                                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                                            }}
                                         >
                                             {/* Input field for units - numeric values only */}
                                             <input
@@ -110,6 +113,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                         unitValue: newValue
                                                     });
                                                 }}
+                                                placeholder="10"
                                                 className="flex-1 px-2 py-2 outline-none min-w-0 border-0 focus:ring-0"
                                                 style={{ 
                                                     backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
