@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TestTubeDiagonal } from 'lucide-react';
 import Modal from './Modal';
 import SupportModal from './SupportModal';
 
@@ -19,7 +20,12 @@ export default function BetaModal({ open, onClose, theme }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="🧪 We're in Beta!"
+      title={
+        <div className="flex items-center gap-2">
+          <TestTubeDiagonal className="w-6 h-6" style={{ color: theme?.primary }} />
+          <span>We're in Beta</span>
+        </div>
+      }
       theme={theme}
       maxWidth="max-w-2xl"
     >
