@@ -106,23 +106,6 @@ export default function BetaModal({ open, onClose, theme }) {
               </p>
             </div>
           </div>
-
-          <div className="flex items-start gap-3">
-            <div 
-              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm"
-              style={{ backgroundColor: theme?.primary, color: '#ffffff' }}
-            >
-              ✓
-            </div>
-            <div>
-              <p className="font-semibold text-sm" style={{ color: theme?.text }}>
-                Beta pricing locked in
-              </p>
-              <p className="text-xs" style={{ color: theme?.textLight }}>
-                Subscribe now and keep your rate forever, even after we exit beta.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div 
@@ -137,13 +120,13 @@ export default function BetaModal({ open, onClose, theme }) {
           </p>
           <button
             onClick={handleOpenSupport}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 shadow-lg"
             style={{
               backgroundColor: theme?.primary,
               color: '#ffffff'
             }}
           >
-            <span>🔬</span> Support
+            Support
           </button>
         </div>
 
