@@ -1,15 +1,76 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
 
 export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant }) {
+  // Use internal state to persist modal open state across app lifecycle changes
+  const [internalOpen, setInternalOpen] = useState(open);
+  const wasOpenBeforeBackground = useRef(false);
+  const visibilityChangeTimeoutRef = useRef(null);
+
+  // Monitor document visibility to prevent modal from closing when app is minimized
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App is going to background - remember if modal was open
+        if (internalOpen) {
+          wasOpenBeforeBackground.current = true;
+        }
+      } else {
+        // App is coming back to foreground
+        // Clear any existing timeout
+        if (visibilityChangeTimeoutRef.current) {
+          clearTimeout(visibilityChangeTimeoutRef.current);
+        }
+        
+        // Small delay to allow React to finish re-rendering
+        visibilityChangeTimeoutRef.current = setTimeout(() => {
+          // If modal was open before going to background, keep it open
+          // even if the parent's open prop was temporarily reset
+          if (wasOpenBeforeBackground.current && !open) {
+            console.log('🔄 Restoring modal state after app returned to foreground');
+            setInternalOpen(true);
+            // Reset the flag after restoring
+            wasOpenBeforeBackground.current = false;
+          }
+        }, 200);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (visibilityChangeTimeoutRef.current) {
+        clearTimeout(visibilityChangeTimeoutRef.current);
+      }
+    };
+  }, [open, internalOpen]);
+
+  // Sync internal state with prop, but be smart about it
+  useEffect(() => {
+    // Only update internal state if:
+    // 1. The prop changed to true (always allow opening)
+    // 2. The prop changed to false AND we're not in a visibility change recovery period
+    if (open) {
+      setInternalOpen(true);
+      wasOpenBeforeBackground.current = false; // Reset when explicitly opened
+    } else if (!wasOpenBeforeBackground.current) {
+      // Only close if we weren't tracking a background state
+      setInternalOpen(false);
+    }
+  }, [open]);
+
   // Add keyboard shortcuts and prevent body scroll on mobile
   useEffect(() => {
-    if (!open) return;
+    if (!internalOpen) {
+      return;
+    }
     
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        setInternalOpen(false);
+        wasOpenBeforeBackground.current = false;
         onClose();
       }
     };
@@ -27,9 +88,16 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = originalOverflow;
     };
-  }, [open, onClose]);
+  }, [internalOpen, onClose]);
+
+  // Handle backdrop click
+  const handleBackdropClick = () => {
+    setInternalOpen(false);
+    wasOpenBeforeBackground.current = false;
+    onClose();
+  };
   
-  if (!open) return null
+  if (!internalOpen) return null
   
   // Modern variant styling
   const isModern = variant === 'modern';
@@ -49,11 +117,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-x-hidden">
       <div 
         className={`absolute inset-0 ${backdropClass}`}
-        onClick={onClose}
+        onClick={handleBackdropClick}
         onTouchStart={(e) => {
           // Only close if touch starts on the backdrop, not if it's a swipe from modal content
           if (e.target === e.currentTarget) {
-            onClose();
+            handleBackdropClick();
           }
         }}
       />
@@ -84,7 +152,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             {titleExtra && (
               <div className={titleExtraClass}>{titleExtra}</div>
             )}
-            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
+            <button onClick={handleBackdropClick} className="p-1.5 rounded-full hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
               <X size={24} />
             </button>
           </div>

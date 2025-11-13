@@ -218,32 +218,56 @@ export default function DocumentationUpload({
   return (
     <>
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold" style={{ color: theme.text }}>{title}</h3>
-          {!readonly && (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1 px-2 py-1 text-sm rounded-md transition-colors"
-              style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
-            >
-              <Plus size={14} />
-              Add
-            </button>
-          )}
-        </div>
+        {title && (
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold" style={{ color: theme.text }}>{title}</h3>
+          </div>
+        )}
 
       {/* Documentation Items */}
       <div className="space-y-2">
         {documentation.map((item, index) => renderDocumentationItem(item, index))}
         
         {documentation.length === 0 && !showAddForm && (
-          <div className="text-center py-4 border-2 border-dashed rounded-lg" 
-               style={{ borderColor: theme.border }}>
-            <FileText size={24} className="mx-auto mb-2" style={{ color: theme.textLight }} />
-            <p className="text-sm" style={{ color: theme.textLight }}>
+          <div className="text-center py-6 px-4 rounded-lg" 
+               style={{ 
+                 backgroundColor: theme.isDark ? '#111827' : theme.cardBackground,
+                 border: `1px solid ${theme.border}`,
+                 boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+               }}>
+            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
               {placeholder}
             </p>
+            {!readonly && (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105 mx-auto"
+                style={{ 
+                  backgroundColor: theme.primary, 
+                  color: theme.textOnPrimary,
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : `0 2px 4px ${theme.primary}30`
+                }}
+              >
+                <Plus size={16} />
+                Add
+              </button>
+            )}
           </div>
+        )}
+        
+        {documentation.length > 0 && !showAddForm && !readonly && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="w-full flex items-center justify-center gap-1 px-3 py-2 text-sm rounded-lg border-2 border-dashed transition-colors"
+            style={{ 
+              borderColor: theme.border,
+              backgroundColor: theme.isDark ? '#111827' : theme.cardBackground,
+              color: theme.textLight
+            }}
+          >
+            <Plus size={14} />
+            Add Documentation
+          </button>
         )}
       </div>
 

@@ -11,7 +11,8 @@ export default function ColorSwatchDropdown({
     value, 
     onChange, 
     colors = [], 
-    theme 
+    theme,
+    placeholder = '(Optional)'
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -35,7 +36,7 @@ export default function ColorSwatchDropdown({
 
     const selectedColor = colors.find(c => c.hex === value || c.name === value);
     const selectedHex = selectedColor?.hex || '#C0C0C0';
-    const selectedName = selectedColor?.name || '(Optional)';
+    const selectedName = selectedColor?.name || placeholder;
 
     return (
         <div ref={dropdownRef} className="relative">
@@ -80,7 +81,7 @@ export default function ColorSwatchDropdown({
                     className="absolute z-50 w-full mt-1 p-2 bg-white border rounded-md shadow-lg"
                     style={{ 
                         borderColor: theme.border,
-                        backgroundColor: theme.cardBackground
+                        backgroundColor: theme.cardBackground 
                     }}
                 >
                     <div className="grid grid-cols-7 gap-1.5">

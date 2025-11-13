@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAppContext } from '../../context/AppContext';
@@ -14,6 +14,55 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const [submitStatus, setSubmitStatus] = useState(null);
     const [feedbackType, setFeedbackType] = useState(null); // 'bug' or 'suggestion'
     const [feedbackMessage, setFeedbackMessage] = useState('');
+    
+    // Track modal state to persist across app lifecycle changes
+    const [internalOpen, setInternalOpen] = useState(open);
+    const wasOpenBeforeBackground = useRef(false);
+    const visibilityChangeTimeoutRef = useRef(null);
+
+    // Monitor document visibility to prevent modal from closing when app is minimized
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // App is going to background - remember if modal was open
+                if (internalOpen) {
+                    wasOpenBeforeBackground.current = true;
+                }
+            } else {
+                // App is coming back to foreground
+                if (visibilityChangeTimeoutRef.current) {
+                    clearTimeout(visibilityChangeTimeoutRef.current);
+                }
+                
+                visibilityChangeTimeoutRef.current = setTimeout(() => {
+                    // If modal was open before going to background, keep it open
+                    if (wasOpenBeforeBackground.current && !open) {
+                        console.log('🔄 Restoring SupportModal state after app returned to foreground');
+                        setInternalOpen(true);
+                        wasOpenBeforeBackground.current = false;
+                    }
+                }, 200);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (visibilityChangeTimeoutRef.current) {
+                clearTimeout(visibilityChangeTimeoutRef.current);
+            }
+        };
+    }, [open, internalOpen]);
+
+    // Sync internal state with prop
+    useEffect(() => {
+        if (open) {
+            setInternalOpen(true);
+            wasOpenBeforeBackground.current = false;
+        } else if (!wasOpenBeforeBackground.current) {
+            setInternalOpen(false);
+        }
+    }, [open]);
 
     // Auto-fill email from logged in user
     useEffect(() => {
@@ -28,6 +77,13 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             ...prev,
             [name]: value
         }));
+    };
+
+    // Handle close with internal state management
+    const handleClose = () => {
+        setInternalOpen(false);
+        wasOpenBeforeBackground.current = false;
+        onClose();
     };
 
     const handleSubmit = async (e) => {
@@ -53,15 +109,15 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             
             console.log('📥 Support response:', result);
             
-            if (result.data.success) {
-                setSubmitStatus('success');
-                setFormData({ email: '', message: '' });
-                
-                // Auto-close after 2 seconds
-                setTimeout(() => {
-                    setSubmitStatus(null);
-                    onClose();
-                }, 2000);
+                if (result.data.success) {
+                    setSubmitStatus('success');
+                    setFormData({ email: '', message: '' });
+                    
+                    // Auto-close after 2 seconds
+                    setTimeout(() => {
+                        setSubmitStatus(null);
+                        handleClose();
+                    }, 2000);
             } else {
                 console.error('Support submission failed:', result.data);
                 setSubmitStatus('error');
@@ -112,7 +168,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             // Auto-close after 2 seconds
             setTimeout(() => {
                 setSubmitStatus(null);
-                onClose();
+                handleClose();
             }, 2000);
         } catch (error) {
             console.error('❌ Error submitting feedback:', error);
@@ -122,14 +178,14 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         }
     };
 
-    if (!open) return null;
+    if (!internalOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div 
                 className="absolute inset-0 backdrop-blur-md bg-black/30"
-                onClick={onClose}
+                onClick={handleClose}
             />
             
             {/* Modal */}
@@ -154,7 +210,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         <h2 className="text-xl font-bold" style={{ color: theme.primaryDark }}>Support</h2>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="p-2 rounded-full transition-colors hover:opacity-70"
                         style={{ backgroundColor: theme.background }}
                     >

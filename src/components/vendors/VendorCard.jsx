@@ -6,7 +6,7 @@ import { FaPaypal, FaAlipay } from 'react-icons/fa6';
 import { RiBitCoinFill } from "react-icons/ri";
 import ShareModal from '../common/ShareModal';
 
-const GOOD_LABELS = ['Reliable', 'Fast Shipping', 'Overfill', 'Vetted'];
+const GOOD_LABELS = ['Reliable', 'Fast Shipping', 'Overfill', 'Vetted', 'Reshipper'];
 const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'Out of Service', 'Puck Problem'];
 
 const getContactIcon = (type) => {

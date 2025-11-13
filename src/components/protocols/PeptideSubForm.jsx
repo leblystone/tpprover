@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
-import { Pen, Droplets, Pipette } from 'lucide-react';
+import { Pen, Droplets, Pipette, TestTube, Calendar, ChevronDown } from 'lucide-react';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 
 export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide }) {
     // Load pen types from localStorage or use defaults
     const [penTypes, setPenTypes] = useState([]);
+    const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);
+    const penTypeDropdownRef = React.useRef(null);
     
     useEffect(() => {
         try {
@@ -57,11 +59,29 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
         handleFrequencyChange('days', newDays);
     };
 
+    // Handle click outside for pen type dropdown
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (penTypeDropdownRef.current && !penTypeDropdownRef.current.contains(event.target)) {
+                setIsPenTypeDropdownOpen(false);
+            }
+        };
+
+        if (isPenTypeDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isPenTypeDropdownOpen]);
+
     return (
         <div className="space-y-4">
                 {/* PEPTIDE DETAILS Section Header */}
-                <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Details</h4>
+                <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PEPTIDE DETAILS</h4>
+                    <TestTube size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
 
                 {/* Peptide Information */}
@@ -71,11 +91,13 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         value={item.name || ''} 
                         onChange={v => handleChange('name', v)} 
                         theme={theme} 
-                        placeholder="e.g., BPC-157, Lipo-C" 
+                        placeholder="e.g., BPC-157, Lipo-C"
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow
                     />
                     
                     <div>
-                        <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Dosage</div>
                         <div className="grid grid-cols-3 gap-3">
                             {/* Dosage - 2/3 width */}
                             <div className="col-span-2">
@@ -91,52 +113,27 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             theme={theme}
                                             deliveryMethod={item.deliveryMethod}
                                             placeholder="250"
+                                            outlined={true}
+                                            customTextColor="#181A18"
+                                            customShadow
                                         />
                                     </div>
                                     
                                     {/* Units - 1/3 width */}
                                     <div className="col-span-1">
-                                        <div 
-                                            className="flex items-stretch rounded-lg overflow-hidden"
-                                            style={{
-                                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                                            }}
-                                        >
-                                            {/* Input field for units - numeric values only */}
-                                            <input
-                                                type="text"
-                                                value={item.unitValue || ''}
-                                                onChange={(e) => {
-                                                    const newValue = e.target.value;
-                                                    onChange({ 
-                                                        ...item, 
-                                                        unitValue: newValue
-                                                    });
-                                                }}
-                                                placeholder="10"
-                                                className="flex-1 px-2 py-2 outline-none min-w-0 border-0 focus:ring-0"
-                                                style={{ 
-                                                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                                                    color: theme.text 
-                                                }}
-                                            />
-                                            
-                                            {/* Unit Selector - Single 'units' pill */}
-                                            <div 
-                                                className="flex items-center px-1.5 py-1.5 flex-shrink-0"
-                                                style={{ 
-                                                    backgroundColor: theme.cardBackground || '#f9fafb'
-                                                }}
-                                            >
-                                                <div
-                                                    className="px-2 py-1 text-xs font-semibold rounded transition-all text-white shadow-sm flex-shrink-0"
-                                                    style={{ backgroundColor: theme.primary }}
-                                                >
-                                                    units
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p className="text-xs mt-1 italic" style={{ color: theme.textLight }}>Optional</p>
+                                        <TextInput
+                                            label="Units"
+                                            value={item.unitValue || ''}
+                                            onChange={v => onChange({ 
+                                                ...item, 
+                                                unitValue: v
+                                            })}
+                                            placeholder="10"
+                                            theme={theme}
+                                            outlined={true}
+                                            customTextColor="#181A18"
+                                            customShadow
+                                        />
                                     </div>
                                 </div>
                         </div>
@@ -145,14 +142,15 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                 {/* DELIVERY METHOD Section - Only show for separate protocols or first peptide in blended */}
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
                     <>
-                        <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>
-                                Delivery Method {protocolType === 'blended' && <span className="text-xs font-normal lowercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>(shared by all peptides)</span>}
+                        <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
+                            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>
+                                DELIVERY METHOD {protocolType === 'blended' && <span className="text-xs font-normal lowercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }}>(shared by all peptides)</span>}
                             </h4>
+                            <Droplets size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                         </div>
 
                         <div className="space-y-4">
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-3 gap-2 p-1.5 rounded-lg" style={{ backgroundColor: theme.secondary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)' }}>
                                 <button 
                                     type="button"
                                     onClick={() => {
@@ -236,7 +234,6 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             {/* Pipette Injection Type Options */}
                             {(item.deliveryMethod || 'pipette') === 'pipette' && (
                                 <div className="mt-3">
-                                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Injection Type</label>
                                     <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
                                         {['SubQ', 'IM', 'IV'].map(type => (
                                             <button 
@@ -257,31 +254,92 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                             {(item.deliveryMethod || 'pipette') === 'pen' && (
                                 <div className="mt-3 grid grid-cols-2 gap-4">
                                     {/* Pen Type Selection */}
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Pen Type</label>
-                                        <select
-                                            value={item.penType || ''}
-                                            onChange={e => handleChange('penType', e.target.value)}
-                                            className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
+                                    <div className="relative" ref={penTypeDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
+                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
                                             style={{
-                                                borderColor: theme.border,
+                                                borderColor: isPenTypeDropdownOpen ? theme.primary : '#f0eee7',
                                                 backgroundColor: theme.cardBackground,
-                                                color: theme.text,
-                                                focusRingColor: theme.primary
+                                                color: item.penType ? theme.text : theme.textLight
                                             }}
                                         >
-                                            <option value="">(Optional)</option>
-                                            {penTypes.map(type => (
-                                                <option key={type.id} value={type.id}>{type.name}</option>
-                                            ))}
-                                        </select>
+                                            <span>
+                                                {item.penType ? (
+                                                    penTypes.find(t => t.id === item.penType)?.name || 
+                                                    (item.penType === 'savvio' ? 'Savvio' :
+                                                     item.penType === 'novo' ? 'Novo' :
+                                                     item.penType === 'v1' ? 'V1' :
+                                                     item.penType === 'v2' ? 'V2' :
+                                                     item.penType === 'v3' ? 'V3' :
+                                                     item.penType === 'bird-pen' ? 'Bird Pen' :
+                                                     item.penType === 'luxura' ? 'Luxura' :
+                                                     item.penType === 'gansulin' ? 'Gansulin' :
+                                                     item.penType === 'other' ? 'Other' : item.penType)
+                                                ) : 'Pen Type'}
+                                            </span>
+                                            <ChevronDown 
+                                                size={16} 
+                                                className={`transition-transform duration-200 ${isPenTypeDropdownOpen ? 'rotate-180' : ''}`}
+                                                style={{ color: theme.textLight }}
+                                            />
+                                        </button>
+                                        {isPenTypeDropdownOpen && (
+                                            <div 
+                                                className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                style={{
+                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                    borderColor: theme.border,
+                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                }}
+                                            >
+                                                {[
+                                                    { value: '', label: 'Pen Type' },
+                                                    ...penTypes
+                                                ].map((option, optIdx) => (
+                                                    <React.Fragment key={option.id || option.value || 'empty'}>
+                                                        {optIdx > 0 && (
+                                                            <div 
+                                                                className="h-px mx-2"
+                                                                style={{ backgroundColor: theme.border }}
+                                                            />
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleChange('penType', option.id || option.value || '');
+                                                                setIsPenTypeDropdownOpen(false);
+                                                            }}
+                                                            className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                            style={{
+                                                                color: item.penType === (option.id || option.value) ? theme.primary : theme.text,
+                                                                backgroundColor: 'transparent'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                e.currentTarget.style.color = theme.primary;
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                                e.currentTarget.style.color = item.penType === (option.id || option.value) ? theme.primary : theme.text;
+                                                            }}
+                                                        >
+                                                            {option.name || option.label}
+                                                        </button>
+                                                    </React.Fragment>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Pen Color Selection - Dropdown with Color Swatch */}
                                     <div>
                                         <ColorSwatchDropdown
-                                            label="Pen Color"
-                                            value={item.penColor}
+                                            value={item.penColor ? (() => {
+                                                const colorObj = penColors.find(c => c.name.toLowerCase() === item.penColor.toLowerCase());
+                                                return colorObj?.hex || '#9ca3af';
+                                            })() : '#9ca3af'}
                                             onChange={(hexValue) => {
                                                 // Find the color name from hex and save the name
                                                 const colorObj = penColors.find(c => c.hex === hexValue);
@@ -289,6 +347,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             }}
                                             colors={penColors}
                                             theme={theme}
+                                            placeholder="Pen Color"
                                         />
                                     </div>
                                 </div>
@@ -301,8 +360,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                 {(protocolType === 'separate' || isFirstPeptide) && (
                 <>
                     <div>
-                        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>Frequency & Schedule</h4>
+                        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid #e0ded7` }}>
+                            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>FREQUENCY & SCHEDULE</h4>
+                            <Calendar size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                         </div>
                         <div className="text-xs text-center mt-2 italic" style={{ color: theme.textLight }}>
                             Schedules peptide research on your dashboard & calendar
@@ -352,6 +412,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     theme={theme} 
                                     placeholder="5" 
                                     type="number"
+                                    outlined={true}
+                                    customTextColor="#181A18"
+                                    customShadow
                                 />
                                 <TextInput 
                                     label="Days Off" 
@@ -360,6 +423,9 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     theme={theme} 
                                     placeholder="2" 
                                     type="number"
+                                    outlined={true}
+                                    customTextColor="#181A18"
+                                    customShadow
                                 />
                             </div>
                         </div>

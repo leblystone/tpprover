@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 /**
  * Combined Dosage Input - integrates amount and unit into a single component
@@ -10,8 +10,12 @@ export default function CombinedDosageInput({
     theme,
     deliveryMethod = 'pipette',
     placeholder = "250, 0.5, or 2",
-    units = null // Optional: override default units
+    units = null, // Optional: override default units
+    outlined = false,
+    customTextColor = null,
+    customShadow = null
 }) {
+    const [isFocused, setIsFocused] = useState(false);
     // Determine units to display based on delivery method
     const displayUnits = units || (
         deliveryMethod === 'nasal' 
@@ -28,6 +32,80 @@ export default function CombinedDosageInput({
     };
 
     const currentUnit = value?.unit || 'mcg';
+
+    if (outlined) {
+        return (
+            <div className="relative">
+                <div 
+                    className="flex items-stretch rounded-lg"
+                    style={{ 
+                        border: `1px solid ${isFocused ? theme.primary : '#f0eee7'}`,
+                        boxShadow: customShadow || (theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'),
+                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                    }}
+                >
+                    {/* Amount Input */}
+                    <input
+                        type="text"
+                        id="dose-input"
+                        value={value?.amount || ''}
+                        onChange={(e) => handleAmountChange(e.target.value)}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
+                        placeholder=" "
+                        className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
+                        style={{ 
+                            backgroundColor: 'transparent',
+                            color: customTextColor || '#181A18',
+                            border: 'none'
+                        }}
+                        autoComplete="off"
+                    />
+                    
+                    {/* Unit Selector Pills - Integrated */}
+                    <div 
+                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
+                        style={{ 
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                        }}
+                    >
+                        {displayUnits.map(unit => (
+                            <button
+                                key={unit}
+                                type="button"
+                                onClick={() => handleUnitChange(unit)}
+                                className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
+                                    currentUnit === unit 
+                                        ? 'text-white shadow-sm' 
+                                        : 'text-gray-600 hover:bg-gray-200'
+                                }`}
+                                style={currentUnit === unit ? { backgroundColor: theme.primary } : {}}
+                            >
+                                {unit}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                {/* Adaptive Label */}
+                <label 
+                    htmlFor="dose-input"
+                    className="absolute pointer-events-none transition-all"
+                    style={{
+                        fontSize: (isFocused || (value?.amount && String(value.amount).trim())) ? '0.75rem' : '0.9375rem',
+                        top: (isFocused || (value?.amount && String(value.amount).trim())) ? '-8px' : '14px',
+                        left: (isFocused || (value?.amount && String(value.amount).trim())) ? '12px' : '16px',
+                        padding: (isFocused || (value?.amount && String(value.amount).trim())) ? '0 4px' : '0',
+                        background: (isFocused || (value?.amount && String(value.amount).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                        color: (isFocused || (value?.amount && String(value.amount).trim())) ? theme.primary : (theme.textLight || theme.text),
+                        fontWeight: 500
+                    }}
+                >
+                    Dose
+                </label>
+            </div>
+        );
+    }
 
     return (
         <div>

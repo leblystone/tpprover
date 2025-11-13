@@ -6,7 +6,7 @@ import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import Modal from '../components/common/Modal'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -32,7 +32,9 @@ export default function Stockpile() {
   const [activeTab, setActiveTab] = useState('onhand')
   const [openAdd, setOpenAdd] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] })
+  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', documentation: [] })
+  const [isAmountFocused, setIsAmountFocused] = useState(false)
+  const [isQuantityFocused, setIsQuantityFocused] = useState(false)
   
   // Auto-save functionality for stockpile form
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
@@ -999,7 +1001,7 @@ export default function Stockpile() {
                 setItems(prev => [itemToAdd, ...prev]); 
                 markAsSubmitted(); // Clear auto-save data
                 setOpenAdd(false); 
-                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', useByDate: '', documentation: [] }) 
+                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, capColor: '', batchNumber: '', date: '', cost: '', documentation: [] }) 
               } catch (error) {
                 console.error('❌ Failed to save stockpile item:', error);
                 setSaveError('Failed to save stockpile item. Please try again.');
@@ -1042,55 +1044,54 @@ export default function Stockpile() {
             </div>
           )}
           
-          {/* VIAL DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VIAL DETAILS</h4>
+        {/* VIAL DETAILS Section Header */}
+          <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>VIAL DETAILS</h4>
+            <TestTube size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
           </div>
 
           {/* Main form */}
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Peptide Name</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={e => updateFormData({ name: e.target.value })}
-                placeholder="e.g., BPC-157, Lipo-C"
-                className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                style={{
-                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                  backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                  color: theme.text,
-                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                }}
-              />
-            </div>
+            <TextInput 
+              label="Peptide Name" 
+              value={form.name} 
+              onChange={v => updateFormData({ name: v })} 
+              placeholder="e.g., BPC-157, Lipo-C" 
+              theme={theme}
+              customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+              outlined={true}
+              customTextColor="#181A18"
+            />
           {/* Amount & Quantity in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Amount</label>
+            <div className="relative">
               <div 
-                className="flex items-stretch rounded-lg overflow-hidden"
+                className="flex items-stretch rounded-lg"
                 style={{ 
-                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                  border: `1px solid #f0eee7`,
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                  backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                 }}
               >
                 <input 
                   type="text"
+                  id="amount-input"
                   value={form.mg || ''} 
                   onChange={e => updateFormData({ mg: e.target.value })} 
-                  placeholder="10"
-                  className="flex-1 px-3 py-2 outline-none min-w-0"
+                  onFocus={() => setIsAmountFocused(true)}
+                  onBlur={() => setIsAmountFocused(false)}
+                  placeholder=" "
+                  className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                   style={{
-                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                    color: theme.text
+                    backgroundColor: 'transparent',
+                    color: '#181A18',
+                    border: 'none'
                   }}
                 />
                 <div 
-                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
                   style={{ 
-                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                     backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                   }}
                 >
@@ -1111,31 +1112,50 @@ export default function Stockpile() {
                   ))}
                 </div>
               </div>
+              <label 
+                htmlFor="amount-input"
+                className="absolute pointer-events-none transition-all"
+                style={{
+                  fontSize: (isAmountFocused || (form.mg && form.mg.trim())) ? '0.75rem' : '0.9375rem',
+                  top: (isAmountFocused || (form.mg && form.mg.trim())) ? '-8px' : '14px',
+                  left: (isAmountFocused || (form.mg && form.mg.trim())) ? '12px' : '16px',
+                  padding: (isAmountFocused || (form.mg && form.mg.trim())) ? '0 4px' : '0',
+                  background: (isAmountFocused || (form.mg && form.mg.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                  color: (isAmountFocused || (form.mg && form.mg.trim())) ? theme.primary : (theme.textLight || theme.text),
+                  fontWeight: 500
+                }}
+              >
+                Amount
+              </label>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Quantity</label>
+            <div className="relative">
               <div 
-                className="flex items-stretch rounded-lg overflow-hidden"
+                className="flex items-stretch rounded-lg"
                 style={{ 
-                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                  border: `1px solid #f0eee7`,
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                  backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                 }}
               >
                 <input 
                   type="text"
+                  id="quantity-input"
                   value={form.quantity || ''} 
                   onChange={e => updateFormData({ quantity: e.target.value })} 
-                  placeholder="5"
-                  className="flex-1 px-3 py-2 outline-none min-w-0"
+                  onFocus={() => setIsQuantityFocused(true)}
+                  onBlur={() => setIsQuantityFocused(false)}
+                  placeholder=" "
+                  className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                   style={{
-                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                    color: theme.text
+                    backgroundColor: 'transparent',
+                    color: '#181A18',
+                    border: 'none'
                   }}
                 />
                 <div 
-                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                  className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
                   style={{ 
-                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                     backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                   }}
                 >
@@ -1156,29 +1176,51 @@ export default function Stockpile() {
                   ))}
                 </div>
               </div>
+              <label 
+                htmlFor="quantity-input"
+                className="absolute pointer-events-none transition-all"
+                style={{
+                  fontSize: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '0.75rem' : '0.9375rem',
+                  top: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '-8px' : '14px',
+                  left: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '12px' : '16px',
+                  padding: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? '0 4px' : '0',
+                  background: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                  color: (isQuantityFocused || (form.quantity && form.quantity.trim())) ? theme.primary : (theme.textLight || theme.text),
+                  fontWeight: 500
+                }}
+              >
+                Quantity
+              </label>
             </div>
           </div>
           
-          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Clear Crimp/Gold Cap" theme={theme} uppercase={true} />
+          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Black Crimp/Black Cap" theme={theme} uppercase={true} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           
           {/* ORDER DETAILS Section Header */}
-          <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>ORDER DETAILS</h4>
+          <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER DETAILS</h4>
+            <PackageOpen size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
           </div>
           
           <VendorSuggestInput label="Vendor" value={form.vendor} onChange={v => updateFormData({ vendor: v })} placeholder="e.g., Pharm..." theme={theme} />
           
           {/* Purity & Batch Number in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} />
-            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} />
+            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           </div>
           
-          {/* Date Acquired & Use By Date in two columns */}
+          {/* Price & Date Acquired in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Date Acquired" type="date" value={form.date} onChange={v => updateFormData({ date: v })} theme={theme} />
-            <TextInput label="Use By" type="date" value={form.useByDate} onChange={v => updateFormData({ useByDate: v })} theme={theme} />
+            <TextInput label="Price ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+            <TextInput label="Date Acquired" type="date" value={form.date} onChange={v => updateFormData({ date: v })} theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           </div>
+          </div>
+          
+          {/* EXTRA DETAILS Section Header */}
+          <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+            <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>EXTRA DETAILS</h4>
+            <ImageUp size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
           </div>
         </div>
         
@@ -1188,9 +1230,9 @@ export default function Stockpile() {
             documentation={form.documentation}
             onChange={(documentation) => updateFormData({ documentation })}
             theme={theme}
-            title="Post-Delivery Documentation"
+            title=""
             description="Upload images or links for received peptide documentation (photos of received vials, condition notes, quality check notes, etc.)"
-            placeholder="Add photos of received vials, condition notes, quality check results, or other post-delivery documentation..."
+            placeholder="Add photos, screenshots, or files that correlate with this peptide."
             allowImages={true}
             allowLinks={true}
           />
@@ -1417,7 +1459,7 @@ export default function Stockpile() {
                   label="Crimp / Cap Color"
                   value={row.capColor}
                   onChange={v => setManageRows(prev => prev.map(r => r.id === row.id ? { ...r, capColor: v } : r))}
-                  placeholder="Clear Crimp/Gold Cap"
+                  placeholder="Black Crimp/Black Cap"
                   theme={theme}
                   uppercase={true}
                 />

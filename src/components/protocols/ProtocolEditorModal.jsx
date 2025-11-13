@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
@@ -22,6 +22,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [form, setForm] = useState(createEmpty);
     const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const [isDurationFocused, setIsDurationFocused] = useState(false);
+    const [isWashoutFocused, setIsWashoutFocused] = useState(false);
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -441,113 +443,80 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
         >
             <div className="space-y-5">
-                {/* Protocol Basics - Visual Cards */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={form.protocolName || ''}
-                                onChange={e => handleChange('protocolName', e.target.value)}
-                                placeholder="e.g., Retatrutide, GLOW, etc."
-                                className="w-full px-4 py-3 text-lg font-medium rounded-xl focus:ring-2 focus:ring-opacity-50 transition-all focus:outline-none"
-                                style={{
-                                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
-                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
-                                    backgroundColor: theme.cardBackground,
-                                    color: theme.text,
-                                    '--tw-ring-color': theme.primary
-                                }}
-                            />
-                            <label className="absolute -top-2 left-3 px-2 text-xs font-medium" 
-                                   style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
-                                Protocol For:
-                            </label>
-                        </div>
+                {/* PROTOCOL INFO Section Header */}
+                <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PROTOCOL INFO</h4>
+                    <BookOpenCheck size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                </div>
 
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={form.purpose || ''}
-                                onChange={e => handleChange('purpose', e.target.value)}
-                                placeholder="Weight Loss, Recovery, etc."
-                                className="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-opacity-50 transition-all focus:outline-none"
-                                style={{
-                                    border: theme.isDark ? 'none' : `2px solid ${theme.border}`,
-                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
-                                    backgroundColor: theme.cardBackground,
-                                    color: theme.text,
-                                    '--tw-ring-color': theme.primary
-                                }}
-                            />
-                            <label className="absolute -top-2 left-3 px-2 text-xs font-medium"
-                                   style={{ backgroundColor: theme.cardBackground, color: theme.textLight }}>
-                                Purpose/Goal
-                            </label>
-                        </div>
+                {/* Protocol Basics - Visual Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 -mt-2">
+                    <div className="space-y-2">
+                        <TextInput
+                            label="Name"
+                            value={form.protocolName || ''}
+                            onChange={v => handleChange('protocolName', v)}
+                            placeholder="e.g., Retatrutide, GLOW, etc."
+                            theme={theme}
+                            outlined={true}
+                            customTextColor="#181A18"
+                            customShadow
+                        />
+
+                        <TextInput
+                            label="Purpose/Goal"
+                            value={form.purpose || ''}
+                            onChange={v => handleChange('purpose', v)}
+                            placeholder="Weight Loss, Recovery, etc."
+                            theme={theme}
+                            outlined={true}
+                            customTextColor="#181A18"
+                            customShadow
+                        />
                     </div>
 
-                    {/* Protocol Type - Side by Side Cards */}
-                    <div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => handleChange('protocolType', 'separate')}
-                                className="p-3 rounded-lg text-center transition-all"
-                                style={{ 
-                                    border: form.protocolType === 'separate' 
-                                        ? `2px solid ${theme.primary}` 
-                                        : (theme.isDark ? 'none' : `2px solid ${theme.border}`),
-                                    backgroundColor: form.protocolType === 'separate' ? theme.primary + '15' : (theme.isDark ? '#1f2937' : theme.cardBackground),
-                                    boxShadow: form.protocolType === 'separate' 
-                                        ? `0 2px 8px ${theme.primary}20` 
-                                        : (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)')
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (form.protocolType !== 'separate') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '10';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (form.protocolType !== 'separate') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.cardBackground;
-                                    }
-                                }}
-                            >
-                                <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Separate</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>
-                                    Individual doses
-                                </div>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleChange('protocolType', 'blended')}
-                                className="p-3 rounded-lg text-center transition-all"
-                                style={{ 
-                                    border: form.protocolType === 'blended' 
-                                        ? `2px solid ${theme.primary}` 
-                                        : (theme.isDark ? 'none' : `2px solid ${theme.border}`),
-                                    backgroundColor: form.protocolType === 'blended' ? theme.primary + '15' : (theme.isDark ? '#1f2937' : theme.cardBackground),
-                                    boxShadow: form.protocolType === 'blended' 
-                                        ? `0 2px 8px ${theme.primary}20` 
-                                        : (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)')
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (form.protocolType !== 'blended') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '10';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (form.protocolType !== 'blended') {
-                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.cardBackground;
-                                    }
-                                }}
-                            >
-                                <div className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Blended</div>
-                                <div className="text-xs" style={{ color: theme.textLight }}>
-                                    Mixed together
-                                </div>
-                            </button>
+                    {/* Protocol Type - Compact Card Style */}
+                    <div className="flex items-start">
+                        <div className="grid grid-cols-2 gap-2 w-full">
+                            {[
+                                { key: 'separate', name: 'Separate', icon: Ungroup, description: 'Individual doses' },
+                                { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
+                            ].map(option => {
+                                const Icon = option.icon
+                                const isSelected = form.protocolType === option.key
+                                return (
+                                    <button
+                                        key={option.key}
+                                        type="button"
+                                        onClick={() => handleChange('protocolType', option.key)}
+                                        className="flex flex-col items-center justify-center p-1 rounded-lg transition-all"
+                                        style={{
+                                            backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
+                                            border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                                            color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                                            minHeight: '50px',
+                                            boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
+                                            position: 'relative'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isSelected) {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
+                                                e.currentTarget.style.color = theme.text
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isSelected) {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
+                                                e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
+                                            }
+                                        }}
+                                    >
+                                        <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
+                                        <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{option.name}</span>
+                                        <span className="text-xs text-center leading-tight opacity-75 mt-0.5" style={{ position: 'relative', zIndex: 1 }}>{option.description}</span>
+                                    </button>
+                                )
+                            })}
                         </div>
                     </div>
                 </div>
@@ -653,8 +622,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 <div className="border-t" style={{ borderColor: theme.border }}></div>
 
                 {/* PROTOCOL DURATION Section Header */}
-                <div className="mb-4 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Protocol Duration</h4>
+                <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PROTOCOL DURATION</h4>
+                    <CalendarClock size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
 
                 {/* Duration Content */}
@@ -662,7 +632,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="text-sm font-medium" style={{ color: theme.text }}>Duration</div>
                                 <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.duration?.noEnd} onChange={e => handleDurationChange('noEnd', e.target.checked)} className="sr-only peer" />
@@ -671,34 +640,39 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     <span className="text-sm" style={{ color: theme.text }}>No end date</span>
                                 </div>
                             </div>
-                            <div className="space-y-3">
-                                {/* Combined Input with Pill Selector */}
+                            <div className="relative">
+                                {/* Combined Input with Pill Selector - Outlined Style */}
                                 <div 
-                                    className="flex items-stretch rounded-lg overflow-hidden"
+                                    className="flex items-stretch rounded-lg"
                                     style={{ 
-                                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+                                        border: `1px solid #f0eee7`,
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                                         opacity: form.duration?.noEnd ? 0.5 : 1
                                     }}
                                 >
                                     <input 
                                         type="text"
+                                        id="duration-input"
                                         value={form.duration?.noEnd ? '' : (form.duration?.count ?? '')}
                                         onChange={e => handleDurationChange('count', e.target.value)}
-                                        placeholder="4"
+                                        onFocus={() => setIsDurationFocused(true)}
+                                        onBlur={() => setIsDurationFocused(false)}
+                                        placeholder=" "
                                         disabled={form.duration?.noEnd}
-                                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                                        className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                                         style={{ 
-                                            backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                                            color: theme.text 
+                                            backgroundColor: 'transparent',
+                                            color: '#181A18',
+                                            border: 'none'
                                         }}
                                     />
                                     
                                     {/* Unit Selector Pills */}
                                     <div 
-                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
                                         style={{ 
-                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                             backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                                         }}
                                     >
@@ -720,12 +694,26 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         ))}
                                     </div>
                                 </div>
+                                <label 
+                                    htmlFor="duration-input"
+                                    className="absolute pointer-events-none transition-all"
+                                    style={{
+                                        fontSize: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '0.75rem' : '0.9375rem',
+                                        top: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '-8px' : '14px',
+                                        left: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '12px' : '16px',
+                                        padding: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? '0 4px' : '0',
+                                        background: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                        color: (isDurationFocused || (form.duration?.count && form.duration.count.trim() && !form.duration?.noEnd)) ? theme.primary : (theme.textLight || theme.text),
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Duration
+                                </label>
                             </div>
                         </div>
                         
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="text-sm font-medium" style={{ color: theme.text }}>Washout Period</div>
                                 <div className="flex items-center gap-2">
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={form.washout?.enabled} onChange={e => handleWashoutChange('enabled', e.target.checked)} className="sr-only peer" />
@@ -734,34 +722,39 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     <span className="text-sm" style={{ color: theme.text }}>Enable washout</span>
                                 </div>
                             </div>
-                            <div className="space-y-3">
-                                {/* Combined Input with Pill Selector */}
+                            <div className="relative">
+                                {/* Combined Input with Pill Selector - Outlined Style */}
                                 <div 
-                                    className="flex items-stretch rounded-lg overflow-hidden"
+                                    className="flex items-stretch rounded-lg"
                                     style={{ 
-                                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                        boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+                                        border: `1px solid #f0eee7`,
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                                         opacity: !form.washout?.enabled ? 0.5 : 1
                                     }}
                                 >
                                     <input 
                                         type="text"
+                                        id="washout-input"
                                         value={form.washout?.enabled ? (form.washout?.duration ?? '') : ''}
                                         onChange={e => handleWashoutChange('duration', e.target.value)}
-                                        placeholder="2"
+                                        onFocus={() => setIsWashoutFocused(true)}
+                                        onBlur={() => setIsWashoutFocused(false)}
+                                        placeholder=" "
                                         disabled={!form.washout?.enabled}
-                                        className="flex-1 px-3 py-2 outline-none min-w-0"
+                                        className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                                         style={{ 
-                                            backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                                            color: theme.text 
+                                            backgroundColor: 'transparent',
+                                            color: '#181A18',
+                                            border: 'none'
                                         }}
                                     />
                                     
                                     {/* Unit Selector Pills */}
                                     <div 
-                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                                        className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
                                         style={{ 
-                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                                             backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                                         }}
                                     >
@@ -783,6 +776,21 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         ))}
                                     </div>
                                 </div>
+                                <label 
+                                    htmlFor="washout-input"
+                                    className="absolute pointer-events-none transition-all"
+                                    style={{
+                                        fontSize: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '0.75rem' : '0.9375rem',
+                                        top: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '-8px' : '14px',
+                                        left: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '12px' : '16px',
+                                        padding: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? '0 4px' : '0',
+                                        background: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                        color: (isWashoutFocused || (form.washout?.duration && form.washout.duration.trim() && form.washout?.enabled)) ? theme.primary : (theme.textLight || theme.text),
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Washout Period
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -841,6 +849,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
 
+                {/* EXTRA DETAILS Section Header */}
+                <div className="mb-4 px-4 py-2.5 rounded-lg flex items-center justify-between" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid #e0ded7` }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>EXTRA DETAILS</h4>
+                    <ImageUp size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                </div>
+
                 {/* Notes Content */}
                 <div>
                     <TextInput 
@@ -850,6 +864,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         placeholder="Add any personal notes for this protocol..." 
                         multiline 
                         rows={3}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow
                     />
                 </div>
             </div>

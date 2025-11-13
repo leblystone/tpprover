@@ -1,16 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
-import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X } from 'lucide-react'
+import { Edit, Trash2, PlusCircle, Filter, FileText, Eye, PenTool, Search, Package, Calendar, Beaker, Droplet, Calculator, Save, CheckCircle, History, Pipette, X, TestTube, Droplets, ChevronDown } from 'lucide-react'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import useAutoSave from '../utils/useAutoSave'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
+import CombinedDosageInput from '../components/common/inputs/CombinedDosageInput'
+import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
 import { ReconCalculatorPanel } from '../components/recon/ReconCalculatorPanel'
 import ReconHelpPanel from '../components/recon/ReconHelpPanel'
 import { formatCurrency } from '../utils/currencyUtils'
 import { getChromeGradient } from '../utils/recon'
-import { PEN_COLORS } from '../utils/penColors'
+import { PEN_COLORS, penColors } from '../utils/penColors'
 import Tabs from '../components/common/Tabs'
 import Modal from '../components/common/Modal'
 import { calculateRecon } from '../utils/recon'
@@ -39,6 +41,9 @@ export default function Recon() {
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
 	const [historyFilters, setHistoryFilters] = useState({ peptide: '', vendor: '' })
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+	const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false)
+	const penTypeDropdownRef = useRef(null)
+	const [penColor, setPenColor] = useState('#9ca3af')
 	const getPrimaryActionGradient = useCallback((saving = false) => {
 		const secondaryColor = theme?.secondary || '#d1d5db';
 		if (saving) {
@@ -94,6 +99,34 @@ export default function Recon() {
 			}
 		} catch {}
 	}, [])
+
+	// Handle click outside for dropdowns
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (penTypeDropdownRef.current && !penTypeDropdownRef.current.contains(event.target)) {
+				setIsPenTypeDropdownOpen(false);
+			}
+		};
+
+		if (isPenTypeDropdownOpen) {
+			document.addEventListener('mousedown', handleClickOutside);
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside);
+		};
+	}, [isPenTypeDropdownOpen]);
+
+	// Sync pen color from editingItem
+	useEffect(() => {
+		if (editingItem?.penColor) {
+			// Find the hex color from the pen color name
+			const colorObj = penColors.find(c => c.name.toLowerCase() === editingItem.penColor.toLowerCase());
+			if (colorObj) {
+				setPenColor(colorObj.hex);
+			}
+		}
+	}, [editingItem?.penColor]);
 
 	const handleSave = (item) => {
 		const now = new Date().toISOString();
@@ -583,7 +616,7 @@ export default function Recon() {
 				</div>
 			</div>
 
-            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'New Reconstitution'} theme={theme} variant="modern" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
+            <Modal open={showEditModal} onClose={() => { setShowEditModal(null); setEditingItem(null); clearSavedData(); }} title={editingItem ? 'Edit Reconstitution' : 'Add Reconstitution'} theme={theme} variant="modern" titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} theme={theme} compact iconOnly={true} />} footer={
 				<div className="w-full flex items-center justify-between gap-3">
 					{editingItem ? (
 						<button
@@ -625,13 +658,36 @@ export default function Recon() {
 					</div>
 				</div>
 			}>
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {/* VIAL DETAILS Section Header */}
-                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VIAL DETAILS</h4>
+                    <div 
+                        className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
+                        style={{ 
+                            backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                            borderLeft: '4px solid #e0ded7' 
+                        }}
+                    >
+                        <h4 
+                            className="font-bold text-sm tracking-wider uppercase" 
+                            style={{ 
+                                color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
+                                letterSpacing: '0.1em' 
+                            }}
+                        >
+                            VIAL DETAILS
+                        </h4>
+                        <TestTube size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                     </div>
 
-                    <TextInput label="Peptide Name" value={getEditingPeptideName()} onChange={v => { updateEditingItem({ peptide: v }); updateFormData({ peptide: v }); }} theme={theme} />
+                    <TextInput 
+                        label="Peptide Name" 
+                        value={getEditingPeptideName()} 
+                        onChange={v => { updateEditingItem({ peptide: v }); updateFormData({ peptide: v }); }} 
+                        theme={theme}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
                     <VendorSuggestInput 
                         label="Vendor" 
                         value={editingItem?.vendorId ? vendorMap[editingItem.vendorId] : (editingItem?.vendor || draft.vendor || '')} 
@@ -640,80 +696,70 @@ export default function Recon() {
                             updateEditingItem({ vendor: v, vendorId: selectedVendor ? selectedVendor.id : null });
                             updateFormData({ vendor: v, vendorId: selectedVendor ? selectedVendor.id : null });
                         }} 
-                        theme={theme} 
+                        theme={theme}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                     {/* mg and water in one row */}
                     <div className="grid grid-cols-2 gap-3">
-                        <TextInput label="mg" type="number" value={getEditingMg()} onChange={v => { updateEditingItem({ mg: v }); updateFormData({ mg: v }); }} theme={theme} />
-                        <TextInput label="Water (mL)" type="number" value={editingItem?.water || draft.water || ''} onChange={v => { updateEditingItem({ water: v }); updateFormData({ water: v }); }} theme={theme} />
+                        <TextInput 
+                            label="mg" 
+                            type="number" 
+                            value={getEditingMg()} 
+                            onChange={v => { updateEditingItem({ mg: v }); updateFormData({ mg: v }); }} 
+                            theme={theme}
+                            outlined={true}
+                            customTextColor="#181A18"
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
+                        <TextInput 
+                            label="Water (mL)" 
+                            type="number" 
+                            value={editingItem?.water || draft.water || ''} 
+                            onChange={v => { updateEditingItem({ water: v }); updateFormData({ water: v }); }} 
+                            theme={theme}
+                            outlined={true}
+                            customTextColor="#181A18"
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
                     </div>
                     
                     {/* dose on its own row */}
                     <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Dose</label>
-                        <div 
-                            className="flex items-stretch rounded-lg overflow-hidden"
-                            style={{ 
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                        <CombinedDosageInput
+                            value={{ amount: getEditingDose() || '', unit: getEditingDoseUnit() || 'mcg' }}
+                            onChange={(newValue) => {
+                                updateEditingItem({ dose: newValue.amount, doseUnit: newValue.unit });
+                                updateFormData({ dose: newValue.amount, doseUnit: newValue.unit });
                             }}
-                        >
-                            <input 
-                                type="number"
-                                value={getEditingDose()} 
-                                onChange={e => { 
-                                    updateEditingItem({ dose: e.target.value }); 
-                                    updateFormData({ dose: e.target.value }); 
-                                }} 
-                                placeholder="250"
-                                className="flex-1 px-3 py-2 outline-none min-w-0"
-                                style={{
-                                    backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                                    color: theme.text
-                                }}
-                            />
-                            <div 
-                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
-                                style={{ 
-                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
-                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
-                                }}
-                            >
-                                {['mcg', 'mg', 'mL'].map(unit => (
-                                    <button 
-                                        key={unit} 
-                                        type="button" 
-                                        onClick={() => { 
-                                            updateEditingItem({ doseUnit: unit }); 
-                                            updateFormData({ doseUnit: unit }); 
-                                        }}
-                                        className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                                            getEditingDoseUnit() === unit 
-                                                ? 'text-white shadow-sm' 
-                                                : ''
-                                        }`}
-                                        style={getEditingDoseUnit() === unit ? { backgroundColor: theme.primary } : { color: theme.text }}
-                                        onMouseEnter={(e) => {
-                                            if (getEditingDoseUnit() !== unit) {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#e5e7eb';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (getEditingDoseUnit() !== unit) {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            }
-                                        }}
-                                    >
-                                        {unit}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                            theme={theme}
+                            placeholder="e.g., 250"
+                            units={['mcg', 'mg', 'mL']}
+                            outlined={true}
+                            customTextColor="#181A18"
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
                     </div>
 
                     {/* DELIVERY METHOD Section Header */}
-                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>DELIVERY METHOD</h4>
+                    <div 
+                        className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
+                        style={{ 
+                            backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                            borderLeft: '4px solid #e0ded7' 
+                        }}
+                    >
+                        <h4 
+                            className="font-bold text-sm tracking-wider uppercase" 
+                            style={{ 
+                                color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
+                                letterSpacing: '0.1em' 
+                            }}
+                        >
+                            DELIVERY METHOD
+                        </h4>
+                        <Droplets size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                     </div>
 
                     <div>
@@ -784,8 +830,13 @@ export default function Recon() {
                         </div>
                         {(editingItem?.deliveryMethod === 'pipette' || !editingItem?.deliveryMethod) && (
                             <div className="mt-3">
-                                <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
-                                <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
+                                <div 
+                                    className="flex items-center gap-1 p-1 rounded-md" 
+                                    style={{ 
+                                        backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                    }}
+                                >
                                     <button 
                                         onClick={() => updateEditingItem({ administrationRoute: 'SubQ' })}
                                         className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
@@ -856,53 +907,102 @@ export default function Recon() {
                             <div className="mt-3">
                                 <div className="grid grid-cols-2 gap-3">
                                     {/* Pen Type Selection */}
-                                    <div>
-                                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Type</label>
-                                        <select
-                                            value={editingItem?.penType || ''}
-                                            onChange={e => updateEditingItem({ penType: e.target.value })}
-                                            className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
+                                    <div className="relative" ref={penTypeDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
+                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
                                             style={{
-                                                borderColor: theme.border,
+                                                borderColor: isPenTypeDropdownOpen ? theme.primary : theme.border,
                                                 backgroundColor: theme.cardBackground,
-                                                color: theme.text,
-                                                focusRingColor: theme.primary
+                                                color: editingItem?.penType ? theme.text : theme.textLight
                                             }}
                                         >
-                                            <option value="">(Optional)</option>
-                                            <option value="insulin">Insulin Pen</option>
-                                            <option value="growth-hormone">Growth Hormone Pen</option>
-                                            <option value="testosterone">Testosterone Pen</option>
-                                            <option value="custom">Custom</option>
-                                        </select>
+                                            <span>
+                                                {editingItem?.penType ? (
+                                                    editingItem.penType === 'bird-pen' ? 'Bird Pen' : 
+                                                    editingItem.penType === 'v1' ? 'V1' : 
+                                                    editingItem.penType === 'v2' ? 'V2' : 
+                                                    editingItem.penType === 'v3' ? 'V3' : 
+                                                    editingItem.penType.charAt(0).toUpperCase() + editingItem.penType.slice(1)
+                                                ) : 'Pen Type'}
+                                            </span>
+                                            <ChevronDown 
+                                                size={16} 
+                                                className={`transition-transform duration-200 ${isPenTypeDropdownOpen ? 'rotate-180' : ''}`}
+                                                style={{ color: theme.textLight }}
+                                            />
+                                        </button>
+                                        {isPenTypeDropdownOpen && (
+                                            <div 
+                                                className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                style={{
+                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                    borderColor: theme.border,
+                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                }}
+                                            >
+                                                {[
+                                                    { value: '', label: 'Pen Type' },
+                                                    { value: 'savvio', label: 'Savvio' },
+                                                    { value: 'novo', label: 'Novo' },
+                                                    { value: 'v1', label: 'V1' },
+                                                    { value: 'v2', label: 'V2' },
+                                                    { value: 'v3', label: 'V3' },
+                                                    { value: 'bird-pen', label: 'Bird Pen' },
+                                                    { value: 'luxura', label: 'Luxura' },
+                                                    { value: 'gansulin', label: 'Gansulin' },
+                                                    { value: 'other', label: 'Other' }
+                                                ].map((option, optIdx) => (
+                                                    <React.Fragment key={option.value}>
+                                                        {optIdx > 0 && (
+                                                            <div 
+                                                                className="h-px mx-2"
+                                                                style={{ backgroundColor: theme.border }}
+                                                            />
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                updateEditingItem({ penType: option.value });
+                                                                setIsPenTypeDropdownOpen(false);
+                                                            }}
+                                                            className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                            style={{
+                                                                color: editingItem?.penType === option.value ? theme.primary : theme.text,
+                                                                backgroundColor: 'transparent'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                e.currentTarget.style.color = theme.primary;
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                                e.currentTarget.style.color = editingItem?.penType === option.value ? theme.primary : theme.text;
+                                                            }}
+                                                        >
+                                                            {option.label}
+                                                        </button>
+                                                    </React.Fragment>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     {/* Pen Color Selection */}
-                                    <div>
-                                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Pen Color</label>
-                                        <select
-                                            value={editingItem?.penColor || ''}
-                                            onChange={e => updateEditingItem({ penColor: e.target.value })}
-                                            className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
-                                            style={{
-                                                borderColor: theme.border,
-                                                backgroundColor: theme.cardBackground,
-                                                color: theme.text,
-                                                focusRingColor: theme.primary
-                                            }}
-                                        >
-                                            <option value="">(Optional)</option>
-                                            <option value="white">White</option>
-                                            <option value="black">Black</option>
-                                            <option value="blue">Blue</option>
-                                            <option value="red">Red</option>
-                                            <option value="green">Green</option>
-                                            <option value="yellow">Yellow</option>
-                                            <option value="purple">Purple</option>
-                                            <option value="orange">Orange</option>
-                                            <option value="pink">Pink</option>
-                                            <option value="gray">Gray</option>
-                                        </select>
-                                    </div>
+                                    <ColorSwatchDropdown
+                                        value={penColor}
+                                        onChange={(hex) => {
+                                            setPenColor(hex);
+                                            // Find color name from hex
+                                            const selectedColor = penColors.find(p => p.hex === hex);
+                                            if (selectedColor) {
+                                                updateEditingItem({ penColor: selectedColor.name });
+                                            }
+                                        }}
+                                        colors={penColors}
+                                        theme={theme}
+                                        placeholder="Pen Color"
+                                    />
                                 </div>
                             </div>
                         )}
@@ -911,7 +1011,16 @@ export default function Recon() {
                     {/* Page Break */}
                     <div className="border-t" style={{ borderColor: theme.border }}></div>
 
-                    <TextInput label="Notes" value={editingItem?.notes || ''} onChange={v => updateEditingItem({ notes: v })} theme={theme} multiline />
+                    <TextInput 
+                        label="Notes" 
+                        value={editingItem?.notes || ''} 
+                        onChange={v => updateEditingItem({ notes: v })} 
+                        theme={theme} 
+                        multiline
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
                 </div>
 			</Modal>
 

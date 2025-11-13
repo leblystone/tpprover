@@ -1,15 +1,43 @@
 import React, { useEffect, useState } from 'react'
-import { Lock } from 'lucide-react'
+import { Lock, Building2, Phone, CreditCard, FileText, History, X, Wallet, Coins, DollarSign, Smartphone, Banknote, CheckCircle, BadgeCheck, Truck, PackagePlus, Beaker, Pill, Droplet, TrendingUp, AlertCircle, Clock, PackageX, AlertTriangle, UserX, Ban, Ship, Amphora, Turtle, Rabbit, CircleGauge, EggOff } from 'lucide-react'
+import { SiZelle, SiCashapp } from 'react-icons/si'
+import { FaPaypal, FaAlipay } from 'react-icons/fa6'
 import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
 import { formatMMDDYYYY } from '../../utils/date'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
 
-const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Aminos','Oils','Pricey','Untested','Slow Shipping','Bad Test','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Puck Problem']
+const labelOptions = ['Reliable','Vetted','Fast Shipping','Overfill','GLP1','Aminos','Oils','Pricey','Reshipper','Slow Shipping','Bad Test','Bad Packaging','Broken Vials','Rude Reps','Out of Service','Puck Problem']
+
+const getLabelIcon = (label) => {
+  const labelLower = label.toLowerCase()
+  switch (labelLower) {
+    case 'reliable': return CheckCircle
+    case 'vetted': return BadgeCheck
+    case 'fast shipping': return Rabbit
+    case 'overfill': return PackagePlus
+    case 'glp1': return Beaker
+    case 'aminos': return Pill
+    case 'oils': return Amphora
+    case 'pricey': return TrendingUp
+    case 'reshipper': return Ship
+    case 'slow shipping': return Turtle
+    case 'bad test': return EggOff
+    case 'bad packaging': return PackageX
+    case 'broken vials': return AlertTriangle
+    case 'rude reps': return UserX
+    case 'out of service': return Ban
+    case 'puck problem': return CircleGauge
+    default: return FileText
+  }
+}
 
 export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, onForceDelete, activeTab, isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState(createEmptyVendor())
+  const [contactFocused, setContactFocused] = useState({})
+  const [isNotesFocused, setIsNotesFocused] = useState(false)
+  const [openDropdowns, setOpenDropdowns] = useState({})
   
   // Auto-save functionality with vendor persistence
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
@@ -46,6 +74,23 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       setForm(base)
     }
   }, [open, vendor, activeTab])
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is outside any dropdown
+      const isClickInside = event.target.closest('[data-dropdown-container]')
+      if (!isClickInside && Object.keys(openDropdowns).some(idx => openDropdowns[idx])) {
+        setOpenDropdowns({})
+      }
+    }
+    if (Object.keys(openDropdowns).some(idx => openDropdowns[idx])) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [openDropdowns])
 
   const addContact = () => setForm(prev => ({ ...prev, contacts: [...prev.contacts, { type: 'email', value: '' }] }))
   const updateContact = (idx, key, value) => setForm(prev => ({ ...prev, contacts: prev.contacts.map((c, i) => i === idx ? { ...c, [key]: value } : c) }))
@@ -142,13 +187,25 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
     )}    >
       <div className="relative space-y-4">
         {/* VENDOR INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VENDOR INFO</h4>
+        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>VENDOR INFO</h4>
+          <Building2 size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
         </div>
 
         {/* Section: Name, Rating, Category */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-          <div className="sm:col-span-1"><TextInput label="Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Vendor" theme={theme} /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
+          <div className="sm:col-span-1">
+            <TextInput 
+              label="Name" 
+              value={form.name} 
+              onChange={v => setForm({ ...form, name: v })} 
+              placeholder="e.g., Pharm..." 
+              theme={theme}
+              outlined={true}
+              customTextColor="#181A18"
+              customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+            />
+          </div>
           <div className="flex flex-col items-start sm:items-start gap-2">
             <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Rating</div>
             <div className="flex items-center justify-around w-full rounded-md p-1" style={{ 
@@ -198,8 +255,9 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* CONTACT INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>CONTACT INFO</h4>
+        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>CONTACT INFO</h4>
+          <Phone size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
         </div>
 
         {/* Section: Contacts */}
@@ -207,60 +265,151 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="space-y-3">
             {form.contacts.map((c, idx) => (
               <div key={idx} className="flex items-center gap-3">
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <div 
-                    className="flex items-stretch rounded-lg overflow-hidden"
+                    className="flex items-stretch rounded-lg"
                     style={{ 
-                      border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                      boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                      border: `1px solid #f0eee7`,
+                      boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                      backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                     }}
                   >
                     <input 
                       type="text"
-                      value={c.value} 
+                      id={`contact-input-${idx}`}
+                      value={c.value || ''} 
                       onChange={e => updateContact(idx, 'value', e.target.value)} 
-                      placeholder={getContactPlaceholder(c.type)}
-                      className="flex-1 px-3 py-2 outline-none min-w-0"
+                      onFocus={() => setContactFocused(prev => ({ ...prev, [idx]: true }))}
+                      onBlur={() => setContactFocused(prev => ({ ...prev, [idx]: false }))}
+                      placeholder={!contactFocused[idx] && !c.value ? getContactPlaceholder(c.type) : ' '}
+                      className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                       style={{
-                        backgroundColor: theme.isDark ? '#1f2937' : (theme.inputBackground || '#fff'),
-                        color: theme.text
+                        backgroundColor: 'transparent',
+                        color: '#181A18',
+                        border: 'none',
+                        paddingLeft: '12px',
+                        paddingRight: '8px'
                       }}
                     />
                     <div 
-                      className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                      className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg relative"
+                      data-dropdown-container
                       style={{ 
-                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
+                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                         backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                       }}
                     >
-                      <select 
-                        value={c.type} 
-                        onChange={e => updateContact(idx, 'type', e.target.value)} 
-                        className="px-2 py-1 text-xs font-semibold rounded-md transition-all border-none outline-none cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={() => setOpenDropdowns(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                        className="px-2 py-1 text-xs font-semibold rounded-md transition-all border-none outline-none cursor-pointer flex items-center gap-1"
                         style={{ 
                           backgroundColor: theme.primary,
                           color: '#ffffff'
                         }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.primaryDark || theme.primary;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.primary;
+                        }}
                       >
-                        <option value="name">Name</option>
-                        <option value="email">Email</option>
-                        <option value="phone">Phone</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="discord">Discord</option>
-                        <option value="telegram">Telegram</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="website">Website</option>
-                        <option value="other">Other</option>
-                      </select>
+                        {getContactLabel(c.type)}
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {openDropdowns[idx] && (
+                        <>
+                          <div 
+                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                            style={{
+                              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                              borderColor: theme.border,
+                              minWidth: '140px',
+                              boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            {[
+                              { value: 'name', label: 'Name' },
+                              { value: 'email', label: 'Email' },
+                              { value: 'phone', label: 'Phone' },
+                              { value: 'whatsapp', label: 'WhatsApp' },
+                              { value: 'discord', label: 'Discord' },
+                              { value: 'telegram', label: 'Telegram' },
+                              { value: 'facebook', label: 'Facebook' },
+                              { value: 'website', label: 'Website' },
+                              { value: 'other', label: 'Other' }
+                            ].map((option, optIdx) => (
+                              <React.Fragment key={option.value}>
+                                {optIdx > 0 && (
+                                  <div 
+                                    className="h-px mx-2"
+                                    style={{ backgroundColor: theme.border }}
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    updateContact(idx, 'type', option.value);
+                                    setOpenDropdowns(prev => ({ ...prev, [idx]: false }));
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm transition-all"
+                                  style={{
+                                    color: c.type === option.value ? theme.primary : theme.text,
+                                    backgroundColor: 'transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                    e.currentTarget.style.color = theme.primary;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = c.type === option.value ? theme.primary : theme.text;
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
+                  <label 
+                    htmlFor={`contact-input-${idx}`}
+                    className="absolute pointer-events-none transition-all"
+                    style={{
+                      fontSize: (contactFocused[idx] || (c.value && String(c.value).trim())) ? '0.65rem' : '0.875rem',
+                      top: (contactFocused[idx] || (c.value && String(c.value).trim())) ? '-8px' : '14px',
+                      left: (contactFocused[idx] || (c.value && String(c.value).trim())) ? '12px' : '16px',
+                      padding: (contactFocused[idx] || (c.value && String(c.value).trim())) ? '0 4px' : '0',
+                      background: (contactFocused[idx] || (c.value && String(c.value).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                      color: (contactFocused[idx] || (c.value && String(c.value).trim())) ? theme.primary : (theme.textLight || theme.text),
+                      fontWeight: 500,
+                      opacity: (!contactFocused[idx] && !c.value) ? 0 : 1
+                    }}
+                  >
+                    {getContactLabel(c.type)}
+                  </label>
                 </div>
                 <button 
-                  className="p-2 rounded hover:bg-gray-100 flex-shrink-0" 
-                  style={{ color: theme.text }} 
+                  className="p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95 flex-shrink-0 flex items-center justify-center" 
+                  style={{ 
+                    background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                    color: '#ffffff',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                  }} 
                   onClick={() => removeContact(idx)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                  }}
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               </div>
             ))}
@@ -283,65 +432,161 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           </div>
         </div>
 
-        {/* PAYMENT INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>PAYMENT INFO</h4>
+        {/* PAYMENT METHODS Section Header */}
+        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PAYMENT METHODS</h4>
+          <CreditCard size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
         </div>
 
         {/* Section: Payment */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label className="block text-sm font-medium" style={{ color: theme.text }}>Payment Methods
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              {['Card','Zelle','Crypto','PayPal','Wire', 'Venmo', 'CashApp', 'AliPay'].map(p => (
-                <label key={p} className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={!!form.payments[p.toLowerCase()]} onChange={e => setForm(prev => ({ ...prev, payments: { ...prev.payments, [p.toLowerCase()]: e.target.checked } }))} className="h-4 w-4 rounded" style={{ accentColor: theme?.primary }} />
-                  <span>{p}</span>
-                </label>
-              ))}
+          <div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { name: 'Card', key: 'card', icon: CreditCard },
+                { name: 'Zelle', key: 'zelle', icon: SiZelle },
+                { name: 'Crypto', key: 'crypto', icon: Coins },
+                { name: 'PayPal', key: 'paypal', icon: FaPaypal },
+                { name: 'Wire', key: 'wire', icon: Banknote },
+                { name: 'Venmo', key: 'venmo', icon: FaPaypal },
+                { name: 'CashApp', key: 'cashapp', icon: SiCashapp },
+                { name: 'AliPay', key: 'alipay', icon: FaAlipay }
+              ].map(payment => {
+                const Icon = payment.icon
+                const isSelected = !!form.payments[payment.key]
+                return (
+                  <button
+                    key={payment.key}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, payments: { ...prev.payments, [payment.key]: !prev.payments[payment.key] } }))}
+                    className="flex flex-col items-center justify-center p-1.5 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
+                      border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                      color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                      minHeight: '60px',
+                      boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
+                        e.currentTarget.style.color = theme.text
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
+                        e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
+                      }
+                    }}
+                  >
+                    <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
+                    <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{payment.name}</span>
+                  </button>
+                )
+              })}
             </div>
-          </label>
-          <TextInput label="Payment Notes" value={form.payments.notes} onChange={v => setForm(prev => ({ ...prev, payments: { ...prev.payments, notes: v } }))} placeholder="Preferences / fees / tips" theme={theme} />
+          </div>
+          <TextInput 
+            label="Payment Notes" 
+            value={form.payments.notes} 
+            onChange={v => setForm(prev => ({ ...prev, payments: { ...prev.payments, notes: v } }))} 
+            placeholder="Preferences / fees / tips" 
+            theme={theme}
+            outlined={true}
+            customTextColor="#181A18"
+            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+          />
         </div>
 
         {/* ADDITIONAL INFO Section Header */}
-        <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-          <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>ADDITIONAL INFO</h4>
+        <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+          <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ADDITIONAL INFO</h4>
+          <FileText size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
         </div>
 
         {/* Section: Labels + Notes */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-          <label className="block text-sm font-medium" style={{ color: theme.text }}>Labels
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              {labelOptions.map(l => (
-                <label key={l} className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={Array.isArray(form.labels) && form.labels.includes(l)} onChange={e => setForm(prev => ({ ...prev, labels: e.target.checked ? Array.from(new Set([...(prev.labels||[]), l])) : (prev.labels||[]).filter(x => x !== l) }))} className="h-4 w-4 rounded" style={{ accentColor: theme?.primary }} />
-                  <span>{l}</span>
-                </label>
-              ))}
+          <div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {labelOptions.map(label => {
+                const Icon = getLabelIcon(label)
+                const isSelected = Array.isArray(form.labels) && form.labels.includes(label)
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, labels: isSelected ? (prev.labels||[]).filter(x => x !== label) : Array.from(new Set([...(prev.labels||[]), label])) }))}
+                    className="flex items-center justify-between px-2 py-1.5 rounded-lg transition-all text-left"
+                    style={{
+                      backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
+                      border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                      color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                      boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
+                        e.currentTarget.style.color = theme.text
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
+                        e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
+                      }
+                    }}
+                  >
+                    <span className="text-xs font-medium leading-tight" style={{ position: 'relative', zIndex: 1 }}>{label}</span>
+                    <Icon size={14} style={{ position: 'relative', zIndex: 1, flexShrink: 0 }} />
+                  </button>
+                )
+              })}
             </div>
-          </label>
-          <label className="block text-sm font-medium" style={{ color: theme.text }}>Notes
+          </div>
+          <div className="relative">
             <textarea 
+              id="notes-textarea"
               className="w-full p-3 rounded-lg text-sm transition-all focus:outline-none resize-none" 
-              value={form.notes} 
+              value={form.notes || ''} 
               onChange={e => setForm({ ...form, notes: e.target.value })} 
-              placeholder="Vendor notes" 
+              onFocus={() => setIsNotesFocused(true)}
+              onBlur={() => setIsNotesFocused(false)}
+              placeholder=" " 
               rows={4}
               style={{ 
-                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground, 
-                color: theme.text,
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                border: `1px solid #f0eee7`,
+                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
+                color: '#181A18',
+                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
               }} 
             />
-          </label>
+            <label 
+              htmlFor="notes-textarea"
+              className="absolute pointer-events-none transition-all"
+              style={{
+                fontSize: (isNotesFocused || (form.notes && form.notes.trim())) ? '0.75rem' : '0.9375rem',
+                top: (isNotesFocused || (form.notes && form.notes.trim())) ? '-8px' : '14px',
+                left: (isNotesFocused || (form.notes && form.notes.trim())) ? '12px' : '16px',
+                padding: (isNotesFocused || (form.notes && form.notes.trim())) ? '0 4px' : '0',
+                background: (isNotesFocused || (form.notes && form.notes.trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                color: (isNotesFocused || (form.notes && form.notes.trim())) ? theme.primary : (theme.textLight || theme.text),
+                fontWeight: 500
+              }}
+            >
+              Notes
+            </label>
+          </div>
         </div>
 
         {/* ORDER HISTORY Section Header - Only show for existing vendors */}
         {vendor && (
           <>
-            <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-              <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>ORDER HISTORY</h4>
+            <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+              <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER HISTORY</h4>
+              <History size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
             </div>
 
             {/* Section: Order History */}
@@ -418,6 +663,21 @@ function getContactPlaceholder(type) {
     case 'facebook': return 'facebook.com/username'
     case 'other': return 'Enter contact information'
     default: return 'Enter contact information'
+  }
+}
+
+function getContactLabel(type) {
+  switch ((type || '').toLowerCase()) {
+    case 'name': return 'Name'
+    case 'email': return 'Email'
+    case 'phone': return 'Phone'
+    case 'whatsapp': return 'WhatsApp'
+    case 'telegram': return 'Telegram'
+    case 'discord': return 'Discord'
+    case 'website': return 'Website'
+    case 'facebook': return 'Facebook'
+    case 'other': return 'Contact'
+    default: return 'Contact'
   }
 }
 

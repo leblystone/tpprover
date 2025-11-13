@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../common/Modal';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -154,6 +154,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [linkedData, setLinkedData] = useState({});
     const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10));
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
+    const [isStartDateFocused, setIsStartDateFocused] = useState(false);
 
     const adjustStockpileAfterRecon = React.useCallback((usageList) => {
         if (!Array.isArray(usageList) || usageList.length === 0) return;
@@ -457,33 +458,46 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 <p className="text-sm text-center italic mb-4" style={{ color: theme.textLight, wordBreak: 'keep-all', whiteSpace: 'normal' }}>
                     You've linked {linkedPeptides.length} peptide(s). How would you like to <span style={{ whiteSpace: 'nowrap' }}>reconstitute</span> them?
                 </p>
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button 
-                        onClick={() => { setReconStrategy('separate'); setStage('reconstituting'); }}
-                        className="p-4 rounded-lg text-left transition-all hover:opacity-90"
-                        style={{ 
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-                        }}
-                    >
-                        <h4 className="font-semibold" style={{ color: theme.text }}>Separately</h4>
-                        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            Reconstitute each peptide in its own vial. You'll use the calculator for each one.
-                        </p>
-                    </button>
-                    <button 
-                        onClick={() => { setReconStrategy('blended'); setStage('reconstituting'); }}
-                        className="p-4 rounded-lg text-left transition-all hover:opacity-90"
-                        style={{ 
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-                        }}
-                    >
-                        <h4 className="font-semibold" style={{ color: theme.text }}>Blended</h4>
-                        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            Combine all selected peptides into a single vial. You'll use the calculator once.
-                        </p>
-                    </button>
+                <div className="mt-6 grid grid-cols-2 gap-2">
+                    {[
+                        { key: 'separate', name: 'Separately', icon: Ungroup, description: 'Individual vials' },
+                        { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
+                    ].map(option => {
+                        const Icon = option.icon
+                        const isSelected = reconStrategy === option.key
+                        return (
+                            <button
+                                key={option.key}
+                                type="button"
+                                onClick={() => { setReconStrategy(option.key); setStage('reconstituting'); }}
+                                className="flex flex-col items-center justify-center p-1 rounded-lg transition-all"
+                                style={{
+                                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
+                                    border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                                    color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                                    minHeight: '50px',
+                                    boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
+                                    position: 'relative'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!isSelected) {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
+                                        e.currentTarget.style.color = theme.text
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!isSelected) {
+                                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
+                                        e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
+                                    }
+                                }}
+                            >
+                                <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
+                                <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{option.name}</span>
+                                <span className="text-xs text-center leading-tight opacity-75 mt-0.5" style={{ position: 'relative', zIndex: 1 }}>{option.description}</span>
+                            </button>
+                        )
+                    })}
                 </div>
                  <div className="mt-4 text-center">
                     <div className="flex justify-between items-center">
@@ -606,20 +620,37 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
 
                 {/* Start Date Input */}
-                <div className="p-4 rounded-lg" style={{ 
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-                }}>
-                    <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                        Start Date
-                    </label>
+                <div className="relative">
                     <input 
                         type="date" 
-                        className="w-full px-3 py-2 rounded-md transition-all focus:ring-2 focus:ring-opacity-50 border-0 focus:ring-0" 
+                        id="start-date-input"
+                        className="w-full px-3 py-3 rounded-lg transition-all focus:outline-none" 
                         value={startDate} 
-                        onChange={e => setStartDate(e.target.value)} 
-                        style={{ backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), color: theme.text }} 
+                        onChange={e => setStartDate(e.target.value)}
+                        onFocus={() => setIsStartDateFocused(true)}
+                        onBlur={() => setIsStartDateFocused(false)}
+                        style={{ 
+                            border: `1px solid #f0eee7`,
+                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                            color: '#181A18'
+                        }} 
                     />
+                    <label 
+                        htmlFor="start-date-input"
+                        className="absolute pointer-events-none transition-all"
+                        style={{
+                            fontSize: (isStartDateFocused || startDate) ? '0.75rem' : '0.9375rem',
+                            top: (isStartDateFocused || startDate) ? '-8px' : '14px',
+                            left: (isStartDateFocused || startDate) ? '12px' : '16px',
+                            padding: (isStartDateFocused || startDate) ? '0 4px' : '0',
+                            background: (isStartDateFocused || startDate) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                            color: (isStartDateFocused || startDate) ? theme.primary : (theme.textLight || theme.text),
+                            fontWeight: 500
+                        }}
+                    >
+                        Start Date
+                    </label>
                 </div>
 
                 {/* Protocol Summary Card */}

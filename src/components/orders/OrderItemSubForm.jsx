@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import { X } from 'lucide-react';
 
 export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem }) {
+    const [isNameFocused, setIsNameFocused] = useState(false);
+    const [isAmountFocused, setIsAmountFocused] = useState(false);
+    const [isQuantityFocused, setIsQuantityFocused] = useState(false);
+    const [isPriceFocused, setIsPriceFocused] = useState(false);
+
     const handleChange = (field, value) => {
         onChange({ ...item, [field]: value });
     };
@@ -35,50 +40,73 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
             )}
             <div className="space-y-3">
                 {/* Row 1: Name */}
-                <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Peptide/Amino Name</label>
+                <div className="relative">
                     <input
                         type="text"
+                        id={`name-input-${item.id || 'new'}`}
                         value={item.name || ''}
                         onChange={e => handleChange('name', e.target.value)}
-                        placeholder="e.g., BPC-157, Lipo-C"
-                        className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
+                        onFocus={() => setIsNameFocused(true)}
+                        onBlur={() => setIsNameFocused(false)}
+                        placeholder=" "
+                        className="w-full px-3 py-3 rounded-lg outline-none transition-all"
                         style={{
-                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                            backgroundColor: theme.isDark ? '#374151' : theme.cardBackground,
-                            color: theme.text,
-                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                            border: `1px solid #f0eee7`,
+                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                            color: '#181A18'
                         }}
                     />
+                    <label 
+                        htmlFor={`name-input-${item.id || 'new'}`}
+                        className="absolute pointer-events-none transition-all"
+                        style={{
+                            fontSize: (isNameFocused || (item.name && String(item.name).trim())) ? '0.75rem' : '0.9375rem',
+                            top: (isNameFocused || (item.name && String(item.name).trim())) ? '-8px' : '14px',
+                            left: (isNameFocused || (item.name && String(item.name).trim())) ? '12px' : '16px',
+                            padding: (isNameFocused || (item.name && String(item.name).trim())) ? '0 4px' : '0',
+                            background: (isNameFocused || (item.name && String(item.name).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                            color: (isNameFocused || (item.name && String(item.name).trim())) ? theme.primary : (theme.textLight || theme.text),
+                            fontWeight: 500
+                        }}
+                    >
+                        Peptide/Amino Name
+                    </label>
                 </div>
                 
                 {/* Row 2: Amount and Quantity */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Amount</label>
+                    <div className="relative">
                         <div 
-                            className="flex items-stretch rounded-lg overflow-hidden"
+                            className="flex items-stretch rounded-lg"
                             style={{ 
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                                border: `1px solid #f0eee7`,
+                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                             }}
                         >
                             <input 
                                 type="text"
+                                id={`amount-input-${item.id || 'new'}`}
                                 value={item.mg || ''} 
                                 onChange={e => handleChange('mg', e.target.value)} 
-                                placeholder="10"
-                                className="flex-1 px-3 py-2 outline-none min-w-0"
+                                onFocus={() => setIsAmountFocused(true)}
+                                onBlur={() => setIsAmountFocused(false)}
+                                placeholder=" "
+                                className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                                 style={{
-                                    backgroundColor: theme.isDark ? '#374151' : (theme.inputBackground || '#fff'),
-                                    color: theme.text
+                                    backgroundColor: 'transparent',
+                                    color: '#181A18',
+                                    border: 'none',
+                                    paddingLeft: '12px',
+                                    paddingRight: '8px'
                                 }}
                             />
                             <div 
-                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
                                 style={{ 
-                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
-                                    backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb')
+                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                                 }}
                             >
                                 {['mg', 'mL'].map(unit => (
@@ -98,34 +126,51 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 ))}
                             </div>
                         </div>
+                        <label 
+                            htmlFor={`amount-input-${item.id || 'new'}`}
+                            className="absolute pointer-events-none transition-all"
+                            style={{
+                                fontSize: (isAmountFocused || (item.mg && String(item.mg).trim())) ? '0.65rem' : '0.875rem',
+                                top: (isAmountFocused || (item.mg && String(item.mg).trim())) ? '-8px' : '14px',
+                                left: (isAmountFocused || (item.mg && String(item.mg).trim())) ? '12px' : '16px',
+                                padding: (isAmountFocused || (item.mg && String(item.mg).trim())) ? '0 4px' : '0',
+                                background: (isAmountFocused || (item.mg && String(item.mg).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                color: (isAmountFocused || (item.mg && String(item.mg).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                fontWeight: 500
+                            }}
+                        >
+                            Amount
+                        </label>
                     </div>
-                    <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Quantity</label>
+                    <div className="relative">
                         <div 
-                            className="flex items-stretch rounded-lg overflow-hidden focus-within:ring-2"
+                            className="flex items-stretch rounded-lg"
                             style={{ 
-                                border: `1px solid ${theme.isDark ? '#4b5563' : theme.border}`,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(15, 23, 42, 0.08)',
-                                transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
+                                border: `1px solid #f0eee7`,
+                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                             }}
                         >
                             <input 
-                                type="number"
+                                type="text"
+                                id={`quantity-input-${item.id || 'new'}`}
                                 value={item.quantity || ''} 
                                 onChange={e => handleChange('quantity', e.target.value)} 
-                                placeholder="e.g., 5"
-                                className="flex-1 px-3 py-2 outline-none min-w-0 bg-transparent text-base"
+                                onFocus={() => setIsQuantityFocused(true)}
+                                onBlur={() => setIsQuantityFocused(false)}
+                                placeholder=" "
+                                className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                                 style={{
-                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                    color: theme.text,
-                                    borderRight: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`
+                                    backgroundColor: 'transparent',
+                                    color: '#181A18',
+                                    border: 'none'
                                 }}
                             />
                             <div 
-                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0"
+                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
                                 style={{ 
-                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid ${theme.border}`,
-                                    backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb')
+                                    borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
                                 }}
                             >
                                 {['vial', 'kit'].map(unit => (
@@ -145,25 +190,57 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 ))}
                             </div>
                         </div>
+                        <label 
+                            htmlFor={`quantity-input-${item.id || 'new'}`}
+                            className="absolute pointer-events-none transition-all"
+                            style={{
+                                fontSize: (isQuantityFocused || (item.quantity && String(item.quantity).trim())) ? '0.65rem' : '0.875rem',
+                                top: (isQuantityFocused || (item.quantity && String(item.quantity).trim())) ? '-8px' : '14px',
+                                left: (isQuantityFocused || (item.quantity && String(item.quantity).trim())) ? '12px' : '16px',
+                                padding: (isQuantityFocused || (item.quantity && String(item.quantity).trim())) ? '0 4px' : '0',
+                                background: (isQuantityFocused || (item.quantity && String(item.quantity).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                color: (isQuantityFocused || (item.quantity && String(item.quantity).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                fontWeight: 500
+                            }}
+                        >
+                            Quantity
+                        </label>
                     </div>
                 </div>
                 
                 {/* Row 3: Price */}
-                <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Price ($)</label>
+                <div className="relative">
                     <input
                         type="text"
+                        id={`price-input-${item.id || 'new'}`}
                         value={item.price || ''}
                         onChange={e => handleChange('price', e.target.value)}
-                        placeholder="e.g., 45.00"
-                        className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
+                        onFocus={() => setIsPriceFocused(true)}
+                        onBlur={() => setIsPriceFocused(false)}
+                        placeholder=" "
+                        className="w-full px-3 py-3 rounded-lg outline-none transition-all"
                         style={{
-                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                            backgroundColor: theme.isDark ? '#374151' : theme.cardBackground,
-                            color: theme.text,
-                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                            border: `1px solid #f0eee7`,
+                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                            color: '#181A18'
                         }}
                     />
+                    <label 
+                        htmlFor={`price-input-${item.id || 'new'}`}
+                        className="absolute pointer-events-none transition-all"
+                        style={{
+                            fontSize: (isPriceFocused || (item.price && String(item.price).trim())) ? '0.75rem' : '0.9375rem',
+                            top: (isPriceFocused || (item.price && String(item.price).trim())) ? '-8px' : '14px',
+                            left: (isPriceFocused || (item.price && String(item.price).trim())) ? '12px' : '16px',
+                            padding: (isPriceFocused || (item.price && String(item.price).trim())) ? '0 4px' : '0',
+                            background: (isPriceFocused || (item.price && String(item.price).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                            color: (isPriceFocused || (item.price && String(item.price).trim())) ? theme.primary : (theme.textLight || theme.text),
+                            fontWeight: 500
+                        }}
+                    >
+                        Price ($)
+                    </label>
                 </div>
             </div>
         </div>

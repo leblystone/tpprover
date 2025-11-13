@@ -16,6 +16,7 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
   const previousDataRef = useRef(null);
   const isSubmittedRef = useRef(false);
   const isSavingActiveRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   // Store setFormData in ref to avoid dependency issues
   const setFormDataRef = useRef(setFormData);
@@ -27,20 +28,27 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
   useEffect(() => {
     if (isSubmittedRef.current) return; // Don't load if form was just submitted
 
+    isLoadingRef.current = true;
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsedData = JSON.parse(saved);
         if (parsedData.data && Object.keys(parsedData.data).length > 0) {
           // Set previous data ref to prevent autosave from triggering
-          previousDataRef.current = parsedData.data;
-          setFormDataRef.current(parsedData.data);
-          setLastSaved(new Date(parsedData.timestamp));
+          previousDataRef.current = JSON.parse(JSON.stringify(parsedData.data));
+          // Defer state update to avoid React queue issues
+          setTimeout(() => {
+            setFormDataRef.current(parsedData.data);
+            setLastSaved(new Date(parsedData.timestamp));
+            isLoadingRef.current = false;
+          }, 0);
+          return;
         }
       }
     } catch (error) {
       console.warn('Failed to load auto-saved data:', error);
     }
+    isLoadingRef.current = false;
     // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
@@ -54,9 +62,13 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
   // Auto-save when form data changes
   useEffect(() => {
     if (isSubmittedRef.current) return; // Don't save if form was just submitted
+    if (isSavingActiveRef.current) return; // Don't trigger if already saving
+    if (isLoadingRef.current) return; // Don't save while loading initial data
 
     // Skip if data hasn't actually changed
-    if (JSON.stringify(formData) === JSON.stringify(previousDataRef.current)) {
+    const currentDataString = JSON.stringify(formData);
+    const previousDataString = JSON.stringify(previousDataRef.current);
+    if (currentDataString === previousDataString) {
       return;
     }
 
@@ -70,11 +82,9 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
       clearTimeout(timeoutRef.current);
     }
 
-    // Set saving state only if not already saving
-    if (!isSavingActiveRef.current) {
-      isSavingActiveRef.current = true;
-      setIsSaving(true);
-    }
+    // Set saving state
+    isSavingActiveRef.current = true;
+    setIsSaving(true);
 
     // Auto-save after delay
     timeoutRef.current = setTimeout(async () => {
@@ -87,7 +97,8 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
         localStorage.setItem(storageKey, JSON.stringify(saveData));
         const savedTime = new Date();
         setLastSaved(savedTime);
-        previousDataRef.current = formData;
+        // Store a deep copy to prevent reference issues
+        previousDataRef.current = JSON.parse(JSON.stringify(formData));
         
         // Call additional auto-save callback if provided (use ref to avoid dependency)
         if (onAutoSaveRef.current && typeof onAutoSaveRef.current === 'function') {

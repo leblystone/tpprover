@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import TextInput from '../common/inputs/TextInput'
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput'
-import CustomDropdown from '../common/inputs/CustomDropdown'
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown'
 import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette } from 'lucide-react'
+import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData }) {
@@ -39,6 +38,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   const [currentPeptideIndex, setCurrentPeptideIndex] = useState(0); // For pagination
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);
+  const penTypeDropdownRef = useRef(null);
   const getPrimaryActionGradient = useCallback((saving = false) => {
     const secondaryColor = theme?.secondary || '#d1d5db';
     if (saving) {
@@ -220,11 +221,43 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
     }
   };
 
+  // Handle click outside for pen type dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (penTypeDropdownRef.current && !penTypeDropdownRef.current.contains(event.target)) {
+        setIsPenTypeDropdownOpen(false);
+      }
+    };
+
+    if (isPenTypeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPenTypeDropdownOpen]);
+
   const content = (
     <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
-      <div className="mb-4 px-6 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Vial Details</h4>
+      <div 
+        className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
+        style={{ 
+          backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+          borderLeft: '4px solid #e0ded7' 
+        }}
+      >
+        <h4 
+          className="font-bold text-sm tracking-wider uppercase" 
+          style={{ 
+            color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
+            letterSpacing: '0.1em' 
+          }}
+        >
+          VIAL DETAILS
+        </h4>
+        <TestTube size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
       </div>
 
       {/* Two Column Layout: Left Content + Visual Preview */}
@@ -238,7 +271,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className="space-y-1">
+            <div className="space-y-3">
               {/* Current Peptide from pagination */}
               {safeForm.peptides && safeForm.peptides[currentPeptideIndex] && (
                 <>
@@ -248,7 +281,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                     value={safeForm.peptides[currentPeptideIndex]?.name || ''} 
                     onChange={v => updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'name', v)} 
                     placeholder="e.g., BPC-157" 
-                    theme={theme} 
+                    theme={theme}
+                    outlined={true}
+                    customTextColor="#181A18"
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                   
                   {/* MG and Water in 2 columns */}
@@ -259,7 +295,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                       value={safeForm.peptides[currentPeptideIndex]?.mg || ''} 
                       onChange={v => updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'mg', v)} 
                       placeholder="e.g., 10" 
-                      theme={theme} 
+                      theme={theme}
+                      outlined={true}
+                      customTextColor="#181A18"
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                     <TextInput 
                       label="Water(mL)" 
@@ -269,13 +308,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                       setForm(prev => ({...prev, water: v}));
                     }}
                       placeholder="e.g., 2" 
-                      theme={theme} 
+                      theme={theme}
+                      outlined={true}
+                      customTextColor="#181A18"
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                   </div>
                   
                   {/* Dose with integrated unit selector */}
                   <div>
-                    <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>Dose</div>
                     <CombinedDosageInput
                       value={{ amount: safeForm.peptides[currentPeptideIndex]?.dose || '', unit: safeForm.peptides[currentPeptideIndex]?.doseUnit || 'mcg' }}
                       onChange={(newValue) => {
@@ -285,6 +326,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                       theme={theme}
                       placeholder="e.g., 250"
                       units={['mcg', 'mg', 'mL']}
+                      outlined={true}
+                      customTextColor="#181A18"
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                   </div>
                 </>
@@ -302,7 +346,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                   }
                 }} 
                 placeholder="e.g., Pharm......" 
-                theme={theme} 
+                theme={theme}
+                outlined={true}
+                customTextColor="#181A18"
+                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               />
               
               {/* Cost */}
@@ -316,7 +363,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                   setForm(prev => ({ ...prev, cost: v }));
                 }} 
                 placeholder="e.g., 60" 
-                theme={theme} 
+                theme={theme}
+                outlined={true}
+                customTextColor="#181A18"
+                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               />
             </div>
           </div>
@@ -455,8 +505,23 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
         {/* Right Column: Delivery Method (moved from left) */}
         <div>
           {/* Section Banner - Delivery Method */}
-          <div className="mb-3 px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-            <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>Delivery Method</h4>
+          <div 
+            className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
+            style={{ 
+              backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+              borderLeft: '4px solid #e0ded7' 
+            }}
+          >
+            <h4 
+              className="font-bold text-sm tracking-wider uppercase" 
+              style={{ 
+                color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
+                letterSpacing: '0.1em' 
+              }}
+            >
+              DELIVERY METHOD
+            </h4>
+            <Droplets size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
           </div>
           <div className="grid grid-cols-3 gap-2">
                 <button 
@@ -551,8 +616,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
             {/* Administration Route for Droplet */}
             {deliveryMethod === 'pipette' && (
                 <div className="mt-3">
-                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Administration Route</label>
-                    <div className="flex items-center gap-1 p-1 rounded-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb') }}>
+                    <div 
+                        className="flex items-center gap-1 p-1 rounded-md" 
+                        style={{ 
+                            backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
+                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                        }}
+                    >
                         {['subq', 'im', 'iv'].map(route => (
                             <button
                                 key={route}
@@ -579,14 +649,43 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 <div className="mt-3">
                     <div className="grid grid-cols-2 gap-4">
                         {/* Pen Type Selection */}
-                        <CustomDropdown
-                            label="Pen Type"
-                            value={form.penType || ''}
-                            onChange={(value) => {
-                              setForm(prev => ({ ...prev, penType: value }));
+                        <div className="relative" ref={penTypeDropdownRef}>
+                          <button
+                            type="button"
+                            onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
+                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                            style={{
+                              borderColor: isPenTypeDropdownOpen ? theme.primary : theme.border,
+                              backgroundColor: theme.cardBackground,
+                              color: form.penType ? theme.text : theme.textLight
                             }}
-                            options={[
-                                { value: '', label: '(Optional)' },
+                          >
+                            <span>
+                              {form.penType ? (
+                                form.penType === 'bird-pen' ? 'Bird Pen' : 
+                                form.penType === 'v1' ? 'V1' : 
+                                form.penType === 'v2' ? 'V2' : 
+                                form.penType === 'v3' ? 'V3' : 
+                                form.penType.charAt(0).toUpperCase() + form.penType.slice(1)
+                              ) : 'Pen Type'}
+                            </span>
+                            <ChevronDown 
+                              size={16} 
+                              className={`transition-transform duration-200 ${isPenTypeDropdownOpen ? 'rotate-180' : ''}`}
+                              style={{ color: theme.textLight }}
+                            />
+                          </button>
+                          {isPenTypeDropdownOpen && (
+                            <div 
+                              className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                              style={{
+                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                borderColor: theme.border,
+                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              {[
+                                { value: '', label: 'Pen Type' },
                                 { value: 'savvio', label: 'Savvio' },
                                 { value: 'novo', label: 'Novo' },
                                 { value: 'v1', label: 'V1' },
@@ -596,14 +695,44 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                                 { value: 'luxura', label: 'Luxura' },
                                 { value: 'gansulin', label: 'Gansulin' },
                                 { value: 'other', label: 'Other' }
-                            ]}
-                            placeholder="(Optional)"
-                            theme={theme}
-                        />
+                              ].map((option, optIdx) => (
+                                <React.Fragment key={option.value}>
+                                  {optIdx > 0 && (
+                                    <div 
+                                      className="h-px mx-2"
+                                      style={{ backgroundColor: theme.border }}
+                                    />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setForm(prev => ({ ...prev, penType: option.value }));
+                                      setIsPenTypeDropdownOpen(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm transition-all"
+                                    style={{
+                                      color: form.penType === option.value ? theme.primary : theme.text,
+                                      backgroundColor: 'transparent'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                      e.currentTarget.style.color = theme.primary;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                      e.currentTarget.style.color = form.penType === option.value ? theme.primary : theme.text;
+                                    }}
+                                  >
+                                    {option.label}
+                                  </button>
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
                         {/* Pen Color Selection */}
                         <ColorSwatchDropdown
-                            label="Pen Color"
                             value={penColor}
                             onChange={(hex) => {
                               setPenColor(hex);
@@ -615,6 +744,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                             }}
                             colors={penColors}
                             theme={theme}
+                            placeholder="Pen Color"
                         />
                     </div>
                 </div>
