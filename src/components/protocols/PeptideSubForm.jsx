@@ -403,120 +403,266 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
                     {item.frequency?.type === 'cycle' && (
                         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Cycle Pattern</div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <TextInput 
-                                    label="Days On" 
-                                    value={item.frequency?.onDays || ''} 
-                                    onChange={v => handleFrequencyChange('onDays', v)} 
-                                    theme={theme} 
-                                    placeholder="5" 
-                                    type="number"
-                                    outlined={true}
-                                    customShadow
-                                />
-                                <TextInput 
-                                    label="Days Off" 
-                                    value={item.frequency?.offDays || ''} 
-                                    onChange={v => handleFrequencyChange('offDays', v)} 
-                                    theme={theme} 
-                                    placeholder="2" 
-                                    type="number"
-                                    outlined={true}
-                                    customShadow
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {item.frequency?.type === 'weekly' && (
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Select Days</div>
-                            <div className="flex flex-wrap gap-2">
-                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                                    <button 
-                                        key={day} 
-                                        type="button" 
-                                        onClick={() => toggleDay(day)}
-                                        className={`px-3 py-2 text-xs font-semibold rounded-md border ${item.frequency?.days?.includes(day) ? 'text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                                        style={{
-                                            backgroundColor: item.frequency?.days?.includes(day) ? theme.primary : 'white',
-                                            borderColor: item.frequency?.days?.includes(day) ? theme.primary : theme.border
-                                        }}
-                                    >
-                                        {day}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {item.frequency?.type === 'custom' && (
-                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm font-medium" style={{ color: theme.text }}>Every</span>
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <TextInput 
+                                            label="Days On" 
+                                            value={item.frequency?.onDays || ''} 
+                                            onChange={v => handleFrequencyChange('onDays', v)} 
+                                            theme={theme} 
+                                            placeholder="5" 
+                                            type="number"
+                                            outlined={true}
+                                            customShadow
+                                        />
+                                        <TextInput 
+                                            label="Days Off" 
+                                            value={item.frequency?.offDays || ''} 
+                                            onChange={v => handleFrequencyChange('offDays', v)} 
+                                            theme={theme} 
+                                            placeholder="2" 
+                                            type="number"
+                                            outlined={true}
+                                            customShadow
+                                        />
+                                    </div>
+                                </div>
                                 
-                                {/* Combined Input with 'days' pill */}
-                                <div 
-                                    className="flex items-stretch border rounded-lg overflow-hidden"
-                                    style={{ borderColor: theme.border }}
-                                >
-                                    <input 
-                                        type="text"
-                                        value={item.frequency?.customDays || ''}
-                                        onChange={e => handleFrequencyChange('customDays', e.target.value)}
-                                        placeholder="3"
-                                        className="flex-1 px-3 py-2 outline-none min-w-0 w-20"
-                                        style={{ 
-                                            backgroundColor: theme.inputBackground || theme.cardBackground || (theme.isDark ? '#1f2937' : '#fff'),
-                                            color: theme.text 
-                                        }}
-                                    />
-                                    
-                                    {/* Single 'days' pill */}
-                                    <div 
-                                        className="flex items-center px-1.5 py-1.5 border-l flex-shrink-0"
-                                        style={{ 
-                                            borderColor: theme.border,
-                                            backgroundColor: theme.cardBackground || '#f9fafb'
-                                        }}
-                                    >
-                                        <div
-                                            className="px-2 py-1 text-xs font-semibold rounded transition-all text-white shadow-sm flex-shrink-0"
-                                            style={{ backgroundColor: theme.primary }}
-                                        >
-                                            days
-                                        </div>
+                                {/* Time of Day */}
+                                <div>
+                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                        {['AM','PM'].map(t => {
+                                            const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
+                                            return (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
+                                                        const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
+                                                        const safeNext = next.length === 0 ? ['AM'] : next;
+                                                        handleFrequencyChange('time', safeNext);
+                                                    }}
+                                                    className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
+                                                    style={active 
+                                                        ? { backgroundColor: theme.primary } 
+                                                        : { 
+                                                            backgroundColor: theme.isDark ? '#374151' : 'transparent',
+                                                            color: theme.isDark ? theme.text : '#6B7280'
+                                                        }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!active) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4B5563' : 'rgba(255, 255, 255, 0.5)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!active) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'transparent';
+                                                        }
+                                                    }}
+                                                >
+                                                    {t}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                        <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Time of Day</div>
-                        <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
-                            {['AM','PM'].map(t => {
-                                const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
-                                return (
-                                    <button
-                                        key={t}
-                                        type="button"
-                                        onClick={() => {
-                                            const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
-                                            const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-                                            const safeNext = next.length === 0 ? ['AM'] : next;
-                                            handleFrequencyChange('time', safeNext);
-                                        }}
-                                        className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
-                                        style={active ? { backgroundColor: theme.primary } : {}}
-                                    >
-                                        {t}
-                                    </button>
-                                );
-                            })}
+                    {item.frequency?.type === 'weekly' && (
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="flex flex-nowrap gap-1.5 overflow-x-auto">
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                                            const isSelected = item.frequency?.days?.includes(day);
+                                            return (
+                                                <button 
+                                                    key={day} 
+                                                    type="button" 
+                                                    onClick={() => toggleDay(day)}
+                                                    className="flex-1 min-w-0 px-1.5 py-1 text-[10px] font-medium rounded-lg transition-all whitespace-nowrap"
+                                                    style={{
+                                                        backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
+                                                        border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                                                        color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                                                        boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!isSelected) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb';
+                                                            e.currentTarget.style.color = theme.text;
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!isSelected) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff';
+                                                            e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280';
+                                                        }
+                                                    }}
+                                                >
+                                                    {day}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                
+                                {/* Time of Day */}
+                                <div>
+                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                        {['AM','PM'].map(t => {
+                                            const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
+                                            return (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
+                                                        const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
+                                                        const safeNext = next.length === 0 ? ['AM'] : next;
+                                                        handleFrequencyChange('time', safeNext);
+                                                    }}
+                                                    className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
+                                                    style={active 
+                                                        ? { backgroundColor: theme.primary } 
+                                                        : { 
+                                                            backgroundColor: theme.isDark ? '#374151' : 'transparent',
+                                                            color: theme.isDark ? theme.text : '#6B7280'
+                                                        }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!active) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4B5563' : 'rgba(255, 255, 255, 0.5)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!active) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'transparent';
+                                                        }
+                                                    }}
+                                                >
+                                                    {t}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {item.frequency?.type === 'custom' && (
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-center gap-3">
+                                    <span className="text-sm font-medium" style={{ color: theme.text }}>Every</span>
+                                    
+                                    {/* Combined Input with 'days' pill */}
+                                    <div 
+                                        className="flex items-stretch border rounded-lg overflow-hidden"
+                                        style={{ borderColor: theme.border }}
+                                    >
+                                        <input 
+                                            type="text"
+                                            value={item.frequency?.customDays || ''}
+                                            onChange={e => handleFrequencyChange('customDays', e.target.value)}
+                                            placeholder="3"
+                                            className="flex-1 px-3 py-2 outline-none min-w-0 w-20"
+                                            style={{ 
+                                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                                                color: theme.text 
+                                            }}
+                                        />
+                                        
+                                        {/* Single 'days' pill */}
+                                        <div 
+                                            className="flex items-center px-1.5 py-1.5 border-l flex-shrink-0"
+                                            style={{ 
+                                                borderColor: theme.border,
+                                                backgroundColor: theme.cardBackground || '#f9fafb'
+                                            }}
+                                        >
+                                            <div
+                                                className="px-2 py-1 text-xs font-semibold rounded transition-all text-white shadow-sm flex-shrink-0"
+                                                style={{ backgroundColor: theme.primary }}
+                                            >
+                                                days
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Time of Day */}
+                                <div>
+                                    <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                        {['AM','PM'].map(t => {
+                                            const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
+                                            return (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
+                                                        const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
+                                                        const safeNext = next.length === 0 ? ['AM'] : next;
+                                                        handleFrequencyChange('time', safeNext);
+                                                    }}
+                                                    className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : ''}`}
+                                                    style={active 
+                                                        ? { backgroundColor: theme.primary } 
+                                                        : { 
+                                                            backgroundColor: theme.isDark ? '#374151' : 'transparent',
+                                                            color: theme.isDark ? theme.text : '#6B7280'
+                                                        }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!active) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4B5563' : 'rgba(255, 255, 255, 0.5)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!active) {
+                                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'transparent';
+                                                        }
+                                                    }}
+                                                >
+                                                    {t}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {item.frequency?.type !== 'custom' && item.frequency?.type !== 'cycle' && item.frequency?.type !== 'weekly' && (
+                        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                            <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
+                                {['AM','PM'].map(t => {
+                                    const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
+                                    return (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => {
+                                                const current = Array.isArray(item.frequency?.time) && item.frequency.time.length > 0 ? item.frequency.time : ['AM'];
+                                                const next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
+                                                const safeNext = next.length === 0 ? ['AM'] : next;
+                                                handleFrequencyChange('time', safeNext);
+                                            }}
+                                            className={`flex-1 px-4 py-2 text-xs font-semibold rounded transition-all ${active ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                            style={active ? { backgroundColor: theme.primary } : {}}
+                                        >
+                                            {t}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                     </div>
                 </>
                 )}

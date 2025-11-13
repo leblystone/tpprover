@@ -858,6 +858,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* Notes Content */}
                 <div>
                     <TextInput 
+                        label="Notes"
                         value={form.notes || ''} 
                         onChange={v => handleChange('notes', v)} 
                         theme={theme} 
