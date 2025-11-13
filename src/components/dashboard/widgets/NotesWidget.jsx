@@ -82,16 +82,42 @@ const NotesWidget = ({ widget, theme }) => {
         {showAddForm ? (
           /* Add Note Form */
           <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Note title (optional)"
+              value={newNote.title}
+              onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-all"
+              style={{ 
+                borderColor: theme.border, 
+                backgroundColor: theme.background,
+                color: theme.text,
+                focusRingColor: theme.primary
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = theme.primary;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = theme.border;
+              }}
+            />
             <textarea
               placeholder="Write your note..."
               value={newNote.content}
               onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-              className="w-full px-3 py-2 text-sm border rounded-lg resize-none"
+              className="w-full px-3 py-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 transition-all"
               rows="3"
               style={{ 
                 borderColor: theme.border, 
                 backgroundColor: theme.background,
-                color: theme.text
+                color: theme.text,
+                focusRingColor: theme.primary
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = theme.primary;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = theme.border;
               }}
             />
             <div className="flex gap-2">
@@ -175,17 +201,15 @@ const NotesWidget = ({ widget, theme }) => {
             <div className="space-y-2 flex-shrink-0">
               <button
                 onClick={() => setShowAddForm(true)}
-                className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-all flex items-center justify-center gap-1"
-                style={{ borderColor: theme.border, color: theme.textLight }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '30';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-1"
+                style={{ 
+                  backgroundColor: theme.primary, 
+                  color: theme.textOnPrimary || '#ffffff',
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
                 }}
               >
                 <Plus size={12} />
-                <span className="text-xs">Add Note</span>
+                Add Note
               </button>
               
               {userNotes.length > 0 && userNotes.length <= 2 && (

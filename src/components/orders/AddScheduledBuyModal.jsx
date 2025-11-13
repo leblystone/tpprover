@@ -186,6 +186,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             onChange={(dateString) => setForm({ ...form, openDate: dateString })}
                             theme={theme}
                             placeholder="Open Date"
+                            compact={true}
                         />
                     </div>
                     <div>
@@ -195,6 +196,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             onChange={(dateString) => setForm({ ...form, closeDate: dateString })}
                             theme={theme}
                             placeholder="Close Date"
+                            compact={true}
                         />
                     </div>
                 </div>
