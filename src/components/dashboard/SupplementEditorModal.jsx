@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { Pill, TestTube, Pipette } from 'lucide-react';
+import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark } from 'lucide-react';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
-    const [form, setForm] = useState({ name: '', dose: '', schedule: [], delivery: 'oral', days: [] });
+    const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [] });
 
     useEffect(() => {
         if (supplement) {
             setForm({
-                schedule: [],
+                schedule: supplement.schedule && supplement.schedule.length > 0 ? supplement.schedule : ['AM'],
                 days: [],
                 ...supplement,
                 // Ensure delivery is never undefined
                 delivery: supplement.delivery || 'oral'
             });
         } else {
-            setForm({ name: '', dose: '', schedule: [], delivery: 'oral', days: [] });
+            setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [] });
         }
     }, [supplement, open]);
 
@@ -79,107 +79,99 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
             }
         >
             <div className="space-y-4">
-                {/* SUPPLEMENT DETAILS Section Header */}
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>SUPPLEMENT DETAILS</h4>
+                {/* SUPPLEMENT Section Header */}
+                <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>SUPPLEMENT</h4>
+                    <PillIcon size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
 
                 {/* Name and Dosage on same line */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Name</label>
-                        <input
-                            type="text"
-                            value={form.name}
-                            onChange={e => setForm({ ...form, name: e.target.value })}
-                            placeholder="B12 Injection, Vitamin D"
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
-                            style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
-                                color: theme.text,
-                                focusRingColor: theme.primary
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Dosage</label>
-                        <input
-                            type="text"
-                            value={form.dose}
-                            onChange={e => setForm({ ...form, dose: e.target.value })}
-                            placeholder="2 tablets, 1 mL"
-                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all"
-                            style={{
-                                borderColor: theme.border,
-                                backgroundColor: theme.cardBackground,
-                                color: theme.text,
-                                focusRingColor: theme.primary
-                            }}
-                        />
-                    </div>
+                    <TextInput
+                        label="Name"
+                        value={form.name}
+                        onChange={v => setForm({ ...form, name: v })}
+                        placeholder="B12 Injection, Vitamin D"
+                        theme={theme}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
+                    <TextInput
+                        label="Dosage"
+                        value={form.dose}
+                        onChange={v => setForm({ ...form, dose: v })}
+                        placeholder="2 tablets, 1 mL"
+                        theme={theme}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
                 </div>
                 
-                {/* SCHEDULE & DAYS Section Header */}
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>SCHEDULE & DAYS</h4>
+                {/* SCHEDULE Section Header */}
+                <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>SCHEDULE</h4>
+                    <CalendarClock size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
                 
                 {/* Schedule and Days combined */}
-                <div>
-                    <div className="text-sm font-medium mb-2" style={{ color: theme.text }}>Schedule & Days</div>
-                    <div className="space-y-2">
-                        {/* AM/PM Schedule */}
-                        <div>
-                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Time</label>
-                            <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
-                                {['AM', 'PM'].map(time => (
-                                    <button 
-                                        key={time} 
-                                        type="button" 
-                                        onClick={() => toggleTime(time)}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                                            form.schedule.includes(time) 
-                                                ? 'text-white shadow-sm' 
-                                                : 'text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                        style={form.schedule.includes(time) ? { backgroundColor: theme.primary } : {}}
-                                    >
-                                        {time}
-                                    </button>
-                                ))}
-                            </div>
+                <div className="space-y-3">
+                    {/* AM/PM Schedule */}
+                    <div>
+                        <div className="flex rounded-lg p-1 gap-1" style={{ 
+                            backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                        }}>
+                            {['AM', 'PM'].map(time => (
+                                <button 
+                                    key={time} 
+                                    type="button" 
+                                    onClick={() => toggleTime(time)}
+                                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                                        form.schedule.includes(time) 
+                                            ? 'text-white shadow-sm' 
+                                            : 'text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                    style={form.schedule.includes(time) ? { backgroundColor: theme.primary } : {}}
+                                >
+                                    {time}
+                                </button>
+                            ))}
                         </div>
-                        
-                        {/* Days */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Days</label>
-                            <div className="flex flex-wrap items-center gap-1">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                    <button
-                                        key={day}
-                                        type="button"
-                                        onClick={() => toggleDay(day)}
-                                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${form.days.includes(day) ? 'text-white shadow-sm' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
-                                        style={form.days.includes(day) ? {backgroundColor: theme.primary} : {}}
-                                    >
-                                        {day}
-                                    </button>
-                                ))}
-                            </div>
+                    </div>
+                    
+                    {/* Days */}
+                    <div>
+                        <div className="flex flex-wrap items-center justify-center gap-1">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => toggleDay(day)}
+                                    className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${form.days.includes(day) ? 'text-white shadow-sm' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
+                                    style={form.days.includes(day) ? {backgroundColor: theme.primary} : {}}
+                                >
+                                    {day}
+                                </button>
+                            ))}
                         </div>
-                        <div className="text-xs mt-2 text-center" style={{ color: theme.text, opacity: 0.7 }}>Leave days blank to schedule for every day.</div>
+                        <div className="text-xs mt-2 text-center" style={{ color: theme.textLight || theme.text, opacity: 0.7 }}>Leave days blank to schedule for every day.</div>
                     </div>
                 </div>
 
                 {/* DELIVERY METHOD Section Header */}
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.primary }}>DELIVERY METHOD</h4>
+                <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>DELIVERY METHOD</h4>
+                    <BadgeQuestionMark size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
 
                 {/* Delivery Method pills */}
                 <div>
-                    <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
+                    <div className="flex rounded-lg p-1 gap-1" style={{ 
+                        backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                    }}>
                         {deliveryOptions.map(({ value, label, Icon }) => (
                             <button 
                                 key={value} 

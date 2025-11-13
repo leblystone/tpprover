@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 
 export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave, onDelete }) {
     const [form, setForm] = useState({ 
@@ -183,33 +184,21 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Open Date</label>
-                        <input
-                            type="date"
+                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Open Date</label>
+                        <GlassmorphismDatePicker
                             value={form.openDate}
-                            onChange={e => setForm({ ...form, openDate: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                            style={{
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                color: theme.text,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                            }}
+                            onChange={(dateString) => setForm({ ...form, openDate: dateString })}
+                            theme={theme}
+                            placeholder="Open Date"
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Close Date</label>
-                        <input
-                            type="date"
+                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Close Date</label>
+                        <GlassmorphismDatePicker
                             value={form.closeDate}
-                            onChange={e => setForm({ ...form, closeDate: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                            style={{
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                color: theme.text,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                            }}
+                            onChange={(dateString) => setForm({ ...form, closeDate: dateString })}
+                            theme={theme}
+                            placeholder="Close Date"
                         />
                     </div>
                 </div>

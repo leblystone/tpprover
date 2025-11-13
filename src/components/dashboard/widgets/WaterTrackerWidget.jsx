@@ -14,6 +14,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
   });
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [goalInputValue, setGoalInputValue] = useState('');
 
   // Water units configuration
   const waterUnits = {
@@ -69,15 +70,26 @@ const WaterTrackerWidget = ({ widget, theme }) => {
 
   const changeUnit = (unitKey) => {
     const newUnit = waterUnits[unitKey];
+    // Preserve the user's custom goal instead of resetting to default
+    // Only use default if goal hasn't been customized (still at default for current unit)
+    const currentUnitDefault = waterUnits[todayData.unit]?.defaultGoal || 8;
+    const shouldPreserveGoal = todayData.goal !== currentUnitDefault;
+    const newGoal = shouldPreserveGoal ? todayData.goal : newUnit.defaultGoal;
+    
     setWaterData(prev => ({
       ...prev,
       [today]: {
         ...todayData,
         unit: unitKey,
-        goal: newUnit.defaultGoal,
+        goal: newGoal,
         glasses: 0 // Reset intake when changing units
       }
     }));
+    
+    // Update input value to reflect the new goal
+    if (showSettingsModal) {
+      setGoalInputValue(newGoal.toString());
+    }
   };
 
   const updateCustomGoal = (newGoal) => {
@@ -88,6 +100,43 @@ const WaterTrackerWidget = ({ widget, theme }) => {
         goal: Math.max(1, newGoal)
       }
     }));
+  };
+
+  // Initialize goal input value when modal opens or goal changes
+  useEffect(() => {
+    if (showSettingsModal) {
+      setGoalInputValue(todayData.goal?.toString() || '');
+    }
+  }, [showSettingsModal, todayData.goal]);
+
+  // Handle goal input change - allow empty for clearing
+  const handleGoalInputChange = (e) => {
+    const value = e.target.value;
+    // Allow empty string, or numbers (including decimals and negative for now, we'll validate on blur)
+    // This allows the user to completely clear the field
+    setGoalInputValue(value);
+  };
+
+  // Handle goal input blur - save the value
+  const handleGoalInputBlur = () => {
+    const trimmedValue = goalInputValue.trim();
+    
+    // If empty, restore to current goal
+    if (trimmedValue === '') {
+      setGoalInputValue(todayData.goal?.toString() || '8');
+      return;
+    }
+    
+    const numValue = parseFloat(trimmedValue);
+    
+    // If valid positive number, save it
+    if (!isNaN(numValue) && numValue > 0) {
+      updateCustomGoal(numValue);
+      setGoalInputValue(numValue.toString()); // Normalize the display
+    } else {
+      // If invalid, restore to current goal
+      setGoalInputValue(todayData.goal?.toString() || '8');
+    }
   };
 
   const resetToday = () => {
@@ -269,11 +318,11 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             </h4>
             <div className="flex items-center gap-3">
               <input
-                type="number"
-                min="1"
-                step={currentUnit.increment}
-                value={todayData.goal}
-                onChange={(e) => updateCustomGoal(parseFloat(e.target.value) || 1)}
+                type="text"
+                inputMode="decimal"
+                value={goalInputValue}
+                onChange={handleGoalInputChange}
+                onBlur={handleGoalInputBlur}
                 placeholder="Enter goal..."
                 className="flex-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-all"
                 style={{

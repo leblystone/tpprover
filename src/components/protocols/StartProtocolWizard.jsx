@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../common/Modal';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -10,6 +10,7 @@ import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { appendStockEvent } from '../../utils/stockHistory';
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 
 
 const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
@@ -154,7 +155,6 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [linkedData, setLinkedData] = useState({});
     const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10));
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
-    const [isStartDateFocused, setIsStartDateFocused] = useState(false);
 
     const adjustStockpileAfterRecon = React.useCallback((usageList) => {
         if (!Array.isArray(usageList) || usageList.length === 0) return;
@@ -619,47 +619,29 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 {/* Header */}
                 <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>Choose your start date to begin tracking</p>
 
-                {/* Start Date Input */}
+                {/* Start Date Input with Glassmorphism Date Picker */}
                 <div className="relative">
-                    <input 
-                        type="date" 
-                        id="start-date-input"
-                        className="w-full px-3 py-3 rounded-lg transition-all focus:outline-none" 
-                        value={startDate} 
-                        onChange={e => setStartDate(e.target.value)}
-                        onFocus={() => setIsStartDateFocused(true)}
-                        onBlur={() => setIsStartDateFocused(false)}
-                        style={{ 
-                            border: `1px solid #f0eee7`,
-                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                            color: '#181A18'
-                        }} 
+                    <GlassmorphismDatePicker
+                        value={startDate}
+                        onChange={(dateString) => setStartDate(dateString)}
+                        theme={theme}
+                        placeholder="Start Date"
                     />
-                    <label 
-                        htmlFor="start-date-input"
-                        className="absolute pointer-events-none transition-all"
-                        style={{
-                            fontSize: (isStartDateFocused || startDate) ? '0.75rem' : '0.9375rem',
-                            top: (isStartDateFocused || startDate) ? '-8px' : '14px',
-                            left: (isStartDateFocused || startDate) ? '12px' : '16px',
-                            padding: (isStartDateFocused || startDate) ? '0 4px' : '0',
-                            background: (isStartDateFocused || startDate) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                            color: (isStartDateFocused || startDate) ? theme.primary : (theme.textLight || theme.text),
-                            fontWeight: 500
-                        }}
-                    >
-                        Start Date
-                    </label>
                 </div>
 
                 {/* Protocol Summary Card */}
-                <div className="p-4 rounded-lg" style={{ 
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
-                }}>
-                    <div className="text-sm font-medium mb-3" style={{ color: theme.text }}>Protocol Summary</div>
-                    <div className="space-y-3 text-xs" style={{ color: theme.textLight }}>
+                <div>
+                    {/* Section Header */}
+                    <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                        <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>PROTOCOL SUMMARY</h4>
+                        <ClipboardList size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                    </div>
+                    <div className="p-4 rounded-lg" style={{ 
+                        border: `1px solid #f0eee7`,
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground
+                    }}>
+                        <div className="space-y-3 text-xs" style={{ color: theme.textLight }}>
                         <div className="flex justify-between">
                             <span>Protocol Name:</span>
                             <span className="font-semibold" style={{ color: theme.text }}>{protocol.protocolName}</span>
@@ -708,6 +690,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     </div>
                                 )}) || <div className="text-xs italic">No compounds configured</div>}
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>

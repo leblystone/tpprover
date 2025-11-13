@@ -696,7 +696,7 @@ export default function Recon() {
                             updateEditingItem({ vendor: v, vendorId: selectedVendor ? selectedVendor.id : null });
                             updateFormData({ vendor: v, vendorId: selectedVendor ? selectedVendor.id : null });
                         }} 
-                        theme={theme}
+                        theme={theme} 
                         outlined={true}
                         customTextColor="#181A18"
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
@@ -732,7 +732,7 @@ export default function Recon() {
                             onChange={(newValue) => {
                                 updateEditingItem({ dose: newValue.amount, doseUnit: newValue.unit });
                                 updateFormData({ dose: newValue.amount, doseUnit: newValue.unit });
-                            }}
+                                }} 
                             theme={theme}
                             placeholder="e.g., 250"
                             units={['mcg', 'mg', 'mL']}
@@ -743,9 +743,9 @@ export default function Recon() {
                     </div>
 
                     {/* DELIVERY METHOD Section Header */}
-                    <div 
+                            <div 
                         className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
-                        style={{ 
+                                style={{ 
                             backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
                             borderLeft: '4px solid #e0ded7' 
                         }}
@@ -755,8 +755,8 @@ export default function Recon() {
                             style={{ 
                                 color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
                                 letterSpacing: '0.1em' 
-                            }}
-                        >
+                                        }}
+                                    >
                             DELIVERY METHOD
                         </h4>
                         <Droplets size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
@@ -936,9 +936,9 @@ export default function Recon() {
                                         {isPenTypeDropdownOpen && (
                                             <div 
                                                 className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
-                                                style={{
+                                            style={{
                                                     backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                                    borderColor: theme.border,
+                                                borderColor: theme.border,
                                                     boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
                                                 }}
                                             >
@@ -985,7 +985,7 @@ export default function Recon() {
                                                         </button>
                                                     </React.Fragment>
                                                 ))}
-                                            </div>
+                                    </div>
                                         )}
                                     </div>
                                     {/* Pen Color Selection */}

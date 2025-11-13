@@ -120,8 +120,8 @@ export default function TextInput({
           )}
         </div>
       ) : (
-        <label className="block w-full">
-          {label && <span id={`${name || 'input'}-label`} className={`block ${dense ? 'text-xs' : 'text-sm'} font-medium mb-1`} style={{ color: theme.text }}>{label}</span>}
+      <label className="block w-full">
+        {label && <span id={`${name || 'input'}-label`} className={`block ${dense ? 'text-xs' : 'text-sm'} font-medium mb-1`} style={{ color: theme.text }}>{label}</span>}
         {multiline ? (
           <textarea
             name={name}
@@ -164,7 +164,7 @@ export default function TextInput({
             }}
           />
         )}
-        </label>
+      </label>
       )}
     </>
   )

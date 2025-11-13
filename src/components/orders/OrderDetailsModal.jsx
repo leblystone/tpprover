@@ -10,6 +10,7 @@ import DocumentationUpload from '../common/DocumentationUpload';
 import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { generateId } from '../../utils/string';
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
   const [form, setForm] = useState({});
@@ -580,26 +581,24 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
             <div className="grid grid-cols-2 gap-3">
-              <TextInput 
-                type="date" 
-                label="Date Ordered" 
-                value={form.date ? new Date(form.date).toISOString().slice(0,10) : ''} 
-                onChange={v => setForm({ ...form, date: v })} 
-                theme={theme}
-                outlined={true}
-                customTextColor="#181A18"
-                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-              />
-              <TextInput 
-                type="date" 
-                label="Delivery Date" 
-                value={form.deliveryDate ? new Date(form.deliveryDate).toISOString().slice(0,10) : ''} 
-                onChange={v => setForm({ ...form, deliveryDate: v })} 
-                theme={theme}
-                outlined={true}
-                customTextColor="#181A18"
-                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-              />
+              <div>
+                <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Date Ordered</label>
+                <GlassmorphismDatePicker
+                  value={form.date ? new Date(form.date).toISOString().slice(0,10) : ''}
+                  onChange={(dateString) => setForm({ ...form, date: dateString })}
+                  theme={theme}
+                  placeholder="Date Ordered"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Delivery Date</label>
+                <GlassmorphismDatePicker
+                  value={form.deliveryDate ? new Date(form.deliveryDate).toISOString().slice(0,10) : ''}
+                  onChange={(dateString) => setForm({ ...form, deliveryDate: dateString })}
+                  theme={theme}
+                  placeholder="Delivery Date"
+                />
+              </div>
             </div>
           </div>
         </div>

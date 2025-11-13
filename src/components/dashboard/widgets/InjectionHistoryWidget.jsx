@@ -86,8 +86,8 @@ export default function InjectionHistoryWidget({ theme }) {
   }
 
   return (
-    <div className="h-full flex flex-col p-4" style={{ backgroundColor: theme.cardBackground }}>
-      <div className="flex items-center justify-between mb-4">
+    <div className="h-full flex flex-col p-4 overflow-hidden" style={{ backgroundColor: theme.cardBackground }}>
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Pipette size={20} style={{ color: theme.primary }} />
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
@@ -106,11 +106,19 @@ export default function InjectionHistoryWidget({ theme }) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-2">
+      <div 
+        className="flex-1 overflow-y-auto space-y-2 min-h-0" 
+        style={{ 
+          maxHeight: '100%',
+          WebkitOverflowScrolling: 'touch',
+          position: 'relative',
+          zIndex: 1
+        }}
+      >
         {recentHistory.map((record, index) => (
           <div
             key={record.id}
-            className="p-3 rounded-lg border"
+            className="p-3 rounded-lg border flex-shrink-0"
             style={{ 
               borderColor: theme.border,
               backgroundColor: theme.secondary + '20'
@@ -149,7 +157,7 @@ export default function InjectionHistoryWidget({ theme }) {
       </div>
 
       {history.length > 5 && (
-        <div className="mt-4 pt-3 border-t" style={{ borderColor: theme.border }}>
+        <div className="mt-4 pt-3 border-t flex-shrink-0" style={{ borderColor: theme.border }}>
           <button
             onClick={() => setShowAll(!showAll)}
             className="w-full py-2 px-3 rounded text-sm font-medium transition-all hover:opacity-80"

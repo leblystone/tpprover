@@ -22,6 +22,7 @@ import useAutoSave from '../utils/useAutoSave'
 import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
+import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -1213,7 +1214,15 @@ export default function Stockpile() {
           {/* Price & Date Acquired in two columns */}
           <div className="grid grid-cols-2 gap-3">
             <TextInput label="Price ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-            <TextInput label="Date Acquired" type="date" value={form.date} onChange={v => updateFormData({ date: v })} theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Date Acquired</label>
+              <GlassmorphismDatePicker
+                value={form.date}
+                onChange={(dateString) => updateFormData({ date: dateString })}
+                theme={theme}
+                placeholder="Date Acquired"
+              />
+            </div>
           </div>
           </div>
           
