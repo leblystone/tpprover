@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft } from 'lucide-react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAppContext } from '../../context/AppContext';
-import { submitFeedback } from '../../services/firebase';
+import { submitFeedback, createSupportTicket } from '../../services/firebase';
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
@@ -88,47 +87,45 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!formData.message.trim()) return;
+
         setIsSubmitting(true);
         setSubmitStatus(null);
         
         try {
-            // Call Firebase Function to send contact form email
-            const functions = getFunctions();
-            const submitContactForm = httpsCallable(functions, 'submitContactForm');
-            
-            const payload = {
-                name: user?.displayName || user?.email?.split('@')[0] || 'App User',
-                email: formData.email || user?.email,
-                subject: 'In-App Support',
-                message: formData.message
-            };
-            
-            console.log('📤 Sending support request:', payload);
-            
-            const result = await submitContactForm(payload);
-            
-            console.log('📥 Support response:', result);
-            
-                if (result.data.success) {
-                    setSubmitStatus('success');
-                    setFormData({ email: '', message: '' });
-                    
-                    // Auto-close after 2 seconds
-                    setTimeout(() => {
-                        setSubmitStatus(null);
-                        handleClose();
-                    }, 2000);
-            } else {
-                console.error('Support submission failed:', result.data);
-                setSubmitStatus('error');
-            }
-        } catch (error) {
-            console.error('Error submitting support form:', error);
-            console.error('Error details:', {
-                code: error.code,
-                message: error.message,
-                details: error.details
+            console.log('📤 Creating support ticket...', {
+                userEmail: formData.email || user?.email,
+                userId: user?.uid,
+                message: formData.message.trim()
             });
+
+            // Create a support ticket instead of sending email
+            const ticketId = await createSupportTicket({
+                userId: user?.uid || null,
+                userEmail: formData.email || user?.email,
+                userName: user?.displayName || user?.email?.split('@')[0] || 'App User',
+                type: 'support',
+                subject: 'Support Request',
+                message: formData.message.trim(),
+                metadata: {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    userEmail: formData.email || user?.email,
+                    userId: user?.uid || null
+                }
+            });
+            
+            console.log('✅ Support ticket created:', ticketId);
+            setSubmitStatus('success');
+            setFormData({ email: '', message: '' });
+            
+            // Auto-close after 2 seconds
+            setTimeout(() => {
+                setSubmitStatus(null);
+                handleClose();
+            }, 2000);
+        } catch (error) {
+            console.error('❌ Error creating support ticket:', error);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);

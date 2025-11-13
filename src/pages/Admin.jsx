@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -31,7 +31,12 @@ import {
   revokeLifetimeAccess,
   cancelLifetimePreGrant,
   loginUser,
-  extendTrialForUser
+  extendTrialForUser,
+  getAllTickets,
+  getTicketWithMessages,
+  addTicketMessage,
+  updateTicketStatus,
+  subscribeToTicketMessages
 } from '../services/firebase';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -565,6 +570,16 @@ function Admin() {
   const [responseText, setResponseText] = useState('');
   const [selectedFeedbackTypeFilter, setSelectedFeedbackTypeFilter] = useState('all');
   const [selectedFeedbackStatusFilter, setSelectedFeedbackStatusFilter] = useState('new');
+  
+  // Ticket system state
+  const [tickets, setTickets] = useState([]);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketMessages, setTicketMessages] = useState([]);
+  const [supportView, setSupportView] = useState('feedback'); // 'feedback' or 'tickets'
+  const [ticketView, setTicketView] = useState('list'); // 'list' or 'chat'
+  const [selectedTicketStatusFilter, setSelectedTicketStatusFilter] = useState('new');
+  const [selectedTicketTypeFilter, setSelectedTicketTypeFilter] = useState('all');
+  const [ticketResponseText, setTicketResponseText] = useState('');
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
     featureUsage: {},
@@ -655,6 +670,7 @@ function Admin() {
     loadAnnouncements();
     loadEmailWhitelist();
     loadFeedback();
+    loadTickets();
     loadRealAnalytics();
     loadUserData();
     loadFeatureFlags();
@@ -802,6 +818,88 @@ function Admin() {
       console.error('❌ Error loading feedback:', error);
     } finally {
       setLoading(prev => ({ ...prev, feedback: false }));
+    }
+  };
+
+  const loadTickets = async () => {
+    setLoading(prev => ({ ...prev, feedback: true }));
+    try {
+      console.log('🎫 Loading tickets from Firebase...');
+      const ticketsData = await getAllTickets();
+      console.log('🎫 Loaded tickets:', ticketsData.length, 'items');
+      setTickets(ticketsData);
+    } catch (error) {
+      console.error('❌ Error loading tickets:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, feedback: false }));
+    }
+  };
+
+  const loadTicketChat = async (ticketId) => {
+    setLoading(prev => ({ ...prev, feedback: true }));
+    try {
+      const ticket = await getTicketWithMessages(ticketId);
+      setSelectedTicket(ticket);
+      setTicketMessages(ticket.messages || []);
+      setTicketView('chat');
+      
+      // Subscribe to real-time updates
+      const unsubscribe = subscribeToTicketMessages(ticketId, (messages) => {
+        setTicketMessages(messages);
+      });
+      
+      // Store unsubscribe function for cleanup
+      return unsubscribe;
+    } catch (error) {
+      console.error('❌ Error loading ticket:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, feedback: false }));
+    }
+  };
+
+  const handleTicketResponse = async (ticketId) => {
+    if (!ticketResponseText.trim()) return;
+    
+    setLoading(prev => ({ ...prev, submitting: true }));
+    try {
+      await addTicketMessage({
+        ticketId: ticketId,
+        senderType: 'admin',
+        senderEmail: auth.currentUser?.email || 'admin@thepepplanner.com',
+        senderName: auth.currentUser?.displayName || 'Admin',
+        message: ticketResponseText.trim()
+      });
+      
+      setTicketResponseText('');
+      await loadTicketChat(ticketId); // Reload to get updated messages
+    } catch (error) {
+      console.error('❌ Error sending ticket response:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Error sending response', type: 'error' } 
+      }));
+    } finally {
+      setLoading(prev => ({ ...prev, submitting: false }));
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId, newStatus) => {
+    setLoading(prev => ({ ...prev, submitting: true }));
+    try {
+      await updateTicketStatus(ticketId, newStatus, ADMIN_PASSWORD);
+      await loadTickets();
+      if (selectedTicket && selectedTicket.id === ticketId) {
+        await loadTicketChat(ticketId);
+      }
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Ticket status updated', type: 'success' } 
+      }));
+    } catch (error) {
+      console.error('❌ Error updating ticket status:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Error updating ticket status', type: 'error' } 
+      }));
+    } finally {
+      setLoading(prev => ({ ...prev, submitting: false }));
     }
   };
 
@@ -2031,6 +2129,226 @@ function Admin() {
               </div>
             </div>
 
+            {/* Feedback & Tickets Section - Front and Center */}
+            <div className="rounded-xl border-2 p-6 content-card" style={{ 
+              borderColor: calmingPlacePalette.periwinkle.main + '50',
+              backgroundColor: theme.cardBackground,
+              boxShadow: `0 4px 16px ${calmingPlacePalette.periwinkle.main}20, 0 2px 8px ${calmingPlacePalette.coffee.latte}10`
+            }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: calmingPlacePalette.periwinkle.darker }}>
+                    <MessagesSquare size={20} style={{ color: calmingPlacePalette.periwinkle.main }} />
+                    Support & Feedback
+                  </h2>
+                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                    User feedback and support requests
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm px-3 py-1 rounded-lg" style={{ 
+                    backgroundColor: feedback.filter(f => f.status === 'new').length > 0 ? theme.warning + '20' : theme.success + '20',
+                    color: feedback.filter(f => f.status === 'new').length > 0 ? theme.warning : theme.success
+                  }}>
+                    {feedback.filter(f => f.status === 'new').length} new feedback
+                  </div>
+                  <div className="text-sm px-3 py-1 rounded-lg" style={{ 
+                    backgroundColor: tickets.filter(t => t.status === 'new').length > 0 ? theme.warning + '20' : theme.success + '20',
+                    color: tickets.filter(t => t.status === 'new').length > 0 ? theme.warning : theme.success
+                  }}>
+                    {tickets.filter(t => t.status === 'new').length} new requests
+                  </div>
+                  <button
+                    onClick={() => {
+                      setActiveTab('feedback');
+                      setSupportView('feedback');
+                    }}
+                    className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
+                    style={{ 
+                      backgroundColor: theme.primary,
+                      color: theme.textOnPrimary
+                    }}
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="p-4 rounded-lg border" style={{ 
+                  borderColor: theme.border,
+                  backgroundColor: theme.background
+                }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.text }}>{feedback.length}</div>
+                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Feedback</div>
+                </div>
+                <div className="p-4 rounded-lg border" style={{ 
+                  borderColor: theme.border,
+                  backgroundColor: theme.background
+                }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.warning }}>{feedback.filter(f => f.status === 'new').length}</div>
+                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Feedback</div>
+                </div>
+                <div className="p-4 rounded-lg border" style={{ 
+                  borderColor: theme.border,
+                  backgroundColor: theme.background
+                }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.text }}>{tickets.length}</div>
+                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Requests</div>
+                </div>
+                <div className="p-4 rounded-lg border" style={{ 
+                  borderColor: theme.border,
+                  backgroundColor: theme.background
+                }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.warning }}>{tickets.filter(t => t.status === 'new').length}</div>
+                  <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Requests</div>
+                </div>
+              </div>
+
+              {/* Recent Feedback Preview */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Recent Feedback</h3>
+                {loading.feedback ? (
+                  <div className="text-center py-4">
+                    <Loader size={20} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+                  </div>
+                ) : feedback.length === 0 ? (
+                  <div className="text-center py-4 text-sm" style={{ color: theme.textLight }}>
+                    No feedback yet
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {feedback
+                      .filter(f => f.status === 'new')
+                      .slice(0, 3)
+                      .map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all"
+                          style={{ 
+                            borderColor: theme.border,
+                            backgroundColor: theme.background
+                          }}
+                          onClick={() => {
+                            setActiveTab('feedback');
+                            setSupportView('feedback');
+                          }}
+                        >
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              {item.type === 'bug' && <AlertTriangle size={14} style={{ color: theme.error }} />}
+                              {item.type === 'suggestion' && <Lightbulb size={14} style={{ color: theme.warning }} />}
+                              <span className="text-xs font-medium" style={{ color: theme.textLight }}>
+                                {item.userEmail}
+                              </span>
+                            </div>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ 
+                              backgroundColor: theme.warning + '20',
+                              color: theme.warning
+                            }}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <p className="text-sm line-clamp-2" style={{ color: theme.text }}>
+                            {item.message}
+                          </p>
+                        </div>
+                      ))}
+                    {feedback.filter(f => f.status === 'new').length > 3 && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('feedback');
+                          setSupportView('feedback');
+                        }}
+                        className="w-full py-2 text-sm font-medium rounded-lg border transition-all hover:opacity-90"
+                        style={{ 
+                          borderColor: theme.primary,
+                          color: theme.primary,
+                          backgroundColor: 'transparent'
+                        }}
+                      >
+                        View {feedback.filter(f => f.status === 'new').length - 3} more...
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Tickets Preview */}
+              <div className="space-y-3 mt-6">
+                <h3 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Recent Support Requests</h3>
+                {loading.feedback ? (
+                  <div className="text-center py-4">
+                    <Loader size={20} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+                  </div>
+                ) : tickets.length === 0 ? (
+                  <div className="text-center py-4 text-sm" style={{ color: theme.textLight }}>
+                    No requests yet
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {tickets
+                      .filter(t => t.status === 'new')
+                      .slice(0, 3)
+                      .map((ticket) => (
+                        <div
+                          key={ticket.id}
+                          className="p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all"
+                          style={{ 
+                            borderColor: theme.border,
+                            backgroundColor: theme.background
+                          }}
+                          onClick={() => {
+                            setActiveTab('feedback');
+                            setSupportView('tickets');
+                            setTicketView('list');
+                            loadTicketChat(ticket.id);
+                          }}
+                        >
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              {ticket.type === 'bug' && <AlertTriangle size={14} style={{ color: theme.error }} />}
+                              {ticket.type === 'suggestion' && <Lightbulb size={14} style={{ color: theme.warning }} />}
+                              {ticket.type === 'support' && <Mail size={14} style={{ color: theme.info }} />}
+                              <span className="text-xs font-medium" style={{ color: theme.text }}>
+                                {ticket.subject}
+                              </span>
+                            </div>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ 
+                              backgroundColor: theme.warning + '20',
+                              color: theme.warning
+                            }}>
+                              {ticket.status}
+                            </span>
+                          </div>
+                          <p className="text-xs mb-1" style={{ color: theme.textLight }}>
+                            {ticket.userEmail}
+                          </p>
+                        </div>
+                      ))}
+                    {tickets.filter(t => t.status === 'new').length > 3 && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('feedback');
+                          setSupportView('tickets');
+                          setTicketView('list');
+                        }}
+                        className="w-full py-2 text-sm font-medium rounded-lg border transition-all hover:opacity-90"
+                        style={{ 
+                          borderColor: theme.primary,
+                          color: theme.primary,
+                          backgroundColor: 'transparent'
+                        }}
+                      >
+                        View {tickets.filter(t => t.status === 'new').length - 3} more...
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* User Growth Chart with Shadows */}
             <div className="rounded-xl border-2 p-6 content-card" style={{ 
               borderColor: calmingPlacePalette.periwinkle.main + '50',
@@ -2065,17 +2383,17 @@ function Admin() {
                       </span>
                     </div>
                     <div className="h-56 flex items-end justify-between gap-1 p-4 rounded-xl" style={{ 
-                      background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.background} 100%)`,
-                      boxShadow: `inset 0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
-                    }}>
+                    background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.background} 100%)`,
+                    boxShadow: `inset 0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
+                  }}>
                       {analytics.userGrowth.slice(-14).map((day, index) => {
                         const maxNewUsers = Math.max(...analytics.userGrowth.slice(-14).map(d => d.newUsers), 1);
                         const hasNewUsers = day.newUsers > 0;
                         return (
                           <div key={day.date} className="flex flex-col items-center gap-1 flex-1 relative group">
-                            <div 
+                        <div 
                               className="rounded-t-lg w-full transition-all hover:scale-105 cursor-pointer relative"
-                              style={{ 
+                          style={{ 
                                 background: hasNewUsers 
                                   ? `linear-gradient(180deg, ${calmingPlacePalette.periwinkle.main} 0%, ${calmingPlacePalette.periwinkle.dark} 100%)`
                                   : `${theme.border}`,
@@ -2091,9 +2409,9 @@ function Admin() {
                               )}
                             </div>
                             <span className="text-xs font-medium" style={{ color: hasNewUsers ? theme.text : theme.textLight }}>
-                              {new Date(day.date).getDate()}
-                            </span>
-                          </div>
+                          {new Date(day.date).getDate()}
+                        </span>
+                      </div>
                         );
                       })}
                     </div>
@@ -2152,7 +2470,7 @@ function Admin() {
             </div>
 
             {/* Device Breakdown - Full Width */}
-            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
+              <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
                 borderColor: theme.primary + '30',
                 background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`
               }}>
@@ -2186,14 +2504,14 @@ function Admin() {
                               <div key={os} className="flex items-center justify-between text-xs" style={{ color: theme.textLight }}>
                                 <span>• {os}</span>
                                 <span>{count} ({osPercentage}%)</span>
-                              </div>
+                    </div>
                             );
                           })}
-                        </div>
+                </div>
                       )}
-                    </div>
-                  )}
-                  
+          </div>
+        )}
+
                   {/* Tablet */}
                   {analytics.deviceBreakdown.tablet && (
                     <div className="space-y-2">
@@ -2201,18 +2519,18 @@ function Admin() {
                         <div className="flex items-center gap-2">
                           <Smartphone size={16} style={{ color: theme.warning }} />
                           <span className="text-sm font-medium" style={{ color: theme.text }}>Tablet</span>
-                        </div>
+                  </div>
                         <span className="text-sm" style={{ color: theme.textLight }}>
                           {analytics.deviceBreakdown.tablet.count} ({analytics.deviceBreakdown.tablet.percentage}%)
                         </span>
-                      </div>
+                  </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="h-2 rounded-full" 
                           style={{ width: `${analytics.deviceBreakdown.tablet.percentage}%`, backgroundColor: theme.warning }}
                         />
-                      </div>
-                    </div>
+                </div>
+              </div>
                   )}
                   
                   {/* Desktop */}
@@ -2222,18 +2540,18 @@ function Admin() {
                         <div className="flex items-center gap-2">
                           <Monitor size={16} style={{ color: theme.success }} />
                           <span className="text-sm font-medium" style={{ color: theme.text }}>Desktop</span>
-                        </div>
+                  </div>
                         <span className="text-sm" style={{ color: theme.textLight }}>
                           {analytics.deviceBreakdown.desktop.count} ({analytics.deviceBreakdown.desktop.percentage}%)
                         </span>
-                      </div>
+                  </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="h-2 rounded-full" 
                           style={{ width: `${analytics.deviceBreakdown.desktop.percentage}%`, backgroundColor: theme.success }}
                         />
-                      </div>
-                    </div>
+                </div>
+              </div>
                   )}
                   
                   {/* Browser Breakdown */}
@@ -2249,11 +2567,11 @@ function Admin() {
                               <div key={browser} className="flex items-center justify-between text-xs" style={{ color: theme.textLight }}>
                                 <span>• {browser}</span>
                                 <span>{count} ({percentage}%)</span>
-                              </div>
+                  </div>
                             );
                           })}
-                      </div>
-                    </div>
+                  </div>
+                </div>
                   )}
                   
                   {/* Warning for users without device info */}
@@ -2269,11 +2587,11 @@ function Admin() {
                       <p className="text-xs mt-1" style={{ color: theme.textLight }}>
                         Tracked: {analytics.deviceBreakdown.usersWithDeviceInfo} users ({Math.round((analytics.deviceBreakdown.usersWithDeviceInfo / analytics.deviceBreakdown.total) * 100)}%)
                       </p>
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-          </div>
         )}
 
         {activeTab === 'subscriptions' && (
@@ -2734,14 +3052,14 @@ function Admin() {
                                  color: isActive ? theme.white : theme.textLight 
                                }}>
                             {count}
-                          </div>
+                  </div>
                         </button>
                       );
                     });
                   })()}
-                </div>
               </div>
-              
+            </div>
+
               {/* Type Filter Tabs - Only show for 'new' status */}
               {selectedFeedbackStatusFilter !== 'all' && (
                 <div className="p-4">
@@ -2804,15 +3122,15 @@ function Admin() {
                                    color: isActive ? theme.white : theme.textLight 
                                  }}>
                               {count}
-                            </div>
+                      </div>
                           </button>
                         );
                       });
                     })()}
-                  </div>
+                    </div>
                 </div>
               )}
-            </div>
+              </div>
 
             {/* Compact Feedback Trends */}
             <div className="rounded-lg border p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
@@ -2833,30 +3151,74 @@ function Admin() {
               </div>
             </div>
 
-            <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="p-6 border-b" style={{ borderColor: theme.border }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Feedback</h2>
-                    <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      User feedback management with keyword-based categorization
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm" style={{ color: theme.textLight }}>
-                      {feedback.filter(f => f.status === 'new').length} new, {feedback.length} total
-                    </div>
-                    <button
-                      onClick={loadFeedback}
-                      className="p-2 rounded hover:opacity-70"
-                      style={{ color: theme.primary }}
-                      title="Refresh"
-                    >
-                      <Loader size={16} className={loading.feedback ? 'animate-spin' : ''} />
-                    </button>
-                  </div>
+            {/* View Toggle */}
+            <div className="rounded-lg border content-card shadow-sm mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSupportView('feedback');
+                      loadFeedback();
+                    }}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      supportView === 'feedback' ? '' : 'opacity-60'
+                    }`}
+                    style={{
+                      backgroundColor: supportView === 'feedback' ? theme.primary + '20' : 'transparent',
+                      color: supportView === 'feedback' ? theme.primary : theme.textLight,
+                      border: `1px solid ${supportView === 'feedback' ? theme.primary : theme.border}`
+                    }}
+                  >
+                    <MessageSquare size={16} className="inline mr-2" />
+                    Feedback ({feedback.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSupportView('tickets');
+                      setTicketView('list');
+                      loadTickets();
+                    }}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      supportView === 'tickets' ? '' : 'opacity-60'
+                    }`}
+                    style={{
+                      backgroundColor: supportView === 'tickets' ? theme.primary + '20' : 'transparent',
+                      color: supportView === 'tickets' ? theme.primary : theme.textLight,
+                      border: `1px solid ${supportView === 'tickets' ? theme.primary : theme.border}`
+                    }}
+                  >
+                    <MessagesSquare size={16} className="inline mr-2" />
+                    Support Requests ({tickets.length})
+                  </button>
                 </div>
               </div>
+            </div>
+
+            {supportView === 'feedback' ? (
+              <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Feedback</h2>
+                      <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                        User feedback management with keyword-based categorization
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm" style={{ color: theme.textLight }}>
+                        {feedback.filter(f => f.status === 'new').length} new, {feedback.length} total
+                      </div>
+                      <button
+                        onClick={loadFeedback}
+                        className="p-2 rounded hover:opacity-70"
+                        style={{ color: theme.primary }}
+                        title="Refresh"
+                      >
+                        <Loader size={16} className={loading.feedback ? 'animate-spin' : ''} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               
               <div className="divide-y" style={{ borderColor: theme.border }}>
                 {loading.feedback ? (
@@ -3118,6 +3480,205 @@ function Admin() {
                 })()}
               </div>
             </div>
+            ) : (
+              // Tickets View
+              ticketView === 'chat' && selectedTicket ? (
+                // Chat View
+                <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                  <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <button
+                          onClick={() => setTicketView('list')}
+                          className="mb-2 text-sm flex items-center gap-2"
+                          style={{ color: theme.primary }}
+                        >
+                          <ArrowLeft size={16} />
+                          Back to Tickets
+                        </button>
+                        <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>{selectedTicket.subject}</h2>
+                        <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                          {selectedTicket.userEmail} • {selectedTicket.type} • {selectedTicket.status}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={selectedTicket.status}
+                          onChange={(e) => handleUpdateTicketStatus(selectedTicket.id, e.target.value)}
+                          className="px-3 py-1 rounded text-sm border"
+                          style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                        >
+                          <option value="new">New</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                        <button
+                          onClick={loadTickets}
+                          className="p-2 rounded hover:opacity-70"
+                          style={{ color: theme.primary }}
+                          title="Refresh"
+                        >
+                          <Loader size={16} className={loading.feedback ? 'animate-spin' : ''} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    {/* Messages */}
+                    <div className="space-y-4 mb-4 max-h-[400px] overflow-y-auto">
+                      {ticketMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`flex ${msg.senderType === 'admin' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className="max-w-[80%] rounded-lg p-3"
+                            style={{
+                              backgroundColor: msg.senderType === 'admin' 
+                                ? theme.primary 
+                                : theme.background,
+                              color: msg.senderType === 'admin' 
+                                ? theme.textOnPrimary 
+                                : theme.text
+                            }}
+                          >
+                            <div className="text-xs mb-1 opacity-75">
+                              {msg.senderName} • {msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleString() : 'Recently'}
+                            </div>
+                            <div className="text-sm whitespace-pre-wrap">{msg.message}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Response Input */}
+                    {selectedTicket.status !== 'closed' && (
+                      <div className="border-t pt-4" style={{ borderColor: theme.border }}>
+                        <textarea
+                          value={ticketResponseText}
+                          onChange={(e) => setTicketResponseText(e.target.value)}
+                          placeholder="Type your response..."
+                          rows={3}
+                          className="w-full p-3 border rounded-lg text-sm mb-2"
+                          style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                        />
+                        <button
+                          onClick={() => handleTicketResponse(selectedTicket.id)}
+                          disabled={!ticketResponseText.trim() || loading.submitting}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                        >
+                          {loading.submitting ? (
+                            <>
+                              <Loader size={14} className="animate-spin mr-2" />
+                              Sending...
+                            </>
+                          ) : (
+                            'Send Response'
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Tickets List View
+                <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                  <div className="p-6 border-b" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Support Requests</h2>
+                        <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                          Chat-style support ticket management
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-sm" style={{ color: theme.textLight }}>
+                          {tickets.filter(t => t.status === 'new').length} new, {tickets.length} total
+                        </div>
+                        <button
+                          onClick={loadTickets}
+                          className="p-2 rounded hover:opacity-70"
+                          style={{ color: theme.primary }}
+                          title="Refresh"
+                        >
+                          <Loader size={16} className={loading.feedback ? 'animate-spin' : ''} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="divide-y" style={{ borderColor: theme.border }}>
+                    {loading.feedback ? (
+                      <div className="p-8 text-center">
+                        <Loader size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+                        <p className="mt-2 text-sm" style={{ color: theme.textLight }}>Loading tickets...</p>
+                      </div>
+                    ) : tickets.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <MessagesSquare size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
+                        <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No tickets yet</h3>
+                        <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                          Support requests will appear here when users submit them
+                        </p>
+                      </div>
+                    ) : (
+                      tickets
+                        .filter(ticket => {
+                          if (selectedTicketStatusFilter !== 'all' && ticket.status !== selectedTicketStatusFilter) return false;
+                          if (selectedTicketTypeFilter !== 'all' && ticket.type !== selectedTicketTypeFilter) return false;
+                          return true;
+                        })
+                        .map((ticket) => (
+                          <div
+                            key={ticket.id}
+                            className="p-4 hover:bg-opacity-50 transition-colors cursor-pointer"
+                            style={{ backgroundColor: theme.background }}
+                            onClick={() => loadTicketChat(ticket.id)}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                {ticket.type === 'bug' && <AlertTriangle size={16} style={{ color: theme.error }} />}
+                                {ticket.type === 'suggestion' && <Lightbulb size={16} style={{ color: theme.warning }} />}
+                                {ticket.type === 'support' && <Mail size={16} style={{ color: theme.info }} />}
+                                <span className="font-semibold" style={{ color: theme.text }}>{ticket.subject}</span>
+                              </div>
+                              <span
+                                className="text-xs px-2 py-1 rounded-full"
+                                style={{
+                                  backgroundColor: (ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight) + '20',
+                                  color: ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight
+                                }}
+                              >
+                                {ticket.status}
+                              </span>
+                            </div>
+                            <div className="space-y-1 mb-2">
+                              <p className="text-sm font-medium" style={{ color: theme.text }}>
+                                {ticket.userEmail}
+                              </p>
+                              {ticket.userId && (
+                                <p className="text-xs font-mono" style={{ color: theme.textLight }}>
+                                  UID: {ticket.userId.substring(0, 20)}...
+                                </p>
+                              )}
+                              <p className="text-xs" style={{ color: theme.primary }}>
+                                Ticket #{ticket.ticketId?.substring(0, 8) || ticket.id.substring(0, 8)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs" style={{ color: theme.textLight }}>
+                              <Clock size={12} />
+                              {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleString() : 'Recently'}
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+              )
+            )}
           </div>
         )}
 
@@ -3228,11 +3789,11 @@ function Admin() {
                           <tr key={user.id || idx} style={{ borderBottom: `1px solid ${theme.border}` }}>
                             <td style={{ padding: '8px 12px', fontSize: '13px', color: theme.text, minWidth: '200px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <IconComponent size={14} style={{ color: iconColor, flexShrink: 0 }} />
-                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {user.email}
-                                  </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <IconComponent size={14} style={{ color: iconColor, flexShrink: 0 }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {user.email}
+                                </span>
                                 </div>
                                 {user.status === 'applied' && user.appliedToUserId && (
                                   <span style={{ fontSize: '11px', color: theme.textLight, marginLeft: '20px' }}>
@@ -3269,20 +3830,20 @@ function Admin() {
                                     Already Applied
                                   </span>
                                 ) : (
-                                  <button
-                                    onClick={() => handleCancelPreGrant(user.email)}
-                                    style={{
-                                      padding: '4px 10px',
-                                      backgroundColor: theme.warning || '#f59e0b',
-                                      color: '#fff',
-                                      border: 'none',
-                                      borderRadius: '5px',
-                                      fontSize: '11px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Cancel Pre-Grant
-                                  </button>
+                                <button
+                                  onClick={() => handleCancelPreGrant(user.email)}
+                                  style={{
+                                    padding: '4px 10px',
+                                    backgroundColor: theme.warning || '#f59e0b',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Cancel Pre-Grant
+                                </button>
                                 )
                               ) : (
                                 <button
@@ -4082,10 +4643,10 @@ function LifetimeAccessAudit({ theme }) {
 function UserTable({ users, searchTerm, theme, onViewUser }) {
   const filteredUsers = users
     .filter(user => {
-      const term = searchTerm.toLowerCase();
-      const email = user.email?.toLowerCase() || '';
-      const name = user.displayName?.toLowerCase() || '';
-      return email.includes(term) || name.includes(term);
+    const term = searchTerm.toLowerCase();
+    const email = user.email?.toLowerCase() || '';
+    const name = user.displayName?.toLowerCase() || '';
+    return email.includes(term) || name.includes(term);
     })
     .sort((a, b) => {
       // Sort by signup date (newest first)
@@ -4176,30 +4737,30 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
             
             return (
               <tr key={user.uid} className="hover:bg-opacity-50" style={{ backgroundColor: 'transparent' }}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <img className="h-10 w-10 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
-                    </div>
-                    <div className="ml-4">
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 h-10 w-10">
+                    <img className="h-10 w-10 rounded-full" src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} alt="" />
+                  </div>
+                  <div className="ml-4">
                       <div className="text-sm font-medium flex items-center gap-2" style={{ color: theme.text }}>
                         {user.displayName || 'No Name'}
                         {hasLifetime && <Crown size={14} style={{ color: '#f59e0b' }} title="Lifetime Access" />}
                       </div>
-                      <div className="text-sm" style={{ color: theme.textLight }}>{user.email}</div>
-                    </div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>{user.email}</div>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-3 py-1 inline-flex items-center gap-1.5 text-xs leading-5 font-semibold rounded-full ${status.color}`}>
                     <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.dotColor }} />
                     {status.label}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: theme.textLight }}>
                   {user.lastActive?.toDate ? user.lastActive.toDate().toLocaleDateString() : 'Never'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button 
                     onClick={() => onViewUser(user)} 
                     className="px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-80 transition-all"
@@ -4207,8 +4768,8 @@ function UserTable({ users, searchTerm, theme, onViewUser }) {
                   >
                     View Details
                   </button>
-                </td>
-              </tr>
+              </td>
+            </tr>
             );
           })}
         </tbody>

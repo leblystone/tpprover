@@ -437,18 +437,6 @@ function generateDefaultHTML(template, colors) {
         </div>
         ` : ''}
 
-        ${template.features && template.features.length > 0 ? `
-        <h2 style="color: ${colors.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do:</h2>
-        <ul style="list-style: none; padding: 0; margin: 20px 0;">
-          ${template.features.map(f => `
-          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
-            <span style="position: absolute; left: 0; color: ${colors.secondary}; font-weight: bold; font-size: 18px;">✓</span>
-            ${f}
-          </li>
-          `).join('')}
-        </ul>
-        ` : ''}
-
         ${template.ctaText ? `
         <center>
           <a href="${template.ctaLink || '#'}" style="display: inline-block; padding: 16px 32px; background-color: ${colors.primary}; color: ${colors.white} !important; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">

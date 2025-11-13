@@ -265,12 +265,7 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app',
     highlightTitle: '⚠️ Action Required',
     highlightMessage: 'Please review this information carefully.',
-    features: [
-      'Customize this template for maintenance notices',
-      'Use for app downtime announcements',
-      'Send important updates to all users',
-      'Adaptable for any app-wide communication'
-    ]
+    features: []
   }
 };
 
@@ -664,18 +659,6 @@ export default function EmailTemplateManager({ theme }) {
             ${template.highlightMessage}
           </p>
         </div>
-        ` : ''}
-
-        ${template.features && template.features.length > 0 ? `
-        <h2 style="color: ${colors.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do:</h2>
-        <ul style="list-style: none; padding: 0; margin: 20px 0;">
-          ${template.features.map(f => `
-          <li style="padding: 12px 0; padding-left: 32px; position: relative;">
-            <span style="position: absolute; left: 0; color: ${colors.secondary}; font-weight: bold; font-size: 18px;">✓</span>
-            ${f}
-          </li>
-          `).join('')}
-        </ul>
         ` : ''}
 
         ${template.ctaText ? `

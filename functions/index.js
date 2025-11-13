@@ -1407,6 +1407,287 @@ exports.submitContactForm = onCall(
   }
 );
 
+// ===== SUPPORT TICKET SYSTEM =====
+
+// Create a new support ticket
+exports.createSupportTicket = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { userId, userEmail, userName, type, subject, message, metadata } = request.data;
+
+    if (!userEmail || !type || !message) {
+      throw new Error('Email, type, and message are required');
+    }
+
+    logger.info(`🎫 Creating support ticket from: ${userEmail} (type: ${type})`);
+
+    try {
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      // Create ticket document
+      const ticketRef = db.collection('supportTickets').doc();
+      const ticketData = {
+        ticketId: ticketRef.id,
+        userId: userId || null,
+        userEmail: userEmail.toLowerCase().trim(),
+        userName: userName || userEmail.split('@')[0],
+        type: type, // 'bug', 'suggestion', 'general', 'support'
+        subject: subject || `Support Request - ${type}`,
+        status: 'new',
+        priority: type === 'bug' ? 'high' : 'normal',
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        lastMessageAt: FieldValue.serverTimestamp(),
+        metadata: metadata || {}
+      };
+
+      await ticketRef.set(ticketData);
+
+      // Create initial message in messages subcollection
+      const messageRef = ticketRef.collection('messages').doc();
+      await messageRef.set({
+        messageId: messageRef.id,
+        ticketId: ticketRef.id,
+        senderType: 'user',
+        senderEmail: userEmail.toLowerCase().trim(),
+        senderName: userName || userEmail.split('@')[0],
+        message: message,
+        createdAt: FieldValue.serverTimestamp(),
+        read: false
+      });
+
+      // Send email notification to admin
+      const escapeHtml = (text) => {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+      };
+
+      const safeName = escapeHtml(userName || userEmail.split('@')[0]);
+      const safeEmail = escapeHtml(userEmail);
+      const safeType = escapeHtml(type);
+      const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
+          <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #2F3B3A; margin-bottom: 20px;">🎫 New Support Ticket Created</h2>
+            <div style="margin-bottom: 20px;">
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket ID:</strong> ${ticketRef.id}</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeName}</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Email:</strong> ${safeEmail}</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Type:</strong> ${safeType}</p>
+            </div>
+            <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
+              <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
+            </div>
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
+              <p style="color: #6B7D7A; font-size: 12px; margin: 0;">This is a notification email. Please respond to this ticket in the admin panel.</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      await emailService.sendEmail(
+        'contact@thepepplanner.com',
+        `🎫 New ${safeType} Ticket: ${ticketRef.id.substring(0, 8)}...`,
+        emailHtml
+      );
+
+      logger.info(`✅ Support ticket created: ${ticketRef.id}`);
+      return { 
+        success: true, 
+        ticketId: ticketRef.id,
+        message: 'Ticket created successfully' 
+      };
+    } catch (error) {
+      logger.error(`❌ Error creating support ticket: ${error.message}`);
+      throw new Error('Failed to create support ticket');
+    }
+  }
+);
+
+// Add message to a ticket
+exports.addTicketMessage = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { ticketId, senderType, senderEmail, senderName, message } = request.data;
+
+    if (!ticketId || !senderType || !message) {
+      throw new Error('Ticket ID, sender type, and message are required');
+    }
+
+    logger.info(`💬 Adding message to ticket: ${ticketId} (from: ${senderType})`);
+
+    try {
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      const ticketRef = db.collection('supportTickets').doc(ticketId);
+      const ticketDoc = await ticketRef.get();
+
+      if (!ticketDoc.exists) {
+        throw new Error('Ticket not found');
+      }
+
+      const ticketData = ticketDoc.data();
+
+      // Create message in messages subcollection
+      const messageRef = ticketRef.collection('messages').doc();
+      await messageRef.set({
+        messageId: messageRef.id,
+        ticketId: ticketId,
+        senderType: senderType, // 'user' or 'admin'
+        senderEmail: senderEmail || ticketData.userEmail,
+        senderName: senderName || ticketData.userName,
+        message: message,
+        createdAt: FieldValue.serverTimestamp(),
+        read: false
+      });
+
+      // Update ticket
+      const updateData = {
+        updatedAt: FieldValue.serverTimestamp(),
+        lastMessageAt: FieldValue.serverTimestamp()
+      };
+
+      // If admin is responding, mark as in-progress if it was new
+      if (senderType === 'admin' && ticketData.status === 'new') {
+        updateData.status = 'in-progress';
+      }
+
+      await ticketRef.update(updateData);
+
+      // Send email notification
+      const escapeHtml = (text) => {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+      };
+
+      const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+      const safeSenderName = escapeHtml(senderName || 'Admin');
+
+      if (senderType === 'admin') {
+        // Notify user
+        const userEmailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
+            <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h2 style="color: #2F3B3A; margin-bottom: 20px;">Response to Your Support Ticket</h2>
+              <p style="color: #6B7D7A; margin: 5px 0;">You have a new response to your support ticket (${ticketId.substring(0, 8)}...)</p>
+              <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
+                <p style="color: #2F3B3A; margin: 0;"><strong>${safeSenderName}:</strong></p>
+                <p style="color: #2F3B3A; margin: 10px 0 0 0;">${safeMessage}</p>
+              </div>
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
+                <p style="color: #6B7D7A; font-size: 12px; margin: 0;">You can view and respond to this ticket in the app.</p>
+              </div>
+            </div>
+          </div>
+        `;
+
+        await emailService.sendEmail(
+          ticketData.userEmail,
+          `Response to Your Support Ticket - The Pep Planner`,
+          userEmailHtml
+        );
+      } else {
+        // Notify admin
+        const adminEmailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
+            <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h2 style="color: #2F3B3A; margin-bottom: 20px;">💬 New Message on Support Ticket</h2>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket ID:</strong> ${ticketId.substring(0, 8)}...</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeSenderName}</p>
+              <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
+                <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
+              </div>
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
+                <p style="color: #6B7D7A; font-size: 12px; margin: 0;">Please respond to this ticket in the admin panel.</p>
+              </div>
+            </div>
+          </div>
+        `;
+
+        await emailService.sendEmail(
+          'contact@thepepplanner.com',
+          `💬 New Message on Ticket: ${ticketId.substring(0, 8)}...`,
+          adminEmailHtml
+        );
+      }
+
+      logger.info(`✅ Message added to ticket: ${ticketId}`);
+      return { 
+        success: true, 
+        messageId: messageRef.id,
+        message: 'Message sent successfully' 
+      };
+    } catch (error) {
+      logger.error(`❌ Error adding message to ticket: ${error.message}`);
+      throw new Error('Failed to add message to ticket');
+    }
+  }
+);
+
+// Update ticket status
+exports.updateTicketStatus = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { ticketId, status, adminPassword } = request.data;
+
+    if (!ticketId || !status) {
+      throw new Error('Ticket ID and status are required');
+    }
+
+    // Verify admin password
+    const ADMIN_PASSWORD = 'j&jm9102';
+    if (adminPassword !== ADMIN_PASSWORD) {
+      throw new Error('Invalid admin password');
+    }
+
+    logger.info(`🔄 Updating ticket status: ${ticketId} -> ${status}`);
+
+    try {
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      const ticketRef = db.collection('supportTickets').doc(ticketId);
+      await ticketRef.update({
+        status: status,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      logger.info(`✅ Ticket status updated: ${ticketId} -> ${status}`);
+      return { 
+        success: true, 
+        message: 'Ticket status updated successfully' 
+      };
+    } catch (error) {
+      logger.error(`❌ Error updating ticket status: ${error.message}`);
+      throw new Error('Failed to update ticket status');
+    }
+  }
+);
+
 // ===== GIFT ACCESS FUNCTIONS =====
 
 // Create gift access

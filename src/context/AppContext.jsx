@@ -7,7 +7,7 @@ import {
   saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
   saveUserSubscription, loadUserSubscription, saveUserState, loadUserState,
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
-  subscribeToUserState, subscribeToAppData
+  subscribeToUserState, subscribeToAppData, mergeWithTimestamps
 } from '../services/cloudStorage';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
@@ -244,55 +244,369 @@ export function AppProvider({ children }) {
                     }
                 }
 
+                // Check for old recovery snapshots and clean up if data is safe in cloud
+                try {
+                    const existingSnapshot = localStorage.getItem('tpprover_recovery_snapshot');
+                    if (existingSnapshot) {
+                        const parsed = JSON.parse(existingSnapshot);
+                        // If snapshot is marked as synced, check if 48h has passed
+                        if (parsed.syncedToCloud && parsed.syncedAt) {
+                            const timeSinceSync = Date.now() - new Date(parsed.syncedAt).getTime();
+                            if (timeSinceSync > 48 * 60 * 60 * 1000) { // 48 hours
+                                // Verify cloud still has data before deleting
+                                const cloudCheck = await loadAppData(userId);
+                                const hasCloudData = cloudCheck && (
+                                    (cloudCheck.protocols?.length > 0) ||
+                                    (cloudCheck.orders?.length > 0) ||
+                                    (cloudCheck.stockpile?.length > 0)
+                                );
+                                if (hasCloudData) {
+                                    localStorage.removeItem('tpprover_recovery_snapshot');
+                                    console.log('🧹 Old recovery snapshot cleaned up on app load (data confirmed in cloud)');
+                                }
+                            }
+                        }
+                    }
+                } catch (snapshotCheckError) {
+                    console.warn('Failed to check recovery snapshot:', snapshotCheckError);
+                }
+                
                 // Load app data from cloud
                 const cloudAppData = await loadAppData(userId);
-                if (cloudAppData) {
-                    if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
-                    if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
-                    if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
-                    if (cloudAppData.supplements) setSupplements(cloudAppData.supplements);
-                    if (cloudAppData.orders) setOrders(cloudAppData.orders);
-                    if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
-                    if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
-                    if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
-                    if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
-                    if (cloudAppData.scheduledBuys) {
-                        setScheduledBuys(cloudAppData.scheduledBuys);
+                
+                // Check if data has been updated since last login
+                if (cloudAppData && cloudAppData.lastUpdated) {
+                    const lastLogin = localStorage.getItem('tpprover_last_login_timestamp');
+                    const cloudLastUpdated = new Date(cloudAppData.lastUpdated).getTime();
+                    
+                    if (lastLogin) {
+                        const lastLoginTime = parseInt(lastLogin, 10);
+                        // If cloud data is newer than last login, show update notification
+                        if (cloudLastUpdated > lastLoginTime) {
+                            // Small delay to ensure UI is ready
+                            setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                    detail: { 
+                                        message: 'Research has been updated since last login.', 
+                                        type: 'success',
+                                        duration: 4000
+                                    } 
+                                }));
+                            }, 1000);
+                        }
                     }
-                } else {
-                    // No cloud data found, load from localStorage as fallback
-                    const savedProtocols = localStorage.getItem('tpprover_protocols');
-                    if (savedProtocols) setProtocols(JSON.parse(savedProtocols));
-
+                    
+                    // Update last login timestamp
+                    localStorage.setItem('tpprover_last_login_timestamp', Date.now().toString());
+                } else if (!cloudAppData) {
+                    // First time login or no cloud data - set timestamp
+                    localStorage.setItem('tpprover_last_login_timestamp', Date.now().toString());
+                }
+                
+                // Check if cloud data is actually empty (all arrays empty, no real data)
+                const isCloudEmpty = cloudAppData && (
+                    (!cloudAppData.protocols || cloudAppData.protocols.length === 0) &&
+                    (!cloudAppData.orders || cloudAppData.orders.length === 0) &&
+                    (!cloudAppData.stockpile || cloudAppData.stockpile.length === 0) &&
+                    (!cloudAppData.vendors || cloudAppData.vendors.length === 0) &&
+                    (!cloudAppData.reconItems || cloudAppData.reconItems.length === 0) &&
+                    (!cloudAppData.supplements || cloudAppData.supplements.length === 0) &&
+                    (!cloudAppData.metrics || cloudAppData.metrics.length === 0) &&
+                    (!cloudAppData.scheduledBuys || cloudAppData.scheduledBuys.length === 0) &&
+                    (!cloudAppData.calendarNotes || Object.keys(cloudAppData.calendarNotes).length === 0)
+                );
+                
+                // Load from localStorage to check if we have local data
+                const localProtocols = localStorage.getItem('tpprover_protocols');
+                const localOrders = localStorage.getItem('tpprover_orders');
+                const localStockpile = localStorage.getItem('tpprover_stockpile');
+                const hasLocalData = localProtocols || localOrders || localStockpile;
+                
+                if (cloudAppData && !isCloudEmpty) {
+                    // Cloud has real data - use it (with timestamp merging if local exists)
+                    if (hasLocalData) {
+                        // Merge cloud with local using timestamps to prevent data loss
+                        const mergedProtocols = localProtocols ? mergeWithTimestamps(
+                            JSON.parse(localProtocols),
+                            cloudAppData.protocols || []
+                        ) : (cloudAppData.protocols || []);
+                        
+                        const mergedOrders = localOrders ? mergeWithTimestamps(
+                            ensurePublicOrderNumbers(JSON.parse(localOrders)),
+                            cloudAppData.orders || []
+                        ) : (cloudAppData.orders || []);
+                        
+                        const mergedStockpile = localStockpile ? mergeWithTimestamps(
+                            JSON.parse(localStockpile),
+                            cloudAppData.stockpile || []
+                        ) : (cloudAppData.stockpile || []);
+                        
+                        setProtocols(mergedProtocols);
+                        setOrders(mergedOrders);
+                        setStockpile(mergedStockpile);
+                        
+                        // Merge other data types too
+                        const localRecon = localStorage.getItem('tpprover_recon_items');
+                        const localReconHistory = localStorage.getItem('tpprover_recon_history');
+                        const localSupplements = localStorage.getItem('tpprover_supplements');
+                        const localMetrics = localStorage.getItem('tpprover_metrics');
+                        const localVendors = localStorage.getItem('tpprover_vendors');
+                        const localScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
+                        
+                        if (localRecon) {
+                            setReconItems(mergeWithTimestamps(
+                                JSON.parse(localRecon),
+                                cloudAppData.reconItems || []
+                            ));
+                        } else if (cloudAppData.reconItems) {
+                            setReconItems(cloudAppData.reconItems);
+                        }
+                        
+                        if (localReconHistory) {
+                            setReconHistory(mergeWithTimestamps(
+                                JSON.parse(localReconHistory),
+                                cloudAppData.reconHistory || []
+                            ));
+                        } else if (cloudAppData.reconHistory) {
+                            setReconHistory(cloudAppData.reconHistory);
+                        }
+                        
+                        if (localSupplements) {
+                            setSupplements(mergeWithTimestamps(
+                                JSON.parse(localSupplements),
+                                cloudAppData.supplements || []
+                            ));
+                        } else if (cloudAppData.supplements) {
+                            setSupplements(cloudAppData.supplements);
+                        }
+                        
+                        if (localMetrics) {
+                            setMetrics(mergeWithTimestamps(
+                                JSON.parse(localMetrics),
+                                cloudAppData.metrics || []
+                            ));
+                        } else if (cloudAppData.metrics) {
+                            setMetrics(cloudAppData.metrics);
+                        }
+                        
+                        if (localVendors) {
+                            setVendors(mergeWithTimestamps(
+                                JSON.parse(localVendors),
+                                cloudAppData.vendors || []
+                            ));
+                        } else if (cloudAppData.vendors) {
+                            setVendors(cloudAppData.vendors);
+                        }
+                        
+                        if (localScheduledBuys) {
+                            setScheduledBuys(mergeWithTimestamps(
+                                JSON.parse(localScheduledBuys),
+                                cloudAppData.scheduledBuys || []
+                            ));
+                        } else if (cloudAppData.scheduledBuys) {
+                            setScheduledBuys(cloudAppData.scheduledBuys);
+                        }
+                        
+                        // Calendar notes - merge objects
+                        const localNotes = localStorage.getItem('tpprover_calendar_notes');
+                        if (localNotes) {
+                            const localNotesObj = JSON.parse(localNotes);
+                            const cloudNotesObj = cloudAppData.calendarNotes || {};
+                            setCalendarNotes({ ...cloudNotesObj, ...localNotesObj });
+                        } else if (cloudAppData.calendarNotes) {
+                            setCalendarNotes(cloudAppData.calendarNotes);
+                        }
+                    } else {
+                        // No local data, just use cloud
+                        if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
+                        if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
+                        if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
+                        if (cloudAppData.supplements) setSupplements(cloudAppData.supplements);
+                        if (cloudAppData.orders) setOrders(cloudAppData.orders);
+                        if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
+                        if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
+                        if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
+                        if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
+                        if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                    }
+                } else if (hasLocalData) {
+                    // Cloud is empty or doesn't exist, but we have local data - use local (RECOVERY)
+                    console.log('🔄 Cloud data empty but local data found - recovering from localStorage');
+                    console.log('🔄 This preserves user data that was saved locally but not synced to cloud');
+                    
+                    // Load all data from localStorage to preserve user's work
+                    if (localProtocols) {
+                        const parsed = JSON.parse(localProtocols);
+                        setProtocols(parsed);
+                        console.log(`✅ Recovered ${parsed.length} protocols from localStorage`);
+                    }
+                    
                     const savedRecon = localStorage.getItem('tpprover_recon_items');
-                    if (savedRecon) setReconItems(JSON.parse(savedRecon));
+                    if (savedRecon) {
+                        const parsed = JSON.parse(savedRecon);
+                        setReconItems(parsed);
+                        console.log(`✅ Recovered ${parsed.length} recon items from localStorage`);
+                    }
                     
                     const savedHistory = localStorage.getItem('tpprover_recon_history');
-                    if (savedHistory) setReconHistory(JSON.parse(savedHistory));
+                    if (savedHistory) {
+                        const parsed = JSON.parse(savedHistory);
+                        setReconHistory(parsed);
+                        console.log(`✅ Recovered ${parsed.length} recon history items from localStorage`);
+                    }
 
                     const savedSupps = localStorage.getItem('tpprover_supplements');
-                    if (savedSupps) setSupplements(JSON.parse(savedSupps));
+                    if (savedSupps) {
+                        const parsed = JSON.parse(savedSupps);
+                        setSupplements(parsed);
+                        console.log(`✅ Recovered ${parsed.length} supplements from localStorage`);
+                    }
 
-            const savedOrders = localStorage.getItem('tpprover_orders');
-                    if (savedOrders) setOrders(ensurePublicOrderNumbers(JSON.parse(savedOrders)));
+                    if (localOrders) {
+                        const parsed = ensurePublicOrderNumbers(JSON.parse(localOrders));
+                        setOrders(parsed);
+                        console.log(`✅ Recovered ${parsed.length} orders from localStorage`);
+                    }
 
                     const savedMetrics = localStorage.getItem('tpprover_metrics');
-                    if (savedMetrics) setMetrics(JSON.parse(savedMetrics));
+                    if (savedMetrics) {
+                        const parsed = JSON.parse(savedMetrics);
+                        setMetrics(parsed);
+                        console.log(`✅ Recovered ${parsed.length} metrics from localStorage`);
+                    }
 
                     const savedVendors = localStorage.getItem('tpprover_vendors');
-                    if (savedVendors) setVendors(JSON.parse(savedVendors));
+                    if (savedVendors) {
+                        const parsed = JSON.parse(savedVendors);
+                        setVendors(parsed);
+                        console.log(`✅ Recovered ${parsed.length} vendors from localStorage`);
+                    }
                     
                     const savedNotes = localStorage.getItem('tpprover_calendar_notes');
-                    if (savedNotes) setCalendarNotes(JSON.parse(savedNotes));
+                    if (savedNotes) {
+                        const parsed = JSON.parse(savedNotes);
+                        setCalendarNotes(parsed);
+                        console.log(`✅ Recovered calendar notes from localStorage`);
+                    }
 
-                    const savedStockpile = localStorage.getItem('tpprover_stockpile');
-                    if (savedStockpile) setStockpile(JSON.parse(savedStockpile));
+                    if (localStockpile) {
+                        const parsed = JSON.parse(localStockpile);
+                        setStockpile(parsed);
+                        console.log(`✅ Recovered ${parsed.length} stockpile items from localStorage`);
+                    }
 
                     const savedScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
                     if (savedScheduledBuys) {
                         const parsed = JSON.parse(savedScheduledBuys);
                         setScheduledBuys(parsed);
+                        console.log(`✅ Recovered ${parsed.length} scheduled buys from localStorage`);
                     }
+                    
+                    // CRITICAL: Create recovery snapshot BEFORE attempting sync
+                    // This preserves data even if sync fails or corrupts something
+                    const recoveredData = {
+                        protocols: localProtocols ? JSON.parse(localProtocols) : [],
+                        reconItems: savedRecon ? JSON.parse(savedRecon) : [],
+                        reconHistory: savedHistory ? JSON.parse(savedHistory) : [],
+                        supplements: savedSupps ? JSON.parse(savedSupps) : [],
+                        orders: localOrders ? ensurePublicOrderNumbers(JSON.parse(localOrders)) : [],
+                        metrics: savedMetrics ? JSON.parse(savedMetrics) : [],
+                        vendors: savedVendors ? JSON.parse(savedVendors) : [],
+                        calendarNotes: savedNotes ? JSON.parse(savedNotes) : {},
+                        stockpile: localStockpile ? JSON.parse(localStockpile) : [],
+                        scheduledBuys: savedScheduledBuys ? JSON.parse(savedScheduledBuys) : []
+                    };
+                    
+                    // Save recovery snapshot with timestamp
+                    try {
+                        const recoverySnapshot = {
+                            data: recoveredData,
+                            timestamp: new Date().toISOString(),
+                            userId: userId,
+                            reason: 'auto_recovery_from_empty_cloud'
+                        };
+                        localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(recoverySnapshot));
+                        console.log('💾 Recovery snapshot saved before sync attempt');
+                    } catch (snapshotError) {
+                        console.error('❌ Failed to save recovery snapshot:', snapshotError);
+                    }
+                    
+                    // CRITICAL: Force immediate sync to cloud to preserve this data
+                    // This ensures the recovered data gets saved to cloud so it's available on other devices
+                    setTimeout(async () => {
+                        try {
+                            console.log('🔄 Force syncing recovered data to cloud...');
+                            
+                            const syncResult = await saveAppData(userId, recoveredData, { skipMerge: true });
+                            if (syncResult) {
+                                console.log('✅ Recovered data successfully synced to cloud!');
+                                
+                                // Verify data is actually in cloud before deleting snapshot
+                                setTimeout(async () => {
+                                    try {
+                                        const verifyCloudData = await loadAppData(userId);
+                                        const hasRealCloudData = verifyCloudData && (
+                                            (verifyCloudData.protocols?.length > 0) ||
+                                            (verifyCloudData.orders?.length > 0) ||
+                                            (verifyCloudData.stockpile?.length > 0) ||
+                                            (verifyCloudData.vendors?.length > 0)
+                                        );
+                                        
+                                        if (hasRealCloudData) {
+                                            // Data is confirmed in cloud - safe to delete snapshot
+                                            // But keep it for 48 hours as extra safety net
+                                            const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
+                                            if (snapshot) {
+                                                try {
+                                                    const parsed = JSON.parse(snapshot);
+                                                    // Mark snapshot as "synced" but keep for 48h
+                                                    parsed.syncedToCloud = true;
+                                                    parsed.syncedAt = new Date().toISOString();
+                                                    localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(parsed));
+                                                    console.log('✅ Snapshot marked as synced - will be cleaned up after 48h');
+                                                    
+                                                    // Clean up after 48 hours
+                                                    setTimeout(() => {
+                                                        const currentSnapshot = localStorage.getItem('tpprover_recovery_snapshot');
+                                                        if (currentSnapshot) {
+                                                            try {
+                                                                const currentParsed = JSON.parse(currentSnapshot);
+                                                                if (currentParsed.syncedToCloud && currentParsed.syncedAt) {
+                                                                    const timeSinceSync = Date.now() - new Date(currentParsed.syncedAt).getTime();
+                                                                    if (timeSinceSync > 48 * 60 * 60 * 1000) { // 48 hours
+                                                                        localStorage.removeItem('tpprover_recovery_snapshot');
+                                                                        console.log('🧹 Recovery snapshot cleaned up (data confirmed in cloud for 48h)');
+                                                                    }
+                                                                }
+                                                            } catch (e) {
+                                                                // Ignore cleanup errors
+                                                            }
+                                                        }
+                                                    }, 48 * 60 * 60 * 1000);
+                                                } catch (e) {
+                                                    console.error('Failed to mark snapshot as synced:', e);
+                                                }
+                                            }
+                                        } else {
+                                            console.warn('⚠️ Sync reported success but cloud data not verified - keeping snapshot');
+                                        }
+                                    } catch (verifyError) {
+                                        console.error('Failed to verify cloud data:', verifyError);
+                                        // Keep snapshot if verification fails
+                                    }
+                                }, 3000); // Wait 3 seconds for cloud to update
+                            } else {
+                                console.error('❌ Failed to sync recovered data to cloud - snapshot preserved indefinitely');
+                                // Snapshot stays forever until user manually recovers or sync succeeds
+                            }
+                        } catch (error) {
+                            console.error('❌ Error syncing recovered data:', error);
+                            console.error('💾 Recovery snapshot is still available in localStorage');
+                        }
+                    }, 2000); // Wait 2 seconds for state to settle
+                } else {
+                    // No data anywhere - new user
+                    console.log('📭 No data found in cloud or localStorage');
                 }
 
                 // Load subscription from cloud
@@ -694,8 +1008,104 @@ export function AppProvider({ children }) {
         );
         
         if (hasData) {
-            // Save to cloud storage
-            saveAppData(userId, userData);
+            // Save to cloud storage with error handling and retry logic
+            const syncToCloud = async () => {
+                try {
+                    const result = await saveAppData(userId, userData);
+                    if (!result) {
+                        throw new Error('saveAppData returned false');
+                    }
+                    console.log('✅ Data synced to cloud successfully');
+                    
+                    // Verify data is actually in cloud and update snapshot if exists
+                    setTimeout(async () => {
+                        try {
+                            const verifyCloudData = await loadAppData(userId);
+                            const hasRealCloudData = verifyCloudData && (
+                                (verifyCloudData.protocols?.length > 0) ||
+                                (verifyCloudData.orders?.length > 0) ||
+                                (verifyCloudData.stockpile?.length > 0) ||
+                                (verifyCloudData.vendors?.length > 0)
+                            );
+                            if (hasRealCloudData) {
+                                // If there's a recovery snapshot, mark it as synced
+                                const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
+                                if (snapshot) {
+                                    try {
+                                        const parsed = JSON.parse(snapshot);
+                                        parsed.syncedToCloud = true;
+                                        parsed.syncedAt = new Date().toISOString();
+                                        localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(parsed));
+                                        console.log('✅ Recovery snapshot marked as synced after successful sync');
+                                    } catch (e) {
+                                        // Ignore snapshot update errors
+                                    }
+                                }
+                            }
+                        } catch (verifyError) {
+                            console.error('Failed to verify sync:', verifyError);
+                        }
+                    }, 3000);
+                } catch (error) {
+                    console.error('❌ Failed to save app data to cloud:', error);
+                    console.error('❌ Error details:', {
+                        userId,
+                        hasData: true,
+                        errorMessage: error.message,
+                        errorCode: error.code,
+                        errorStack: error.stack
+                    });
+                    
+                    // Silent retry - no user notification
+                    setTimeout(async () => {
+                        try {
+                            console.log('🔄 Retrying cloud sync silently...');
+                            const retryResult = await saveAppData(userId, userData);
+                            if (retryResult) {
+                                // Verify data is actually in cloud after retry
+                                setTimeout(async () => {
+                                    try {
+                                        const verifyCloudData = await loadAppData(userId);
+                                        const hasRealCloudData = verifyCloudData && (
+                                            (verifyCloudData.protocols?.length > 0) ||
+                                            (verifyCloudData.orders?.length > 0) ||
+                                            (verifyCloudData.stockpile?.length > 0) ||
+                                            (verifyCloudData.vendors?.length > 0)
+                                        );
+                                        if (hasRealCloudData) {
+                                            console.log('✅ Retry verified - data confirmed in cloud');
+                                            // If there's a recovery snapshot, mark it as synced
+                                            const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
+                                            if (snapshot) {
+                                                try {
+                                                    const parsed = JSON.parse(snapshot);
+                                                    parsed.syncedToCloud = true;
+                                                    parsed.syncedAt = new Date().toISOString();
+                                                    localStorage.setItem('tpprover_recovery_snapshot', JSON.stringify(parsed));
+                                                    console.log('✅ Recovery snapshot marked as synced after retry');
+                                                } catch (e) {
+                                                    // Ignore snapshot update errors
+                                                }
+                                            }
+                                        } else {
+                                            console.warn('⚠️ Retry reported success but cloud data not verified');
+                                        }
+                                    } catch (verifyError) {
+                                        console.error('Failed to verify retry sync:', verifyError);
+                                    }
+                                }, 3000);
+                            } else {
+                                console.error('❌ Retry failed - saveAppData returned false');
+                            }
+                        } catch (retryError) {
+                            console.error('❌ Retry also failed:', retryError);
+                        }
+                    }, 3000);
+                }
+            };
+            
+            // Execute sync
+            syncToCloud();
             
             // Also sync to Firebase for backup (if user has password)
             if (hasPassword) {

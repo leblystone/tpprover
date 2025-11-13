@@ -13,7 +13,8 @@ import {
   serverTimestamp,
   increment,
   addDoc,
-  Timestamp
+  Timestamp,
+  onSnapshot
 } from 'firebase/firestore';
 import { 
   createUserWithEmailAndPassword, 
@@ -1090,6 +1091,204 @@ export async function respondToFeedback(feedbackId, responseText, userEmail) {
     throw error;
   }
 }
+
+// ============================================================================
+// SUPPORT TICKET SYSTEM
+// ============================================================================
+
+/**
+ * Create a new support ticket
+ * @param {Object} ticketData - The ticket data
+ * @returns {Promise<string>} - The ticket ID
+ */
+export async function createSupportTicket(ticketData) {
+  try {
+    const functions = getFunctions();
+    const createTicket = httpsCallable(functions, 'createSupportTicket');
+    
+    const result = await createTicket(ticketData);
+    
+    if (result.data.success) {
+      return result.data.ticketId;
+    } else {
+      throw new Error(result.data.message || 'Failed to create ticket');
+    }
+  } catch (error) {
+    console.error('❌ Failed to create support ticket:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add a message to a support ticket
+ * @param {Object} messageData - The message data
+ * @returns {Promise<string>} - The message ID
+ */
+export async function addTicketMessage(messageData) {
+  try {
+    const functions = getFunctions();
+    const addMessage = httpsCallable(functions, 'addTicketMessage');
+    
+    const result = await addMessage(messageData);
+    
+    if (result.data.success) {
+      return result.data.messageId;
+    } else {
+      throw new Error(result.data.message || 'Failed to add message');
+    }
+  } catch (error) {
+    console.error('❌ Failed to add ticket message:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all tickets for a user
+ * @param {string} userEmail - User's email
+ * @returns {Promise<Array>} - Array of tickets
+ */
+export async function getUserTickets(userEmail) {
+  try {
+    const ticketsRef = collection(db, 'supportTickets');
+    const q = query(
+      ticketsRef,
+      where('userEmail', '==', userEmail.toLowerCase()),
+      orderBy('lastMessageAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    
+    const tickets = [];
+    querySnapshot.forEach((doc) => {
+      tickets.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return tickets;
+  } catch (error) {
+    console.error('❌ Failed to get user tickets:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a single ticket with messages
+ * @param {string} ticketId - The ticket ID
+ * @returns {Promise<Object>} - The ticket with messages
+ */
+export async function getTicketWithMessages(ticketId) {
+  try {
+    const ticketRef = doc(db, 'supportTickets', ticketId);
+    const ticketDoc = await getDoc(ticketRef);
+    
+    if (!ticketDoc.exists) {
+      throw new Error('Ticket not found');
+    }
+    
+    const ticket = {
+      id: ticketDoc.id,
+      ...ticketDoc.data()
+    };
+    
+    // Get messages
+    const messagesRef = collection(ticketRef, 'messages');
+    const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
+    const messagesSnapshot = await getDocs(messagesQuery);
+    
+    ticket.messages = [];
+    messagesSnapshot.forEach((msgDoc) => {
+      ticket.messages.push({
+        id: msgDoc.id,
+        ...msgDoc.data()
+      });
+    });
+    
+    return ticket;
+  } catch (error) {
+    console.error('❌ Failed to get ticket with messages:', error);
+    throw error;
+  }
+}
+
+/**
+ * Subscribe to ticket messages (real-time)
+ * @param {string} ticketId - The ticket ID
+ * @param {Function} callback - Callback function for updates
+ * @returns {Function} - Unsubscribe function
+ */
+export function subscribeToTicketMessages(ticketId, callback) {
+  const ticketRef = doc(db, 'supportTickets', ticketId);
+  const messagesRef = collection(ticketRef, 'messages');
+  const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
+  
+  return onSnapshot(messagesQuery, (snapshot) => {
+    const messages = [];
+    snapshot.forEach((doc) => {
+      messages.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    callback(messages);
+  });
+}
+
+/**
+ * Get all tickets for admin view
+ * @returns {Promise<Array>} - Array of tickets
+ */
+export async function getAllTickets() {
+  try {
+    const ticketsRef = collection(db, 'supportTickets');
+    const q = query(ticketsRef, orderBy('lastMessageAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const tickets = [];
+    querySnapshot.forEach((doc) => {
+      tickets.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return tickets;
+  } catch (error) {
+    console.error('❌ Failed to get all tickets:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update ticket status (admin only)
+ * @param {string} ticketId - The ticket ID
+ * @param {string} status - New status
+ * @param {string} adminPassword - Admin password
+ * @returns {Promise<void>}
+ */
+export async function updateTicketStatus(ticketId, status, adminPassword) {
+  try {
+    const functions = getFunctions();
+    const updateStatus = httpsCallable(functions, 'updateTicketStatus');
+    
+    const result = await updateStatus({
+      ticketId,
+      status,
+      adminPassword
+    });
+    
+    if (!result.data.success) {
+      throw new Error(result.data.message || 'Failed to update ticket status');
+    }
+  } catch (error) {
+    console.error('❌ Failed to update ticket status:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
 
 /**
  * Get notifications for a user

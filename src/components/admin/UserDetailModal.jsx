@@ -687,7 +687,7 @@ function SubscriptionDebugSection({ user, theme }) {
         background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.warning}05 100%)`
       }}>
       <div className="relative z-10">
-        <button
+              <button 
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-all"
         >

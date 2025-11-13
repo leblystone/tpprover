@@ -919,7 +919,20 @@ export default function Login() {
             <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: theme.background }}>
                 <div className="w-full max-w-md">
                     <div className="text-center mb-8">
-                        <img src={logo} alt="The Pep Planner Logo" className="h-20 w-20 rounded-full shadow-lg object-cover mx-auto mb-4" />
+                        <img 
+                          src={logo} 
+                          alt="The Pep Planner Logo" 
+                          className="h-20 w-20 rounded-full shadow-lg object-contain mx-auto mb-4" 
+                          style={{
+                            imageRendering: 'auto',
+                            backfaceVisibility: 'hidden',
+                            transform: 'translateZ(0)',
+                            WebkitBackfaceVisibility: 'hidden',
+                            willChange: 'transform',
+                            WebkitTransform: 'translateZ(0)',
+                            msTransform: 'translateZ(0)'
+                          }}
+                        />
                         <h1 className="text-3xl font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
                         <p className="mt-2 text-md text-gray-500">Organize Your Research</p>
                     </div>

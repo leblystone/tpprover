@@ -101,7 +101,22 @@ export default function Landing() {
           {/* Mobile Layout */}
           <div className="flex lg:hidden items-center justify-between">
             <h1 className="text-[8px] font-bold tracking-widest uppercase" style={{ color: '#9CA3AF', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.15em' }}>Organize Your Research</h1>
-            <img src={logo} alt="Logo" className="rounded-full shadow object-cover" style={{ width: '48px', height: '48px' }} />
+            <img 
+              src={logo} 
+              alt="Logo" 
+              className="rounded-full shadow object-contain" 
+              style={{ 
+                width: '48px', 
+                height: '48px',
+                imageRendering: 'auto',
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
+                WebkitBackfaceVisibility: 'hidden',
+                willChange: 'transform',
+                WebkitTransform: 'translateZ(0)',
+                msTransform: 'translateZ(0)'
+              }} 
+            />
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSignIn}

@@ -116,7 +116,7 @@ function ensureTimestamps(items) {
  * Helper: Merge arrays with timestamp-based conflict resolution
  * Server data wins if it has newer timestamps
  */
-function mergeWithTimestamps(localItems, serverItems) {
+export function mergeWithTimestamps(localItems, serverItems) {
   if (!Array.isArray(localItems)) localItems = [];
   if (!Array.isArray(serverItems)) serverItems = [];
   

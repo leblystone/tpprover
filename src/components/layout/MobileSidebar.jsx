@@ -73,7 +73,21 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             </div>
             
             {/* Right side: Logo */}
-            <img src={logo} alt="The Pep Planner Logo" className="h-14 w-14 rounded-full shadow object-cover" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            <img 
+              src={logo} 
+              alt="The Pep Planner Logo" 
+              className="h-14 w-14 rounded-full shadow object-contain" 
+              style={{
+                imageRendering: 'auto',
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
+                WebkitBackfaceVisibility: 'hidden',
+                willChange: 'transform',
+                WebkitTransform: 'translateZ(0)',
+                msTransform: 'translateZ(0)'
+              }}
+              onError={(e) => { e.currentTarget.style.display = 'none' }} 
+            />
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto flex flex-col" style={{ backgroundColor: theme.cardBackground }}>

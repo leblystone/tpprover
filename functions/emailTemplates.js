@@ -167,17 +167,6 @@ exports.welcomeEmail = (userName, userEmail) => {
         </p>
       </div>
 
-      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">What you can do:</h2>
-      
-      <ul class="feature-list">
-        <li><strong>Create Custom Protocols</strong> – Build and manage research protocols</li>
-        <li><strong>Track Your Progress</strong> – Calendar integration and task management</li>
-        <li><strong>Reconstitution Calculator</strong> – Calculate dosages with precision</li>
-        <li><strong>Inventory Management</strong> – Track orders, stockpile, and vendors</li>
-        <li><strong>Research Notes</strong> – Document findings and observations</li>
-        <li><strong>Data Analytics</strong> – Visualize trends and metrics</li>
-      </ul>
-
       <center>
         <a href="https://thepepplanner.app/app/dashboard" class="button">
           Get Started →
