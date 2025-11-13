@@ -27,7 +27,7 @@ export default function BetaModal({ open, onClose, theme }) {
       onClose={onClose}
       title={
         <div className="flex items-center gap-2">
-          <span>We're in Beta!</span>
+          <span>We're in Beta</span>
           <FlaskRound className="w-6 h-6" style={{ color: '#ffffff' }} />
         </div>
       }
@@ -56,7 +56,7 @@ export default function BetaModal({ open, onClose, theme }) {
             className="text-lg font-bold mb-2 pulsing-tagline"
             style={{ color: theme?.primaryDark }}
           >
-            Building with you, not for you
+            Building with you!
           </h3>
           <p 
             className="text-base leading-relaxed"
@@ -79,7 +79,7 @@ export default function BetaModal({ open, onClose, theme }) {
           >
             <strong>What Beta Means:</strong>
             <br />
-            We're actively working out the kinks and bugs as we build. This is a living, breathing app that's improving every day based on YOUR feedback. It's going to take time, patience, and collaboration—but we know this is going to be something special.
+            We're actively working out the kinks and bugs as we build. This is a living, breathing app that's improving. It's going to take time, patience, and collaboration if you're willing—but we know this is going to be something special in the pep world!
           </p>
         </div>
 

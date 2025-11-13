@@ -76,7 +76,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             <img 
               src={logo} 
               alt="The Pep Planner Logo" 
-              className="h-14 w-14 rounded-full shadow object-contain" 
+              className="h-16 w-16 rounded-full shadow object-contain" 
               style={{
                 imageRendering: 'auto',
                 backfaceVisibility: 'hidden',

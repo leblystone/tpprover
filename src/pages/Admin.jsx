@@ -4188,7 +4188,11 @@ function Admin() {
           </div>
         )}
 
+        </div>
       </div>
+      </div>
+
+      {/* Modals */}
       {isUserModalOpen && selectedUser ? (
         <>
           <UserDetailModal 
@@ -4380,9 +4384,6 @@ function Admin() {
           </div>
         </Modal>
       )}
-      </div>
-    </div>
-    </div>
     </>
   );
 }
