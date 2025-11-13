@@ -293,7 +293,7 @@ export default function SettingsData() {
         } else {
           setRecoveryStatus('no_snapshot');
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { message: 'No recovery data found. Your data may have been lost.', type: 'error' } 
+            detail: { message: 'No recovery data found.', type: 'error', duration: 4000 } 
           }));
           return;
         }
@@ -302,7 +302,27 @@ export default function SettingsData() {
       if (!snapshotData) {
         setRecoveryStatus('invalid');
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
-          detail: { message: 'Recovery data is invalid.', type: 'error' } 
+          detail: { message: 'No recovery data found.', type: 'error', duration: 4000 } 
+        }));
+        return;
+      }
+
+      // Check if there's actually any data to recover
+      const hasAnyData = 
+        (snapshotData.protocols && snapshotData.protocols.length > 0) ||
+        (snapshotData.orders && snapshotData.orders.length > 0) ||
+        (snapshotData.stockpile && snapshotData.stockpile.length > 0) ||
+        (snapshotData.vendors && snapshotData.vendors.length > 0) ||
+        (snapshotData.reconItems && snapshotData.reconItems.length > 0) ||
+        (snapshotData.supplements && snapshotData.supplements.length > 0) ||
+        (snapshotData.metrics && snapshotData.metrics.length > 0) ||
+        (snapshotData.scheduledBuys && snapshotData.scheduledBuys.length > 0) ||
+        (snapshotData.calendarNotes && Object.keys(snapshotData.calendarNotes).length > 0);
+
+      if (!hasAnyData) {
+        setRecoveryStatus('no_data');
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'No recovery data found.', type: 'error', duration: 4000 } 
         }));
         return;
       }
@@ -353,35 +373,34 @@ export default function SettingsData() {
       }
 
       // Attempt to sync to cloud
-      if (firebaseUser) {
-        setRecoveryStatus('syncing');
-        const syncResult = await saveAppData(firebaseUser.uid, snapshotData, { skipMerge: true });
-        
-        if (syncResult) {
-          setRecoveryStatus('success');
-          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { 
-              message: `Data recovered successfully! ${Object.values(snapshotData).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)} items restored.`, 
-              type: 'success',
-              duration: 5000
-            } 
-          }));
-          setTimeout(() => window.location.reload(), 2000);
-        } else {
-          setRecoveryStatus('sync_failed');
-          window.dispatchEvent(new CustomEvent('tpp:toast', { 
-            detail: { 
-              message: 'Data restored locally but failed to sync to cloud. Your data is safe on this device.', 
-              type: 'warning',
-              duration: 5000
-            } 
-          }));
-        }
-      } else {
-        setRecoveryStatus('not_logged_in');
+      setRecoveryStatus('syncing');
+      const syncResult = await saveAppData(firebaseUser.uid, snapshotData, { skipMerge: true });
+      
+      if (syncResult) {
+        setRecoveryStatus('success');
+        const itemCount = Object.values(snapshotData).reduce((sum, arr) => {
+          if (Array.isArray(arr)) return sum + arr.length;
+          if (typeof arr === 'object' && arr !== null) return sum + Object.keys(arr).length;
+          return sum;
+        }, 0);
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
           detail: { 
-            message: 'Data restored locally. Please log in to sync to cloud.', 
+            message: `Your research data has been recovered! ${itemCount} item${itemCount !== 1 ? 's' : ''} restored.`, 
+            type: 'success',
+            duration: 5000
+          } 
+        }));
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setRecoveryStatus('sync_failed');
+        const itemCount = Object.values(snapshotData).reduce((sum, arr) => {
+          if (Array.isArray(arr)) return sum + arr.length;
+          if (typeof arr === 'object' && arr !== null) return sum + Object.keys(arr).length;
+          return sum;
+        }, 0);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: `Your research data has been recovered on this device (${itemCount} item${itemCount !== 1 ? 's' : ''}), but couldn't sync to your other devices. Your data is safe here.`, 
             type: 'warning',
             duration: 5000
           } 
@@ -391,7 +410,7 @@ export default function SettingsData() {
       console.error('Recovery failed:', error);
       setRecoveryStatus('error');
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Recovery failed: ' + error.message, type: 'error' } 
+        detail: { message: 'Unable to recover your data. Please try again later.', type: 'error', duration: 4000 } 
       }));
     }
   }
