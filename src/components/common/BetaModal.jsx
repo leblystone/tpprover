@@ -27,7 +27,7 @@ export default function BetaModal({ open, onClose, theme }) {
       onClose={onClose}
       title={
         <div className="flex items-center gap-2">
-          <span>We're in Beta</span>
+          <span>We're in Beta!</span>
           <FlaskRound className="w-6 h-6" style={{ color: '#ffffff' }} />
         </div>
       }
