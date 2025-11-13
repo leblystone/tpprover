@@ -4188,12 +4188,9 @@ function Admin() {
           </div>
         )}
 
-        </div>
       </div>
-      {console.log('🔍 Checking modal render condition:', { isUserModalOpen, selectedUser: !!selectedUser })}
       {isUserModalOpen && selectedUser ? (
         <>
-          {console.log('✅ Modal SHOULD render now!')}
           <UserDetailModal 
             user={selectedUser} 
             onClose={() => {
@@ -4206,9 +4203,7 @@ function Admin() {
             isLoadingDetails={isLoadingUserDetails}
           />
         </>
-      ) : (
-        console.log('❌ Modal NOT rendering:', { isUserModalOpen, hasUser: !!selectedUser })
-      )}
+      ) : null}
 
       {/* Research Topic Edit Modal */}
       {showTopicModal && editingTopic && (
@@ -4384,8 +4379,9 @@ function Admin() {
             </div>
           </div>
         </Modal>
-        )}
+      )}
       </div>
+    </div>
     </div>
     </>
   );
