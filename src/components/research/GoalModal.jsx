@@ -3,6 +3,7 @@ import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 
 function todayISO() {
   const d = new Date()
@@ -56,9 +57,12 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
         />
         
         <TextInput label="Goal" value={form.text} onChange={v => setForm(prev => ({ ...prev, text: v }))} placeholder="Describe your goal" theme={theme} />
-        <label className="block text-sm font-medium" style={{ color: theme?.text }}>Goal Date
-          <input type="date" className="w-full p-2 rounded border" value={form.dueDate} onChange={e => setForm(prev => ({ ...prev, dueDate: e.target.value }))} style={{ borderColor: theme?.border }} />
-        </label>
+        <GlassmorphismDatePicker
+          value={form.dueDate || ''}
+          onChange={(dateString) => setForm(prev => ({ ...prev, dueDate: dateString }))}
+          theme={theme}
+          placeholder="Goal Date"
+        />
       </div>
     </Modal>
   )

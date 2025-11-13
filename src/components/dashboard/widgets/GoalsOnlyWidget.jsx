@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Plus, Target, X, Save } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
+import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 
 const GoalsOnlyWidget = ({ 
   widget, 
@@ -97,23 +98,23 @@ const GoalsOnlyWidget = ({
               }}
               autoFocus
             />
-            <input
-              type="date"
-              value={newGoal.targetDate}
-              onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
-              className="w-full px-3 py-2 text-sm border rounded-lg"
-              style={{ 
-                borderColor: theme.border, 
-                backgroundColor: theme.background,
-                color: theme.text
-              }}
+            <GlassmorphismDatePicker
+              value={newGoal.targetDate || ''}
+              onChange={(dateString) => setNewGoal({ ...newGoal, targetDate: dateString })}
+              theme={theme}
+              placeholder="Goal Date"
+              compact={true}
             />
             <div className="flex gap-2">
               <button
                 onClick={handleAddGoal}
                 disabled={!newGoal.title.trim()}
-                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ 
+                  backgroundColor: theme.primary, 
+                  color: theme.textOnPrimary || '#ffffff',
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+                }}
               >
                 <Save size={14} />
                 Save Goal
@@ -138,8 +139,12 @@ const GoalsOnlyWidget = ({
                 </p>
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-1"
+                  style={{ 
+                    backgroundColor: theme.primary, 
+                    color: theme.textOnPrimary || '#ffffff',
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
                 >
                   <Plus size={12} />
                   Add Goal
@@ -214,11 +219,15 @@ const GoalsOnlyWidget = ({
                 <div className="pt-2 border-t flex-shrink-0" style={{ borderColor: theme.border }}>
                   <button
                     onClick={() => setShowAddForm(true)}
-                    className="w-full py-1.5 px-2 rounded-lg border-2 border-dashed transition-all hover:opacity-80 flex items-center justify-center gap-1"
-                    style={{ borderColor: theme.border, color: theme.textLight }}
+                    className="w-full py-1.5 px-2 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-1"
+                    style={{ 
+                      backgroundColor: theme.primary, 
+                      color: theme.textOnPrimary || '#ffffff',
+                      boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
                   >
                     <Plus size={12} />
-                    <span className="text-xs">Add Goal</span>
+                    <span>Add Goal</span>
                   </button>
                 </div>
               </>

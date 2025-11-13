@@ -39,16 +39,15 @@ const GoalsWidget = ({
             </h4>
             <button
               onClick={onAddGoal}
-              className="p-1 rounded action-button-hover"
-              style={{ color: theme.primary }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '20';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1"
+              style={{ 
+                backgroundColor: theme.primary, 
+                color: theme.textOnPrimary || '#ffffff',
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
               }}
             >
-              <Plus size={16} className="icon-hover" />
+              <Plus size={14} />
+              Add Goal
             </button>
           </div>
           

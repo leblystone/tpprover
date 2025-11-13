@@ -803,10 +803,16 @@ export default function Dashboard() {
                           setEditingGoal(null); 
                           setShowGoal(true);
                         }} 
-                        className="p-1 rounded hover:opacity-80" 
+                        className="px-2 py-1 rounded-md text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1"
+                        style={{ 
+                          backgroundColor: theme.primary, 
+                          color: theme.textOnPrimary || '#ffffff',
+                          boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
                         title="New Goal"
                       >
-                        <PlusCircle className="h-4 w-4"/>
+                        <PlusCircle className="h-3 w-3"/>
+                        Add
                       </button>
                     </div>
                 </div>

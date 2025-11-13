@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import { ShoppingCart, HandCoins } from 'lucide-react';
 
 export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave, onDelete }) {
     const [form, setForm] = useState({ 
@@ -161,30 +162,25 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
         >
             <div className="space-y-3">
                 {/* GROUP BUY DETAILS Section Header */}
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>GROUP BUY DETAILS</h4>
+                <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>GROUP BUY DETAILS</h4>
+                    <ShoppingCart size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
 
-                <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Group Buy For</label>
-                    <input
-                        type="text"
-                        value={form.item}
-                        onChange={e => setForm({ ...form, item: e.target.value })}
-                        placeholder="Product Name"
-                        className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                        style={{
-                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            color: theme.text,
-                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                    />
-                </div>
+                <TextInput
+                    label="Group Buy For"
+                    value={form.item}
+                    onChange={v => setForm({ ...form, item: v })}
+                    placeholder="Product Name"
+                    theme={theme}
+                    outlined={true}
+                    customTextColor="#181A18"
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Open Date</label>
+                        <label className="text-sm font-medium mb-2 block text-center" style={{ color: theme.text }}>Open Date</label>
                         <GlassmorphismDatePicker
                             value={form.openDate}
                             onChange={(dateString) => setForm({ ...form, openDate: dateString })}
@@ -193,7 +189,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Close Date</label>
+                        <label className="text-sm font-medium mb-2 block text-center" style={{ color: theme.text }}>Close Date</label>
                         <GlassmorphismDatePicker
                             value={form.closeDate}
                             onChange={(dateString) => setForm({ ...form, closeDate: dateString })}
@@ -204,104 +200,96 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Group Buy Host</label>
-                        <input
-                            type="text"
-                            value={form.vendor}
-                            onChange={e => setForm({ ...form, vendor: e.target.value })}
-                            placeholder="Name"
-                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                            style={{
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                color: theme.text,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Platform</label>
-                        <input
-                            type="text"
-                            value={form.location}
-                            onChange={e => setForm({ ...form, location: e.target.value })}
-                            placeholder="e.g Discord, Telegram, etc."
-                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                            style={{
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                color: theme.text,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                            }}
-                        />
-                    </div>
+                    <TextInput
+                        label="Group Buy Host"
+                        value={form.vendor}
+                        onChange={v => setForm({ ...form, vendor: v })}
+                        placeholder="Name"
+                        theme={theme}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
+                    <TextInput
+                        label="Platform"
+                        value={form.location}
+                        onChange={v => setForm({ ...form, location: v })}
+                        placeholder="e.g Discord, Telegram, etc."
+                        theme={theme}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
                 </div>
 
                 {/* VENDOR & PRICING Section Header */}
-                <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
-                    <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VENDOR & PRICING</h4>
+                <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                    <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>VENDOR & PRICING</h4>
+                    <HandCoins size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
+                    <TextInput
+                        label="Vendor"
+                        value={form.participants}
+                        onChange={v => setForm({ ...form, participants: v })}
+                        placeholder="Vendor Name"
+                        theme={theme}
+                        outlined={true}
+                        customTextColor="#181A18"
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    />
                     <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Vendor</label>
-                        <input
-                            type="text"
-                            value={form.participants}
-                            onChange={e => setForm({ ...form, participants: e.target.value })}
-                            placeholder="Vendor Name"
-                            className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                            style={{
-                                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                color: theme.text,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Price</label>
                         <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span className="text-gray-500 text-sm">$</span>
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" style={{ color: theme.textLight || theme.text }}>
+                                <span className="text-sm">$</span>
                             </div>
-                            <input
-                                type="text"
-                                value={form.price}
-                                onChange={e => setForm({ ...form, price: e.target.value })}
-                                placeholder="0.00"
-                                className="w-full pl-7 pr-3 py-2 rounded-lg text-sm transition-all focus:outline-none"
-                                style={{
-                                    border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                                    backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                    color: theme.text,
-                                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                                }}
-                            />
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={form.price}
+                                    onChange={e => setForm({ ...form, price: e.target.value })}
+                                    placeholder="0.00"
+                                    className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none"
+                                    style={{
+                                        border: `1px solid #f0eee7`,
+                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                        color: '#181A18',
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                    }}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = theme.primary;
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = '#f0eee7';
+                                    }}
+                                />
+                                <label 
+                                    className="absolute left-3 -top-2.5 px-1 text-xs font-medium transition-all pointer-events-none"
+                                    style={{ 
+                                        color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76',
+                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground
+                                    }}
+                                >
+                                    Price
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Page Break */}
-                <div className="border-t" style={{ borderColor: theme.border }}></div>
-
-                <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>Notes</label>
-                    <textarea
-                        value={form.notes}
-                        onChange={e => setForm({ ...form, notes: e.target.value })}
-                        placeholder="Any further group buy details."
-                        rows={3}
-                        className="w-full px-3 py-2 rounded-lg text-sm transition-all resize-none focus:outline-none"
-                        style={{
-                            border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                            color: theme.text,
-                            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                    />
-                </div>
+                <TextInput
+                    label="Notes"
+                    value={form.notes}
+                    onChange={v => setForm({ ...form, notes: v })}
+                    placeholder="Any further group buy details."
+                    theme={theme}
+                    outlined={true}
+                    customTextColor="#181A18"
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    multiline={true}
+                    rows={3}
+                />
             </div>
         </Modal>
     )

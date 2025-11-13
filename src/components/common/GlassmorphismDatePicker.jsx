@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date" }) {
+export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date", compact = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(() => {
         if (value) {
@@ -110,7 +110,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-3 py-3 rounded-lg transition-all focus:outline-none flex items-center justify-between"
+                className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between`}
                 style={{
                     border: `1px solid #f0eee7`,
                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
@@ -118,34 +118,35 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     color: '#181A18'
                 }}
             >
-                <span style={{ color: value ? '#181A18' : (theme.textLight || theme.text) }}>
+                <span className={compact ? 'text-sm' : ''} style={{ color: value ? '#181A18' : (theme.textLight || theme.text) }}>
                     {formatDisplayDate(value)}
                 </span>
-                <Calendar size={18} style={{ color: theme.primary, opacity: 0.7 }} />
+                <Calendar size={compact ? 14 : 18} style={{ color: theme.primary, opacity: 0.7 }} />
             </button>
 
             {/* Glassmorphism Calendar Dropdown */}
             {isOpen && (
                 <div
-                    className="absolute z-50 mt-2 rounded-xl overflow-hidden"
+                    className="absolute mt-2 rounded-xl overflow-hidden"
                     style={{
                         backdropFilter: 'blur(24px) saturate(180%)',
                         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                         backgroundColor: 'rgba(139, 133, 125, 0.2)',
                         border: `1px solid rgba(0, 0, 0, 0.15)`,
                         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-                        minWidth: '320px',
+                        minWidth: compact ? '240px' : '320px',
                         top: '100%',
-                        left: 0
+                        left: 0,
+                        zIndex: 9999
                     }}
                 >
                     {/* Calendar Header */}
-                    <div className="p-4 border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
-                        <div className="flex items-center justify-between mb-3">
+                    <div className={`${compact ? 'p-2' : 'p-4'} border-b`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
+                        <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
                             <button
                                 type="button"
                                 onClick={handlePrevMonth}
-                                className="p-1.5 rounded-lg transition-all"
+                                className={`${compact ? 'p-1' : 'p-1.5'} rounded-lg transition-all`}
                                 style={{
                                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
                                     color: '#ffffff',
@@ -159,15 +160,15 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
                                 }}
                             >
-                                <ChevronLeft size={18} />
+                                <ChevronLeft size={compact ? 14 : 18} />
                             </button>
-                            <div className="text-base font-semibold" style={{ color: '#5F7F76' }}>
+                            <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold`} style={{ color: '#5F7F76' }}>
                                 {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                             </div>
                             <button
                                 type="button"
                                 onClick={handleNextMonth}
-                                className="p-1.5 rounded-lg transition-all"
+                                className={`${compact ? 'p-1' : 'p-1.5'} rounded-lg transition-all`}
                                 style={{
                                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
                                     color: '#ffffff',
@@ -181,16 +182,16 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
                                 }}
                             >
-                                <ChevronRight size={18} />
+                                <ChevronRight size={compact ? 14 : 18} />
                             </button>
                         </div>
 
                         {/* Day Names Header */}
-                        <div className="grid grid-cols-7 gap-1 mb-2">
+                        <div className={`grid grid-cols-7 ${compact ? 'gap-0.5' : 'gap-1'} ${compact ? 'mb-1' : 'mb-2'}`}>
                             {dayNames.map(day => (
                                 <div
                                     key={day}
-                                    className="text-xs font-medium text-center py-1"
+                                    className={`${compact ? 'text-[10px]' : 'text-xs'} font-medium text-center ${compact ? 'py-0.5' : 'py-1'}`}
                                     style={{ color: '#5F7F76' }}
                                 >
                                     {day}
@@ -200,8 +201,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     </div>
 
                     {/* Calendar Grid */}
-                    <div className="p-4 pt-2">
-                        <div className="grid grid-cols-7 gap-1">
+                    <div className={`${compact ? 'p-2 pt-1' : 'p-4 pt-2'}`}>
+                        <div className={`grid grid-cols-7 ${compact ? 'gap-0.5' : 'gap-1'}`}>
                             {days.map((day, index) => {
                                 if (day === null) {
                                     return <div key={`empty-${index}`} className="aspect-square" />;
@@ -215,7 +216,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                         key={day}
                                         type="button"
                                         onClick={() => handleDateSelect(day)}
-                                        className="aspect-square rounded-lg transition-all text-sm font-medium"
+                                        className={`aspect-square rounded-lg transition-all ${compact ? 'text-xs' : 'text-sm'} font-medium`}
                                         style={{
                                             backgroundColor: isSelectedDate
                                                 ? theme.primary
@@ -257,7 +258,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     </div>
 
                     {/* Quick Actions */}
-                    <div className="p-3 border-t flex gap-2" style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
+                    <div className={`${compact ? 'p-2' : 'p-3'} border-t flex gap-2`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
                         <button
                             type="button"
                             onClick={() => {
@@ -266,7 +267,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                 onChange(todayString);
                                 setIsOpen(false);
                             }}
-                            className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all"
+                            className={`flex-1 ${compact ? 'px-2 py-1' : 'px-3 py-2'} rounded-lg ${compact ? 'text-xs' : 'text-sm'} font-medium transition-all`}
                             style={{
                                 backgroundColor: 'rgba(255, 255, 255, 0.15)',
                                 color: '#ffffff',
@@ -289,7 +290,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                 onChange('');
                                 setIsOpen(false);
                             }}
-                            className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all"
+                            className={`flex-1 ${compact ? 'px-2 py-1' : 'px-3 py-2'} rounded-lg ${compact ? 'text-xs' : 'text-sm'} font-medium transition-all`}
                             style={{
                                 backgroundColor: 'rgba(255, 255, 255, 0.15)',
                                 color: '#ffffff',
