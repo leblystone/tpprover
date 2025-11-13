@@ -527,11 +527,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');
-                        // Reset to mcg when syringe is selected (default unit)
+                        // Preserve dose unit when switching to syringe (don't reset to mcg)
                         setForm(prev => ({
                             ...prev,
-                            deliveryMethod: 'pipette',
-                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
+                            deliveryMethod: 'pipette'
                         }));
                     }}
                     className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
@@ -556,11 +555,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pen');
-                        // Reset to mcg when pen is selected (default unit)
+                        // Preserve dose unit when switching to pen (don't reset to mcg)
                         setForm(prev => ({
                             ...prev,
-                            deliveryMethod: 'pen',
-                            peptides: prev.peptides.map(p => ({ ...p, doseUnit: 'mcg' }))
+                            deliveryMethod: 'pen'
                         }));
                     }}
                     className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
