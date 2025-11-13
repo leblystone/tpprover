@@ -265,13 +265,10 @@ export default function AccountSubscription() {
             <Crown size={12} className="text-white" />
           </div>
           <div className="text-lg font-bold" style={{ color: '#344E41' }}>
-            Founders Offer
+            Beta Pricing
           </div>
         </div>
         <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'rgba(212, 215, 205, 0.8)' }}>
-          <p className="text-xs leading-relaxed font-semibold" style={{ color: '#3A5A40' }}>
-            Be apart of the first 100 founder researchers!
-          </p>
           <p className="text-xs leading-relaxed italic" style={{ color: '#3A5A40' }}>
             You'll be grandfathered in at this price forever (unless your lifetime commited🙏🏻), even as we grow and increase in value, your costs will not.
           </p>
@@ -319,7 +316,7 @@ export default function AccountSubscription() {
         >
           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
             <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
-              {founderOffer.isFounder ? 'Founder Locked' : 'Most Popular'}
+              {founderOffer.isFounder ? 'Founder Locked' : 'Same Price as Our Physical Planners'}
             </div>
           </div>
           <div className="text-center mb-3 flex-1 flex flex-col justify-center">
@@ -363,9 +360,6 @@ export default function AccountSubscription() {
           </div>
         <div className="flex items-center justify-between min-h-[80px]">
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: theme.primary }}>
-              <Crown size={20} style={{ color: theme.textOnPrimary }} />
-            </div>
             <div className="space-y-1">
               <div className="font-bold text-lg" style={{ color: theme.text }}>Lifetime Access</div>
               <div className="text-base font-semibold flex items-center gap-2" style={{ color: theme.text }}>
@@ -378,7 +372,6 @@ export default function AccountSubscription() {
                   planPricing.lifetime.base
                 )}
               </div>
-              <div className="text-sm" style={{ color: theme.textLight }}>Never pay again • All features included</div>
               {discountActive && (
                 <div className="text-xs font-semibold" style={{ color: accentColor }}>
                   Save {planPricing.lifetime.savings} one-time
@@ -386,13 +379,16 @@ export default function AccountSubscription() {
               )}
             </div>
           </div>
-          <button
-            className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-            disabled={isCheckoutProcessing}
-          >
-            {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
-          </button>
+          <div>
+            <button
+              className="px-6 py-3 rounded-lg text-sm font-medium transition-all hover:opacity-90 whitespace-nowrap shadow-md"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+              disabled={isCheckoutProcessing}
+            >
+              {isCheckoutProcessing ? 'Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
+            </button>
+            <div className="text-sm text-center mt-2" style={{ color: theme.textLight }}>Never pay again</div>
+          </div>
         </div>
       </div>
     </div>
@@ -567,12 +563,13 @@ export default function AccountSubscription() {
                   <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
                   <button
                     onClick={() => setShowGiftModal(true)}
-                    className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90"
+                    className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90 flex items-center gap-2 mx-auto"
                     style={{ 
                       background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
                     }}
                   >
-                    🎁 Give as a Gift
+                    <Gift size={18} />
+                    Give a Gift
                   </button>
                 </div>
               </div>
@@ -631,12 +628,13 @@ export default function AccountSubscription() {
               <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
               <button
                 onClick={() => setShowGiftModal(true)}
-                className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90"
+                className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90 flex items-center gap-2 mx-auto"
                 style={{ 
                   background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
                 }}
               >
-                🎁 Give as a Gift
+                <Gift size={18} />
+                Give a Gift
               </button>
             </div>
           </div>

@@ -319,14 +319,8 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                   </div>
                 </button>
 
-                {/* Annual Plan - Popular */}
+                {/* Annual Plan */}
                 <div className="relative">
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
-                    <div className="text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg" style={{ backgroundColor: theme.isDark ? '#92400e' : '#fbbf24', color: theme.isDark ? '#fef3c7' : '#92400e' }}>
-                      <Zap size={12} />
-                      Popular
-                    </div>
-                  </div>
                   <button
                     onClick={() => !isProcessing && handleSelectPlan('annual')}
                     disabled={isProcessing}
@@ -349,7 +343,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
                 {/* Lifetime Plan */}
                 <div className="relative">
                   <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
-                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold shadow-lg" style={{ backgroundColor: theme.isDark ? '#991b1b' : theme.primaryDark, color: theme.isDark ? '#fecaca' : 'white', fontSize: '10px' }}>
+                    <div className="px-3 py-0.5 rounded-full text-xs font-semibold shadow-lg text-white" style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', fontSize: '10px' }}>
                       Limited
                     </div>
                   </div>

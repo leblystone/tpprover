@@ -11,7 +11,8 @@ export default function SettingsAppearance() {
   const [selectedTheme, setSelectedTheme] = useState(() => {
     try { 
       const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
-      if (savedTheme === 'beekeeper') {
+      // Migrate from deprecated themes
+      if (savedTheme === 'beekeeper' || savedTheme === 'mauve' || savedTheme === 'taupe') {
         localStorage.setItem('tpprover_theme', defaultThemeName);
         return defaultThemeName;
       }
@@ -98,16 +99,16 @@ export default function SettingsAppearance() {
           style={{ backgroundColor: theme.cardBackground }}
         >
           <h4 className="text-sm font-medium mb-3" style={{ color: theme.text }}>Color Theme</h4>
-          <div className="grid grid-cols-4 gap-2">
-            {Object.keys(themes).map(themeKey => {
+          <div className="grid grid-cols-2 gap-2">
+            {Object.keys(themes)
+              .filter(themeKey => !['mauve', 'taupe'].includes(themeKey)) // Hide mauve and taupe
+              .map(themeKey => {
               const themeData = themes[themeKey]
               const isSelected = selectedTheme === themeKey
               
               // Define unique swatch colors for each theme (darker to match actual theme colors)
               const swatchColors = {
                 sage: { start: '#5F7F76', mid: '#7F9E95', end: '#4A6B63' },
-                mauve: { start: '#6B5D62', mid: '#7D6F74', end: '#5A4C51' },
-                taupe: { start: '#8B7F77', mid: '#A39890', end: '#756A62' },
                 softDark: { start: '#2C2C30', mid: '#3A3A40', end: '#1A1A1D' }
               }
               
@@ -174,6 +175,9 @@ export default function SettingsAppearance() {
               )
             })}
           </div>
+          <p className="text-xs text-center mt-3" style={{ color: theme.textLight }}>
+            More on the way!
+          </p>
         </div>
 
         {/* Font Size Selection */}

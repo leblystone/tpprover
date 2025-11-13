@@ -35,8 +35,8 @@ function App() {
   const [themeName] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
-      // Migrate users from beekeeper theme to sage theme
-      if (savedTheme === 'beekeeper') {
+      // Migrate users from deprecated themes to sage theme
+      if (savedTheme === 'beekeeper' || savedTheme === 'mauve' || savedTheme === 'taupe') {
         localStorage.setItem('tpprover_theme', defaultThemeName);
         return defaultThemeName;
       }

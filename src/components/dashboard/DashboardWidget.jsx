@@ -108,7 +108,10 @@ const DashboardWidget = ({
                 e.stopPropagation();
                 onToggleVisibility?.(widget.id);
               }}
-              className="p-1 rounded hover:bg-red-50 transition-colors text-red-600"
+              className="p-1 rounded transition-all"
+              style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: 'white' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)'}
               title="Hide widget"
             >
               <X size={14} />

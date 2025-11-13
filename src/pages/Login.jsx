@@ -232,6 +232,15 @@ export default function Login() {
                     console.warn('   This means the account was created but the Firestore document failed to save.');
                 }
                 
+                if (!status.existsInAuth && status.existsInFirestore) {
+                    console.error('❌ ORPHANED ACCOUNT: Exists in Firestore but NOT in Firebase Auth!');
+                    console.error('   This means a database record exists but authentication was never set up.');
+                    console.error('   The user cannot log in because there are no credentials in Firebase Auth.');
+                    console.error('   Solution: Contact support to either:');
+                    console.error('   1. Create the Firebase Auth user for this email, OR');
+                    console.error('   2. Delete the orphaned Firestore document so the user can sign up properly.');
+                }
+                
                 if (status.existsInAuth && !status.hasPassword) {
                     console.warn('⚠️ ACCOUNT HAS NO PASSWORD: User exists but password authentication is not set up.');
                 }
