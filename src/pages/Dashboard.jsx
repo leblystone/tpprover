@@ -993,7 +993,7 @@ export default function Dashboard() {
                         <LatestMetrics metrics={metrics} theme={theme} />
                         <h3 className="text-xs font-semibold mt-3 mb-1.5" style={{color: theme.text}}>History</h3>
                         <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-2">
-                        {metrics.map(m => (
+                        {[...metrics].sort((a, b) => new Date(b.date) - new Date(a.date)).map(m => (
                             <li key={m.id} className="p-1.5 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
                             <div className="flex items-center justify-between">
                                 <div className="font-medium text-xs">{formatMMDDYYYY(new Date(m.date))}</div>
@@ -1014,12 +1014,6 @@ export default function Dashboard() {
                                   <Edit size={14} />
                                 </button>
                                 </div>
-                            </div>
-                            <div className="mt-1.5 flex items-center justify-between text-xs border-t pt-1.5" style={{borderColor: theme.border, color: theme.textLight}}>
-                                <span className="flex items-center gap-0.5"><Bed size={10}/> {m.sleep || '-'}</span>
-                                <span className="flex items-center gap-0.5"><Zap size={10}/> {m.energy || '-'}</span>
-                                <span className="flex items-center gap-0.5"><Smile size={10}/> {m.mood || '-'}</span>
-                                <span className="flex items-center gap-0.5"><ShieldAlert size={10}/> {m.pain || '-'}</span>
                             </div>
                             </li>
                         ))}

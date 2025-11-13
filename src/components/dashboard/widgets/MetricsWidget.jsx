@@ -306,12 +306,12 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric }) => {
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="text-center p-2 rounded" style={{ backgroundColor: theme.primary + '10' }}>
                     <Weight size={16} className="mx-auto mb-1" style={{ color: theme.primary }} />
                     <div className="text-xs font-medium" style={{ color: theme.textLight }}>Weight</div>
                     <div className="font-bold text-sm" style={{ color: theme.text }}>
-                      {metric.weight || '-'}
+                      {metric.weight ? `${metric.weight} lbs` : '-'}
                     </div>
                   </div>
                   <div className="text-center p-2 rounded" style={{ backgroundColor: theme.success + '10' }}>
@@ -319,34 +319,6 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric }) => {
                     <div className="text-xs font-medium" style={{ color: theme.textLight }}>Body Fat</div>
                     <div className="font-bold text-sm" style={{ color: theme.text }}>
                       {metric.bodyfat ? `${metric.bodyfat}%` : '-'}
-                    </div>
-                  </div>
-                  <div className="text-center p-2 rounded" style={{ backgroundColor: theme.info + '10' }}>
-                    <Bed size={16} className="mx-auto mb-1" style={{ color: theme.info }} />
-                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Sleep</div>
-                    <div className="font-bold text-sm" style={{ color: theme.text }}>
-                      {metric.sleep || '-'}
-                    </div>
-                  </div>
-                  <div className="text-center p-2 rounded" style={{ backgroundColor: theme.warning + '10' }}>
-                    <Zap size={16} className="mx-auto mb-1" style={{ color: theme.warning }} />
-                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Energy</div>
-                    <div className="font-bold text-sm" style={{ color: theme.text }}>
-                      {metric.energy || '-'}
-                    </div>
-                  </div>
-                  <div className="text-center p-2 rounded" style={{ backgroundColor: '#10B981' + '20' }}>
-                    <Smile size={16} className="mx-auto mb-1" style={{ color: '#10B981' }} />
-                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Mood</div>
-                    <div className="font-bold text-sm" style={{ color: theme.text }}>
-                      {metric.mood || '-'}
-                    </div>
-                  </div>
-                  <div className="text-center p-2 rounded" style={{ backgroundColor: theme.error + '10' }}>
-                    <ShieldAlert size={16} className="mx-auto mb-1" style={{ color: theme.error }} />
-                    <div className="text-xs font-medium" style={{ color: theme.textLight }}>Pain</div>
-                    <div className="font-bold text-sm" style={{ color: theme.text }}>
-                      {metric.pain || '-'}
                     </div>
                   </div>
                 </div>
@@ -454,12 +426,12 @@ const MetricsWidget = ({
                   </div>
                   
                   {/* Physical Measurements */}
-                  <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <div className="text-center p-1.5 rounded" style={{ backgroundColor: theme.primary + '10' }}>
                       <Weight size={12} className="mx-auto mb-0.5" style={{ color: theme.primary }} />
                       <div className="text-[10px] font-medium" style={{ color: theme.textLight }}>Weight</div>
                       <div className="font-bold text-xs" style={{ color: theme.text }}>
-                        {recentMetrics[0].weight ? `${recentMetrics[0].weight}` : '-'}
+                        {recentMetrics[0].weight ? `${recentMetrics[0].weight} lbs` : '-'}
                       </div>
                     </div>
                     <div className="text-center p-1.5 rounded" style={{ backgroundColor: theme.success + '10' }}>
@@ -467,34 +439,6 @@ const MetricsWidget = ({
                       <div className="text-[10px] font-medium" style={{ color: theme.textLight }}>Body Fat</div>
                       <div className="font-bold text-xs" style={{ color: theme.text }}>
                         {recentMetrics[0].bodyfat ? `${recentMetrics[0].bodyfat}%` : '-'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Wellness Metrics */}
-                  <div className="grid grid-cols-4 gap-1">
-                    <div className="text-center p-1 rounded" style={{ backgroundColor: '#4682B4' + '10' }}>
-                      <Bed size={14} className="mx-auto mb-0.5" style={{ color: '#4682B4' }} />
-                      <div className="text-[10px] font-semibold" style={{ color: theme.text }}>
-                        {recentMetrics[0].sleep || '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-1 rounded" style={{ backgroundColor: '#DAA520' + '10' }}>
-                      <Zap size={14} className="mx-auto mb-0.5" style={{ color: '#DAA520' }} />
-                      <div className="text-[10px] font-semibold" style={{ color: theme.text }}>
-                        {recentMetrics[0].energy || '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-1 rounded" style={{ backgroundColor: '#CD5C5C' + '10' }}>
-                      <Smile size={14} className="mx-auto mb-0.5" style={{ color: '#CD5C5C' }} />
-                      <div className="text-[10px] font-semibold" style={{ color: theme.text }}>
-                        {recentMetrics[0].mood || '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-1 rounded" style={{ backgroundColor: '#708090' + '10' }}>
-                      <ShieldAlert size={14} className="mx-auto mb-0.5" style={{ color: '#708090' }} />
-                      <div className="text-[10px] font-semibold" style={{ color: theme.text }}>
-                        {recentMetrics[0].pain || '-'}
                       </div>
                     </div>
                   </div>
