@@ -70,11 +70,8 @@ const WaterTrackerWidget = ({ widget, theme }) => {
 
   const changeUnit = (unitKey) => {
     const newUnit = waterUnits[unitKey];
-    // Preserve the user's custom goal instead of resetting to default
-    // Only use default if goal hasn't been customized (still at default for current unit)
-    const currentUnitDefault = waterUnits[todayData.unit]?.defaultGoal || 8;
-    const shouldPreserveGoal = todayData.goal !== currentUnitDefault;
-    const newGoal = shouldPreserveGoal ? todayData.goal : newUnit.defaultGoal;
+    // Always use the new unit's default goal when changing units
+    const newGoal = newUnit.defaultGoal;
     
     setWaterData(prev => ({
       ...prev,
@@ -86,7 +83,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
       }
     }));
     
-    // Update input value to reflect the new goal
+    // Update input value to show the new unit's default goal
     if (showSettingsModal) {
       setGoalInputValue(newGoal.toString());
     }

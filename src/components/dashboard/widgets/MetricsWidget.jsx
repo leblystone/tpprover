@@ -68,18 +68,22 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
     return {
       date: date,
       dayLabel: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      weight: metric?.weight || null,
-      bodyfat: metric?.bodyfat || null,
-      sleep: metric?.sleep || null,
-      energy: metric?.energy || null,
-      mood: metric?.mood || null,
-      pain: metric?.pain ? (6 - metric.pain) : null // Invert pain so higher is better
+      weight: metric?.weight ? parseFloat(metric.weight) || null : null,
+      bodyfat: metric?.bodyfat ? parseFloat(metric.bodyfat) || null : null,
+      sleep: metric?.sleep ? (typeof metric.sleep === 'number' ? metric.sleep : parseInt(metric.sleep)) || null : null,
+      energy: metric?.energy ? (typeof metric.energy === 'number' ? metric.energy : parseInt(metric.energy)) || null : null,
+      mood: metric?.mood ? (typeof metric.mood === 'number' ? metric.mood : parseInt(metric.mood)) || null : null,
+      pain: metric?.pain ? (6 - (typeof metric.pain === 'number' ? metric.pain : parseInt(metric.pain))) : null // Invert pain so higher is better
     };
   });
 
-  // Debug info available via devLog if needed
+  // Check if we have any data points (excluding date and dayLabel)
+  const hasData = chartData.some(d => {
+    const { date, dayLabel, ...values } = d;
+    return Object.values(values).some(v => v !== null && (typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v)))));
+  });
 
-  if (chartData.filter(d => Object.values(d).some(v => v !== null && typeof v === 'number')).length < 1) {
+  if (!hasData) {
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -262,7 +266,7 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
 };
 
 // All Entries Modal Component
-const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric }) => {
+const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric, onReopen }) => {
   const sortedMetrics = [...metrics].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
@@ -281,7 +285,7 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric }) => {
                 className="p-4 rounded-lg border hover:shadow-md transition-all cursor-pointer"
                 style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
                 onClick={() => {
-                  onEditMetric?.(metric);
+                  onEditMetric?.(metric, onReopen);
                   onClose();
                 }}
               >
@@ -456,6 +460,7 @@ const MetricsWidget = ({
         metrics={metrics}
         theme={theme}
         onEditMetric={onEditMetric}
+        onReopen={() => setShowAllEntries(true)}
       />
       
       {/* Lockout Overlay */}

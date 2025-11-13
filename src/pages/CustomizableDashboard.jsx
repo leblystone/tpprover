@@ -94,6 +94,8 @@ export default function CustomizableDashboard() {
   const [editingGoal, setEditingGoal] = useState(null);
   const [showMetrics, setShowMetrics] = useState(false);
   const [editingMetric, setEditingMetric] = useState(null);
+  const [showBackButton, setShowBackButton] = useState(false);
+  const [onBackToAllEntries, setOnBackToAllEntries] = useState(null);
   const [showAddSupplement, setShowAddSupplement] = useState(false);
   const [editingSupplement, setEditingSupplement] = useState(null);
   const [showBadges, setShowBadges] = useState(false);
@@ -846,9 +848,16 @@ export default function CustomizableDashboard() {
                         setEditingGoal(goal);
                         setShowGoal(true);
                       }}
-                      onEditMetric={(metric) => {
+                      onEditMetric={(metric, onReopen) => {
                         setEditingMetric(metric);
                         setShowMetrics(true);
+                        if (onReopen) {
+                          setShowBackButton(true);
+                          setOnBackToAllEntries(() => onReopen);
+                        } else {
+                          setShowBackButton(false);
+                          setOnBackToAllEntries(null);
+                        }
                       }}
                       onAddSupplement={() => setShowAddSupplement(true)}
                       onEditSupplement={(supplement) => {
@@ -1095,9 +1104,31 @@ export default function CustomizableDashboard() {
 
       <BodyMetricsModal
         open={showMetrics}
-        onClose={() => { setShowMetrics(false); setEditingMetric(null); }}
+        onClose={() => { 
+          setShowMetrics(false); 
+          setEditingMetric(null);
+          setShowBackButton(false);
+          setOnBackToAllEntries(null);
+        }}
         theme={theme}
         metric={editingMetric}
+        showBackButton={showBackButton}
+        onBack={onBackToAllEntries}
+        onDelete={(metricData) => {
+          if (editingMetric?.id) {
+            setMetrics(prev => prev.filter(m => m.id !== editingMetric.id));
+            setShowMetrics(false);
+            setEditingMetric(null);
+            // If we have a back callback, use it to return to view all modal
+            if (onBackToAllEntries) {
+              setTimeout(() => {
+                onBackToAllEntries();
+              }, 100);
+            }
+            setShowBackButton(false);
+            setOnBackToAllEntries(null);
+          }
+        }}
         onSave={(metric) => {
           if (editingMetric) {
             setMetrics(prev => prev.map(m => m.id === editingMetric.id ? { ...editingMetric, ...metric } : m));
@@ -1106,6 +1137,8 @@ export default function CustomizableDashboard() {
           }
           setShowMetrics(false);
           setEditingMetric(null);
+          setShowBackButton(false);
+          setOnBackToAllEntries(null);
         }}
       />
 

@@ -1173,9 +1173,9 @@ export default function Dashboard() {
           setProtocols(prev => [newProtocol, ...prev]);
           
           // bump calendar
-          const now = String(Date.now())
-          localStorage.setItem('tpprover_calendar_bump', now)
-          window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: now }))
+          const calendarBump = String(Date.now())
+          localStorage.setItem('tpprover_calendar_bump', calendarBump)
+          window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: calendarBump }))
 
           setShowNewProtocol(false)
         }}
@@ -1188,6 +1188,17 @@ export default function Dashboard() {
         onClose={() => setShowMetrics(false)}
         theme={theme}
         metric={editingMetric}
+        onDelete={(metricData) => {
+            if (isReadOnly) {
+                setShowUpgradeModal(true);
+                return;
+            }
+            if (editingMetric?.id) {
+                setMetrics(prev => prev.filter(m => m.id !== editingMetric.id));
+                setShowMetrics(false);
+                setEditingMetric(null);
+            }
+        }}
         onSave={(data) => {
             if (isReadOnly) {
                 setShowUpgradeModal(true);

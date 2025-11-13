@@ -3,7 +3,7 @@ import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
-import { Weight, Percent, Bed, Smile, ShieldAlert, Calendar, Activity, CalendarClock, Scale, Heart, CloudSunRain, Moon, MoonStar, BatteryLow, Battery, BatteryFull, Zap, Frown, Meh, CheckCircle, AlertCircle, AlertTriangle, XCircle, Trash2 } from 'lucide-react'
+import { Weight, Percent, Bed, Smile, ShieldAlert, Calendar, Activity, CalendarClock, Scale, Heart, CloudSunRain, Moon, MoonStar, BatteryLow, Battery, BatteryFull, Zap, Frown, Meh, CheckCircle, AlertCircle, AlertTriangle, XCircle, Trash2, ArrowLeft } from 'lucide-react'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 
 const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type }) => {
@@ -75,7 +75,7 @@ const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type })
     );
 };
 
-export default function BodyMetricsModal({ open, onClose, onSave, onDelete, theme, metric }) {
+export default function BodyMetricsModal({ open, onClose, onSave, onDelete, theme, metric, showBackButton = false, onBack }) {
   const [form, setForm] = useState({})
   
   // Terracotta gradient for delete button
@@ -102,11 +102,35 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
     }
     onClose();
   }
+  const handleBack = () => {
+    onClose();
+    if (onBack) {
+      // Small delay to ensure modal closes before reopening
+      setTimeout(() => {
+        onBack();
+      }, 100);
+    }
+  };
+
   return (
     <Modal 
       open={open} 
       onClose={onClose} 
-      title={metric ? 'Edit Bio-Metric Entry' : 'New Bio-Metric'}
+      title={
+        <div className="flex items-center gap-2">
+          {showBackButton && (
+            <button
+              onClick={handleBack}
+              className="p-1 rounded-md hover:bg-white/10 transition-colors"
+              style={{ color: '#ffffff' }}
+              title="Back to All Entries"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
+          <span>{metric ? 'Edit Bio-Metric Entry' : 'New Bio-Metric'}</span>
+        </div>
+      }
       titleExtra={
         <AutoSaveIndicator 
           isSaving={isSaving} 
