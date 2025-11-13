@@ -413,7 +413,6 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     placeholder="5" 
                                     type="number"
                                     outlined={true}
-                                    customTextColor="#181A18"
                                     customShadow
                                 />
                                 <TextInput 
@@ -424,7 +423,6 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                     placeholder="2" 
                                     type="number"
                                     outlined={true}
-                                    customTextColor="#181A18"
                                     customShadow
                                 />
                             </div>
@@ -470,7 +468,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                         placeholder="3"
                                         className="flex-1 px-3 py-2 outline-none min-w-0 w-20"
                                         style={{ 
-                                            backgroundColor: theme.inputBackground || '#fff',
+                                            backgroundColor: theme.inputBackground || theme.cardBackground || (theme.isDark ? '#1f2937' : '#fff'),
                                             color: theme.text 
                                         }}
                                     />
