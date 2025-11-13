@@ -1,16 +1,38 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { exportToCSV } from '../utils/export'
 import { clearAppData, clearSpecific } from '../utils/reset'
 import { useFirebase } from '../context/FirebaseContext'
+import { useAppContext } from '../context/AppContext'
+import { saveAppData } from '../services/cloudStorage'
+import { ensurePublicOrderNumbers } from '../utils/orderNumbers'
 
 export default function SettingsData() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { firebaseUser } = useFirebase()
+  const { 
+    setProtocols, setOrders, setStockpile, setVendors, setReconItems, 
+    setReconHistory, setSupplements, setMetrics, setCalendarNotes, setScheduledBuys 
+  } = useAppContext()
 
   const [pwaPrompted, setPWAPrompted] = useState(false)
+  const [recoveryStatus, setRecoveryStatus] = useState(null)
+  const [hasRecoverySnapshot, setHasRecoverySnapshot] = useState(false)
+
+  // Check for recovery snapshot on mount and when it might appear
+  useEffect(() => {
+    const checkSnapshot = () => {
+      const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
+      setHasRecoverySnapshot(!!snapshot);
+    };
+    
+    checkSnapshot();
+    // Check every 2 seconds in case snapshot appears
+    const interval = setInterval(checkSnapshot, 2000);
+    return () => clearInterval(interval);
+  }, [])
 
   useEffect(() => {
     const handler = (e) => {
@@ -237,6 +259,143 @@ export default function SettingsData() {
     clearSpecific(keys)
   }
 
+  const recoverFromSnapshot = async () => {
+    try {
+      setRecoveryStatus('checking');
+      const snapshot = localStorage.getItem('tpprover_recovery_snapshot');
+      
+      let snapshotData = null;
+      
+      if (snapshot) {
+        const parsed = JSON.parse(snapshot);
+        snapshotData = parsed.data;
+      } else {
+        // No snapshot, but check if localStorage has any data we can recover
+        const hasLocalData = 
+          localStorage.getItem('tpprover_protocols') ||
+          localStorage.getItem('tpprover_orders') ||
+          localStorage.getItem('tpprover_stockpile');
+        
+        if (hasLocalData) {
+          // Recover from localStorage directly
+          snapshotData = {
+            protocols: JSON.parse(localStorage.getItem('tpprover_protocols') || '[]'),
+            orders: JSON.parse(localStorage.getItem('tpprover_orders') || '[]'),
+            stockpile: JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'),
+            vendors: JSON.parse(localStorage.getItem('tpprover_vendors') || '[]'),
+            reconItems: JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]'),
+            reconHistory: JSON.parse(localStorage.getItem('tpprover_recon_history') || '[]'),
+            supplements: JSON.parse(localStorage.getItem('tpprover_supplements') || '[]'),
+            metrics: JSON.parse(localStorage.getItem('tpprover_metrics') || '[]'),
+            calendarNotes: JSON.parse(localStorage.getItem('tpprover_calendar_notes') || '{}'),
+            scheduledBuys: JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]')
+          };
+        } else {
+          setRecoveryStatus('no_snapshot');
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: 'No recovery data found. Your data may have been lost.', type: 'error' } 
+          }));
+          return;
+        }
+      }
+      
+      if (!snapshotData) {
+        setRecoveryStatus('invalid');
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Recovery data is invalid.', type: 'error' } 
+        }));
+        return;
+      }
+
+      setRecoveryStatus('restoring');
+
+      // Restore to React state
+      if (snapshotData.protocols) {
+        setProtocols(snapshotData.protocols);
+        localStorage.setItem('tpprover_protocols', JSON.stringify(snapshotData.protocols));
+      }
+      if (snapshotData.orders) {
+        const orders = ensurePublicOrderNumbers(snapshotData.orders);
+        setOrders(orders);
+        localStorage.setItem('tpprover_orders', JSON.stringify(orders));
+      }
+      if (snapshotData.stockpile) {
+        setStockpile(snapshotData.stockpile);
+        localStorage.setItem('tpprover_stockpile', JSON.stringify(snapshotData.stockpile));
+      }
+      if (snapshotData.vendors) {
+        setVendors(snapshotData.vendors);
+        localStorage.setItem('tpprover_vendors', JSON.stringify(snapshotData.vendors));
+      }
+      if (snapshotData.reconItems) {
+        setReconItems(snapshotData.reconItems);
+        localStorage.setItem('tpprover_recon_items', JSON.stringify(snapshotData.reconItems));
+      }
+      if (snapshotData.reconHistory) {
+        setReconHistory(snapshotData.reconHistory);
+        localStorage.setItem('tpprover_recon_history', JSON.stringify(snapshotData.reconHistory));
+      }
+      if (snapshotData.supplements) {
+        setSupplements(snapshotData.supplements);
+        localStorage.setItem('tpprover_supplements', JSON.stringify(snapshotData.supplements));
+      }
+      if (snapshotData.metrics) {
+        setMetrics(snapshotData.metrics);
+        localStorage.setItem('tpprover_metrics', JSON.stringify(snapshotData.metrics));
+      }
+      if (snapshotData.calendarNotes) {
+        setCalendarNotes(snapshotData.calendarNotes);
+        localStorage.setItem('tpprover_calendar_notes', JSON.stringify(snapshotData.calendarNotes));
+      }
+      if (snapshotData.scheduledBuys) {
+        setScheduledBuys(snapshotData.scheduledBuys);
+        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(snapshotData.scheduledBuys));
+      }
+
+      // Attempt to sync to cloud
+      if (firebaseUser) {
+        setRecoveryStatus('syncing');
+        const syncResult = await saveAppData(firebaseUser.uid, snapshotData, { skipMerge: true });
+        
+        if (syncResult) {
+          setRecoveryStatus('success');
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { 
+              message: `Data recovered successfully! ${Object.values(snapshotData).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)} items restored.`, 
+              type: 'success',
+              duration: 5000
+            } 
+          }));
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          setRecoveryStatus('sync_failed');
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { 
+              message: 'Data restored locally but failed to sync to cloud. Your data is safe on this device.', 
+              type: 'warning',
+              duration: 5000
+            } 
+          }));
+        }
+      } else {
+        setRecoveryStatus('not_logged_in');
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { 
+            message: 'Data restored locally. Please log in to sync to cloud.', 
+            type: 'warning',
+            duration: 5000
+          } 
+        }));
+      }
+    } catch (error) {
+      console.error('Recovery failed:', error);
+      setRecoveryStatus('error');
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Recovery failed: ' + error.message, type: 'error' } 
+      }));
+    }
+  }
+
   return (
     <section className="space-y-4">
       {/* Header */}
@@ -250,33 +409,44 @@ export default function SettingsData() {
         </button>
         <div>
           <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Data Management</h1>
-          <p className="text-sm" style={{ color: theme.mutedText }}>Export, import, and manage your app data</p>
+          <p className="text-sm" style={{ color: theme.mutedText }}>Recover and manage your app data</p>
         </div>
       </div>
 
       {/* Data Settings */}
       <div className="space-y-4">
-        {/* Backup Section */}
+        {/* Recovery Section */}
         <div 
           className="p-4 rounded-lg space-y-3"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Backup & Restore</h4>
+          <h4 className="text-sm font-medium mb-2" style={{ color: theme.text }}>Data Recovery</h4>
+          <p className="text-xs mb-3" style={{ color: theme.mutedText }}>
+            If your research data isn't showing up, this will check for any saved backups and restore them to your account. Your data will be synced across all your devices.
+          </p>
           <div className="space-y-2">
             <button 
-              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
-              style={{ backgroundColor: theme.accent, color: theme.accentText }} 
-              onClick={exportAll}
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg" 
+              style={{ 
+                background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', 
+                color: '#ffffff' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+              }}
+              onClick={recoverFromSnapshot}
+              disabled={recoveryStatus === 'restoring' || recoveryStatus === 'syncing'}
             >
-              Export Backup (CSV)
+              <RotateCcw size={16} className={recoveryStatus === 'restoring' || recoveryStatus === 'syncing' ? 'animate-spin' : ''} />
+              {recoveryStatus === 'checking' && 'Checking...'}
+              {recoveryStatus === 'restoring' && 'Restoring...'}
+              {recoveryStatus === 'syncing' && 'Syncing...'}
+              {recoveryStatus === 'success' && 'Recovered!'}
+              {!recoveryStatus && 'Recover Data'}
             </button>
-            <label 
-              className="w-full px-4 py-3 rounded-lg text-sm font-medium cursor-pointer hover:opacity-90 transition-all flex items-center justify-center" 
-              style={{ backgroundColor: theme.accent, color: theme.accentText }}
-            >
-              Import Backup
-              <input type="file" accept=".csv,.json" className="hidden" onChange={e => e.target.files && e.target.files[0] && importBackup(e.target.files[0])} />
-            </label>
             {pwaPrompted && (
               <button 
                 className="w-full px-4 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-all" 
@@ -287,15 +457,14 @@ export default function SettingsData() {
               </button>
             )}
           </div>
-          <p className="text-xs mt-2" style={{ color: theme.mutedText }}>Export your data for safekeeping or import from a previous backup</p>
         </div>
 
         {/* Danger Zone Section */}
         <div 
           className="p-4 rounded-lg space-y-3"
-          style={{ backgroundColor: theme.cardBackground, borderColor: '#ef4444', borderWidth: '1px', borderStyle: 'solid' }}
+          style={{ backgroundColor: theme.cardBackground, borderColor: '#8B1A1A', borderWidth: '1px', borderStyle: 'solid' }}
         >
-          <h4 className="text-sm font-medium mb-2 text-red-600">Danger Zone</h4>
+          <h4 className="text-sm font-medium mb-2" style={{ color: '#8B1A1A' }}>Danger Zone</h4>
           <div className="space-y-2">
             <button 
               className="w-full px-4 py-3 rounded-lg text-sm font-medium transition-all"
@@ -305,19 +474,25 @@ export default function SettingsData() {
               Clear Session Only
             </button>
             <button 
-              className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all" 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white transition-all" 
+              style={{ backgroundColor: '#8B1A1A' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7A1515'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8B1A1A'}
               onClick={clearAllData}
             >
               Clear ALL Data
             </button>
             <button 
-              className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all" 
+              className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white transition-all" 
+              style={{ backgroundColor: '#8B1A1A' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7A1515'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8B1A1A'}
               onClick={() => window.open('/delete-account', '_blank')}
             >
               Delete Account Permanently
             </button>
           </div>
-          <p className="text-xs mt-2 text-red-600">"Clear ALL" will permanently wipe all data in this browser. "Delete Account" will permanently delete your account and all associated data from our servers.</p>
+          <p className="text-xs mt-2" style={{ color: '#8B1A1A' }}>"Clear ALL" will permanently wipe all data in this browser. "Delete Account" will permanently delete your account and all associated data from our servers.</p>
         </div>
       </div>
 
