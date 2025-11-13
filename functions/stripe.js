@@ -1,6 +1,7 @@
 const { onCall } = require("firebase-functions/v2/https");
 const admin = require('firebase-admin');
 const { buildFounderOfferResponse } = require('./founderOffer');
+const giftAccess = require('./giftAccess');
 
 // Load environment variables from .env file (Firebase Functions v2)
 require('dotenv').config();
@@ -63,6 +64,48 @@ exports.createCheckoutSession = onCall(
         console.log("🔍 Using secret key (first 20 chars):", STRIPE_SECRET_KEY.substring(0, 20));
         
         const safePriceId = String(priceId);
+        
+        // Validate the price ID exists and is active in Stripe (non-blocking - log warnings but continue)
+        try {
+          console.log("🔍 Validating price ID with Stripe API...");
+          const price = await stripe.prices.retrieve(safePriceId);
+          console.log("✅ Price validated:", {
+            id: price.id,
+            active: price.active,
+            type: price.type,
+            product: price.product,
+            unit_amount: price.unit_amount,
+            currency: price.currency
+          });
+          
+          if (!price.active) {
+            console.error(`⚠️ WARNING: Price ID ${safePriceId} is not active. This may cause checkout to fail.`);
+            // Don't throw - let Stripe handle it and provide the actual error
+          }
+          
+          // Check if product is archived (optional check - don't fail if this fails)
+          try {
+            const product = await stripe.products.retrieve(price.product);
+            if (product.active === false) {
+              console.warn("⚠️ Product associated with price is archived:", product.id);
+              // This might still work, but log a warning
+            }
+          } catch (productError) {
+            console.warn("⚠️ Could not retrieve product info (non-fatal):", productError.message);
+            // Don't fail the whole request if product check fails
+          }
+        } catch (priceError) {
+          console.error("❌ Price validation failed (non-blocking):", priceError);
+          console.error("Price error details:", {
+            type: priceError.type,
+            code: priceError.code,
+            message: priceError.message,
+            statusCode: priceError.statusCode
+          });
+          // Don't throw here - let the actual Stripe checkout session creation fail with a clearer error
+          console.warn("⚠️ Continuing with checkout session creation - Stripe will validate the price ID");
+        }
+        
         const isLifetimeRequest = [DEFAULT_LIFETIME_PRICE_ID, FOUNDER_LIFETIME_PRICE_ID]
           .filter(Boolean)
           .includes(safePriceId);
@@ -99,26 +142,11 @@ exports.createCheckoutSession = onCall(
           }
         }
 
+        // Temporarily disable founder pricing - founder coupon not configured
         if (founderApplied) {
-          if (sessionMode === "subscription") {
-            if (FOUNDER_COUPON_ID) {
-              discounts.push({ coupon: FOUNDER_COUPON_ID });
-            } else {
-              console.warn('⚠️ Founder coupon ID not configured; skipping founder discount for subscription.');
-              founderApplied = false;
-              founderType = 'coupon_missing';
-            }
-          } else {
-            if (FOUNDER_LIFETIME_PRICE_ID) {
-              effectivePriceId = FOUNDER_LIFETIME_PRICE_ID;
-            } else if (FOUNDER_COUPON_ID) {
-              discounts.push({ coupon: FOUNDER_COUPON_ID });
-            } else {
-              console.warn('⚠️ Founder pricing not configured for lifetime plan; skipping founder discount.');
-              founderApplied = false;
-              founderType = 'price_missing';
-            }
-          }
+          console.warn('⚠️ Founder pricing disabled - coupon not configured in Stripe');
+          founderApplied = false;
+          founderType = 'disabled';
         }
 
         if (!founderApplied && FOUNDER_LIFETIME_PRICE_ID && safePriceId === FOUNDER_LIFETIME_PRICE_ID) {
@@ -180,20 +208,43 @@ exports.createCheckoutSession = onCall(
           sessionPayload.discounts = discounts;
         }
 
+        console.log("🔍 Creating Stripe checkout session with payload:", {
+          priceId: effectivePriceId,
+          mode: sessionMode,
+          customerEmail: userEmail
+        });
+        
         const session = await stripe.checkout.sessions.create(sessionPayload);
+        console.log("✅ Stripe checkout session created successfully:", session.id);
         return {id: session.id};
       } catch (error) {
-        console.error("Checkout session error:", error);
+        console.error("❌ Checkout session error:", error);
         console.error("Error details:", {
           message: error.message,
           type: error.type,
           code: error.code,
           statusCode: error.statusCode,
+          param: error.param,
           raw: error.raw
         });
+        
+        // Provide more helpful error messages based on error type
+        let errorMessage = error.message || 'Unknown error';
+        
+        if (error.type === 'StripeInvalidRequestError') {
+          if (error.param === 'line_items[0][price]') {
+            errorMessage = `Invalid price ID: ${request.data?.priceId}. The price may be archived, inactive, or not exist. Please verify the price ID in Stripe Dashboard.`;
+          } else if (error.message?.includes('No such price')) {
+            errorMessage = `Price ID ${request.data?.priceId} not found. Please verify the price ID is correct and active in Stripe Dashboard.`;
+          }
+        }
+        
+        // Return more detailed error for debugging
+        throw new Error(`Stripe Error (${error.type || 'unknown'}): ${errorMessage}`);
+      }
+    });
 
 // Securely finalize a gift purchase using the Stripe session id
-const giftAccess = require('./giftAccess');
 exports.completeGiftFromSession = onCall(
   { cors: true },
   async (request) => {
@@ -240,10 +291,6 @@ exports.completeGiftFromSession = onCall(
     }
   }
 );
-        // Return more detailed error for debugging
-        throw new Error(`Stripe Error: ${error.type || 'unknown'} - ${error.message || 'No message'}`);
-      }
-    });
 
 // Create Stripe Customer Portal Session
 exports.createPortalSession = onCall(
