@@ -54,6 +54,26 @@ service cloud.firestore {
       allow read, update, delete: if true; // Temporarily open for beta launch - admin access
     }
     
+    // Support tickets - users can create and read their own, admin can read/write all
+    match /supportTickets/{ticketId} {
+      allow create: if request.auth != null; // Authenticated users can create tickets (via function)
+      allow read: if request.auth != null && (
+        request.auth.token.email == resource.data.userEmail || // Users can read their own tickets
+        isAdmin() // Admin can read all tickets
+      );
+      allow update, delete: if isAdmin(); // Only admin can update/delete tickets
+      
+      // Messages subcollection - users can read their own ticket messages, admin can read/write all
+      match /messages/{messageId} {
+        allow create: if request.auth != null; // Users can create messages (via function)
+        allow read: if request.auth != null && (
+          request.auth.token.email == get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userEmail || // Users can read messages in their own tickets
+          isAdmin() // Admin can read all messages
+        );
+        allow update, delete: if isAdmin(); // Only admin can update/delete messages
+      }
+    }
+    
     // Notifications - users can read/update their own notifications, admin can create
     match /notifications/{notificationId} {
       allow read, update, delete: if request.auth != null && 

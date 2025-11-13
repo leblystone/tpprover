@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft } from 'lucide-react';
+import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { submitFeedback, createSupportTicket } from '../../services/firebase';
+import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
@@ -13,6 +13,9 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const [submitStatus, setSubmitStatus] = useState(null);
     const [feedbackType, setFeedbackType] = useState(null); // 'bug' or 'suggestion'
     const [feedbackMessage, setFeedbackMessage] = useState('');
+    const [userTickets, setUserTickets] = useState([]);
+    const [loadingTickets, setLoadingTickets] = useState(false);
+    const [showPreviousTickets, setShowPreviousTickets] = useState(false);
     
     // Track modal state to persist across app lifecycle changes
     const [internalOpen, setInternalOpen] = useState(open);
@@ -70,6 +73,26 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         }
     }, [user, open]);
 
+    // Load user's previous tickets when modal opens
+    useEffect(() => {
+        if (open && user?.email) {
+            loadUserTickets();
+        }
+    }, [open, user?.email]);
+
+    const loadUserTickets = async () => {
+        if (!user?.email) return;
+        setLoadingTickets(true);
+        try {
+            const tickets = await getUserTickets(user.email);
+            setUserTickets(tickets);
+        } catch (error) {
+            console.error('❌ Failed to load user tickets:', error);
+        } finally {
+            setLoadingTickets(false);
+        }
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -118,6 +141,11 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             console.log('✅ Support ticket created:', ticketId);
             setSubmitStatus('success');
             setFormData({ email: '', message: '' });
+            
+            // Reload user tickets to show the new one
+            if (user?.email) {
+                await loadUserTickets();
+            }
             
             // Auto-close after 2 seconds
             setTimeout(() => {
@@ -328,6 +356,63 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                     )}
                                 </button>
                             </form>
+
+                            {/* Previous Tickets Section */}
+                            {user?.email && userTickets.length > 0 && (
+                                <div className="border-t pt-4 mt-6" style={{ borderColor: theme.border }}>
+                                    <button
+                                        onClick={() => setShowPreviousTickets(!showPreviousTickets)}
+                                        className="w-full flex items-center justify-between text-sm font-medium mb-3"
+                                        style={{ color: theme.primary }}
+                                    >
+                                        <span>Your Previous Requests ({userTickets.length})</span>
+                                        <span>{showPreviousTickets ? '−' : '+'}</span>
+                                    </button>
+                                    {showPreviousTickets && (
+                                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                                            {userTickets.map((ticket) => (
+                                                <div
+                                                    key={ticket.id}
+                                                    className="p-3 rounded-lg border text-sm"
+                                                    style={{
+                                                        borderColor: theme.border,
+                                                        backgroundColor: theme.background
+                                                    }}
+                                                >
+                                                    <div className="flex items-start justify-between mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            {ticket.type === 'bug' && <Bug size={14} style={{ color: theme.error }} />}
+                                                            {ticket.type === 'suggestion' && <Lightbulb size={14} style={{ color: theme.warning }} />}
+                                                            {ticket.type === 'support' && <Mail size={14} style={{ color: theme.info }} />}
+                                                            <span className="font-semibold" style={{ color: theme.text }}>
+                                                                {ticket.ticketNumber || `#${ticket.id.substring(0, 8)}`}
+                                                            </span>
+                                                        </div>
+                                                        <span
+                                                            className="text-xs px-2 py-0.5 rounded-full"
+                                                            style={{
+                                                                backgroundColor: (ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight) + '20',
+                                                                color: ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight
+                                                            }}
+                                                        >
+                                                            {ticket.status}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs mb-1" style={{ color: theme.textLight }}>
+                                                        {ticket.subject}
+                                                    </p>
+                                                    {ticket.lastMessageAt && (
+                                                        <div className="flex items-center gap-1 text-xs" style={{ color: theme.textLight }}>
+                                                            <Clock size={10} />
+                                                            {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleDateString() : 'Recently'}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="border-t pt-4 mt-6" style={{ borderColor: theme.border }}>
                                 <p className="text-sm text-center mb-3" style={{ color: theme.textLight }}>

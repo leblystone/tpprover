@@ -49,7 +49,6 @@ import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
 import EmailTriggerManager from '../components/admin/EmailTriggerManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
-import ImprovementsTracker from '../components/admin/ImprovementsTracker';
 import UserDetailModal from '../components/admin/UserDetailModal';
 import VersionManager from '../components/admin/VersionManager';
 
@@ -579,6 +578,7 @@ function Admin() {
   const [ticketView, setTicketView] = useState('list'); // 'list' or 'chat'
   const [selectedTicketStatusFilter, setSelectedTicketStatusFilter] = useState('new');
   const [selectedTicketTypeFilter, setSelectedTicketTypeFilter] = useState('all');
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
   const [ticketResponseText, setTicketResponseText] = useState('');
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
@@ -1900,8 +1900,7 @@ function Admin() {
                 icon={Layers}
                 items={[
                   { id: 'content', label: 'Content', icon: Layers, count: 0, color: '#8b5cf6' },
-                  { id: 'feedback', label: 'Feedback', icon: MessagesSquare, count: feedback.filter(f => f.status === 'new').length, color: '#8b5cf6' },
-                  { id: 'improvements', label: 'Ideas', icon: Lightbulb, count: 0, color: '#8b5cf6' }
+                  { id: 'feedback', label: 'Support', icon: MessagesSquare, count: feedback.filter(f => f.status === 'new').length, color: '#8b5cf6' }
                 ]}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -1989,7 +1988,7 @@ function Admin() {
               { id: 'subscriptions', label: 'Users', icon: Users, color: '#10b981', short: 'Users' },
               { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b', short: 'Beta' },
               { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6', short: 'Content' },
-              { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6', short: 'Feedback' },
+              { id: 'feedback', label: 'Support', icon: MessageSquare, color: '#8b5cf6', short: 'Support' },
               { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary, short: 'Posts' },
               { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b', short: 'Flags' },
               { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444', short: 'Legal' },
@@ -3060,97 +3059,6 @@ function Admin() {
               </div>
             </div>
 
-              {/* Type Filter Tabs - Only show for 'new' status */}
-              {selectedFeedbackStatusFilter !== 'all' && (
-                <div className="p-4">
-                  <h3 className="text-xs font-semibold mb-3" style={{ color: theme.textLight }}>FILTER BY TYPE</h3>
-                  <div className="flex items-center gap-3 overflow-x-auto pb-2">
-                    {(() => {
-                      // Count feedback by type for the selected status
-                      const feedbackCounts = {
-                        all: feedback.filter(f => 
-                          selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter
-                        ).length,
-                        suggestion: feedback.filter(f => 
-                          f.type === 'suggestion' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                        bug: feedback.filter(f => 
-                          f.type === 'bug' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                        improvement: feedback.filter(f => 
-                          f.type === 'improvement' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                        general: feedback.filter(f => 
-                          f.type === 'general' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                      };
-                      
-                      const typeFilters = [
-                        { id: 'all', label: 'All Types', icon: MessageSquare, color: theme.primaryDark },
-                        { id: 'suggestion', label: 'Suggestions', icon: Lightbulb, color: theme.primary },
-                        { id: 'bug', label: 'Bugs', icon: AlertTriangle, color: theme.error },
-                        { id: 'improvement', label: 'Improvements', icon: Star, color: theme.warning },
-                        { id: 'general', label: 'General', icon: MessageCircle, color: theme.info }
-                      ];
-                      
-                      return typeFilters.map(filter => {
-                        const count = feedbackCounts[filter.id];
-                        const FilterIcon = filter.icon;
-                        const isActive = selectedFeedbackTypeFilter === filter.id;
-                        
-                        return (
-                          <button
-                            key={filter.id}
-                            onClick={() => setSelectedFeedbackTypeFilter(filter.id)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all"
-                            style={{ 
-                              backgroundColor: isActive ? filter.color + '25' : theme.background,
-                              color: isActive ? filter.color : theme.text,
-                              border: isActive ? `2px solid ${filter.color}` : `1px solid ${theme.border}`,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <FilterIcon size={16} strokeWidth={isActive ? 2.5 : 2} />
-                            <span>{filter.label}</span>
-                            <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
-                                 style={{ 
-                                   backgroundColor: isActive ? filter.color : theme.textLight + '30',
-                                   color: isActive ? theme.white : theme.textLight 
-                                 }}>
-                              {count}
-                      </div>
-                          </button>
-                        );
-                      });
-                    })()}
-                    </div>
-                </div>
-              )}
-              </div>
-
-            {/* Compact Feedback Trends */}
-            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Recent Trends</h2>
-                <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
-                  {feedbackAnalysis.trends.slice(0, 3).map((trend, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span>{trend.week}:</span>
-                      <span className="font-semibold" style={{ color: theme.text }}>{trend.feedback}</span>
-                      <div className="flex items-center gap-0.5" style={{ color: theme.success }}>
-                        <TrendingUp size={12} />
-                        <span className="text-xs">{trend.change}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             {/* View Toggle */}
             <div className="rounded-lg border content-card shadow-sm mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="p-4">
@@ -3170,7 +3078,7 @@ function Admin() {
                     }}
                   >
                     <MessageSquare size={16} className="inline mr-2" />
-                    Feedback ({feedback.length})
+                    Support ({feedback.length})
                   </button>
                   <button
                     onClick={() => {
@@ -3199,9 +3107,9 @@ function Admin() {
                 <div className="p-6 border-b" style={{ borderColor: theme.border }}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Feedback</h2>
+                      <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Support</h2>
                       <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                        User feedback management with keyword-based categorization
+                        User support management with keyword-based categorization
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -3224,14 +3132,14 @@ function Admin() {
                 {loading.feedback ? (
                   <div className="p-8 text-center">
                     <Loader size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
-                    <p className="mt-2 text-sm" style={{ color: theme.textLight }}>Loading feedback...</p>
+                    <p className="mt-2 text-sm" style={{ color: theme.textLight }}>Loading support requests...</p>
                   </div>
                 ) : feedback.length === 0 ? (
                   <div className="p-8 text-center">
                     <MessageSquare size={48} className="mx-auto mb-3" style={{ color: theme.textLight }} />
-                    <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No feedback yet</h3>
+                    <h3 className="font-semibold" style={{ color: theme.primaryDark }}>No support requests yet</h3>
                     <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                      User feedback will appear here when submitted
+                      User support requests will appear here when submitted
                     </p>
                   </div>
                 ) : (() => {
@@ -3494,12 +3402,25 @@ function Admin() {
                           style={{ color: theme.primary }}
                         >
                           <ArrowLeft size={16} />
-                          Back to Tickets
+                          Back to Requests
                         </button>
                         <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>{selectedTicket.subject}</h2>
-                        <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                          {selectedTicket.userEmail} • {selectedTicket.type} • {selectedTicket.status}
-                        </p>
+                        <div className="text-sm mt-1 space-y-1" style={{ color: theme.textLight }}>
+                          <p>
+                            <strong style={{ color: theme.text }}>Email:</strong> {selectedTicket.userEmail}
+                          </p>
+                          {selectedTicket.userId && (
+                            <p>
+                              <strong style={{ color: theme.text }}>UID:</strong> <span className="font-mono">{selectedTicket.userId}</span>
+                            </p>
+                          )}
+                          <p>
+                            <strong style={{ color: theme.text }}>Ticket #:</strong> <span className="font-mono font-bold text-lg" style={{ color: theme.primary }}>{selectedTicket.ticketNumber || selectedTicket.ticketId?.substring(0, 8) || selectedTicket.id.substring(0, 8)}</span>
+                          </p>
+                          <p>
+                            {selectedTicket.type} • {selectedTicket.status}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <select
@@ -3587,7 +3508,7 @@ function Admin() {
                 // Tickets List View
                 <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                   <div className="p-6 border-b" style={{ borderColor: theme.border }}>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
                         <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Support Requests</h2>
                         <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -3607,6 +3528,21 @@ function Admin() {
                           <Loader size={16} className={loading.feedback ? 'animate-spin' : ''} />
                         </button>
                       </div>
+                    </div>
+                    {/* Search by ticket number */}
+                    <div className="mt-4">
+                      <input
+                        type="text"
+                        placeholder="Search by ticket # (e.g., Z005)..."
+                        value={ticketSearchQuery}
+                        onChange={(e) => setTicketSearchQuery(e.target.value)}
+                        className="w-full px-4 py-2 rounded-lg border text-sm"
+                        style={{
+                          borderColor: theme.border,
+                          backgroundColor: theme.background,
+                          color: theme.text
+                        }}
+                      />
                     </div>
                   </div>
                   
@@ -3629,6 +3565,14 @@ function Admin() {
                         .filter(ticket => {
                           if (selectedTicketStatusFilter !== 'all' && ticket.status !== selectedTicketStatusFilter) return false;
                           if (selectedTicketTypeFilter !== 'all' && ticket.type !== selectedTicketTypeFilter) return false;
+                          // Search by ticket number, email, or user ID
+                          if (ticketSearchQuery.trim()) {
+                            const query = ticketSearchQuery.toLowerCase().trim();
+                            const matchesNumber = ticket.ticketNumber?.toLowerCase().includes(query);
+                            const matchesEmail = ticket.userEmail?.toLowerCase().includes(query);
+                            const matchesUserId = ticket.userId?.toLowerCase().includes(query);
+                            if (!matchesNumber && !matchesEmail && !matchesUserId) return false;
+                          }
                           return true;
                         })
                         .map((ticket) => (
@@ -3664,8 +3608,8 @@ function Admin() {
                                   UID: {ticket.userId.substring(0, 20)}...
                                 </p>
                               )}
-                              <p className="text-xs" style={{ color: theme.primary }}>
-                                Ticket #{ticket.ticketId?.substring(0, 8) || ticket.id.substring(0, 8)}
+                              <p className="text-xs font-bold" style={{ color: theme.primary }}>
+                                #{ticket.ticketNumber || ticket.ticketId?.substring(0, 8) || ticket.id.substring(0, 8)}
                               </p>
                             </div>
                             <div className="flex items-center gap-2 text-xs" style={{ color: theme.textLight }}>
@@ -4125,12 +4069,6 @@ function Admin() {
         {activeTab === 'emailTriggers' && (
           <div className="space-y-6">
             <EmailTriggerManager theme={theme} />
-          </div>
-        )}
-
-        {activeTab === 'improvements' && (
-          <div className="space-y-6">
-            <ImprovementsTracker theme={theme} />
           </div>
         )}
 

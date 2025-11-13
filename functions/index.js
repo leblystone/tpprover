@@ -1,5 +1,5 @@
 const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
-const {onCall} = require('firebase-functions/v2/https');
+const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
@@ -1428,10 +1428,36 @@ exports.createSupportTicket = onCall(
       const db = admin.firestore();
       const FieldValue = admin.firestore.FieldValue;
 
+      // Get next ticket number atomically
+      const counterRef = db.collection('_counters').doc('supportTickets');
+      let ticketNumber;
+      
+      await db.runTransaction(async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+        let currentCount = 0;
+        
+        if (counterDoc.exists) {
+          currentCount = counterDoc.data().count || 0;
+        }
+        
+        // Increment counter (starting from 5, so first ticket is Z005)
+        currentCount++;
+        ticketNumber = `Z${String(currentCount).padStart(3, '0')}`;
+        
+        // Update counter
+        transaction.set(counterRef, {
+          count: currentCount,
+          lastUpdated: FieldValue.serverTimestamp()
+        }, { merge: true });
+      });
+
+      logger.info(`🎫 Generated ticket number: ${ticketNumber}`);
+
       // Create ticket document
       const ticketRef = db.collection('supportTickets').doc();
       const ticketData = {
         ticketId: ticketRef.id,
+        ticketNumber: ticketNumber, // Simple number like Z005
         userId: userId || null,
         userEmail: userEmail.toLowerCase().trim(),
         userName: userName || userEmail.split('@')[0],
@@ -1480,12 +1506,13 @@ exports.createSupportTicket = onCall(
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
           <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h2 style="color: #2F3B3A; margin-bottom: 20px;">🎫 New Support Ticket Created</h2>
+            <h2 style="color: #2F3B3A; margin-bottom: 20px;">🎫 New Support Request Created</h2>
             <div style="margin-bottom: 20px;">
-              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket ID:</strong> ${ticketRef.id}</p>
+              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket #:</strong> ${ticketNumber}</p>
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeName}</p>
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Email:</strong> ${safeEmail}</p>
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Type:</strong> ${safeType}</p>
+              ${userId ? `<p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">User ID:</strong> ${userId}</p>` : ''}
             </div>
             <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
               <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
@@ -1499,7 +1526,7 @@ exports.createSupportTicket = onCall(
 
       await emailService.sendEmail(
         'contact@thepepplanner.com',
-        `🎫 New ${safeType} Ticket: ${ticketRef.id.substring(0, 8)}...`,
+        `🎫 New ${safeType} Request: ${ticketNumber}`,
         emailHtml
       );
 
@@ -1511,7 +1538,12 @@ exports.createSupportTicket = onCall(
       };
     } catch (error) {
       logger.error(`❌ Error creating support ticket: ${error.message}`);
-      throw new Error('Failed to create support ticket');
+      logger.error(`❌ Error stack: ${error.stack}`);
+      throw new HttpsError(
+        'internal',
+        'Failed to create support ticket',
+        error.message
+      );
     }
   }
 );

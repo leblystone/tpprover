@@ -1241,8 +1241,17 @@ export function subscribeToTicketMessages(ticketId, callback) {
 export async function getAllTickets() {
   try {
     const ticketsRef = collection(db, 'supportTickets');
-    const q = query(ticketsRef, orderBy('lastMessageAt', 'desc'));
-    const querySnapshot = await getDocs(q);
+    
+    // Try to query with orderBy, but fallback to simple query if index doesn't exist
+    let querySnapshot;
+    try {
+      const q = query(ticketsRef, orderBy('lastMessageAt', 'desc'));
+      querySnapshot = await getDocs(q);
+    } catch (orderByError) {
+      // If orderBy fails (likely missing index), try without orderBy
+      console.warn('⚠️ orderBy query failed, trying without orderBy:', orderByError.message);
+      querySnapshot = await getDocs(ticketsRef);
+    }
     
     const tickets = [];
     querySnapshot.forEach((doc) => {
@@ -1252,9 +1261,25 @@ export async function getAllTickets() {
       });
     });
     
+    // Sort manually if we couldn't use orderBy
+    if (tickets.length > 0 && !tickets[0].lastMessageAt) {
+      tickets.sort((a, b) => {
+        const aTime = a.lastMessageAt?.toMillis ? a.lastMessageAt.toMillis() : 
+                     a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const bTime = b.lastMessageAt?.toMillis ? b.lastMessageAt.toMillis() : 
+                     b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return bTime - aTime; // Descending order
+      });
+    }
+    
+    console.log('✅ Loaded tickets:', tickets.length);
     return tickets;
   } catch (error) {
     console.error('❌ Failed to get all tickets:', error);
+    console.error('❌ Error details:', {
+      code: error.code,
+      message: error.message
+    });
     throw error;
   }
 }
