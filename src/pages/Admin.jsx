@@ -2093,8 +2093,7 @@ function Admin() {
 
         {/* Content Area */}
         <div className="flex-1 p-4 lg:p-6 overflow-y-auto overflow-x-hidden">
-
-        {activeTab === 'analytics' && (
+          {activeTab === 'analytics' && (
           <div className="space-y-5">
             {/* Coffee Welcome Banner */}
             <div className="rounded-xl p-5 relative overflow-hidden border-2" style={{
@@ -4158,7 +4157,7 @@ function Admin() {
                         </div>
                         <div>
                           <p className="font-medium" style={{ color: theme.text }}>
-                            {gift.giftGiverName} → {gift.recipientEmail}
+                            {gift.giftGiverName} &rarr; {gift.recipientEmail}
                           </p>
                           <p className="text-sm" style={{ color: theme.textLight }}>
                             {gift.subscriptionType === 'monthly' ? '1 Month' :
@@ -4189,7 +4188,6 @@ function Admin() {
         )}
 
         </div>
-      </div>
       </div>
 
       {/* Modals */}
@@ -4384,6 +4382,7 @@ function Admin() {
           </div>
         </Modal>
       )}
+      </div>
     </>
   );
 }
