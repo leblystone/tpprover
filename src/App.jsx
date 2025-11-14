@@ -321,11 +321,11 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex bg-gray-100 font-sans antialiased">
+    <div className="h-screen flex font-sans antialiased" style={{ backgroundColor: theme.background }}>
       <Sidebar theme={theme} installPrompt={installPrompt} isPwaSupported={isPwaSupported} isPwaInstalled={isPwaInstalled} onSupportClick={() => setShowSupportModal(true)} />
       <div className="flex-1 flex flex-col lg:ml-24 min-w-0" style={{
-        // Add padding for mobile status bar
-        paddingTop: window.innerWidth < 1024 ? 'max(var(--safe-area-top, 24px), 24px)' : '0px'
+        // Add padding for mobile status bar - only for native apps (not PWA)
+        paddingTop: window.innerWidth < 1024 && !window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone ? 'max(var(--safe-area-top, 24px), 24px)' : '0px'
       }}>
         <Topbar 
           theme={theme} 
