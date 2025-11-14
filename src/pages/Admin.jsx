@@ -2316,12 +2316,19 @@ function Admin() {
                                 {ticket.subject}
                               </span>
                             </div>
-                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ 
-                              backgroundColor: theme.warning + '20',
-                              color: theme.warning
-                            }}>
-                              {ticket.status}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <div 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ 
+                                  backgroundColor: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                                }} 
+                              />
+                              <span className="text-xs font-medium capitalize" style={{ 
+                                color: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                              }}>
+                                {ticket.status === 'resolved' || ticket.status === 'closed' ? 'Closed' : ticket.status}
+                              </span>
+                            </div>
                           </div>
                           <p className="text-xs mb-1" style={{ color: theme.textLight }}>
                             {ticket.userEmail}
@@ -3462,39 +3469,71 @@ function Admin() {
                 <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                   <div className="p-6 border-b" style={{ borderColor: theme.border }}>
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <button
                           onClick={() => setTicketView('list')}
-                          className="mb-2 text-sm flex items-center gap-2"
+                          className="mb-2 text-sm flex items-center gap-2 hover:opacity-70 transition-opacity"
                           style={{ color: theme.primary }}
                         >
                           <ArrowLeft size={16} />
                           Back to Tickets
                         </button>
-                        <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>{selectedTicket.subject}</h2>
-                        <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                          {selectedTicket.userEmail} • {selectedTicket.type} • {selectedTicket.status}
-                        </p>
+                        <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>
+                          {selectedTicket.subject}
+                        </h2>
+                        <div className="flex items-center gap-4 text-sm" style={{ color: theme.textLight }}>
+                          <span className="flex items-center gap-1">
+                            <Mail size={14} />
+                            {selectedTicket.userEmail}
+                          </span>
+                          <span>#{selectedTicket.ticketNumber || selectedTicket.id.substring(0, 8)}</span>
+                        </div>
                       </div>
+                      
+                      {/* Traffic Light Status Buttons */}
                       <div className="flex items-center gap-2">
-                        <select
-                          value={selectedTicket.status}
-                          onChange={(e) => handleUpdateTicketStatus(selectedTicket.id, e.target.value)}
-                          className="px-3 py-1 rounded text-sm border"
-                          style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                        >
-                          <option value="new">New</option>
-                          <option value="in-progress">In Progress</option>
-                          <option value="resolved">Resolved</option>
-                          <option value="closed">Closed</option>
-                        </select>
+                        <div className="text-xs font-semibold mr-2" style={{ color: theme.textLight }}>STATUS:</div>
                         <button
-                          onClick={loadTickets}
-                          className="p-2 rounded hover:opacity-70"
-                          style={{ color: theme.primary }}
-                          title="Refresh"
+                          onClick={() => handleUpdateTicketStatus(selectedTicket.id, 'new')}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all ${
+                            selectedTicket.status === 'new' ? 'ring-2' : 'opacity-50 hover:opacity-75'
+                          }`}
+                          style={{
+                            backgroundColor: selectedTicket.status === 'new' ? theme.success + '20' : theme.background,
+                            color: theme.success,
+                            ringColor: theme.success
+                          }}
                         >
-                          <Loader size={16} className={loading.feedback ? 'animate-spin' : ''} />
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.success }} />
+                          <span className="text-sm">New</span>
+                        </button>
+                        <button
+                          onClick={() => handleUpdateTicketStatus(selectedTicket.id, 'in-progress')}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all ${
+                            selectedTicket.status === 'in-progress' ? 'ring-2' : 'opacity-50 hover:opacity-75'
+                          }`}
+                          style={{
+                            backgroundColor: selectedTicket.status === 'in-progress' ? theme.warning + '20' : theme.background,
+                            color: theme.warning,
+                            ringColor: theme.warning
+                          }}
+                        >
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.warning }} />
+                          <span className="text-sm">In Progress</span>
+                        </button>
+                        <button
+                          onClick={() => handleUpdateTicketStatus(selectedTicket.id, 'resolved')}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all ${
+                            selectedTicket.status === 'resolved' || selectedTicket.status === 'closed' ? 'ring-2' : 'opacity-50 hover:opacity-75'
+                          }`}
+                          style={{
+                            backgroundColor: (selectedTicket.status === 'resolved' || selectedTicket.status === 'closed') ? theme.error + '20' : theme.background,
+                            color: theme.error,
+                            ringColor: theme.error
+                          }}
+                        >
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.error }} />
+                          <span className="text-sm">Closed</span>
                         </button>
                       </div>
                     </div>
@@ -3681,15 +3720,19 @@ function Admin() {
                                 {ticket.type === 'support' && <Mail size={16} style={{ color: theme.info }} />}
                                 <span className="font-semibold" style={{ color: theme.text }}>{ticket.subject}</span>
                               </div>
-                              <span
-                                className="text-xs px-2 py-1 rounded-full"
-                                style={{
-                                  backgroundColor: (ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight) + '20',
-                                  color: ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight
-                                }}
-                              >
-                                {ticket.status}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <div 
+                                  className="w-2 h-2 rounded-full" 
+                                  style={{ 
+                                    backgroundColor: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                                  }} 
+                                />
+                                <span className="text-xs font-medium capitalize" style={{ 
+                                  color: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                                }}>
+                                  {ticket.status === 'resolved' || ticket.status === 'closed' ? 'Closed' : ticket.status}
+                                </span>
+                              </div>
                             </div>
                             <div className="space-y-1 mb-2">
                               <p className="text-sm font-medium" style={{ color: theme.text }}>
