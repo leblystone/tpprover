@@ -312,6 +312,35 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     frequency: finalForm.sharedFrequency
                 }));
             }
+            
+            // Ensure dosage units match delivery method
+            finalForm.peptides = finalForm.peptides.map(p => {
+                const deliveryMethod = p.deliveryMethod || 'pipette';
+                const dosage = p.dosage || { amount: '', unit: 'mcg' };
+                
+                // If delivery method is syringe/pen but unit is sprays, default to mcg
+                if ((deliveryMethod === 'pipette' || deliveryMethod === 'pen') && dosage.unit === 'sprays') {
+                    return {
+                        ...p,
+                        dosage: { ...dosage, unit: 'mcg' }
+                    };
+                }
+                // If delivery method is nasal but unit is not sprays, default to sprays
+                if (deliveryMethod === 'nasal' && dosage.unit !== 'sprays') {
+                    return {
+                        ...p,
+                        dosage: { ...dosage, unit: 'sprays' }
+                    };
+                }
+                // If no unit is set and delivery method is syringe/pen, default to mcg
+                if ((deliveryMethod === 'pipette' || deliveryMethod === 'pen') && !dosage.unit) {
+                    return {
+                        ...p,
+                        dosage: { ...dosage, unit: 'mcg' }
+                    };
+                }
+                return p;
+            });
 
             if (finalForm.duration) {
                 // Validate duration count
@@ -476,8 +505,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
 
                     {/* Protocol Type - Compact Card Style */}
-                    <div className="flex items-start">
-                        <div className="grid grid-cols-2 gap-2 w-full">
+                    <div className="flex items-start lg:items-center">
+                        <div className="grid grid-cols-2 gap-2 w-full lg:max-w-[420px] lg:mx-auto">
                             {[
                                 { key: 'separate', name: 'Separate', icon: Ungroup, description: 'Individual doses' },
                                 { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
@@ -489,7 +518,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         key={option.key}
                                         type="button"
                                         onClick={() => handleChange('protocolType', option.key)}
-                                        className="flex flex-col items-center justify-center p-1 rounded-lg transition-all"
+                                        className="flex flex-row items-center p-3 rounded-lg transition-all"
                                         style={{
                                             backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
                                             border: `1px solid ${isSelected ? theme.primary : theme.border}`,
@@ -511,9 +540,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             }
                                         }}
                                     >
-                                        <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
-                                        <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{option.name}</span>
-                                        <span className="text-xs text-center leading-tight opacity-75 mt-0.5" style={{ position: 'relative', zIndex: 1 }}>{option.description}</span>
+                                        <div className="flex-shrink-0" style={{ width: '33.33%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            <Icon size={24} style={{ position: 'relative', zIndex: 1 }} />
+                                        </div>
+                                        <div className="flex-1 flex flex-col items-center justify-center" style={{ width: '66.67%', paddingLeft: '8px' }}>
+                                            <span className="text-lg font-semibold leading-tight text-center" style={{ position: 'relative', zIndex: 1 }}>{option.name}</span>
+                                            <span className="text-xs leading-tight opacity-75 mt-0.5 text-center" style={{ position: 'relative', zIndex: 1 }}>{option.description}</span>
+                                        </div>
                                     </button>
                                 )
                             })}

@@ -159,6 +159,12 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                         if (!item.injectionType) {
                                             handleChange('injectionType', 'SubQ');
                                         }
+                                        // Reset unit to mcg if it was sprays (from nasal)
+                                        if (item.dosage && item.dosage.unit === 'sprays') {
+                                            handleChange('dosage', { ...item.dosage, unit: 'mcg' });
+                                        } else if (!item.dosage || !item.dosage.unit) {
+                                            handleChange('dosage', { ...(item.dosage || {}), unit: 'mcg' });
+                                        }
                                     }}
                                     className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                                     style={{
@@ -181,7 +187,15 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 </button>
                                 <button 
                                     type="button"
-                                    onClick={() => handleChange('deliveryMethod', 'pen')}
+                                    onClick={() => {
+                                        handleChange('deliveryMethod', 'pen');
+                                        // Reset unit to mcg if it was sprays (from nasal)
+                                        if (item.dosage && item.dosage.unit === 'sprays') {
+                                            handleChange('dosage', { ...item.dosage, unit: 'mcg' });
+                                        } else if (!item.dosage || !item.dosage.unit) {
+                                            handleChange('dosage', { ...(item.dosage || {}), unit: 'mcg' });
+                                        }
+                                    }}
                                     className={`flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
                                     style={{
                                         backgroundColor: (item.deliveryMethod || 'pipette') === 'pen' ? theme.primary : theme.secondary,
@@ -403,34 +417,34 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
                     {item.frequency?.type === 'cycle' && (
                         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="space-y-4">
-                                <div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <TextInput 
-                                            label="Days On" 
-                                            value={item.frequency?.onDays || ''} 
-                                            onChange={v => handleFrequencyChange('onDays', v)} 
-                                            theme={theme} 
-                                            placeholder="5" 
-                                            type="number"
-                                            outlined={true}
-                                            customShadow
-                                        />
-                                        <TextInput 
-                                            label="Days Off" 
-                                            value={item.frequency?.offDays || ''} 
-                                            onChange={v => handleFrequencyChange('offDays', v)} 
-                                            theme={theme} 
-                                            placeholder="2" 
-                                            type="number"
-                                            outlined={true}
-                                            customShadow
-                                        />
-                                    </div>
+                            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:items-center">
+                                <div className="lg:col-span-1">
+                                    <TextInput 
+                                        label="Days On" 
+                                        value={item.frequency?.onDays || ''} 
+                                        onChange={v => handleFrequencyChange('onDays', v)} 
+                                        theme={theme} 
+                                        placeholder="5" 
+                                        type="number"
+                                        outlined={true}
+                                        customShadow
+                                    />
+                                </div>
+                                <div className="lg:col-span-1">
+                                    <TextInput 
+                                        label="Days Off" 
+                                        value={item.frequency?.offDays || ''} 
+                                        onChange={v => handleFrequencyChange('offDays', v)} 
+                                        theme={theme} 
+                                        placeholder="2" 
+                                        type="number"
+                                        outlined={true}
+                                        customShadow
+                                    />
                                 </div>
                                 
                                 {/* Time of Day */}
-                                <div>
+                                <div className="lg:col-span-1">
                                     <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
                                         {['AM','PM'].map(t => {
                                             const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
@@ -484,7 +498,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                                     key={day} 
                                                     type="button" 
                                                     onClick={() => toggleDay(day)}
-                                                    className="flex-1 min-w-0 px-1.5 py-1 text-[10px] font-medium rounded-lg transition-all whitespace-nowrap"
+                                                    className="flex-1 min-w-0 px-1.5 py-1 text-[10px] lg:text-sm font-medium rounded-lg transition-all whitespace-nowrap"
                                                     style={{
                                                         backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
                                                         border: `1px solid ${isSelected ? theme.primary : theme.border}`,
@@ -556,13 +570,13 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
 
                     {item.frequency?.type === 'custom' && (
                         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-center gap-3">
+                            <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-center">
+                                <div className="flex items-center justify-center gap-3 lg:col-span-1">
                                     <span className="text-sm font-medium" style={{ color: theme.text }}>Every</span>
                                     
                                     {/* Combined Input with 'days' pill */}
                                     <div 
-                                        className="flex items-stretch border rounded-lg overflow-hidden"
+                                        className="flex items-stretch border rounded-lg overflow-hidden flex-1"
                                         style={{ borderColor: theme.border }}
                                     >
                                         <input 
@@ -570,7 +584,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             value={item.frequency?.customDays || ''}
                                             onChange={e => handleFrequencyChange('customDays', e.target.value)}
                                             placeholder="3"
-                                            className="flex-1 px-3 py-2 outline-none min-w-0 w-20"
+                                            className="flex-1 px-3 py-2 outline-none min-w-0 lg:w-full"
                                             style={{ 
                                                 backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                                                 color: theme.text 
@@ -596,7 +610,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 </div>
                                 
                                 {/* Time of Day */}
-                                <div>
+                                <div className="lg:col-span-1">
                                     <div className="inline-flex w-full rounded-md p-1.5 gap-2" style={{ backgroundColor: theme.secondary }}>
                                         {['AM','PM'].map(t => {
                                             const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';

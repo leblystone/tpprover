@@ -458,7 +458,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 <p className="text-sm text-center italic mb-4" style={{ color: theme.textLight, wordBreak: 'keep-all', whiteSpace: 'normal' }}>
                     You've linked {linkedPeptides.length} peptide(s). How would you like to <span style={{ whiteSpace: 'nowrap' }}>reconstitute</span> them?
                 </p>
-                <div className="mt-6 grid grid-cols-2 gap-2">
+                <div className="mt-6 grid grid-cols-2 lg:grid-cols-1 gap-2">
                     {[
                         { key: 'separate', name: 'Separately', icon: Ungroup, description: 'Individual vials' },
                         { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
@@ -677,6 +677,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                           `Daily (${peptide.frequency.time.join(', ')})` : 'Daily') :
                                                          peptide.frequency.type === 'weekly' ? `Weekly (${peptide.frequency.days?.join(', ') || ''})` :
                                                          peptide.frequency.type === 'cycle' ? `Cycle: ${peptide.frequency.onDays} on / ${peptide.frequency.offDays} off` :
+                                                         peptide.frequency.type === 'custom' ? (peptide.frequency.customDays ? `Every ${peptide.frequency.customDays} days` : 'Every X days') :
                                                          'Custom'}
                                                     </span>
                                                 )}

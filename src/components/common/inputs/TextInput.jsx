@@ -16,7 +16,8 @@ export default function TextInput({
   uppercase = false,
   customShadow = null,
   outlined = false,
-  customTextColor = null
+  customTextColor = null,
+  maxLength = null
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const hasValue = value && value.toString().trim() !== '';
@@ -101,6 +102,7 @@ export default function TextInput({
             }}
             placeholder={isLabelActive ? placeholder : ' '}
             aria-label={label || placeholder}
+            maxLength={maxLength}
             className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
             style={{ 
               border: `1px solid ${isFocused ? theme.primary : '#f0eee7'}`,
@@ -154,6 +156,7 @@ export default function TextInput({
             placeholder={placeholder}
             aria-label={label || placeholder}
             aria-describedby={label ? `${name || 'input'}-label` : undefined}
+            maxLength={maxLength}
             className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none themed-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
             style={{ 
               border: theme.isDark ? 'none' : `1px solid ${theme.border}`,

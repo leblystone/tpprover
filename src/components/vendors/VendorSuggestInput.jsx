@@ -1,7 +1,7 @@
 import React from 'react'
 import TextInput from '../common/inputs/TextInput'
 
-export default function VendorSuggestInput({ label = 'Vendor', value, onChange, placeholder = 'Vendor', theme }) {
+export default function VendorSuggestInput({ label = 'Vendor', value, onChange, placeholder = 'Vendor', theme, maxLength = null }) {
   const [q, setQ] = React.useState(value || '')
   const [open, setOpen] = React.useState(false)
   React.useEffect(() => { setQ(value || '') }, [value])
@@ -17,7 +17,7 @@ export default function VendorSuggestInput({ label = 'Vendor', value, onChange, 
 
   return (
     <div className="relative">
-      <TextInput label={label} value={q} onChange={(v) => { setQ(v); onChange?.(v); setOpen(true) }} placeholder={placeholder} theme={theme} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+      <TextInput label={label} value={q} onChange={(v) => { setQ(v); onChange?.(v); setOpen(true) }} placeholder={placeholder} theme={theme} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} maxLength={maxLength} />
       {open && list.length > 0 && (
         <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow" style={{ borderColor: theme?.border }}>
           {list.map(v => (

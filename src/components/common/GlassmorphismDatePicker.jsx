@@ -26,24 +26,55 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             const calendarHeight = compact ? 280 : 360;
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
+            const isDesktop = viewportWidth >= 1024; // lg breakpoint
             
-            // Calculate horizontal position (prevent going off right edge)
-            let left = buttonRect.left;
-            if (left + calendarWidth > viewportWidth) {
-                left = viewportWidth - calendarWidth - 16; // 16px padding from edge
-            }
-            if (left < 16) {
-                left = 16; // 16px padding from left edge
+            // Calculate horizontal position
+            let left;
+            if (isDesktop) {
+                // On desktop, position to the right of the button, slightly overlapping or close
+                left = buttonRect.right - (calendarWidth * 0.15); // Move it 15% of calendar width to the left from right edge
+                // Ensure it doesn't go off the left edge
+                if (left < 16) {
+                    left = 16;
+                }
+                // If it goes off screen to the right, adjust
+                if (left + calendarWidth > viewportWidth) {
+                    left = viewportWidth - calendarWidth - 16;
+                }
+            } else {
+                // On mobile, position below aligned to left edge
+                left = buttonRect.left;
+                if (left + calendarWidth > viewportWidth) {
+                    left = viewportWidth - calendarWidth - 16;
+                }
+                if (left < 16) {
+                    left = 16;
+                }
             }
             
-            // Calculate vertical position (prevent going off bottom, show above if needed)
-            let top = buttonRect.bottom + 8;
-            if (top + calendarHeight > viewportHeight) {
-                // Show above the button instead
-                top = buttonRect.top - calendarHeight - 8;
-                // If still off screen at top, position at bottom of viewport
-                if (top < 16) {
+            // Calculate vertical position
+            let top;
+            if (isDesktop) {
+                // On desktop when positioned to the right, position below the button
+                top = buttonRect.bottom + 8;
+                // If it goes off screen at bottom, adjust
+                if (top + calendarHeight > viewportHeight) {
                     top = viewportHeight - calendarHeight - 16;
+                }
+                // Ensure it doesn't go off screen at top
+                if (top < 16) {
+                    top = 16;
+                }
+            } else {
+                // On mobile, position below the button
+                top = buttonRect.bottom + 8;
+                if (top + calendarHeight > viewportHeight) {
+                    // Show above the button instead
+                    top = buttonRect.top - calendarHeight - 8;
+                    // If still off screen at top, position at bottom of viewport
+                    if (top < 16) {
+                        top = viewportHeight - calendarHeight - 16;
+                    }
                 }
             }
             

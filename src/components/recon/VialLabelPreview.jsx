@@ -137,7 +137,7 @@ export default function VialLabelPreview({
                 whiteSpace: 'nowrap'
               }}
             >
-              {currentPeptide.vendor.toUpperCase()}
+              {currentPeptide.vendor.toUpperCase().slice(0, 16)}
             </div>
           )}
           
