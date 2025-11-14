@@ -6,7 +6,7 @@ import VendorSuggestInput from '../vendors/VendorSuggestInput'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown } from 'lucide-react'
+import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData }) {
@@ -195,15 +195,21 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
   const minSwipeDistance = 50; // Minimum distance in pixels to register a swipe
 
   const onTouchStart = (e) => {
+    // Only enable swipe on mobile
+    if (window.innerWidth >= 1024) return;
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
   };
 
   const onTouchMove = (e) => {
+    // Only enable swipe on mobile
+    if (window.innerWidth >= 1024) return;
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
   const onTouchEnd = () => {
+    // Only enable swipe on mobile
+    if (window.innerWidth >= 1024) return;
     if (!touchStart || !touchEnd) return;
     
     const distance = touchStart - touchEnd;
@@ -242,7 +248,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
     <div className={`relative ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section Banner - Vial Details */}
       <div 
-        className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
+        className="px-4 py-2.5 rounded-lg flex items-center justify-between relative z-10" 
         style={{ 
           backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
           borderLeft: '4px solid #e0ded7' 
@@ -373,10 +379,11 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
 
           {/* Visual Vial Preview - Takes 1/2 width */}
           <div 
-            className="col-span-1 flex flex-col justify-between items-center"
+            className="col-span-1 flex flex-col justify-between items-center relative"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
+            style={{ marginTop: '0px', zIndex: 1 }}
           >
             {/* Pulsing Strategy Chip - Only show if reconStrategy is provided */}
             {reconStrategy && (
@@ -410,7 +417,34 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 </div>
               </div>
             )}
-            <div className="relative flex justify-center" style={{ minWidth: 0, maxWidth: '280px', width: '100%' }}>
+            <div className="relative flex flex-col items-center justify-center" style={{ minWidth: 0, maxWidth: '280px', width: '100%' }}>
+              {/* Multiple Peptides Alert Chip - Above vial visual */}
+              {safeForm.peptides && safeForm.peptides.length >= 2 && (
+                <div 
+                  className="absolute px-2.5 py-1 rounded-full flex items-center gap-1.5"
+                  style={{ 
+                    backgroundColor: theme.primary + '20',
+                    border: `1px solid ${theme.primary}40`,
+                    top: '10px',
+                    zIndex: 5
+                  }}
+                  title={`${safeForm.peptides.length} peptides configured`}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <div 
+                      className="absolute w-1.5 h-1.5 rounded-full animate-ping"
+                      style={{ backgroundColor: theme.primary, opacity: 0.75 }}
+                    />
+                    <div 
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: theme.primary }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold" style={{ color: theme.primary }}>
+                    Multiple Peptides
+                  </span>
+                </div>
+              )}
               <VialLabelPreview 
                 form={safeForm}
                 deliveryMethod={deliveryMethod}
@@ -433,37 +467,87 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                       setCurrentPeptideIndex(Math.max(0, currentPeptideIndex - 1));
                     }
                   }}
-                  className="absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  className="absolute right-0 w-5 h-5 rounded-full flex items-center justify-center transition-all hover:scale-110"
                   style={{
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                    color: theme.error || '#ef4444',
-                    border: `1.5px solid ${theme.error || '#ef4444'}30`
+                    top: '10px',
+                    zIndex: 5,
+                    background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
                   }}
                   title="Remove this peptide"
                 >
-                  <X size={14} />
+                  <X size={12} />
                 </button>
               )}
               
               {/* Pagination Dots - Overlay on bottom of vial */}
               {safeForm.peptides && safeForm.peptides.length > 1 && (
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1" style={{ marginBottom: '-20px', zIndex: 10 }}>
-                  <p className="text-xs italic" style={{ color: theme.textLight, opacity: 0.6 }}>
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1" style={{ marginBottom: '8px', zIndex: 10 }}>
+                  <p className="text-xs italic lg:hidden" style={{ color: theme.textLight, opacity: 0.6 }}>
                     Swipe to change peptides
                   </p>
-                  <div className="flex justify-center gap-2.5 h-3">
-                    {safeForm.peptides.map((peptide, idx) => (
-                      <button
-                        key={peptide.id}
-                        onClick={() => setCurrentPeptideIndex(idx)}
-                        className="w-3 h-3 rounded-full transition-all hover:scale-125 cursor-pointer"
-                        style={{
-                          backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
-                          opacity: idx === currentPeptideIndex ? 1 : 0.4
-                        }}
-                        aria-label={`Peptide ${idx + 1}`}
-                      />
-                    ))}
+                  <div className="flex items-center justify-center gap-2">
+                    {/* Left Arrow - Desktop only */}
+                    <button
+                      onClick={() => {
+                        const peptides = safeForm.peptides || [];
+                        if (peptides.length > 1) {
+                          setCurrentPeptideIndex((prev) => (prev - 1 + peptides.length) % peptides.length);
+                        }
+                      }}
+                      className="hidden lg:flex items-center justify-center w-6 h-6 rounded-full transition-all hover:scale-110"
+                      style={{
+                        backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                        color: theme.primary,
+                        border: `1px solid ${theme.border}`
+                      }}
+                      aria-label="Previous peptide"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    
+                    {/* Pagination Dots */}
+                    <div className="flex justify-center gap-2.5 h-3">
+                      {safeForm.peptides.map((peptide, idx) => (
+                        <button
+                          key={peptide.id}
+                          onClick={() => setCurrentPeptideIndex(idx)}
+                          className="w-3 h-3 rounded-full transition-all hover:scale-125 cursor-pointer"
+                          style={{
+                            backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
+                            opacity: idx === currentPeptideIndex ? 1 : 0.4
+                          }}
+                          aria-label={`Peptide ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                    
+                    {/* Right Arrow - Desktop only */}
+                    <button
+                      onClick={() => {
+                        const peptides = safeForm.peptides || [];
+                        if (peptides.length > 1) {
+                          setCurrentPeptideIndex((prev) => (prev + 1) % peptides.length);
+                        }
+                      }}
+                      className="hidden lg:flex items-center justify-center w-6 h-6 rounded-full transition-all hover:scale-110"
+                      style={{
+                        backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                        color: theme.primary,
+                        border: `1px solid ${theme.border}`
+                      }}
+                      aria-label="Next peptide"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
                   </div>
                 </div>
               )}
