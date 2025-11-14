@@ -579,6 +579,7 @@ function Admin() {
   const [ticketView, setTicketView] = useState('list'); // 'list' or 'chat'
   const [selectedTicketStatusFilter, setSelectedTicketStatusFilter] = useState('new');
   const [selectedTicketTypeFilter, setSelectedTicketTypeFilter] = useState('all');
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
   const [ticketResponseText, setTicketResponseText] = useState('');
   const [analytics, setAnalytics] = useState({
     userGrowth: [],
@@ -2325,6 +2326,9 @@ function Admin() {
                           <p className="text-xs mb-1" style={{ color: theme.textLight }}>
                             {ticket.userEmail}
                           </p>
+                          <p className="text-xs font-bold" style={{ color: theme.primary }}>
+                            #{ticket.ticketNumber || ticket.ticketId?.substring(0, 8) || ticket.id.substring(0, 8)}
+                          </p>
                         </div>
                       ))}
                     {tickets.filter(t => t.status === 'new').length > 3 && (
@@ -3608,6 +3612,22 @@ function Admin() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Search Input */}
+                    <div className="mt-4">
+                      <input
+                        type="text"
+                        placeholder="Search by ticket # (e.g., Z005), email, or UID..."
+                        value={ticketSearchQuery}
+                        onChange={(e) => setTicketSearchQuery(e.target.value)}
+                        className="w-full px-4 py-2 rounded-lg border text-sm"
+                        style={{
+                          borderColor: theme.border,
+                          backgroundColor: theme.background,
+                          color: theme.text
+                        }}
+                      />
+                    </div>
                   </div>
                   
                   <div className="divide-y" style={{ borderColor: theme.border }}>
@@ -3629,6 +3649,14 @@ function Admin() {
                         .filter(ticket => {
                           if (selectedTicketStatusFilter !== 'all' && ticket.status !== selectedTicketStatusFilter) return false;
                           if (selectedTicketTypeFilter !== 'all' && ticket.type !== selectedTicketTypeFilter) return false;
+                          // Search by ticket number, email, or user ID
+                          if (ticketSearchQuery.trim()) {
+                            const query = ticketSearchQuery.toLowerCase().trim();
+                            const matchesNumber = ticket.ticketNumber?.toLowerCase().includes(query);
+                            const matchesEmail = ticket.userEmail?.toLowerCase().includes(query);
+                            const matchesUserId = ticket.userId?.toLowerCase().includes(query);
+                            if (!matchesNumber && !matchesEmail && !matchesUserId) return false;
+                          }
                           return true;
                         })
                         .map((ticket) => (
