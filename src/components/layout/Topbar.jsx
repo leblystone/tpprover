@@ -242,20 +242,20 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               {autoSaveIndicator}
             </div>
           )}
-          {/* Support Response Chip */}
+          {/* Support Response Chip - Only show on dashboard */}
           {(() => {
-            console.log('🎫 Rendering chip check:', { openTicket: !!openTicket, hasUnreadResponse });
-            return openTicket && (
+            console.log('🎫 Rendering chip check:', { onDashboard, openTicket: !!openTicket, hasUnreadResponse });
+            return onDashboard && openTicket && (
               <button
                 onClick={() => setShowSupportChat(true)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                   hasUnreadResponse ? 'animate-sway' : ''
                 }`}
-                style={{
-                  backgroundColor: hasUnreadResponse ? '#D2691E' : '#D2691E80',
-                  color: '#FFFFFF',
-                  boxShadow: hasUnreadResponse ? '0 2px 8px rgba(210, 105, 30, 0.3)' : 'none'
-                }}
+              style={{
+                backgroundColor: hasUnreadResponse ? '#B8704C' : '#B8704C80',
+                color: '#FFFFFF',
+                boxShadow: hasUnreadResponse ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none'
+              }}
               >
                 <span className="whitespace-nowrap">Support Response</span>
                 <MessageSquareDot size={14} />
