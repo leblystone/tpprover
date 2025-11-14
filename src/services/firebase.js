@@ -1152,8 +1152,7 @@ export async function getUserTickets(userEmail) {
     const ticketsRef = collection(db, 'supportTickets');
     const q = query(
       ticketsRef,
-      where('userEmail', '==', userEmail.toLowerCase()),
-      orderBy('lastMessageAt', 'desc')
+      where('userEmail', '==', userEmail.toLowerCase())
     );
     const querySnapshot = await getDocs(q);
     
@@ -1163,6 +1162,13 @@ export async function getUserTickets(userEmail) {
         id: doc.id,
         ...doc.data()
       });
+    });
+    
+    // Sort in memory instead of requiring Firestore index
+    tickets.sort((a, b) => {
+      const aTime = a.lastMessageAt?.toDate?.() || a.lastMessageAt || new Date(0);
+      const bTime = b.lastMessageAt?.toDate?.() || b.lastMessageAt || new Date(0);
+      return bTime - aTime;
     });
     
     return tickets;

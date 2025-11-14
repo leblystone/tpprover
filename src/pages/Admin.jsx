@@ -3532,29 +3532,37 @@ function Admin() {
                   <div className="p-6">
                     {/* Messages */}
                     <div className="space-y-4 mb-4 max-h-[400px] overflow-y-auto">
-                      {ticketMessages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex ${msg.senderType === 'admin' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className="max-w-[80%] rounded-lg p-3"
-                            style={{
-                              backgroundColor: msg.senderType === 'admin' 
-                                ? theme.primary 
-                                : theme.background,
-                              color: msg.senderType === 'admin' 
-                                ? theme.textOnPrimary 
-                                : theme.text
-                            }}
-                          >
-                            <div className="text-xs mb-1 opacity-75">
-                              {msg.senderName} • {msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleString() : 'Recently'}
-                            </div>
-                            <div className="text-sm whitespace-pre-wrap">{msg.message}</div>
-                          </div>
+                      {ticketMessages.length === 0 ? (
+                        <div className="text-center py-8" style={{ color: theme.textLight }}>
+                          <p>No messages yet</p>
                         </div>
-                      ))}
+                      ) : (
+                        ticketMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className={`flex ${msg.senderType === 'admin' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className="max-w-[80%] rounded-lg p-3"
+                              style={{
+                                backgroundColor: msg.senderType === 'admin' 
+                                  ? theme.primary 
+                                  : theme.background,
+                                color: msg.senderType === 'admin' 
+                                  ? theme.textOnPrimary 
+                                  : theme.text,
+                                border: msg.senderType === 'user' ? `2px solid ${theme.primary}30` : 'none'
+                              }}
+                            >
+                              <div className="text-xs mb-1 opacity-75 font-semibold">
+                                {msg.senderType === 'user' ? '👤 ' : '🛡️ '}
+                                {msg.senderName} • {msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleString() : 'Recently'}
+                              </div>
+                              <div className="text-sm whitespace-pre-wrap">{msg.message || msg.text}</div>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
 
                     {/* Response Input */}

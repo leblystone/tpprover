@@ -53,13 +53,20 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
 
   // Load user's open tickets
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      console.log('🎫 No user email, skipping ticket load');
+      return;
+    }
 
     const loadOpenTickets = async () => {
       try {
+        console.log('🎫 Loading tickets for:', user.email);
         const tickets = await getUserTickets(user.email);
+        console.log('🎫 Found tickets:', tickets.length, tickets);
+        
         // Find first open ticket (new or in-progress)
         const open = tickets.find(t => t.status === 'new' || t.status === 'in-progress');
+        console.log('🎫 Open ticket:', open);
         setOpenTicket(open || null);
         
         // Check if there are unread admin responses
@@ -67,8 +74,11 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           const lastRead = localStorage.getItem(`ticket_${open.id}_lastRead`);
           const lastReadTime = lastRead ? new Date(lastRead) : new Date(0);
           const lastAdminTime = open.lastAdminMessageAt?.toDate ? open.lastAdminMessageAt.toDate() : new Date(open.lastAdminMessageAt);
-          setHasUnreadResponse(lastAdminTime > lastReadTime);
+          const hasUnread = lastAdminTime > lastReadTime;
+          console.log('🎫 Has unread response:', hasUnread, { lastAdminTime, lastReadTime });
+          setHasUnreadResponse(hasUnread);
         } else {
+          console.log('🎫 No admin message yet, showing muted chip');
           setHasUnreadResponse(false);
         }
       } catch (error) {
@@ -233,22 +243,25 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             </div>
           )}
           {/* Support Response Chip */}
-          {openTicket && (
-            <button
-              onClick={() => setShowSupportChat(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                hasUnreadResponse ? 'animate-sway' : ''
-              }`}
-              style={{
-                backgroundColor: hasUnreadResponse ? '#D2691E' : '#D2691E80',
-                color: '#FFFFFF',
-                boxShadow: hasUnreadResponse ? '0 2px 8px rgba(210, 105, 30, 0.3)' : 'none'
-              }}
-            >
-              <span className="whitespace-nowrap">Support Response</span>
-              <MessageSquareDot size={14} />
-            </button>
-          )}
+          {(() => {
+            console.log('🎫 Rendering chip check:', { openTicket: !!openTicket, hasUnreadResponse });
+            return openTicket && (
+              <button
+                onClick={() => setShowSupportChat(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  hasUnreadResponse ? 'animate-sway' : ''
+                }`}
+                style={{
+                  backgroundColor: hasUnreadResponse ? '#D2691E' : '#D2691E80',
+                  color: '#FFFFFF',
+                  boxShadow: hasUnreadResponse ? '0 2px 8px rgba(210, 105, 30, 0.3)' : 'none'
+                }}
+              >
+                <span className="whitespace-nowrap">Support Response</span>
+                <MessageSquareDot size={14} />
+              </button>
+            );
+          })()}
           {/* Trial Button - Only show on dashboard */}
           {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
             <TrialButton
