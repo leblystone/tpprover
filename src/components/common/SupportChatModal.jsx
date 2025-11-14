@@ -103,9 +103,6 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
             <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
               Support Conversation
             </h2>
-            <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-              {ticket?.subject || 'Support Request'}
-            </p>
           </div>
           <button
             onClick={onClose}
@@ -161,12 +158,11 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
                     <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
                       {msg.message || msg.text}
                     </p>
-                    <div className="flex items-center gap-1 mt-2 text-xs" style={{ color: theme.textLight }}>
-                      <Clock size={10} />
+                    <div className="flex items-center gap-1 mt-2 text-xs opacity-50" style={{ color: theme.textLight }}>
                       <span>
                         {msg.createdAt?.toDate?.()
-                          ? new Date(msg.createdAt.toDate()).toLocaleString()
-                          : 'Just now'}
+                          ? new Date(msg.createdAt.toDate()).toLocaleDateString()
+                          : 'Today'}
                       </span>
                     </div>
                   </div>
@@ -202,8 +198,8 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
               disabled={!newMessage.trim() || sending}
               className="p-3 rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               style={{
-                backgroundColor: theme.primary,
-                color: theme.textOnPrimary
+                backgroundColor: '#D2691E',
+                color: '#FFFFFF'
               }}
             >
               {sending ? (
