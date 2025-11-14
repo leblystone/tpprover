@@ -1045,7 +1045,7 @@ export default function Stockpile() {
             </div>
           )}
           
-        {/* VIAL DETAILS Section Header */}
+          {/* VIAL DETAILS Section Header */}
           <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
             <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>VIAL DETAILS</h4>
             <TestTube size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
@@ -1055,7 +1055,7 @@ export default function Stockpile() {
           <div className="space-y-4">
             <TextInput 
               label="Peptide Name" 
-              value={form.name} 
+                value={form.name}
               onChange={v => updateFormData({ name: v })} 
               placeholder="e.g., BPC-157, Lipo-C" 
               theme={theme}
@@ -1214,15 +1214,12 @@ export default function Stockpile() {
           {/* Price & Date Acquired in two columns */}
           <div className="grid grid-cols-2 gap-3">
             <TextInput label="Price ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-            <div>
-              <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Date Acquired</label>
-              <GlassmorphismDatePicker
-                value={form.date}
-                onChange={(dateString) => updateFormData({ date: dateString })}
-                theme={theme}
-                placeholder="Date Acquired"
-              />
-            </div>
+            <GlassmorphismDatePicker
+              value={form.date}
+              onChange={(dateString) => updateFormData({ date: dateString })}
+              theme={theme}
+              placeholder="Date Acquired"
+            />
           </div>
           </div>
           
@@ -1569,7 +1566,7 @@ export default function Stockpile() {
         onSelectGroup={handleSelectMergeGroup}
         theme={theme}
       />
-
+      
       {/* Merge Confirmation Modal */}
       <MergeConfirmationModal
         open={showMergeModal}

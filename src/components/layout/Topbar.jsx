@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, Upload, Edit, Plus, X } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
 import TrialButton from '../common/TrialButton';
 import { useAppContext } from '../../context/AppContext';
+import { getUserTickets } from '../../services/firebase';
+import SupportChatModal from '../common/SupportChatModal';
 
 export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator, trialInfo }) {
   const location = useLocation();
@@ -43,6 +45,50 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const [searchQuery, setSearchQuery] = React.useState('');
   const searchInputRef = React.useRef(null);
   const { user } = useAppContext();
+  
+  // Support ticket state
+  const [openTicket, setOpenTicket] = useState(null);
+  const [hasUnreadResponse, setHasUnreadResponse] = useState(false);
+  const [showSupportChat, setShowSupportChat] = useState(false);
+
+  // Load user's open tickets
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const loadOpenTickets = async () => {
+      try {
+        const tickets = await getUserTickets(user.email);
+        // Find first open ticket (new or in-progress)
+        const open = tickets.find(t => t.status === 'new' || t.status === 'in-progress');
+        setOpenTicket(open || null);
+        
+        // Check if there are unread admin responses
+        if (open && open.lastAdminMessageAt) {
+          const lastRead = localStorage.getItem(`ticket_${open.id}_lastRead`);
+          const lastReadTime = lastRead ? new Date(lastRead) : new Date(0);
+          const lastAdminTime = open.lastAdminMessageAt?.toDate ? open.lastAdminMessageAt.toDate() : new Date(open.lastAdminMessageAt);
+          setHasUnreadResponse(lastAdminTime > lastReadTime);
+        } else {
+          setHasUnreadResponse(false);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load open tickets:', error);
+      }
+    };
+
+    loadOpenTickets();
+    // Reload every 30 seconds to check for new responses
+    const interval = setInterval(loadOpenTickets, 30000);
+    return () => clearInterval(interval);
+  }, [user?.email]);
+
+  // Mark ticket as read
+  const handleMarkAsRead = () => {
+    if (openTicket) {
+      localStorage.setItem(`ticket_${openTicket.id}_lastRead`, new Date().toISOString());
+      setHasUnreadResponse(false);
+    }
+  };
 
   return (
     <>
@@ -186,6 +232,23 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               {autoSaveIndicator}
             </div>
           )}
+          {/* Support Response Chip */}
+          {openTicket && (
+            <button
+              onClick={() => setShowSupportChat(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                hasUnreadResponse ? 'animate-sway' : ''
+              }`}
+              style={{
+                backgroundColor: hasUnreadResponse ? '#D2691E' : '#D2691E80',
+                color: '#FFFFFF',
+                boxShadow: hasUnreadResponse ? '0 2px 8px rgba(210, 105, 30, 0.3)' : 'none'
+              }}
+            >
+              <span className="whitespace-nowrap">Support Response</span>
+              <MessageSquareDot size={14} />
+            </button>
+          )}
           {/* Trial Button - Only show on dashboard */}
           {onDashboard && trialInfo && (trialInfo.daysRemaining <= 2 || trialInfo.isTrialExpired) && (
             <TrialButton
@@ -266,6 +329,26 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         </div>
       </header>
 
+      {/* Support Chat Modal */}
+      {showSupportChat && openTicket && (
+        <SupportChatModal
+          ticket={openTicket}
+          onClose={() => setShowSupportChat(false)}
+          theme={theme}
+          onMarkRead={handleMarkAsRead}
+        />
+      )}
+
+      <style>{`
+        @keyframes sway {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-3deg); }
+          75% { transform: rotate(3deg); }
+        }
+        .animate-sway {
+          animation: sway 2s ease-in-out infinite;
+        }
+      `}</style>
     </>
   );
 }

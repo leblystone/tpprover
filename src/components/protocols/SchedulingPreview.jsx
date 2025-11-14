@@ -24,6 +24,9 @@ const SchedulingPreview = ({ protocol, theme }) => {
         const onDays = frequency.onDays || 0;
         const offDays = frequency.offDays || 0;
         return `${onDays} days on, ${offDays} days off (cycling)`;
+      case 'custom':
+        const customDays = frequency.customDays || '';
+        return customDays ? `Every ${customDays} days` : 'Every X days';
       default:
         return 'Daily';
     }
@@ -56,6 +59,13 @@ const SchedulingPreview = ({ protocol, theme }) => {
             const cycleLength = onDays + offDays;
             const activeDaysPerWeek = cycleLength > 0 ? (onDays / cycleLength) * 7 : 0;
             totalTasks += Math.round(activeDaysPerWeek * times);
+          }
+          break;
+        case 'custom':
+          const customDays = Number(freq.customDays) || 1;
+          if (customDays > 0) {
+            const tasksPerWeek = (7 / customDays) * times;
+            totalTasks += Math.round(tasksPerWeek);
           }
           break;
       }

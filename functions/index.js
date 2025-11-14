@@ -1440,8 +1440,13 @@ exports.createSupportTicket = onCall(
           currentCount = counterDoc.data().count || 0;
         }
         
-        // Increment counter (starting from 5, so first ticket is Z005)
-        currentCount++;
+        // Increment counter (starting from 4, so first ticket is Z005)
+        // If counter is 0, set to 4; otherwise increment
+        if (currentCount === 0) {
+          currentCount = 4;
+        } else {
+          currentCount++;
+        }
         ticketNumber = `Z${String(currentCount).padStart(3, '0')}`;
         
         // Update counter
@@ -1530,10 +1535,11 @@ exports.createSupportTicket = onCall(
         emailHtml
       );
 
-      logger.info(`✅ Support ticket created: ${ticketRef.id}`);
+      logger.info(`✅ Support ticket created: ${ticketRef.id} (${ticketNumber})`);
       return { 
         success: true, 
         ticketId: ticketRef.id,
+        ticketNumber: ticketNumber,
         message: 'Ticket created successfully' 
       };
     } catch (error) {
@@ -1594,6 +1600,11 @@ exports.addTicketMessage = onCall(
         updatedAt: FieldValue.serverTimestamp(),
         lastMessageAt: FieldValue.serverTimestamp()
       };
+
+      // Track last admin message time for unread notifications
+      if (senderType === 'admin') {
+        updateData.lastAdminMessageAt = FieldValue.serverTimestamp();
+      }
 
       // If admin is responding, mark as in-progress if it was new
       if (senderType === 'admin' && ticketData.status === 'new') {

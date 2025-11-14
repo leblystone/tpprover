@@ -577,7 +577,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               }}
             >
               Notes
-            </label>
+          </label>
           </div>
         </div>
 

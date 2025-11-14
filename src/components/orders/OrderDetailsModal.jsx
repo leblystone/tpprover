@@ -381,29 +381,29 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
               <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>ORDER DETAILS</h4>
               <div className="flex items-center gap-2">
-                {form.vendorId && (
-                  <button
-                    onClick={() => {
-                      const selectedVendor = vendors.find(v => v.id === form.vendorId);
-                      if (selectedVendor && selectedVendor.type) {
-                        setForm(prev => ({ ...prev, category: selectedVendor.type }));
-                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                          detail: { message: 'Category autofilled from vendor', type: 'success' } 
-                        }));
-                      }
-                    }}
-                    className="text-xs px-2 py-1 rounded-md transition-all hover:opacity-80"
-                    style={{ backgroundColor: theme.accent, color: theme.accentText }}
-                    title="Autofill category from selected vendor"
-                  >
-                    Autofill from Vendor
-                  </button>
-                )}
+              {form.vendorId && (
+                <button
+                  onClick={() => {
+                    const selectedVendor = vendors.find(v => v.id === form.vendorId);
+                    if (selectedVendor && selectedVendor.type) {
+                      setForm(prev => ({ ...prev, category: selectedVendor.type }));
+                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                        detail: { message: 'Category autofilled from vendor', type: 'success' } 
+                      }));
+                    }
+                  }}
+                  className="text-xs px-2 py-1 rounded-md transition-all hover:opacity-80"
+                  style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                  title="Autofill category from selected vendor"
+                >
+                  Autofill from Vendor
+                </button>
+              )}
                 <PackageOpen size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
+                <div className="relative lg:col-span-3">
                   <VendorSuggestInput
                     label="Vendor"
                     value={form.vendorId ? vendorMap[form.vendorId] : (form.vendor || '')}
@@ -418,7 +418,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                 </div>
-                <div>
+                <div className="lg:col-span-4">
                   <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                     {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
@@ -613,7 +613,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>EXTRA DETAILS</h4>
             <ImageUp size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
           </div>
-          <div className="space-y-4">
+        <div className="space-y-4">
             <TextInput 
               label="Notes" 
               value={form.notes || ''} 
@@ -624,16 +624,16 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               customTextColor="#181A18"
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
-            
-            <DocumentationUpload
-              documentation={attachments}
-              onChange={setAttachments}
-              theme={theme}
+          
+          <DocumentationUpload
+            documentation={attachments}
+            onChange={setAttachments}
+            theme={theme}
               title=""
               placeholder="Add COA link, vendor photos, or screenshots that correlate with this peptide."
-              allowImages={true}
-              allowLinks={true}
-            />
+            allowImages={true}
+            allowLinks={true}
+          />
           </div>
         </div>
         </div>

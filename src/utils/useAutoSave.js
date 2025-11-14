@@ -38,8 +38,8 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
           previousDataRef.current = JSON.parse(JSON.stringify(parsedData.data));
           // Defer state update to avoid React queue issues
           setTimeout(() => {
-            setFormDataRef.current(parsedData.data);
-            setLastSaved(new Date(parsedData.timestamp));
+          setFormDataRef.current(parsedData.data);
+          setLastSaved(new Date(parsedData.timestamp));
             isLoadingRef.current = false;
           }, 0);
           return;
@@ -83,8 +83,8 @@ export const useAutoSave = (storageKey, formData, setFormData, delay = 2000, onA
     }
 
     // Set saving state
-    isSavingActiveRef.current = true;
-    setIsSaving(true);
+      isSavingActiveRef.current = true;
+      setIsSaving(true);
 
     // Auto-save after delay
     timeoutRef.current = setTimeout(async () => {

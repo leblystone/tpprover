@@ -270,7 +270,7 @@ export function AppProvider({ children }) {
                 } catch (snapshotCheckError) {
                     console.warn('Failed to check recovery snapshot:', snapshotCheckError);
                 }
-                
+
                 // Load app data from cloud
                 const cloudAppData = await loadAppData(userId);
                 
@@ -352,7 +352,7 @@ export function AppProvider({ children }) {
                         const localMetrics = localStorage.getItem('tpprover_metrics');
                         const localVendors = localStorage.getItem('tpprover_vendors');
                         const localScheduledBuys = localStorage.getItem('tpprover_scheduled_buys');
-                        
+                                
                         if (localRecon) {
                             setReconItems(mergeWithTimestamps(
                                 JSON.parse(localRecon),
@@ -415,8 +415,8 @@ export function AppProvider({ children }) {
                             setCalendarNotes({ ...cloudNotesObj, ...localNotesObj });
                         } else if (cloudAppData.calendarNotes) {
                             setCalendarNotes(cloudAppData.calendarNotes);
-                        }
-                    } else {
+                    }
+                } else {
                         // No local data, just use cloud
                         if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
                         if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
@@ -440,7 +440,7 @@ export function AppProvider({ children }) {
                         setProtocols(parsed);
                         console.log(`✅ Recovered ${parsed.length} protocols from localStorage`);
                     }
-                    
+
                     const savedRecon = localStorage.getItem('tpprover_recon_items');
                     if (savedRecon) {
                         const parsed = JSON.parse(savedRecon);
@@ -602,7 +602,7 @@ export function AppProvider({ children }) {
                         } catch (error) {
                             console.error('❌ Error syncing recovered data:', error);
                             console.error('💾 Recovery snapshot is still available in localStorage');
-                        }
+                    }
                     }, 2000); // Wait 2 seconds for state to settle
                 } else {
                     // No data anywhere - new user
@@ -1273,7 +1273,7 @@ export function AppProvider({ children }) {
                     : Date.now());
 
             const now = new Date().toISOString();
-            
+
             if (existingIndex !== -1) {
                 const existingVendor = list[existingIndex] || {};
                 const mergedVendor = {
@@ -1416,7 +1416,7 @@ export function AppProvider({ children }) {
         const stateUnsubscribe = subscribeToUserState(userId, async (remoteState) => {
             try {
                 if (!remoteState) return;
-
+        
                 // Prevent processing if we're already handling an update
                 if (isApplyingRemoteUpdateRef.current) {
                     console.log('⏸️ Skipping sample data sync - already processing an update');
@@ -1429,7 +1429,7 @@ export function AppProvider({ children }) {
                 }
 
                 sampleDataTimeoutId = setTimeout(async () => {
-                    try {
+        try {
                         const sampleDataClearedRemote = remoteState.sampleDataCleared === true || remoteState.demoDataCleared === true;
                         const remoteTimestampIso = remoteState.sampleDataClearedAt || remoteState.demoDataClearedAt || null;
                         const remoteTimestamp = remoteTimestampIso ? Date.parse(remoteTimestampIso) : 0;
@@ -1542,12 +1542,12 @@ export function AppProvider({ children }) {
 
                         // Reload from cloud storage
                         const freshData = await loadAppData(userId);
-                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                         
                         if (freshData) {
                             // Filter out mock items if sample data was cleared
                             if (freshData.protocols) {
-                                const filtered = sampleDataCleared 
+                const filtered = sampleDataCleared 
                                     ? freshData.protocols.filter(p => !p.isMock)
                                     : freshData.protocols;
                                 setProtocols(filtered);
@@ -1594,14 +1594,14 @@ export function AppProvider({ children }) {
                                 const filtered = sampleDataCleared 
                                     ? freshData.scheduledBuys.filter(buy => !buy.isMock)
                                     : freshData.scheduledBuys;
-                                setScheduledBuys(filtered);
+                setScheduledBuys(filtered);
                             }
-                        }
-
-                        setTimeout(() => {
+            }
+            
+            setTimeout(() => {
                             isApplyingRemoteUpdateRef.current = false;
                         }, 500);
-                    } catch (error) {
+        } catch (error) {
                         console.error('❌ Error applying remote app data:', error);
                         isApplyingRemoteUpdateRef.current = false;
                     }

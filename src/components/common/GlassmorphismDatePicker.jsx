@@ -23,64 +23,154 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
         if (buttonRef.current) {
             const buttonRect = buttonRef.current.getBoundingClientRect();
             const calendarWidth = compact ? 240 : 320;
-            const calendarHeight = compact ? 280 : 360;
+            const calendarHeight = compact ? 140 : 160;
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             const isDesktop = viewportWidth >= 1024; // lg breakpoint
+            
+            // Find modal container to constrain calendar within modal bounds
+            let modalContainer = null;
+            let modalRect = null;
+            let parent = buttonRef.current.parentElement;
+            
+            // Try multiple strategies to find the modal container
+            while (parent && parent !== document.body) {
+                // Strategy 1: Check for fixed positioned element with high z-index
+                const isFixed = window.getComputedStyle(parent).position === 'fixed';
+                const zIndex = window.getComputedStyle(parent).zIndex;
+                const hasHighZIndex = zIndex && (parseInt(zIndex) >= 9999 || parent.classList.contains('z-[9999]'));
+                
+                if (isFixed && hasHighZIndex) {
+                    // Check if it contains a modal structure (has backdrop and modal content)
+                    const hasBackdrop = parent.querySelector('.backdrop-blur-md, .backdrop-blur-sm');
+                    if (hasBackdrop) {
+                        // Find the actual modal content div (the one with max-w-* classes)
+                        const modalContent = parent.querySelector('[class*="max-w-"]');
+                        if (modalContent) {
+                            modalContainer = modalContent;
+                            break;
+                        }
+                    }
+                }
+                
+                // Strategy 2: Check if parent has max-w-* class directly (might be the modal content)
+                const classes = parent.className || '';
+                if (classes.includes('max-w-') && isFixed) {
+                    modalContainer = parent;
+                    break;
+                }
+                
+                parent = parent.parentElement;
+            }
+            
+            // If we found a modal, get its bounds
+            if (modalContainer) {
+                modalRect = modalContainer.getBoundingClientRect();
+            }
+            
+            // Use modal bounds if available, otherwise use viewport
+            const containerLeft = modalRect ? modalRect.left : 0;
+            const containerRight = modalRect ? modalRect.right : viewportWidth;
+            const containerTop = modalRect ? modalRect.top : 0;
+            const containerBottom = modalRect ? modalRect.bottom : viewportHeight;
+            const containerWidth = containerRight - containerLeft;
+            const containerHeight = containerBottom - containerTop;
             
             // Calculate horizontal position
             let left;
             if (isDesktop) {
                 // On desktop, position to the right of the button, slightly overlapping or close
                 left = buttonRect.right - (calendarWidth * 0.15); // Move it 15% of calendar width to the left from right edge
-                // Ensure it doesn't go off the left edge
-                if (left < 16) {
-                    left = 16;
+                // Ensure it doesn't go off the left edge of container
+                if (left < containerLeft + 16) {
+                    left = containerLeft + 16;
                 }
                 // If it goes off screen to the right, adjust
-                if (left + calendarWidth > viewportWidth) {
-                    left = viewportWidth - calendarWidth - 16;
+                if (left + calendarWidth > containerRight - 16) {
+                    left = containerRight - calendarWidth - 16;
                 }
             } else {
                 // On mobile, position below aligned to left edge
                 left = buttonRect.left;
-                if (left + calendarWidth > viewportWidth) {
-                    left = viewportWidth - calendarWidth - 16;
+                if (left + calendarWidth > containerRight - 16) {
+                    left = containerRight - calendarWidth - 16;
                 }
-                if (left < 16) {
-                    left = 16;
+                if (left < containerLeft + 16) {
+                    left = containerLeft + 16;
                 }
             }
             
             // Calculate vertical position
             let top;
             if (isDesktop) {
-                // On desktop when positioned to the right, position below the button
-                top = buttonRect.bottom + 8;
-                // If it goes off screen at bottom, adjust
-                if (top + calendarHeight > viewportHeight) {
-                    top = viewportHeight - calendarHeight - 16;
+                // On desktop when positioned to the right, check available space
+                const spaceBelow = containerBottom - buttonRect.bottom - 16;
+                const spaceAbove = buttonRect.top - containerTop - 16;
+                
+                // Calculate positions
+                const positionBelow = buttonRect.bottom + 8;
+                const positionAbove = buttonRect.top - calendarHeight - 8;
+                
+                // Check if calendar would fit below (with buffer)
+                const wouldFitBelow = spaceBelow >= calendarHeight + 8;
+                // Check if calendar would fit above (with buffer)
+                const wouldFitAbove = spaceAbove >= calendarHeight + 8;
+                
+                // Check if positioned below would go off screen
+                const wouldGoOffBottom = positionBelow + calendarHeight > containerBottom - 16;
+                
+                // Prioritize: if it would go off bottom, position above
+                if (wouldGoOffBottom && wouldFitAbove) {
+                    top = positionAbove;
+                } 
+                // If it fits below, use below
+                else if (wouldFitBelow && !wouldGoOffBottom) {
+                    top = positionBelow;
                 }
-                // Ensure it doesn't go off screen at top
-                if (top < 16) {
-                    top = 16;
+                // If it doesn't fit below but fits above, use above
+                else if (wouldFitAbove) {
+                    top = positionAbove;
+                }
+                // If neither fits perfectly, use whichever has more space
+                else {
+                    if (spaceAbove > spaceBelow) {
+                        // More space above, position above
+                        top = positionAbove;
+                    } else {
+                        // More space below, position at bottom of container
+                        top = containerBottom - calendarHeight - 16;
+                    }
+                }
+                
+                // Final bounds check - if it would still go off bottom, force above
+                if (top + calendarHeight > containerBottom - 16) {
+                    const abovePos = buttonRect.top - calendarHeight - 8;
+                    if (abovePos >= containerTop + 16) {
+                        top = abovePos;
+                    } else {
+                        // Last resort: position at top of container
+                        top = containerTop + 16;
+                    }
+                }
+                if (top < containerTop + 16) {
+                    top = containerTop + 16;
                 }
             } else {
                 // On mobile, position below the button
                 top = buttonRect.bottom + 8;
-                if (top + calendarHeight > viewportHeight) {
+                if (top + calendarHeight > containerBottom - 16) {
                     // Show above the button instead
                     top = buttonRect.top - calendarHeight - 8;
-                    // If still off screen at top, position at bottom of viewport
-                    if (top < 16) {
-                        top = viewportHeight - calendarHeight - 16;
+                    // If still off screen at top, position at bottom of container
+                    if (top < containerTop + 16) {
+                        top = containerBottom - calendarHeight - 16;
                     }
                 }
             }
             
             setDropdownPosition({
-                top: Math.max(16, top), // Ensure at least 16px from top
-                left: Math.max(16, left) // Ensure at least 16px from left
+                top: Math.max(containerTop + 16, top), // Ensure at least 16px from top of container
+                left: Math.max(containerLeft + 16, left) // Ensure at least 16px from left of container
             });
         }
     };
@@ -207,8 +297,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             }}
         >
             {/* Calendar Header */}
-            <div className={`${compact ? 'p-2' : 'p-4'} border-b`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
-                <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
+            <div className={`${compact ? 'p-1.5' : 'p-2.5'} border-b`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
+                <div className={`flex items-center justify-between ${compact ? 'mb-1.5' : 'mb-2'}`}>
                     <button
                         type="button"
                         onClick={handlePrevMonth}
@@ -228,7 +318,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     >
                         <ChevronLeft size={compact ? 14 : 18} />
                     </button>
-                    <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold`} style={{ color: '#5F7F76' }}>
+                    <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold`} style={{ color: '#5F7F76' }}>
                         {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                     </div>
                     <button
@@ -267,7 +357,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             </div>
 
             {/* Calendar Grid */}
-            <div className={`${compact ? 'p-2 pt-1' : 'p-4 pt-2'}`}>
+            <div className={`${compact ? 'p-1.5 pt-1' : 'p-2.5 pt-1.5'}`}>
                 <div className={`grid grid-cols-7 ${compact ? 'gap-0.5' : 'gap-1'}`}>
                     {days.map((day, index) => {
                         if (day === null) {
@@ -324,7 +414,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             </div>
 
             {/* Quick Actions */}
-            <div className={`${compact ? 'p-2' : 'p-3'} border-t flex gap-2`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
+            <div className={`${compact ? 'p-1.5' : 'p-2'} border-t flex gap-2`} style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
                 <button
                     type="button"
                     onClick={() => {

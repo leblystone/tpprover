@@ -147,7 +147,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
       footer={(
         <div className="w-full flex items-center justify-between gap-3">
           {metric ? (
-            <button
+          <button 
               onClick={() => onDelete?.(form)}
               className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center gap-2"
               style={{
@@ -162,10 +162,10 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = terracottaGradient;
               }}
-            >
+          >
               <Trash2 size={16} />
               Delete
-            </button>
+          </button>
           ) : <span />}
           <button 
             onClick={onOk} 
@@ -198,9 +198,9 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
         <div className="grid grid-cols-2 gap-4">
           <TextInput
             label="Weight (lbs)"
-            value={form.weight || ''}
+              value={form.weight || ''}
             onChange={v => setForm({ ...form, weight: v })}
-            placeholder="e.g. 175"
+              placeholder="e.g. 175"
             theme={theme}
             outlined={true}
             customTextColor="#181A18"
@@ -208,14 +208,14 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
           />
           <TextInput
             label="Body Fat %"
-            value={form.bodyfat || ''}
+              value={form.bodyfat || ''}
             onChange={v => setForm({ ...form, bodyfat: v })}
-            placeholder="e.g. 15"
+              placeholder="e.g. 15"
             theme={theme}
             outlined={true}
             customTextColor="#181A18"
             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-          />
+            />
         </div>
 
         {/* WELLNESS Section Header */}
