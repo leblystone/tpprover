@@ -575,7 +575,7 @@ function Admin() {
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketMessages, setTicketMessages] = useState([]);
-  const [supportView, setSupportView] = useState('feedback'); // 'feedback' or 'tickets'
+  const [supportView, setSupportView] = useState('open-tickets'); // 'feedback', 'open-tickets', or 'closed-tickets'
   const [ticketView, setTicketView] = useState('list'); // 'list' or 'chat'
   const [selectedTicketStatusFilter, setSelectedTicketStatusFilter] = useState('new');
   const [selectedTicketTypeFilter, setSelectedTicketTypeFilter] = useState('all');
@@ -3155,7 +3155,7 @@ function Admin() {
               </div>
             </div>
 
-            {/* View Toggle */}
+            {/* Main Tab Navigation */}
             <div className="rounded-lg border content-card shadow-sm mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="p-4">
                 <div className="flex items-center gap-2">
@@ -3164,35 +3164,76 @@ function Admin() {
                       setSupportView('feedback');
                       loadFeedback();
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      supportView === 'feedback' ? '' : 'opacity-60'
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      supportView === 'feedback' ? '' : 'opacity-60 hover:opacity-80'
                     }`}
                     style={{
                       backgroundColor: supportView === 'feedback' ? theme.primary + '20' : 'transparent',
                       color: supportView === 'feedback' ? theme.primary : theme.textLight,
-                      border: `1px solid ${supportView === 'feedback' ? theme.primary : theme.border}`
+                      border: `2px solid ${supportView === 'feedback' ? theme.primary : theme.border}`
                     }}
                   >
-                    <MessageSquare size={16} className="inline mr-2" />
-                    Feedback ({feedback.length})
+                    <MessageSquare size={18} />
+                    <span>Feedback</span>
+                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                         style={{ 
+                           backgroundColor: supportView === 'feedback' ? theme.primary : theme.textLight + '30',
+                           color: supportView === 'feedback' ? theme.white : theme.textLight 
+                         }}>
+                      {feedback.length}
+                    </div>
                   </button>
                   <button
                     onClick={() => {
-                      setSupportView('tickets');
+                      setSupportView('open-tickets');
                       setTicketView('list');
+                      setSelectedTicketStatusFilter('new');
                       loadTickets();
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      supportView === 'tickets' ? '' : 'opacity-60'
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      supportView === 'open-tickets' ? '' : 'opacity-60 hover:opacity-80'
                     }`}
                     style={{
-                      backgroundColor: supportView === 'tickets' ? theme.primary + '20' : 'transparent',
-                      color: supportView === 'tickets' ? theme.primary : theme.textLight,
-                      border: `1px solid ${supportView === 'tickets' ? theme.primary : theme.border}`
+                      backgroundColor: supportView === 'open-tickets' ? theme.warning + '20' : 'transparent',
+                      color: supportView === 'open-tickets' ? theme.warning : theme.textLight,
+                      border: `2px solid ${supportView === 'open-tickets' ? theme.warning : theme.border}`
                     }}
                   >
-                    <MessagesSquare size={16} className="inline mr-2" />
-                    Support Requests ({tickets.length})
+                    <MessagesSquare size={18} />
+                    <span>Open Tickets</span>
+                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                         style={{ 
+                           backgroundColor: supportView === 'open-tickets' ? theme.warning : theme.textLight + '30',
+                           color: supportView === 'open-tickets' ? theme.white : theme.textLight 
+                         }}>
+                      {tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSupportView('closed-tickets');
+                      setTicketView('list');
+                      setSelectedTicketStatusFilter('resolved');
+                      loadTickets();
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      supportView === 'closed-tickets' ? '' : 'opacity-60 hover:opacity-80'
+                    }`}
+                    style={{
+                      backgroundColor: supportView === 'closed-tickets' ? theme.success + '20' : 'transparent',
+                      color: supportView === 'closed-tickets' ? theme.success : theme.textLight,
+                      border: `2px solid ${supportView === 'closed-tickets' ? theme.success : theme.border}`
+                    }}
+                  >
+                    <CheckCircle size={18} />
+                    <span>Closed Tickets</span>
+                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                         style={{ 
+                           backgroundColor: supportView === 'closed-tickets' ? theme.success : theme.textLight + '30',
+                           color: supportView === 'closed-tickets' ? theme.white : theme.textLight 
+                         }}>
+                      {tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length}
+                    </div>
                   </button>
                 </div>
               </div>
@@ -3484,7 +3525,7 @@ function Admin() {
                 })()}
               </div>
             </div>
-            ) : (
+            ) : (supportView === 'open-tickets' || supportView === 'closed-tickets') ? (
               // Tickets View
               ticketView === 'chat' && selectedTicket ? (
                 // Chat View
@@ -3601,14 +3642,31 @@ function Admin() {
                   <div className="p-6 border-b" style={{ borderColor: theme.border }}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Support Requests</h2>
+                        <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.primaryDark }}>
+                          {supportView === 'open-tickets' ? (
+                            <>
+                              <MessagesSquare size={20} style={{ color: theme.warning }} />
+                              Open Tickets
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={20} style={{ color: theme.success }} />
+                              Closed Tickets
+                            </>
+                          )}
+                        </h2>
                         <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-                          Chat-style support ticket management
+                          {supportView === 'open-tickets' 
+                            ? 'Active support tickets requiring attention' 
+                            : 'Resolved and closed support tickets'}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-sm" style={{ color: theme.textLight }}>
-                          {tickets.filter(t => t.status === 'new').length} new, {tickets.length} total
+                          {supportView === 'open-tickets'
+                            ? `${tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length} open`
+                            : `${tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length} closed`
+                          }
                         </div>
                         <button
                           onClick={loadTickets}
@@ -3655,8 +3713,17 @@ function Admin() {
                     ) : (
                       tickets
                         .filter(ticket => {
+                          // Filter by tab (open vs closed)
+                          if (supportView === 'open-tickets') {
+                            if (ticket.status !== 'new' && ticket.status !== 'in-progress') return false;
+                          } else if (supportView === 'closed-tickets') {
+                            if (ticket.status !== 'resolved' && ticket.status !== 'closed') return false;
+                          }
+                          
+                          // Additional filters
                           if (selectedTicketStatusFilter !== 'all' && ticket.status !== selectedTicketStatusFilter) return false;
                           if (selectedTicketTypeFilter !== 'all' && ticket.type !== selectedTicketTypeFilter) return false;
+                          
                           // Search by ticket number, email, or user ID
                           if (ticketSearchQuery.trim()) {
                             const query = ticketSearchQuery.toLowerCase().trim();
@@ -3714,7 +3781,7 @@ function Admin() {
                   </div>
                 </div>
               )
-            )}
+            ) : null}
           </div>
         )}
 
