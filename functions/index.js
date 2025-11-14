@@ -1613,68 +1613,8 @@ exports.addTicketMessage = onCall(
 
       await ticketRef.update(updateData);
 
-      // Send email notification
-      const escapeHtml = (text) => {
-        const map = {
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
-      };
-
-      const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
-      const safeSenderName = escapeHtml(senderName || 'Admin');
-
-      if (senderType === 'admin') {
-        // Notify user
-        const userEmailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
-            <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              <h2 style="color: #2F3B3A; margin-bottom: 20px;">Response to Your Support Ticket</h2>
-              <p style="color: #6B7D7A; margin: 5px 0;">You have a new response to your support ticket (${ticketId.substring(0, 8)}...)</p>
-              <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
-                <p style="color: #2F3B3A; margin: 0;"><strong>${safeSenderName}:</strong></p>
-                <p style="color: #2F3B3A; margin: 10px 0 0 0;">${safeMessage}</p>
-              </div>
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
-                <p style="color: #6B7D7A; font-size: 12px; margin: 0;">You can view and respond to this ticket in the app.</p>
-              </div>
-            </div>
-          </div>
-        `;
-
-        await emailService.sendEmail(
-          ticketData.userEmail,
-          `Response to Your Support Ticket - The Pep Planner`,
-          userEmailHtml
-        );
-      } else {
-        // Notify admin
-        const adminEmailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
-            <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              <h2 style="color: #2F3B3A; margin-bottom: 20px;">💬 New Message on Support Ticket</h2>
-              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket ID:</strong> ${ticketId.substring(0, 8)}...</p>
-              <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeSenderName}</p>
-              <div style="background-color: #F5F5F0; padding: 15px; border-radius: 4px; margin-top: 20px;">
-                <p style="color: #2F3B3A; margin: 0;">${safeMessage}</p>
-              </div>
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #DDE6DE;">
-                <p style="color: #6B7D7A; font-size: 12px; margin: 0;">Please respond to this ticket in the admin panel.</p>
-              </div>
-            </div>
-          </div>
-        `;
-
-        await emailService.sendEmail(
-          'contact@thepepplanner.com',
-          `💬 New Message on Ticket: ${ticketId.substring(0, 8)}...`,
-          adminEmailHtml
-        );
-      }
+      // No email notifications for messages - all communication happens in-app
+      // Users see the Support Response chip, admins see tickets in the admin panel
 
       logger.info(`✅ Message added to ticket: ${ticketId}`);
       return { 
