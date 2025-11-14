@@ -3064,76 +3064,6 @@ function Admin() {
               </div>
             </div>
 
-              {/* Type Filter Tabs - Only show for 'new' status */}
-              {selectedFeedbackStatusFilter !== 'all' && (
-                <div className="p-4">
-                  <h3 className="text-xs font-semibold mb-3" style={{ color: theme.textLight }}>FILTER BY TYPE</h3>
-                  <div className="flex items-center gap-3 overflow-x-auto pb-2">
-                    {(() => {
-                      // Count feedback by type for the selected status
-                      const feedbackCounts = {
-                        all: feedback.filter(f => 
-                          selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter
-                        ).length,
-                        suggestion: feedback.filter(f => 
-                          f.type === 'suggestion' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                        bug: feedback.filter(f => 
-                          f.type === 'bug' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                        improvement: feedback.filter(f => 
-                          f.type === 'improvement' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                        general: feedback.filter(f => 
-                          f.type === 'general' && 
-                          (selectedFeedbackStatusFilter === 'all' ? true : f.status === selectedFeedbackStatusFilter)
-                        ).length,
-                      };
-                      
-                      const typeFilters = [
-                        { id: 'all', label: 'All Types', icon: MessageSquare, color: theme.primaryDark },
-                        { id: 'suggestion', label: 'Suggestions', icon: Lightbulb, color: theme.primary },
-                        { id: 'bug', label: 'Bugs', icon: AlertTriangle, color: theme.error },
-                        { id: 'improvement', label: 'Improvements', icon: Star, color: theme.warning },
-                        { id: 'general', label: 'General', icon: MessageCircle, color: theme.info }
-                      ];
-                      
-                      return typeFilters.map(filter => {
-                        const count = feedbackCounts[filter.id];
-                        const FilterIcon = filter.icon;
-                        const isActive = selectedFeedbackTypeFilter === filter.id;
-                        
-                        return (
-                          <button
-                            key={filter.id}
-                            onClick={() => setSelectedFeedbackTypeFilter(filter.id)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all"
-                            style={{ 
-                              backgroundColor: isActive ? filter.color + '25' : theme.background,
-                              color: isActive ? filter.color : theme.text,
-                              border: isActive ? `2px solid ${filter.color}` : `1px solid ${theme.border}`,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <FilterIcon size={16} strokeWidth={isActive ? 2.5 : 2} />
-                            <span>{filter.label}</span>
-                            <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
-                                 style={{ 
-                                   backgroundColor: isActive ? filter.color : theme.textLight + '30',
-                                   color: isActive ? theme.white : theme.textLight 
-                                 }}>
-                              {count}
-                      </div>
-                          </button>
-                        );
-                      });
-                    })()}
-                    </div>
-                </div>
-              )}
               </div>
 
             {/* Compact Feedback Trends */}
@@ -3711,7 +3641,14 @@ function Admin() {
                         </p>
                       </div>
                     ) : (
-                      tickets
+                      (() => {
+                        console.log('🎫 Rendering tickets:', {
+                          total: tickets.length,
+                          supportView,
+                          tickets: tickets.map(t => ({ id: t.id.substring(0, 8), status: t.status, ticketNumber: t.ticketNumber }))
+                        });
+                        return tickets;
+                      })()
                         .filter(ticket => {
                           // Filter by tab (open vs closed)
                           if (supportView === 'open-tickets') {
@@ -3719,10 +3656,6 @@ function Admin() {
                           } else if (supportView === 'closed-tickets') {
                             if (ticket.status !== 'resolved' && ticket.status !== 'closed') return false;
                           }
-                          
-                          // Additional filters
-                          if (selectedTicketStatusFilter !== 'all' && ticket.status !== selectedTicketStatusFilter) return false;
-                          if (selectedTicketTypeFilter !== 'all' && ticket.type !== selectedTicketTypeFilter) return false;
                           
                           // Search by ticket number, email, or user ID
                           if (ticketSearchQuery.trim()) {
