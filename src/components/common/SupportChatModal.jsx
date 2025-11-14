@@ -155,7 +155,7 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
                         <User size={14} style={{ color: theme.primary }} />
                       )}
                       <span className="text-xs font-semibold" style={{ color: theme.primary }}>
-                        {isAdmin ? 'Admin' : 'You'}
+                        {isAdmin ? 'The Pep Planner Team' : 'You'}
                       </span>
                     </div>
                     <p className="text-sm whitespace-pre-wrap" style={{ color: theme.text }}>
