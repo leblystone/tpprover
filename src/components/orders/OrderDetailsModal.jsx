@@ -402,8 +402,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 <PackageOpen size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
-                <div className="relative lg:col-span-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="relative lg:col-span-1">
                   <VendorSuggestInput
                     label="Vendor"
                     value={form.vendorId ? vendorMap[form.vendorId] : (form.vendor || '')}
@@ -418,7 +418,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                 </div>
-                <div className="lg:col-span-4">
+                <div className="lg:col-span-2">
                   <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f4f6' }}>
                     {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}

@@ -230,8 +230,8 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                     <HandCoins size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                 </div>
                 
-                <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
-                    <div className="lg:col-span-3">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-1">
                         <TextInput
                             label="Vendor"
                             value={form.participants}
@@ -243,7 +243,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                         />
                     </div>
-                    <div className="lg:col-span-4">
+                    <div className="lg:col-span-2">
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" style={{ color: theme.textLight || theme.text }}>
                                 <span className="text-sm">$</span>

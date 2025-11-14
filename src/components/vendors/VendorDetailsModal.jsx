@@ -193,35 +193,38 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* Section: Name, Rating, Category */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
-          <div className="sm:col-span-1">
-            <TextInput 
-              label="Name" 
-              value={form.name} 
-              onChange={v => setForm({ ...form, name: v })} 
-              placeholder="e.g., Pharm..." 
-              theme={theme}
-              outlined={true}
-              customTextColor="#181A18"
-              customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-            />
-          </div>
-          <div className="flex flex-col items-start sm:items-start gap-2">
-            <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Rating</div>
-            <div className="flex items-center justify-around w-full rounded-md p-1" style={{ 
-              backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-              border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
-              boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.06)'
-            }} aria-label="Rating">
-              {[1,2,3,4,5].map(n => (
-                <button key={n} type="button" className="p-2" onClick={() => setForm(prev => ({ ...prev, rating: n }))}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={form.rating >= n ? theme.primary : 'none'} stroke={form.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border)} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-                </button>
-              ))}
+        <div className="space-y-3">
+          {/* Name and Rating row - 1:1 on desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+            <div>
+              <TextInput 
+                label="Name" 
+                value={form.name} 
+                onChange={v => setForm({ ...form, name: v })} 
+                placeholder="e.g., Pharm..." 
+                theme={theme}
+                outlined={true}
+                customTextColor="#181A18"
+                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-around w-full rounded-md p-1" style={{ 
+                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.06)'
+              }} aria-label="Rating">
+                {[1,2,3,4,5].map(n => (
+                  <button key={n} type="button" className="p-2" onClick={() => setForm(prev => ({ ...prev, rating: n }))}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={form.rating >= n ? theme.primary : 'none'} stroke={form.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border)} className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-start sm:items-start gap-2">
-            <div className="text-sm font-medium hidden sm:block" style={{ color: theme.text }}>Category</div>
+          
+          {/* Category on its own row */}
+          <div>
             <div className="flex w-full rounded-md p-1" style={{ 
               backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
               boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.06)'
@@ -291,45 +294,40 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                         paddingRight: '8px'
                       }}
                     />
-                    <div 
-                      className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg relative"
+                    <button
+                      type="button"
+                      onClick={() => setOpenDropdowns(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                      className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                       data-dropdown-container
                       style={{ 
                         borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                        color: '#181A18',
+                        minWidth: '130px'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                       }}
                     >
-                      <button
-                        type="button"
-                        onClick={() => setOpenDropdowns(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                        className="px-2 py-1 text-xs font-semibold rounded-md transition-all border-none outline-none cursor-pointer flex items-center gap-1"
-                        style={{ 
-                          backgroundColor: theme.primary,
-                          color: '#ffffff'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = theme.primaryDark || theme.primary;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = theme.primary;
-                        }}
-                      >
-                        {getContactLabel(c.type)}
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                      {openDropdowns[idx] && (
-                        <>
-                          <div 
-                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                            style={{
-                              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                              borderColor: theme.border,
-                              minWidth: '140px',
-                              boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                            }}
-                          >
+                      <span className="text-sm font-semibold">{getContactLabel(c.type)}</span>
+                      <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    {openDropdowns[idx] && (
+                      <div className="relative">
+                        <div 
+                          className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                          style={{
+                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                            borderColor: theme.border,
+                            minWidth: '180px',
+                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                          }}
+                        >
                             {[
                               { value: 'name', label: 'Name' },
                               { value: 'email', label: 'Email' },
@@ -372,10 +370,9 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                                 </button>
                               </React.Fragment>
                             ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <label 
                     htmlFor={`contact-input-${idx}`}
@@ -439,54 +436,52 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* Section: Payment */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { name: 'Card', key: 'card', icon: CreditCard },
-                { name: 'Zelle', key: 'zelle', icon: SiZelle },
-                { name: 'Crypto', key: 'crypto', icon: Coins },
-                { name: 'PayPal', key: 'paypal', icon: FaPaypal },
-                { name: 'Wire', key: 'wire', icon: Banknote },
-                { name: 'Venmo', key: 'venmo', icon: FaPaypal },
-                { name: 'CashApp', key: 'cashapp', icon: SiCashapp },
-                { name: 'AliPay', key: 'alipay', icon: FaAlipay }
-              ].map(payment => {
-                const Icon = payment.icon
-                const isSelected = !!form.payments[payment.key]
-                return (
-                  <button
-                    key={payment.key}
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, payments: { ...prev.payments, [payment.key]: !prev.payments[payment.key] } }))}
-                    className="flex flex-col items-center justify-center p-1.5 rounded-lg transition-all"
-                    style={{
-                      backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
-                      border: `1px solid ${isSelected ? theme.primary : theme.border}`,
-                      color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
-                      minHeight: '60px',
-                      boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
-                      position: 'relative'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
-                        e.currentTarget.style.color = theme.text
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
-                        e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
-                      }
-                    }}
-                  >
-                    <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
-                    <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{payment.name}</span>
-                  </button>
-                )
-              })}
-            </div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { name: 'Card', key: 'card', icon: CreditCard },
+              { name: 'Zelle', key: 'zelle', icon: SiZelle },
+              { name: 'Crypto', key: 'crypto', icon: Coins },
+              { name: 'PayPal', key: 'paypal', icon: FaPaypal },
+              { name: 'Wire', key: 'wire', icon: Banknote },
+              { name: 'Venmo', key: 'venmo', icon: FaPaypal },
+              { name: 'CashApp', key: 'cashapp', icon: SiCashapp },
+              { name: 'AliPay', key: 'alipay', icon: FaAlipay }
+            ].map(payment => {
+              const Icon = payment.icon
+              const isSelected = !!form.payments[payment.key]
+              return (
+                <button
+                  key={payment.key}
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, payments: { ...prev.payments, [payment.key]: !prev.payments[payment.key] } }))}
+                  className="flex flex-col items-center justify-center p-1.5 rounded-lg transition-all"
+                  style={{
+                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
+                    border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                    color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                    minHeight: '60px',
+                    boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
+                      e.currentTarget.style.color = theme.text
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
+                      e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
+                    }
+                  }}
+                >
+                  <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
+                  <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{payment.name}</span>
+                </button>
+              )
+            })}
           </div>
           <TextInput 
             label="Payment Notes" 
@@ -507,44 +502,42 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* Section: Labels + Notes */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-          <div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {labelOptions.map(label => {
-                const Icon = getLabelIcon(label)
-                const isSelected = Array.isArray(form.labels) && form.labels.includes(label)
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, labels: isSelected ? (prev.labels||[]).filter(x => x !== label) : Array.from(new Set([...(prev.labels||[]), label])) }))}
-                    className="flex items-center justify-between px-2 py-1.5 rounded-lg transition-all text-left"
-                    style={{
-                      backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
-                      border: `1px solid ${isSelected ? theme.primary : theme.border}`,
-                      color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
-                      boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
-                      position: 'relative'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
-                        e.currentTarget.style.color = theme.text
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
-                        e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
-                      }
-                    }}
-                  >
-                    <span className="text-xs font-medium leading-tight" style={{ position: 'relative', zIndex: 1 }}>{label}</span>
-                    <Icon size={14} style={{ position: 'relative', zIndex: 1, flexShrink: 0 }} />
-                  </button>
-                )
-              })}
-            </div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {labelOptions.map(label => {
+              const Icon = getLabelIcon(label)
+              const isSelected = Array.isArray(form.labels) && form.labels.includes(label)
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, labels: isSelected ? (prev.labels||[]).filter(x => x !== label) : Array.from(new Set([...(prev.labels||[]), label])) }))}
+                  className="flex items-center justify-between px-2 py-1.5 rounded-lg transition-all text-left"
+                  style={{
+                    backgroundColor: isSelected ? theme.primary : (theme.isDark ? '#1f2937' : '#ffffff'),
+                    border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                    color: isSelected ? '#ffffff' : (theme.isDark ? '#9ca3af' : '#6b7280'),
+                    boxShadow: isSelected ? `0 1px 3px ${theme.primary}30` : 'none',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f9fafb'
+                      e.currentTarget.style.color = theme.text
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#ffffff'
+                      e.currentTarget.style.color = theme.isDark ? '#9ca3af' : '#6b7280'
+                    }
+                  }}
+                >
+                  <span className="text-xs font-medium leading-tight" style={{ position: 'relative', zIndex: 1 }}>{label}</span>
+                  <Icon size={14} style={{ position: 'relative', zIndex: 1, flexShrink: 0 }} />
+                </button>
+              )
+            })}
           </div>
           <div className="relative">
             <textarea 
@@ -555,12 +548,15 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               onFocus={() => setIsNotesFocused(true)}
               onBlur={() => setIsNotesFocused(false)}
               placeholder=" " 
-              rows={4}
+              rows={2}
               style={{ 
                 border: `1px solid #f0eee7`,
                 backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
                 color: '#181A18',
-                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word'
               }} 
             />
             <label 
