@@ -3073,25 +3073,6 @@ function Admin() {
 
               </div>
 
-            {/* Compact Feedback Trends */}
-            <div className="rounded-lg border p-4 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Recent Trends</h2>
-                <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
-                  {feedbackAnalysis.trends.slice(0, 3).map((trend, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span>{trend.week}:</span>
-                      <span className="font-semibold" style={{ color: theme.text }}>{trend.feedback}</span>
-                      <div className="flex items-center gap-0.5" style={{ color: theme.success }}>
-                        <TrendingUp size={12} />
-                        <span className="text-xs">{trend.change}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             {/* Main Tab Navigation */}
             <div className="rounded-lg border content-card shadow-sm mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="p-4">

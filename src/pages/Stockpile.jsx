@@ -648,11 +648,12 @@ export default function Stockpile() {
                                                                 style={{ color: theme.primary }} 
                                                                 onClick={() => {
                                                                     try {
+                                                                        // Cost is already per vial in stockpile, so use it directly
                                                                         const payload = { 
                                                                             peptide: g.name, 
                                                                             mg: String(item.mg), 
-                                                                            vendor: item.vendorId ? vendorMap[item.vendorId] : item.vendor, 
-                                                                            cost: item.cost,
+                                                                            vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
+                                                                            cost: item.cost || '',
                                                                             stockpileId: item.id,
                                                                             quantity: item.quantity,
                                                                             unit: item.unit,
@@ -1213,7 +1214,7 @@ export default function Stockpile() {
           
           {/* Price & Date Acquired in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Price ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+            <TextInput label="Price per Vial ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60 per vial" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
             <GlassmorphismDatePicker
               value={form.date}
               onChange={(dateString) => updateFormData({ date: dateString })}
