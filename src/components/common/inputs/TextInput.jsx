@@ -142,6 +142,8 @@ export default function TextInput({
               color: theme.text,
               boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
               whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
               textTransform: uppercase ? 'uppercase' : 'none'
             }}
           />
