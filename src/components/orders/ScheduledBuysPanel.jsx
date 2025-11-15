@@ -6,9 +6,12 @@ import TextInput from '../common/inputs/TextInput';
 import { generateId } from '../../utils/string';
 import { useAppContext } from '../../context/AppContext';
 import AddScheduledBuyModal from './AddScheduledBuyModal';
+import { saveAppData } from '../../services/cloudStorage';
+import { useFirebase } from '../../context/FirebaseContext';
 
 export default function ScheduledBuysPanel({ theme }) {
-    const { scheduledBuys, setScheduledBuys } = useAppContext();
+    const { scheduledBuys, setScheduledBuys, protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile } = useAppContext();
+    const { firebaseUser } = useFirebase();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBuy, setEditingBuy] = useState(null);
 
@@ -43,8 +46,48 @@ export default function ScheduledBuysPanel({ theme }) {
         setEditingBuy(null);
     };
 
-    const handleDelete = (id) => {
-        setScheduledBuys(prev => prev.filter(b => b.id !== id));
+    const handleDelete = async (id) => {
+        // Find the scheduled buy being deleted for logging
+        const buyToDelete = scheduledBuys.find(b => b.id === id);
+        
+        if (buyToDelete) {
+            console.log('🗑️ Deleting scheduled buy:', buyToDelete.item || buyToDelete.name || 'Unknown');
+        }
+        
+        // Remove from local state
+        const updatedBuys = scheduledBuys.filter(b => b.id !== id);
+        setScheduledBuys(updatedBuys);
+        
+        // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+        // This prevents server data from restoring deleted items
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: reconItems || [],
+                    reconHistory: reconHistory || [],
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: updatedBuys // Use updated scheduled buys with deletion
+                };
+                
+                // Force immediate sync with skipMerge to overwrite server data
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('✅ Deleted scheduled buy synced to cloud immediately');
+                } else {
+                    console.error('❌ Failed to sync deleted scheduled buy to cloud');
+                }
+            } catch (error) {
+                console.error('❌ Error syncing deleted scheduled buy to cloud:', error);
+                // Don't throw - the auto-sync will handle it
+            }
+        }
     };
 
     const handleDeleteFromModal = (id) => {

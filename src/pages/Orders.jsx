@@ -13,12 +13,15 @@ import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
+import { saveAppData } from '../services/cloudStorage'
+import { useFirebase } from '../context/FirebaseContext'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
-	const { orders: appOrders, setOrders, vendors, addVendor, setStockpile } = useAppContext();
+	const { orders: appOrders, setOrders, vendors, addVendor, setStockpile, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
 	const orders = useMemo(() => ensurePublicOrderNumbers(appOrders), [appOrders]);
 	const { isReadOnly } = useSubscriptionAccess();
+	const { firebaseUser } = useFirebase();
 	const location = useLocation()
 	const [activeTab, setActiveTab] = useState('domestic')
 	const [showAddModal, setShowAddModal] = useState(false)
@@ -27,6 +30,50 @@ export default function Orders() {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
 	
+	// Helper function to delete order with immediate cloud sync
+	const handleDeleteOrder = async (id) => {
+		// Find the order being deleted for logging
+		const orderToDelete = orders.find(o => o.id === id);
+		
+		if (orderToDelete) {
+			console.log('🗑️ Deleting order:', orderToDelete.publicOrderNumber || orderToDelete.id || 'Unknown');
+		}
+		
+		// Remove from local state
+		const updatedOrders = orders.filter(o => o.id !== id);
+		setOrders(updatedOrders);
+		
+		// CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+		// This prevents server data from restoring deleted items
+		if (firebaseUser) {
+			try {
+				const userId = firebaseUser.uid;
+				const appData = {
+					protocols: protocols || [],
+					reconItems: reconItems || [],
+					reconHistory: reconHistory || [],
+					supplements: supplements || [],
+					orders: updatedOrders, // Use updated orders with deletion
+					metrics: metrics || [],
+					vendors: vendors || [],
+					calendarNotes: calendarNotes || {},
+					stockpile: appOrders || [],
+					scheduledBuys: scheduledBuys || []
+				};
+				
+				// Force immediate sync with skipMerge to overwrite server data
+				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+				if (syncResult) {
+					console.log('✅ Deleted order synced to cloud immediately');
+				} else {
+					console.error('❌ Failed to sync deleted order to cloud');
+				}
+			} catch (error) {
+				console.error('❌ Error syncing deleted order to cloud:', error);
+				// Don't throw - the auto-sync will handle it
+			}
+		}
+	};
 
 	useEffect(() => {
 		if (location.state?.activeTab) {
@@ -283,7 +330,7 @@ export default function Orders() {
 										}}
 										onDelete={(id) => {
 											// Allow deletion in read-only mode for data management
-											setOrders(prev => prev.filter(o => o.id !== id));
+											handleDeleteOrder(id);
 										}}
 										onAdvance={(order) => {
 											if (isReadOnly) {
@@ -339,7 +386,7 @@ export default function Orders() {
 							}}
 							onDelete={(id) => {
 								// Allow deletion in read-only mode for data management
-								setOrders(prev => prev.filter(o => o.id !== id));
+								handleDeleteOrder(id);
 							}}
 							onAdvance={(order) => {
 								if (isReadOnly) {
@@ -437,12 +484,12 @@ export default function Orders() {
 					setShowAddModal(false)
 					setEditingOrder(null)
 				}}
-				onDelete={(id) => {
+				onDelete={async (id) => {
 					const orderToDelete = orders.find(o => o.id === id);
 					if (orderToDelete) {
 						handleStockpileUpdate(orderToDelete, { ...orderToDelete, status: 'Cancelled' });
 					}
-					setOrders(prev => prev.filter(o => o.id !== id));
+					await handleDeleteOrder(id);
 					setShowAddModal(false);
 					setEditingOrder(null);
 				}}

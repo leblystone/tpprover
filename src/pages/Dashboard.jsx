@@ -34,6 +34,8 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
+import { saveAppData } from '../services/cloudStorage'
+import { useFirebase } from '../context/FirebaseContext'
 
 export default function Dashboard() {
   console.log('🏠 Dashboard component rendered');
@@ -42,8 +44,9 @@ export default function Dashboard() {
   const [searchParams] = useSearchParams()
   const { protocols: protocolsFromContext } = useAppContext()
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
-  const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription } = useAppContext();
+  const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription, metrics, setMetrics, reconItems, reconHistory, calendarNotes, stockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
+  const { firebaseUser } = useFirebase();
 
   // Derive today's peptide tasks from active protocols
   const peptideLog = useMemo(() => {
@@ -1194,15 +1197,48 @@ export default function Dashboard() {
         onClose={() => setShowMetrics(false)}
         theme={theme}
         metric={editingMetric}
-        onDelete={(metricData) => {
+        onDelete={async (metricData) => {
             if (isReadOnly) {
                 setShowUpgradeModal(true);
                 return;
             }
             if (editingMetric?.id) {
-                setMetrics(prev => prev.filter(m => m.id !== editingMetric.id));
+                const metricToDelete = editingMetric;
+                console.log('🗑️ Deleting metric:', metricToDelete.name || 'Unknown');
+                
+                // Remove from local state
+                const updatedMetrics = metrics.filter(m => m.id !== editingMetric.id);
+                setMetrics(updatedMetrics);
                 setShowMetrics(false);
                 setEditingMetric(null);
+                
+                // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+                if (firebaseUser) {
+                    try {
+                        const userId = firebaseUser.uid;
+                        const appData = {
+                            protocols: protocolsFromContext || [],
+                            reconItems: reconItems || [],
+                            reconHistory: reconHistory || [],
+                            supplements: supplements || [],
+                            orders: orders || [],
+                            metrics: updatedMetrics, // Use updated metrics with deletion
+                            vendors: vendors || [],
+                            calendarNotes: calendarNotes || {},
+                            stockpile: stockpile || [],
+                            scheduledBuys: []
+                        };
+                        
+                        const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                        if (syncResult) {
+                            console.log('✅ Deleted metric synced to cloud immediately');
+                        } else {
+                            console.error('❌ Failed to sync deleted metric to cloud');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error syncing deleted metric to cloud:', error);
+                    }
+                }
             }
         }}
         onSave={(data) => {
