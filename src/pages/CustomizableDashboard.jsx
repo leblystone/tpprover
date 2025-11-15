@@ -87,7 +87,7 @@ export default function CustomizableDashboard() {
   const [todaysTasks, setTodaysTasks] = useState([]);
   // Toast notifications now handled globally
   const [goals, setGoals] = useLocalStorage('tpprover_goals', []);
-  const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', []);
+  // metrics and setMetrics are now from useAppContext() above
   const [calendarBump, setCalendarBump] = useState(0);
 
   // Modal states
