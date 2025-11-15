@@ -68,8 +68,7 @@ export default function CustomizableDashboard() {
     calendarNotes,
     stockpile,
     metrics,
-    setMetrics,
-    vendors
+    setMetrics
   } = useAppContext();
 
   // Dashboard customization state
