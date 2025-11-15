@@ -41,11 +41,14 @@ import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
+import { saveAppData } from '../services/cloudStorage';
+import { useFirebase } from '../context/FirebaseContext';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
   const navigate = useNavigate();
   const { isReadOnly } = useSubscriptionAccess();
+  const { firebaseUser } = useFirebase();
   const { 
     scheduledBuys,
     setScheduledBuys, 
@@ -60,7 +63,13 @@ export default function CustomizableDashboard() {
     updateSupplement, 
     deleteSupplement,
     subscription,
-    reconItems
+    reconItems,
+    reconHistory,
+    calendarNotes,
+    stockpile,
+    metrics,
+    setMetrics,
+    vendors
   } = useAppContext();
 
   // Dashboard customization state
@@ -1114,11 +1123,45 @@ export default function CustomizableDashboard() {
         metric={editingMetric}
         showBackButton={showBackButton}
         onBack={onBackToAllEntries}
-        onDelete={(metricData) => {
+        onDelete={async (metricData) => {
           if (editingMetric?.id) {
-            setMetrics(prev => prev.filter(m => m.id !== editingMetric.id));
+            const metricToDelete = editingMetric;
+            console.log('🗑️ Deleting metric:', metricToDelete.name || 'Unknown');
+            
+            // Remove from local state
+            const updatedMetrics = metrics.filter(m => m.id !== editingMetric.id);
+            setMetrics(updatedMetrics);
             setShowMetrics(false);
             setEditingMetric(null);
+            
+            // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+            if (firebaseUser) {
+              try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                  protocols: protocols || [],
+                  reconItems: reconItems || [],
+                  reconHistory: reconHistory || [],
+                  supplements: supplements || [],
+                  orders: orders || [],
+                  metrics: updatedMetrics, // Use updated metrics with deletion
+                  vendors: vendors || [],
+                  calendarNotes: calendarNotes || {},
+                  stockpile: stockpile || [],
+                  scheduledBuys: scheduledBuys || []
+                };
+                
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                  console.log('✅ Deleted metric synced to cloud immediately');
+                } else {
+                  console.error('❌ Failed to sync deleted metric to cloud');
+                }
+              } catch (error) {
+                console.error('❌ Error syncing deleted metric to cloud:', error);
+              }
+            }
+            
             // If we have a back callback, use it to return to view all modal
             if (onBackToAllEntries) {
               setTimeout(() => {
