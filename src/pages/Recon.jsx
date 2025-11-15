@@ -22,11 +22,14 @@ import { appendStockEvent } from '../utils/stockHistory'
 import { generateId } from '../utils/string'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import { saveAppData } from '../services/cloudStorage'
+import { useFirebase } from '../context/FirebaseContext'
 
 export default function Recon() {
 	const { theme } = useOutletContext()
-    const { reconItems, setReconItems, vendors, reconHistory, setReconHistory, stockpile, setStockpile } = useAppContext();
+    const { reconItems, setReconItems, vendors, reconHistory, setReconHistory, stockpile, setStockpile, protocols, orders, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
     const { isReadOnly } = useSubscriptionAccess();
+    const { firebaseUser } = useFirebase();
 	const [searchParams] = useSearchParams()
 	const [editingItem, setEditingItem] = useState(null)
 	const [showEditModal, setShowEditModal] = useState(false)
@@ -151,10 +154,50 @@ export default function Recon() {
 		setEditingItem(null);
 	};
 
-	const handleDelete = (id) => {
-		setReconItems(prev => prev.filter(item => item.id !== id));
+	const handleDelete = async (id) => {
+		// Find the item being deleted for logging
+		const itemToDelete = reconItems.find(item => item.id === id);
+		
+		if (itemToDelete) {
+			console.log('🗑️ Deleting recon item:', `${itemToDelete.peptide || 'Unknown'} ${itemToDelete.mg || ''}mg`);
+		}
+		
+		// Remove from local state
+		const updatedItems = reconItems.filter(item => item.id !== id);
+		setReconItems(updatedItems);
 		setEditingItem(null);
 		setShowEditModal(false);
+		
+		// CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+		// This prevents server data from restoring deleted items
+		if (firebaseUser) {
+			try {
+				const userId = firebaseUser.uid;
+				const appData = {
+					protocols: protocols || [],
+					reconItems: updatedItems, // Use updated items with deletion
+					reconHistory: reconHistory || [],
+					supplements: supplements || [],
+					orders: orders || [],
+					metrics: metrics || [],
+					vendors: vendors || [],
+					calendarNotes: calendarNotes || {},
+					stockpile: stockpile || [],
+					scheduledBuys: scheduledBuys || []
+				};
+				
+				// Force immediate sync with skipMerge to overwrite server data
+				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+				if (syncResult) {
+					console.log('✅ Deleted recon item synced to cloud immediately');
+				} else {
+					console.error('❌ Failed to sync deleted recon item to cloud');
+				}
+			} catch (error) {
+				console.error('❌ Error syncing deleted recon item to cloud:', error);
+				// Don't throw - the auto-sync will handle it
+			}
+		}
 	};
 
 	const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);

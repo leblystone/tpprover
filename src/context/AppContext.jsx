@@ -1015,7 +1015,6 @@ export function AppProvider({ children }) {
                     if (!result) {
                         throw new Error('saveAppData returned false');
                     }
-                    console.log('✅ Data synced to cloud successfully');
                     
                     // Verify data is actually in cloud and update snapshot if exists
                     setTimeout(async () => {
@@ -1235,8 +1234,48 @@ export function AppProvider({ children }) {
         }, ...prev]);
     }
 
-    const deleteProtocol = (protocolId) => {
-        setProtocols(prev => prev.filter(p => p.id !== protocolId));
+    const deleteProtocol = async (protocolId) => {
+        // Find the protocol being deleted for logging
+        const protocolToDelete = protocols.find(p => p.id === protocolId);
+        
+        if (protocolToDelete) {
+            console.log('🗑️ Deleting protocol:', protocolToDelete.name || 'Unknown');
+        }
+        
+        // Remove from local state
+        const updatedProtocols = protocols.filter(p => p.id !== protocolId);
+        setProtocols(updatedProtocols);
+        
+        // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+        // This prevents server data from restoring deleted items
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                    protocols: updatedProtocols, // Use updated protocols with deletion
+                    reconItems: reconItems || [],
+                    reconHistory: reconHistory || [],
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                
+                // Force immediate sync with skipMerge to overwrite server data
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('✅ Deleted protocol synced to cloud immediately');
+                } else {
+                    console.error('❌ Failed to sync deleted protocol to cloud');
+                }
+            } catch (error) {
+                console.error('❌ Error syncing deleted protocol to cloud:', error);
+                // Don't throw - the auto-sync will handle it
+            }
+        }
     }
 
     const addVendor = (newVendor) => {
@@ -1315,10 +1354,48 @@ export function AppProvider({ children }) {
         setVendors(prev => prev.map(v => v.id === updatedVendor.id ? updatedVendor : v));
     };
 
-    const deleteVendor = (vendorId) => {
+    const deleteVendor = async (vendorId) => {
         if (vendorId == null) {
             console.error('🚨 SAFETY: Cannot delete vendor - no ID provided');
             return;
+        }
+
+        // Find the vendor being deleted for logging
+        const list = Array.isArray(vendors) ? vendors : [];
+        const targetId = String(vendorId);
+        
+        const vendorToDelete = list.find(vendor => {
+            if (!vendor) return false;
+            
+            // Try multiple matching strategies
+            const vendorIdStr = String(vendor.id);
+            const vendorIdNum = Number(vendor.id);
+            const targetIdNum = Number(vendorId);
+            
+            // Match by string comparison
+            if (vendor.id != null && vendorIdStr === targetId) {
+                return true;
+            }
+            
+            // Match by number comparison
+            if (vendor.id != null && !isNaN(vendorIdNum) && !isNaN(targetIdNum) && vendorIdNum === targetIdNum) {
+                return true;
+            }
+
+            // Fallback: match stubs without IDs by normalized name
+            if (vendor.id == null && typeof vendorId === 'object' && vendorId.name) {
+                const nameA = (vendor.name || '').trim().toLowerCase();
+                const nameB = (vendorId.name || '').trim().toLowerCase();
+                if (nameA && nameA === nameB) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        if (vendorToDelete) {
+            console.log('🗑️ Deleting vendor:', vendorToDelete.name || 'Unknown');
         }
 
         setVendors(prev => {
@@ -1370,6 +1447,68 @@ export function AppProvider({ children }) {
             console.log('✅ Deleting vendor at index:', indexToRemove, list[indexToRemove]);
             return list.filter((_, index) => index !== indexToRemove);
         });
+
+        // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+        // This prevents server data from restoring deleted items
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                // Calculate updated vendors list (same logic as setState above)
+                const currentList = Array.isArray(vendors) ? vendors : [];
+                const updatedVendors = currentList.filter((vendor, index) => {
+                    if (!vendor) return false;
+                    
+                    const vendorIdStr = String(vendor.id);
+                    const vendorIdNum = Number(vendor.id);
+                    const targetIdNum = Number(vendorId);
+                    
+                    // Match by string comparison
+                    if (vendor.id != null && vendorIdStr === targetId) {
+                        return false; // Exclude this vendor
+                    }
+                    
+                    // Match by number comparison
+                    if (vendor.id != null && !isNaN(vendorIdNum) && !isNaN(targetIdNum) && vendorIdNum === targetIdNum) {
+                        return false; // Exclude this vendor
+                    }
+                    
+                    // Fallback: match stubs without IDs by normalized name
+                    if (vendor.id == null && typeof vendorId === 'object' && vendorId.name) {
+                        const nameA = (vendor.name || '').trim().toLowerCase();
+                        const nameB = (vendorId.name || '').trim().toLowerCase();
+                        if (nameA && nameA === nameB) {
+                            return false; // Exclude this vendor
+                        }
+                    }
+                    
+                    return true; // Keep this vendor
+                });
+                
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: reconItems || [],
+                    reconHistory: reconHistory || [],
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: updatedVendors, // Use updated vendors with deletion
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                
+                // Force immediate sync with skipMerge to overwrite server data
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('✅ Deleted vendor synced to cloud immediately');
+                } else {
+                    console.error('❌ Failed to sync deleted vendor to cloud');
+                }
+            } catch (error) {
+                console.error('❌ Error syncing deleted vendor to cloud:', error);
+                // Don't throw - the auto-sync will handle it
+            }
+        }
     };
 
     const addSupplement = (newSupplement) => {
@@ -1536,7 +1675,6 @@ export function AppProvider({ children }) {
                             return;
                         }
 
-                        console.log('🔄 Remote app data update detected');
                         lastRemoteUpdateTimeRef.current = now;
                         isApplyingRemoteUpdateRef.current = true;
 
