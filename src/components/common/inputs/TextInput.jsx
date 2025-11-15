@@ -86,32 +86,63 @@ export default function TextInput({
       `}</style>
       {outlined ? (
         <div className="outlined-input-wrapper">
-          <input
-            name={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
-            id={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
-            type={type}
-            value={value}
-            onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
-            onFocus={(e) => {
-              setIsFocused(true);
-              if (onFocus) onFocus(e);
-            }}
-            onBlur={(e) => {
-              setIsFocused(false);
-              if (onBlur) onBlur(e);
-            }}
-            placeholder={isLabelActive ? placeholder : ' '}
-            aria-label={label || placeholder}
-            maxLength={maxLength}
-            className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
-            style={{ 
-              border: `1px solid ${isFocused ? theme.primary : '#f0eee7'}`,
-              backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
-              color: customTextColor || theme.text,
-              boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
-              textTransform: uppercase ? 'uppercase' : 'none'
-            }}
-          />
+          {multiline ? (
+            <textarea
+              name={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
+              id={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
+              value={value}
+              rows={rows}
+              onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
+              onFocus={(e) => {
+                setIsFocused(true);
+                if (onFocus) onFocus(e);
+              }}
+              onBlur={(e) => {
+                setIsFocused(false);
+                if (onBlur) onBlur(e);
+              }}
+              placeholder={isLabelActive ? placeholder : ' '}
+              aria-label={label || placeholder}
+              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} resize-y`}
+              style={{ 
+                border: `1px solid ${isFocused ? theme.primary : '#f0eee7'}`,
+                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
+                color: customTextColor || theme.text,
+                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word',
+                textTransform: uppercase ? 'uppercase' : 'none'
+              }}
+            />
+          ) : (
+            <input
+              name={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
+              id={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
+              type={type}
+              value={value}
+              onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
+              onFocus={(e) => {
+                setIsFocused(true);
+                if (onFocus) onFocus(e);
+              }}
+              onBlur={(e) => {
+                setIsFocused(false);
+                if (onBlur) onBlur(e);
+              }}
+              placeholder={isLabelActive ? placeholder : ' '}
+              aria-label={label || placeholder}
+              maxLength={maxLength}
+              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
+              style={{ 
+                border: `1px solid ${isFocused ? theme.primary : '#f0eee7'}`,
+                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'), 
+                color: customTextColor || theme.text,
+                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
+                textTransform: uppercase ? 'uppercase' : 'none'
+              }}
+            />
+          )}
           {label && (
             <label 
               htmlFor={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
