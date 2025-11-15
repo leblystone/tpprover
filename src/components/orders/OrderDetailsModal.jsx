@@ -622,7 +622,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               theme={theme}
               outlined={true}
               multiline={true}
-              rows={6}
+              rows={3}
               customTextColor="#181A18"
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
