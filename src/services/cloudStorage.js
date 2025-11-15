@@ -194,8 +194,6 @@ export async function saveAppData(userId, appData, options = {}) {
         scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys),
         calendarNotes: timestampedData.calendarNotes // TODO: Add timestamp merging for calendar notes
       };
-      
-      console.log('🔄 Merged app data with server using timestamps');
     }
     
     return await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
