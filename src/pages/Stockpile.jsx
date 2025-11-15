@@ -457,7 +457,7 @@ export default function Stockpile() {
       window.removeEventListener('tpp:stockpile-search', handleSearch);
     };
   }, [activeTab, isReadOnly])
-  const saveManage = () => {
+  const saveManage = async () => {
     // First, convert any "kit" entries in the temporary edit state back to "vial" for storage
     const convertedRows = manageRows.map(row => {
       if (row.unit === 'kit') {
@@ -480,6 +480,17 @@ export default function Stockpile() {
     const cleaned = convertedRows.filter(r => (r.name || '').trim())
     const others = (items || []).filter(i => (i.name || '') !== manageName)
     
+    // Track deleted items for logging
+    const before = (items || []).filter(i => (i.name || '') === manageName)
+    const deletedItems = before.filter(b => {
+      const afterMatch = cleaned.find(a => String(a.mg) === String(b.mg) && (a.vendorId ? a.vendorId === b.vendorId : (a.vendor||'') === (b.vendor||'')))
+      return !afterMatch
+    })
+    
+    if (deletedItems.length > 0) {
+      console.log('🗑️ Deleting stockpile items:', deletedItems.map(i => `${i.name} ${i.mg}mg from ${i.vendorId ? vendorMap[i.vendorId] : i.vendor}`).join(', '))
+    }
+    
     // Add/update timestamps for modified items
     const now = new Date().toISOString();
     const cleanedWithTimestamps = cleaned.map(item => ({
@@ -490,7 +501,6 @@ export default function Stockpile() {
     
     // Append history snapshots and usage markers
     try {
-      const before = (items || []).filter(i => (i.name || '') === manageName)
       const after = cleanedWithTimestamps
       // out-of-stock events
       before.forEach(b => {
@@ -511,7 +521,41 @@ export default function Stockpile() {
         }
       })
     } catch {}
-    setItems([...cleanedWithTimestamps, ...others])
+    
+    const updatedItems = [...cleanedWithTimestamps, ...others]
+    setItems(updatedItems)
+    
+    // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletions persist
+    // This prevents server data from restoring deleted items
+    if (firebaseUser && deletedItems.length > 0) {
+      try {
+        const userId = firebaseUser.uid;
+        const appData = {
+          protocols: protocols || [],
+          reconItems: reconItems || [],
+          reconHistory: reconHistory || [],
+          supplements: supplements || [],
+          orders: orders || [],
+          metrics: metrics || [],
+          vendors: vendors || [],
+          calendarNotes: calendarNotes || {},
+          stockpile: updatedItems, // Use updated items with deletions
+          scheduledBuys: scheduledBuys || []
+        };
+        
+        // Force immediate sync with skipMerge to overwrite server data
+        const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+        if (syncResult) {
+          console.log('✅ Deleted items synced to cloud immediately');
+        } else {
+          console.error('❌ Failed to sync deleted items to cloud');
+        }
+      } catch (error) {
+        console.error('❌ Error syncing deleted items to cloud:', error);
+        // Don't throw - the auto-sync will handle it
+      }
+    }
+    
     markManageSubmitted(); // Clear auto-save data
     setManageName(null)
     setManageRows([])
