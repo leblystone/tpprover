@@ -3,7 +3,7 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
 const DEFAULT_CAP = parseInt(process.env.FOUNDER_CAP || '100', 10);
-const DEFAULT_DISCOUNT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '25', 10);
+const DEFAULT_DISCOUNT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '0', 10);
 
 // Lazy-load Firestore references to avoid initialization errors
 function getDb() {
@@ -52,10 +52,10 @@ async function ensureFounderConfig(transaction) {
 
   const FieldValue = getFieldValue();
   const initialData = {
-    enabled: true,
+    enabled: false,
     cap: DEFAULT_CAP,
     totalGranted: 0,
-    discountPercent: DEFAULT_DISCOUNT,
+    discountPercent: 0,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   };
