@@ -7,7 +7,7 @@ export const APP_CONFIG = {
   STRIPE_PUBLISHABLE_KEY: 'pk_live_51RsjDx50b3cktl9XDlsC1BaeJr431KvkmtiKeCfSkvGcSTbzmCYvVbQcbE1R7Vku394xTuV8m9L1BD79lGg2XTeP004cs4mnJu',
   STRIPE_MONTHLY_PRICE_ID: 'price_1SSh7y50b3cktl9XXn8toTeS', // $3.99/month
   STRIPE_ANNUAL_PRICE_ID: 'price_1SSi0W50b3cktl9XVc4Zdyx8', // $36.99/year
-  STRIPE_LIFETIME_PRICE_ID: 'price_1SSi0s50b3cktl9XJLucCATT', // $99.99 one-time
+  STRIPE_LIFETIME_PRICE_ID: 'price_1SUALt50b3cktl9X7nAOQdQR', // $99.99 one-time
   
   // Firebase Configuration - Updated to match tpp-splendide project
   FIREBASE_API_KEY: 'AIzaSyDzGVtlnIk0QzUSgK6o41KGpYKk6opdgcE',

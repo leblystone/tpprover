@@ -18,7 +18,7 @@ if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY === 'sk_test_fallback_key') {
 
 const stripe = require("stripe")(STRIPE_SECRET_KEY || "sk_test_fallback_key");
 
-const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || "price_1SJNIw50b3cktl9X7tr7Efox";
+const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || "price_1SUALt50b3cktl9X7nAOQdQR";
 const FOUNDER_LIFETIME_PRICE_ID = process.env.STRIPE_FOUNDER_LIFETIME_PRICE_ID || null;
 const FOUNDER_COUPON_ID = process.env.STRIPE_FOUNDER_COUPON_ID || null;
 const FOUNDER_DISCOUNT_PERCENT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT || '50', 10);
