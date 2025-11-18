@@ -266,6 +266,48 @@ const DEFAULT_TEMPLATES = {
     highlightTitle: '⚠️ Action Required',
     highlightMessage: 'Please review this information carefully.',
     features: []
+  },
+  accountDeletion: {
+    name: 'Account Deletion',
+    subject: 'Account Deletion Request - The Pep Planner',
+    heading: 'Account Deletion Request',
+    greeting: 'Hi %USERNAME%,',
+    mainMessage: 'We received your request to delete your account. This action will permanently remove all your research data, protocols, and account information.',
+    ctaText: 'Confirm Deletion',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: '⚠️ Important Information',
+    highlightMessage: 'This action cannot be undone. All your data will be permanently deleted.',
+    features: []
+  },
+  inDepthRequest: {
+    name: 'In-Depth Request',
+    subject: 'In-Depth Request - The Pep Planner',
+    heading: 'In-Depth Request',
+    greeting: 'Hi %USERNAME%,',
+    mainMessage: 'Thank you for your in-depth request. We have received your inquiry and will review it carefully. Our team will get back to you as soon as possible.',
+    ctaText: 'View Request',
+    ctaLink: 'https://thepepplanner.app/app/account',
+    highlightTitle: '📋 Request Received',
+    highlightMessage: 'We typically respond within 24-48 hours.',
+    features: []
+  },
+  inviteEmail: {
+    name: 'Invite Email',
+    subject: 'You\'re Invited to The Pep Planner! 🎉',
+    heading: 'You\'re Invited!',
+    greeting: 'Hi there!',
+    mainMessage: 'You\'ve been invited to join The Pep Planner, your complete research management platform. Create an account to get started with organizing your research protocols and tracking your progress.',
+    ctaText: 'Accept Invitation',
+    ctaLink: 'https://thepepplanner.app/signup',
+    highlightTitle: '🎁 Special Invitation',
+    highlightMessage: 'Join our research community and start organizing your protocols today.',
+    features: [
+      'Create Custom Protocols – Build and manage research protocols',
+      'Track Your Progress – Calendar integration and task management',
+      'Reconstitution Calculator – Calculate dosages with precision',
+      'Inventory Management – Track orders, stockpile, and vendors',
+      'Research Notes – Document findings and observations'
+    ]
   }
 };
 
@@ -382,6 +424,19 @@ export default function EmailTemplateManager({ theme }) {
       { name: 'USERNAME', description: 'User\'s name' },
       { name: 'USEREMAIL', description: 'User\'s email address' },
       { name: 'FIRSTNAME', description: 'User\'s first name' }
+    ],
+    accountDeletion: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
+    inDepthRequest: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
+    inviteEmail: [
+      { name: 'USERNAME', description: 'User\'s name (if known)' },
+      { name: 'USEREMAIL', description: 'User\'s email address' },
+      { name: 'INVITE_LINK', description: 'Invitation signup link' }
     ]
   };
 
@@ -943,12 +998,12 @@ export default function EmailTemplateManager({ theme }) {
             ))}
           </optgroup>
           <optgroup label="Custom & Announcements">
-            {Object.entries(templates).filter(([key]) => ['customAnnouncement'].includes(key)).map(([key, template]) => (
+            {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
               <option key={key} value={key}>{template.name}</option>
             ))}
           </optgroup>
           <optgroup label="Other">
-            {Object.entries(templates).filter(([key]) => !['welcome', 'verification', 'passwordReset', 'trialEnding', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'lifetimeAccessGranted', 'manualLifetimeGrant', 'giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon', 'weeklyReminder', 'customAnnouncement'].includes(key)).map(([key, template]) => (
+            {Object.entries(templates).filter(([key]) => !['welcome', 'verification', 'passwordReset', 'trialEnding', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'lifetimeAccessGranted', 'manualLifetimeGrant', 'giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon', 'weeklyReminder', 'customAnnouncement', 'accountDeletion', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
               <option key={key} value={key}>{template.name}</option>
             ))}
           </optgroup>

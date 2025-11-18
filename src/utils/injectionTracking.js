@@ -267,3 +267,56 @@ export function importInjectionData(data) {
     return false;
   }
 }
+
+/**
+ * Update an injection history record
+ * @param {string} recordId - ID of the record to update
+ * @param {Object} updates - Fields to update (injectionSite, dose, unit, etc.)
+ */
+export function updateInjectionRecord(recordId, updates) {
+  try {
+    const history = getInjectionHistory();
+    const index = history.findIndex(record => record.id === recordId);
+    
+    if (index === -1) {
+      console.error('Injection record not found:', recordId);
+      return false;
+    }
+    
+    // Update the record
+    history[index] = {
+      ...history[index],
+      ...updates
+    };
+    
+    saveInjectionHistory(history);
+    console.log('💾 Injection record updated:', history[index]);
+    return true;
+  } catch (error) {
+    console.error('Failed to update injection record:', error);
+    return false;
+  }
+}
+
+/**
+ * Delete an injection history record
+ * @param {string} recordId - ID of the record to delete
+ */
+export function deleteInjectionRecord(recordId) {
+  try {
+    const history = getInjectionHistory();
+    const filteredHistory = history.filter(record => record.id !== recordId);
+    
+    if (filteredHistory.length === history.length) {
+      console.error('Injection record not found:', recordId);
+      return false;
+    }
+    
+    saveInjectionHistory(filteredHistory);
+    console.log('🗑️ Injection record deleted:', recordId);
+    return true;
+  } catch (error) {
+    console.error('Failed to delete injection record:', error);
+    return false;
+  }
+}

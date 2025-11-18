@@ -365,6 +365,10 @@ export default function Dashboard() {
                         unit = 'mg';
                     }
                     
+                    // Get delivery method from recon item or from first peptide in blend
+                    const firstPeptide = peptides[0];
+                    const deliveryMethod = reconItem?.deliveryMethod || firstPeptide?.deliveryMethod;
+                    
                     const task = {
                         id: `${p.id}-${blendName}-${t}`,
                         type: 'peptide',
@@ -373,10 +377,10 @@ export default function Dashboard() {
                         unit: unit,
                         time: timeSlot,
                         completed: false,
-                        deliveryMethod: reconItem?.deliveryMethod,
-                        penColor: reconItem?.penColor,
+                        deliveryMethod: deliveryMethod,
+                        penColor: reconItem?.penColor || firstPeptide?.penColor,
                         protocolName: p.protocolName,
-                        administrationRoute: reconItem?.administrationRoute
+                        administrationRoute: reconItem?.administrationRoute || firstPeptide?.injectionType
                     };
                     // Generate stable task ID and check completion status
                     const taskId = generateTaskId(task);
@@ -458,6 +462,10 @@ export default function Dashboard() {
 
               // Create a single task entry for this peptide with all its scheduled times
               const scheduledTimes = pep.frequency.time || [];
+              
+              // Get delivery method from recon item or peptide data
+              const deliveryMethod = reconItem?.deliveryMethod || pep.deliveryMethod;
+              
               const task = {
                 id: `${p.id}-${pep.name || 'Peptide'}`,
                 type: 'peptide',
@@ -467,10 +475,10 @@ export default function Dashboard() {
                 time: scheduledTimes.length === 1 ? scheduledTimes[0] : scheduledTimes.join(', '),
                 scheduledTimes: scheduledTimes, // Store all times for completion tracking
                 completed: false,
-                deliveryMethod: reconItem?.deliveryMethod,
-                penColor: reconItem?.penColor,
+                deliveryMethod: deliveryMethod,
+                penColor: reconItem?.penColor || pep.penColor,
                 protocolName: p.protocolName,
-                administrationRoute: reconItem?.administrationRoute
+                administrationRoute: reconItem?.administrationRoute || pep.injectionType
               };
               
               console.log('🔍 Peptide task created:', {

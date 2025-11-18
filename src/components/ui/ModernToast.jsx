@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Check, AlertTriangle, Info, X } from 'lucide-react';
+import { loadSettings } from '../../utils/settingsHelpers';
 
 const ModernToast = ({ message, type, onClose, theme }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -258,6 +259,14 @@ const ModernToastContainer = ({ theme }) => {
 
   useEffect(() => {
     const handleToast = (event) => {
+      // Check if toast notifications are enabled
+      const settings = loadSettings();
+      const toastEnabled = settings?.features?.toastNotifications ?? true;
+      
+      if (!toastEnabled) {
+        return; // Don't show toast if disabled
+      }
+      
       const { message, type = 'info' } = event.detail;
       
       const newToast = {

@@ -52,6 +52,7 @@ import TriggeredNotificationManager from '../components/admin/TriggeredNotificat
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
 import UserDetailModal from '../components/admin/UserDetailModal';
 import VersionManager from '../components/admin/VersionManager';
+import SingleMessageSender from '../components/admin/SingleMessageSender';
 
 const handleImpersonateUser = async (uid) => {
   try {
@@ -4178,6 +4179,7 @@ function Admin() {
 
         {activeTab === 'emails' && (
           <div className="space-y-6">
+            <SingleMessageSender theme={theme} />
             <EmailTemplateManager theme={theme} />
           </div>
         )}

@@ -86,6 +86,7 @@ export function getDefaultSettings() {
       groupBuys: true, // Enable group buy features
       analytics: true, // Enable analytics dashboard
       metricsTracking: true, // Track usage metrics and progress
+      toastNotifications: true, // Enable toast notifications
     },
     calendar: {
       defaultView: 'month', // 'month' | 'week'

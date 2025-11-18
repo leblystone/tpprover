@@ -6,11 +6,18 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Calendar, Target, History } from 'lucide-react'
+import SearchableDropdown from '../components/common/SearchableDropdown'
+import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
+import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
+import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
+import { penColors } from '../utils/penColors'
+import { formatCurrency } from '../utils/currencyUtils'
 import ProtocolCard from '../components/protocols/ProtocolCard'
 import ProtocolHistoryModal from '../components/protocols/ProtocolHistoryModal';
 import StartProtocolWizard from '../components/protocols/StartProtocolWizard';
 import ProtocolsHelpPanel from '../components/protocols/ProtocolsHelpPanel';
+import EditActiveProtocolVials from '../components/protocols/EditActiveProtocolVials';
 import { useAppContext } from '../context/AppContext';
 import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -50,10 +57,61 @@ export default function Protocols() {
 
   const endProtocol = (protocolToEnd) => {
     const today = new Date().toISOString().slice(0, 10);
-    const updatedProtocol = { ...protocolToEnd, active: false, endDate: today };
+    const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: 'manual' };
     updateProtocol(updatedProtocol);
     window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol has been ended.', type: 'success' } }));
   };
+
+  // Check and auto-end protocols that have finished organically
+  useEffect(() => {
+    // Only run this check once per day to avoid excessive updates
+    const checkKey = 'tpprover_last_auto_end_check';
+    const lastCheck = localStorage.getItem(checkKey);
+    const today = new Date().toISOString().slice(0, 10);
+    
+    // Skip if we already checked today
+    if (lastCheck === today) return;
+    
+    const todayOnly = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+    let hasUpdates = false;
+    
+    protocols.forEach(p => {
+      // Skip if already ended or doesn't have startDate
+      if (p.active === false || p.endDate || !p.startDate) return;
+      
+      // Calculate expected end date
+      let calculatedEndDate = null;
+      const start = new Date(p.startDate);
+      const startOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      
+      if (p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
+        calculatedEndDate = new Date(startOnly);
+        const unit = String(p.duration.unit).toLowerCase();
+        const count = Number(p.duration.count) || 0;
+        
+        if (unit.includes('day')) {
+          calculatedEndDate.setDate(calculatedEndDate.getDate() + count - 1);
+        } else if (unit.includes('week')) {
+          calculatedEndDate.setDate(calculatedEndDate.getDate() + (count * 7) - 1);
+        } else if (unit.includes('month')) {
+          calculatedEndDate.setMonth(calculatedEndDate.getMonth() + count);
+          calculatedEndDate.setDate(calculatedEndDate.getDate() - 1);
+        }
+        
+        // If today is past the calculated end date, mark as finished
+        if (calculatedEndDate && todayOnly > calculatedEndDate) {
+          const endDateString = calculatedEndDate.toISOString().slice(0, 10);
+          updateProtocol({ ...p, active: false, endDate: endDateString, endType: 'completed' });
+          hasUpdates = true;
+        }
+      }
+    });
+    
+    // Mark that we've checked today
+    if (hasUpdates || !lastCheck) {
+      localStorage.setItem(checkKey, today);
+    }
+  }, [protocols, updateProtocol]);
 
   const projectedDates = React.useMemo(() => {
     if (!startConfirm || !startDate) return { protocolStartDate: null, protocolEndDate: null, washoutStartDate: null, washoutEndDate: null };
@@ -359,15 +417,325 @@ export default function Protocols() {
         )}
 
         {activeTab === 'history' && (
-          <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-              <Clock size={32} style={{ color: theme.primary }} />
-            </div>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Protocol History</h3>
-            <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-              Track protocol completion history, adherence patterns, and past cycles for research purposes. 
-              This feature helps analyze consistency and optimize research approaches over time.
-            </p>
+          <div className="space-y-4">
+            {(() => {
+              // Filter for finished protocols - must have BOTH startDate AND endDate
+              const finishedProtocols = filteredProtocols.filter(p => {
+                // Must have started (has startDate)
+                if (!p.startDate) return false;
+                
+                // Must have ended (has endDate)
+                if (!p.endDate) return false;
+                
+                // If active is explicitly false, it's finished
+                if (p.active === false) return true;
+                
+                // If it has an endDate, check if it's in the past
+                const today = new Date();
+                const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const endDate = new Date(p.endDate);
+                const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+                
+                // If end date is in the past, it's finished
+                if (todayOnly > endDateOnly) return true;
+                
+                // If it has an endDate and active is not explicitly true, consider it finished
+                if (p.active !== true) return true;
+                
+                return false;
+              });
+
+              if (finishedProtocols.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                      <Clock size={32} style={{ color: theme.primary }} />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Protocol History</h3>
+                    <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
+                      Track protocol completion history.
+                    </p>
+                    <p className="text-xs" style={{ color: theme.textLight }}>No completed protocols yet.</p>
+                  </div>
+                );
+              }
+
+              // Sort by end date descending (most recent first), then by start date
+              const sortedProtocols = [...finishedProtocols].sort((a, b) => {
+                const aEnd = a.endDate ? new Date(a.endDate) : new Date(0);
+                const bEnd = b.endDate ? new Date(b.endDate) : new Date(0);
+                if (bEnd.getTime() !== aEnd.getTime()) {
+                  return bEnd.getTime() - aEnd.getTime();
+                }
+                const aStart = a.startDate ? new Date(a.startDate) : new Date(0);
+                const bStart = b.startDate ? new Date(b.startDate) : new Date(0);
+                return bStart.getTime() - aStart.getTime();
+              });
+
+              // Group protocols by month/year
+              const groupedProtocols = sortedProtocols.reduce((acc, p) => {
+                if (!p.endDate) return acc;
+                const endDate = new Date(p.endDate);
+                const month = endDate.toLocaleDateString('en-US', { month: 'short' });
+                const year = endDate.getFullYear().toString().slice(-2);
+                const day = endDate.getDate();
+                const key = `${month}|${day}'${year}`;
+                
+                if (!acc[key]) {
+                  acc[key] = [];
+                }
+                acc[key].push(p);
+                return acc;
+              }, {});
+
+              const formatMonthYear = (dateStr) => {
+                const date = new Date(dateStr);
+                const month = date.toLocaleDateString('en-US', { month: 'short' });
+                const year = date.getFullYear().toString().slice(-2);
+                const day = date.getDate();
+                return `${month}|${day}'${year}`;
+              };
+
+              return (
+                <div className="relative pl-8">
+                  {/* Timeline vertical line */}
+                  <div 
+                    className="absolute left-6 top-0 bottom-0 w-0.5"
+                    style={{ backgroundColor: theme.border }}
+                  />
+                  
+                  <div className="space-y-8">
+                    {Object.entries(groupedProtocols).map(([dateKey, protocols]) => (
+                      <div key={dateKey} className="relative">
+                        {/* Date header */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="relative z-10 flex-shrink-0">
+                            <div 
+                              className="w-8 h-8 rounded-full flex items-center justify-center border-2"
+                              style={{ 
+                                backgroundColor: theme.cardBackground,
+                                borderColor: theme.primary,
+                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                            </div>
+                          </div>
+                          <h3 
+                            className="text-sm font-bold uppercase tracking-wider"
+                            style={{ color: theme.textLight }}
+                          >
+                            {dateKey}
+                          </h3>
+                        </div>
+
+                        <div className="space-y-4 ml-12">
+                          {protocols.map((p) => {
+                            const startDate = p.startDate ? new Date(p.startDate) : null;
+                            const endDate = p.endDate ? new Date(p.endDate) : null;
+                            const startDateStr = startDate ? formatMMDDYYYY(p.startDate) : 'Not started';
+                            const endDateStr = endDate ? formatMMDDYYYY(p.endDate) : 'Ongoing';
+                            
+                            // Calculate duration and progress for horizontal timeline
+                            let durationDays = 0;
+                            let currentDay = 0;
+                            let progressPercent = 100; // Default to 100% for completed protocols
+                            
+                            if (startDate && endDate) {
+                              durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                              // For completed protocols, current day equals total days
+                              currentDay = durationDays;
+                              progressPercent = 100;
+                            }
+                            
+                            // Get vials and vendors from linkedItems
+                            const linkedItems = p.linkedItems || {};
+                            const vialInfo = [];
+                            const vendors = new Set();
+                            
+                            Object.values(linkedItems).forEach(item => {
+                              if (item.status === 'linked' && item.vialId) {
+                                const vial = stockpile.find(v => v.id === item.vialId);
+                                if (vial) {
+                                  vialInfo.push({
+                                    name: vial.name || 'Unknown',
+                                    mg: vial.mg || 'N/A',
+                                    vendor: vial.vendor || 'Unknown'
+                                  });
+                                  if (vial.vendor) vendors.add(vial.vendor);
+                                }
+                              }
+                            });
+                            
+                            return (
+                              <div key={p.id} className="relative flex items-start gap-4">
+                                {/* Timeline dot */}
+                                <div className="relative z-10 flex-shrink-0">
+                                  <div 
+                                    className="w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all"
+                                    style={{ 
+                                      backgroundColor: theme.cardBackground,
+                                      borderColor: theme.primary,
+                                      boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+                                    }}
+                                  >
+                                    <Calendar size={16} style={{ color: theme.primary }} />
+                                  </div>
+                                </div>
+                                
+                                {/* Content card - Modern styled */}
+                                <div 
+                                  className="flex-1 min-w-0 p-4 rounded-xl cursor-pointer transition-all"
+                                  style={{
+                                    backgroundColor: theme.cardBackground,
+                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : theme.border}`,
+                                    boxShadow: theme.isDark
+                                      ? `0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`
+                                      : `0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)`
+                                  }}
+                                  onClick={() => setHistoryProtocol(p)}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateX(4px)';
+                                    e.currentTarget.style.boxShadow = theme.isDark
+                                      ? `0 6px 16px rgba(0,0,0,0.4), 0 3px 6px rgba(0,0,0,0.3)`
+                                      : `0 6px 16px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.08)`;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateX(0)';
+                                    e.currentTarget.style.boxShadow = theme.isDark
+                                      ? `0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`
+                                      : `0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)`;
+                                  }}
+                                >
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <h4 className="font-semibold text-base truncate" style={{ color: theme.text }}>
+                                          {p.protocolName || 'Unnamed Protocol'}
+                                        </h4>
+                                        {/* Emoji support - can be added to protocol data */}
+                                        {p.emoji && <span className="text-base flex-shrink-0">{p.emoji}</span>}
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setHistoryProtocol(p);
+                                        }}
+                                        className="p-1.5 rounded-full hover:bg-opacity-20 transition-all flex-shrink-0"
+                                        style={{ 
+                                          color: theme.textLight,
+                                          backgroundColor: 'transparent'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.secondary;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = 'transparent';
+                                        }}
+                                        title="View detailed history"
+                                      >
+                                        <History size={16} />
+                                      </button>
+                                    </div>
+
+                                    {/* Progress Bar - Modern styled like image */}
+                                    {startDate && endDate && durationDays > 0 && (
+                                      <div className="relative w-full mt-3">
+                                        <div 
+                                          className="relative w-full h-7 rounded-lg overflow-hidden"
+                                          style={{ 
+                                            backgroundColor: theme.isDark ? '#374151' : '#e5e7eb',
+                                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                          }}
+                                        >
+                                          {/* Progress fill */}
+                                          <div 
+                                            className="absolute left-0 top-0 h-full rounded-lg transition-all duration-300"
+                                            style={{ 
+                                              width: `${progressPercent}%`,
+                                              background: `linear-gradient(90deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                                              boxShadow: `0 0 12px ${theme.primary}50`
+                                            }}
+                                          >
+                                            {/* Current day / Total days label on filled portion */}
+                                            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20">
+                                              <span 
+                                                className="text-[10px] font-semibold"
+                                                style={{ 
+                                                  color: '#ffffff',
+                                                  textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                                                }}
+                                              >
+                                                {String(currentDay).padStart(2, '0')}/{String(durationDays).padStart(2, '0')}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* End Type Badge */}
+                                    {p.endType && (
+                                      <div className="flex items-center gap-2">
+                                        <span 
+                                          className="px-2 py-0.5 rounded text-xs font-medium"
+                                          style={{ 
+                                            backgroundColor: p.endType === 'completed' 
+                                              ? (theme.isDark ? '#065f46' : '#d1fae5')
+                                              : (theme.isDark ? '#7f1d1d' : '#fee2e2'),
+                                            color: p.endType === 'completed' 
+                                              ? (theme.isDark ? '#6ee7b7' : '#065f46')
+                                              : (theme.isDark ? '#fca5a5' : '#991b1b')
+                                          }}
+                                        >
+                                          {p.endType === 'completed' ? '✓ Completed' : '⚠ Manually Ended'}
+                                        </span>
+                                        {durationDays > 0 && (
+                                          <span className="text-xs" style={{ color: theme.textLight }}>
+                                            {durationDays} day{durationDays !== 1 ? 's' : ''}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Vials and Vendor Info */}
+                                    {vialInfo.length > 0 && (
+                                      <div className="space-y-1.5 pt-2 border-t" style={{ borderColor: theme.border }}>
+                                        <div className="text-xs font-medium" style={{ color: theme.textLight }}>Vials Used:</div>
+                                        <div className="flex flex-wrap gap-2">
+                                          {vialInfo.map((vial, idx) => (
+                                            <span 
+                                              key={idx}
+                                              className="px-2 py-1 rounded text-xs"
+                                              style={{ 
+                                                backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                                                color: theme.text
+                                              }}
+                                            >
+                                              {vial.name} ({vial.mg}mg)
+                                            </span>
+                                          ))}
+                                        </div>
+                                        {vendors.size > 0 && (
+                                          <div className="text-xs mt-1.5" style={{ color: theme.textLight }}>
+                                            <span className="font-medium">Vendor{vendors.size > 1 ? 's' : ''}:</span>{' '}
+                                            {Array.from(vendors).join(', ')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -462,15 +830,19 @@ export default function Protocols() {
         theme={theme}
       />
 
-      <Modal
-        open={!!manageConfirm}
-        onClose={() => setManageConfirm(null)}
-        title={`Manage "${manageConfirm?.protocolName || 'Protocol'}"`}
-        theme={theme}
-        variant="modern"
-        maxWidth="max-w-md"
-    >
-        <div className="space-y-4">
+      {manageConfirm && manageConfirm.protocolName && (
+        <Modal
+          open={true}
+          onClose={() => {
+            setManageConfirm(null);
+            setHistoryProtocol(null); // Ensure history modal is also closed
+          }}
+          title={`Manage "${manageConfirm.protocolName}"`}
+          theme={theme}
+          variant="modern"
+          maxWidth="max-w-2xl"
+        >
+          <div className="space-y-4">
             {/* PROTOCOL SETTINGS Section Header */}
             <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
                 <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>PROTOCOL SETTINGS</h4>
@@ -480,20 +852,35 @@ export default function Protocols() {
                 <label className="text-sm font-medium mb-2 block" style={{ color: theme.text }}>
                     Start Date
                 </label>
-                <input 
-                    type="date" 
-                    className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-opacity-50 transition-all" 
-                    value={manageConfirm?.startDate || ''} 
-                    onChange={e => setManageConfirm(p => ({...p, startDate: e.target.value}))}
-                    style={{ 
-                        borderColor: theme.border, 
-                        backgroundColor: theme.cardBackground,
-                        color: theme.text,
-                        focusRingColor: theme.primary
-                    }} 
+                <GlassmorphismDatePicker
+                    value={manageConfirm?.startDate || ''}
+                    onChange={(dateString) => setManageConfirm(p => ({...p, startDate: dateString}))}
+                    theme={theme}
+                    placeholder="Select start date"
                 />
                 <p className="text-xs mt-1" style={{ color: theme.textLight }}>Changing this will reschedule all calendar events for this protocol.</p>
             </div>
+
+            {/* Edit Vials and Delivery Methods Section */}
+            {manageConfirm?.active && manageConfirm?.linkedItems && (
+                <>
+                    <div className="border-t" style={{ borderColor: theme.border }}></div>
+                    
+                    <div className="px-4 py-2.5 rounded-lg" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: `4px solid ${theme.primary}` }}>
+                        <h4 className="font-black text-sm tracking-wide uppercase" style={{ color: theme.isDark ? '#a8b5a0' : theme.primary }}>VIALS & DELIVERY METHODS</h4>
+                    </div>
+
+                    <EditActiveProtocolVials
+                        protocol={manageConfirm}
+                        stockpile={stockpile}
+                        setStockpile={setStockpile}
+                        theme={theme}
+                        onUpdate={(updatedLinkedItems) => {
+                            setManageConfirm(p => ({ ...p, linkedItems: updatedLinkedItems }));
+                        }}
+                    />
+                </>
+            )}
 
             {/* Page Break */}
             <div className="border-t" style={{ borderColor: theme.border }}></div>
@@ -517,30 +904,58 @@ export default function Protocols() {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 pt-4 mt-6 border-t" style={{ borderColor: theme.border }}>
-            <button
-                onClick={() => setManageConfirm(null)}
-                className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
-                style={{ 
-                    backgroundColor: theme.cardBackground,
-                    color: theme.text,
-                    border: `1px solid ${theme.border}`
-                }}
-            >
-                Cancel
-            </button>
-            <button
-                className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                onClick={() => {
-                    updateProtocol(manageConfirm);
-                    setManageConfirm(null);
-                }}
-            >
-                Save Changes
-            </button>
+        <div className="w-full flex items-center gap-3 pt-4 mt-6 border-t" style={{ borderColor: theme.border }}>
+            <div className="flex items-center gap-2 flex-1 justify-end">
+                <button
+                    type="button"
+                    onClick={() => setManageConfirm(null)}
+                    className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                    style={{ 
+                        backgroundColor: theme.cardBackground,
+                        color: theme.text,
+                        border: `1px solid ${theme.border}`
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = theme.isDark ? '0 6px 12px rgba(0, 0, 0, 0.3)' : '0 6px 12px rgba(0, 0, 0, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = theme.isDark ? '0 2px 4px rgba(0, 0, 0, 0.3)' : '0 2px 4px rgba(0, 0, 0, 0.1)';
+                    }}
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (manageConfirm) {
+                            updateProtocol(manageConfirm);
+                        }
+                        setManageConfirm(null);
+                        setHistoryProtocol(null); // Ensure history modal is also closed
+                    }}
+                    className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+                    style={{ 
+                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                        color: theme.textOnPrimary || '#ffffff',
+                        border: 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    }}
+                >
+                    Save Changes
+                </button>
+            </div>
         </div>
-    </Modal>
+        </Modal>
+      )}
 
       <StartProtocolWizard 
         open={!!startConfirm}

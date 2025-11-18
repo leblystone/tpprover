@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Droplets, Plus, Minus, RotateCcw, Settings } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Droplets, Plus, Minus, RotateCcw, Settings, BarChart3, Calendar, History } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
 
@@ -14,6 +14,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
   });
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [goalInputValue, setGoalInputValue] = useState('');
 
   // Water units configuration
@@ -147,6 +148,62 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     }));
   };
 
+  // Process history data for analytics and history list
+  const historyData = useMemo(() => {
+    const entries = Object.entries(waterData)
+      .filter(([date]) => {
+        const entry = waterData[date];
+        return entry && entry.glasses > 0;
+      })
+      .map(([date, data]) => {
+        const entryDate = new Date(date);
+        return {
+          date,
+          dateObj: entryDate,
+          amount: data.glasses || 0,
+          goal: data.goal || 8,
+          unit: data.unit || 'glasses',
+          progress: Math.min((data.glasses || 0) / (data.goal || 8), 1)
+        };
+      })
+      .sort((a, b) => b.dateObj - a.dateObj); // Most recent first
+
+    return entries;
+  }, [waterData]);
+
+  // Get last 30 days for graph
+  const graphData = useMemo(() => {
+    const days = [];
+    const today = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateKey = date.toISOString().split('T')[0];
+      const dayData = waterData[dateKey];
+      
+      if (dayData && dayData.glasses > 0) {
+        days.push({
+          date: dateKey,
+          dateObj: date,
+          amount: dayData.glasses,
+          goal: dayData.goal || 8,
+          unit: dayData.unit || todayData.unit,
+          progress: Math.min(dayData.glasses / (dayData.goal || 8), 1)
+        });
+      } else {
+        days.push({
+          date: dateKey,
+          dateObj: date,
+          amount: 0,
+          goal: 0,
+          unit: todayData.unit,
+          progress: 0
+        });
+      }
+    }
+    return days;
+  }, [waterData, todayData.unit]);
+
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
@@ -155,19 +212,23 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             Hydration
           </h3>
           <div className="flex items-center gap-2">
-            <ModernTooltip text="Settings" position="top">
+            <ModernTooltip text="History & Analytics" position="top">
               <button 
-                onClick={() => setShowSettingsModal(true)}
-                className="p-1 rounded transition-all"
-                style={{ color: theme.textLight }}
+                onClick={() => setShowHistoryModal(true)}
+                className="w-7 h-7 rounded-full flex items-center justify-center transition-all relative overflow-hidden"
+                style={{ 
+                  backgroundColor: theme.primary,
+                  color: '#FFFFFF',
+                  boxShadow: `inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.1)`
+                }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.border + '40';
+                  e.currentTarget.style.opacity = '0.9';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.opacity = '1';
                 }}
               >
-                <Settings size={20} />
+                <History size={14} color="#FFFFFF" />
               </button>
             </ModernTooltip>
             <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
@@ -342,6 +403,316 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             <p className="text-xs" style={{ color: theme.textLight }}>
               Note: Changing units will reset the tracking data to start fresh.
             </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* History & Analytics Modal */}
+      <Modal 
+        open={showHistoryModal} 
+        onClose={() => setShowHistoryModal(false)}
+        title="Hydration History & Analytics"
+        titleExtra={
+          <ModernTooltip text="Settings" position="left">
+            <button
+              onClick={() => {
+                setShowHistoryModal(false);
+                setShowSettingsModal(true);
+              }}
+              className="p-1.5 rounded-lg transition-all"
+              style={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#FFFFFF'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+            >
+              <Settings size={18} />
+            </button>
+          </ModernTooltip>
+        }
+        theme={theme}
+        maxWidth="max-w-5xl"
+        variant="modern"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column: Analytics Graph */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 size={20} style={{ color: theme.primary }} />
+              <h4 className="text-base font-semibold" style={{ color: theme.text }}>
+                Daily Totals (Last 30 Days)
+              </h4>
+            </div>
+            
+            {graphData.length > 0 && graphData.some(d => d.amount > 0) ? (
+              <div className="relative">
+                <div className="p-4 rounded-xl border" style={{ 
+                  borderColor: theme.border, 
+                  backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : theme.cardBackground 
+                }}>
+                  <div className="h-64 relative">
+                    <svg width="100%" height="100%" viewBox="0 0 400 256" className="rounded-lg">
+                      {/* Grid lines */}
+                      {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => (
+                        <line
+                          key={idx}
+                          x1="40"
+                          y1={256 * ratio}
+                          x2="380"
+                          y2={256 * ratio}
+                          stroke={theme.border}
+                          strokeWidth="0.5"
+                          opacity="0.2"
+                          strokeDasharray={ratio === 0 || ratio === 1 ? "0" : "2,2"}
+                        />
+                      ))}
+                      
+                      {/* Y-axis labels */}
+                      {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
+                        const maxAmount = Math.max(...graphData.map(d => d.amount), 1);
+                        const value = maxAmount * (1 - ratio);
+                        return (
+                          <text
+                            key={idx}
+                            x="35"
+                            y={256 * ratio + 4}
+                            textAnchor="end"
+                            fontSize="10"
+                            fill={theme.textLight}
+                            opacity="0.7"
+                          >
+                            {value > 0 ? (currentUnit.abbrev === 'liters' ? value.toFixed(1) : Math.round(value)) : '0'}
+                          </text>
+                        );
+                      })}
+                      
+                      {/* Graph bars with gradient effect */}
+                      {graphData.map((day, index) => {
+                        if (day.amount === 0) return null;
+                        
+                        const maxAmount = Math.max(...graphData.map(d => d.amount), 1);
+                        const barHeight = (day.amount / maxAmount) * 200;
+                        const barWidth = 320 / graphData.length;
+                        const x = 40 + (index * barWidth) + (barWidth * 0.1);
+                        const y = 230 - barHeight;
+                        
+                        return (
+                          <g key={day.date}>
+                            {/* Bar with gradient */}
+                            <defs>
+                              <linearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor={theme.primary} stopOpacity="0.8" />
+                                <stop offset="100%" stopColor={theme.primary} stopOpacity="0.4" />
+                              </linearGradient>
+                            </defs>
+                            <rect
+                              x={x}
+                              y={y}
+                              width={barWidth * 0.8}
+                              height={barHeight}
+                              fill={`url(#gradient-${index})`}
+                              rx="4"
+                              style={{ transition: 'all 0.3s ease' }}
+                            />
+                            
+                            {/* Goal line indicator */}
+                            {day.goal > 0 && (
+                              <line
+                                x1={x}
+                                y1={230 - (day.goal / maxAmount) * 200}
+                                x2={x + barWidth * 0.8}
+                                y2={230 - (day.goal / maxAmount) * 200}
+                                stroke={theme.isDark ? '#60a5fa' : '#3b82f6'}
+                                strokeWidth="1.5"
+                                strokeDasharray="3,3"
+                                opacity="0.6"
+                              />
+                            )}
+                            
+                            {/* Day label (every 5 days) */}
+                            {index % 5 === 0 && (
+                              <text
+                                x={x + barWidth * 0.4}
+                                y="250"
+                                textAnchor="middle"
+                                fontSize="9"
+                                fill={theme.textLight}
+                                opacity="0.6"
+                              >
+                                {day.dateObj.getDate()}
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+                      
+                      {/* X-axis line */}
+                      <line
+                        x1="40"
+                        y1="230"
+                        x2="380"
+                        y2="230"
+                        stroke={theme.border}
+                        strokeWidth="1.5"
+                      />
+                    </svg>
+                  </div>
+                  
+                  {/* Stats summary */}
+                  <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t" style={{ borderColor: theme.border }}>
+                    <div className="text-center">
+                      <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Avg Daily</div>
+                      <div className="text-lg font-bold" style={{ color: theme.primary }}>
+                        {graphData.filter(d => d.amount > 0).length > 0
+                          ? (graphData.reduce((sum, d) => sum + d.amount, 0) / graphData.filter(d => d.amount > 0).length).toFixed(1)
+                          : '0'}
+                      </div>
+                      <div className="text-xs opacity-60" style={{ color: theme.textLight }}>{currentUnit.abbrev}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Best Day</div>
+                      <div className="text-lg font-bold" style={{ color: theme.primary }}>
+                        {Math.max(...graphData.map(d => d.amount), 0).toFixed(1)}
+                      </div>
+                      <div className="text-xs opacity-60" style={{ color: theme.textLight }}>{currentUnit.abbrev}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Days Tracked</div>
+                      <div className="text-lg font-bold" style={{ color: theme.primary }}>
+                        {graphData.filter(d => d.amount > 0).length}
+                      </div>
+                      <div className="text-xs opacity-60" style={{ color: theme.textLight }}>of 30</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 rounded-xl border text-center" style={{ 
+                borderColor: theme.border, 
+                backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : theme.cardBackground 
+              }}>
+                <Droplets size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+                <p className="text-sm" style={{ color: theme.textLight }}>
+                  No hydration data yet. Start tracking to see your analytics!
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: History List */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar size={20} style={{ color: theme.primary }} />
+              <h4 className="text-base font-semibold" style={{ color: theme.text }}>
+                Daily History
+              </h4>
+            </div>
+            
+            {historyData.length > 0 ? (
+              <div className="space-y-1.5 max-h-[28rem] overflow-y-auto pr-2" style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: `${theme.border} transparent`
+              }}>
+                {historyData.map((entry, index) => {
+                  const isToday = entry.date === today;
+                  const unit = waterUnits[entry.unit] || waterUnits.glasses;
+                  const displayAmount = unit.abbrev === 'liters' 
+                    ? entry.amount.toFixed(1) 
+                    : Math.round(entry.amount);
+                  
+                  return (
+                    <div
+                      key={entry.date}
+                      className="p-2.5 rounded-lg border transition-all hover:shadow-sm"
+                      style={{
+                        borderColor: isToday ? theme.primary : theme.border,
+                        backgroundColor: isToday 
+                          ? theme.primary + '10' 
+                          : theme.isDark 
+                            ? 'rgba(0, 0, 0, 0.2)' 
+                            : theme.cardBackground,
+                        boxShadow: isToday 
+                          ? `0 1px 4px ${theme.primary}20` 
+                          : 'none'
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <div 
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: theme.primary }}
+                          />
+                          <span className="text-xs font-medium truncate" style={{ color: theme.text }}>
+                            {entry.dateObj.toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </span>
+                          {isToday && (
+                            <span 
+                              className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
+                              style={{ 
+                                backgroundColor: theme.primary + '20',
+                                color: theme.primary
+                              }}
+                            >
+                              Today
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-right">
+                            <div className="text-sm font-bold" style={{ color: theme.text }}>
+                              {displayAmount} <span className="text-xs font-normal opacity-70">{unit.abbrev}</span>
+                            </div>
+                            {entry.goal > 0 && (
+                              <div className="text-[10px] leading-tight" style={{ color: theme.textLight }}>
+                                {Math.round(entry.progress * 100)}% of {entry.goal}
+                              </div>
+                            )}
+                          </div>
+                          {entry.progress >= 1 && entry.goal > 0 && (
+                            <span className="text-xs" style={{ color: theme.primary }}>
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Compact progress bar */}
+                      {entry.goal > 0 && (
+                        <div className="mt-1.5">
+                          <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: theme.border + '30' }}>
+                            <div
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.min(entry.progress * 100, 100)}%`,
+                                background: `linear-gradient(90deg, ${theme.primary}, ${theme.primary}dd)`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-8 rounded-xl border text-center" style={{ 
+                borderColor: theme.border, 
+                backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : theme.cardBackground 
+              }}>
+                <Calendar size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+                <p className="text-sm" style={{ color: theme.textLight }}>
+                  No history yet. Start tracking your hydration to build your history!
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </Modal>

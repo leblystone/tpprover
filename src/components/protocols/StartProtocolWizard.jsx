@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from '../common/Modal';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -11,6 +11,7 @@ import VendorSuggestInput from '../vendors/VendorSuggestInput';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { appendStockEvent } from '../../utils/stockHistory';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 
 
 const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
@@ -78,7 +79,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     <div>
                         <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
                         <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            Skipped. This peptide will not be reconstituted.
+                            Skipped. Select delivery method below.
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -155,6 +156,31 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [linkedData, setLinkedData] = useState({});
     const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10));
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
+    const [skippedPeptideDeliveryMethods, setSkippedPeptideDeliveryMethods] = useState({}); // Store delivery method info for skipped peptides
+    const [isSkippedQuestionsOpen, setIsSkippedQuestionsOpen] = useState(false);
+    const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState({}); // Track which peptide's dropdown is open
+    const penTypeDropdownRefs = useRef({});
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            Object.keys(penTypeDropdownOpen).forEach(peptideId => {
+                if (penTypeDropdownRefs.current[peptideId] && !penTypeDropdownRefs.current[peptideId].contains(event.target)) {
+                    setPenTypeDropdownOpen(prev => ({
+                        ...prev,
+                        [peptideId]: false
+                    }));
+                }
+            });
+        };
+
+        if (Object.keys(penTypeDropdownOpen).some(key => penTypeDropdownOpen[key])) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [penTypeDropdownOpen]);
 
     const adjustStockpileAfterRecon = React.useCallback((usageList) => {
         if (!Array.isArray(usageList) || usageList.length === 0) return;
@@ -223,7 +249,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             stage,
             linkedData,
             startDate,
-            reconStrategy
+            reconStrategy,
+            skippedPeptideDeliveryMethods
         };
 
         // Skip if data hasn't changed
@@ -265,7 +292,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 clearTimeout(autoSaveTimeoutRef.current);
             }
         };
-    }, [stage, linkedData, startDate, reconStrategy, open, protocol, storageKey]);
+    }, [stage, linkedData, startDate, reconStrategy, skippedPeptideDeliveryMethods, open, protocol, storageKey]);
 
     const clearSavedData = React.useCallback(() => {
         try {
@@ -295,6 +322,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         if (savedState.linkedData) setLinkedData(savedState.linkedData);
                         if (savedState.startDate) setStartDate(savedState.startDate);
                         if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
+                        if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
                         previousStateRef.current = savedState;
                         setLastSaved(new Date(parsedData.timestamp));
                         return;
@@ -315,7 +343,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             });
             setLinkedData(initialData);
             setReconStrategy(null);
-            previousStateRef.current = { stage: 'linking', linkedData: initialData, startDate, reconStrategy: null };
+            setSkippedPeptideDeliveryMethods({});
+            previousStateRef.current = { stage: 'linking', linkedData: initialData, startDate, reconStrategy: null, skippedPeptideDeliveryMethods: {} };
         }
     }, [open, protocol, storageKey]);
 
@@ -347,6 +376,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             updated[peptideId] = { status: 'pending' };
             return updated;
         });
+        // Clear delivery method data if peptide is unlinked
+        setSkippedPeptideDeliveryMethods(prev => {
+            const updated = { ...prev };
+            delete updated[peptideId];
+            return updated;
+        });
     };
 
     const handleSkipPeptide = (peptideId) => {
@@ -362,6 +397,16 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             updated[peptideId] = { status: 'skipped' };
             return updated;
         });
+        // Initialize delivery method data for skipped peptide
+        setSkippedPeptideDeliveryMethods(prev => ({
+            ...prev,
+            [peptideId]: {
+                deliveryMethod: 'pipette',
+                administrationRoute: 'subq',
+                penType: '',
+                penColor: ''
+            }
+        }));
     };
 
     const handleSaveNewAndLink = (peptideId, newItemData) => {
@@ -407,6 +452,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
     const renderLinkingStep = () => {
         if (!protocol) return null;
+        
+        // Get skipped peptides with their IDs
+        const skippedPeptides = protocol.peptides
+            .map((p, index) => {
+                const peptideId = p.id || `peptide-${index}`;
+                return { ...p, peptideId, originalIndex: index };
+            })
+            .filter(item => linkedData[item.peptideId]?.status === 'skipped');
+        
         return (
             <div>
                 <p className="text-sm mb-4 text-center italic" style={{ color: theme.textLight }}>For each peptide in your protocol, select a vial from your stockpile, add a new one, or skip.</p>
@@ -430,6 +484,330 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         );
                     })}
                 </div>
+                
+                {/* Skipped Peptides Follow-up Questions */}
+                {skippedPeptides.length > 0 && (
+                    <div className="mt-6">
+                        <button
+                            onClick={() => setIsSkippedQuestionsOpen(!isSkippedQuestionsOpen)}
+                            className="w-full flex items-center justify-between p-3 rounded-lg transition-all"
+                            style={{
+                                backgroundColor: theme.isDark ? '#374151' : theme.secondary,
+                                borderLeft: '4px solid #e0ded7'
+                            }}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Droplets size={18} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                                <span className="font-semibold text-sm" style={{ color: theme.text }}>
+                                    Delivery Method for Skipped Peptides ({skippedPeptides.length})
+                                </span>
+                            </div>
+                            <ChevronDown 
+                                size={18} 
+                                className={`transition-transform duration-200 ${isSkippedQuestionsOpen ? 'rotate-180' : ''}`}
+                                style={{ color: theme.textLight }}
+                            />
+                        </button>
+                        
+                        {isSkippedQuestionsOpen && (
+                            <div className="mt-3 space-y-4 p-4 rounded-lg" style={{ 
+                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                border: `1px solid ${theme.border}`
+                            }}>
+                                {skippedPeptides.map((p) => {
+                                    const peptideId = p.peptideId;
+                                    const deliveryData = skippedPeptideDeliveryMethods[peptideId] || {
+                                        deliveryMethod: 'pipette',
+                                        administrationRoute: 'subq',
+                                        penType: '',
+                                        penColor: ''
+                                    };
+                                    
+                                    return (
+                                        <div key={peptideId} className="space-y-3">
+                                            <div className="pb-2 border-b" style={{ borderColor: theme.border }}>
+                                                <h5 className="font-semibold text-sm" style={{ color: theme.text }}>{p.name}</h5>
+                                            </div>
+                                            
+                                            {/* Delivery Method Selection */}
+                                            <div>
+                                                <div 
+                                                    className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" 
+                                                    style={{ 
+                                                        backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                                                        borderLeft: '4px solid #e0ded7' 
+                                                    }}
+                                                >
+                                                    <h4 
+                                                        className="font-bold text-xs tracking-wider uppercase" 
+                                                        style={{ 
+                                                            color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
+                                                            letterSpacing: '0.1em' 
+                                                        }}
+                                                    >
+                                                        DELIVERY METHOD
+                                                    </h4>
+                                                    <Droplets size={16} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSkippedPeptideDeliveryMethods(prev => ({
+                                                                ...prev,
+                                                                [peptideId]: {
+                                                                    ...deliveryData,
+                                                                    deliveryMethod: 'pipette'
+                                                                }
+                                                            }));
+                                                        }}
+                                                        className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                                                        style={{
+                                                            backgroundColor: deliveryData.deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                                            color: deliveryData.deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
+                                                            borderColor: deliveryData.deliveryMethod === 'pipette' ? theme.primary : theme.border
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (deliveryData.deliveryMethod !== 'pipette') {
+                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            if (deliveryData.deliveryMethod !== 'pipette') {
+                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Pipette size={14} /> Syringe
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSkippedPeptideDeliveryMethods(prev => ({
+                                                                ...prev,
+                                                                [peptideId]: {
+                                                                    ...deliveryData,
+                                                                    deliveryMethod: 'pen'
+                                                                }
+                                                            }));
+                                                        }}
+                                                        className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                                                        style={{
+                                                            backgroundColor: deliveryData.deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                                            color: deliveryData.deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
+                                                            borderColor: deliveryData.deliveryMethod === 'pen' ? theme.primary : theme.border
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (deliveryData.deliveryMethod !== 'pen') {
+                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            if (deliveryData.deliveryMethod !== 'pen') {
+                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Pen size={14} /> Pen
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSkippedPeptideDeliveryMethods(prev => ({
+                                                                ...prev,
+                                                                [peptideId]: {
+                                                                    ...deliveryData,
+                                                                    deliveryMethod: 'nasal'
+                                                                }
+                                                            }));
+                                                        }}
+                                                        className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                                                        style={{
+                                                            backgroundColor: deliveryData.deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                                            color: deliveryData.deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
+                                                            borderColor: deliveryData.deliveryMethod === 'nasal' ? theme.primary : theme.border
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (deliveryData.deliveryMethod !== 'nasal') {
+                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            if (deliveryData.deliveryMethod !== 'nasal') {
+                                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Droplets size={14} /> Nasal
+                                                    </button>
+                                                </div>
+                                                
+                                                {/* Administration Route for Syringe */}
+                                                {deliveryData.deliveryMethod === 'pipette' && (
+                                                    <div className="mt-3">
+                                                        <div 
+                                                            className="flex items-center gap-1 p-1 rounded-md" 
+                                                            style={{ 
+                                                                backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
+                                                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                                            }}
+                                                        >
+                                                            {['subq', 'im', 'iv'].map(route => (
+                                                                <button
+                                                                    key={route}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setSkippedPeptideDeliveryMethods(prev => ({
+                                                                            ...prev,
+                                                                            [peptideId]: {
+                                                                                ...deliveryData,
+                                                                                administrationRoute: route
+                                                                            }
+                                                                        }));
+                                                                    }}
+                                                                    className={`flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded transition-all ${
+                                                                        deliveryData.administrationRoute === route 
+                                                                            ? 'text-white shadow-sm' 
+                                                                            : 'text-gray-600 hover:bg-gray-200'
+                                                                    }`}
+                                                                    style={deliveryData.administrationRoute === route ? { backgroundColor: theme.primary } : {}}
+                                                                >
+                                                                    {route.toUpperCase()}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Pen Type and Color for Pen */}
+                                                {deliveryData.deliveryMethod === 'pen' && (
+                                                    <div className="mt-3">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            {/* Pen Type Selection */}
+                                                            <div className="relative" ref={el => penTypeDropdownRefs.current[peptideId] = el}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setPenTypeDropdownOpen(prev => ({
+                                                                            ...prev,
+                                                                            [peptideId]: !prev[peptideId]
+                                                                        }));
+                                                                    }}
+                                                                    className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                                                                    style={{
+                                                                        borderColor: penTypeDropdownOpen[peptideId] ? theme.primary : theme.border,
+                                                                        backgroundColor: theme.cardBackground,
+                                                                        color: deliveryData.penType ? theme.text : theme.textLight
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        {deliveryData.penType ? (
+                                                                            deliveryData.penType === 'bird-pen' ? 'Bird Pen' : 
+                                                                            deliveryData.penType === 'v1' ? 'V1' : 
+                                                                            deliveryData.penType === 'v2' ? 'V2' : 
+                                                                            deliveryData.penType === 'v3' ? 'V3' : 
+                                                                            deliveryData.penType.charAt(0).toUpperCase() + deliveryData.penType.slice(1)
+                                                                        ) : 'Pen Type'}
+                                                                    </span>
+                                                                    <ChevronDown 
+                                                                        size={16} 
+                                                                        className={`transition-transform duration-200 ${penTypeDropdownOpen[peptideId] ? 'rotate-180' : ''}`}
+                                                                        style={{ color: theme.textLight }}
+                                                                    />
+                                                                </button>
+                                                                {penTypeDropdownOpen[peptideId] && (
+                                                                    <div 
+                                                                        className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                                        style={{
+                                                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                                            borderColor: theme.border,
+                                                                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                                        }}
+                                                                    >
+                                                                        {[
+                                                                            { value: '', label: 'Pen Type' },
+                                                                            { value: 'savvio', label: 'Savvio' },
+                                                                            { value: 'novo', label: 'Novo' },
+                                                                            { value: 'v1', label: 'V1' },
+                                                                            { value: 'v2', label: 'V2' },
+                                                                            { value: 'v3', label: 'V3' },
+                                                                            { value: 'bird-pen', label: 'Bird Pen' },
+                                                                            { value: 'luxura', label: 'Luxura' },
+                                                                            { value: 'gansulin', label: 'Gansulin' },
+                                                                            { value: 'other', label: 'Other' }
+                                                                        ].map((option, optIdx) => (
+                                                                            <React.Fragment key={option.value}>
+                                                                                {optIdx > 0 && (
+                                                                                    <div 
+                                                                                        className="h-px mx-2"
+                                                                                        style={{ backgroundColor: theme.border }}
+                                                                                    />
+                                                                                )}
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        setSkippedPeptideDeliveryMethods(prev => ({
+                                                                                            ...prev,
+                                                                                            [peptideId]: {
+                                                                                                ...deliveryData,
+                                                                                                penType: option.value
+                                                                                            }
+                                                                                        }));
+                                                                                        setPenTypeDropdownOpen(prev => ({
+                                                                                            ...prev,
+                                                                                            [peptideId]: false
+                                                                                        }));
+                                                                                    }}
+                                                                                    className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                                                    style={{
+                                                                                        color: deliveryData.penType === option.value ? theme.primary : theme.text,
+                                                                                        backgroundColor: 'transparent'
+                                                                                    }}
+                                                                                    onMouseEnter={(e) => {
+                                                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                                        e.currentTarget.style.color = theme.primary;
+                                                                                    }}
+                                                                                    onMouseLeave={(e) => {
+                                                                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                                                                        e.currentTarget.style.color = deliveryData.penType === option.value ? theme.primary : theme.text;
+                                                                                    }}
+                                                                                >
+                                                                                    {option.label}
+                                                                                </button>
+                                                                            </React.Fragment>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Pen Color Selection */}
+                                                            <ColorSwatchDropdown
+                                                                value={penColors.find(p => p.name === deliveryData.penColor)?.hex || '#9ca3af'}
+                                                                onChange={(hex) => {
+                                                                    const selectedColor = penColors.find(p => p.hex === hex);
+                                                                    if (selectedColor) {
+                                                                        setSkippedPeptideDeliveryMethods(prev => ({
+                                                                            ...prev,
+                                                                            [peptideId]: {
+                                                                                ...deliveryData,
+                                                                                penColor: selectedColor.name
+                                                                            }
+                                                                        }));
+                                                                    }
+                                                                }}
+                                                                colors={penColors}
+                                                                theme={theme}
+                                                                placeholder="Pen Color"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+                
                  <div className="mt-6 flex justify-end">
                     <button 
                         onClick={handleContinue} 
@@ -760,7 +1138,17 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         <button 
                             onClick={() => {
                                 markAsSubmitted(); // Clear draft on successful start
-                                onStart({ ...protocol, startDate, active: true, linkedItems: linkedData });
+                                // Merge skipped peptide delivery methods into linkedData
+                                const enrichedLinkedData = { ...linkedData };
+                                Object.keys(skippedPeptideDeliveryMethods).forEach(peptideId => {
+                                    if (enrichedLinkedData[peptideId]) {
+                                        enrichedLinkedData[peptideId] = {
+                                            ...enrichedLinkedData[peptideId],
+                                            deliveryMethod: skippedPeptideDeliveryMethods[peptideId]
+                                        };
+                                    }
+                                });
+                                onStart({ ...protocol, startDate, active: true, linkedItems: enrichedLinkedData });
                             }}
                             className="px-4 py-2 rounded-lg font-medium transition-all"
                             style={{ backgroundColor: theme.primary, color: '#ffffff' }}

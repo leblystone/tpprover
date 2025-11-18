@@ -799,3 +799,70 @@ exports.sendCustomAnnouncementEmail = async (userEmail, userName = null) => {
   return sendEmail(userEmail, subject, html);
 };
 
+/**
+ * Send account deletion email
+ */
+exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
+  try {
+    const customTemplate = await loadEmailTemplate('accountDeletion');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'Account Deletion Request - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { userName, userEmail });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (error) {
+    logger.warn('Failed to load account deletion template, using default:', error);
+  }
+  
+  // Fallback to hardcoded template
+  const subject = 'Account Deletion Request - The Pep Planner';
+  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User'); // Reuse structure
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send in-depth request email
+ */
+exports.sendInDepthRequestEmail = async (userEmail, userName = null) => {
+  try {
+    const customTemplate = await loadEmailTemplate('inDepthRequest');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'In-Depth Request - The Pep Planner';
+      const html = generateEmailHTML(customTemplate, { userName, userEmail });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (error) {
+    logger.warn('Failed to load in-depth request template, using default:', error);
+  }
+  
+  // Fallback to hardcoded template
+  const subject = 'In-Depth Request - The Pep Planner';
+  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User'); // Reuse structure
+  return sendEmail(userEmail, subject, html);
+};
+
+/**
+ * Send invite email
+ */
+exports.sendInviteEmail = async (userEmail, userName = null, inviteLink = null) => {
+  try {
+    const customTemplate = await loadEmailTemplate('inviteEmail');
+    if (customTemplate) {
+      const subject = customTemplate.subject || 'You\'re Invited to The Pep Planner! 🎉';
+      const html = generateEmailHTML(customTemplate, { 
+        userName, 
+        userEmail, 
+        inviteLink: inviteLink || 'https://thepepplanner.app/signup' 
+      });
+      return sendEmail(userEmail, subject, html);
+    }
+  } catch (error) {
+    logger.warn('Failed to load invite email template, using default:', error);
+  }
+  
+  // Fallback to hardcoded template
+  const subject = 'You\'re Invited to The Pep Planner! 🎉';
+  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User'); // Reuse structure
+  return sendEmail(userEmail, subject, html);
+};
+

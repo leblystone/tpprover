@@ -154,6 +154,13 @@ export default function SettingsPreferences() {
               description="Display analytics and metrics in dashboard" 
               theme={theme} 
             />
+            <SettingToggle 
+              checked={settings.features?.toastNotifications ?? true} 
+              onChange={v => update('features.toastNotifications', v)} 
+              label="Toast Notifications" 
+              description="Show toast notifications for app events" 
+              theme={theme} 
+            />
           </div>
         </div>
 

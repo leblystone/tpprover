@@ -48,19 +48,25 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
         onClick={onClose}
         style={{
           opacity: visible ? 1 : 0,
-          transition: 'opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)'
+          transition: 'opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+          pointerEvents: visible ? 'auto' : 'none'
         }}
       />
-      <div className="absolute top-0 left-0 h-full w-full shadow-xl px-4 pb-4 flex flex-col mobile-nav-container" style={{ 
-        transform: visible ? 'translateX(0%) scale(1)' : 'translateX(-100%) scale(0.95)', 
-        opacity: visible ? 1 : 0,
-        transition: 'transform 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
-        willChange: 'transform, opacity',
-        transformOrigin: 'left center',
-        backgroundColor: theme.cardBackground,
-        paddingTop: 'max(var(--safe-area-top, 24px), 24px)',
-        paddingBottom: 'max(var(--safe-area-bottom, 16px), 16px)'
-      }}>
+      <div 
+        className="absolute top-0 left-0 h-full w-80 max-w-[85vw] shadow-xl px-4 pb-4 flex flex-col mobile-nav-container z-10" 
+        onClick={(e) => e.stopPropagation()}
+        style={{ 
+          transform: visible ? 'translateX(0%) scale(1)' : 'translateX(-100%) scale(0.95)', 
+          opacity: visible ? 1 : 0,
+          transition: 'transform 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+          willChange: 'transform, opacity',
+          transformOrigin: 'left center',
+          backgroundColor: theme.cardBackground,
+          paddingTop: 'max(var(--safe-area-top, 24px), 24px)',
+          paddingBottom: 'max(var(--safe-area-bottom, 16px), 16px)',
+          pointerEvents: visible ? 'auto' : 'none'
+        }}
+      >
         <div className="mb-3">
           <div className="flex items-center justify-between mb-2">
             {/* Left side: Close button and Text */}

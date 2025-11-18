@@ -1290,6 +1290,105 @@ exports.sendCustomAnnouncementEmail = onCall(
   }
 );
 
+// Send account deletion email
+exports.sendAccountDeletionEmail = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { userEmail, userName } = request.data;
+
+    if (!userEmail) {
+      throw new Error('userEmail is required');
+    }
+
+    logger.info(`📧 Sending account deletion email to: ${userEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      const success = await emailService.sendAccountDeletionEmail(userEmail, userName);
+      
+      if (success) {
+        logger.info(`✅ Account deletion email sent successfully to: ${userEmail}`);
+        return { success: true, message: 'Account deletion email sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send account deletion email to: ${userEmail}`);
+        return { success: false, message: 'Failed to send email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending account deletion email: ${error.message}`);
+      throw new Error('Failed to send account deletion email');
+    }
+  }
+);
+
+// Send in-depth request email
+exports.sendInDepthRequestEmail = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { userEmail, userName } = request.data;
+
+    if (!userEmail) {
+      throw new Error('userEmail is required');
+    }
+
+    logger.info(`📧 Sending in-depth request email to: ${userEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      const success = await emailService.sendInDepthRequestEmail(userEmail, userName);
+      
+      if (success) {
+        logger.info(`✅ In-depth request email sent successfully to: ${userEmail}`);
+        return { success: true, message: 'In-depth request email sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send in-depth request email to: ${userEmail}`);
+        return { success: false, message: 'Failed to send email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending in-depth request email: ${error.message}`);
+      throw new Error('Failed to send in-depth request email');
+    }
+  }
+);
+
+// Send invite email
+exports.sendInviteEmail = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { userEmail, userName, inviteLink } = request.data;
+
+    if (!userEmail) {
+      throw new Error('userEmail is required');
+    }
+
+    logger.info(`📧 Sending invite email to: ${userEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      const success = await emailService.sendInviteEmail(userEmail, userName, inviteLink);
+      
+      if (success) {
+        logger.info(`✅ Invite email sent successfully to: ${userEmail}`);
+        return { success: true, message: 'Invite email sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send invite email to: ${userEmail}`);
+        return { success: false, message: 'Failed to send email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending invite email: ${error.message}`);
+      throw new Error('Failed to send invite email');
+    }
+  }
+);
+
 // Send lifetime access granted email
 exports.sendLifetimeAccessEmail = onCall(
   {
