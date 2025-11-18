@@ -73,9 +73,8 @@ export default function CustomizableDashboard() {
 
   // Dashboard customization state
   const [widgets, setWidgets] = useState(() => {
-    // For now, always load fresh defaults to show new widgets
-    // TODO: Remove this and use loadDashboardLayout() after testing
-    return resetDashboardLayout();
+    // Load saved dashboard layout or use defaults
+    return loadDashboardLayout();
   });
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -1206,15 +1205,26 @@ export default function CustomizableDashboard() {
         onClose={() => { setShowAddSupplement(false); setEditingSupplement(null); }}
         theme={theme}
         supplement={editingSupplement}
-        onSave={(supplement) => {
+        onSave={async (supplement) => {
+          // Handle delete case directly
+          if (supplement._delete && supplement.id) {
+            await deleteSupplement(supplement.id);
+            setShowAddSupplement(false);
+            setEditingSupplement(null);
+            addToast('Supplement deleted', 'success');
+            return;
+          }
+          
+          // Handle save/update
           if (editingSupplement) {
-            updateSupplement(supplement);
+            await updateSupplement(supplement);
+            addToast('Supplement saved', 'success');
           } else {
             addSupplement(supplement);
+            addToast('Supplement added', 'success');
           }
           setShowAddSupplement(false);
           setEditingSupplement(null);
-          addToast('Supplement saved', 'success');
         }}
       />
 

@@ -1286,23 +1286,36 @@ export default function Dashboard() {
         onClose={() => setShowAddSupplement(false)}
         theme={theme}
         supplement={editingSupplement}
-        onSave={(data) => {
+        onSave={async (data) => {
           if (isReadOnly) {
             setShowUpgradeModal(true);
             return;
           }
           
+          // Handle delete case directly
+          if (data._delete && data.id) {
+            await deleteSupplement(data.id);
+            setShowAddSupplement(false);
+            setEditingSupplement(null);
+            
+            const deleteBumpTime = String(Date.now())
+            localStorage.setItem('tpprover_calendar_bump', deleteBumpTime)
+            window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: deleteBumpTime }))
+            return;
+          }
+          
+          // Handle save/update
           if (editingSupplement) {
-            updateSupplement(data);
+            await updateSupplement(data);
           } else {
             addSupplement(data);
           }
           setShowAddSupplement(false)
           setEditingSupplement(null)
           
-          const now = String(Date.now())
-          localStorage.setItem('tpprover_calendar_bump', now)
-          window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: now }))
+          const saveBumpTime = String(Date.now())
+          localStorage.setItem('tpprover_calendar_bump', saveBumpTime)
+          window.dispatchEvent(new StorageEvent('storage', { key: 'tpprover_calendar_bump', newValue: saveBumpTime }))
         }}
       />
       <BadgesModal open={showBadges} onClose={() => setShowBadges(false)} theme={theme} />

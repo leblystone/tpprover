@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark } from 'lucide-react';
+import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark, HandHelping } from 'lucide-react';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
     const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [] });
@@ -20,12 +20,10 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
         }
     }, [supplement, open]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const dataToSave = { ...form, id: supplement?.id || Date.now() };
-        console.log('💾 SupplementsWidget handleSave - saving:', dataToSave);
-        console.log('💾 Delivery field in saved data:', dataToSave.delivery);
-        onSave(dataToSave);
-        onClose();
+        await onSave(dataToSave);
+        // onSave will handle closing the modal
     };
     
     const toggleTime = (time) => {
@@ -56,24 +54,54 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
             theme={theme}
             variant="modern"
             footer={
-                <div className="flex justify-between items-center w-full">
-                    <div className="flex-1">
+                <div className="w-full flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1 justify-start">
                         {supplement?.id && (
                             <button 
-                                onClick={() => {
-                                    onSave({ ...supplement, _delete: true });
-                                    onClose();
+                                type="button"
+                                onClick={async () => {
+                                    await onSave({ ...supplement, _delete: true });
+                                    // onSave will handle closing the modal
                                 }}
-                                className="px-4 py-2 rounded-lg border font-medium transition-all text-red-600 hover:bg-red-50"
-                                style={{ borderColor: '#ef4444' }}
+                                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                                style={{
+                                    background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                                    color: '#ffffff',
+                                    border: 'none'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                                }}
                             >
                                 Delete
                             </button>
                         )}
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={onClose} className="px-4 py-2 rounded-lg border font-medium transition-all" style={{ borderColor: theme.border, color: theme.text }}>Cancel</button>
-                        <button onClick={handleSave} className="px-4 py-2 rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save</button>
+                    <div className="flex items-center gap-2 flex-1 justify-end">
+                        <button 
+                            type="button"
+                            onClick={handleSave} 
+                            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95"
+                            style={{ 
+                                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                                color: theme.textOnPrimary || '#ffffff',
+                                border: 'none',
+                                boxShadow: theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = theme.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
+                            }}
+                        >
+                            Save Changes
+                        </button>
                     </div>
                 </div>
             }
@@ -156,7 +184,10 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                 </button>
                             ))}
                         </div>
-                        <div className="text-xs mt-2 text-center" style={{ color: theme.textLight || theme.text, opacity: 0.7 }}>Leave days blank to schedule for every day.</div>
+                        <div className="text-xs mt-2 text-center flex items-center justify-center gap-1.5" style={{ color: theme.textLight || theme.text, opacity: 0.7 }}>
+                            <HandHelping size={14} />
+                            <span>Leave days unchecked for everyday.</span>
+                        </div>
                     </div>
                 </div>
 
@@ -177,9 +208,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                 key={value} 
                                 type="button" 
                                 onClick={() => {
-                                    console.log('🖱️ Delivery method clicked:', value);
                                     setForm({ ...form, delivery: value });
-                                    console.log('📋 Form state after update:', { ...form, delivery: value });
                                 }} 
                                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${form.delivery === value ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-200'}`}
                                 style={form.delivery === value ? { backgroundColor: theme.primary } : {}}

@@ -247,13 +247,6 @@ const getResolvedPenColor = (penColor) => {
         color.name.toLowerCase() === raw.toLowerCase()
     );
     
-    console.log('🎨 Pen color resolution:', {
-        input: penColor,
-        raw: raw,
-        foundColor: foundColor,
-        result: foundColor ? foundColor.hex : '#9ca3af'
-    });
-    
     return foundColor ? foundColor.hex : '#9ca3af';
 }
 

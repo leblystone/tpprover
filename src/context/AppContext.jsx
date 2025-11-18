@@ -1521,20 +1521,112 @@ export function AppProvider({ children }) {
         setSupplements(prev => [supplementToAdd, ...prev]);
     };
 
-    const updateSupplement = (updatedSupplement) => {
-        // Handle delete flag
+    const updateSupplement = async (updatedSupplement) => {
+        // Handle delete flag - use deleteSupplement for proper cloud sync
         if (updatedSupplement._delete) {
-            setSupplements(prev => prev.filter(s => s.id !== updatedSupplement.id));
+            await deleteSupplement(updatedSupplement.id);
             return;
         }
         
         // Remove _delete flag if it exists and update normally
         const { _delete, ...cleanSupplement } = updatedSupplement;
-        setSupplements(prev => prev.map(s => s.id === cleanSupplement.id ? cleanSupplement : s));
+        
+        // Ensure the updated supplement has a fresh timestamp
+        const supplementWithTimestamp = {
+            ...cleanSupplement,
+            updatedAt: new Date().toISOString()
+        };
+        
+        // Update local state
+        const updatedSupplements = supplements.map(s => s.id === supplementWithTimestamp.id ? supplementWithTimestamp : s);
+        setSupplements(updatedSupplements);
+        
+        // CRITICAL: Set flag to prevent real-time listener from overwriting our update
+        lastRemoteUpdateTimeRef.current = Date.now();
+        isApplyingRemoteUpdateRef.current = true;
+        
+        // CRITICAL: Force immediate cloud sync with skipMerge to ensure updates persist
+        // This prevents the merge logic from preferring stale server data
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: reconItems || [],
+                    reconHistory: reconHistory || [],
+                    supplements: updatedSupplements, // Use updated supplements with changes
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                
+                // Use skipMerge to force overwrite server data with our update
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('✅ Updated supplement synced to cloud immediately');
+                } else {
+                    console.error('❌ Failed to sync updated supplement to cloud');
+                }
+                
+                // Reset flag after a delay to allow sync to complete
+                setTimeout(() => {
+                    isApplyingRemoteUpdateRef.current = false;
+                }, 2000);
+            } catch (error) {
+                console.error('❌ Error syncing updated supplement to cloud:', error);
+                isApplyingRemoteUpdateRef.current = false;
+                // Don't throw - the auto-sync will handle it
+            }
+        } else {
+            isApplyingRemoteUpdateRef.current = false;
+        }
     };
 
-    const deleteSupplement = (supplementId) => {
-        setSupplements(prev => prev.filter(s => s.id !== supplementId));
+    const deleteSupplement = async (supplementId) => {
+        // Find the supplement being deleted for logging
+        const supplementToDelete = supplements.find(s => s.id === supplementId);
+        
+        if (supplementToDelete) {
+            console.log('🗑️ Deleting supplement:', supplementToDelete.name || 'Unknown');
+        }
+        
+        // Remove from local state
+        const updatedSupplements = supplements.filter(s => s.id !== supplementId);
+        setSupplements(updatedSupplements);
+        
+        // CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+        // This prevents server data from restoring deleted items
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: reconItems || [],
+                    reconHistory: reconHistory || [],
+                    supplements: updatedSupplements, // Use updated supplements with deletion
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                
+                // Force immediate sync with skipMerge to overwrite server data
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('✅ Deleted supplement synced to cloud immediately');
+                } else {
+                    console.error('❌ Failed to sync deleted supplement to cloud');
+                }
+            } catch (error) {
+                console.error('❌ Error syncing deleted supplement to cloud:', error);
+                // Don't throw - the auto-sync will handle it
+            }
+        }
     };
 
     const updateCalendarNote = (dateKey, text) => {

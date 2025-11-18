@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Pill, Beaker, Edit, Trash2, Lock, Pipette } from 'lucide-react';
+import { Plus, Pill, Beaker, Edit, Lock, Pipette } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 
 const SupplementsWidget = ({ 
@@ -60,19 +60,24 @@ const SupplementsWidget = ({
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={onAddSupplement}
-                className="p-1 rounded-full flex items-center justify-center action-button-hover transition-colors"
+                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
                 style={{ 
-                  color: theme.primary,
-                  backgroundColor: 'transparent'
+                  color: '#ffffff',
+                  backgroundColor: theme.primary,
+                  width: '28px',
+                  height: '28px',
+                  padding: 0,
+                  border: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? theme.primary + '20' : theme.primary + '12';
+                  e.currentTarget.style.opacity = '0.9';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.opacity = '1';
                 }}
               >
-                <Plus size={11} strokeWidth={3} className="icon-hover" />
+                <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
               </button>
             </ModernTooltip>
           </div>
@@ -143,7 +148,7 @@ const SupplementsWidget = ({
                         <Edit size={14} className="icon-hover" />
                       </button>
                     </ModernTooltip>
-                                     </div>
+                  </div>
                  </div>
                </div>
                );
