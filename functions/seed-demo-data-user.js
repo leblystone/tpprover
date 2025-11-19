@@ -9,38 +9,45 @@
 
 const admin = require('firebase-admin');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const fs = require('fs');
 
-// Initialize Firebase Admin
-if (!admin.apps.length) {
+// Try to load .env file if it exists
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
+
+// Get project ID from .firebaserc or env
+let projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+if (!projectId) {
   try {
-    // Try to use service account if available
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const firebasercPath = path.join(__dirname, '..', '.firebaserc');
+    if (fs.existsSync(firebasercPath)) {
+      const firebaserc = JSON.parse(fs.readFileSync(firebasercPath, 'utf8'));
+      projectId = firebaserc.projects?.default;
+    }
+  } catch (error) {
+    // Ignore errors reading .firebaserc
+  }
+}
+
+// Initialize Firebase Admin - use same approach as other scripts
+if (!admin.apps.length) {
+  // Try to use service account if available
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    try {
       const serviceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID || serviceAccount.project_id
+        projectId: projectId || serviceAccount.project_id
       });
-    } else if (process.env.VITE_FIREBASE_PROJECT_ID) {
-      // Use application default credentials with project ID
-      admin.initializeApp({
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID
-      });
-    } else {
-      // Try default initialization (requires gcloud auth or service account)
-      admin.initializeApp();
+    } catch (error) {
+      console.warn('⚠️  Could not load service account from GOOGLE_APPLICATION_CREDENTIALS, trying default init...');
+      admin.initializeApp(projectId ? { projectId } : {});
     }
-  } catch (error) {
-    console.error('\n❌ Firebase Admin initialization failed!');
-    console.error('\n📝 To fix this, you need to set up authentication:');
-    console.error('\n   Option 1: Use Application Default Credentials');
-    console.error('   Run: gcloud auth application-default login');
-    console.error('\n   Option 2: Use a Service Account');
-    console.error('   Set GOOGLE_APPLICATION_CREDENTIALS environment variable');
-    console.error('   Example: $env:GOOGLE_APPLICATION_CREDENTIALS="path/to/serviceAccountKey.json"');
-    console.error('\n   Option 3: Set VITE_FIREBASE_PROJECT_ID in .env file');
-    console.error('   And ensure you have authenticated with gcloud\n');
-    throw error;
+  } else {
+    // Use default initialization with project ID if available
+    admin.initializeApp(projectId ? { projectId } : {});
   }
 }
 

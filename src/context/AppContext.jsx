@@ -879,11 +879,19 @@ export function AppProvider({ children }) {
                                     if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
                                     if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
                                     if (firebaseData.scheduledBuys) {
+                                        // Check if we recently made a local update (within last 5 seconds)
+                                        const timeSinceLocalUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
+                                        if (timeSinceLocalUpdate < 5000) {
+                                            console.log('⏸️ Skipping Firebase scheduledBuys update - recent local change detected');
+                                            return;
+                                        }
+                                        
                                         // Filter out mock scheduled buys if sample data was cleared
                                         const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                                         const filteredScheduledBuys = sampleDataCleared 
                                             ? firebaseData.scheduledBuys.filter(buy => !buy.isMock)
                                             : firebaseData.scheduledBuys;
+                                        console.log('🔄 Firebase scheduledBuys update applied');
                                         setScheduledBuys(filteredScheduledBuys);
                                     }
                                     

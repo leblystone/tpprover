@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { formatMMDDYYYY } from '../../utils/date'
-import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit } from 'lucide-react'
+import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, HandCoins } from 'lucide-react'
 import Modal from '../common/Modal'
 import ModernTooltip from '../ui/ModernTooltip'
+import TextInput from '../common/inputs/TextInput'
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [showModal, setShowModal] = useState(false);
@@ -106,8 +108,9 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const handleSave = (itemId) => {
     // Save changes to localStorage
     try {
-      const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
-      const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : [];
+      // CRITICAL: Use current localList state instead of reading from localStorage
+      // Reading from localStorage can give stale data if a previous save hasn't been written yet
+      const scheduledBuys = [...localList];
       
       const editedData = editingItems[itemId];
       if (!editedData) {
@@ -198,13 +201,9 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // Increment render key to force complete re-render
       setRenderKey(prev => prev + 1);
       
-      // Force a complete refresh by reloading from localStorage
+      // Re-select the item from the updatedList (which has fresh data)
       setTimeout(() => {
-        const freshList = reloadList();
-        setLocalList([...freshList]);
-        
-        // Find and select the saved item from the fresh list
-        const savedItem = freshList.find(buy => buy.id === itemId);
+        const savedItem = updatedList.find(buy => buy.id === itemId);
         if (savedItem) {
           console.log('🔄 Re-selecting item with fresh data:', savedItem);
           setSelectedItem({ ...savedItem }); // Create new reference
@@ -222,11 +221,9 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
 
   const confirmDelete = (itemId) => {
     try {
-      const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
-      const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : [];
-      
-      // Remove the item
-      const updatedBuys = scheduledBuys.filter(item => item.id !== itemId);
+      // CRITICAL: Use current localList state instead of reading from localStorage
+      // This ensures we preserve any recent edits that haven't been synced yet
+      const updatedBuys = localList.filter(item => item.id !== itemId);
       localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updatedBuys));
       
       // Update local list immediately
@@ -394,18 +391,23 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                   {editingItems[item.id] ? (
                     // Edit Mode
                     <div className="space-y-4">
+                      {/* GROUP BUY DETAILS Section Header */}
+                      <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                        <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>GROUP BUY DETAILS</h4>
+                        <ShoppingCart size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                      </div>
+
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                            Group Buy For:
-                          </label>
-                          <input
-                            type="text"
+                          <TextInput
+                            label="Group Buy For"
                             value={editingItems[item.id]?.item || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'item', e.target.value)}
+                            onChange={v => handleFieldChange(item.id, 'item', v)}
                             placeholder="Product Name"
-                            className="w-full p-2 rounded border text-base font-semibold"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                            theme={theme}
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                           />
                         </div>
                         <div className="flex items-center gap-1 ml-2">
@@ -421,102 +423,116 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                       
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                            Open Date
-                          </label>
-                          <input
-                            type="date"
+                          <label className="text-sm font-medium mb-2 block text-center" style={{ color: theme.text }}>Open Date</label>
+                          <GlassmorphismDatePicker
                             value={editingItems[item.id]?.openDate || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'openDate', e.target.value)}
-                            className="w-full p-2 rounded border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                            onChange={(dateString) => handleFieldChange(item.id, 'openDate', dateString)}
+                            theme={theme}
+                            placeholder="Open Date"
+                            compact={true}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                            Close Date
-                          </label>
-                          <input
-                            type="date"
+                          <label className="text-sm font-medium mb-2 block text-center" style={{ color: theme.text }}>Close Date</label>
+                          <GlassmorphismDatePicker
                             value={editingItems[item.id]?.closeDate || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'closeDate', e.target.value)}
-                            className="w-full p-2 rounded border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                            onChange={(dateString) => handleFieldChange(item.id, 'closeDate', dateString)}
+                            theme={theme}
+                            placeholder="Close Date"
+                            compact={true}
                           />
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                            Group Buy Host
-                          </label>
-                          <input
-                            type="text"
-                            value={editingItems[item.id]?.vendor || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'vendor', e.target.value)}
-                            placeholder="Name"
-                            className="w-full p-2 rounded border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                            Platform
-                          </label>
-                          <input
-                            type="text"
-                            value={editingItems[item.id]?.location || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'location', e.target.value)}
-                            placeholder="e.g Discord, Telegram, ect."
-                            className="w-full p-2 rounded border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                            Vendor
-                          </label>
-                          <input
-                            type="text"
-                            value={editingItems[item.id]?.participants || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'participants', e.target.value)}
-                            placeholder="Vendor Name"
-                            className="w-full p-2 rounded border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                            Price
-                          </label>
-                          <input
-                            type="text"
-                            value={editingItems[item.id]?.price || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'price', e.target.value)}
-                            placeholder="$"
-                            className="w-full p-2 rounded border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                          Notes
-                        </label>
-                        <textarea
-                          value={editingItems[item.id]?.notes || ''}
-                          onChange={(e) => handleFieldChange(item.id, 'notes', e.target.value)}
-                          placeholder="Any further group buy details."
-                          rows={3}
-                          className="w-full p-2 rounded border text-sm resize-none"
-                          style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                        <TextInput
+                          label="Group Buy Host"
+                          value={editingItems[item.id]?.vendor || ''}
+                          onChange={v => handleFieldChange(item.id, 'vendor', v)}
+                          placeholder="Name"
+                          theme={theme}
+                          outlined={true}
+                          customTextColor={theme.isDark ? null : "#181A18"}
+                          customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
+                        <TextInput
+                          label="Platform"
+                          value={editingItems[item.id]?.location || ''}
+                          onChange={v => handleFieldChange(item.id, 'location', v)}
+                          placeholder="e.g Discord, Telegram, etc."
+                          theme={theme}
+                          outlined={true}
+                          customTextColor={theme.isDark ? null : "#181A18"}
+                          customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                         />
                       </div>
+                      
+                      {/* VENDOR & PRICING Section Header */}
+                      <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
+                        <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>VENDOR & PRICING</h4>
+                        <HandCoins size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <TextInput
+                          label="Vendor"
+                          value={editingItems[item.id]?.participants || ''}
+                          onChange={v => handleFieldChange(item.id, 'participants', v)}
+                          placeholder="Vendor Name"
+                          theme={theme}
+                          outlined={true}
+                          customTextColor={theme.isDark ? null : "#181A18"}
+                          customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" style={{ color: theme.textLight || theme.text }}>
+                            <span className="text-sm">$</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={editingItems[item.id]?.price || ''}
+                              onChange={(e) => handleFieldChange(item.id, 'price', e.target.value)}
+                              placeholder="0.00"
+                              className="w-full p-3 pl-8 rounded-lg transition-all focus:outline-none"
+                              style={{
+                                border: `1px solid #f0eee7`,
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                                color: theme.isDark ? theme.text : '#181A18',
+                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                              }}
+                              onFocus={(e) => {
+                                e.target.style.borderColor = theme.primary;
+                              }}
+                              onBlur={(e) => {
+                                e.target.style.borderColor = '#f0eee7';
+                              }}
+                            />
+                            <label 
+                              className="absolute left-3 -top-2.5 px-1 text-xs font-medium transition-all pointer-events-none"
+                              style={{ 
+                                color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76',
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                              }}
+                            >
+                              Price
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <TextInput
+                        label="Notes"
+                        value={editingItems[item.id]?.notes || ''}
+                        onChange={v => handleFieldChange(item.id, 'notes', v)}
+                        placeholder="Any further group buy details."
+                        theme={theme}
+                        outlined={true}
+                        customTextColor={theme.isDark ? null : "#181A18"}
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        multiline={true}
+                        rows={3}
+                      />
                       
                       {/* Action Buttons */}
                       <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: theme.border }}>

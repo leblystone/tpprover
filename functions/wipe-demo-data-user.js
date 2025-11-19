@@ -9,24 +9,45 @@
 
 const admin = require('firebase-admin');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const fs = require('fs');
 
-// Initialize Firebase Admin
+// Try to load .env file if it exists
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
+
+// Get project ID from .firebaserc or env
+let projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+if (!projectId) {
+  try {
+    const firebasercPath = path.join(__dirname, '..', '.firebaserc');
+    if (fs.existsSync(firebasercPath)) {
+      const firebaserc = JSON.parse(fs.readFileSync(firebasercPath, 'utf8'));
+      projectId = firebaserc.projects?.default;
+    }
+  } catch (error) {
+    // Ignore errors reading .firebaserc
+  }
+}
+
+// Initialize Firebase Admin - use same approach as other scripts
 if (!admin.apps.length) {
   // Try to use service account if available
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    const serviceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID || serviceAccount.project_id
-    });
-  } else if (process.env.VITE_FIREBASE_PROJECT_ID) {
-    // Use application default credentials or project ID
-    admin.initializeApp({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID
-    });
+    try {
+      const serviceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: projectId || serviceAccount.project_id
+      });
+    } catch (error) {
+      console.warn('⚠️  Could not load service account from GOOGLE_APPLICATION_CREDENTIALS, trying default init...');
+      admin.initializeApp(projectId ? { projectId } : {});
+    }
   } else {
-    admin.initializeApp();
+    // Use default initialization with project ID if available
+    admin.initializeApp(projectId ? { projectId } : {});
   }
 }
 

@@ -1,4 +1,6 @@
 import React from 'react';
+import { FlaskConicalOff, RefreshCw } from 'lucide-react';
+import { themes } from '../../theme/themes';
 
 /**
  * Error Boundary for Chunk Loading Failures
@@ -97,6 +99,9 @@ class ChunkErrorBoundary extends React.Component {
          window.location.hostname !== '127.0.0.1' &&
          !window.location.hostname.includes('localhost'));
 
+      // Get sage theme colors
+      const sageTheme = themes.sage;
+
       return (
         <div style={{
           display: 'flex',
@@ -107,38 +112,43 @@ class ChunkErrorBoundary extends React.Component {
           padding: '2rem',
           textAlign: 'center',
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          backgroundColor: sageTheme.background
         }}>
           <div style={{
             maxWidth: '500px',
             width: '100%',
-            backgroundColor: 'white',
+            backgroundColor: sageTheme.cardBackground,
             padding: '3rem 2rem',
             borderRadius: '1.5rem',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: `1px solid ${sageTheme.border}`
           }}>
-            {/* Icon/Emoji */}
+            {/* Icon */}
             <div style={{
-              fontSize: '4rem',
-              marginBottom: '1.5rem',
-              lineHeight: '1'
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: '1.5rem'
             }}>
-              {isChunkError ? '🔄' : '😔'}
+              {isChunkError ? (
+                <RefreshCw size={64} color={sageTheme.primary} />
+              ) : (
+                <FlaskConicalOff size={64} color={sageTheme.primary} />
+              )}
             </div>
 
             <h1 style={{ 
               fontSize: '1.75rem', 
               marginBottom: '1rem', 
-              color: '#1f2937',
+              color: sageTheme.text,
               fontWeight: '700',
               lineHeight: '1.2'
             }}>
-              {isChunkError ? 'Update Available' : 'Oops! Something Went Wrong'}
+              {isChunkError ? 'Update Available' : 'Synthesis Interrupted'}
             </h1>
             
             <p style={{ 
               marginBottom: '2rem', 
-              color: '#6b7280', 
+              color: sageTheme.textLight, 
               fontSize: '1rem',
               lineHeight: '1.6'
             }}>
@@ -159,99 +169,35 @@ class ChunkErrorBoundary extends React.Component {
                 style={{
                   padding: '0.875rem 1.5rem',
                   fontSize: '1rem',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
+                  backgroundColor: sageTheme.primary,
+                  color: sageTheme.textOnPrimary,
                   border: 'none',
                   borderRadius: '0.75rem',
                   cursor: 'pointer',
                   fontWeight: '600',
                   transition: 'all 0.2s',
-                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+                  boxShadow: '0 4px 6px -1px rgba(127, 158, 149, 0.3)',
                   width: '100%'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#2563eb';
+                  e.target.style.backgroundColor = sageTheme.primaryDark;
                   e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.boxShadow = '0 6px 8px -1px rgba(59, 130, 246, 0.4)';
+                  e.target.style.boxShadow = '0 6px 8px -1px rgba(95, 127, 118, 0.4)';
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.backgroundColor = '#3b82f6';
+                  e.target.style.backgroundColor = sageTheme.primary;
                   e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                  e.target.style.boxShadow = '0 4px 6px -1px rgba(127, 158, 149, 0.3)';
                 }}
               >
                 Refresh Page
               </button>
-
-              {!isChunkError && (
-                <button
-                  onClick={this.handleClearCacheAndReload}
-                  style={{
-                    padding: '0.875rem 1.5rem',
-                    fontSize: '1rem',
-                    backgroundColor: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '0.75rem',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    transition: 'all 0.2s',
-                    width: '100%'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.backgroundColor = '#e5e7eb';
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.backgroundColor = '#f3f4f6';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                >
-                  Clear Cache & Refresh
-                </button>
-              )}
             </div>
-
-            {/* NEVER show error details in production - only in local development */}
-            {!isProduction && (
-              <details style={{
-                marginTop: '2rem',
-                textAlign: 'left',
-                fontSize: '0.75rem',
-                color: '#64748b',
-                backgroundColor: '#f9fafb',
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #e5e7eb'
-              }}>
-                <summary style={{ 
-                  cursor: 'pointer', 
-                  fontWeight: '600', 
-                  marginBottom: '0.5rem',
-                  color: '#374151'
-                }}>
-                  🔧 Technical Details (Dev Only)
-                </summary>
-                <pre style={{ 
-                  overflow: 'auto', 
-                  fontSize: '0.7rem',
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  color: '#6b7280',
-                  fontFamily: 'monospace'
-                }}>
-                  {this.state.error?.toString()}
-                  {'\n\n'}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </details>
-            )}
 
             <p style={{ 
               marginTop: '1.5rem', 
               fontSize: '0.875rem', 
-              color: '#9ca3b8',
+              color: sageTheme.textLight,
               lineHeight: '1.5'
             }}>
               If this problem continues, please contact our support team. We're here to help! 🚀

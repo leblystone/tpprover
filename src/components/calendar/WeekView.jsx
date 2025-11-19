@@ -361,7 +361,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                                 }
                                 
                                 // Use full data if found, otherwise use the basic info
-                                const groupBuyData = fullData || {
+                                // Spread all properties to ensure we don't miss any fields
+                                const groupBuyData = fullData ? { ...fullData } : {
                                     item: groupBuyInfo.item || groupBuyInfo.name?.replace('Group Buy For: ', '') || 'Unknown Item',
                                     vendor: groupBuyInfo.vendor || '',
                                     price: groupBuyInfo.price || '',
@@ -369,7 +370,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                                     closeDate: groupBuyInfo.closeDate || '',
                                     location: groupBuyInfo.location || '',
                                     participants: groupBuyInfo.participants || '',
-                                    notes: groupBuyInfo.notes || ''
+                                    notes: groupBuyInfo.notes || '',
+                                    // Include any other fields from groupBuyInfo
+                                    ...groupBuyInfo
                                 };
                                 
                                 setExpandedGroupBuy(dayKey);
@@ -404,12 +407,12 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                             
                             {/* Details Grid */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {/* Vendor */}
+                                {/* Host */}
                                 {expandedGroupBuyData.vendor && (
                                     <div className="flex items-start gap-2">
                                         <Building size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
                                         <div className="min-w-0">
-                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Vendor</div>
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Host</div>
                                             <div className="text-xs" style={{ color: theme.text }}>{expandedGroupBuyData.vendor}</div>
                                         </div>
                                     </div>
@@ -448,12 +451,12 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                                     </div>
                                 )}
 
-                                {/* Location */}
+                                {/* Platform */}
                                 {expandedGroupBuyData.location && (
                                     <div className="flex items-start gap-2">
                                         <MapPin size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
                                         <div className="min-w-0">
-                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Location</div>
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Platform</div>
                                             <div className="text-xs" style={{ color: theme.text }}>{expandedGroupBuyData.location}</div>
                                         </div>
                                     </div>
@@ -471,16 +474,16 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                                 )}
                             </div>
 
-                            {/* Notes */}
-                            {expandedGroupBuyData.notes && (
-                                <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <FileText size={14} style={{ color: theme.textLight }} />
-                                        <div className="text-[10px] font-semibold" style={{ color: theme.textLight }}>Notes</div>
-                                    </div>
-                                    <p className="text-xs whitespace-pre-wrap" style={{ color: theme.text }}>{expandedGroupBuyData.notes}</p>
+                            {/* Notes - Always show section, even if empty */}
+                            <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <FileText size={14} style={{ color: theme.textLight }} />
+                                    <div className="text-[10px] font-semibold" style={{ color: theme.textLight }}>Notes</div>
                                 </div>
-                            )}
+                                <p className="text-xs whitespace-pre-wrap" style={{ color: expandedGroupBuyData.notes ? theme.text : theme.textLight }}>
+                                    {expandedGroupBuyData.notes || 'No notes available'}
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
