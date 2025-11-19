@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Play, Calendar, Target, Clock, FileText, Repeat, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette } from 'lucide-react';
+import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -79,89 +79,126 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
                     
                     <hr className="my-3" style={{ borderColor: theme.border }} />
 
-                    <div className="space-y-3">
-                        {p.peptides?.map((peptide, index) => (
-                            <div key={peptide.id || index} className="text-sm p-2 rounded-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb' }}>
-                                <div className="font-semibold" style={{color: theme.text}}>{peptide.name || 'Unnamed Peptide'}</div>
-                                <div className="text-xs space-y-1 mt-1" style={{ color: theme.isDark ? theme.textLight : theme.text }}>
-                                    {peptide.dosage?.amount > 0 && (
-                                        <div className="flex items-center gap-1.5">
-                                            <Pipette size={12} />
-                                            <span>
-                                                {peptide.dosage.amount} {peptide.dosage.unit}
-                                                {peptide.unitValue && ` | ${peptide.unitValue} units`}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {peptide.frequency && (<div className="flex items-center gap-1.5"><Repeat size={12} /><span>{formatIndividualFrequency(peptide.frequency)}</span></div>)}
-                                    {peptide.titration?.length > 0 && (<div className="flex items-start gap-1.5"><TrendingUp size={12} className="mt-0.5" /><span style={{ color: theme.textLight }}>{formatTitration(peptide.titration)}</span></div>)}
-                                </div>
+                    {p.peptides && p.peptides.length > 0 && (
+                        <div className="space-y-2">
+                            {/* Header row */}
+                            <div className="grid grid-cols-2 gap-3 text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
+                                <div>Peptides</div>
+                                <div>Dosage / Frequency</div>
                             </div>
-                        ))}
-                    </div>
+                            {/* Peptide rows */}
+                            {p.peptides.map((peptide, index) => (
+                                <div key={peptide.id || index} className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className="font-medium" style={{color: theme.text}}>
+                                        {peptide.name || 'Unnamed Peptide'}
+                                    </div>
+                                    <div className="space-y-1 text-xs" style={{ color: theme.isDark ? theme.textLight : theme.text }}>
+                                        {peptide.dosage?.amount > 0 && (
+                                            <div>
+                                                {peptide.dosage.amount} {peptide.dosage.unit}
+                                                {peptide.unitValue && ` (${peptide.unitValue} units)`}
+                                            </div>
+                                        )}
+                                        {peptide.frequency && (
+                                            <div className="flex items-center gap-1.5">
+                                                <CalendarClock size={12} className="flex-shrink-0" />
+                                                <span>{formatIndividualFrequency(peptide.frequency)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     { (p.notes) && <hr className="my-3" style={{ borderColor: theme.border }} /> }
                     
                     <div className="space-y-2 mt-2 text-sm" style={{ color: theme.textLight }}>
-                        {isActive && (
-                            <div className="flex items-start gap-2">
-                                <Calendar size={14} className="mt-0.5 flex-shrink-0" />
-                                <span>{renderDateRange(p)}</span>
-                            </div>
-                        )}
-                        <div className="flex items-start gap-2"><Clock size={14} className="mt-0.5 flex-shrink-0" /><span>{p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}${p.duration.count > 1 ? 's' : ''}` : 'Duration not set')}</span></div>
-                        {p.washout?.enabled && p.washout?.count > 0 && (<div className="flex items-start gap-2"><RotateCw size={14} className="mt-0.5 flex-shrink-0" /><span>Washout: {p.washout.count} {p.washout.unit}{p.washout.count > 1 ? 's' : ''}</span></div>)}
-                        {/* Delivery Methods from Peptides */}
-                        {p.peptides && p.peptides.length > 0 && (() => {
-                            const deliveryMethods = [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'syringe'))];
-                            const penPeptides = p.peptides.filter(pep => (pep.deliveryMethod || 'syringe') === 'pen');
+                        {isActive && (() => {
+                            const deliveryMethods = p.peptides && p.peptides.length > 0 ? [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'syringe'))] : [];
+                            const penPeptides = p.peptides ? p.peptides.filter(pep => (pep.deliveryMethod || 'syringe') === 'pen') : [];
                             
-                            return deliveryMethods.map(method => (
-                                <div key={method} className="flex items-start gap-2">
-                                    {method === 'pen' ? <Pen size={14} className="mt-0.5 flex-shrink-0" /> : <Pipette size={14} className="mt-0.5 flex-shrink-0" />}
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-sm font-medium">
-                                            {method === 'pen' ? 'Pen Delivery' : 'Syringe Delivery'}
-                                        </span>
-                                        {method === 'pen' && penPeptides.map((pep, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 text-xs">
-                                                {pep.penType && (
-                                                    <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                        {pep.penType === 'other' ? 'Other' : 
-                                                            pep.penType === 'savvio' ? 'Savvio' :
-                                                            pep.penType === 'novo' ? 'Novo' :
-                                                            pep.penType === 'v1' ? 'V1' :
-                                                            pep.penType === 'v2' ? 'V2' :
-                                                            pep.penType === 'v3' ? 'V3' :
-                                                            pep.penType === 'bird-pen' ? 'Bird Pen' :
-                                                            pep.penType === 'luxura' ? 'Luxura' :
-                                                            pep.penType === 'gansulin' ? 'Gansulin' :
-                                                            pep.penType
-                                                        }
-                                                    </span>
-                                                )}
-                                                {pep.penColor && (() => {
-                                                    const colorInfo = penColors.find(c => c.name === pep.penColor);
-                                                    if (colorInfo) {
-                                                        return (
-                                                            <div 
-                                                                className="w-4 h-4 rounded-full border-2" 
-                                                                style={{ 
-                                                                    background: getChromeGradient(colorInfo.hex),
-                                                                    borderColor: colorInfo.hex
-                                                                }}
-                                                                title={`${pep.penColor} Pen`}
-                                                            />
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
-                                            </div>
-                                        ))}
+                            return (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex items-start gap-2">
+                                        <CirclePlay size={14} className="mt-0.5 flex-shrink-0" />
+                                        <span>{renderDateRange(p, isActive)}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        {deliveryMethods.length > 0 ? (
+                                            deliveryMethods.map(method => (
+                                                <div key={method} className="flex items-start gap-2">
+                                                    {method === 'pen' ? <Pen size={14} className="mt-0.5 flex-shrink-0" /> : <Pipette size={14} className="mt-0.5 flex-shrink-0" />}
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-sm font-medium">
+                                                            {method === 'pen' ? 'Pen Delivery' : 'Syringe Delivery'}
+                                                        </span>
+                                                        {method === 'pen' && penPeptides.map((pep, idx) => (
+                                                            <div key={idx} className="flex items-center gap-2 text-xs">
+                                                                {pep.penType && (
+                                                                    <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                                                                        {pep.penType === 'other' ? 'Other' : 
+                                                                            pep.penType === 'savvio' ? 'Savvio' :
+                                                                            pep.penType === 'novo' ? 'Novo' :
+                                                                            pep.penType === 'v1' ? 'V1' :
+                                                                            pep.penType === 'v2' ? 'V2' :
+                                                                            pep.penType === 'v3' ? 'V3' :
+                                                                            pep.penType === 'bird-pen' ? 'Bird Pen' :
+                                                                            pep.penType === 'luxura' ? 'Luxura' :
+                                                                            pep.penType === 'gansulin' ? 'Gansulin' :
+                                                                            pep.penType
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                                {pep.penColor && (() => {
+                                                                    const colorInfo = penColors.find(c => c.name === pep.penColor);
+                                                                    if (colorInfo) {
+                                                                        return (
+                                                                            <div 
+                                                                                className="w-4 h-4 rounded-full border-2" 
+                                                                                style={{ 
+                                                                                    background: getChromeGradient(colorInfo.hex),
+                                                                                    borderColor: colorInfo.hex
+                                                                                }}
+                                                                                title={`${pep.penColor} Pen`}
+                                                                            />
+                                                                        );
+                                                                    }
+                                                                    return null;
+                                                                })()}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <span>-</span>
+                                        )}
                                     </div>
                                 </div>
-                            ));
+                            );
                         })()}
+                        {isActive && (() => {
+                            // Find cycle frequency from peptides
+                            const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
+                            const cycleInfo = cyclePeptide?.frequency ? formatIndividualFrequency(cyclePeptide.frequency) : null;
+                            
+                            return (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex items-start gap-2">
+                                        <CalendarClock size={14} className="mt-0.5 flex-shrink-0" />
+                                        <span>{p.duration?.noEnd ? 'Ongoing' : (p.duration?.count && p.duration?.unit ? `${p.duration.count} ${p.duration.unit}${p.duration.count > 1 ? 's' : ''}` : 'Duration not set')}</span>
+                                    </div>
+                                    {cycleInfo && (
+                                        <div className="flex items-start gap-2">
+                                            <Repeat size={14} className="mt-0.5 flex-shrink-0" />
+                                            <span>{cycleInfo}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                        {p.washout?.enabled && p.washout?.count > 0 && (<div className="flex items-start gap-2"><RotateCw size={14} className="mt-0.5 flex-shrink-0" /><span>Washout: {p.washout.count} {p.washout.unit}{p.washout.count > 1 ? 's' : ''}</span></div>)}
                         {p.notes && (
                             <div className="flex items-start gap-2">
                                 <FileText size={14} className="mt-0.5 flex-shrink-0" />
@@ -260,8 +297,12 @@ export default function ProtocolCard({ item: p, theme, isActive, onStartClick, o
     );
 }
 
-function renderDateRange(p) {
-    if (!p?.startDate) return 'Not started'
+function renderDateRange(p, isActive) {
+    if (!p?.startDate) {
+        // If inactive with no history (no start date): blank
+        if (!isActive) return ''
+        return 'Not started'
+    }
     const start = new Date(p.startDate)
     // Base end
     let end = p.endDate ? new Date(p.endDate) : null
@@ -288,6 +329,19 @@ function renderDateRange(p) {
     }
     const displayEnd = washEnd || end
     const startStr = formatMMDDYYYY(start)
-    const endStr = displayEnd ? formatMMDDYYYY(displayEnd) : 'Ongoing'
+    
+    // If active and no end date: "date started - Current"
+    if (isActive && !displayEnd) {
+        return `${startStr} - Current`
+    }
+    
+    // If inactive with no history (no end date): blank
+    if (!isActive && !displayEnd) {
+        return ''
+    }
+    
+    // If inactive with history (has end date): "date - date"
+    // If active with end date: "date - date"
+    const endStr = formatMMDDYYYY(displayEnd)
     return `${startStr} - ${endStr}`
 }
