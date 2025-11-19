@@ -368,10 +368,24 @@ const MetricsWidget = ({
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={onAddMetric}
-                className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:bg-gray-50"
-                style={{ borderColor: theme.primary, color: theme.primary }}
+                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                style={{ 
+                  color: '#ffffff',
+                  backgroundColor: theme.primary,
+                  width: '28px',
+                  height: '28px',
+                  padding: 0,
+                  border: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
               >
-                <Plus size={12} strokeWidth={3} />
+                <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
               </button>
             </ModernTooltip>
           </div>

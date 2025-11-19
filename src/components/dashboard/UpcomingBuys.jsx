@@ -1,15 +1,59 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { formatMMDDYYYY } from '../../utils/date'
-import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, Trash2, Save, Check } from 'lucide-react'
+import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit } from 'lucide-react'
 import Modal from '../common/Modal'
+import ModernTooltip from '../ui/ModernTooltip'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [editingItems, setEditingItems] = useState({});
-  const [autoSaveStatus, setAutoSaveStatus] = useState({});
-  const autoSaveTimeoutRef = useRef({});
-  const list = Array.isArray(buys) ? buys : items
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  
+  // Reload list from localStorage when it changes
+  const reloadList = () => {
+    try {
+      const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
+      return rawScheduled ? JSON.parse(rawScheduled) : [];
+    } catch (error) {
+      console.error('Error loading scheduled buys:', error);
+      return [];
+    }
+  };
+  
+  // Use local list state that syncs with localStorage
+  const [localList, setLocalList] = useState(() => {
+    const propList = Array.isArray(buys) ? buys : items;
+    return propList.length > 0 ? propList : reloadList();
+  });
+  
+  // Update local list when props change
+  useEffect(() => {
+    const propList = Array.isArray(buys) ? buys : items;
+    if (propList.length > 0) {
+      setLocalList(propList);
+    }
+  }, [buys, items]);
+  
+  // Listen for delete events to refresh list (update events are handled directly in handleSave)
+  useEffect(() => {
+    const handleDeleteEvent = () => {
+      const updatedList = reloadList();
+      setLocalList(updatedList.map(buy => ({ ...buy })));
+    };
+    
+    window.addEventListener('tpp:group-buy-deleted', handleDeleteEvent);
+    return () => {
+      window.removeEventListener('tpp:group-buy-deleted', handleDeleteEvent);
+    };
+  }, []);
+  
+  const list = localList;
+  
+  // Terracotta gradient for delete button
+  const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+  const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
   
   const handleViewAll = () => {
     setShowModal(true);
@@ -24,16 +68,16 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
     const item = list.find(i => i.id === itemId);
     if (!item) return;
     
-    // Initialize editing state for this specific item
+    // Initialize editing state for this specific item - match the form field names
     setEditingItems(prev => ({
       ...prev,
       [itemId]: {
-        name: item.name || item.peptideName || '',
+        item: item.item || item.name || item.peptideName || '',
         vendor: item.vendor || '',
         location: item.location || '',
         participants: item.participants || '',
         price: item.price || '',
-        description: item.description || '',
+        notes: item.notes || item.description || '',
         openDate: item.openDate || item.date || '',
         closeDate: item.closeDate || ''
       }
@@ -65,31 +109,98 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : [];
       
       const editedData = editingItems[itemId];
-      if (!editedData) return;
-      
-      const itemIndex = scheduledBuys.findIndex(item => item.id === itemId);
-      
-      if (itemIndex !== -1) {
-        // Update existing item
-        scheduledBuys[itemIndex] = {
-          ...scheduledBuys[itemIndex],
-          ...editedData,
-          peptideName: editedData.name, // Keep backward compatibility
-          date: editedData.openDate // Keep backward compatibility
-        };
+      if (!editedData) {
+        console.error('No edited data found for item:', itemId);
+        return;
       }
       
+      // Find item by ID - handle both string and number IDs
+      const itemIndex = scheduledBuys.findIndex(item => {
+        return String(item.id) === String(itemId) || item.id === itemId;
+      });
+      
+      if (itemIndex !== -1) {
+        // Update existing item - build clean object with all fields
+        const updatedTimestamp = new Date().toISOString();
+        const updatedItem = {
+          // Start with old item
+          ...scheduledBuys[itemIndex],
+          // Apply all edited fields explicitly
+          item: editedData.item !== undefined ? editedData.item : scheduledBuys[itemIndex].item,
+          vendor: editedData.vendor !== undefined ? editedData.vendor : scheduledBuys[itemIndex].vendor,
+          location: editedData.location !== undefined ? editedData.location : scheduledBuys[itemIndex].location,
+          participants: editedData.participants !== undefined ? editedData.participants : scheduledBuys[itemIndex].participants,
+          price: editedData.price !== undefined ? editedData.price : scheduledBuys[itemIndex].price,
+          notes: editedData.notes !== undefined ? editedData.notes : scheduledBuys[itemIndex].notes,
+          openDate: editedData.openDate !== undefined ? editedData.openDate : scheduledBuys[itemIndex].openDate,
+          closeDate: editedData.closeDate !== undefined ? editedData.closeDate : scheduledBuys[itemIndex].closeDate,
+          // Preserve ID and add timestamp
+          id: itemId,
+          updatedAt: updatedTimestamp,
+          // Keep backward compatibility fields
+          name: editedData.item !== undefined ? editedData.item : scheduledBuys[itemIndex].name || scheduledBuys[itemIndex].item,
+          peptideName: editedData.item !== undefined ? editedData.item : scheduledBuys[itemIndex].peptideName || scheduledBuys[itemIndex].item,
+          date: editedData.openDate !== undefined ? editedData.openDate : scheduledBuys[itemIndex].date || scheduledBuys[itemIndex].openDate,
+          description: editedData.notes !== undefined ? editedData.notes : scheduledBuys[itemIndex].description || scheduledBuys[itemIndex].notes
+        };
+        
+        // Assign the complete updated item
+        scheduledBuys[itemIndex] = updatedItem;
+        
+        console.log('🔍 Updated item structure:', updatedItem);
+      } else {
+        // Item not found - this shouldn't happen but handle it
+        console.warn('Item not found in scheduledBuys, adding new item:', itemId);
+        scheduledBuys.push({
+          ...editedData,
+          id: itemId,
+          // Keep backward compatibility
+          name: editedData.item,
+          peptideName: editedData.item,
+          date: editedData.openDate,
+          description: editedData.notes
+        });
+      }
+      
+      console.log('💾 Saving item with data:', {
+        item: editedData.item,
+        vendor: editedData.vendor,
+        location: editedData.location,
+        participants: editedData.participants,
+        price: editedData.price,
+        notes: editedData.notes,
+        openDate: editedData.openDate,
+        closeDate: editedData.closeDate
+      });
+      
       localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
+      
+      // Update local list immediately - create a new array reference to force re-render
+      // Map through to create new object references so React detects the change
+      const updatedList = scheduledBuys.map(buy => ({ ...buy }));
+      setLocalList(updatedList);
       
       // Trigger calendar sync
       window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
       
-      // Exit edit mode for this item
-      setEditingItems(prev => {
-        const newState = { ...prev };
-        delete newState[itemId];
-        return newState;
-      });
+      console.log('✅ Saved group buy:', itemId, editedData);
+      console.log('📋 Updated list:', updatedList);
+      
+      // Force exit edit mode immediately
+      setEditingItems({});
+      
+      // Force a complete refresh by reloading from localStorage
+      setTimeout(() => {
+        const freshList = reloadList();
+        setLocalList([...freshList]);
+        
+        // Find and select the saved item from the fresh list
+        const savedItem = freshList.find(buy => buy.id === itemId);
+        if (savedItem) {
+          console.log('🔄 Re-selecting item with fresh data:', savedItem);
+          setSelectedItem({ ...savedItem }); // Create new reference
+        }
+      }, 50);
       
     } catch (error) {
       console.error('Error saving group buy changes:', error);
@@ -97,96 +208,49 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   }
 
   const handleDelete = (itemId) => {
-    if (window.confirm('Are you sure you want to delete this group buy?')) {
-      try {
-        const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
-        const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : [];
-        
-        // Remove the item
-        const updatedBuys = scheduledBuys.filter(item => item.id !== itemId);
-        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updatedBuys));
-        
-        // Trigger calendar sync
-        window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
-        
-        // Remove from editing state
-        setEditingItems(prev => {
-          const newState = { ...prev };
-          delete newState[itemId];
-          return newState;
-        });
-        
-        // Dispatch a custom event to notify parent components of the change
-        window.dispatchEvent(new CustomEvent('tpp:group-buy-deleted', { detail: { itemId } }));
-        
-      } catch (error) {
-        console.error('Error deleting group buy:', error);
-      }
-    }
+    setDeleteConfirmId(itemId);
   }
 
-  // Auto-save function
-  const autoSave = (itemId) => {
-    const editedData = editingItems[itemId];
-    if (!editedData) return;
-
+  const confirmDelete = (itemId) => {
     try {
       const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
       const scheduledBuys = rawScheduled ? JSON.parse(rawScheduled) : [];
       
-      const itemIndex = scheduledBuys.findIndex(item => item.id === itemId);
-      if (itemIndex !== -1) {
-        // Update existing item
-        scheduledBuys[itemIndex] = {
-          ...scheduledBuys[itemIndex],
-          ...editedData,
-          peptideName: editedData.name, // Keep backward compatibility
-          date: editedData.openDate // Keep backward compatibility
-        };
-        
-        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
-        
-        // Trigger calendar sync
-        window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
-        
-        // Update auto-save status
-        setAutoSaveStatus(prev => ({
-          ...prev,
-          [itemId]: { status: 'saved', timestamp: new Date() }
-        }));
-        
-        console.log('💾 Auto-saved group buy:', itemId);
-      }
-    } catch (error) {
-      console.error('Error auto-saving group buy:', error);
-      setAutoSaveStatus(prev => ({
-        ...prev,
-        [itemId]: { status: 'error', timestamp: new Date() }
-      }));
-    }
-  };
-
-  // Auto-save effect
-  useEffect(() => {
-    Object.keys(editingItems).forEach(itemId => {
-      // Clear existing timeout
-      if (autoSaveTimeoutRef.current[itemId]) {
-        clearTimeout(autoSaveTimeoutRef.current[itemId]);
+      // Remove the item
+      const updatedBuys = scheduledBuys.filter(item => item.id !== itemId);
+      localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updatedBuys));
+      
+      // Update local list immediately
+      setLocalList([...updatedBuys]);
+      
+      // Trigger calendar sync
+      window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
+      
+      // Remove from editing state
+      setEditingItems(prev => {
+        const newState = { ...prev };
+        delete newState[itemId];
+        return newState;
+      });
+      
+      // Close modal if item was selected
+      if (selectedItem?.id === itemId) {
+        setShowModal(false);
+        setSelectedItem(null);
       }
       
-      // Set new timeout for auto-save (1 second delay)
-      autoSaveTimeoutRef.current[itemId] = setTimeout(() => {
-        autoSave(itemId);
-      }, 1000);
-    });
+      // Dispatch a custom event to notify parent components of the change
+      window.dispatchEvent(new CustomEvent('tpp:group-buy-deleted', { detail: { itemId } }));
+      
+      // Close delete confirmation
+      setDeleteConfirmId(null);
+      
+    } catch (error) {
+      console.error('Error deleting group buy:', error);
+    }
+  }
 
-    // Cleanup timeouts on unmount
-    return () => {
-      Object.values(autoSaveTimeoutRef.current).forEach(timeout => {
-        if (timeout) clearTimeout(timeout);
-      });
-    };
-  }, [editingItems]);
+  // Removed auto-save functionality - using manual save button instead
 
   return (
     <div className="rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }}>
@@ -195,19 +259,31 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
           <h3 className="text-base font-semibold" style={{ color: theme.text }}>
             Upcoming Buys
           </h3>
-          <div className="flex items-center gap-1.5">
-            <button 
-              onClick={onAdd} 
-              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:opacity-80 border-2" 
-              style={{ 
-                borderColor: '#8F9B75', 
-                color: '#8F9B75',
-                backgroundColor: 'transparent'
-              }}
-            >
-              <Plus size={10} strokeWidth={2} />
-            </button>
-            <ShoppingCart size={16} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2">
+            <ShoppingCart size={20} style={{ color: theme.primary }} />
+            <ModernTooltip text="Add" position="top">
+              <button
+                onClick={onAdd}
+                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                style={{ 
+                  color: '#ffffff',
+                  backgroundColor: theme.primary,
+                  width: '28px',
+                  height: '28px',
+                  padding: 0,
+                  border: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
+              </button>
+            </ModernTooltip>
           </div>
         </div>
       </div>
@@ -224,10 +300,11 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                 className="flex items-center justify-between p-1.5 rounded cursor-pointer transition-colors hover:bg-gray-50" 
               >
                 <div>
-                  <div className="font-medium text-xs">{it.name || it.peptideName}</div>
+                  <div className="font-medium text-xs">{it.item || it.name || it.peptideName || 'Untitled Group Buy'}</div>
                   <div className="text-xs" style={{ color: theme.textLight }}>
-                    {it.vendor && `${it.vendor} • `}
-                    {it.openDate ? formatMMDDYYYY(it.openDate) : (it.date ? formatMMDDYYYY(it.date) : '')}
+                    {it.openDate && formatMMDDYYYY(it.openDate)}
+                    {!it.openDate && it.date && formatMMDDYYYY(it.date)}
+                    {it.participants && ` • ${it.participants}`}
                   </div>
                 </div>
               </li>
@@ -288,7 +365,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {list.map((item) => (
                 <div
-                  key={item.id}
+                  key={`buy-${item.id}-${item.updatedAt || Date.now()}`}
                   className="p-4 rounded-lg border transition-all"
                   style={{ 
                     borderColor: theme.border, 
@@ -310,46 +387,20 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                           </label>
                           <input
                             type="text"
-                            value={editingItems[item.id]?.name || ''}
-                            onChange={(e) => handleFieldChange(item.id, 'name', e.target.value)}
+                            value={editingItems[item.id]?.item || ''}
+                            onChange={(e) => handleFieldChange(item.id, 'item', e.target.value)}
                             placeholder="Product Name"
                             className="w-full p-2 rounded border text-base font-semibold"
                             style={{ borderColor: theme.border, backgroundColor: theme.background }}
                           />
                         </div>
                         <div className="flex items-center gap-1 ml-2">
-                          {/* Auto-save status indicator */}
-                          {autoSaveStatus[item.id] && (
-                            <div className="text-xs mr-2" style={{ 
-                              color: autoSaveStatus[item.id].status === 'saved' ? theme.success : 
-                                     autoSaveStatus[item.id].status === 'error' ? theme.error : 
-                                     theme.textLight 
-                            }}>
-                              {autoSaveStatus[item.id].status === 'saved' ? '✓ Saved' : 
-                               autoSaveStatus[item.id].status === 'error' ? '✗ Error' : 
-                               'Saving...'}
-                            </div>
-                          )}
-                          <button
-                            onClick={() => handleSave(item.id)}
-                            className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
-                            title="Save changes"
-                          >
-                            <Save size={16} />
-                          </button>
                           <button
                             onClick={() => handleCancelEdit(item.id)}
                             className="p-2 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors"
                             title="Cancel editing"
                           >
                             <X size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-                            title="Delete group buy"
-                          >
-                            <Trash2 size={16} />
                           </button>
                         </div>
                       </div>
@@ -444,13 +495,64 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                           Notes
                         </label>
                         <textarea
-                          value={editingItems[item.id]?.description || ''}
-                          onChange={(e) => handleFieldChange(item.id, 'description', e.target.value)}
+                          value={editingItems[item.id]?.notes || ''}
+                          onChange={(e) => handleFieldChange(item.id, 'notes', e.target.value)}
                           placeholder="Any further group buy details."
                           rows={3}
                           className="w-full p-2 rounded border text-sm resize-none"
                           style={{ borderColor: theme.border, backgroundColor: theme.background }}
                         />
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: theme.border }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(item.id);
+                          }}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                          style={{ 
+                            background: terracottaGradient,
+                            color: '#ffffff',
+                            border: 'none',
+                            boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = terracottaHoverGradient;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = terracottaGradient;
+                          }}
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (item?.id) {
+                              handleSave(item.id);
+                            } else {
+                              console.error('No item ID found for save');
+                            }
+                          }}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                          style={{ 
+                            backgroundColor: theme.primary,
+                            color: theme.textOnPrimary || '#ffffff',
+                            border: 'none',
+                            boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.opacity = '0.9';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '1';
+                          }}
+                        >
+                          Save
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -458,12 +560,28 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                     <>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-base mb-1" style={{ color: theme.text }}>
-                            Group Buy For: {item.name || item.peptideName}
+                          <h4 className="font-semibold text-base mb-2" style={{ color: theme.text }}>
+                            {item.item || item.name || item.peptideName || 'Untitled Group Buy'}
                           </h4>
-                          <div className="flex items-center gap-2 text-sm mb-2" style={{ color: theme.textLight }}>
-                            <Calendar size={14} />
-                            {item.openDate ? formatMMDDYYYY(item.openDate) : (item.date ? formatMMDDYYYY(item.date) : 'TBD')}
+                          <div className="flex items-center gap-4 text-xs mb-3" style={{ color: theme.textLight }}>
+                            {item.openDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar size={12} />
+                                <span>Opens: {formatMMDDYYYY(item.openDate)}</span>
+                              </div>
+                            )}
+                            {item.closeDate && (
+                              <div className="flex items-center gap-1">
+                                <Calendar size={12} />
+                                <span>Closes: {formatMMDDYYYY(item.closeDate)}</span>
+                              </div>
+                            )}
+                            {!item.openDate && !item.closeDate && item.date && (
+                              <div className="flex items-center gap-1">
+                                <Calendar size={12} />
+                                <span>{formatMMDDYYYY(item.date)}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -481,40 +599,47 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         {item.vendor && (
-                          <div className="flex items-center gap-2 text-sm" style={{ color: theme.textLight }}>
-                            <span className="font-medium" style={{ color: theme.text }}>Vendor:</span>
-                            {item.vendor}
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="font-medium min-w-[100px]" style={{ color: theme.text }}>Group Buy Host:</span>
+                            <span style={{ color: theme.textLight }}>{item.vendor}</span>
                           </div>
                         )}
                         
                         {item.location && (
-                          <div className="flex items-center gap-2 text-sm" style={{ color: theme.textLight }}>
-                            <MapPin size={14} />
-                            {item.location}
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="font-medium min-w-[100px]" style={{ color: theme.text }}>Platform:</span>
+                            <div className="flex items-center gap-1" style={{ color: theme.textLight }}>
+                              <MapPin size={12} />
+                              <span>{item.location}</span>
+                            </div>
                           </div>
                         )}
                         
                         {item.participants && (
-                          <div className="flex items-center gap-2 text-sm" style={{ color: theme.textLight }}>
-                            <Users size={14} />
-                            {item.participants} participants
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="font-medium min-w-[100px]" style={{ color: theme.text }}>Vendor:</span>
+                            <span style={{ color: theme.textLight }}>{item.participants}</span>
                           </div>
                         )}
                         
                         {item.price && (
-                          <div className="flex items-center gap-2 text-sm" style={{ color: theme.textLight }}>
-                            <DollarSign size={14} />
-                            ${item.price} per unit
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="font-medium min-w-[100px]" style={{ color: theme.text }}>Price:</span>
+                            <div className="flex items-center gap-1" style={{ color: theme.textLight }}>
+                              <DollarSign size={12} />
+                              <span>${item.price}</span>
+                            </div>
                           </div>
                         )}
                       </div>
                       
-                      {item.description && (
-                        <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
-                          <p className="text-sm" style={{ color: theme.textLight }}>
-                            {item.description}
+                      {item.notes && (
+                        <div className="mt-4 pt-3 border-t" style={{ borderColor: theme.border }}>
+                          <p className="text-xs font-medium mb-1" style={{ color: theme.text }}>Notes:</p>
+                          <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
+                            {item.notes}
                           </p>
                         </div>
                       )}
@@ -539,6 +664,61 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
           )}
         </div>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"
+            onClick={() => setDeleteConfirmId(null)}
+          />
+          <div 
+            className="relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
+            style={{ backgroundColor: theme.cardBackground }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <h3 className="text-lg font-bold mb-2" style={{ color: theme.text }}>
+                Delete Group Buy?
+              </h3>
+              <p className="text-sm mb-6" style={{ color: theme.textLight }}>
+                This action cannot be undone. Are you sure you want to delete this group buy?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 border"
+                  style={{ 
+                    borderColor: theme.border,
+                    color: theme.text
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => confirmDelete(deleteConfirmId)}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                  style={{ 
+                    background: terracottaGradient,
+                    color: '#ffffff',
+                    border: 'none',
+                    boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = terracottaHoverGradient;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = terracottaGradient;
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

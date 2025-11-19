@@ -392,7 +392,7 @@ export default function Dashboard() {
             }
         } else {
             // Existing logic for separate peptides
-            normalizePeptides(p).forEach(pep => {
+            normalizePeptides(p).forEach((pep, peptideIndex) => {
               const freq = pep.frequency || {}
               let isScheduledToday = false
               switch (freq.type) {
@@ -463,8 +463,16 @@ export default function Dashboard() {
               // Create a single task entry for this peptide with all its scheduled times
               const scheduledTimes = pep.frequency.time || [];
               
-              // Get delivery method from recon item or peptide data
-              const deliveryMethod = reconItem?.deliveryMethod || pep.deliveryMethod;
+              // Get delivery method from multiple sources
+              // Priority: linkedItems (from manage modal) > recon item (if user used recon calculator) > protocol peptide data (manual entry)
+              const peptideId = pep.id || `peptide-${peptideIndex}`;
+              const linkedItem = p.linkedItems?.[peptideId] || {};
+              const linkedDeliveryMethod = linkedItem.deliveryMethod || {};
+              
+              const deliveryMethod = linkedDeliveryMethod.deliveryMethod || reconItem?.deliveryMethod || pep.deliveryMethod;
+              const penColor = linkedDeliveryMethod.penColor || reconItem?.penColor || pep.penColor;
+              const penType = linkedDeliveryMethod.penType || reconItem?.penType || pep.penType;
+              const administrationRoute = linkedDeliveryMethod.administrationRoute || reconItem?.administrationRoute || pep.injectionType;
               
               const task = {
                 id: `${p.id}-${pep.name || 'Peptide'}`,
@@ -476,9 +484,10 @@ export default function Dashboard() {
                 scheduledTimes: scheduledTimes, // Store all times for completion tracking
                 completed: false,
                 deliveryMethod: deliveryMethod,
-                penColor: reconItem?.penColor || pep.penColor,
+                penColor: penColor,
+                penType: penType,
                 protocolName: p.protocolName,
-                administrationRoute: reconItem?.administrationRoute || pep.injectionType
+                administrationRoute: administrationRoute
               };
               
               console.log('🔍 Peptide task created:', {

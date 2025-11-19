@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Calendar, Target, History } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Calendar, Target, History, CalendarCheck } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -638,36 +638,115 @@ export default function Protocols() {
                                       </button>
                                     </div>
 
-                                    {/* Progress Bar - Modern styled like image */}
+                                    {/* Modern Timeline with gradient bar */}
                                     {startDate && endDate && durationDays > 0 && (
-                                      <div className="relative w-full mt-3">
+                                      <div className="relative w-full mt-4">
+                                        {/* Timeline bar container */}
                                         <div 
-                                          className="relative w-full h-7 rounded-lg overflow-hidden"
+                                          className="relative h-10 rounded-full overflow-hidden"
                                           style={{ 
-                                            backgroundColor: theme.isDark ? '#374151' : '#e5e7eb',
-                                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                            background: theme.isDark 
+                                              ? `${theme.primary}15`
+                                              : `${theme.primary}10`,
+                                            boxShadow: theme.isDark 
+                                              ? 'inset 0 2px 4px rgba(0,0,0,0.3)'
+                                              : 'inset 0 1px 3px rgba(0,0,0,0.1)'
                                           }}
                                         >
-                                          {/* Progress fill */}
+                                          {/* Gradient progress fill */}
                                           <div 
-                                            className="absolute left-0 top-0 h-full rounded-lg transition-all duration-300"
-                                            style={{ 
-                                              width: `${progressPercent}%`,
-                                              background: `linear-gradient(90deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                                              boxShadow: `0 0 12px ${theme.primary}50`
+                                            className="absolute inset-0 opacity-40"
+                                            style={{
+                                              background: `linear-gradient(90deg, ${theme.primary}30 0%, ${theme.primaryDark || theme.primary}30 100%)`,
                                             }}
-                                          >
-                                            {/* Current day / Total days label on filled portion */}
-                                            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20">
-                                              <span 
-                                                className="text-[10px] font-semibold"
+                                          />
+                                          
+                                          {/* Content overlay */}
+                                          <div className="relative h-full flex items-center justify-between px-4">
+                                            {/* Start marker */}
+                                            <div className="flex items-center gap-2 z-10">
+                                              <div 
+                                                className="w-7 h-7 rounded-full flex items-center justify-center"
                                                 style={{ 
-                                                  color: '#ffffff',
-                                                  textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                                                  background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                                                  boxShadow: theme.isDark 
+                                                    ? '0 4px 8px rgba(0,0,0,0.4)'
+                                                    : '0 4px 8px rgba(0,0,0,0.15)'
                                                 }}
                                               >
-                                                {String(currentDay).padStart(2, '0')}/{String(durationDays).padStart(2, '0')}
+                                                <CalendarCheck size={14} style={{ color: '#ffffff' }} />
+                                              </div>
+                                              <div className="flex flex-col">
+                                                <span 
+                                                  className="text-[10px] font-semibold leading-tight"
+                                                  style={{ color: theme.text }}
+                                                >
+                                                  {startDateStr.split('/')[0]}/{startDateStr.split('/')[1]}
+                                                </span>
+                                                <span 
+                                                  className="text-[8px] leading-tight"
+                                                  style={{ color: theme.textLight }}
+                                                >
+                                                  Started
+                                                </span>
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Duration indicator */}
+                                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1 rounded-full"
+                                              style={{
+                                                background: theme.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)',
+                                                backdropFilter: 'blur(4px)',
+                                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+                                                boxShadow: theme.isDark 
+                                                  ? '0 2px 4px rgba(0,0,0,0.3)'
+                                                  : '0 2px 4px rgba(0,0,0,0.08)'
+                                              }}
+                                            >
+                                              <span 
+                                                className="text-[9px] font-semibold"
+                                                style={{ color: theme.primary }}
+                                              >
+                                                {durationDays} day{durationDays !== 1 ? 's' : ''}
                                               </span>
+                                            </div>
+                                            
+                                            {/* End marker */}
+                                            <div className="flex items-center gap-2 z-10 flex-row-reverse">
+                                              <div 
+                                                className="w-7 h-7 rounded-full flex items-center justify-center"
+                                                style={{ 
+                                                  background: p.endType === 'completed'
+                                                    ? `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`
+                                                    : 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                                                  boxShadow: theme.isDark 
+                                                    ? '0 4px 8px rgba(0,0,0,0.4)'
+                                                    : '0 4px 8px rgba(0,0,0,0.15)'
+                                                }}
+                                              >
+                                                {p.endType === 'completed' ? (
+                                                  <CheckCircle size={14} style={{ color: '#ffffff' }} />
+                                                ) : (
+                                                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                                    <circle cx="7" cy="7" r="5" stroke="white" strokeWidth="1.5"/>
+                                                    <path d="M5 5L9 9M9 5L5 9" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                                                  </svg>
+                                                )}
+                                              </div>
+                                              <div className="flex flex-col items-end">
+                                                <span 
+                                                  className="text-[10px] font-semibold leading-tight"
+                                                  style={{ color: theme.text }}
+                                                >
+                                                  {endDateStr.split('/')[0]}/{endDateStr.split('/')[1]}
+                                                </span>
+                                                <span 
+                                                  className="text-[8px] leading-tight"
+                                                  style={{ color: theme.textLight }}
+                                                >
+                                                  {p.endType === 'completed' ? 'Completed' : 'Ended'}
+                                                </span>
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
@@ -931,6 +1010,26 @@ export default function Protocols() {
                     onClick={() => {
                         if (manageConfirm) {
                             updateProtocol(manageConfirm);
+                            
+                            // Save to protocol draft for real-time sync with tasks/calendar
+                            try {
+                                const draftKey = `tpprover_protocol_draft_${manageConfirm.id}`;
+                                localStorage.setItem(draftKey, JSON.stringify({
+                                    data: manageConfirm,
+                                    timestamp: new Date().toISOString()
+                                }));
+                                
+                                // Emit event so TasksWidget and Calendar pick up the changes immediately
+                                window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
+                                    detail: { storageKey: draftKey, formData: manageConfirm }
+                                }));
+                            } catch (e) {
+                                console.warn('Failed to save protocol draft:', e);
+                            }
+                            
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                detail: { message: 'Protocol updated successfully!', type: 'success' } 
+                            }));
                         }
                         setManageConfirm(null);
                         setHistoryProtocol(null); // Ensure history modal is also closed

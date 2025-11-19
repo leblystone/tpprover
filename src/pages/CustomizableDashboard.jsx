@@ -461,12 +461,16 @@ export default function CustomizableDashboard() {
             }
           }
           
-          // Get delivery method and pen color from either recon item OR protocol data
-          // Priority: recon item (if user used recon calculator) > protocol data (manual entry)
-          const deliveryMethod = reconItem?.deliveryMethod || peptide.deliveryMethod;
-          const penColor = reconItem?.penColor || peptide.penColor;
-          const penType = reconItem?.penType || peptide.penType;
-          const administrationRoute = reconItem?.administrationRoute || peptide.injectionType;
+          // Get delivery method and pen color from multiple sources
+          // Priority: linkedItems (from manage modal) > recon item (if user used recon calculator) > protocol peptide data (manual entry)
+          const peptideId = peptide.id || `peptide-${peptideIndex}`;
+          const linkedItem = protocolData.linkedItems?.[peptideId] || {};
+          const linkedDeliveryMethod = linkedItem.deliveryMethod || {};
+          
+          const deliveryMethod = linkedDeliveryMethod.deliveryMethod || reconItem?.deliveryMethod || peptide.deliveryMethod;
+          const penColor = linkedDeliveryMethod.penColor || reconItem?.penColor || peptide.penColor;
+          const penType = linkedDeliveryMethod.penType || reconItem?.penType || peptide.penType;
+          const administrationRoute = linkedDeliveryMethod.administrationRoute || reconItem?.administrationRoute || peptide.injectionType;
           
           const task = {
             id: `protocol_${protocolData.id}_${peptideIndex}_${time}`,

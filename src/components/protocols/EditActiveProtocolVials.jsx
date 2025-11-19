@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, Pipette, Pen, Droplets, CheckCircle, Plus, X } from 'lucide-react';
+import { ChevronDown, Pipette, Pen, Droplets, CheckCircle, Plus, X, Package } from 'lucide-react';
 import SearchableDropdown from '../common/SearchableDropdown';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
@@ -206,6 +206,196 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                             <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Change Vial</button>
                         </div>
                     )}
+                    
+                    {/* Delivery Method Editor for Linked Vials */}
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
+                        <div 
+                            className="px-3 py-2 rounded-lg flex items-center justify-between mb-2" 
+                            style={{ 
+                                backgroundColor: theme.isDark ? '#374151' : theme.secondary, 
+                                borderLeft: '4px solid #e0ded7' 
+                            }}
+                        >
+                            <h4 
+                                className="font-bold text-xs tracking-wider uppercase" 
+                                style={{ 
+                                    color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', 
+                                    letterSpacing: '0.1em' 
+                                }}
+                            >
+                                DELIVERY METHOD
+                            </h4>
+                            <Droplets size={16} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button 
+                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pipette')}
+                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                                style={{
+                                    backgroundColor: deliveryMethod.deliveryMethod === 'pipette' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                    color: deliveryMethod.deliveryMethod === 'pipette' ? theme.textOnPrimary : theme.text,
+                                    borderColor: deliveryMethod.deliveryMethod === 'pipette' ? theme.primary : theme.border
+                                }}
+                            >
+                                <Pipette size={14} /> Syringe
+                            </button>
+                            <button 
+                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'pen')}
+                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                                style={{
+                                    backgroundColor: deliveryMethod.deliveryMethod === 'pen' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                    color: deliveryMethod.deliveryMethod === 'pen' ? theme.textOnPrimary : theme.text,
+                                    borderColor: deliveryMethod.deliveryMethod === 'pen' ? theme.primary : theme.border
+                                }}
+                            >
+                                <Pen size={14} /> Pen
+                            </button>
+                            <button 
+                                onClick={() => handleDeliveryMethodChange('deliveryMethod', 'nasal')}
+                                className={`w-full flex items-center justify-center gap-2 p-2 rounded-md border text-xs font-semibold transition-all`}
+                                style={{
+                                    backgroundColor: deliveryMethod.deliveryMethod === 'nasal' ? theme.primary : (theme.isDark ? '#1f2937' : theme.secondary),
+                                    color: deliveryMethod.deliveryMethod === 'nasal' ? theme.textOnPrimary : theme.text,
+                                    borderColor: deliveryMethod.deliveryMethod === 'nasal' ? theme.primary : theme.border
+                                }}
+                            >
+                                <Droplets size={14} /> Nasal
+                            </button>
+                        </div>
+                        
+                        {/* Administration Route for Syringe */}
+                        {deliveryMethod.deliveryMethod === 'pipette' && (
+                            <div className="mt-3">
+                                <div 
+                                    className="flex items-center gap-1 p-1 rounded-md" 
+                                    style={{ 
+                                        backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#f9fafb'),
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                    }}
+                                >
+                                    {['subq', 'im', 'iv'].map(route => (
+                                        <button
+                                            key={route}
+                                            type="button"
+                                            onClick={() => handleDeliveryMethodChange('administrationRoute', route)}
+                                            className={`flex-1 px-2 sm:px-3 py-2 text-xs font-semibold rounded transition-all ${
+                                                deliveryMethod.administrationRoute === route 
+                                                    ? 'text-white shadow-sm' 
+                                                    : 'text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                            style={deliveryMethod.administrationRoute === route ? { backgroundColor: theme.primary } : {}}
+                                        >
+                                            {route.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Pen Type and Color for Pen */}
+                        {deliveryMethod.deliveryMethod === 'pen' && (
+                            <div className="mt-3">
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Pen Type Selection */}
+                                    <div className="relative" ref={penTypeDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPenTypeDropdownOpen(!penTypeDropdownOpen)}
+                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                                            style={{
+                                                borderColor: penTypeDropdownOpen ? theme.primary : theme.border,
+                                                backgroundColor: theme.cardBackground,
+                                                color: deliveryMethod.penType ? theme.text : theme.textLight
+                                            }}
+                                        >
+                                            <span>
+                                                {deliveryMethod.penType ? (
+                                                    deliveryMethod.penType === 'bird-pen' ? 'Bird Pen' : 
+                                                    deliveryMethod.penType === 'v1' ? 'V1' : 
+                                                    deliveryMethod.penType === 'v2' ? 'V2' : 
+                                                    deliveryMethod.penType === 'v3' ? 'V3' : 
+                                                    deliveryMethod.penType.charAt(0).toUpperCase() + deliveryMethod.penType.slice(1)
+                                                ) : 'Pen Type'}
+                                            </span>
+                                            <ChevronDown 
+                                                size={16} 
+                                                className={`transition-transform duration-200 ${penTypeDropdownOpen ? 'rotate-180' : ''}`}
+                                                style={{ color: theme.textLight }}
+                                            />
+                                        </button>
+                                        {penTypeDropdownOpen && (
+                                            <div 
+                                                className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                style={{
+                                                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                                    borderColor: theme.border,
+                                                    boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                                }}
+                                            >
+                                                {[
+                                                    { value: '', label: 'Pen Type' },
+                                                    { value: 'savvio', label: 'Savvio' },
+                                                    { value: 'novo', label: 'Novo' },
+                                                    { value: 'v1', label: 'V1' },
+                                                    { value: 'v2', label: 'V2' },
+                                                    { value: 'v3', label: 'V3' },
+                                                    { value: 'bird-pen', label: 'Bird Pen' },
+                                                    { value: 'luxura', label: 'Luxura' },
+                                                    { value: 'gansulin', label: 'Gansulin' },
+                                                    { value: 'other', label: 'Other' }
+                                                ].map((option, optIdx) => (
+                                                    <React.Fragment key={option.value}>
+                                                        {optIdx > 0 && (
+                                                            <div 
+                                                                className="h-px mx-2"
+                                                                style={{ backgroundColor: theme.border }}
+                                                            />
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleDeliveryMethodChange('penType', option.value);
+                                                                setPenTypeDropdownOpen(false);
+                                                            }}
+                                                            className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                            style={{
+                                                                color: deliveryMethod.penType === option.value ? theme.primary : theme.text,
+                                                                backgroundColor: 'transparent'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                                e.currentTarget.style.color = theme.primary;
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                                e.currentTarget.style.color = deliveryMethod.penType === option.value ? theme.primary : theme.text;
+                                                            }}
+                                                        >
+                                                            {option.label}
+                                                        </button>
+                                                    </React.Fragment>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Pen Color Selection */}
+                                    <ColorSwatchDropdown
+                                        value={penColors.find(p => p.name === deliveryMethod.penColor)?.hex || '#9ca3af'}
+                                        onChange={(hex) => {
+                                            const selectedColor = penColors.find(p => p.hex === hex);
+                                            if (selectedColor) {
+                                                handleDeliveryMethodChange('penColor', selectedColor.name);
+                                            }
+                                        }}
+                                        colors={penColors}
+                                        theme={theme}
+                                        placeholder="Pen Color"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -219,14 +409,76 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
                 }}>
                     <div className="flex items-center justify-between mb-3">
-                        <div>
+                        <div className="flex-1">
                             <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
                             <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                                Skipped. Select delivery method below.
+                                Skipped reconstitution. Select delivery method below.
                             </p>
                         </div>
-                        <button onClick={handleUnlink} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Link Vial</button>
+                        <button 
+                            onClick={() => setAction('add')} 
+                            className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shadow-sm ml-2 flex items-center gap-1.5"
+                            style={{ 
+                                backgroundColor: theme.primary, 
+                                color: '#ffffff' 
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = `0 4px 8px ${theme.primary}40`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '';
+                            }}
+                        >
+                            <Package size={12} />
+                            Add Vial
+                        </button>
                     </div>
+                    
+                    {/* Add vial form */}
+                    {action === 'add' && (
+                        <div className="mb-3 p-2.5 rounded-md border-2" style={{ 
+                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                            borderColor: theme.primary 
+                        }}>
+                            <p className="text-xs font-semibold mb-2" style={{ color: theme.primary }}>Add New Vial</p>
+                            
+                            {/* Search from stockpile option */}
+                            <div className="mb-2">
+                                <p className="text-xs font-medium mb-1" style={{ color: theme.text }}>Search from stockpile</p>
+                                <SearchableDropdown
+                                    options={vialOptions}
+                                    onChange={handleSelectVial}
+                                    theme={theme}
+                                    placeholder="Type to search your stockpile..."
+                                    idleMessage="Start typing to search your stockpile."
+                                    emptyMessage="No stockpile entries found. Keep typing to refine your search."
+                                />
+                            </div>
+                            
+                            {/* Divider */}
+                            <div className="flex items-center gap-2 my-2">
+                                <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
+                                <span className="text-xs" style={{ color: theme.textLight }}>OR</span>
+                                <div className="flex-1 border-t" style={{ borderColor: theme.border }}></div>
+                            </div>
+                            
+                            {/* Add new vial form */}
+                            <div className="space-y-1.5">
+                                <p className="text-xs font-medium" style={{ color: theme.text }}>Create New</p>
+                                <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
+                                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                    <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
+                                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                </div>
+                            </div>
+                            <div className="mt-2 flex items-center justify-end gap-2">
+                                <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
+                                <button onClick={handleSaveNew} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Save & Link</button>
+                            </div>
+                        </div>
+                    )}
                     
                     {/* Delivery Method Selection */}
                     <div>
@@ -541,7 +793,7 @@ export default function EditActiveProtocolVials({ protocol, stockpile, setStockp
         if (onUpdate) {
             onUpdate(linkedItems);
         }
-    }, [linkedItems, onUpdate]);
+    }, [linkedItems]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handlePeptideUpdate = (peptideId, updatedItem) => {
         setLinkedItems(prev => ({
