@@ -51,11 +51,35 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
         handleChange('frequency', newFreq);
     };
 
+    // Helper to normalize day names to short format (Mon, Tue, etc.)
+    const normalizeDayName = (day) => {
+        const dayMap = {
+            'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu',
+            'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun',
+            'monday': 'Mon', 'tuesday': 'Tue', 'wednesday': 'Wed', 'thursday': 'Thu',
+            'friday': 'Fri', 'saturday': 'Sat', 'sunday': 'Sun'
+        };
+        return dayMap[day] || day;
+    };
+
+    // Helper to check if a day is selected (handles both short and full day names)
+    const isDaySelected = (shortDay, storedDays) => {
+        if (!storedDays || storedDays.length === 0) return false;
+        // Check for exact match or normalized match
+        return storedDays.some(d => {
+            const normalized = normalizeDayName(d);
+            return normalized === shortDay || d === shortDay;
+        });
+    };
+
     const toggleDay = (day) => {
         const currentDays = item.frequency?.days || [];
-        const newDays = currentDays.includes(day)
-            ? currentDays.filter(d => d !== day)
-            : [...currentDays, day];
+        // Normalize all stored days to short format
+        const normalizedCurrentDays = currentDays.map(d => normalizeDayName(d));
+        // Remove the day if it exists (in any format), otherwise add it
+        const newDays = normalizedCurrentDays.includes(day)
+            ? normalizedCurrentDays.filter(d => d !== day)
+            : [...normalizedCurrentDays, day];
         handleFrequencyChange('days', newDays);
     };
 
@@ -492,7 +516,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                 <div>
                                     <div className="flex flex-nowrap gap-1.5 overflow-x-auto">
                                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-                                            const isSelected = item.frequency?.days?.includes(day);
+                                            const isSelected = isDaySelected(day, item.frequency?.days);
                                             return (
                                                 <button 
                                                     key={day} 
