@@ -8,6 +8,8 @@ import { penColors } from '../../utils/penColors';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 import { formatMMDDYYYY } from '../../utils/date';
 import { useAppContext } from '../../context/AppContext';
+import { useFirebase } from '../../context/FirebaseContext';
+import { safeLocalStorageGet } from '../../utils/dataBleedDiagnostic';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method
@@ -53,6 +55,7 @@ function DeliveryIndicator({ item, theme }) {
 
 export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone }) {
   const { scheduledBuys } = useAppContext();
+  const { firebaseUser } = useFirebase();
   const [forceRender, setForceRender] = useState(0);
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null); // Track which group buy is expanded (dayKey)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null); // Full data for expanded group buy
@@ -208,8 +211,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
       
       // Also check orders for this specific day as a fallback
       if (!groupBuyInfo) {
-        const rawOrders = localStorage.getItem('tpprover_orders');
-        const orders = rawOrders ? JSON.parse(rawOrders) : [];
+        // Use safe localStorage getter to prevent data bleed
+        const orders = firebaseUser?.email 
+          ? (safeLocalStorageGet('tpprover_orders', firebaseUser.email) || [])
+          : [];
         const orderMatch = orders.find(o => {
           try {
             const d = (o.date || '').slice(0,10);

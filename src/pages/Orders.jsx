@@ -15,10 +15,12 @@ import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
+import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
+import { recordDeletion } from '../utils/deletionTracking'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
-	const { orders: appOrders, setOrders, vendors, addVendor, setStockpile, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
+	const { orders: appOrders, setOrders, vendors, addVendor, stockpile, setStockpile, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
 	const orders = useMemo(() => ensurePublicOrderNumbers(appOrders), [appOrders]);
 	const { isReadOnly } = useSubscriptionAccess();
 	const { firebaseUser } = useFirebase();
@@ -29,9 +31,10 @@ export default function Orders() {
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
+	const [deletingOrderId, setDeletingOrderId] = useState(null);
 	
 	// Helper function to delete order with immediate cloud sync
-	const handleDeleteOrder = async (id) => {
+	const handleDeleteOrder = async (id, retryCount = 0) => {
 		// Find the order being deleted for logging
 		const orderToDelete = orders.find(o => o.id === id);
 		
@@ -39,15 +42,62 @@ export default function Orders() {
 			console.log('🗑️ Deleting order:', orderToDelete.publicOrderNumber || orderToDelete.id || 'Unknown');
 		}
 		
-		// Remove from local state
-		const updatedOrders = orders.filter(o => o.id !== id);
-		setOrders(updatedOrders);
+		// Set loading state
+		setDeletingOrderId(id);
 		
-		// CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
-		// This prevents server data from restoring deleted items
-		if (firebaseUser) {
-			try {
+		// Store original state for error recovery
+		const originalOrders = [...orders];
+		const originalStockpile = [...(stockpile || [])];
+		
+		try {
+			// Step 1: Record deletion BEFORE removing from state
+			// This ensures deletion is tracked even if something goes wrong
+			recordDeletion('orders', id);
+			
+			// Step 2: Remove stockpile items associated with this order
+			const orderIdPrefix = `orderitem-${id}-`;
+			const stockpileItemsToDelete = [];
+			const updatedStockpile = (stockpile || []).filter(stockItem => {
+				const itemId = stockItem?.id;
+				if (!itemId || typeof itemId !== 'string') return true;
+				const shouldKeep = !itemId.startsWith(orderIdPrefix);
+				if (!shouldKeep) {
+					stockpileItemsToDelete.push(itemId);
+				}
+				return shouldKeep;
+			});
+			
+			// Record stockpile item deletions
+			stockpileItemsToDelete.forEach(itemId => {
+				recordDeletion('stockpile', itemId);
+			});
+			
+			// Update stockpile state immediately
+			if (updatedStockpile.length !== (stockpile || []).length) {
+				setStockpile(updatedStockpile);
+				console.log('🧹 Removed stockpile items for deleted order');
+			}
+			
+			// Step 3: Remove from local orders state
+			const updatedOrders = orders.filter(o => o.id !== id);
+			setOrders(updatedOrders);
+			
+			// Step 4: Wait a brief moment to ensure state updates complete
+			await new Promise(resolve => setTimeout(resolve, 100));
+			
+			// Step 5: Get deletion tracking to include in sync
+			const { getDeletionTracking } = require('../utils/deletionTracking');
+			const deletionTracking = getDeletionTracking();
+			
+			// Step 6: Force immediate cloud sync with skipMerge to ensure deletion persists
+			// This prevents server data from restoring deleted items
+			if (firebaseUser) {
 				const userId = firebaseUser.uid;
+				const userEmail = firebaseUser.email;
+				// Use safe localStorage getter to prevent data bleed
+				const taskCompletion = safeLocalStorageGet('tpprover_task_completion', userEmail) || {};
+				const calendarDone = safeLocalStorageGet('tpprover_calendar_done', userEmail) || {};
+				
 				const appData = {
 					protocols: protocols || [],
 					reconItems: reconItems || [],
@@ -57,21 +107,81 @@ export default function Orders() {
 					metrics: metrics || [],
 					vendors: vendors || [],
 					calendarNotes: calendarNotes || {},
-					stockpile: appOrders || [],
-					scheduledBuys: scheduledBuys || []
+					stockpile: updatedStockpile, // Use updated stockpile with items removed
+					scheduledBuys: scheduledBuys || [],
+					taskCompletion,
+					calendarDone,
+					deletionTracking // Include deletion tracking in sync
 				};
 				
 				// Force immediate sync with skipMerge to overwrite server data
 				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+				
 				if (syncResult) {
 					console.log('✅ Deleted order synced to cloud immediately');
+					window.dispatchEvent(new CustomEvent('tpp:toast', {
+						detail: {
+							message: 'Order deleted successfully! 🗑️',
+							type: 'success',
+							duration: 3000
+						}
+					}));
 				} else {
-					console.error('❌ Failed to sync deleted order to cloud');
+					// Retry once if sync failed
+					if (retryCount < 1) {
+						console.log('🔄 Retrying order deletion sync...');
+						await new Promise(resolve => setTimeout(resolve, 1000));
+						return handleDeleteOrder(id, retryCount + 1);
+					} else {
+						console.error('❌ Failed to sync deleted order to cloud after retry');
+						window.dispatchEvent(new CustomEvent('tpp:toast', {
+							detail: {
+								message: 'Order deleted locally, but sync failed. It may reappear. Please try again.',
+								type: 'error',
+								duration: 5000
+							}
+						}));
+						// Restore the original state since sync failed
+						setOrders(originalOrders);
+						setStockpile(originalStockpile);
+					}
 				}
-			} catch (error) {
-				console.error('❌ Error syncing deleted order to cloud:', error);
-				// Don't throw - the auto-sync will handle it
+			} else {
+				// User not logged in - deletion is local only
+				// CRITICAL: Explicitly save to localStorage to ensure persistence
+				// The useEffect in AppContext should handle this, but we'll do it explicitly here
+				// to ensure it happens even if there's a timing issue
+				try {
+					localStorage.setItem('tpprover_orders', JSON.stringify(updatedOrders));
+					localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedStockpile));
+					// Deletion tracking is already saved by recordDeletion function
+					console.log('💾 Deleted order saved to localStorage (local only)');
+				} catch (localError) {
+					console.error('❌ Failed to save deletion to localStorage:', localError);
+				}
+				
+				window.dispatchEvent(new CustomEvent('tpp:toast', {
+					detail: {
+						message: 'Order deleted successfully! 🗑️',
+						type: 'success',
+						duration: 3000
+					}
+				}));
 			}
+		} catch (error) {
+			console.error('❌ Error deleting order:', error);
+			window.dispatchEvent(new CustomEvent('tpp:toast', {
+				detail: {
+					message: 'Failed to delete order. Please try again.',
+					type: 'error',
+					duration: 4000
+				}
+			}));
+			// Restore the original state on error
+			setOrders(originalOrders);
+			setStockpile(originalStockpile);
+		} finally {
+			setDeletingOrderId(null);
 		}
 	};
 
@@ -444,6 +554,7 @@ export default function Orders() {
 				order={editingOrder}
 				vendors={vendors}
 				activeTab={activeTab}
+				isDeleting={deletingOrderId === editingOrder?.id}
 				onSave={(data) => {
 					console.log('📋 Orders page received data:', data);
 					console.log('📋 Current activeTab:', activeTab);
@@ -496,10 +607,7 @@ export default function Orders() {
 					setEditingOrder(null)
 				}}
 				onDelete={async (id) => {
-					const orderToDelete = orders.find(o => o.id === id);
-					if (orderToDelete) {
-						handleStockpileUpdate(orderToDelete, { ...orderToDelete, status: 'Cancelled' });
-					}
+					// Note: handleDeleteOrder now handles stockpile cleanup internally
 					await handleDeleteOrder(id);
 					setShowAddModal(false);
 					setEditingOrder(null);

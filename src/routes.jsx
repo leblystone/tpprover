@@ -53,9 +53,6 @@ const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail.jsx'), 'Veri
 const RedeemGift = lazyWithRetry(() => import('./pages/RedeemGift.jsx'), 'RedeemGift')
 const GiftSuccess = lazyWithRetry(() => import('./pages/GiftSuccess.jsx'), 'GiftSuccess')
 
-// TEMPORARY: Test component for error boundary - REMOVE BEFORE PRODUCTION
-const TestErrorBoundary = lazyWithRetry(() => import('./pages/TestErrorBoundary.jsx'), 'TestErrorBoundary')
-
 // Launch Configuration
 const IS_APP_BLOCKED = false; // Set to false when ready to launch
 
@@ -167,11 +164,6 @@ export const router = createBrowserRouter([
     path: '/gift-success',
     element: <GiftSuccess />,
     errorElement: <NotFound />,
-  },
-  {
-    path: '/test-error-boundary',
-    element: <TestErrorBoundary />,
-    // No errorElement - let errors bubble up to ChunkErrorBoundary
   },
   {
     path: '/rover/:type/share/:encodedData',

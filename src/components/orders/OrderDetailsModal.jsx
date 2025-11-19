@@ -12,7 +12,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { generateId } from '../../utils/string';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 
-export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade, activeTab = 'domestic' }) {
+export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade, activeTab = 'domestic', isDeleting = false }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
@@ -270,18 +270,13 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   };
 
   const handleDelete = async () => {
-    if (!form?.id || !onDelete) {
+    if (!form?.id || !onDelete || isDeleting) {
       return;
     }
 
     try {
       await onDelete(form.id);
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: {
-          message: 'Order has been deleted! 🗑️',
-          type: 'info'
-        }
-      }));
+      // Toast notification is handled by the parent component
     } catch (error) {
       console.error('❌ Failed to delete order:', error);
       setSaveError('We could not delete this order right now.');
@@ -321,20 +316,27 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               <button
                 type="button"
                 onClick={handleDelete}
-                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                disabled={isDeleting}
+                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm"
                 style={{
-                  background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                  background: isDeleting 
+                    ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                    : 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
                   color: '#ffffff',
                   border: 'none'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                  if (!isDeleting) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                  if (!isDeleting) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                  }
                 }}
               >
-                Delete
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             )}
           </div>

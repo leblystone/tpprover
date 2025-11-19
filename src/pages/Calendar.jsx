@@ -15,6 +15,8 @@ import { useAppContext } from '../context/AppContext'
 import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted } from '../utils/taskCompletion'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import { useFirebase } from '../context/FirebaseContext'
+import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
 import InjectionSiteSelector from '../components/common/InjectionSiteSelector'
 import { isInjectionSiteTrackingEnabled } from '../utils/injectionSiteSettings'
 
@@ -103,23 +105,25 @@ export default function Calendar() {
   const { theme } = useOutletContext()
   const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
+  const { firebaseUser } = useFirebase();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [goals, setGoals] = useState([]);
   
-  // Load goals from localStorage
+  // Load goals from localStorage with user validation
   useEffect(() => {
+    if (!firebaseUser?.email) return;
     try {
-      const savedGoals = localStorage.getItem('tpprover_goals');
+      const savedGoals = safeLocalStorageGet('tpprover_goals', firebaseUser.email);
       if (savedGoals) {
-        setGoals(JSON.parse(savedGoals));
+        setGoals(savedGoals);
       }
     } catch (error) {
       console.error('Error loading goals:', error);
     }
-  }, []);
+  }, [firebaseUser?.email]);
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState(() => {
-    // Load default view from settings
+    // Load default view from settings (settings are shared across accounts, so no validation needed)
     try {
       const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
       return settings.calendar?.defaultView || 'month';

@@ -28,6 +28,7 @@ import { ModernToastContainer } from './components/ui/ModernToast';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
+import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
 
 function App() {
   const location = useLocation();
@@ -149,6 +150,17 @@ function App() {
     handleCheckoutReturn(navigate, searchParams);
   }, [navigate, searchParams]);
 
+  // Data bleed diagnostic in development mode
+  useEffect(() => {
+    if (import.meta.env.DEV && user) {
+      // Run diagnostic after a short delay to allow data to load
+      const timeoutId = setTimeout(() => {
+        logDataBleedDiagnostic();
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user]);
+
   useEffect(() => {
     // Show welcome modal for all new Firebase users - wait for user to be loaded
     if (!user) return; // Wait for user to be loaded
@@ -265,15 +277,20 @@ function App() {
     const handleClearAutoSave = () => {
       setTopbarAutoSave(null);
     };
+    const handleOpenSupport = () => {
+      setShowSupportModal(true);
+    };
     window.addEventListener('tpp:set-topbar-tabs', handleSetTabs);
     window.addEventListener('tpp:clear-topbar-tabs', handleClearTabs);
     window.addEventListener('tpp:set-topbar-autosave', handleSetAutoSave);
     window.addEventListener('tpp:clear-topbar-autosave', handleClearAutoSave);
+    window.addEventListener('tpp:open-support', handleOpenSupport);
     return () => {
       window.removeEventListener('tpp:set-topbar-tabs', handleSetTabs);
       window.removeEventListener('tpp:clear-topbar-tabs', handleClearTabs);
       window.removeEventListener('tpp:set-topbar-autosave', handleSetAutoSave);
       window.removeEventListener('tpp:clear-topbar-autosave', handleClearAutoSave);
+      window.removeEventListener('tpp:open-support', handleOpenSupport);
     };
   }, []);
 

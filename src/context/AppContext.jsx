@@ -9,6 +9,7 @@ import {
   migrateLocalStorageToCloud, clearLocalStorageData, hasUserData,
   subscribeToUserState, subscribeToAppData, mergeWithTimestamps
 } from '../services/cloudStorage';
+import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking } from '../utils/deletionTracking';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
 import { defaultThemeName } from '../theme/themes';
@@ -50,6 +51,9 @@ export function AppProvider({ children }) {
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
     // SECURITY: Validate user ownership before loading to prevent data bleeding
     useEffect(() => {
+        // Initialize deletion tracking system
+        initializeDeletionTracking();
+        
         // Set flag to prevent welcome modal interference during initial load
         sessionStorage.setItem('tpp_initial_data_loading', 'true');
         
@@ -348,20 +352,38 @@ export function AppProvider({ children }) {
                 if (cloudAppData && !isCloudEmpty) {
                     // Cloud has real data - use it (with timestamp merging if local exists)
                     if (hasLocalData) {
+                        // Get and merge deletion tracking first
+                        const localDeletionTracking = getDeletionTracking();
+                        const cloudDeletionTracking = cloudAppData.deletionTracking || {};
+                        const mergedDeletionTracking = mergeDeletionTracking(localDeletionTracking, cloudDeletionTracking);
+                        
+                        // Restore merged deletion tracking to localStorage
+                        try {
+                            localStorage.setItem('tpprover_deletion_tracking', JSON.stringify(mergedDeletionTracking));
+                        } catch (e) {
+                            console.warn('⚠️ Failed to save merged deletion tracking:', e);
+                        }
+                        
                         // Merge cloud with local using timestamps to prevent data loss
                         const mergedProtocols = localProtocols ? mergeWithTimestamps(
                             JSON.parse(localProtocols),
-                            cloudAppData.protocols || []
+                            cloudAppData.protocols || [],
+                            'protocols',
+                            mergedDeletionTracking.protocols
                         ) : (cloudAppData.protocols || []);
                         
                         const mergedOrders = localOrders ? mergeWithTimestamps(
                             ensurePublicOrderNumbers(JSON.parse(localOrders)),
-                            cloudAppData.orders || []
+                            cloudAppData.orders || [],
+                            'orders',
+                            mergedDeletionTracking.orders
                         ) : (cloudAppData.orders || []);
                         
                         const mergedStockpile = localStockpile ? mergeWithTimestamps(
                             JSON.parse(localStockpile),
-                            cloudAppData.stockpile || []
+                            cloudAppData.stockpile || [],
+                            'stockpile',
+                            mergedDeletionTracking.stockpile
                         ) : (cloudAppData.stockpile || []);
                         
                         setProtocols(mergedProtocols);
@@ -379,7 +401,9 @@ export function AppProvider({ children }) {
                         if (localRecon) {
                             setReconItems(mergeWithTimestamps(
                                 JSON.parse(localRecon),
-                                cloudAppData.reconItems || []
+                                cloudAppData.reconItems || [],
+                                'reconItems',
+                                mergedDeletionTracking.reconItems
                             ));
                         } else if (cloudAppData.reconItems) {
                             setReconItems(cloudAppData.reconItems);
@@ -388,7 +412,9 @@ export function AppProvider({ children }) {
                         if (localReconHistory) {
                             setReconHistory(mergeWithTimestamps(
                                 JSON.parse(localReconHistory),
-                                cloudAppData.reconHistory || []
+                                cloudAppData.reconHistory || [],
+                                'reconHistory',
+                                mergedDeletionTracking.reconHistory
                             ));
                         } else if (cloudAppData.reconHistory) {
                             setReconHistory(cloudAppData.reconHistory);
@@ -397,7 +423,9 @@ export function AppProvider({ children }) {
                         if (localSupplements) {
                             setSupplements(mergeWithTimestamps(
                                 JSON.parse(localSupplements),
-                                cloudAppData.supplements || []
+                                cloudAppData.supplements || [],
+                                'supplements',
+                                mergedDeletionTracking.supplements
                             ));
                         } else if (cloudAppData.supplements) {
                             setSupplements(cloudAppData.supplements);
@@ -406,7 +434,9 @@ export function AppProvider({ children }) {
                         if (localMetrics) {
                             setMetrics(mergeWithTimestamps(
                                 JSON.parse(localMetrics),
-                                cloudAppData.metrics || []
+                                cloudAppData.metrics || [],
+                                'metrics',
+                                mergedDeletionTracking.metrics
                             ));
                         } else if (cloudAppData.metrics) {
                             setMetrics(cloudAppData.metrics);
@@ -415,7 +445,9 @@ export function AppProvider({ children }) {
                         if (localVendors) {
                             setVendors(mergeWithTimestamps(
                                 JSON.parse(localVendors),
-                                cloudAppData.vendors || []
+                                cloudAppData.vendors || [],
+                                'vendors',
+                                mergedDeletionTracking.vendors
                             ));
                         } else if (cloudAppData.vendors) {
                             setVendors(cloudAppData.vendors);
@@ -424,7 +456,9 @@ export function AppProvider({ children }) {
                         if (localScheduledBuys) {
                             setScheduledBuys(mergeWithTimestamps(
                                 JSON.parse(localScheduledBuys),
-                                cloudAppData.scheduledBuys || []
+                                cloudAppData.scheduledBuys || [],
+                                'scheduledBuys',
+                                mergedDeletionTracking.scheduledBuys
                             ));
                         } else if (cloudAppData.scheduledBuys) {
                             setScheduledBuys(cloudAppData.scheduledBuys);
@@ -1072,6 +1106,9 @@ export function AppProvider({ children }) {
         const taskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
         const calendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
         
+        // Get deletion tracking to include in sync
+        const deletionTracking = getDeletionTracking();
+        
         const userData = {
             protocols,
             reconItems,
@@ -1084,7 +1121,8 @@ export function AppProvider({ children }) {
             stockpile,
             scheduledBuys,
             taskCompletion,
-            calendarDone
+            calendarDone,
+            deletionTracking
         };
         
         // DEBUG: Log scheduledBuys being synced

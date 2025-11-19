@@ -115,16 +115,50 @@ function ensureTimestamps(items) {
 /**
  * Helper: Merge arrays with timestamp-based conflict resolution
  * Server data wins if it has newer timestamps
+ * Respects deletion tracking to prevent deleted items from being restored
+ * @param {Array} localItems - Local items array
+ * @param {Array} serverItems - Server items array
+ * @param {string} dataType - Type of data (e.g., 'orders', 'protocols') for deletion tracking
+ * @param {Object} deletionTracking - Deletion tracking data (optional, will be loaded if not provided)
  */
-export function mergeWithTimestamps(localItems, serverItems) {
+export function mergeWithTimestamps(localItems, serverItems, dataType = null, deletionTracking = null) {
   if (!Array.isArray(localItems)) localItems = [];
   if (!Array.isArray(serverItems)) serverItems = [];
   
+  // Load deletion tracking if dataType is provided and tracking not passed
+  let deletions = deletionTracking;
+  if (dataType && !deletions) {
+    try {
+      const { getDeletionTracking } = require('../utils/deletionTracking');
+      const tracking = getDeletionTracking();
+      deletions = tracking[dataType] || {};
+    } catch (error) {
+      console.warn('⚠️ Could not load deletion tracking:', error);
+      deletions = {};
+    }
+  } else if (!deletions) {
+    deletions = {};
+  }
+  
   const itemMap = new Map();
   
-  // Add server items first
+  // Add server items first, but exclude deleted items
   serverItems.forEach(item => {
     if (item.id) {
+      // Check if this item was deleted locally (and deletion is recent)
+      const deletionRecord = deletions[item.id];
+      if (deletionRecord) {
+        // Item was deleted - check if deletion is newer than server item
+        const deletionTime = deletionRecord.timestamp || 0;
+        const serverTime = new Date(item.updatedAt || 0).getTime();
+        
+        // If deletion is newer than server update, exclude the item
+        if (deletionTime > serverTime) {
+          console.log(`🚫 Excluding deleted ${dataType} item from merge: ${item.id}`);
+          return; // Skip this item
+        }
+        // If server update is newer than deletion, the item was recreated - include it
+      }
       itemMap.set(item.id, item);
     }
   });
@@ -132,6 +166,12 @@ export function mergeWithTimestamps(localItems, serverItems) {
   // Add or update with local items (only if they're newer or don't exist on server)
   localItems.forEach(localItem => {
     if (!localItem.id) return;
+    
+    // Skip if this item is marked as deleted
+    if (deletions[localItem.id]) {
+      console.log(`🚫 Skipping deleted local ${dataType} item: ${localItem.id}`);
+      return;
+    }
     
     const serverItem = itemMap.get(localItem.id);
     
@@ -208,6 +248,17 @@ export async function saveAppData(userId, appData, options = {}) {
     // Load existing server data for comparison
     const serverData = skipMerge ? null : await loadAppData(userId);
     
+    // Load deletion tracking for merge operations
+    let deletionTracking = null;
+    if (!skipMerge) {
+      try {
+        const { getDeletionTracking } = require('../utils/deletionTracking');
+        deletionTracking = getDeletionTracking();
+      } catch (error) {
+        console.warn('⚠️ Could not load deletion tracking for merge:', error);
+      }
+    }
+    
     // Add timestamps to all items
     const timestampedData = {
       protocols: ensureTimestamps(appData.protocols || []),
@@ -221,26 +272,35 @@ export async function saveAppData(userId, appData, options = {}) {
       scheduledBuys: ensureTimestamps(appData.scheduledBuys || []),
       calendarNotes: appData.calendarNotes || {},
       taskCompletion: appData.taskCompletion || {},
-      calendarDone: appData.calendarDone || {}
+      calendarDone: appData.calendarDone || {},
+      deletionTracking: appData.deletionTracking || deletionTracking || {}
     };
     
     // If we have server data, merge intelligently
     let dataToSave = timestampedData;
     if (serverData && !skipMerge) {
+      // Merge deletion tracking first
+      const { mergeDeletionTracking } = require('../utils/deletionTracking');
+      const mergedDeletionTracking = mergeDeletionTracking(
+        timestampedData.deletionTracking || {},
+        serverData.deletionTracking || {}
+      );
+      
       dataToSave = {
-        protocols: mergeWithTimestamps(timestampedData.protocols, serverData.protocols),
-        reconItems: mergeWithTimestamps(timestampedData.reconItems, serverData.reconItems),
-        reconHistory: mergeWithTimestamps(timestampedData.reconHistory, serverData.reconHistory),
-        supplements: mergeWithTimestamps(timestampedData.supplements, serverData.supplements),
-        orders: mergeWithTimestamps(timestampedData.orders, serverData.orders),
-        metrics: mergeWithTimestamps(timestampedData.metrics, serverData.metrics),
-        vendors: mergeWithTimestamps(timestampedData.vendors, serverData.vendors),
-        stockpile: mergeWithTimestamps(timestampedData.stockpile, serverData.stockpile),
-        scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys),
+        protocols: mergeWithTimestamps(timestampedData.protocols, serverData.protocols, 'protocols', mergedDeletionTracking.protocols),
+        reconItems: mergeWithTimestamps(timestampedData.reconItems, serverData.reconItems, 'reconItems', mergedDeletionTracking.reconItems),
+        reconHistory: mergeWithTimestamps(timestampedData.reconHistory, serverData.reconHistory, 'reconHistory', mergedDeletionTracking.reconHistory),
+        supplements: mergeWithTimestamps(timestampedData.supplements, serverData.supplements, 'supplements', mergedDeletionTracking.supplements),
+        orders: mergeWithTimestamps(timestampedData.orders, serverData.orders, 'orders', mergedDeletionTracking.orders),
+        metrics: mergeWithTimestamps(timestampedData.metrics, serverData.metrics, 'metrics', mergedDeletionTracking.metrics),
+        vendors: mergeWithTimestamps(timestampedData.vendors, serverData.vendors, 'vendors', mergedDeletionTracking.vendors),
+        stockpile: mergeWithTimestamps(timestampedData.stockpile, serverData.stockpile, 'stockpile', mergedDeletionTracking.stockpile),
+        scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys, 'scheduledBuys', mergedDeletionTracking.scheduledBuys),
         calendarNotes: timestampedData.calendarNotes, // TODO: Add timestamp merging for calendar notes
         // Merge task completion data - prefer local data (more recent completions)
         taskCompletion: mergeTaskCompletion(timestampedData.taskCompletion, serverData.taskCompletion || {}),
-        calendarDone: mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {})
+        calendarDone: mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {}),
+        deletionTracking: mergedDeletionTracking
       };
     }
     
@@ -248,6 +308,15 @@ export async function saveAppData(userId, appData, options = {}) {
   } catch (error) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
     // Fallback to simple save
+    // Load deletion tracking for fallback
+    let deletionTracking = {};
+    try {
+      const { getDeletionTracking } = require('../utils/deletionTracking');
+      deletionTracking = getDeletionTracking();
+    } catch (error) {
+      console.warn('⚠️ Could not load deletion tracking for fallback save:', error);
+    }
+    
     return await saveUserData(userId, {
     protocols: appData.protocols || [],
     reconItems: appData.reconItems || [],
@@ -260,7 +329,8 @@ export async function saveAppData(userId, appData, options = {}) {
     stockpile: appData.stockpile || [],
     scheduledBuys: appData.scheduledBuys || [],
     taskCompletion: appData.taskCompletion || {},
-    calendarDone: appData.calendarDone || {}
+    calendarDone: appData.calendarDone || {},
+    deletionTracking: appData.deletionTracking || deletionTracking
     }, COLLECTIONS.USER_DATA);
   }
 }

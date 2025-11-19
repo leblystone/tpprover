@@ -1,6 +1,7 @@
 import React from 'react';
 import { FlaskConicalOff, RefreshCw } from 'lucide-react';
 import { themes } from '../../theme/themes';
+import SupportModal from './SupportModal';
 
 /**
  * Error Boundary for Chunk Loading Failures
@@ -12,7 +13,8 @@ class ChunkErrorBoundary extends React.Component {
     this.state = { 
       hasError: false, 
       error: null,
-      errorInfo: null
+      errorInfo: null,
+      showSupportModal: false
     };
   }
 
@@ -46,6 +48,14 @@ class ChunkErrorBoundary extends React.Component {
     // Clear the force refresh flag and reload
     window.sessionStorage.removeItem('page_has_been_force_refreshed');
     window.location.reload();
+  };
+
+  handleOpenSupport = () => {
+    this.setState({ showSupportModal: true });
+  };
+
+  handleCloseSupport = () => {
+    this.setState({ showSupportModal: false });
   };
 
   handleClearCacheAndReload = async () => {
@@ -200,9 +210,38 @@ class ChunkErrorBoundary extends React.Component {
               color: sageTheme.textLight,
               lineHeight: '1.5'
             }}>
-              If this problem continues, please contact our support team. We're here to help! 🚀
+              If this problem continues, please contact{' '}
+              <button
+                onClick={this.handleOpenSupport}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: sageTheme.primary,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 'inherit',
+                  fontFamily: 'inherit'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.color = sageTheme.primaryDark;
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.color = sageTheme.primary;
+                }}
+              >
+                support
+              </button>
+              .
             </p>
           </div>
+          
+          {/* Render SupportModal directly - AppContext should still be available since providers are above this boundary */}
+          <SupportModal 
+            open={this.state.showSupportModal}
+            onClose={this.handleCloseSupport}
+            theme={sageTheme}
+          />
         </div>
       );
     }
