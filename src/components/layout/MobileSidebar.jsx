@@ -42,7 +42,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
     { to: '/app/settings', label: 'Settings', icon: Settings },
   ]
   const overlay = (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[10001]">
       <div 
         className="absolute inset-0 bg-black/20 backdrop-blur-sm" 
         onClick={onClose}

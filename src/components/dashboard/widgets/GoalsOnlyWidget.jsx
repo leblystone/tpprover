@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Plus, Target, X, Save, MoreVertical, Archive, Trash2, History } from 'lucide-react';
+import { Check, Plus, Target, X, Save, Archive, Trash2, History, Edit } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 
@@ -13,7 +13,6 @@ const GoalsOnlyWidget = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: '', targetDate: '' });
   const [goals, setGoals] = useState([]);
-  const [openMenuId, setOpenMenuId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [archivedGoals, setArchivedGoals] = useState([]);
@@ -22,6 +21,13 @@ const GoalsOnlyWidget = ({
   useEffect(() => {
     loadGoals();
   }, []);
+
+  // Reload goals when modal opens to ensure fresh data
+  useEffect(() => {
+    if (showHistory) {
+      loadGoals();
+    }
+  }, [showHistory]);
 
   const loadGoals = () => {
     try {
@@ -88,8 +94,8 @@ const GoalsOnlyWidget = ({
       goal.id === goalId ? { ...goal, archived: true, archivedAt: new Date().toISOString() } : goal
     );
     saveGoals(updatedGoals);
-    setOpenMenuId(null);
     loadGoals(); // Reload to update archived list
+    // Keep modal open so user can see the goal move to archived section
   };
 
   const handleDeleteGoal = (goalId) => {
@@ -104,7 +110,6 @@ const GoalsOnlyWidget = ({
       const activeGoals = goals.filter(goal => goal.id !== goalId);
       setGoals(activeGoals);
       setDeleteConfirmId(null);
-      setOpenMenuId(null);
       loadGoals(); // Reload to update archived list
     } catch (error) {
       console.error('Failed to delete goal:', error);
@@ -194,20 +199,30 @@ const GoalsOnlyWidget = ({
               <button
                 onClick={handleAddGoal}
                 disabled={!newGoal.title.trim()}
-                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ 
                   backgroundColor: theme.primary, 
                   color: theme.textOnPrimary || '#ffffff',
                   boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
                 }}
               >
-                <Save size={14} />
-                Save Goal
+                Save
               </button>
               <button
                 onClick={handleCancel}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ backgroundColor: theme.secondary, color: theme.text }}
+                className="px-3 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center"
+                style={{ 
+                  background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                }}
               >
                 <X size={14} />
               </button>
@@ -252,18 +267,27 @@ const GoalsOnlyWidget = ({
                     <div
                       key={goal.id}
                       className="group flex items-center gap-2 p-2 rounded-lg transition-all hover:opacity-90 relative"
-                      onMouseLeave={() => setOpenMenuId(null)}
                     >
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleToggleGoal(goal.id);
                         }}
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                          goal.completed 
-                            ? 'border-green-500 bg-green-500' 
-                            : 'border-gray-300 hover:border-green-400'
-                        }`}
+                        className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0"
+                        style={{
+                          borderColor: goal.completed ? '#b5684a' : theme.border,
+                          background: goal.completed ? 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)' : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!goal.completed) {
+                            e.currentTarget.style.borderColor = '#b5684a';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!goal.completed) {
+                            e.currentTarget.style.borderColor = theme.border;
+                          }
+                        }}
                       >
                         {goal.completed && (
                           <Check size={10} className="text-white" />
@@ -285,104 +309,37 @@ const GoalsOnlyWidget = ({
                           </p>
                         )}
                       </div>
-
-                      {/* Actions Menu */}
-                      <div className="relative flex-shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(openMenuId === goal.id ? null : goal.id);
-                          }}
-                          className="p-1 rounded hover:bg-opacity-20 transition-all opacity-0 group-hover:opacity-100"
-                          style={{ 
-                            backgroundColor: theme.border + '40',
-                            color: theme.textLight
-                          }}
-                        >
-                          <MoreVertical size={12} />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {openMenuId === goal.id && (
-                          <div 
-                            className="absolute right-0 top-6 z-10 rounded-lg shadow-lg border overflow-hidden"
-                            style={{ 
-                              backgroundColor: theme.cardBackground,
-                              borderColor: theme.border,
-                              minWidth: '120px'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              onClick={() => handleArchiveGoal(goal.id)}
-                              className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-opacity-20 transition-colors"
-                              style={{ 
-                                color: theme.text,
-                                backgroundColor: 'transparent'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.secondary;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }}
-                            >
-                              <Archive size={12} />
-                              Archive
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirmId(goal.id)}
-                              className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-opacity-20 transition-colors"
-                              style={{ 
-                                color: '#ef4444',
-                                backgroundColor: 'transparent'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#ef4444' + '20';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }}
-                            >
-                              <Trash2 size={12} />
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>
 
-                {/* View History Link */}
-                {archivedGoals.length > 0 && (
-                  <div className="pt-2 border-t flex-shrink-0 flex justify-center" style={{ borderColor: theme.border }}>
-                    <button
-                      onClick={() => setShowHistory(true)}
-                      className="text-xs transition-all hover:opacity-80 flex items-center gap-1"
-                      style={{ 
-                        color: theme.textLight,
-                        textDecoration: 'none'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = theme.primary;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = theme.textLight;
-                      }}
-                    >
-                      <History size={12} />
-                      <span>View History ({archivedGoals.length})</span>
-                    </button>
-                  </div>
-                )}
+                {/* View/Edit Link */}
+                <div className="pt-2 border-t flex-shrink-0 flex justify-center" style={{ borderColor: theme.border }}>
+                  <button
+                    onClick={() => setShowHistory(true)}
+                    className="text-xs transition-all hover:opacity-80 flex items-center gap-1"
+                    style={{ 
+                      color: theme.textLight,
+                      textDecoration: 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = theme.primary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = theme.textLight;
+                    }}
+                  >
+                    <Edit size={12} />
+                    <span>View/Edit</span>
+                  </button>
+                </div>
               </>
             )}
           </div>
         )}
       </div>
 
-      {/* Goals History Modal */}
+      {/* Goals View/Edit Modal */}
       {showHistory && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div 
@@ -407,14 +364,14 @@ const GoalsOnlyWidget = ({
                   className="w-10 h-10 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
                 >
-                  <History size={20} style={{ color: theme.textOnPrimary }} />
+                  <Edit size={20} style={{ color: theme.textOnPrimary }} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold" style={{ color: theme.textOnPrimary }}>
-                    Goals History
+                    View/Edit Goals
                   </h3>
                   <p className="text-sm opacity-90" style={{ color: theme.textOnPrimary }}>
-                    {archivedGoals.length} archived goal{archivedGoals.length !== 1 ? 's' : ''}
+                    {goals.length} active, {archivedGoals.length} archived
                   </p>
                 </div>
               </div>
@@ -429,62 +386,160 @@ const GoalsOnlyWidget = ({
 
             {/* Content */}
             <div className="p-6 max-h-[60vh] overflow-y-auto">
-              {archivedGoals.length === 0 ? (
-                <div className="text-center py-8">
-                  <History size={48} className="mx-auto mb-4 opacity-30" style={{ color: theme.textLight }} />
-                  <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-                    No Archived Goals
+              {/* Active Goals */}
+              {goals.length > 0 ? (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                    Active Goals
                   </h4>
-                  <p className="text-sm" style={{ color: theme.textLight }}>
-                    Archived goals will appear here.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {archivedGoals.map((goal) => (
-                    <div
-                      key={goal.id}
-                      className="p-3 rounded-lg border flex items-center justify-between"
-                      style={{ 
-                        backgroundColor: theme.secondary,
-                        borderColor: theme.border
-                      }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p 
-                          className={`text-sm font-medium truncate ${
-                            goal.completed ? 'line-through opacity-60' : ''
-                          }`}
-                          style={{ color: theme.text }}
-                        >
-                          {goal.title}
-                        </p>
-                        {goal.targetDate && (
-                          <p className="text-xs opacity-60 truncate mt-1" style={{ color: theme.textLight }}>
-                            Due: {new Date(goal.targetDate).toLocaleDateString()}
-                          </p>
-                        )}
-                        {goal.archivedAt && (
-                          <p className="text-xs opacity-50 truncate mt-1" style={{ color: theme.textLight }}>
-                            Archived: {new Date(goal.archivedAt).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleRestoreGoal(goal.id)}
-                        className="ml-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1"
+                  <div className="space-y-2">
+                    {goals.map((goal) => (
+                      <div
+                        key={goal.id}
+                        className="p-3 rounded-lg border flex items-center justify-between"
                         style={{ 
-                          backgroundColor: theme.primary,
-                          color: theme.textOnPrimary
+                          backgroundColor: theme.secondary,
+                          borderColor: theme.border
                         }}
                       >
-                        <Archive size={12} />
-                        Restore
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <button
+                            onClick={() => handleToggleGoal(goal.id)}
+                            className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0"
+                            style={{
+                              borderColor: goal.completed ? '#b5684a' : theme.border,
+                              background: goal.completed ? 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)' : 'transparent'
+                            }}
+                          >
+                            {goal.completed && (
+                              <Check size={10} className="text-white" />
+                            )}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p 
+                              className={`text-sm font-medium truncate ${
+                                goal.completed ? 'line-through opacity-60' : ''
+                              }`}
+                              style={{ color: theme.text }}
+                            >
+                              {goal.title}
+                            </p>
+                            {goal.targetDate && (
+                              <p className="text-xs opacity-60 truncate mt-1" style={{ color: theme.textLight }}>
+                                Due: {new Date(goal.targetDate).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => handleArchiveGoal(goal.id)}
+                            className="p-1.5 rounded transition-all hover:opacity-80"
+                            style={{ 
+                              backgroundColor: theme.primary + '20',
+                              color: theme.primary
+                            }}
+                            title="Archive"
+                          >
+                            <Archive size={14} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(goal.id)}
+                            className="p-1.5 rounded transition-all hover:opacity-80"
+                            style={{ 
+                              backgroundColor: '#ef4444' + '20',
+                              color: '#ef4444'
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
+              ) : null}
+
+              {/* Archived Goals */}
+              {archivedGoals.length > 0 ? (
+                <div>
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+                    Archived Goals
+                  </h4>
+                  <div className="space-y-2">
+                    {archivedGoals.map((goal) => (
+                      <div
+                        key={goal.id}
+                        className="p-3 rounded-lg border flex items-center justify-between"
+                        style={{ 
+                          backgroundColor: theme.secondary,
+                          borderColor: theme.border,
+                          opacity: 0.7
+                        }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p 
+                            className={`text-sm font-medium truncate ${
+                              goal.completed ? 'line-through opacity-60' : ''
+                            }`}
+                            style={{ color: theme.text }}
+                          >
+                            {goal.title}
+                          </p>
+                          {goal.targetDate && (
+                            <p className="text-xs opacity-60 truncate mt-1" style={{ color: theme.textLight }}>
+                              Due: {new Date(goal.targetDate).toLocaleDateString()}
+                            </p>
+                          )}
+                          {goal.archivedAt && (
+                            <p className="text-xs opacity-50 truncate mt-1" style={{ color: theme.textLight }}>
+                              Archived: {new Date(goal.archivedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => handleRestoreGoal(goal.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1"
+                            style={{ 
+                              backgroundColor: theme.primary,
+                              color: theme.textOnPrimary
+                            }}
+                          >
+                            <Archive size={12} />
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(goal.id)}
+                            className="p-1.5 rounded transition-all hover:opacity-80"
+                            style={{ 
+                              backgroundColor: '#ef4444' + '20',
+                              color: '#ef4444'
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Empty State */}
+              {goals.length === 0 && archivedGoals.length === 0 ? (
+                <div className="text-center py-8">
+                  <Edit size={48} className="mx-auto mb-4 opacity-30" style={{ color: theme.textLight }} />
+                  <h4 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                    No Goals
+                  </h4>
+                  <p className="text-sm" style={{ color: theme.textLight }}>
+                    Create goals to get started.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>,

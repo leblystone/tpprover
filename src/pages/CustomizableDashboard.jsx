@@ -1170,16 +1170,69 @@ export default function CustomizableDashboard() {
             setOnBackToAllEntries(null);
           }
         }}
-        onSave={(metric) => {
-          if (editingMetric) {
-            setMetrics(prev => prev.map(m => m.id === editingMetric.id ? { ...editingMetric, ...metric } : m));
+        onSave={async (metric) => {
+          const now = new Date().toISOString();
+          let updatedMetrics;
+          
+          if (editingMetric && editingMetric.id) {
+            // Editing existing metric
+            updatedMetrics = metrics.map(m => 
+              m.id === editingMetric.id 
+                ? { ...m, ...metric, id: editingMetric.id, updatedAt: now }
+                : m
+            );
+          } else if (metric.id) {
+            // Metric has an id but wasn't in editingMetric (edge case)
+            updatedMetrics = metrics.map(m => 
+              m.id === metric.id 
+                ? { ...m, ...metric, updatedAt: now }
+                : m
+            );
           } else {
-            setMetrics(prev => [...prev, { ...metric, id: Date.now() }]);
+            // Creating new metric
+            updatedMetrics = [...metrics, { ...metric, id: Date.now(), createdAt: now, updatedAt: now }];
           }
+          
+          setMetrics(updatedMetrics);
           setShowMetrics(false);
           setEditingMetric(null);
           setShowBackButton(false);
           setOnBackToAllEntries(null);
+          
+          // CRITICAL: Sync to Firebase to persist changes
+          if (firebaseUser) {
+            try {
+              const userId = firebaseUser.uid;
+              const appData = {
+                protocols: protocols || [],
+                reconItems: reconItems || [],
+                reconHistory: reconHistory || [],
+                supplements: supplements || [],
+                orders: orders || [],
+                metrics: updatedMetrics,
+                vendors: vendors || [],
+                calendarNotes: calendarNotes || {},
+                stockpile: stockpile || [],
+                scheduledBuys: scheduledBuys || []
+              };
+              
+              const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+              if (syncResult) {
+                console.log('✅ Saved metric synced to cloud immediately');
+              } else {
+                console.error('❌ Failed to sync saved metric to cloud');
+              }
+            } catch (error) {
+              console.error('❌ Error syncing saved metric to cloud:', error);
+            }
+          }
+          
+          // If we have a back callback, use it to return to view all modal
+          if (onBackToAllEntries) {
+            setTimeout(() => {
+              onBackToAllEntries();
+            }, 100);
+          }
         }}
       />
 

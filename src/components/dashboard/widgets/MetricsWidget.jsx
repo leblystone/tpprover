@@ -297,6 +297,11 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric, onReopen
                     </span>
                   </div>
                   <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditMetric?.(metric, onReopen);
+                      onClose();
+                    }}
                     className="p-1 rounded transition-all" 
                     style={{ color: theme.textLight }}
                     onMouseEnter={(e) => {
@@ -305,6 +310,7 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric, onReopen
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
+                    title="Edit entry"
                   >
                     <Edit size={14} />
                   </button>
