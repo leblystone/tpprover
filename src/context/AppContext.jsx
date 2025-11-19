@@ -1125,18 +1125,13 @@ export function AppProvider({ children }) {
             deletionTracking
         };
         
-        // DEBUG: Log scheduledBuys being synced
-        if (scheduledBuys && scheduledBuys.length > 0) {
-            console.log('🔄 Auto-sync preparing to send scheduledBuys to Firebase:', 
-                scheduledBuys.map(buy => ({
-                    id: buy.id,
-                    item: buy.item,
-                    location: buy.location,
-                    participants: buy.participants,
-                    price: buy.price,
-                    vendor: buy.vendor
-                }))
-            );
+        // DEBUG: Log scheduledBuys being synced (only in development, and only once per session)
+        if (process.env.NODE_ENV === 'development' && scheduledBuys && scheduledBuys.length > 0) {
+            const logKey = 'tpprover_scheduledBuys_sync_logged';
+            if (!sessionStorage.getItem(logKey)) {
+                console.log('🔄 Auto-sync preparing to send scheduledBuys to Firebase:', scheduledBuys.length, 'items');
+                sessionStorage.setItem(logKey, 'true');
+            }
         }
         
         // Only sync if we have some data to sync

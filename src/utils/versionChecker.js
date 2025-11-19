@@ -121,7 +121,15 @@ export async function fetchVersionConfig() {
     
     return versionDoc.data();
   } catch (error) {
-    console.error('❌ Error fetching version config:', error);
+    // Suppress permission errors in development (expected when version config isn't public)
+    if (error.code === 'permission-denied' && (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost')) {
+      // Silently handle permission errors in dev - version checking is optional
+      return null;
+    }
+    // Only log non-permission errors
+    if (error.code !== 'permission-denied') {
+      console.error('❌ Error fetching version config:', error);
+    }
     return null;
   }
 }
@@ -142,7 +150,10 @@ export async function checkForUpdates() {
     const config = await fetchVersionConfig();
     
     if (!config || !config.latestVersion) {
-      console.warn('⚠️ No version config available');
+      // Only warn in production - in dev, missing config is expected
+      if (process.env.NODE_ENV === 'production' && window.location.hostname !== 'localhost') {
+        console.warn('⚠️ No version config available');
+      }
       return null;
     }
     
