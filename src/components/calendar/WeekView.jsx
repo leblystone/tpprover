@@ -344,6 +344,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                                         });
                                         
                                         if (orderMatch) {
+                                            // Include all fields from the order, preserving everything
                                             fullData = {
                                                 item: (orderMatch.group && (orderMatch.group.title || orderMatch.group.name)) || orderMatch.peptide || orderMatch.item || 'Unknown Item',
                                                 vendor: orderMatch.vendor || '',
@@ -352,7 +353,11 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                                                 closeDate: orderMatch.date || '',
                                                 location: orderMatch.location || '',
                                                 participants: orderMatch.group?.participants || '',
-                                                notes: orderMatch.group?.notes || orderMatch.notes || ''
+                                                notes: orderMatch.group?.notes || orderMatch.notes || '',
+                                                // Include any other fields from the order
+                                                ...orderMatch,
+                                                // Override with group-specific data if available
+                                                ...(orderMatch.group || {})
                                             };
                                         }
                                     } catch (error) {
