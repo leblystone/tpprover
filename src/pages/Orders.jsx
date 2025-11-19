@@ -16,7 +16,7 @@ import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/ord
 import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
 import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
-import { recordDeletion } from '../utils/deletionTracking'
+import { recordDeletion, getDeletionTracking } from '../utils/deletionTracking'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
@@ -86,7 +86,6 @@ export default function Orders() {
 			await new Promise(resolve => setTimeout(resolve, 100));
 			
 			// Step 5: Get deletion tracking to include in sync
-			const { getDeletionTracking } = require('../utils/deletionTracking');
 			const deletionTracking = getDeletionTracking();
 			
 			// Step 6: Force immediate cloud sync with skipMerge to ensure deletion persists

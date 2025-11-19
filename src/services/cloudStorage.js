@@ -1,5 +1,6 @@
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getDeletionTracking, mergeDeletionTracking } from '../utils/deletionTracking';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -129,7 +130,6 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
   let deletions = deletionTracking;
   if (dataType && !deletions) {
     try {
-      const { getDeletionTracking } = require('../utils/deletionTracking');
       const tracking = getDeletionTracking();
       deletions = tracking[dataType] || {};
     } catch (error) {
@@ -252,7 +252,6 @@ export async function saveAppData(userId, appData, options = {}) {
     let deletionTracking = null;
     if (!skipMerge) {
       try {
-        const { getDeletionTracking } = require('../utils/deletionTracking');
         deletionTracking = getDeletionTracking();
       } catch (error) {
         console.warn('⚠️ Could not load deletion tracking for merge:', error);
@@ -280,7 +279,6 @@ export async function saveAppData(userId, appData, options = {}) {
     let dataToSave = timestampedData;
     if (serverData && !skipMerge) {
       // Merge deletion tracking first
-      const { mergeDeletionTracking } = require('../utils/deletionTracking');
       const mergedDeletionTracking = mergeDeletionTracking(
         timestampedData.deletionTracking || {},
         serverData.deletionTracking || {}
@@ -311,7 +309,6 @@ export async function saveAppData(userId, appData, options = {}) {
     // Load deletion tracking for fallback
     let deletionTracking = {};
     try {
-      const { getDeletionTracking } = require('../utils/deletionTracking');
       deletionTracking = getDeletionTracking();
     } catch (error) {
       console.warn('⚠️ Could not load deletion tracking for fallback save:', error);
