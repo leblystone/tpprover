@@ -212,6 +212,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
             Hydration
           </h3>
           <div className="flex items-center gap-2">
+            <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
             <ModernTooltip text="History & Analytics" position="top">
               <button 
                 onClick={() => setShowHistoryModal(true)}
@@ -231,7 +232,6 @@ const WaterTrackerWidget = ({ widget, theme }) => {
                 <History size={14} color="#FFFFFF" />
               </button>
             </ModernTooltip>
-            <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
           </div>
         </div>
       </div>
