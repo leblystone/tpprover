@@ -53,9 +53,15 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   useEffect(() => {
     if (open) {
       const base = vendor ? { ...createEmptyVendor(), ...vendor } : createEmptyVendor()
-      // Set default category for new vendors from the active tab
-      if (!vendor?.id) {
+      // For new vendors, default type to activeTab. For existing vendors, preserve their type.
+      if (!vendor || !vendor.id) {
+        // New vendor: use activeTab as default type
+        base.type = activeTab || 'domestic';
+      } else {
+        // Existing vendor: preserve type, but default to activeTab if not set
+        if (!base.type) {
           base.type = activeTab || 'domestic';
+        }
       }
       // Ensure at least one contact input (default to email)
       if (!Array.isArray(base.contacts) || base.contacts.length === 0) {

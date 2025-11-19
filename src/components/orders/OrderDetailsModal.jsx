@@ -12,7 +12,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { generateId } from '../../utils/string';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 
-export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade }) {
+export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade, activeTab = 'domestic' }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
@@ -80,12 +80,20 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     if (open) {
       const initialData = order ? { ...order } : { date: new Date().toISOString(), status: 'Order Placed' };
       
-      // Ensure category defaults to 'domestic' if not set
-      if (!initialData.category && !initialData.type) {
-        initialData.category = 'domestic';
-      } else if (initialData.type && !initialData.category) {
-        // Migration: use 'type' as 'category' for consistency
-        initialData.category = initialData.type;
+      // For new orders, default category to activeTab. For existing orders, preserve their category.
+      if (!order) {
+        // New order: use activeTab as default category
+        initialData.category = activeTab;
+        initialData.type = activeTab;
+      } else {
+        // Existing order: preserve category, but migrate type to category if needed
+        if (!initialData.category && !initialData.type) {
+          initialData.category = activeTab;
+          initialData.type = activeTab;
+        } else if (initialData.type && !initialData.category) {
+          // Migration: use 'type' as 'category' for consistency
+          initialData.category = initialData.type;
+        }
       }
       
       // Ensure new orders have status set
@@ -117,7 +125,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       setAttachments(initialData.attachments || []);
       setOriginalStatus(initialData.status || 'Order Placed');
     }
-  }, [open, order]);
+  }, [open, order, activeTab]);
 
   // Debug form changes
   useEffect(() => {

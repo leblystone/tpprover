@@ -443,6 +443,7 @@ export default function Orders() {
 				theme={theme}
 				order={editingOrder}
 				vendors={vendors}
+				activeTab={activeTab}
 				onSave={(data) => {
 					console.log('📋 Orders page received data:', data);
 					console.log('📋 Current activeTab:', activeTab);
