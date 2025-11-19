@@ -45,6 +45,7 @@ export function AppProvider({ children }) {
     // Real-time sync control
     const isApplyingRemoteUpdateRef = useRef(false);
     const lastRemoteUpdateTimeRef = useRef(0);
+    const lastLocalScheduledBuysUpdateRef = useRef(0);
     
     // 🚀 INSTANT LOAD: Load localStorage data IMMEDIATELY on mount (before Firebase Auth)
     // SECURITY: Validate user ownership before loading to prevent data bleeding
@@ -122,6 +123,28 @@ export function AppProvider({ children }) {
             }, 500);
         }
     }, []); // Run ONCE on mount, no dependencies
+    
+    // Listen for scheduledBuys updates from child components
+    useEffect(() => {
+        const handleScheduledBuysUpdate = (event) => {
+            if (event.detail?.scheduledBuys) {
+                console.log('📥 AppContext received scheduledBuys update event');
+                console.log('📦 Data received:', JSON.parse(JSON.stringify(event.detail.scheduledBuys)));
+                
+                // Ensure we're setting the complete data
+                const newScheduledBuys = event.detail.scheduledBuys.map(buy => ({...buy}));
+                setScheduledBuys(newScheduledBuys);
+                
+                console.log('✅ AppContext state updated with scheduledBuys');
+            }
+        };
+        
+        window.addEventListener('tpp:scheduled-buys-updated', handleScheduledBuysUpdate);
+        
+        return () => {
+            window.removeEventListener('tpp:scheduled-buys-updated', handleScheduledBuysUpdate);
+        };
+    }, []);
     
     // Firebase sync integration
     const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase, syncToFirebase } = useFirebase();
@@ -415,7 +438,42 @@ export function AppProvider({ children }) {
                             setCalendarNotes({ ...cloudNotesObj, ...localNotesObj });
                         } else if (cloudAppData.calendarNotes) {
                             setCalendarNotes(cloudAppData.calendarNotes);
-                    }
+                        }
+                        
+                        // Task completion data - merge objects (prefer local for recent completions)
+                        const localTaskCompletion = localStorage.getItem('tpprover_task_completion');
+                        const localCalendarDone = localStorage.getItem('tpprover_calendar_done');
+                        if (cloudAppData.taskCompletion || cloudAppData.calendarDone) {
+                            // Merge cloud with local (local takes precedence)
+                            if (localTaskCompletion) {
+                                const localTaskData = JSON.parse(localTaskCompletion);
+                                const cloudTaskData = cloudAppData.taskCompletion || {};
+                                // Merge: cloud data as base, local data overwrites
+                                const merged = { ...cloudTaskData };
+                                Object.keys(localTaskData).forEach(date => {
+                                    if (!merged[date]) merged[date] = {};
+                                    Object.keys(localTaskData[date] || {}).forEach(timeSlot => {
+                                        if (!merged[date][timeSlot]) merged[date][timeSlot] = {};
+                                        merged[date][timeSlot] = {
+                                            ...(merged[date][timeSlot] || {}),
+                                            ...(localTaskData[date][timeSlot] || {})
+                                        };
+                                    });
+                                });
+                                localStorage.setItem('tpprover_task_completion', JSON.stringify(merged));
+                            } else if (cloudAppData.taskCompletion) {
+                                localStorage.setItem('tpprover_task_completion', JSON.stringify(cloudAppData.taskCompletion));
+                            }
+                            
+                            if (localCalendarDone) {
+                                const localDoneData = JSON.parse(localCalendarDone);
+                                const cloudDoneData = cloudAppData.calendarDone || {};
+                                const merged = { ...cloudDoneData, ...localDoneData };
+                                localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
+                            } else if (cloudAppData.calendarDone) {
+                                localStorage.setItem('tpprover_calendar_done', JSON.stringify(cloudAppData.calendarDone));
+                            }
+                        }
                 } else {
                         // No local data, just use cloud
                         if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
@@ -428,6 +486,14 @@ export function AppProvider({ children }) {
                         if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
                         if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
                         if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                        
+                        // Restore task completion data from cloud
+                        if (cloudAppData.taskCompletion) {
+                            localStorage.setItem('tpprover_task_completion', JSON.stringify(cloudAppData.taskCompletion));
+                        }
+                        if (cloudAppData.calendarDone) {
+                            localStorage.setItem('tpprover_calendar_done', JSON.stringify(cloudAppData.calendarDone));
+                        }
                     }
                 } else if (hasLocalData) {
                     // Cloud is empty or doesn't exist, but we have local data - use local (RECOVERY)
@@ -958,9 +1024,14 @@ export function AppProvider({ children }) {
         const handleBeforeUnload = (event) => {
             if (firebaseUser && hasPassword) {
                 // Try to sync data before page unload
+                // Get task completion data from localStorage
+                const taskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+                const calendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
+                
                 const userData = {
                     protocols, reconItems, reconHistory, supplements, orders, 
-                    metrics, vendors, calendarNotes, stockpile, scheduledBuys
+                    metrics, vendors, calendarNotes, stockpile, scheduledBuys,
+                    taskCompletion, calendarDone
                 };
                 
                 // Use navigator.sendBeacon for reliable data sending during page unload
@@ -989,6 +1060,10 @@ export function AppProvider({ children }) {
 
         const userId = firebaseUser.uid;
         
+        // Get task completion data from localStorage
+        const taskCompletion = JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}');
+        const calendarDone = JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}');
+        
         const userData = {
             protocols,
             reconItems,
@@ -999,8 +1074,24 @@ export function AppProvider({ children }) {
             vendors,
             calendarNotes,
             stockpile,
-            scheduledBuys
+            scheduledBuys,
+            taskCompletion,
+            calendarDone
         };
+        
+        // DEBUG: Log scheduledBuys being synced
+        if (scheduledBuys && scheduledBuys.length > 0) {
+            console.log('🔄 Auto-sync preparing to send scheduledBuys to Firebase:', 
+                scheduledBuys.map(buy => ({
+                    id: buy.id,
+                    item: buy.item,
+                    location: buy.location,
+                    participants: buy.participants,
+                    price: buy.price,
+                    vendor: buy.vendor
+                }))
+            );
+        }
         
         // Only sync if we have some data to sync
         const hasData = Object.values(userData).some(data => 

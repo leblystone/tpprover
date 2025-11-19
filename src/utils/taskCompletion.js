@@ -9,6 +9,9 @@ import { toKey } from '../components/calendar/MonthGrid';
 const TASK_COMPLETION_KEY = 'tpprover_task_completion';
 const CALENDAR_DONE_KEY = 'tpprover_calendar_done';
 
+// Debounce timer for cloud sync
+let cloudSyncTimeout = null;
+
 /**
  * Get today's date key in YYYY-MM-DD format
  */
@@ -108,6 +111,9 @@ export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), ti
   // Sync with calendar done system
   syncToCalendarDone();
   console.log('🔄 Synced to calendar');
+  
+  // Sync to cloud storage (debounced to avoid excessive API calls)
+  syncTaskCompletionToCloud();
   
   // CRITICAL: Dispatch global event to notify all views of task completion change
   window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
@@ -285,4 +291,56 @@ export function getCompletionStats(date, scheduledTasks) {
   }
   
   return stats;
+}
+
+/**
+ * Sync task completion data to cloud storage (debounced)
+ * This ensures completion data persists across devices and sessions
+ */
+function syncTaskCompletionToCloud() {
+  // Clear existing timeout
+  if (cloudSyncTimeout) {
+    clearTimeout(cloudSyncTimeout);
+  }
+  
+  // Debounce cloud sync to avoid excessive API calls
+  cloudSyncTimeout = setTimeout(async () => {
+    try {
+      // Get current user from localStorage (set by AppContext)
+      const userData = localStorage.getItem('tpprover_user');
+      if (!userData) {
+        // User not logged in, skip cloud sync
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const userId = user?.uid || user?.id;
+      if (!userId) {
+        return;
+      }
+      
+      // Get completion data
+      const taskCompletion = getTaskCompletion();
+      const calendarDone = getCalendarDone();
+      
+      // Import saveAppData dynamically to avoid circular dependencies
+      const { saveAppData } = await import('../services/cloudStorage');
+      
+      // Get current app data to merge with
+      const { loadAppData } = await import('../services/cloudStorage');
+      const currentAppData = await loadAppData(userId) || {};
+      
+      // Save with task completion data included
+      await saveAppData(userId, {
+        ...currentAppData,
+        taskCompletion,
+        calendarDone
+      });
+      
+      console.log('☁️ Task completion synced to cloud');
+    } catch (error) {
+      console.warn('⚠️ Failed to sync task completion to cloud:', error);
+      // Don't throw - this is a background sync, shouldn't block the UI
+    }
+  }, 2000); // 2 second debounce
 }

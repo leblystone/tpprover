@@ -155,6 +155,49 @@ export function mergeWithTimestamps(localItems, serverItems) {
 }
 
 /**
+ * Helper: Merge task completion data objects
+ * Prefers local data (more recent completions) but merges with server data
+ * Structure: { [date]: { [timeSlot]: { [taskId]: boolean } } }
+ */
+function mergeTaskCompletion(localData, serverData) {
+  if (!localData || typeof localData !== 'object') localData = {};
+  if (!serverData || typeof serverData !== 'object') serverData = {};
+  
+  const merged = { ...serverData };
+  
+  // Merge local data into server data (local takes precedence for same keys)
+  Object.keys(localData).forEach(date => {
+    if (!merged[date]) {
+      merged[date] = {};
+    }
+    
+    const localDayData = localData[date];
+    const serverDayData = merged[date] || {};
+    
+    if (typeof localDayData === 'object' && localDayData !== null) {
+      Object.keys(localDayData).forEach(timeSlot => {
+        if (!merged[date][timeSlot]) {
+          merged[date][timeSlot] = {};
+        }
+        
+        const localSlotData = localDayData[timeSlot];
+        const serverSlotData = merged[date][timeSlot] || {};
+        
+        if (typeof localSlotData === 'object' && localSlotData !== null) {
+          // Merge task completions - local takes precedence
+          merged[date][timeSlot] = {
+            ...serverSlotData,
+            ...localSlotData
+          };
+        }
+      });
+    }
+  });
+  
+  return merged;
+}
+
+/**
  * Save user's main application data (protocols, vendors, etc.)
  * Now with timestamp-based conflict resolution
  */
@@ -176,7 +219,9 @@ export async function saveAppData(userId, appData, options = {}) {
       vendors: ensureTimestamps(appData.vendors || []),
       stockpile: ensureTimestamps(appData.stockpile || []),
       scheduledBuys: ensureTimestamps(appData.scheduledBuys || []),
-      calendarNotes: appData.calendarNotes || {}
+      calendarNotes: appData.calendarNotes || {},
+      taskCompletion: appData.taskCompletion || {},
+      calendarDone: appData.calendarDone || {}
     };
     
     // If we have server data, merge intelligently
@@ -192,7 +237,10 @@ export async function saveAppData(userId, appData, options = {}) {
         vendors: mergeWithTimestamps(timestampedData.vendors, serverData.vendors),
         stockpile: mergeWithTimestamps(timestampedData.stockpile, serverData.stockpile),
         scheduledBuys: mergeWithTimestamps(timestampedData.scheduledBuys, serverData.scheduledBuys),
-        calendarNotes: timestampedData.calendarNotes // TODO: Add timestamp merging for calendar notes
+        calendarNotes: timestampedData.calendarNotes, // TODO: Add timestamp merging for calendar notes
+        // Merge task completion data - prefer local data (more recent completions)
+        taskCompletion: mergeTaskCompletion(timestampedData.taskCompletion, serverData.taskCompletion || {}),
+        calendarDone: mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {})
       };
     }
     
@@ -210,7 +258,9 @@ export async function saveAppData(userId, appData, options = {}) {
     vendors: appData.vendors || [],
     calendarNotes: appData.calendarNotes || {},
     stockpile: appData.stockpile || [],
-    scheduledBuys: appData.scheduledBuys || []
+    scheduledBuys: appData.scheduledBuys || [],
+    taskCompletion: appData.taskCompletion || {},
+    calendarDone: appData.calendarDone || {}
     }, COLLECTIONS.USER_DATA);
   }
 }
@@ -369,7 +419,9 @@ export async function migrateLocalStorageToCloud(userId) {
       recon_items: 'reconItems',
       recon_history: 'reconHistory',
       calendar_notes: 'calendarNotes',
-      scheduled_buys: 'scheduledBuys'
+      scheduled_buys: 'scheduledBuys',
+      task_completion: 'taskCompletion',
+      calendar_done: 'calendarDone'
     };
     
     localStorageKeys.forEach(key => {
@@ -383,19 +435,27 @@ export async function migrateLocalStorageToCloud(userId) {
         if (['tpprover_protocols', 'tpprover_recon_items', 'tpprover_recon_history', 
              'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
              'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
-             'tpprover_scheduled_buys'].includes(key)) {
+             'tpprover_scheduled_buys', 'tpprover_task_completion', 'tpprover_calendar_done'].includes(key)) {
           const dataKey = key.replace('tpprover_', '');
           const mappedKey = DATA_KEY_MAPPING[dataKey] || dataKey;
           
-          // Avoid overwriting existing camelCase data with empty arrays/objects
-          const hasMeaningfulValue = Array.isArray(parsedValue)
-            ? parsedValue.length > 0
-            : parsedValue && typeof parsedValue === 'object'
-              ? Object.keys(parsedValue).length > 0
-              : Boolean(parsedValue);
-          
-          if (hasMeaningfulValue || !(mappedKey in appData)) {
-            appData[mappedKey] = parsedValue;
+          // Special handling for task completion data (objects, not arrays)
+          if (key === 'tpprover_task_completion' || key === 'tpprover_calendar_done') {
+            const hasMeaningfulValue = parsedValue && typeof parsedValue === 'object' && Object.keys(parsedValue).length > 0;
+            if (hasMeaningfulValue || !(mappedKey in appData)) {
+              appData[mappedKey] = parsedValue;
+            }
+          } else {
+            // Avoid overwriting existing camelCase data with empty arrays/objects
+            const hasMeaningfulValue = Array.isArray(parsedValue)
+              ? parsedValue.length > 0
+              : parsedValue && typeof parsedValue === 'object'
+                ? Object.keys(parsedValue).length > 0
+                : Boolean(parsedValue);
+            
+            if (hasMeaningfulValue || !(mappedKey in appData)) {
+              appData[mappedKey] = parsedValue;
+            }
           }
         } else if (['tpprover_theme', 'tpprover_settings'].includes(key)) {
           const prefKey = key.replace('tpprover_', '');
