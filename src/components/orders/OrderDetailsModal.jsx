@@ -422,7 +422,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     placeholder="e.g., Pharm..."
                     theme={theme}
                     outlined={true}
-                    customTextColor="#181A18"
+                    customTextColor={theme.isDark ? null : "#181A18"}
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                 </div>
@@ -501,7 +501,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 type="number"
                 step="0.01"
                 outlined={true}
-                customTextColor="#181A18"
+                customTextColor={theme.isDark ? null : "#181A18"}
                 customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               />
             </div>
@@ -585,7 +585,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               placeholder="Optional" 
               theme={theme}
               outlined={true}
-              customTextColor="#181A18"
+              customTextColor={theme.isDark ? null : "#181A18"}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
             <div className="grid grid-cols-2 gap-3">
@@ -631,7 +631,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               outlined={true}
               multiline={true}
               rows={3}
-              customTextColor="#181A18"
+              customTextColor={theme.isDark ? null : "#181A18"}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
           

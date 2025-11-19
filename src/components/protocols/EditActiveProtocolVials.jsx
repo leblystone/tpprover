@@ -188,9 +188,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                             <div className="space-y-1.5 p-2 rounded-md" style={{ backgroundColor: theme.isDark ? '#374151' : '#f9fafb' }}>
                                 <p className="text-xs font-medium" style={{ color: theme.text }}>Add New Vial</p>
                                 <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
-                                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                                     <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
-                                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                                 </div>
                                 <div className="flex items-center justify-end gap-2 mt-1.5">
                                     <button onClick={() => setAction(null)} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Cancel</button>
@@ -468,9 +468,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                             <div className="space-y-1.5">
                                 <p className="text-xs font-medium" style={{ color: theme.text }}>Create New</p>
                                 <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
-                                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                    <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                                     <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
-                                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                                    <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                                 </div>
                             </div>
                             <div className="mt-2 flex items-center justify-end gap-2">
@@ -734,9 +734,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                 <div className="space-y-1.5">
                     <p className="text-xs font-medium" style={{ color: theme.text }}>Add New Vial</p>
                     <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
-                        <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                        <TextInput label="mg" value={quickAddForm.mg} onChange={v => setQuickAddForm(f => ({...f, mg: v}))} theme={theme} placeholder="10" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                         <VendorSuggestInput label="Vendor" value={quickAddForm.vendor} onChange={v => setQuickAddForm(f => ({...f, vendor: v}))} theme={theme} />
-                        <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+                        <TextInput label="Qty" value={quickAddForm.quantity} onChange={v => setQuickAddForm(f => ({...f, quantity: v}))} theme={theme} placeholder="1" outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
                     </div>
                 </div>
                 <div className="mt-2 flex items-center justify-end gap-2">

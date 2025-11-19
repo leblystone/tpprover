@@ -488,7 +488,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             placeholder="e.g., Retatrutide, GLOW, etc."
                             theme={theme}
                             outlined={true}
-                            customTextColor="#181A18"
+                            customTextColor={theme.isDark ? null : "#181A18"}
                             customShadow
                         />
 
@@ -499,7 +499,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             placeholder="Weight Loss, Recovery, etc."
                             theme={theme}
                             outlined={true}
-                            customTextColor="#181A18"
+                            customTextColor={theme.isDark ? null : "#181A18"}
                             customShadow
                         />
                     </div>
@@ -696,7 +696,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                                         style={{ 
                                             backgroundColor: 'transparent',
-                                            color: '#181A18',
+                                            color: theme.isDark ? theme.text : '#181A18',
                                             border: 'none'
                                         }}
                                     />
@@ -778,7 +778,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                                         style={{ 
                                             backgroundColor: 'transparent',
-                                            color: '#181A18',
+                                            color: theme.isDark ? theme.text : '#181A18',
                                             border: 'none'
                                         }}
                                     />
@@ -899,7 +899,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         multiline 
                         rows={3}
                         outlined={true}
-                        customTextColor="#181A18"
+                        customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow
                     />
                 </div>

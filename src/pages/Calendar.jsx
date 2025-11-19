@@ -1078,6 +1078,7 @@ export default function Calendar() {
     }
   };
 
+
   return (
     <section className="flex flex-col h-full">
       <CalendarHeader

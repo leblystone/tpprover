@@ -485,10 +485,10 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     border: `1px solid #f0eee7`,
                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                     backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                    color: '#181A18'
+                    color: theme.isDark ? theme.text : '#181A18'
                 }}
             >
-                <span className={compact ? 'text-sm' : ''} style={{ color: value ? '#181A18' : (theme.textLight || theme.text) }}>
+                <span className={compact ? 'text-sm' : ''} style={{ color: value ? (theme.isDark ? theme.text : '#181A18') : (theme.textLight || theme.text) }}>
                     {formatDisplayDate(value)}
                 </span>
                 <Calendar size={compact ? 14 : 18} style={{ color: theme.primary, opacity: 0.7 }} />

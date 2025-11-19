@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { toKey } from './MonthGrid'
-import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette } from 'lucide-react'
+import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText } from 'lucide-react'
 import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
+import { formatMMDDYYYY } from '../../utils/date';
+import { useAppContext } from '../../context/AppContext';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method
@@ -50,7 +52,16 @@ function DeliveryIndicator({ item, theme }) {
 }
 
 export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone }) {
+  const { scheduledBuys } = useAppContext();
   const [forceRender, setForceRender] = useState(0);
+  const [expandedGroupBuy, setExpandedGroupBuy] = useState(null); // Track which group buy is expanded (dayKey)
+  const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null); // Full data for expanded group buy
+  
+  // Reset expanded state on refresh/calendar bump
+  useEffect(() => {
+    setExpandedGroupBuy(null);
+    setExpandedGroupBuyData(null);
+  }, [calendarBump, startDate]);
   
   // Force re-render when calendarBump changes (task completion sync)
   useEffect(() => {
@@ -176,16 +187,18 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
         
         if (gb && typeof gb === 'object') {
           // Robust name/vendor/price extraction with multiple fallbacks
-          const name = `Group Buy For: ${gb.title || gb.name || gb.item || gb.peptide || gb.peptideName || (gb.group && gb.group.title) || 'Unknown Item'}`;
+          const item = gb.item || gb.title || gb.name || gb.peptide || gb.peptideName || (gb.group && gb.group.title) || 'Unknown Item';
+          const name = `Group Buy For: ${item}`;
           const vendor = gb.vendor || gb.seller || gb.source || (gb.group && (gb.group.vendor || gb.group.name)) || '';
           const rawPrice = gb.cost ?? gb.price ?? gb.amount ?? '';
           const price = rawPrice !== '' ? `$${String(rawPrice).toString().replace(/^\$/,'')}` : '';
-          groupBuyInfo = { name, vendor, price, source: 'scheduled' };
+          groupBuyInfo = { name, item, vendor, price, source: 'scheduled', openDate: gb.openDate, closeDate: gb.closeDate, location: gb.location, participants: gb.participants, notes: gb.notes };
         } else if (gb) {
           // Group buy is just a string like "Group Buy"
-          // For now, we'll show a more descriptive fallback since we don't have detailed data
+          const item = String(gb) === 'Group Buy' ? 'Available' : String(gb);
           groupBuyInfo = { 
-            name: String(gb) === 'Group Buy' ? 'Group Buy For: Available' : `Group Buy For: ${String(gb)}`, 
+            name: `Group Buy For: ${item}`, 
+            item,
             vendor: '', 
             price: '', 
             source: 'scheduled' 
@@ -204,11 +217,23 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
           } catch { return false; }
         });
         if (orderMatch) {
-          const name = `Group Buy For: ${(orderMatch.group && (orderMatch.group.title || orderMatch.group.name)) || orderMatch.peptide || orderMatch.item || 'Unknown Item'}`;
+          const item = (orderMatch.group && (orderMatch.group.title || orderMatch.group.name)) || orderMatch.peptide || orderMatch.item || 'Unknown Item';
+          const name = `Group Buy For: ${item}`;
           const vendor = orderMatch.vendor || orderMatch.seller || orderMatch.source || '';
           const rawPrice = orderMatch.cost ?? orderMatch.price ?? orderMatch.amount ?? '';
           const price = rawPrice !== '' ? `$${String(rawPrice).toString().replace(/^\$/,'')}` : '';
-          groupBuyInfo = { name, vendor, price, source: 'orders' };
+          groupBuyInfo = { 
+            name, 
+            item,
+            vendor, 
+            price, 
+            source: 'orders',
+            openDate: orderMatch.date,
+            closeDate: orderMatch.date,
+            location: orderMatch.location,
+            participants: orderMatch.group?.participants,
+            notes: orderMatch.group?.notes || orderMatch.notes
+          };
         }
       }
     } catch (error) {
@@ -282,27 +307,182 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                 </div>
             </div>
 
-            {/* Group Buys - subtle single-line chip with link */}
+            {/* Group Buys - expandable chip */}
             {groupBuyInfo && (
                 <div className="mt-2">
                     <button
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs max-w-full"
+                        className="w-full inline-flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all cursor-pointer"
                         style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, color: theme.text }}
-                        onClick={() => {
-                            if (typeof window?.showGroupBuyDetails === 'function') {
-                                window.showGroupBuyDetails(groupBuyInfo);
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const isExpanded = expandedGroupBuy === dayKey;
+                            if (isExpanded) {
+                                setExpandedGroupBuy(null);
+                                setExpandedGroupBuyData(null);
+                            } else {
+                                // Find full group buy data
+                                let fullData = null;
+                                
+                                // Try to find in scheduledBuys
+                                if (groupBuyInfo.item) {
+                                    fullData = (scheduledBuys || []).find(buy => {
+                                        const buyItem = buy.item || buy.name || '';
+                                        return buyItem === groupBuyInfo.item || buyItem.toLowerCase() === groupBuyInfo.item.toLowerCase();
+                                    });
+                                }
+                                
+                                // If not found, check orders
+                                if (!fullData) {
+                                    try {
+                                        const rawOrders = localStorage.getItem('tpprover_orders');
+                                        const orders = rawOrders ? JSON.parse(rawOrders) : [];
+                                        const orderMatch = orders.find(o => {
+                                            try {
+                                                const oDate = (o.date || '').slice(0, 10);
+                                                return oDate === dayKey && (!!o.group || o.category === 'groupbuy' || o.type === 'groupbuy');
+                                            } catch { return false; }
+                                        });
+                                        
+                                        if (orderMatch) {
+                                            fullData = {
+                                                item: (orderMatch.group && (orderMatch.group.title || orderMatch.group.name)) || orderMatch.peptide || orderMatch.item || 'Unknown Item',
+                                                vendor: orderMatch.vendor || '',
+                                                price: orderMatch.cost || orderMatch.price || '',
+                                                openDate: orderMatch.date || '',
+                                                closeDate: orderMatch.date || '',
+                                                location: orderMatch.location || '',
+                                                participants: orderMatch.group?.participants || '',
+                                                notes: orderMatch.group?.notes || orderMatch.notes || ''
+                                            };
+                                        }
+                                    } catch (error) {
+                                        console.error('Error finding group buy in orders:', error);
+                                    }
+                                }
+                                
+                                // Use full data if found, otherwise use the basic info
+                                const groupBuyData = fullData || {
+                                    item: groupBuyInfo.item || groupBuyInfo.name?.replace('Group Buy For: ', '') || 'Unknown Item',
+                                    vendor: groupBuyInfo.vendor || '',
+                                    price: groupBuyInfo.price || '',
+                                    openDate: groupBuyInfo.openDate || '',
+                                    closeDate: groupBuyInfo.closeDate || '',
+                                    location: groupBuyInfo.location || '',
+                                    participants: groupBuyInfo.participants || '',
+                                    notes: groupBuyInfo.notes || ''
+                                };
+                                
+                                setExpandedGroupBuy(dayKey);
+                                setExpandedGroupBuyData(groupBuyData);
                             }
                         }}
-                        title="View group buy details"
+                        title={expandedGroupBuy === dayKey ? "Collapse group buy details" : "Expand group buy details"}
                     >
-                        <ShoppingCart size={12} style={{ color: '#9B9B7A' }} />
-                        <span className="truncate max-w-[260px]">
-                            {groupBuyInfo.name}
-                            {(groupBuyInfo.vendor || groupBuyInfo.price) && (
-                                <span className="text-[10px] opacity-70"> {` — ${groupBuyInfo.vendor || ''}${groupBuyInfo.vendor && groupBuyInfo.price ? ' • ' : ''}${groupBuyInfo.price || ''}`}</span>
-                            )}
-                        </span>
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                            <ShoppingCart size={12} style={{ color: '#9B9B7A' }} />
+                            <span className="truncate">
+                                {groupBuyInfo.name}
+                                {(groupBuyInfo.vendor || groupBuyInfo.price) && (
+                                    <span className="text-[10px] opacity-70"> {` — ${groupBuyInfo.vendor || ''}${groupBuyInfo.vendor && groupBuyInfo.price ? ' • ' : ''}${groupBuyInfo.price || ''}`}</span>
+                                )}
+                            </span>
+                        </div>
+                        {expandedGroupBuy === dayKey ? (
+                            <ChevronUp size={14} style={{ color: theme.textLight }} />
+                        ) : (
+                            <ChevronDown size={14} style={{ color: theme.textLight }} />
+                        )}
                     </button>
+                    
+                    {/* Expanded details */}
+                    {expandedGroupBuy === dayKey && expandedGroupBuyData && (
+                        <div className="mt-2 p-3 rounded-lg space-y-3" style={{ backgroundColor: theme.isDark ? '#111827' : theme.cardBackground, border: `1px solid ${theme.border}` }}>
+                            {/* Item Name */}
+                            <div className="pb-2 border-b" style={{ borderColor: theme.border }}>
+                                <p className="font-semibold text-sm" style={{ color: theme.text }}>{expandedGroupBuyData.item || 'Unknown Item'}</p>
+                            </div>
+                            
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {/* Vendor */}
+                                {expandedGroupBuyData.vendor && (
+                                    <div className="flex items-start gap-2">
+                                        <Building size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Vendor</div>
+                                            <div className="text-xs" style={{ color: theme.text }}>{expandedGroupBuyData.vendor}</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Price */}
+                                {expandedGroupBuyData.price && (
+                                    <div className="flex items-start gap-2">
+                                        <DollarSign size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Price</div>
+                                            <div className="text-xs" style={{ color: theme.text }}>${String(expandedGroupBuyData.price).replace(/^\$/, '')}</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Open Date */}
+                                {expandedGroupBuyData.openDate && (
+                                    <div className="flex items-start gap-2">
+                                        <Calendar size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Opens</div>
+                                            <div className="text-xs" style={{ color: theme.text }}>{formatMMDDYYYY(expandedGroupBuyData.openDate)}</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Close Date */}
+                                {expandedGroupBuyData.closeDate && (
+                                    <div className="flex items-start gap-2">
+                                        <Calendar size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Closes</div>
+                                            <div className="text-xs" style={{ color: theme.text }}>{formatMMDDYYYY(expandedGroupBuyData.closeDate)}</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Location */}
+                                {expandedGroupBuyData.location && (
+                                    <div className="flex items-start gap-2">
+                                        <MapPin size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Location</div>
+                                            <div className="text-xs" style={{ color: theme.text }}>{expandedGroupBuyData.location}</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Participants */}
+                                {expandedGroupBuyData.participants && (
+                                    <div className="flex items-start gap-2">
+                                        <Users size={14} style={{ color: theme.textLight, marginTop: '2px', flexShrink: 0 }} />
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] font-semibold mb-0.5" style={{ color: theme.textLight }}>Participants</div>
+                                            <div className="text-xs" style={{ color: theme.text }}>{expandedGroupBuyData.participants}</div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Notes */}
+                            {expandedGroupBuyData.notes && (
+                                <div className="pt-2 border-t" style={{ borderColor: theme.border }}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <FileText size={14} style={{ color: theme.textLight }} />
+                                        <div className="text-[10px] font-semibold" style={{ color: theme.textLight }}>Notes</div>
+                                    </div>
+                                    <p className="text-xs whitespace-pre-wrap" style={{ color: theme.text }}>{expandedGroupBuyData.notes}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

@@ -37,6 +37,21 @@ if (typeof window !== 'undefined') {
   
   // Show current debug mode on load
   // Debug mode status available via getDebugMode() function
+  
+  // TEST HELPER: Trigger error boundary for testing
+  // Usage: window.testErrorBoundary() in console, then navigate to Dashboard or reload
+  window.testErrorBoundary = () => {
+    window.__testErrorBoundary = true;
+    console.log('🧪 Error boundary test flag set!');
+    console.log('💡 Navigating to Dashboard to trigger error...');
+    console.log('💡 The error boundary page should appear now!');
+    // Navigate to dashboard to trigger the error
+    if (window.location.pathname !== '/dashboard') {
+      window.location.href = '/dashboard';
+    } else {
+      window.location.reload();
+    }
+  };
 }
 
 // Service worker: disable in native (Capacitor) and development to avoid stale cache issues

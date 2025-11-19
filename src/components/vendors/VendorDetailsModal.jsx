@@ -210,7 +210,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                 placeholder="e.g., Pharm..." 
                 theme={theme}
                 outlined={true}
-                customTextColor="#181A18"
+                customTextColor={theme.isDark ? null : "#181A18"}
                 customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               />
             </div>
@@ -294,7 +294,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                       className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                       style={{
                         backgroundColor: 'transparent',
-                        color: '#181A18',
+                        color: theme.isDark ? theme.text : '#181A18',
                         border: 'none',
                         paddingLeft: '12px',
                         paddingRight: '8px'
@@ -308,7 +308,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                       style={{ 
                         borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
                         backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
-                        color: '#181A18',
+                        color: theme.isDark ? theme.text : '#181A18',
                         minWidth: '130px'
                       }}
                       onMouseEnter={(e) => {
@@ -496,7 +496,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             placeholder="Preferences / fees / tips" 
             theme={theme}
             outlined={true}
-            customTextColor="#181A18"
+            customTextColor={theme.isDark ? null : "#181A18"}
             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
           />
         </div>

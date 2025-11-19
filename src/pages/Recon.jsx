@@ -728,7 +728,7 @@ export default function Recon() {
                         onChange={v => { updateEditingItem({ peptide: v }); updateFormData({ peptide: v }); }} 
                         theme={theme}
                         outlined={true}
-                        customTextColor="#181A18"
+                        customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                     <VendorSuggestInput 
@@ -741,7 +741,7 @@ export default function Recon() {
                         }} 
                         theme={theme} 
                         outlined={true}
-                        customTextColor="#181A18"
+                        customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                     {/* mg and water in one row */}
@@ -753,7 +753,7 @@ export default function Recon() {
                             onChange={v => { updateEditingItem({ mg: v }); updateFormData({ mg: v }); }} 
                             theme={theme}
                             outlined={true}
-                            customTextColor="#181A18"
+                            customTextColor={theme.isDark ? null : "#181A18"}
                             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                         />
                         <TextInput 
@@ -763,7 +763,7 @@ export default function Recon() {
                             onChange={v => { updateEditingItem({ water: v }); updateFormData({ water: v }); }} 
                             theme={theme}
                             outlined={true}
-                            customTextColor="#181A18"
+                            customTextColor={theme.isDark ? null : "#181A18"}
                             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                         />
                     </div>
@@ -780,7 +780,7 @@ export default function Recon() {
                             placeholder="e.g., 250"
                             units={['mcg', 'mg', 'mL']}
                             outlined={true}
-                            customTextColor="#181A18"
+                            customTextColor={theme.isDark ? null : "#181A18"}
                             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                         />
                     </div>
@@ -1061,7 +1061,7 @@ export default function Recon() {
                         theme={theme} 
                         multiline
                         outlined={true}
-                        customTextColor="#181A18"
+                        customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                 </div>

@@ -39,6 +39,13 @@ import { useFirebase } from '../context/FirebaseContext'
 
 export default function Dashboard() {
   console.log('🏠 Dashboard component rendered');
+  
+  // TEST HELPER: Trigger error boundary for testing (remove in production)
+  // Usage: window.__testErrorBoundary = true; (then reload)
+  if (typeof window !== 'undefined' && window.__testErrorBoundary) {
+    throw new Error('Test Error Boundary - This is a test error to verify the error page design!');
+  }
+  
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()

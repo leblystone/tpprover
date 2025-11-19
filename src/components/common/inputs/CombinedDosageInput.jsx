@@ -56,7 +56,7 @@ export default function CombinedDosageInput({
                         className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                         style={{ 
                             backgroundColor: 'transparent',
-                            color: customTextColor || '#181A18',
+                            color: customTextColor && !theme.isDark ? customTextColor : theme.text,
                             border: 'none'
                         }}
                         autoComplete="off"

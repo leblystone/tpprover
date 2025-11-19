@@ -54,7 +54,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                             border: `1px solid #f0eee7`,
                             boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                             backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                            color: '#181A18'
+                            color: theme.isDark ? theme.text : '#181A18'
                         }}
                     />
                     <label 
@@ -96,7 +96,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                                 style={{
                                     backgroundColor: 'transparent',
-                                    color: '#181A18',
+                                    color: theme.isDark ? theme.text : '#181A18',
                                     border: 'none',
                                     paddingLeft: '12px',
                                     paddingRight: '8px'
@@ -162,7 +162,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                                 style={{
                                     backgroundColor: 'transparent',
-                                    color: '#181A18',
+                                    color: theme.isDark ? theme.text : '#181A18',
                                     border: 'none'
                                 }}
                             />
@@ -223,7 +223,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                             border: `1px solid #f0eee7`,
                             boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                             backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                            color: '#181A18'
+                            color: theme.isDark ? theme.text : '#181A18'
                         }}
                     />
                     <label 

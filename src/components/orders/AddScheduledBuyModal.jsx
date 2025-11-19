@@ -174,7 +174,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                     placeholder="Product Name"
                     theme={theme}
                     outlined={true}
-                    customTextColor="#181A18"
+                    customTextColor={theme.isDark ? null : "#181A18"}
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                 />
 
@@ -209,7 +209,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                         placeholder="Name"
                         theme={theme}
                         outlined={true}
-                        customTextColor="#181A18"
+                        customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                     <TextInput
@@ -219,7 +219,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                         placeholder="e.g Discord, Telegram, etc."
                         theme={theme}
                         outlined={true}
-                        customTextColor="#181A18"
+                        customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                 </div>
@@ -239,7 +239,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                             placeholder="Vendor Name"
                             theme={theme}
                             outlined={true}
-                            customTextColor="#181A18"
+                            customTextColor={theme.isDark ? null : "#181A18"}
                             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                         />
                     </div>
@@ -258,7 +258,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                                     style={{
                                         border: `1px solid #f0eee7`,
                                         backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                                        color: '#181A18',
+                                        color: theme.isDark ? theme.text : '#181A18',
                                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'
                                     }}
                                     onFocus={(e) => {
@@ -289,7 +289,7 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                     placeholder="Any further group buy details."
                     theme={theme}
                     outlined={true}
-                    customTextColor="#181A18"
+                    customTextColor={theme.isDark ? null : "#181A18"}
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     multiline={true}
                     rows={3}

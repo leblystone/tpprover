@@ -180,6 +180,12 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       const updatedList = scheduledBuys.map(buy => ({ ...buy }));
       setLocalList(updatedList);
       
+      // CRITICAL: Dispatch event to update parent component's state (AppContext)
+      // This prevents AppContext from overwriting our localStorage changes
+      window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
+        detail: { scheduledBuys: updatedList }
+      }));
+      
       // Trigger calendar sync
       window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
       
@@ -225,6 +231,11 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       
       // Update local list immediately
       setLocalList([...updatedBuys]);
+      
+      // CRITICAL: Dispatch event to update parent component's state (AppContext)
+      window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
+        detail: { scheduledBuys: updatedBuys }
+      }));
       
       // Trigger calendar sync
       window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));

@@ -1106,7 +1106,7 @@ export default function Stockpile() {
               theme={theme}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               outlined={true}
-              customTextColor="#181A18"
+              customTextColor={theme.isDark ? null : "#181A18"}
             />
           {/* Amount & Quantity in two columns */}
           <div className="grid grid-cols-2 gap-3">
@@ -1130,7 +1130,7 @@ export default function Stockpile() {
                   className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                   style={{
                     backgroundColor: 'transparent',
-                    color: '#181A18',
+                    color: theme.isDark ? theme.text : '#181A18',
                     border: 'none'
                   }}
                 />
@@ -1194,7 +1194,7 @@ export default function Stockpile() {
                   className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                   style={{
                     backgroundColor: 'transparent',
-                    color: '#181A18',
+                    color: theme.isDark ? theme.text : '#181A18',
                     border: 'none'
                   }}
                 />
@@ -1240,7 +1240,7 @@ export default function Stockpile() {
             </div>
           </div>
           
-          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Black Crimp/Black Cap" theme={theme} uppercase={true} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+          <TextInput label="Crimp / Cap Color" value={form.capColor} onChange={v => updateFormData({ capColor: v })} placeholder="Black Crimp/Black Cap" theme={theme} uppercase={true} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           
           {/* ORDER DETAILS Section Header */}
           <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
@@ -1252,13 +1252,13 @@ export default function Stockpile() {
           
           {/* Purity & Batch Number in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
-            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+            <TextInput label="Purity %" value={form.purity} onChange={v => updateFormData({ purity: v })} placeholder="e.g., 98" theme={theme} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+            <TextInput label="Batch #" value={form.batchNumber} onChange={v => updateFormData({ batchNumber: v })} placeholder="# XXX" theme={theme} uppercase={true} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
           </div>
           
           {/* Price & Date Acquired in two columns */}
           <div className="grid grid-cols-2 gap-3">
-            <TextInput label="Price per Vial ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60 per vial" theme={theme} outlined={true} customTextColor="#181A18" customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
+            <TextInput label="Price per Vial ($)" type="number" value={form.cost || ''} onChange={v => updateFormData({ cost: v })} placeholder="e.g., 60 per vial" theme={theme} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} />
             <GlassmorphismDatePicker
               value={form.date}
               onChange={(dateString) => updateFormData({ date: dateString })}

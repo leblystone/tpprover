@@ -289,7 +289,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                     placeholder="e.g., BPC-157" 
                     theme={theme}
                     outlined={true}
-                    customTextColor="#181A18"
+                    customTextColor={theme.isDark ? null : "#181A18"}
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                   
@@ -303,7 +303,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                       placeholder="e.g., 10" 
                       theme={theme}
                       outlined={true}
-                      customTextColor="#181A18"
+                      customTextColor={theme.isDark ? null : "#181A18"}
                       customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                     <TextInput 
@@ -316,7 +316,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                       placeholder="e.g., 2" 
                       theme={theme}
                       outlined={true}
-                      customTextColor="#181A18"
+                      customTextColor={theme.isDark ? null : "#181A18"}
                       customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                   </div>
@@ -333,7 +333,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                       placeholder="e.g., 250"
                       units={['mcg', 'mg', 'mL']}
                       outlined={true}
-                      customTextColor="#181A18"
+                      customTextColor={theme.isDark ? null : "#181A18"}
                       customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                     />
                   </div>
@@ -354,7 +354,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 placeholder="e.g., Pharm......" 
                 theme={theme}
                 outlined={true}
-                customTextColor="#181A18"
+                customTextColor={theme.isDark ? null : "#181A18"}
                 customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               />
               
@@ -371,7 +371,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                 placeholder="e.g., 60" 
                 theme={theme}
                 outlined={true}
-                customTextColor="#181A18"
+                customTextColor={theme.isDark ? null : "#181A18"}
                 customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               />
             </div>

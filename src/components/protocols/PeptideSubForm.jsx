@@ -117,7 +117,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                         theme={theme} 
                         placeholder="e.g., BPC-157, Lipo-C"
                         outlined={true}
-                        customTextColor="#181A18"
+                        customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow
                     />
                     
@@ -138,7 +138,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             deliveryMethod={item.deliveryMethod}
                                             placeholder="250"
                                             outlined={true}
-                                            customTextColor="#181A18"
+                                            customTextColor={theme.isDark ? null : "#181A18"}
                                             customShadow
                                         />
                                     </div>
@@ -155,7 +155,7 @@ export default function PeptideSubForm({ item, onChange, onRemove, theme, isOnly
                                             placeholder="10"
                                             theme={theme}
                                             outlined={true}
-                                            customTextColor="#181A18"
+                                            customTextColor={theme.isDark ? null : "#181A18"}
                                             customShadow
                                         />
                                     </div>

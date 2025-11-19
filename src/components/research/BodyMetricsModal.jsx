@@ -203,7 +203,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
               placeholder="e.g. 175"
             theme={theme}
             outlined={true}
-            customTextColor="#181A18"
+            customTextColor={theme.isDark ? null : "#181A18"}
             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
           />
           <TextInput
@@ -213,7 +213,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
               placeholder="e.g. 15"
             theme={theme}
             outlined={true}
-            customTextColor="#181A18"
+            customTextColor={theme.isDark ? null : "#181A18"}
             customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
         </div>
