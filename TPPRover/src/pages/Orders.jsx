@@ -109,7 +109,12 @@ export default function Orders() {
 			// Status changed FROM Delivered: Remove items from stockpile.
 			else if (prevStatus.includes('delivered')) {
 				const orderIdPrefix = `orderitem-${previousOrder.id}-`;
-				stockpile = stockpile.filter(stockItem => !stockItem.id?.startsWith(orderIdPrefix));
+				stockpile = stockpile.filter(stockItem => {
+					const itemId = stockItem?.id;
+					// Type safety: ensure itemId is a string before calling startsWith
+					if (!itemId || typeof itemId !== 'string') return true;
+					return !itemId.startsWith(orderIdPrefix);
+				});
 			}
 	
 			localStorage.setItem('tpprover_stockpile', JSON.stringify(stockpile));

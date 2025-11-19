@@ -625,7 +625,7 @@ function NotificationEditor({ notification, onSave, onClose, theme }) {
     <Modal
       open={true}
       onClose={onClose}
-      title={`${notification.id.startsWith('custom_') ? 'Create' : 'Edit'} Triggered Notification`}
+      title={`${notification?.id && typeof notification.id === 'string' && notification.id.startsWith('custom_') ? 'Create' : 'Edit'} Triggered Notification`}
       theme={theme}
       maxWidth="max-w-4xl"
       footer={

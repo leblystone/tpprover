@@ -19,7 +19,9 @@ function getSupplementIcon(delivery, className = "h-3 w-3") {
 // Helper function to get pen color
 const getResolvedPenColor = (penColor) => {
   if (!penColor) return '#9ca3af';
-  const raw = String(penColor).trim();
+  const raw = String(penColor || '').trim();
+  // Type safety: ensure raw is a string before calling startsWith
+  if (typeof raw !== 'string' || !raw) return '#9ca3af';
   const isHex = raw.startsWith('#');
   if (isHex) return raw;
   

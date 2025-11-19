@@ -42,7 +42,9 @@ const DeliveryIcon = ({ task, theme }) => {
 
 const getResolvedPenColor = (penColor) => {
   if (!penColor) return '#9ca3af';
-  const raw = String(penColor).trim();
+  const raw = String(penColor || '').trim();
+  // Type safety: ensure raw is a string before calling startsWith
+  if (typeof raw !== 'string' || !raw) return '#9ca3af';
   const isHex = raw.startsWith('#');
   if (isHex) return raw;
   
@@ -250,11 +252,19 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                         </div>
                         <button
                           onClick={() => {
+                            // Prevent action if injection site selector is already showing
+                            if (injectionTask) {
+                              return;
+                            }
+                            
                             const deliveryMethod = task.deliveryMethod || task.delivery;
                             const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                            
+                            // Only show injection site selector for incomplete injection tasks when tracking is enabled
                             if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
                               setInjectionTask(task);
                             } else {
+                              // For completed tasks or non-injection tasks, toggle directly
                               onToggle(task);
                             }
                           }}
@@ -346,8 +356,13 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           task={injectionTask}
           onConfirm={(injectionSite) => {
             debugLog('💉 TasksWidget injection confirmed:', injectionSite, 'tasks');
-            onToggle(injectionTask);
+            // Close the selector first to prevent multiple clicks
+            const taskToToggle = injectionTask;
             setInjectionTask(null);
+            // Then toggle the task completion
+            if (taskToToggle) {
+              onToggle(taskToToggle);
+            }
           }}
           onCancel={() => {
             debugLog('💉 TasksWidget injection cancelled', null, 'tasks');
@@ -412,8 +427,13 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
           task={injectionTask}
           onConfirm={(injectionSite) => {
             debugLog('💉 TasksWidget injection confirmed:', injectionSite, 'tasks');
-            onToggle(injectionTask);
+            // Close the selector first to prevent multiple clicks
+            const taskToToggle = injectionTask;
             setInjectionTask(null);
+            // Then toggle the task completion
+            if (taskToToggle) {
+              onToggle(taskToToggle);
+            }
           }}
           onCancel={() => {
             debugLog('💉 TasksWidget injection cancelled', null, 'tasks');

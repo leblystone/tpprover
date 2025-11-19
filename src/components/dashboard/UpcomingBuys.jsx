@@ -10,6 +10,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [editingItems, setEditingItems] = useState({});
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [renderKey, setRenderKey] = useState(0);
   
   // Reload list from localStorage when it changes
   const reloadList = () => {
@@ -120,34 +121,33 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       });
       
       if (itemIndex !== -1) {
-        // Update existing item - build clean object with all fields
+        // Update existing item - spread editedData to override old values
         const updatedTimestamp = new Date().toISOString();
+        const oldItem = scheduledBuys[itemIndex];
+        
+        // Build updated item: old item base + all editedData fields + metadata
         const updatedItem = {
-          // Start with old item
-          ...scheduledBuys[itemIndex],
-          // Apply all edited fields explicitly
-          item: editedData.item !== undefined ? editedData.item : scheduledBuys[itemIndex].item,
-          vendor: editedData.vendor !== undefined ? editedData.vendor : scheduledBuys[itemIndex].vendor,
-          location: editedData.location !== undefined ? editedData.location : scheduledBuys[itemIndex].location,
-          participants: editedData.participants !== undefined ? editedData.participants : scheduledBuys[itemIndex].participants,
-          price: editedData.price !== undefined ? editedData.price : scheduledBuys[itemIndex].price,
-          notes: editedData.notes !== undefined ? editedData.notes : scheduledBuys[itemIndex].notes,
-          openDate: editedData.openDate !== undefined ? editedData.openDate : scheduledBuys[itemIndex].openDate,
-          closeDate: editedData.closeDate !== undefined ? editedData.closeDate : scheduledBuys[itemIndex].closeDate,
-          // Preserve ID and add timestamp
-          id: itemId,
-          updatedAt: updatedTimestamp,
-          // Keep backward compatibility fields
-          name: editedData.item !== undefined ? editedData.item : scheduledBuys[itemIndex].name || scheduledBuys[itemIndex].item,
-          peptideName: editedData.item !== undefined ? editedData.item : scheduledBuys[itemIndex].peptideName || scheduledBuys[itemIndex].item,
-          date: editedData.openDate !== undefined ? editedData.openDate : scheduledBuys[itemIndex].date || scheduledBuys[itemIndex].openDate,
-          description: editedData.notes !== undefined ? editedData.notes : scheduledBuys[itemIndex].description || scheduledBuys[itemIndex].notes
+          ...oldItem,           // Start with old item
+          ...editedData,        // Override with ALL edited fields
+          id: itemId,           // Ensure ID preserved
+          updatedAt: updatedTimestamp,  // Add timestamp
+          // Backward compatibility fields (update these too)
+          name: editedData.item || oldItem.name || oldItem.item,
+          peptideName: editedData.item || oldItem.peptideName || oldItem.item,
+          date: editedData.openDate || oldItem.date || oldItem.openDate,
+          description: editedData.notes || oldItem.description || oldItem.notes
         };
         
         // Assign the complete updated item
         scheduledBuys[itemIndex] = updatedItem;
         
         console.log('🔍 Updated item structure:', updatedItem);
+        console.log('📝 Fields that should be there:', {
+          location: updatedItem.location,
+          participants: updatedItem.participants,
+          price: updatedItem.price,
+          vendor: updatedItem.vendor
+        });
       } else {
         // Item not found - this shouldn't happen but handle it
         console.warn('Item not found in scheduledBuys, adding new item:', itemId);
@@ -188,6 +188,9 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       
       // Force exit edit mode immediately
       setEditingItems({});
+      
+      // Increment render key to force complete re-render
+      setRenderKey(prev => prev + 1);
       
       // Force a complete refresh by reloading from localStorage
       setTimeout(() => {
@@ -362,10 +365,10 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" key={`modal-content-${renderKey}`}>
               {list.map((item) => (
                 <div
-                  key={`buy-${item.id}-${item.updatedAt || Date.now()}`}
+                  key={`buy-${item.id}-${item.updatedAt || ''}`}
                   className="p-4 rounded-lg border transition-all"
                   style={{ 
                     borderColor: theme.border, 

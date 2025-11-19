@@ -176,7 +176,12 @@ export default function Orders() {
 			const orderIdPrefix = `orderitem-${newOrder.id}-`;
 			
 			// Remove old stockpile items for this order
-			setStockpile(prev => prev.filter(stockItem => !stockItem.id?.startsWith(orderIdPrefix)));
+			setStockpile(prev => prev.filter(stockItem => {
+				const itemId = stockItem?.id;
+				// Type safety: ensure itemId is a string before calling startsWith
+				if (!itemId || typeof itemId !== 'string') return true;
+				return !itemId.startsWith(orderIdPrefix);
+			}));
 			
 			// Add updated stockpile items
 			const updatedStockItems = (newOrder.items || []).map(item => {
@@ -267,7 +272,12 @@ export default function Orders() {
 		// Status changed FROM Delivered: Remove items from stockpile.
 		else if (wasDelivered && !isDelivered) {
 			const orderIdPrefix = `orderitem-${previousOrder.id}-`;
-			setStockpile(prev => prev.filter(stockItem => !stockItem.id?.startsWith(orderIdPrefix)));
+			setStockpile(prev => prev.filter(stockItem => {
+				const itemId = stockItem?.id;
+				// Type safety: ensure itemId is a string before calling startsWith
+				if (!itemId || typeof itemId !== 'string') return true;
+				return !itemId.startsWith(orderIdPrefix);
+			}));
 		}
 	};
 

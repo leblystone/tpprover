@@ -91,6 +91,12 @@ class ChunkErrorBoundary extends React.Component {
         this.state.error?.message?.includes('Importing a module script failed') ||
         this.state.error?.name === 'ChunkLoadError';
 
+      // More reliable production check - never show technical details to users
+      const isProduction = typeof window !== 'undefined' && 
+        (window.location.hostname !== 'localhost' && 
+         window.location.hostname !== '127.0.0.1' &&
+         !window.location.hostname.includes('localhost'));
+
       return (
         <div style={{
           display: 'flex',
@@ -101,103 +107,139 @@ class ChunkErrorBoundary extends React.Component {
           padding: '2rem',
           textAlign: 'center',
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          backgroundColor: '#f8fafc'
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
         }}>
           <div style={{
-            maxWidth: '600px',
+            maxWidth: '500px',
+            width: '100%',
             backgroundColor: 'white',
-            padding: '3rem',
-            borderRadius: '1rem',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+            padding: '3rem 2rem',
+            borderRadius: '1.5rem',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
           }}>
-            <h1 style={{ 
-              fontSize: '2rem', 
-              marginBottom: '1rem', 
-              color: isChunkError ? '#f59e0b' : '#ef4444',
-              fontWeight: '700'
+            {/* Icon/Emoji */}
+            <div style={{
+              fontSize: '4rem',
+              marginBottom: '1.5rem',
+              lineHeight: '1'
             }}>
-              {isChunkError ? '⚠️ Update Available' : '❌ Something Went Wrong'}
+              {isChunkError ? '🔄' : '😔'}
+            </div>
+
+            <h1 style={{ 
+              fontSize: '1.75rem', 
+              marginBottom: '1rem', 
+              color: '#1f2937',
+              fontWeight: '700',
+              lineHeight: '1.2'
+            }}>
+              {isChunkError ? 'Update Available' : 'Oops! Something Went Wrong'}
             </h1>
             
             <p style={{ 
-              marginBottom: '1.5rem', 
-              color: '#64748b', 
-              fontSize: '1.125rem',
-              lineHeight: '1.75'
+              marginBottom: '2rem', 
+              color: '#6b7280', 
+              fontSize: '1rem',
+              lineHeight: '1.6'
             }}>
               {isChunkError 
-                ? 'The Pep Planner has been updated. Please reload to get the latest version.'
-                : 'An unexpected error occurred. Please try reloading the page.'
+                ? 'The Pep Planner has been updated with new features. Please refresh your browser to continue.'
+                : 'We encountered an unexpected issue. Don\'t worry, your data is safe! Try refreshing the page or clearing your browser cache.'
               }
             </p>
 
             <div style={{
               display: 'flex',
-              gap: '1rem',
-              justifyContent: 'center',
-              flexWrap: 'wrap'
+              flexDirection: 'column',
+              gap: '0.75rem',
+              width: '100%'
             }}>
               <button
                 onClick={this.handleReload}
                 style={{
-                  padding: '0.875rem 2rem',
+                  padding: '0.875rem 1.5rem',
                   fontSize: '1rem',
                   backgroundColor: '#3b82f6',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '0.5rem',
+                  borderRadius: '0.75rem',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  transition: 'background-color 0.2s',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+                  width: '100%'
                 }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#2563eb';
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 6px 8px -1px rgba(59, 130, 246, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = '#3b82f6';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                }}
               >
-                🔄 Reload Page
+                Refresh Page
               </button>
 
-              <button
-                onClick={this.handleClearCacheAndReload}
-                style={{
-                  padding: '0.875rem 2rem',
-                  fontSize: '1rem',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  transition: 'background-color 0.2s',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
-              >
-                🧹 Clear Cache & Reload
-              </button>
+              {!isChunkError && (
+                <button
+                  onClick={this.handleClearCacheAndReload}
+                  style={{
+                    padding: '0.875rem 1.5rem',
+                    fontSize: '1rem',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    transition: 'all 0.2s',
+                    width: '100%'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = '#e5e7eb';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = '#f3f4f6';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Clear Cache & Refresh
+                </button>
+              )}
             </div>
 
-            {/* Show error details in development */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* NEVER show error details in production - only in local development */}
+            {!isProduction && (
               <details style={{
                 marginTop: '2rem',
                 textAlign: 'left',
-                fontSize: '0.875rem',
+                fontSize: '0.75rem',
                 color: '#64748b',
-                backgroundColor: '#f1f5f9',
+                backgroundColor: '#f9fafb',
                 padding: '1rem',
-                borderRadius: '0.5rem'
+                borderRadius: '0.5rem',
+                border: '1px solid #e5e7eb'
               }}>
-                <summary style={{ cursor: 'pointer', fontWeight: '600', marginBottom: '0.5rem' }}>
-                  Error Details (Dev Only)
+                <summary style={{ 
+                  cursor: 'pointer', 
+                  fontWeight: '600', 
+                  marginBottom: '0.5rem',
+                  color: '#374151'
+                }}>
+                  🔧 Technical Details (Dev Only)
                 </summary>
                 <pre style={{ 
                   overflow: 'auto', 
-                  fontSize: '0.75rem',
+                  fontSize: '0.7rem',
                   margin: 0,
                   whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word'
+                  wordBreak: 'break-word',
+                  color: '#6b7280',
+                  fontFamily: 'monospace'
                 }}>
                   {this.state.error?.toString()}
                   {'\n\n'}
@@ -209,9 +251,10 @@ class ChunkErrorBoundary extends React.Component {
             <p style={{ 
               marginTop: '1.5rem', 
               fontSize: '0.875rem', 
-              color: '#94a3b8' 
+              color: '#9ca3b8',
+              lineHeight: '1.5'
             }}>
-              If the problem persists, please contact support.
+              If this problem continues, please contact our support team. We're here to help! 🚀
             </p>
           </div>
         </div>
