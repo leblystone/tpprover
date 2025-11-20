@@ -13,6 +13,7 @@ const stripeWebhooks = require('./stripeWebhooks');
 const giftAccess = require('./giftAccess');
 const founderOffer = require('./founderOffer');
 const manualSyncSubscription = require('./manualSyncSubscription');
+const recoverLifetimePurchases = require('./recoverLifetimePurchases');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 
@@ -322,6 +323,9 @@ exports.manualSyncSubscription = manualSyncSubscription.manualSyncSubscription;
 // Audit Lifetime Access - Read-only function to find conflicting lifetime grants
 const auditLifetimeAccess = require('./auditLifetimeAccess');
 exports.auditLifetimeAccess = auditLifetimeAccess.auditLifetimeAccess;
+
+// Recover Lifetime Purchases - Find and fix users who paid but don't have lifetime access
+exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurchases;
 
 // Scheduled Functions for Notifications - Now runs hourly to check all timezones
 exports.scheduledResearchReminders = onSchedule({

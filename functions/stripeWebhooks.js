@@ -483,8 +483,17 @@ async function handleCheckoutSessionCompleted(event, stripe) {
             metadata.isLifetime === 'true' || 
             paymentIntent.metadata?.isLifetime === 'true' ||
             isLifetimePriceId(priceId) || 
-            planName.toLowerCase().includes('lifetime') ||
-            session.amount_total > 0; // If it's a one-time payment, assume lifetime (can be refined)
+            planName.toLowerCase().includes('lifetime');
+          
+          logger.info(`🔍 Lifetime purchase check for session ${session.id}:`, {
+            priceId,
+            planName,
+            metadataIsLifetime: metadata.isLifetime,
+            paymentIntentIsLifetime: paymentIntent.metadata?.isLifetime,
+            isLifetimePriceId: isLifetimePriceId(priceId),
+            planNameIncludesLifetime: planName.toLowerCase().includes('lifetime'),
+            isLifetimePurchase
+          });
 
           if (isLifetimePurchase && metadata.isGift !== 'true' && paymentIntent.metadata?.isGift !== 'true') {
             logger.info(`🎁 Detected lifetime purchase in checkout session ${session.id}`);
