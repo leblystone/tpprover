@@ -241,10 +241,11 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
     const customTemplate = await loadEmailTemplate('verification');
     if (customTemplate) {
       const subject = customTemplate.subject || 'Verify your email for The Pep Planner';
-      // Pass both 'link' and 'verificationLink' to support templates using either variable name
+      // Pass multiple variable names to support different template formats
       const html = generateEmailHTML(customTemplate, { 
         verificationLink,
-        link: verificationLink  // Support %LINK% variable in templates
+        link: verificationLink,  // Support %LINK% variable in templates
+        verification_link: verificationLink  // Support %VERIFICATION_LINK% variable (with underscore)
       });
       return sendEmail(userEmail, subject, html);
     }
@@ -359,9 +360,19 @@ function generateEmailHTML(template, variables = {}) {
   processedTemplate.highlightTitle = replaceVars(template.highlightTitle);
   processedTemplate.highlightMessage = replaceVars(template.highlightMessage);
   processedTemplate.ctaText = replaceVars(template.ctaText);
-  // Replace ctaLink, but if it's empty or just a placeholder, use verificationLink or link from variables
+  // Replace ctaLink, handling all common variable formats
   let ctaLinkValue = replaceVars(template.ctaLink);
-  if (!ctaLinkValue || ctaLinkValue === '#' || ctaLinkValue === '%LINK%' || ctaLinkValue === '%VERIFICATIONLINK%') {
+  // Also replace %VERIFICATION_LINK% (with underscore) if it exists
+  if (ctaLinkValue && variables.verificationLink) {
+    ctaLinkValue = ctaLinkValue.replace(/%VERIFICATION_LINK%/g, variables.verificationLink);
+    ctaLinkValue = ctaLinkValue.replace(/%VERIFICATIONLINK%/g, variables.verificationLink);
+    ctaLinkValue = ctaLinkValue.replace(/%LINK%/g, variables.verificationLink);
+  }
+  // If ctaLink is empty or still contains a placeholder, use verificationLink or link from variables
+  if (!ctaLinkValue || ctaLinkValue === '#' || 
+      ctaLinkValue.includes('%LINK%') || 
+      ctaLinkValue.includes('%VERIFICATIONLINK%') || 
+      ctaLinkValue.includes('%VERIFICATION_LINK%')) {
     ctaLinkValue = variables.verificationLink || variables.link || '#';
     logger.info(`🔗 Using fallback ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
   } else {
@@ -391,8 +402,48 @@ function generateEmailHTML(template, variables = {}) {
   // Also replace variables in custom HTML if provided
   Object.entries(variables).forEach(([key, value]) => {
     const replacement = value || '';
-    html = html.replace(new RegExp(`%${key.toUpperCase()}%`, 'g'), replacement);
+    const regex = new RegExp(`%${key.toUpperCase()}%`, 'g');
+    const beforeReplace = html;
+    html = html.replace(regex, replacement);
+    if (beforeReplace !== html) {
+      logger.info(`✅ Replaced %${key.toUpperCase()}% in HTML`);
+    }
   });
+  
+  // Handle common variable name variations for verification links
+  if (variables.verificationLink) {
+    const linkValue = variables.verificationLink;
+    // Replace %VERIFICATION_LINK% (with underscore) - used in default templates
+    if (html.includes('%VERIFICATION_LINK%')) {
+      html = html.replace(/%VERIFICATION_LINK%/g, linkValue);
+      logger.info('✅ Replaced %VERIFICATION_LINK% in HTML');
+    }
+    // Replace %VERIFICATIONLINK% (without underscore)
+    if (html.includes('%VERIFICATIONLINK%')) {
+      html = html.replace(/%VERIFICATIONLINK%/g, linkValue);
+      logger.info('✅ Replaced %VERIFICATIONLINK% in HTML');
+    }
+    // Replace %LINK% if it exists and link variable wasn't provided
+    if (html.includes('%LINK%') && !variables.link) {
+      html = html.replace(/%LINK%/g, linkValue);
+      logger.info('✅ Replaced %LINK% in HTML with verificationLink');
+    }
+  }
+  
+  // Log final ctaLink value for debugging
+  if (processedTemplate.ctaLink) {
+    logger.info(`🔗 Final ctaLink value: ${processedTemplate.ctaLink.substring(0, 80)}...`);
+  }
+  
+  // Also ensure the link is in the HTML if using simple fields
+  if (!template.html && processedTemplate.ctaLink && processedTemplate.ctaLink !== '#') {
+    // Double-check that the link is actually in the generated HTML
+    if (!html.includes(processedTemplate.ctaLink)) {
+      logger.warn(`⚠️ ctaLink not found in generated HTML! Link: ${processedTemplate.ctaLink.substring(0, 50)}...`);
+    } else {
+      logger.info(`✅ ctaLink found in generated HTML`);
+    }
+  }
 
   // Replace color variables in HTML if they exist (for advanced editor)
   html = html.replace(/\$\{colors\.(\w+)\}/g, (match, colorKey) => {
