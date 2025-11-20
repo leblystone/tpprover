@@ -13,7 +13,7 @@ export default function VendorPaymentIcons({ vendor, theme }) {
     return (
         <div className="mt-2 flex flex-wrap gap-2 text-xs" title="Payment methods" style={{ color: theme.text }}>
             {items.map(({ label, Icon }) => (
-                <span key={label} className="inline-flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: theme.white, border: `1px solid ${theme.border}`, color: theme.text }}>
+                <span key={label} className="inline-flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.white, border: `1px solid ${theme.border}`, color: theme.text }}>
                     <Icon className="w-3 h-3" />
                     {label}
                 </span>

@@ -177,7 +177,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                             {paymentMethods.length > 0 && (
                                 <div className="flex flex-wrap gap-2 text-xs">
                                     {paymentMethods.map(({ label, Icon }) => (
-                                        <span key={label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                                        <span key={label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ backgroundColor: theme.isDark ? '#1f2937' : theme.secondary, color: theme.text }}>
                                             <Icon className="w-3.5 h-3.5" />
                                             {label}
                                         </span>
@@ -187,11 +187,41 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                             {vendor.labels && vendor.labels.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
                                     {vendor.labels.map(l => {
-                                        let labelClass = "px-2 py-1 rounded-full text-xs font-semibold ";
-                                        if (GOOD_LABELS.includes(l)) labelClass += "bg-green-100 text-green-800";
-                                        else if (BAD_LABELS.includes(l)) labelClass += "bg-red-100 text-red-800";
-                                        else labelClass += "bg-blue-100 text-blue-800";
-                                        return <span key={l} className={labelClass}>{l}</span>;
+                                        let backgroundColor, color;
+                                        if (theme.isDark) {
+                                            // Dark mode: custom muted colors
+                                            if (GOOD_LABELS.includes(l)) {
+                                                backgroundColor = '#3c4e3a'; // custom green
+                                                color = '#dcfce7'; // green-100
+                                            } else if (BAD_LABELS.includes(l)) {
+                                                backgroundColor = '#6D2B2C'; // custom red
+                                                color = '#fee2e2'; // red-100
+                                            } else {
+                                                backgroundColor = '#446879'; // custom blue
+                                                color = '#dbeafe'; // blue-100
+                                            }
+                                        } else {
+                                            // Light mode: custom colors
+                                            if (GOOD_LABELS.includes(l)) {
+                                                backgroundColor = '#607c5c'; // custom green
+                                                color = '#dcfce7'; // green-100
+                                            } else if (BAD_LABELS.includes(l)) {
+                                                backgroundColor = '#A14D4D'; // custom red
+                                                color = '#fee2e2'; // red-100
+                                            } else {
+                                                backgroundColor = '#ADC3D1'; // custom blue
+                                                color = '#1e3a5f'; // darker blue text
+                                            }
+                                        }
+                                        return (
+                                            <span 
+                                                key={l} 
+                                                className="px-2 py-1 rounded-full text-xs font-semibold"
+                                                style={{ backgroundColor, color }}
+                                            >
+                                                {l}
+                                            </span>
+                                        );
                                     })}
                                 </div>
                             )}
