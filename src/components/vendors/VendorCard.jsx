@@ -61,7 +61,6 @@ function buildContactHref(type, rawValue) {
 
 export default function VendorCard({ vendor, theme, onEditClick, onManageProtocolClick, onForceDelete, isPublicView = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
-    const [showForceDeleteConfirm, setShowForceDeleteConfirm] = useState(false);
 
     const handleShare = () => {
         setShareModalOpen(true);

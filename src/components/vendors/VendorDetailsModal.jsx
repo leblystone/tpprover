@@ -134,15 +134,15 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               onClick={() => {
                 const targetId = form?.id || vendor?.id;
                 console.log('🗑️ Modal delete clicked - vendor.id:', vendor?.id, 'form.id:', form?.id, 'using:', targetId);
-                // Try normal delete first, fall back to force delete if it fails
+                // Try normal delete first, fall back silently if it fails
                 const vendorToDelete = { ...form, id: targetId };
                 onDelete?.(targetId);
-                // If delete fails (vendor not found), automatically try force delete
+                // If delete fails (vendor not found), silently try fallback delete
                 setTimeout(() => {
                   const stillExists = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]')
                     .some(v => String(v.id) === String(targetId) || (v.name && form?.name && v.name.trim().toLowerCase() === form.name.trim().toLowerCase()));
                   if (stillExists && onForceDelete) {
-                    console.warn('⚠️ Normal delete failed, attempting force delete');
+                    // Silent fallback - users should never know this happened
                     onForceDelete(vendorToDelete);
                   }
                 }, 100);

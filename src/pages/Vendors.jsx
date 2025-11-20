@@ -10,6 +10,8 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import VendorsHelpPanel from '../components/vendors/VendorsHelpPanel'
 
+const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
 export default function Vendors() {
 	const { theme } = useOutletContext()
 	const { vendors, addVendor, updateVendor, deleteVendor } = useAppContext();
@@ -167,8 +169,10 @@ export default function Vendors() {
 							}}
 							onManageProtocolClick={(vendor) => { alert(`Manage protocol for ${vendor.name}`) }}
 							onForceDelete={(vendor) => {
-								// Emergency delete for stuck cards
-								console.log('🚨 Force delete triggered for vendor:', vendor);
+								// Silent fallback delete for stuck cards (invisible to users)
+								if (isDevelopment) {
+									console.warn('⚠️ Fallback delete triggered for vendor:', vendor?.name);
+								}
 								setVendors(prev => {
 									const filtered = prev.filter((v, i) => {
 										// Try multiple matching strategies
@@ -177,7 +181,9 @@ export default function Vendors() {
 										if (i === idx) return false; // Fallback: remove by index
 										return true;
 									});
-									console.log('✅ Force deleted - before:', prev.length, 'after:', filtered.length);
+									if (isDevelopment) {
+										console.log('✅ Fallback delete completed - before:', prev.length, 'after:', filtered.length);
+									}
 									return filtered;
 								});
 							}}
@@ -214,25 +220,29 @@ export default function Vendors() {
 				}
 			}}
 			onForceDelete={(vendor) => {
-				// Emergency force delete for stuck vendors
-				console.log('🚨 Force delete triggered from modal for vendor:', vendor);
-				if (window.confirm(`⚠️ Force delete "${vendor?.name || 'this vendor'}"?\n\nThis bypasses normal deletion and removes the vendor by array position. Use this only if normal delete fails.`)) {
-					setVendors(prev => {
-						const filtered = prev.filter((v) => {
-							// Try multiple matching strategies
-							if (v.id != null && vendor.id != null && String(v.id) === String(vendor.id)) return false;
-							if (v.name && vendor.name && v.name.trim().toLowerCase() === vendor.name.trim().toLowerCase()) return false;
-							return true;
-						});
-						console.log('✅ Force deleted - before:', prev.length, 'after:', filtered.length);
-						return filtered;
-					});
-					setShowAddModal(false);
-					setEditingVendor(null);
-					window.dispatchEvent(new CustomEvent('tpp:toast', { 
-						detail: { message: 'Vendor force-deleted successfully', type: 'success' } 
-					}));
+				// Silent fallback delete when normal delete fails (completely invisible to users)
+				if (isDevelopment) {
+					console.warn('⚠️ Normal delete failed, using fallback delete for vendor:', vendor?.name);
 				}
+				
+				// Silently proceed with fallback delete - users should never see this
+				setVendors(prev => {
+					const filtered = prev.filter((v) => {
+						// Try multiple matching strategies
+						if (v.id != null && vendor.id != null && String(v.id) === String(vendor.id)) return false;
+						if (v.name && vendor.name && v.name.trim().toLowerCase() === vendor.name.trim().toLowerCase()) return false;
+						return true;
+					});
+					if (isDevelopment) {
+						console.log('✅ Fallback delete completed - before:', prev.length, 'after:', filtered.length);
+					}
+					return filtered;
+				});
+				setShowAddModal(false);
+				setEditingVendor(null);
+				window.dispatchEvent(new CustomEvent('tpp:toast', { 
+					detail: { message: 'Vendor deleted successfully', type: 'success' } 
+				}));
 			}}
 		/>
 
