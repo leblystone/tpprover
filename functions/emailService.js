@@ -241,7 +241,11 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken) => {
     const customTemplate = await loadEmailTemplate('verification');
     if (customTemplate) {
       const subject = customTemplate.subject || 'Verify your email for The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { verificationLink });
+      // Pass both 'link' and 'verificationLink' to support templates using either variable name
+      const html = generateEmailHTML(customTemplate, { 
+        verificationLink,
+        link: verificationLink  // Support %LINK% variable in templates
+      });
       return sendEmail(userEmail, subject, html);
     }
   } catch (error) {
@@ -355,7 +359,15 @@ function generateEmailHTML(template, variables = {}) {
   processedTemplate.highlightTitle = replaceVars(template.highlightTitle);
   processedTemplate.highlightMessage = replaceVars(template.highlightMessage);
   processedTemplate.ctaText = replaceVars(template.ctaText);
-  processedTemplate.ctaLink = replaceVars(template.ctaLink);
+  // Replace ctaLink, but if it's empty or just a placeholder, use verificationLink or link from variables
+  let ctaLinkValue = replaceVars(template.ctaLink);
+  if (!ctaLinkValue || ctaLinkValue === '#' || ctaLinkValue === '%LINK%' || ctaLinkValue === '%VERIFICATIONLINK%') {
+    ctaLinkValue = variables.verificationLink || variables.link || '#';
+    logger.info(`🔗 Using fallback ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
+  } else {
+    logger.info(`🔗 Using template ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
+  }
+  processedTemplate.ctaLink = ctaLinkValue;
   processedTemplate.postCtaNote = replaceVars(template.postCtaNote);
   processedTemplate.subject = replaceVars(template.subject);
   processedTemplate.heading = replaceVars(template.heading);
