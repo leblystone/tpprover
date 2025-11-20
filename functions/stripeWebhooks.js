@@ -479,11 +479,26 @@ async function handleCheckoutSessionCompleted(event, stripe) {
           // Check if this is a lifetime purchase
           const priceId = metadata.priceId || paymentIntent.metadata?.priceId || null;
           const planName = metadata.planName || paymentIntent.metadata?.planName || '';
+          
+          // Check if price is one-time payment by retrieving it from Stripe
+          let isOneTimePayment = false;
+          if (priceId) {
+            try {
+              const price = await stripe.prices.retrieve(priceId);
+              // One-time payments don't have a recurring interval
+              isOneTimePayment = !price.recurring;
+              logger.info(`🔍 Price ${priceId} check: recurring=${!!price.recurring}, oneTime=${isOneTimePayment}`);
+            } catch (priceError) {
+              logger.warn(`⚠️ Could not retrieve price ${priceId} from Stripe:`, priceError.message);
+            }
+          }
+          
           const isLifetimePurchase = 
             metadata.isLifetime === 'true' || 
             paymentIntent.metadata?.isLifetime === 'true' ||
             isLifetimePriceId(priceId) || 
-            planName.toLowerCase().includes('lifetime');
+            planName.toLowerCase().includes('lifetime') ||
+            isOneTimePayment; // If it's a one-time payment, it's likely lifetime
           
           logger.info(`🔍 Lifetime purchase check for session ${session.id}:`, {
             priceId,
@@ -492,6 +507,7 @@ async function handleCheckoutSessionCompleted(event, stripe) {
             paymentIntentIsLifetime: paymentIntent.metadata?.isLifetime,
             isLifetimePriceId: isLifetimePriceId(priceId),
             planNameIncludesLifetime: planName.toLowerCase().includes('lifetime'),
+            isOneTimePayment,
             isLifetimePurchase
           });
 
@@ -688,7 +704,35 @@ async function handlePaymentSucceeded(event, stripe) {
   const metadata = paymentIntent.metadata || {};
   const priceId = metadata.priceId || null;
   const planName = metadata.planName || '';
-  const isLifetimePurchase = metadata.isLifetime === 'true' || isLifetimePriceId(priceId) || planName.toLowerCase().includes('lifetime');
+  
+  // Check if price is one-time payment by retrieving it from Stripe
+  let isOneTimePayment = false;
+  if (priceId) {
+    try {
+      const price = await stripe.prices.retrieve(priceId);
+      // One-time payments don't have a recurring interval
+      isOneTimePayment = !price.recurring;
+      logger.info(`🔍 Payment intent ${paymentIntent.id} - Price ${priceId} check: recurring=${!!price.recurring}, oneTime=${isOneTimePayment}`);
+    } catch (priceError) {
+      logger.warn(`⚠️ Could not retrieve price ${priceId} from Stripe:`, priceError.message);
+    }
+  }
+  
+  const isLifetimePurchase = 
+    metadata.isLifetime === 'true' || 
+    isLifetimePriceId(priceId) || 
+    planName.toLowerCase().includes('lifetime') ||
+    isOneTimePayment; // If it's a one-time payment, it's likely lifetime
+  
+  logger.info(`🔍 Payment intent ${paymentIntent.id} lifetime check:`, {
+    priceId,
+    planName,
+    metadataIsLifetime: metadata.isLifetime,
+    isLifetimePriceId: isLifetimePriceId(priceId),
+    planNameIncludesLifetime: planName.toLowerCase().includes('lifetime'),
+    isOneTimePayment,
+    isLifetimePurchase
+  });
 
   if (isLifetimePurchase && metadata.isGift !== 'true') {
     try {
