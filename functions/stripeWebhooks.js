@@ -353,7 +353,7 @@ exports.stripeWebhook = onRequest(
     try {
       switch (event.type) {
         case 'checkout.session.completed':
-          await handleCheckoutSessionCompleted(event);
+          await handleCheckoutSessionCompleted(event, stripe);
           break;
 
         // Payment Intent Events
@@ -435,7 +435,7 @@ exports.stripeWebhook = onRequest(
 /**
  * Handle checkout session completed (for founder pricing tracking)
  */
-async function handleCheckoutSessionCompleted(event) {
+async function handleCheckoutSessionCompleted(event, stripe) {
   const session = event.data.object;
   const metadata = session.metadata || {};
 
@@ -448,6 +448,7 @@ async function handleCheckoutSessionCompleted(event) {
       );
     }
 
+    // Handle subscription mode
     if (session.mode === 'subscription' && session.subscription && session.customer) {
       const [subscription, customer] = await Promise.all([
         stripe.subscriptions.retrieve(session.subscription),
@@ -462,10 +463,75 @@ async function handleCheckoutSessionCompleted(event) {
         statusOverride: subscription.status
       });
     }
+
+    // Handle one-time payment mode (lifetime purchases)
+    if (session.mode === 'payment' && session.payment_status === 'paid' && session.payment_intent) {
+      logger.info(`💳 Processing one-time payment checkout: ${session.id}`);
+      
+      try {
+        // Retrieve the payment intent to get full details
+        const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+        const userEmail = session.customer_details?.email || session.customer_email || metadata.userEmail || paymentIntent.receipt_email;
+        
+        if (!userEmail) {
+          logger.warn(`⚠️ No email found for checkout session ${session.id}`);
+        } else {
+          // Check if this is a lifetime purchase
+          const priceId = metadata.priceId || paymentIntent.metadata?.priceId || null;
+          const planName = metadata.planName || paymentIntent.metadata?.planName || '';
+          const isLifetimePurchase = 
+            metadata.isLifetime === 'true' || 
+            paymentIntent.metadata?.isLifetime === 'true' ||
+            isLifetimePriceId(priceId) || 
+            planName.toLowerCase().includes('lifetime') ||
+            session.amount_total > 0; // If it's a one-time payment, assume lifetime (can be refined)
+
+          if (isLifetimePurchase && metadata.isGift !== 'true' && paymentIntent.metadata?.isGift !== 'true') {
+            logger.info(`🎁 Detected lifetime purchase in checkout session ${session.id}`);
+            
+            // Merge metadata from both session and payment intent
+            const combinedMetadata = {
+              ...paymentIntent.metadata,
+              ...metadata,
+              userId: metadata.userId || paymentIntent.metadata?.userId,
+              priceId: priceId,
+              planName: planName || paymentIntent.metadata?.planName || 'Lifetime Access'
+            };
+
+            try {
+              await grantLifetimeAccessFromStripe({
+                userIdHint: combinedMetadata.userId,
+                userEmail,
+                metadata: combinedMetadata,
+                paymentIntent,
+              });
+              logger.info(`✅ Lifetime access granted via checkout session ${session.id}`);
+            } catch (grantError) {
+              logger.error(`❌ Failed to grant lifetime access from checkout session ${session.id}:`, grantError);
+              // Log to Firestore for manual review
+              await admin.firestore().collection('stripeEvents').add({
+                type: 'checkout.session.completed',
+                sessionId: session.id,
+                paymentIntentId: paymentIntent.id,
+                userEmail,
+                error: grantError.message,
+                isLifetimePurchase: true,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+              });
+            }
+          } else {
+            logger.info(`ℹ️ Checkout session ${session.id} is not a lifetime purchase (isLifetime: ${isLifetimePurchase}, isGift: ${metadata.isGift || paymentIntent.metadata?.isGift})`);
+          }
+        }
+      } catch (paymentIntentError) {
+        logger.error(`❌ Failed to process payment intent for checkout session ${session.id}:`, paymentIntentError);
+      }
+    }
   } catch (syncError) {
     logger.error('❌ Failed to sync subscription after checkout completion:', syncError);
   }
 
+  // Founder tracking (only for founder purchases)
   if (!metadata || metadata.founderApplied !== 'true') {
     return;
   }
@@ -617,14 +683,43 @@ async function handlePaymentSucceeded(event, stripe) {
 
   if (isLifetimePurchase && metadata.isGift !== 'true') {
     try {
+      logger.info(`🎁 Processing lifetime purchase for payment intent ${paymentIntent.id}`);
       await grantLifetimeAccessFromStripe({
         userIdHint: metadata.userId,
         userEmail,
         metadata,
         paymentIntent,
       });
+      logger.info(`✅ Lifetime access granted via payment intent ${paymentIntent.id}`);
     } catch (grantError) {
-      logger.error('❌ Failed to grant lifetime access from Stripe payment:', grantError);
+      logger.error(`❌ Failed to grant lifetime access from Stripe payment ${paymentIntent.id}:`, grantError);
+      logger.error(`   Error details:`, {
+        message: grantError.message,
+        stack: grantError.stack,
+        userIdHint: metadata.userId,
+        userEmail,
+        paymentIntentId: paymentIntent.id
+      });
+      
+      // Log to Firestore for manual review and potential retry
+      try {
+        await admin.firestore().collection('stripeEvents').add({
+          type: 'payment_intent.succeeded',
+          paymentIntentId: paymentIntent.id,
+          customerId: paymentIntent.customer,
+          userEmail,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+          isLifetimePurchase: true,
+          error: grantError.message,
+          errorStack: grantError.stack,
+          metadata: metadata,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          needsManualReview: true
+        });
+      } catch (logError) {
+        logger.error('❌ Failed to log error to Firestore:', logError);
+      }
     }
   }
 
@@ -1063,12 +1158,20 @@ async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, 
 
   if (!normalizedEmail) {
     logger.warn('⚠️ Unable to grant lifetime access without email.');
-    return;
+    throw new Error('Email is required to grant lifetime access');
   }
+
+  logger.info(`🔍 Granting lifetime access - Email: ${normalizedEmail}, UserIdHint: ${userIdHint || 'none'}, PaymentIntent: ${paymentIntent.id}`);
 
   let resolvedUserId = userIdHint;
   if (!resolvedUserId) {
+    logger.info(`🔍 UserId not in metadata, looking up by email: ${normalizedEmail}`);
     resolvedUserId = await findUserIdByEmail(normalizedEmail);
+    if (resolvedUserId) {
+      logger.info(`✅ Found user ID: ${resolvedUserId}`);
+    } else {
+      logger.warn(`⚠️ User not found by email: ${normalizedEmail} - will create pre-grant`);
+    }
   }
 
   const amountPaid = typeof paymentIntent.amount === 'number' ? paymentIntent.amount / 100 : null;
