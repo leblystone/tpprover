@@ -297,7 +297,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all"
                                         style={{
                                             borderColor: theme.border,
-                                            backgroundColor: theme.white,
+                                            backgroundColor: theme.isDark ? '#0f172a' : theme.white,
                                             color: theme.text
                                         }}
                                         placeholder="your@email.com"
@@ -317,7 +317,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none"
                                         style={{
                                             borderColor: theme.border,
-                                            backgroundColor: theme.white,
+                                            backgroundColor: theme.isDark ? '#0f172a' : theme.white,
                                             color: theme.text
                                         }}
                                         placeholder="Describe your question or issue..."
@@ -461,7 +461,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                             className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none text-sm"
                                             style={{
                                                 borderColor: theme.border,
-                                                backgroundColor: theme.white,
+                                                backgroundColor: theme.isDark ? '#0f172a' : theme.white,
                                                 color: theme.text
                                             }}
                                         />
