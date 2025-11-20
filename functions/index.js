@@ -881,7 +881,7 @@ exports.sendCustomVerificationEmail = onCall(
   async (request) => {
   // Verify user is authenticated
   if (!request.auth) {
-    throw new Error('User must be authenticated');
+    throw new HttpsError('unauthenticated', 'User must be authenticated to request a verification email');
   }
 
   const userId = request.auth.uid;
@@ -914,7 +914,12 @@ exports.sendCustomVerificationEmail = onCall(
     
   } catch (error) {
     logger.error('❌ Failed to send custom verification email:', error);
-    throw new Error('Failed to send verification email');
+    logger.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    throw new HttpsError('internal', 'Failed to send verification email. Please try again.');
   }
 });
 
@@ -927,10 +932,11 @@ exports.verifyEmailWithToken = onCall(
   const { token } = request.data;
 
   if (!token) {
-    throw new Error('Verification token is required');
+    logger.error('❌ Verification failed: No token provided');
+    throw new HttpsError('invalid-argument', 'Verification token is required');
   }
 
-  logger.info(`🔍 Verifying email with token: ${token}`);
+  logger.info(`🔍 Verifying email with token: ${token.substring(0, 8)}...`);
 
   try {
     // Get the token from Firestore
@@ -938,42 +944,87 @@ exports.verifyEmailWithToken = onCall(
     const tokenDoc = await tokenRef.get();
 
     if (!tokenDoc.exists) {
-      throw new Error('Invalid verification token');
+      logger.error(`❌ Verification failed: Token not found in Firestore: ${token.substring(0, 8)}...`);
+      throw new HttpsError('not-found', 'Invalid verification token. Please request a new verification email.');
     }
 
     const tokenData = tokenDoc.data();
     
+    if (!tokenData) {
+      logger.error(`❌ Verification failed: Token data is null for token: ${token.substring(0, 8)}...`);
+      throw new HttpsError('invalid-argument', 'Invalid verification token. Please request a new verification email.');
+    }
+    
     // Check if token is expired
-    if (new Date() > tokenData.expiresAt.toDate()) {
-      throw new Error('Verification token has expired');
+    if (tokenData.expiresAt) {
+      const expiresAt = tokenData.expiresAt.toDate ? tokenData.expiresAt.toDate() : new Date(tokenData.expiresAt);
+      if (new Date() > expiresAt) {
+        logger.error(`❌ Verification failed: Token expired for user: ${tokenData.userId}`);
+        throw new HttpsError('deadline-exceeded', 'Verification link has expired. Please request a new verification email.');
+      }
     }
 
     // Check if token is already used
     if (tokenData.used) {
-      throw new Error('Verification token has already been used');
+      logger.warn(`⚠️ Verification failed: Token already used for user: ${tokenData.userId}`);
+      throw new HttpsError('already-exists', 'This verification link has already been used.');
     }
 
-    // Mark token as used
-    await tokenRef.update({ used: true, usedAt: admin.firestore.FieldValue.serverTimestamp() });
+    if (!tokenData.userId) {
+      logger.error(`❌ Verification failed: Token missing userId: ${token.substring(0, 8)}...`);
+      throw new HttpsError('invalid-argument', 'Invalid verification token. Please request a new verification email.');
+    }
+
+    // Mark token as used FIRST (before updating user) to prevent race conditions
+    await tokenRef.update({ 
+      used: true, 
+      usedAt: admin.firestore.FieldValue.serverTimestamp() 
+    });
+
+    logger.info(`📝 Token marked as used for user: ${tokenData.userId}`);
 
     // Update user's email verification status in Firebase Auth (CRITICAL: This is what the frontend checks)
-    await admin.auth().updateUser(tokenData.userId, {
-      emailVerified: true
-    });
+    try {
+      await admin.auth().updateUser(tokenData.userId, {
+        emailVerified: true
+      });
+      logger.info(`✅ Firebase Auth emailVerified set to true for user: ${tokenData.userId}`);
+    } catch (authError) {
+      logger.error(`❌ Failed to update Firebase Auth for user ${tokenData.userId}:`, authError);
+      // Continue to update Firestore even if Auth update fails
+    }
 
     // Update user's email verification status in Firestore (for record keeping)
-    const userRef = admin.firestore().collection('users').doc(tokenData.userId);
-    await userRef.update({ 
-      emailVerified: true,
-      emailVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    try {
+      const userRef = admin.firestore().collection('users').doc(tokenData.userId);
+      await userRef.update({ 
+        emailVerified: true,
+        emailVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      logger.info(`✅ Firestore emailVerified set to true for user: ${tokenData.userId}`);
+    } catch (firestoreError) {
+      logger.error(`❌ Failed to update Firestore for user ${tokenData.userId}:`, firestoreError);
+      // Don't fail the whole operation if Firestore update fails
+    }
 
-    logger.info(`✅ Email verified for user: ${tokenData.userId} (Firebase Auth + Firestore updated)`);
+    logger.info(`✅ Email verified successfully for user: ${tokenData.userId}`);
     return { success: true, message: 'Email verified successfully' };
     
   } catch (error) {
+    // If it's already an HttpsError, re-throw it
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    
     logger.error('❌ Failed to verify email:', error);
-    throw error;
+    logger.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    
+    // Convert to HttpsError for proper client-side handling
+    throw new HttpsError('internal', 'Failed to verify email. Please try again or request a new verification email.');
   }
 });
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
+import { getApp } from 'firebase/app';
 import { themes, defaultThemeName } from '../theme/themes';
 
 export default function VerifyEmail() {
@@ -31,7 +32,7 @@ export default function VerifyEmail() {
       setLoading(true);
       setError('');
       
-      const functions = getFunctions();
+      const functions = getFunctions(getApp(), 'us-central1');
       const verifyEmailWithToken = httpsCallable(functions, 'verifyEmailWithToken');
       
       const result = await verifyEmailWithToken({ token });
@@ -61,15 +62,41 @@ export default function VerifyEmail() {
     } catch (error) {
       console.error('Email verification error:', error);
       
+      // Handle Firebase Functions HttpsError
       let errorMessage = 'Failed to verify email. ';
-      if (error.message?.includes('expired')) {
-        errorMessage = 'Verification link has expired. Please request a new verification email.';
-      } else if (error.message?.includes('already been used')) {
-        errorMessage = 'This verification link has already been used.';
-      } else if (error.message?.includes('Invalid')) {
-        errorMessage = 'Invalid verification link. Please request a new verification email.';
+      
+      // Check for Firebase Functions error code
+      if (error.code) {
+        switch (error.code) {
+          case 'deadline-exceeded':
+            errorMessage = 'Verification link has expired. Please request a new verification email.';
+            break;
+          case 'already-exists':
+            errorMessage = 'This verification link has already been used.';
+            break;
+          case 'not-found':
+          case 'invalid-argument':
+            errorMessage = 'Invalid verification link. Please request a new verification email.';
+            break;
+          case 'internal':
+            errorMessage = 'An error occurred while verifying your email. Please try again or request a new verification email.';
+            break;
+          default:
+            errorMessage = error.message || 'Please try again.';
+        }
+      } else if (error.message) {
+        // Fallback to message-based error handling
+        if (error.message.includes('expired')) {
+          errorMessage = 'Verification link has expired. Please request a new verification email.';
+        } else if (error.message.includes('already been used') || error.message.includes('already-exists')) {
+          errorMessage = 'This verification link has already been used.';
+        } else if (error.message.includes('Invalid') || error.message.includes('not-found')) {
+          errorMessage = 'Invalid verification link. Please request a new verification email.';
+        } else {
+          errorMessage += error.message;
+        }
       } else {
-        errorMessage += error.message || 'Please try again.';
+        errorMessage += 'Please try again or request a new verification email.';
       }
       
       setError(errorMessage);
@@ -83,21 +110,32 @@ export default function VerifyEmail() {
       setLoading(true);
       setError('');
       
-      const functions = getFunctions();
+      const functions = getFunctions(getApp(), 'us-central1');
       const sendCustomVerificationEmail = httpsCallable(functions, 'sendCustomVerificationEmail');
       
       const result = await sendCustomVerificationEmail();
       
-      if (result.data.success) {
+      if (result.data?.success) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: { message: '📧 New verification email sent! Check your inbox.', type: 'success' }
         }));
+        setError(''); // Clear any previous errors
       } else {
         setError('Failed to send verification email. Please try again.');
       }
     } catch (error) {
       console.error('Resend verification error:', error);
-      setError('Failed to send verification email. Please try again.');
+      
+      let errorMessage = 'Failed to send verification email. ';
+      if (error.code === 'unauthenticated') {
+        errorMessage = 'You must be logged in to request a verification email. Please log in first.';
+      } else if (error.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += 'Please try again.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { getAuth, updateEmail, verifyBeforeUpdateEmail } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
+import { getApp } from 'firebase/app'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 
 // Helper function to generate user initials
@@ -84,6 +85,7 @@ export default function AccountProfile() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSendingVerification, setIsSendingVerification] = useState(false)
   const [emailVerified, setEmailVerified] = useState(false)
+  const [verificationCooldown, setVerificationCooldown] = useState(0)
   const [cloudCreatedAt, setCloudCreatedAt] = useState(null)
 
   const memberSinceDate = useMemo(() => {
@@ -219,18 +221,31 @@ export default function AccountProfile() {
 
   const handleSendVerificationEmail = async () => {
     if (!firebaseUser || firebaseUser.emailVerified) return
+    if (isSendingVerification || verificationCooldown > 0) return
 
     setIsSendingVerification(true)
     try {
-      const functions = getFunctions()
+      const functions = getFunctions(getApp(), 'us-central1')
       const sendCustomVerificationEmail = httpsCallable(functions, 'sendCustomVerificationEmail')
       
       const result = await sendCustomVerificationEmail()
       
-      if (result.data.success) {
+      if (result.data?.success) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: { message: '📧 Verification email sent! Check your inbox.', type: 'success' }
         }))
+        
+        // Set cooldown to prevent spam (30 seconds)
+        setVerificationCooldown(30)
+        const cooldownInterval = setInterval(() => {
+          setVerificationCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(cooldownInterval)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
       } else {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: { message: 'Failed to send verification email. Please try again.', type: 'error' }
@@ -238,10 +253,21 @@ export default function AccountProfile() {
       }
     } catch (error) {
       console.error('Error sending verification email:', error)
+      
+      let errorMessage = 'Failed to send verification email. '
+      if (error.code === 'unauthenticated') {
+        errorMessage = 'You must be logged in to request a verification email.'
+      } else if (error.message) {
+        errorMessage += error.message
+      } else {
+        errorMessage += 'Please try again.'
+      }
+      
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'Failed to send verification email. Please try again.', type: 'error' }
-        }))
+        detail: { message: errorMessage, type: 'error' }
+      }))
     } finally {
+      // Always reset sending state immediately
       setIsSendingVerification(false)
     }
   }
@@ -350,6 +376,7 @@ export default function AccountProfile() {
                 theme={theme}
                 onSendVerification={handleSendVerificationEmail}
                 isSending={isSendingVerification}
+                cooldown={verificationCooldown}
               />
             </div>
           </div>
@@ -399,46 +426,51 @@ const InfoCard = ({ icon: Icon, label, value, theme, status }) => (
   </div>
 )
 
-const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending }) => (
-  <div 
-    className="p-3 rounded-lg space-y-2"
-    style={{ backgroundColor: theme.secondary }}
-  >
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div 
-          className="w-8 h-8 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: theme.accent + '20' }}
-        >
-          <Mail size={16} style={{ color: theme.accent }} />
-        </div>
-        <div>
-          <div className="text-sm font-medium" style={{ color: theme.text }}>Email Status</div>
+const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, cooldown = 0 }) => {
+  const isDisabled = isSending || cooldown > 0
+  
+  return (
+    <div 
+      className="p-3 rounded-lg space-y-2"
+      style={{ backgroundColor: theme.secondary }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <div 
-            className="text-xs" 
-            style={{ 
-              color: isVerified ? '#10B981' : '#F59E0B'
-            }}
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: theme.accent + '20' }}
           >
-            {isVerified ? 'Verified' : 'Unverified'}
+            <Mail size={16} style={{ color: theme.accent }} />
+          </div>
+          <div>
+            <div className="text-sm font-medium" style={{ color: theme.text }}>Email Status</div>
+            <div 
+              className="text-xs" 
+              style={{ 
+                color: isVerified ? '#10B981' : '#F59E0B'
+              }}
+            >
+              {isVerified ? 'Verified' : 'Unverified'}
+            </div>
           </div>
         </div>
+        {!isVerified && (
+          <button
+            onClick={onSendVerification}
+            disabled={isDisabled}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+            style={{ 
+              backgroundColor: isDisabled ? theme.mutedText : theme.primary,
+              color: theme.primaryText || '#ffffff',
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              pointerEvents: isDisabled ? 'none' : 'auto'
+            }}
+          >
+            <Send size={12} />
+            {isSending ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Verify Email'}
+          </button>
+        )}
       </div>
-      {!isVerified && (
-        <button
-          onClick={onSendVerification}
-          disabled={isSending}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-          style={{ 
-            backgroundColor: theme.primary,
-            color: theme.primaryText || '#ffffff'
-          }}
-        >
-          <Send size={12} />
-          {isSending ? 'Sending...' : 'Verify Email'}
-        </button>
-      )}
-    </div>
     {!isVerified && (
       <div 
         className="text-xs pl-11 leading-relaxed"
@@ -447,7 +479,8 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending }) =
         Email verification is required to ensure the security of your research account and enable important features like password recovery and account notifications.
       </div>
     )}
-  </div>
-)
+    </div>
+  )
+}
 
 

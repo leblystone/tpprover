@@ -166,6 +166,13 @@ service cloud.firestore {
       allow write: if isAdmin(); // Only admin can modify email templates
     }
     
+    // Verification tokens - used for email verification
+    // Server-side functions can access these, but we also allow read for verification flow
+    match /verificationTokens/{tokenId} {
+      allow read: if true; // Allow read for email verification (token is in URL, user may not be authenticated)
+      allow write: if false; // Only server-side functions can write (they bypass rules)
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;
