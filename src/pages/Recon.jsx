@@ -203,16 +203,30 @@ export default function Recon() {
 	const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
 
     const adjustStockpileAfterRecon = useCallback((peptidesUsed) => {
-        if (!Array.isArray(peptidesUsed) || peptidesUsed.length === 0) return;
+        if (!Array.isArray(peptidesUsed) || peptidesUsed.length === 0) {
+            console.log('⚠️ adjustStockpileAfterRecon: No peptides provided or empty array');
+            return;
+        }
+
+        console.log('🔍 adjustStockpileAfterRecon: Processing peptides:', peptidesUsed);
 
         const usageMap = peptidesUsed.reduce((acc, pep) => {
-            if (!pep || !pep.stockpileId) return acc;
+            if (!pep || !pep.stockpileId) {
+                console.log('⚠️ Skipping peptide without stockpileId:', pep);
+                return acc;
+            }
             const qty = Number(pep.quantityUsed) || 1;
             acc[pep.stockpileId] = (acc[pep.stockpileId] || 0) + qty;
+            console.log(`📦 Mapped usage: stockpileId=${pep.stockpileId}, quantityUsed=${qty}`);
             return acc;
         }, {});
 
-        if (Object.keys(usageMap).length === 0) return;
+        if (Object.keys(usageMap).length === 0) {
+            console.warn('⚠️ adjustStockpileAfterRecon: No valid stockpileIds found in peptides');
+            return;
+        }
+
+        console.log('📊 Usage map:', usageMap);
 
         setStockpile(prev => {
             let changed = false;
@@ -222,6 +236,8 @@ export default function Recon() {
 
                 const currentQty = Number(item.quantity) || 0;
                 const nextQty = Math.max(0, currentQty - usedQty);
+
+                console.log(`🔄 Updating stockpile item ${item.id}: ${currentQty} -> ${nextQty} (used ${usedQty})`);
 
                 if (nextQty === currentQty) {
                     return item;
@@ -245,7 +261,28 @@ export default function Recon() {
                 return { ...item, quantity: String(nextQty) };
             });
 
-            return changed ? updated : prev;
+            // Remove items with 0 quantity
+            const filtered = updated.filter(item => {
+                const qty = Number(item.quantity) || 0;
+                if (qty === 0) {
+                    console.log(`🗑️ Removing stockpile item with 0 quantity: ${item.name} (${item.id})`);
+                    return false;
+                }
+                return true;
+            });
+
+            if (filtered.length !== updated.length) {
+                changed = true;
+                console.log(`✅ Removed ${updated.length - filtered.length} items with 0 quantity`);
+            }
+
+            if (changed) {
+                console.log('✅ Stockpile updated successfully');
+            } else {
+                console.warn('⚠️ No changes made to stockpile');
+            }
+
+            return changed ? filtered : prev;
         });
     }, [setStockpile, vendorMap]);
 
@@ -298,6 +335,14 @@ export default function Recon() {
         }
 
         const peptides = Array.isArray(data?.peptides) ? data.peptides : [];
+        
+        // Log peptides to verify stockpileId is present
+        console.log('💾 handleCalculatorSave: Received peptides:', peptides.map(p => ({
+            name: p.name,
+            stockpileId: p.stockpileId,
+            quantityUsed: p.quantityUsed
+        })));
+        
         const peptideNames = peptides.length > 0
             ? peptides.map(p => p.name || 'Unnamed').join(' + ')
             : (data?.peptide || 'Unnamed');
@@ -323,13 +368,16 @@ export default function Recon() {
             penColor: data.penColor,
             cost: data.cost,
             date: now,
-            peptides,
+            peptides, // Include full peptides array with stockpileId
             notes: '',
             createdAt: now,
             updatedAt: now
         };
 
         setReconItems(prev => [newItem, ...prev]);
+        
+        // Adjust stockpile - this will update quantities and remove items with 0
+        console.log('🔄 Calling adjustStockpileAfterRecon with peptides:', peptides);
         adjustStockpileAfterRecon(peptides);
 
         setPrefill(null);

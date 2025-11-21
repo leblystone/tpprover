@@ -68,7 +68,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
         setForm(prev => ({
           ...prev,
           vendor: vendors,
-          peptides: prefill.peptides.map((pep, index) => ({ ...pep, id: pep.id || index + 1, doseUnit: pep.doseUnit || 'mcg' }))
+          peptides: prefill.peptides.map((pep, index) => ({ 
+            ...pep, 
+            id: pep.id || index + 1, 
+            doseUnit: pep.doseUnit || 'mcg',
+            stockpileId: pep.stockpileId || null,
+            quantityUsed: pep.quantityUsed || 1
+          }))
         }));
         setCost(String(totalCost));
       } 
@@ -171,7 +177,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
       const currentPeptides = prev.peptides && Array.isArray(prev.peptides) ? prev.peptides : [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }];
       return {
         ...prev,
-        peptides: currentPeptides.map(p => p.id === id ? { ...p, [key]: value } : p)
+        peptides: currentPeptides.map(p => {
+          if (p.id === id) {
+            // Preserve stockpileId and quantityUsed when updating
+            return { ...p, [key]: value };
+          }
+          return p;
+        })
       };
     });
     // Also update delivery method and other state in the form
@@ -958,15 +970,29 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
             const selectedPenColor = penColors.find(p => p.hex === penColor);
             const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
             
-            // Ensure all form fields are included
+            // Ensure all form fields are included, and preserve stockpileId/quantityUsed in peptides
+            const peptidesWithStockpile = (form.peptides || []).map(pep => ({
+              ...pep,
+              // Ensure stockpileId and quantityUsed are preserved
+              stockpileId: pep.stockpileId || null,
+              quantityUsed: pep.quantityUsed || 1
+            }));
+            
             const dataToSave = { 
-              ...form, 
+              ...form,
+              peptides: peptidesWithStockpile,
               deliveryMethod: form.deliveryMethod || deliveryMethod, 
               administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
               penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
               penColor: penColorName || form.penColor, 
               cost: form.cost || cost
             };
+            
+            console.log('💾 Saving recon calculation with peptides:', peptidesWithStockpile.map(p => ({
+              name: p.name,
+              stockpileId: p.stockpileId,
+              quantityUsed: p.quantityUsed
+            })));
             
             onSave(dataToSave);
           }}
