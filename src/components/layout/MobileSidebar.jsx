@@ -2,13 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope, NotebookPen } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
-import BetaModal from '../common/BetaModal'
 import logo from '../../assets/tpp_logo.png'
 
-export default function MobileSidebar({ open, onClose, theme, onSupportClick }) {
+export default function MobileSidebar({ open, onClose, theme, onSupportClick, onBetaClick }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [showBetaModal, setShowBetaModal] = useState(false)
 
   useEffect(() => {
     const durationMs = 350
@@ -159,10 +157,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             {/* Beta Chip - Clickable - Right ABOVE page break line */}
             <div className="flex justify-center px-4 mb-2">
               <button
-                onClick={() => {
-                  onClose();
-                  setShowBetaModal(true);
-                }}
+                onClick={onBetaClick}
                 className="beta-chip-button-mobile flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl transition-all active:scale-95 shadow-lg"
                 style={{
                   backgroundColor: '#f0eee7',
@@ -249,15 +244,6 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
           </div>
         </nav>
       </div>
-      
-      {/* Beta Modal */}
-      {showBetaModal && (
-        <BetaModal 
-          open={showBetaModal} 
-          onClose={() => setShowBetaModal(false)} 
-          theme={theme} 
-        />
-      )}
     </div>
   )
   return createPortal(overlay, document.body)

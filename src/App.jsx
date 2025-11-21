@@ -24,6 +24,7 @@ import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import SubscriptionModal from './components/common/SubscriptionModal';
 import SupportModal from './components/common/SupportModal';
+import BetaModal from './components/common/BetaModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
@@ -97,6 +98,7 @@ function App() {
   const [topbarAutoSave, setTopbarAutoSave] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showBetaModal, setShowBetaModal] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
 
@@ -384,6 +386,10 @@ function App() {
         open={mobileMenuOpen} 
         onClose={() => setMobileMenuOpen(false)}
         onSupportClick={() => setShowSupportModal(true)}
+        onBetaClick={() => {
+          setMobileMenuOpen(false);
+          setShowBetaModal(true);
+        }}
       />
       <WelcomeModal
         open={showWelcome}
@@ -430,6 +436,11 @@ function App() {
       <SupportModal 
         open={showSupportModal}
         onClose={() => setShowSupportModal(false)}
+        theme={theme}
+      />
+      <BetaModal 
+        open={showBetaModal}
+        onClose={() => setShowBetaModal(false)}
         theme={theme}
       />
       <UpdatePromptModal
