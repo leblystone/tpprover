@@ -399,6 +399,16 @@ function generateEmailHTML(template, variables = {}) {
   if (template.html) {
     logger.info('📝 Using custom HTML from template.html field');
     html = template.html;
+    // Replace processedTemplate.ctaLink in custom HTML if it exists
+    if (processedTemplate.ctaLink && processedTemplate.ctaLink !== '#') {
+      // Replace any placeholder or existing href with the actual ctaLink
+      html = html.replace(/href=["']%VERIFICATION_LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
+      html = html.replace(/href=["']%VERIFICATIONLINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
+      html = html.replace(/href=["']%LINK%["']/gi, `href="${processedTemplate.ctaLink}"`);
+      html = html.replace(/href=["']#["']/gi, `href="${processedTemplate.ctaLink}"`);
+      html = html.replace(/href=["']about:blank["']/gi, `href="${processedTemplate.ctaLink}"`);
+      logger.info(`✅ Replaced href attributes in custom HTML with ctaLink`);
+    }
   } else {
     logger.info('📝 Generating HTML from simple template fields');
     html = generateDefaultHTML(processedTemplate, colors);
@@ -438,6 +448,10 @@ function generateEmailHTML(template, variables = {}) {
     // This catches any edge cases where the placeholder might be in a different format
     html = html.replace(/%VERIFICATION[_\s]*LINK%/gi, linkValue);
     
+    // CRITICAL: Replace any href attributes that might have placeholders or be set to about:blank
+    // This ensures the CTA button always has a valid link
+    html = html.replace(/href=["']([^"']*%VERIFICATION[_\s]*LINK[^"']*|%LINK%|about:blank|#)["']/gi, `href="${linkValue}"`);
+    
     // Also check for any remaining placeholders that might cause issues
     const remainingPlaceholders = html.match(/%[A-Z_]+%/g);
     if (remainingPlaceholders && remainingPlaceholders.length > 0) {
@@ -448,7 +462,17 @@ function generateEmailHTML(template, variables = {}) {
         logger.warn(`⚠️ Attempting aggressive replacement of remaining link placeholders`);
         html = html.replace(/%[A-Z_]*VERIFICATION[_\s]*LINK[A-Z_]*%/gi, linkValue);
         html = html.replace(/%[A-Z_]*LINK[A-Z_]*%/gi, linkValue);
+        // Also replace in href attributes one more time
+        html = html.replace(/href=["'][^"']*%[A-Z_]*LINK[^"']*["']/gi, `href="${linkValue}"`);
       }
+    }
+    
+    // Final safety check: if we still have about:blank or # in href, replace with verification link
+    if (html.includes('href="about:blank"') || html.includes("href='about:blank'") || 
+        (html.includes('href="#"') && html.includes('Verify'))) {
+      logger.warn(`⚠️ Found about:blank or # in href, replacing with verification link`);
+      html = html.replace(/href=["']about:blank["']/gi, `href="${linkValue}"`);
+      html = html.replace(/href=["']#["']/gi, `href="${linkValue}"`);
     }
   }
   
