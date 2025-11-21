@@ -159,7 +159,10 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             {/* Beta Chip - Clickable - Right ABOVE page break line */}
             <div className="flex justify-center px-4 mb-2">
               <button
-                onClick={() => setShowBetaModal(true)}
+                onClick={() => {
+                  onClose();
+                  setShowBetaModal(true);
+                }}
                 className="beta-chip-button-mobile flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl transition-all active:scale-95 shadow-lg"
                 style={{
                   backgroundColor: '#f0eee7',
