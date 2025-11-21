@@ -1341,6 +1341,79 @@ export function AppProvider({ children }) {
         saveData('tpprover_supplements', supplements);
     }, [supplements]);
     useEffect(() => { saveData('tpprover_orders', orders) }, [orders]);
+
+    // Global tracking sync - runs periodically to update order status from tracking
+    useEffect(() => {
+        // Only import and run tracking sync if we have orders
+        if (!orders || orders.length === 0) return;
+
+        let syncInterval;
+        let isSyncing = false;
+        const lastSyncRef = { time: 0 };
+
+        const runTrackingSync = async () => {
+            // Prevent concurrent syncs and throttle to at most once per 5 minutes
+            const now = Date.now();
+            if (isSyncing || (now - lastSyncRef.time) < 5 * 60 * 1000) return;
+
+            isSyncing = true;
+            lastSyncRef.time = now;
+
+            try {
+                // Dynamically import to avoid circular dependencies
+                const { syncAllOrdersFromTracking } = await import('../utils/trackingStatusSync');
+                const ordersWithTracking = orders.filter(o => o?.tracking && o.tracking.trim() !== '');
+                
+                if (ordersWithTracking.length === 0) return;
+
+                console.log(`🔄 Global tracking sync: Checking ${ordersWithTracking.length} order(s) with tracking`);
+                const updatedOrders = await syncAllOrdersFromTracking(orders);
+
+                if (updatedOrders.length > 0) {
+                    console.log(`✅ Global sync: Updated ${updatedOrders.length} order(s) from tracking`);
+                    // Update orders state - AppContext will handle saving
+                    updatedOrders.forEach(updatedOrder => {
+                        const originalOrder = orders.find(o => o.id === updatedOrder.id);
+                        if (originalOrder && originalOrder.status !== updatedOrder.status) {
+                            setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+                            
+                            // Show toast notification
+                            if (updatedOrder.status === 'Shipped') {
+                                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                    detail: { 
+                                        message: `🚚 Order #${updatedOrder.publicOrderNumber || updatedOrder.id} is now in transit!`, 
+                                        type: 'info',
+                                        duration: 4000
+                                    } 
+                                }));
+                            } else if (updatedOrder.status === 'Delivered') {
+                                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                    detail: { 
+                                        message: `📦 Order #${updatedOrder.publicOrderNumber || updatedOrder.id} has been delivered!`, 
+                                        type: 'success',
+                                        duration: 5000
+                                    } 
+                                }));
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Global tracking sync error:', error);
+            } finally {
+                isSyncing = false;
+            }
+        };
+
+        // Run sync 10 seconds after mount, then every 10 minutes
+        const initialTimeout = setTimeout(runTrackingSync, 10000);
+        syncInterval = setInterval(runTrackingSync, 10 * 60 * 1000);
+
+        return () => {
+            clearTimeout(initialTimeout);
+            if (syncInterval) clearInterval(syncInterval);
+        };
+    }, [orders, setOrders]);
     useEffect(() => { saveData('tpprover_metrics', metrics) }, [metrics]);
     useEffect(() => { saveData('tpprover_vendors', vendors) }, [vendors]);
     useEffect(() => { saveData('tpprover_calendar_notes', calendarNotes) }, [calendarNotes]);

@@ -4,12 +4,11 @@ import {
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft, MessageSquareDot
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
 import { Zap } from '../icons/lucide-safe';
-import { periwinkleTheme } from '../utils/holidayThemes';
 import WelcomeModal from '../components/admin/WelcomeModal';
 import {
   getEmailWhitelist,
@@ -333,85 +332,126 @@ const analyzeFeedback = (feedbackList) => {
   };
 };
 
-// Mrs. FloralKaffe's Periwinkle Coffee Shop Palette ☕💜
-const calmingPlacePalette = {
-  // Periwinkle - THE STAR COLOR
-  periwinkle: {
-    main: '#C5CBE0',           // Main periwinkle
-    light: '#E0E4F0',          // Light periwinkle for backgrounds
-    lighter: '#F0F2F8',        // Very light for subtle backgrounds
-    dark: '#9AA5C4',           // Dark periwinkle for text/contrast
-    darker: '#7D86AC',         // Darker for emphasis
+// Dark Elegant Palette - Extracted from the moody interior image 🌙
+const elegantPalette = {
+  // Dark Charcoal/Black - Main dark background (from wallpaper)
+  dark: {
+    wallpaper: '#1A1A1A',      // Very dark charcoal (wallpaper base)
+    deep: '#0F0F0F',           // Almost black
+    charcoal: '#2D2D2D',       // Dark charcoal
+    soft: '#3A3A3A',           // Soft dark grey
+    piano: '#2B2B2B',          // Piano dark brown-black
+    surface: '#252525',        // Dark surface
   },
   
-  // Coffee Shop Colors
-  coffee: {
-    bean: '#3E2723',           // Dark coffee bean
-    espresso: '#6F5E4F',       // Rich espresso
-    latte: '#D4A574',          // Warm latte
-    cream: '#F5E6D3',          // Coffee cream
-    foam: '#FFF8F0',           // Milk foam - very light
+  // Grey Taupe - Darker, moodier tones
+  taupe: {
+    dark: '#4A4139',           // Dark taupe
+    darker: '#3D352F',         // Darker taupe
+    main: '#6B5E52',           // Main grey taupe (from worn piano)
+    muted: '#5A5048',          // Muted taupe
+    light: '#8A7D70',          // Light taupe (lighter accent)
   },
   
-  // Supporting colors
-  neutral: {
-    cream: '#F0EAD6',          // Warm cream background
-    white: '#FFFFFF',
-    lightGray: '#E8E8E8',
+  // Black - Pure darkness
+  black: {
+    pure: '#000000',           // Pure black
+    deep: '#1A1A1A',           // Deep black
+    text: '#E8E0D9',           // Light text on dark
+    textMuted: '#C4B8AD',      // Muted text on dark
   },
   
-  // Accents (softer, not harsh)
+  // Metallic Gold/Bronze - THE POP COLOR (from wallpaper pattern & accents)
+  gold: {
+    // Bronze tones from the metallic pattern
+    bronze: '#CD7F32',         // Rich bronze
+    metallic: '#D4AF37',       // Classic metallic gold (clock/stand)
+    bright: '#FFD700',         // Bright gold (highlights)
+    dark: '#B8941F',           // Dark gold (shadows)
+    light: '#E5C158',          // Light gold (highlights)
+    warm: '#DAA520',           // Warm gold
+    // Shiny gradient colors - bronze to gold
+    gradientStart: '#FFD700',  // Bright gold start
+    gradientMid: '#D4AF37',    // Metallic gold mid
+    gradientEnd: '#CD7F32',    // Bronze end
+    gradientDark: '#B8941F',   // Dark gold for depth
+  },
+  
+  // Accent colors extracted from the image
   accents: {
-    sage: '#9CAF88',           // Soft sage (plants in coffee shop)
-    warmGold: '#D4AF37',       // Warm gold accents
+    lampAmber: '#D4A574',      // Amber from lamp (warm accent)
+    lampGreen: '#8B9A7A',      // Smoky green from lamp
+    rosewood: '#5D4037',       // Dark rosewood tones
   },
   
-  // Functional (softened)
+  // Supporting colors (dark mode friendly)
+  neutral: {
+    white: '#FFFFFF',
+    offWhite: '#F5F5F5',       // Off-white for contrast
+    lightGray: '#8A7D70',      // Light taupe-gray
+    darkGray: '#4A4A4A',       // Dark gray
+  },
+  
+  // Functional colors (adjusted for dark theme)
   functional: {
-    success: '#9CAF88',        // Soft sage green instead of harsh green
-    warning: '#D4A574',        // Coffee latte instead of harsh orange
-    error: '#C4858A',          // Soft rose instead of harsh red
-    info: '#C5CBE0'            // Periwinkle itself!
+    success: '#9CAF88',        // Soft sage green
+    warning: '#D4A574',        // Warm amber (from lamp)
+    error: '#C4858A',          // Soft rose
+    info: '#8A7D70'            // Light taupe for info
   }
 };
 
-// Apply The Calming Place Periwinkle Coffee Shop Theme
+// Apply The Dark Elegant Theme - Moody & Sophisticated
 const adminTheme = {
-  ...periwinkleTheme,
-  primary: calmingPlacePalette.periwinkle.main,      // Main periwinkle
-  primaryLight: calmingPlacePalette.periwinkle.light,
-  primaryLighter: calmingPlacePalette.periwinkle.lighter,
-  primaryDark: calmingPlacePalette.periwinkle.dark,
-  primaryDarker: calmingPlacePalette.periwinkle.darker,
+  // Dark colors - primary backgrounds
+  primary: elegantPalette.dark.charcoal,           // Dark charcoal
+  primaryLight: elegantPalette.dark.soft,          // Soft dark
+  primaryLighter: elegantPalette.dark.surface,     // Dark surface
+  primaryDark: elegantPalette.dark.deep,           // Deep black
+  primaryDarker: elegantPalette.dark.wallpaper,    // Wallpaper dark
   
-  // Coffee colors
-  coffee: calmingPlacePalette.coffee.espresso,
-  coffeeLatte: calmingPlacePalette.coffee.latte,
-  coffeeCream: calmingPlacePalette.coffee.cream,
-  coffeeFoam: calmingPlacePalette.coffee.foam,
+  // Black colors
+  black: elegantPalette.black.deep,
+  blackSoft: elegantPalette.dark.charcoal,
   
-  // Backgrounds
-  background: calmingPlacePalette.coffee.foam,       // Light coffee foam
-  cardBackground: calmingPlacePalette.neutral.white,
+  // Backgrounds - DARK like the wallpaper
+  background: elegantPalette.dark.wallpaper,       // Very dark wallpaper background
+  cardBackground: elegantPalette.dark.surface,     // Dark surface for cards
+  cardBackgroundLighter: elegantPalette.dark.charcoal, // Slightly lighter cards
   
-  // Functional (all softened)
-  success: calmingPlacePalette.functional.success,
-  warning: calmingPlacePalette.functional.warning,
-  error: calmingPlacePalette.functional.error,
-  info: calmingPlacePalette.functional.info,
+  // Taupe colors - for subtle accents
+  taupe: elegantPalette.taupe.main,
+  taupeLight: elegantPalette.taupe.light,
+  taupeDark: elegantPalette.taupe.dark,
   
-  // Text
-  text: calmingPlacePalette.coffee.bean,
-  textLight: calmingPlacePalette.coffee.espresso,
+  // Metallic Gold/Bronze - THE POP COLOR (shiny against dark!)
+  accent: elegantPalette.gold.metallic,
+  gold: elegantPalette.gold.metallic,
+  goldBright: elegantPalette.gold.bright,
+  goldDark: elegantPalette.gold.dark,
+  goldLight: elegantPalette.gold.light,
+  goldBronze: elegantPalette.gold.bronze,
   
-  // Borders & accents
-  border: calmingPlacePalette.periwinkle.main,
-  accent: calmingPlacePalette.accents.warmGold,
+  // Functional colors (adjusted for dark theme)
+  success: elegantPalette.functional.success,
+  warning: elegantPalette.functional.warning,      // Amber from lamp
+  error: elegantPalette.functional.error,
+  info: elegantPalette.functional.info,
   
-  textOnPrimary: '#FFFFFF',
-  successBg: calmingPlacePalette.accents.sage + '20',
-  accentText: '#ffffff',
-  white: '#ffffff'
+  // Text - LIGHT on dark backgrounds
+  text: elegantPalette.black.text,                 // Light text on dark
+  textLight: elegantPalette.black.textMuted,       // Muted light text
+  textDark: elegantPalette.taupe.light,            // For contrast elements
+  
+  // Borders & accents - subtle on dark
+  border: elegantPalette.dark.soft + '40',         // Subtle borders
+  borderGold: elegantPalette.gold.metallic + '50', // Gold borders
+  
+  textOnPrimary: elegantPalette.black.text,        // Light text on dark
+  textOnGold: elegantPalette.dark.deep,            // Dark text on gold
+  successBg: elegantPalette.functional.success + '20',
+  accentText: elegantPalette.black.text,           // Light text
+  white: elegantPalette.neutral.white
 };
 
 function Admin() {
@@ -1723,31 +1763,41 @@ function Admin() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ 
-        backgroundColor: theme.background,
-        backgroundImage: `linear-gradient(135deg, ${theme.primaryLight}15 0%, ${theme.background} 100%)`
+        backgroundColor: elegantPalette.dark.wallpaper,
+        backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
       }}>
-        {/* Decorative coffee and books */}
-        <div className="absolute top-10 right-10 opacity-5">
-          <Coffee size={120} style={{ color: theme.accent }} />
+        {/* Decorative elements - very subtle on dark */}
+        <div className="absolute top-10 right-10 opacity-3">
+          <Book size={120} style={{ color: elegantPalette.dark.soft }} />
         </div>
         <div className="absolute bottom-10 left-10 opacity-5">
-          <Book size={100} style={{ color: theme.primary }} />
+          <LayoutDashboard size={100} style={{ 
+            color: elegantPalette.gold.metallic,
+            filter: 'drop-shadow(0 2px 12px rgba(212,175,55,0.3))'
+          }} />
+        </div>
+        <div className="absolute top-1/2 right-1/4 opacity-4">
+          <Star size={80} style={{ 
+            color: elegantPalette.gold.bright,
+            filter: 'drop-shadow(0 2px 12px rgba(255,215,0,0.4)) drop-shadow(0 0 8px rgba(212,175,55,0.3))'
+          }} />
         </div>
         
         <div className="max-w-md w-full p-8 rounded-xl border shadow-lg relative z-10 backdrop-blur-sm" style={{ 
-          borderColor: theme.border, 
-          backgroundColor: theme.cardBackground,
-          boxShadow: `0 8px 32px ${theme.primary}20`
+          borderColor: elegantPalette.gold.metallic + '50', 
+          backgroundColor: elegantPalette.dark.surface,
+          boxShadow: `0 8px 40px ${elegantPalette.dark.deep}90, 0 0 25px ${elegantPalette.gold.metallic}20, inset 0 1px 0 ${elegantPalette.gold.metallic}15`
         }}>
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg" style={{ 
-              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
-              boxShadow: `0 4px 15px ${theme.primary}40`
+              background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
+              boxShadow: `0 6px 25px ${elegantPalette.gold.metallic}70, 0 0 20px ${elegantPalette.gold.bright}50, inset 0 2px 4px rgba(255,255,255,0.3)`,
+              border: `2px solid ${elegantPalette.gold.light}`
             }}>
-              <Book size={32} style={{ color: '#FFFFFF' }} />
+              <Book size={32} style={{ color: elegantPalette.black.deep }} />
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>The Calming Place</h1>
-            <p className="text-sm" style={{ color: theme.textLight }}>Welcome back, Mrs. FloralKaffe</p>
+            <h1 className="text-2xl font-bold mb-2" style={{ color: elegantPalette.black.text }}>The Pep Planner Admin</h1>
+            <p className="text-sm" style={{ color: theme.textLight }}>Welcome back</p>
             <p className="text-xs mt-2" style={{ color: theme.textLight }}>Enter your email and Firebase account password to access the admin panel</p>
           </div>
           
@@ -1794,9 +1844,10 @@ function Admin() {
               disabled={isLoggingIn}
               className="w-full p-4 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               style={{ 
-                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
-                color: theme.textOnPrimary,
-                boxShadow: `0 4px 15px ${theme.primary}40`
+                background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                color: elegantPalette.black.deep,
+                boxShadow: `0 6px 25px ${elegantPalette.gold.metallic}70, 0 0 20px ${elegantPalette.gold.bright}50, inset 0 2px 4px rgba(255,255,255,0.3)`,
+                border: `2px solid ${elegantPalette.gold.light}`
               }}
             >
               {isLoggingIn ? (
@@ -1806,7 +1857,7 @@ function Admin() {
                 </>
               ) : (
                 <>
-                  Enter The Calming Place ☕
+                  Enter Admin Panel
                 </>
               )}
             </button>
@@ -1825,46 +1876,59 @@ function Admin() {
       />
       
       <div className="h-screen flex flex-col relative" style={{ 
-        backgroundColor: calmingPlacePalette.coffee.foam,
-        backgroundImage: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.light} 0%, ${calmingPlacePalette.coffee.foam} 100%)`
+        backgroundColor: elegantPalette.dark.wallpaper,
+        backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
       }}>
-        {/* Coffee Shop Decorative Elements - Periwinkle & Coffee Themed */}
+        {/* Dark Decorative Elements - Extracted from the moody image */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          {/* Coffee cups everywhere! */}
-          <Coffee size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.05]" style={{ color: calmingPlacePalette.coffee.latte, filter: 'drop-shadow(0 4px 8px rgba(111,94,79,0.1))' }} />
-          <Coffee size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle.dark, filter: 'drop-shadow(0 4px 8px rgba(197,203,224,0.2))' }} />
-          <Coffee size={180} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.05]" style={{ color: calmingPlacePalette.coffee.espresso }} />
-          <Coffee size={160} className="absolute bottom-1/4 left-1/3 -rotate-25 opacity-[0.04]" style={{ color: calmingPlacePalette.periwinkle.main }} />
+          {/* Very subtle dark taupe accents */}
+          <Book size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.02]" style={{ color: elegantPalette.taupe.dark, filter: 'drop-shadow(0 4px 8px rgba(107,94,82,0.1))' }} />
+          <Book size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.025]" style={{ color: elegantPalette.taupe.muted, filter: 'drop-shadow(0 4px 8px rgba(90,80,72,0.1))' }} />
+          <BookOpen size={180} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.02]" style={{ color: elegantPalette.taupe.dark }} />
+          <LayoutDashboard size={160} className="absolute bottom-1/4 left-1/3 -rotate-25 opacity-[0.02]" style={{ color: elegantPalette.dark.soft }} />
           
-          {/* Books with periwinkle */}
-          <Book size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.07]" style={{ color: calmingPlacePalette.periwinkle.main, filter: 'drop-shadow(0 4px 8px rgba(197,203,224,0.2))' }} />
-          <Book size={200} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle.light }} />
-          <BookOpen size={240} className="absolute top-2/3 left-1/2 -rotate-6 opacity-[0.06]" style={{ color: calmingPlacePalette.periwinkle.dark }} />
+          {/* Dark depth elements */}
+          <Layers size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.piano, filter: 'drop-shadow(0 4px 8px rgba(43,43,43,0.2))' }} />
+          <Settings size={200} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.charcoal }} />
           
-          {/* Extra coffee accents */}
-          <Star size={150} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.03]" style={{ color: calmingPlacePalette.accents.warmGold, filter: 'drop-shadow(0 2px 4px rgba(212,175,55,0.2))' }} />
+          {/* Metallic Gold accents - SHINY against dark! */}
+          <Star size={150} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.08]" style={{ 
+            color: elegantPalette.gold.metallic, 
+            filter: `drop-shadow(0 4px 20px rgba(212,175,55,0.5)) drop-shadow(0 0 12px rgba(255,215,0,0.4))`,
+            textShadow: '0 0 15px rgba(255,215,0,0.6)'
+          }} />
+          <Award size={120} className="absolute top-1/2 left-1/3 rotate-12 opacity-[0.06]" style={{ 
+            color: elegantPalette.gold.bright,
+            filter: 'drop-shadow(0 2px 12px rgba(255,215,0,0.4))'
+          }} />
+          {/* Bronze accent */}
+          <Award size={100} className="absolute top-1/4 right-1/4 -rotate-12 opacity-[0.05]" style={{ 
+            color: elegantPalette.gold.bronze,
+            filter: 'drop-shadow(0 2px 10px rgba(205,127,50,0.3))'
+          }} />
         </div>
         
       {/* Top Navigation Bar */}
       <div className="border-b relative z-10 flex-shrink-0" style={{ 
-        borderColor: theme.border + '40',
-        backgroundColor: theme.cardBackground,
+        borderColor: elegantPalette.gold.metallic + '30',
+        backgroundColor: elegantPalette.dark.surface + 'E0',
         backdropFilter: 'blur(10px)',
-        boxShadow: `0 2px 12px ${theme.primary}05`
+        boxShadow: `0 2px 20px ${elegantPalette.dark.deep}80, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
       }}>
         <div className="px-4 lg:px-6 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Logo & Title */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ 
-                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`,
-                boxShadow: `0 4px 15px ${theme.primary}40`
+                background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                boxShadow: `0 4px 20px ${elegantPalette.gold.metallic}60, 0 0 15px ${elegantPalette.gold.bright}40, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                border: `1px solid ${elegantPalette.gold.light}`
               }}>
-                <Book size={20} style={{ color: '#FFFFFF' }} />
+                <Book size={20} style={{ color: elegantPalette.black.deep }} />
               </div>
               <div>
-                <h1 className="text-lg font-bold" style={{ color: theme.primaryDark }}>The Calming Place</h1>
-                <p className="text-xs hidden sm:block" style={{ color: theme.textLight }}>Welcome, Mrs. FloralKaffe</p>
+                <h1 className="text-lg font-bold" style={{ color: elegantPalette.black.text }}>The Pep Planner Admin</h1>
+                <p className="text-xs hidden sm:block" style={{ color: theme.textLight }}>Admin Panel</p>
               </div>
             </div>
             
@@ -1956,10 +2020,10 @@ function Admin() {
                   disabled={loading.analytics || loading.subscriptions || loading.lifetimeUsers}
                   className="p-2 rounded-lg flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ 
-                    backgroundColor: calmingPlacePalette.periwinkle.main + '20',
-                    border: `1px solid ${calmingPlacePalette.periwinkle.main}40`,
-                    color: calmingPlacePalette.periwinkle.dark,
-                    boxShadow: `0 2px 6px ${calmingPlacePalette.periwinkle.main}20`
+                    backgroundColor: elegantPalette.taupe.light + '30',
+                    border: `1px solid ${elegantPalette.taupe.main}50`,
+                    color: elegantPalette.taupe.dark,
+                    boxShadow: `0 2px 8px ${elegantPalette.taupe.main}25`
                   }}
                   title="Refresh Data"
                 >
@@ -2067,22 +2131,23 @@ function Admin() {
       <div className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
         {/* Page Title Bar */}
         <div className="p-4 lg:p-6 flex-shrink-0 relative z-10 sticky top-0" style={{
-          backgroundColor: calmingPlacePalette.coffee.foam + 'F8',
+          backgroundColor: elegantPalette.dark.surface + 'E0',
           backdropFilter: 'blur(12px)',
-          borderBottom: `2px solid ${calmingPlacePalette.periwinkle.main}40`,
+          borderBottom: `2px solid ${elegantPalette.gold.metallic}30`,
           zIndex: 20,
-          boxShadow: `0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
+          boxShadow: `0 2px 20px ${elegantPalette.dark.deep}80, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
         }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               {activeTab === 'announcements' && (
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-all"
+                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:scale-105 transition-all"
                   style={{ 
-                    backgroundColor: theme.primary,
-                    color: theme.textOnPrimary,
-                    boxShadow: `0 2px 6px ${theme.primary}30`
+                    background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                    color: elegantPalette.black.deep,
+                    boxShadow: `0 4px 15px ${elegantPalette.gold.metallic}60, 0 0 12px ${elegantPalette.gold.bright}40, inset 0 1px 2px rgba(255,255,255,0.3)`,
+                    border: `1px solid ${elegantPalette.gold.light}`
                   }}
                 >
                   <Plus size={18} />
@@ -2099,48 +2164,52 @@ function Admin() {
 
         {activeTab === 'analytics' && (
           <div className="space-y-5">
-            {/* Coffee Welcome Banner */}
+            {/* Dark Welcome Banner - Gold accents pop! */}
             <div className="rounded-xl p-5 relative overflow-hidden border-2" style={{
-              background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.light} 0%, ${calmingPlacePalette.coffee.foam} 100%)`,
-              borderColor: calmingPlacePalette.periwinkle.main,
-              boxShadow: `0 4px 12px ${calmingPlacePalette.periwinkle.main}30, 0 2px 6px ${calmingPlacePalette.coffee.latte}20`
+              background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 50%, ${elegantPalette.dark.piano} 100%)`,
+              borderColor: elegantPalette.gold.metallic + '60',
+              boxShadow: `0 4px 24px ${elegantPalette.dark.deep}90, 0 0 20px ${elegantPalette.gold.metallic}20, inset 0 1px 0 ${elegantPalette.gold.metallic}15`
             }}>
               <div className="flex items-center gap-4 relative z-10">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{
-                  background: `linear-gradient(135deg, ${calmingPlacePalette.coffee.latte} 0%, ${calmingPlacePalette.coffee.espresso} 100%)`,
-                  boxShadow: `0 4px 12px ${calmingPlacePalette.coffee.espresso}40`
+                  background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                  boxShadow: `0 4px 20px ${elegantPalette.gold.metallic}60, 0 0 15px ${elegantPalette.gold.bright}40, inset 0 2px 4px rgba(255,255,255,0.3)`,
+                  border: `2px solid ${elegantPalette.gold.light}`
                 }}>
-                  <Coffee size={32} className="text-white animate-pulse" />
+                  <LayoutDashboard size={32} style={{ color: elegantPalette.black.deep }} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-xl mb-1" style={{ color: calmingPlacePalette.coffee.bean }}>
-                    Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, Mrs. FloralKaffe! ☕
+                  <h3 className="font-bold text-xl mb-1" style={{ color: elegantPalette.black.text }}>
+                    Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}!
                   </h3>
-                  <p className="text-sm font-medium" style={{ color: calmingPlacePalette.periwinkle.darker }}>
-                    Welcome to The Calming Place • {isWineTime ? '🍷 Evening wine time' : '☕ Fresh coffee awaits'}
+                  <p className="text-sm font-medium" style={{ color: elegantPalette.black.textMuted }}>
+                    Welcome to The Pep Planner Admin Panel
                   </p>
                 </div>
                 <div className="hidden md:flex items-center gap-3">
-                  <Coffee size={36} style={{ color: calmingPlacePalette.coffee.latte }} className="opacity-70" />
-                  <Book size={32} style={{ color: calmingPlacePalette.periwinkle.dark }} className="opacity-70" />
+                  <Book size={36} style={{ color: elegantPalette.taupe.dark }} className="opacity-50" />
+                  <Star size={32} style={{ 
+                    color: elegantPalette.gold.metallic,
+                    filter: 'drop-shadow(0 2px 10px rgba(212,175,55,0.5)) drop-shadow(0 0 8px rgba(255,215,0,0.4))'
+                  }} className="opacity-90" />
                 </div>
               </div>
-              {/* Decorative coffee steam */}
-              <div className="absolute -right-4 -bottom-4 opacity-15">
-                <Coffee size={120} style={{ color: calmingPlacePalette.coffee.espresso }} className="rotate-12" />
+              {/* Decorative elements */}
+              <div className="absolute -right-4 -bottom-4 opacity-8">
+                <Settings size={120} style={{ color: elegantPalette.dark.soft }} className="rotate-12" />
               </div>
             </div>
 
             {/* Feedback & Tickets Section - Front and Center */}
             <div className="rounded-xl border-2 p-6 content-card" style={{ 
-              borderColor: calmingPlacePalette.periwinkle.main + '50',
-              backgroundColor: theme.cardBackground,
-              boxShadow: `0 4px 16px ${calmingPlacePalette.periwinkle.main}20, 0 2px 8px ${calmingPlacePalette.coffee.latte}10`
+              borderColor: elegantPalette.gold.metallic + '40',
+              backgroundColor: elegantPalette.dark.surface,
+              boxShadow: `0 4px 24px ${elegantPalette.dark.deep}90, 0 0 15px ${elegantPalette.gold.metallic}15, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
             }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: calmingPlacePalette.periwinkle.darker }}>
-                    <MessagesSquare size={20} style={{ color: calmingPlacePalette.periwinkle.main }} />
+                  <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: elegantPalette.black.text }}>
+                    <MessagesSquare size={20} style={{ color: elegantPalette.gold.metallic, filter: 'drop-shadow(0 2px 10px rgba(212,175,55,0.6)) drop-shadow(0 0 6px rgba(255,215,0,0.4))' }} />
                     Support & Feedback
                   </h2>
                   <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -2165,10 +2234,12 @@ function Admin() {
                       setActiveTab('feedback');
                       setSupportView('feedback');
                     }}
-                    className="px-4 py-2 rounded-lg font-medium transition-all hover:opacity-90"
+                    className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
                     style={{ 
-                      backgroundColor: theme.primary,
-                      color: theme.textOnPrimary
+                      background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
+                      color: elegantPalette.black.deep,
+                      boxShadow: `0 3px 12px ${elegantPalette.gold.metallic}60, 0 0 10px ${elegantPalette.gold.bright}40, inset 0 1px 2px rgba(255,255,255,0.3)`,
+                      border: `1px solid ${elegantPalette.gold.light}`
                     }}
                   >
                     View All
@@ -2179,38 +2250,38 @@ function Admin() {
               {/* Quick Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: theme.border,
-                  backgroundColor: theme.background
+                  borderColor: elegantPalette.dark.soft + '50',
+                  backgroundColor: elegantPalette.dark.charcoal
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.text }}>{feedback.length}</div>
+                  <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{feedback.length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Feedback</div>
                 </div>
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: theme.border,
-                  backgroundColor: theme.background
+                  borderColor: elegantPalette.dark.soft + '50',
+                  backgroundColor: elegantPalette.dark.charcoal
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.warning }}>{feedback.filter(f => f.status === 'new').length}</div>
+                  <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.warning }}>{feedback.filter(f => f.status === 'new').length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Feedback</div>
                 </div>
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: theme.border,
-                  backgroundColor: theme.background
+                  borderColor: elegantPalette.dark.soft + '50',
+                  backgroundColor: elegantPalette.dark.charcoal
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.text }}>{tickets.length}</div>
+                  <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{tickets.length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>Total Requests</div>
                 </div>
                 <div className="p-4 rounded-lg border" style={{ 
-                  borderColor: theme.border,
-                  backgroundColor: theme.background
+                  borderColor: elegantPalette.dark.soft + '50',
+                  backgroundColor: elegantPalette.dark.charcoal
                 }}>
-                  <div className="text-2xl font-bold" style={{ color: theme.warning }}>{tickets.filter(t => t.status === 'new').length}</div>
+                  <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.warning }}>{tickets.filter(t => t.status === 'new').length}</div>
                   <div className="text-xs font-medium" style={{ color: theme.textLight }}>New Requests</div>
                 </div>
               </div>
 
               {/* Recent Feedback Preview */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>Recent Feedback</h3>
+                <h3 className="text-sm font-semibold" style={{ color: elegantPalette.black.text }}>Recent Feedback</h3>
                 {loading.feedback ? (
                   <div className="text-center py-4">
                     <Loader size={20} className="animate-spin mx-auto" style={{ color: theme.primary }} />
@@ -2363,21 +2434,21 @@ function Admin() {
 
             {/* User Growth Chart with Shadows */}
             <div className="rounded-xl border-2 p-6 content-card" style={{ 
-              borderColor: calmingPlacePalette.periwinkle.main + '50',
-              backgroundColor: theme.cardBackground,
-              boxShadow: `0 4px 16px ${calmingPlacePalette.periwinkle.main}20, 0 2px 8px ${calmingPlacePalette.coffee.latte}10`
+              borderColor: elegantPalette.gold.metallic + '40',
+              backgroundColor: elegantPalette.dark.surface,
+              boxShadow: `0 4px 24px ${elegantPalette.dark.deep}90, 0 0 15px ${elegantPalette.gold.metallic}15, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
             }}>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: calmingPlacePalette.periwinkle.darker }}>
-                    <TrendingUp size={20} style={{ color: calmingPlacePalette.periwinkle.main }} />
+                  <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: elegantPalette.black.text }}>
+                    <TrendingUp size={20} style={{ color: elegantPalette.gold.metallic, filter: 'drop-shadow(0 2px 10px rgba(212,175,55,0.6)) drop-shadow(0 0 6px rgba(255,215,0,0.4))' }} />
                     User Growth
                   </h2>
                   <p className="text-sm mt-1" style={{ color: theme.textLight }}>Daily registration & activity</p>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ 
-                  backgroundColor: calmingPlacePalette.accents.sage + '20',
-                  color: calmingPlacePalette.accents.sage,
+                  backgroundColor: elegantPalette.functional.success + '20',
+                  color: elegantPalette.functional.success,
                   fontWeight: 600
                 }}>
                   <TrendingUp size={16} />
@@ -2395,8 +2466,8 @@ function Admin() {
                       </span>
                     </div>
                     <div className="h-56 flex items-end justify-between gap-1 p-4 rounded-xl" style={{ 
-                    background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.background} 100%)`,
-                    boxShadow: `inset 0 2px 8px ${calmingPlacePalette.periwinkle.main}15`
+                    background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`,
+                    boxShadow: `inset 0 2px 15px ${elegantPalette.dark.deep}80`
                   }}>
                       {analytics.userGrowth.slice(-14).map((day, index) => {
                         const maxNewUsers = Math.max(...analytics.userGrowth.slice(-14).map(d => d.newUsers), 1);
@@ -2407,11 +2478,11 @@ function Admin() {
                               className="rounded-t-lg w-full transition-all hover:scale-105 cursor-pointer relative"
                           style={{ 
                                 background: hasNewUsers 
-                                  ? `linear-gradient(180deg, ${calmingPlacePalette.periwinkle.main} 0%, ${calmingPlacePalette.periwinkle.dark} 100%)`
+                                  ? `linear-gradient(180deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientEnd} 100%)`
                                   : `${theme.border}`,
                                 height: hasNewUsers ? `${(day.newUsers / maxNewUsers) * 180}px` : '2px',
                                 minHeight: '2px',
-                                boxShadow: hasNewUsers ? `0 2px 8px ${calmingPlacePalette.periwinkle.main}40` : 'none'
+                                boxShadow: hasNewUsers ? `0 4px 20px ${elegantPalette.gold.metallic}60, 0 0 15px ${elegantPalette.gold.bright}40, inset 0 1px 2px rgba(255,255,255,0.2)` : 'none'
                               }}
                             >
                               {hasNewUsers && (
@@ -2432,27 +2503,27 @@ function Admin() {
                 
                 <div className="space-y-3">
                   <div className="p-4 rounded-xl border-2" style={{ 
-                    background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, #FFFFFF 100%)`,
-                    borderColor: calmingPlacePalette.periwinkle.main + '50',
-                    boxShadow: `0 2px 8px ${calmingPlacePalette.periwinkle.main}20`
+                    background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`,
+                    borderColor: elegantPalette.gold.metallic + '30',
+                    boxShadow: `0 2px 15px ${elegantPalette.dark.deep}70, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
                   }}>
-                    <div className="text-2xl font-bold" style={{ color: calmingPlacePalette.periwinkle.darker }}>{analytics.totalUsers}</div>
+                    <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{analytics.totalUsers}</div>
                     <div className="text-sm font-medium" style={{ color: theme.textLight }}>Total Users</div>
                   </div>
                   <div className="p-4 rounded-xl border-2" style={{ 
-                    background: `linear-gradient(135deg, ${calmingPlacePalette.coffee.cream} 0%, #FFFFFF 100%)`,
-                    borderColor: calmingPlacePalette.coffee.latte + '80',
-                    boxShadow: `0 2px 8px ${calmingPlacePalette.coffee.latte}25`
+                    background: `linear-gradient(135deg, ${elegantPalette.dark.surface} 0%, ${elegantPalette.dark.charcoal} 100%)`,
+                    borderColor: elegantPalette.taupe.dark + '40',
+                    boxShadow: `0 2px 15px ${elegantPalette.dark.deep}70, inset 0 1px 0 ${elegantPalette.taupe.dark}20`
                   }}>
-                    <div className="text-2xl font-bold" style={{ color: calmingPlacePalette.coffee.espresso }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
+                    <div className="text-2xl font-bold" style={{ color: elegantPalette.taupe.light }}>{analytics.userGrowth.reduce((sum, day) => sum + day.newUsers, 0)}</div>
                     <div className="text-sm font-medium" style={{ color: theme.textLight }}>New This Month</div>
                   </div>
                   <div className="p-4 rounded-xl border-2" style={{ 
-                    background: `linear-gradient(135deg, ${calmingPlacePalette.accents.sage}20 0%, #FFFFFF 100%)`,
-                    borderColor: calmingPlacePalette.accents.sage + '60',
-                    boxShadow: `0 2px 8px ${calmingPlacePalette.accents.sage}20`
+                    background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`,
+                    borderColor: elegantPalette.functional.success + '50',
+                    boxShadow: `0 2px 15px ${elegantPalette.dark.deep}70, inset 0 1px 0 ${elegantPalette.functional.success}30`
                   }}>
-                    <div className="text-2xl font-bold" style={{ color: calmingPlacePalette.accents.sage }}>{analytics.activeUsers}</div>
+                    <div className="text-2xl font-bold" style={{ color: elegantPalette.functional.success }}>{analytics.activeUsers}</div>
                     <div className="text-sm font-medium" style={{ color: theme.textLight }}>Active Users</div>
                   </div>
                 </div>
@@ -2461,20 +2532,20 @@ function Admin() {
 
             {/* Feature Usage - Compact */}
             <div className="rounded-lg border p-4 content-card shadow-sm" style={{ 
-              borderColor: calmingPlacePalette.periwinkle.main + '30',
-              background: `linear-gradient(135deg, ${calmingPlacePalette.periwinkle.lighter} 0%, ${theme.cardBackground} 100%)`
+              borderColor: elegantPalette.dark.soft + '50',
+              background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`
             }}>
               <div className="flex items-center gap-2 mb-3">
-                <Activity size={16} style={{ color: calmingPlacePalette.periwinkle.main }} />
-                <h2 className="text-sm font-semibold" style={{ color: calmingPlacePalette.periwinkle.darker }}>Feature Usage (Estimated)</h2>
+                <Activity size={16} style={{ color: elegantPalette.gold.metallic, filter: 'drop-shadow(0 2px 6px rgba(212,175,55,0.5))' }} />
+                <h2 className="text-sm font-semibold" style={{ color: elegantPalette.black.text }}>Feature Usage (Estimated)</h2>
               </div>
               <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
                 {Object.entries(analytics.featureUsage).map(([feature, data]) => (
                   <div key={feature} className="text-center p-2 rounded-lg" style={{ 
                     background: '#FFFFFF',
-                    border: `1px solid ${calmingPlacePalette.periwinkle.light}`
+                    border: `1px solid ${elegantPalette.dark.soft}`
                   }}>
-                    <div className="text-lg font-bold" style={{ color: calmingPlacePalette.periwinkle.main }}>{data.uses}</div>
+                    <div className="text-lg font-bold" style={{ color: elegantPalette.taupe.light }}>{data.uses}</div>
                     <div className="text-[10px] font-medium capitalize" style={{ color: theme.textLight }}>{feature}</div>
                   </div>
                 ))}
@@ -3146,13 +3217,38 @@ function Admin() {
                   >
                     <CheckCircle size={18} />
                     <span>Closed Tickets</span>
-                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
-                         style={{ 
-                           backgroundColor: supportView === 'closed-tickets' ? theme.success : theme.textLight + '30',
-                           color: supportView === 'closed-tickets' ? theme.white : theme.textLight 
-                         }}>
-                      {tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length}
-                    </div>
+                    {(() => {
+                      const closedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
+                      const closedWithNewMessages = closedTickets.filter(ticket => {
+                        // Check if ticket has new messages after closure
+                        if (!ticket.closedAt || !ticket.lastMessageAt) return false;
+                        const closedAt = ticket.closedAt?.toDate ? ticket.closedAt.toDate() : new Date(ticket.closedAt);
+                        const lastMessageAt = ticket.lastMessageAt?.toDate ? ticket.lastMessageAt.toDate() : new Date(ticket.lastMessageAt);
+                        return lastMessageAt > closedAt;
+                      });
+                      
+                      return (
+                        <div className="flex items-center gap-1">
+                          <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                               style={{ 
+                                 backgroundColor: supportView === 'closed-tickets' ? theme.success : theme.textLight + '30',
+                                 color: supportView === 'closed-tickets' ? theme.white : theme.textLight 
+                               }}>
+                            {closedTickets.length}
+                          </div>
+                          {closedWithNewMessages.length > 0 && (
+                            <div className="px-2 py-0.5 rounded-full text-xs font-bold animate-pulse" 
+                                 style={{ 
+                                   backgroundColor: theme.warning,
+                                   color: '#fff'
+                                 }}
+                                 title={`${closedWithNewMessages.length} closed ticket${closedWithNewMessages.length > 1 ? 's' : ''} with new messages`}>
+                              {closedWithNewMessages.length}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </button>
                 </div>
               </div>
@@ -3613,12 +3709,41 @@ function Admin() {
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <div className="text-sm" style={{ color: theme.textLight }}>
-                          {supportView === 'open-tickets'
-                            ? `${tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length} open`
-                            : `${tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length} closed`
-                          }
-                        </div>
+                        {supportView === 'open-tickets' ? (
+                          <div className="text-sm" style={{ color: theme.textLight }}>
+                            {tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length} open
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm" style={{ color: theme.textLight }}>
+                              {tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length} closed
+                            </div>
+                            {(() => {
+                              const closedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
+                              const closedWithNewMessages = closedTickets.filter(ticket => {
+                                if (!ticket.closedAt || !ticket.lastMessageAt) return false;
+                                const closedAt = ticket.closedAt?.toDate ? ticket.closedAt.toDate() : new Date(ticket.closedAt);
+                                const lastMessageAt = ticket.lastMessageAt?.toDate ? ticket.lastMessageAt.toDate() : new Date(ticket.lastMessageAt);
+                                return lastMessageAt > closedAt;
+                              });
+                              
+                              if (closedWithNewMessages.length > 0) {
+                                return (
+                                  <div className="px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse" 
+                                       style={{ 
+                                         backgroundColor: theme.warning,
+                                         color: '#fff'
+                                       }}
+                                       title={`${closedWithNewMessages.length} closed ticket${closedWithNewMessages.length > 1 ? 's' : ''} with new messages`}>
+                                    <MessageSquareDot size={12} />
+                                    {closedWithNewMessages.length} new message{closedWithNewMessages.length > 1 ? 's' : ''}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        )}
                         <button
                           onClick={loadTickets}
                           className="p-2 rounded hover:opacity-70"
@@ -3688,11 +3813,45 @@ function Admin() {
                           }
                           return true;
                         })
-                        .map((ticket) => (
+                        .sort((a, b) => {
+                          // For closed tickets, prioritize ones with new messages
+                          if (supportView === 'closed-tickets') {
+                            const aHasNewMessages = a.closedAt && a.lastMessageAt && (() => {
+                              const closedAt = a.closedAt?.toDate ? a.closedAt.toDate() : new Date(a.closedAt);
+                              const lastMessageAt = a.lastMessageAt?.toDate ? a.lastMessageAt.toDate() : new Date(a.lastMessageAt);
+                              return lastMessageAt > closedAt;
+                            })();
+                            const bHasNewMessages = b.closedAt && b.lastMessageAt && (() => {
+                              const closedAt = b.closedAt?.toDate ? b.closedAt.toDate() : new Date(b.closedAt);
+                              const lastMessageAt = b.lastMessageAt?.toDate ? b.lastMessageAt.toDate() : new Date(b.lastMessageAt);
+                              return lastMessageAt > closedAt;
+                            })();
+                            
+                            if (aHasNewMessages && !bHasNewMessages) return -1;
+                            if (!aHasNewMessages && bHasNewMessages) return 1;
+                          }
+                          // Sort by last message time (most recent first)
+                          const aTime = a.lastMessageAt?.toDate ? a.lastMessageAt.toDate() : new Date(a.lastMessageAt || 0);
+                          const bTime = b.lastMessageAt?.toDate ? b.lastMessageAt.toDate() : new Date(b.lastMessageAt || 0);
+                          return bTime - aTime;
+                        })
+                        .map((ticket) => {
+                          // Check if closed ticket has new messages after closure
+                          const hasNewMessages = (ticket.status === 'closed' || ticket.status === 'resolved') && 
+                                                 ticket.closedAt && ticket.lastMessageAt && (() => {
+                            const closedAt = ticket.closedAt?.toDate ? ticket.closedAt.toDate() : new Date(ticket.closedAt);
+                            const lastMessageAt = ticket.lastMessageAt?.toDate ? ticket.lastMessageAt.toDate() : new Date(ticket.lastMessageAt);
+                            return lastMessageAt > closedAt;
+                          })();
+                          
+                          return (
                           <div
                             key={ticket.id}
                             className="p-4 hover:bg-opacity-50 transition-colors cursor-pointer"
-                            style={{ backgroundColor: theme.background }}
+                            style={{ 
+                              backgroundColor: hasNewMessages ? theme.warning + '15' : theme.background,
+                              borderLeft: hasNewMessages ? `3px solid ${theme.warning}` : 'none'
+                            }}
                             onClick={() => loadTicketChat(ticket.id)}
                           >
                             <div className="flex items-start justify-between mb-2">
@@ -3701,6 +3860,16 @@ function Admin() {
                                 {ticket.type === 'suggestion' && <Lightbulb size={16} style={{ color: theme.warning }} />}
                                 {ticket.type === 'support' && <Mail size={16} style={{ color: theme.info }} />}
                                 <span className="font-semibold" style={{ color: theme.text }}>{ticket.subject}</span>
+                                {hasNewMessages && (
+                                  <div className="px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 animate-pulse" 
+                                       style={{ 
+                                         backgroundColor: theme.warning,
+                                         color: '#fff'
+                                       }}>
+                                    <MessageSquareDot size={12} />
+                                    New
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <div 
@@ -3734,7 +3903,8 @@ function Admin() {
                               {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleString() : 'Recently'}
                             </div>
                           </div>
-                        ))
+                          );
+                        }))
                     )}
                   </div>
                 </div>
@@ -4593,7 +4763,7 @@ function LifetimeAccessAudit({ theme }) {
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-              <div className="text-2xl font-bold" style={{ color: theme.text }}>{auditResults.totalUsers}</div>
+              <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{auditResults.totalUsers}</div>
               <div className="text-xs" style={{ color: theme.textLight }}>Total Users</div>
             </div>
             <div className="p-3 rounded-lg" style={{ backgroundColor: theme.success + '20' }}>

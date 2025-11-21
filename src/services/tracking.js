@@ -78,9 +78,23 @@ function parseTrackingData(shippoData) {
     if (status === 'TRANSIT') progress = 1;
     else if (status === 'DELIVERED') progress = 2;
 
+    // Normalize carrier name from API response
+    const rawCarrier = shippoData.carrier || '';
+    let normalizedCarrier = rawCarrier.toLowerCase();
+    // Handle various carrier name formats from Shippo API
+    if (normalizedCarrier.includes('usps') || normalizedCarrier.includes('united_states_postal') || normalizedCarrier === 'usps') {
+        normalizedCarrier = 'usps';
+    } else if (normalizedCarrier.includes('ups') || normalizedCarrier.includes('united_parcel') || normalizedCarrier === 'ups') {
+        normalizedCarrier = 'ups';
+    } else if (normalizedCarrier.includes('fedex') || normalizedCarrier.includes('federal_express') || normalizedCarrier === 'fedex') {
+        normalizedCarrier = 'fedex';
+    } else if (normalizedCarrier.includes('dhl') || normalizedCarrier === 'dhl') {
+        normalizedCarrier = 'dhl';
+    }
+    
     return {
         trackingNumber: shippoData.tracking_number,
-        carrier: shippoData.carrier,
+        carrier: normalizedCarrier || shippoData.carrier,
         status: mappedStatus,
         originalStatus: status,
         statusDetail,
@@ -111,9 +125,12 @@ export function getMockTrackingInfo(trackingNumber) {
     const hash = trackingNumber.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
     const statusIndex = Math.min(hash % 3, 2);
     
+    // Detect carrier from tracking number for mock data
+    const detectedCarrier = detectCarrier(trackingNumber);
+    
     const mockData = {
         trackingNumber,
-        carrier: 'usps',
+        carrier: detectedCarrier, // Use detected carrier instead of hardcoded 'usps'
         status: mockStatuses[statusIndex],
         originalStatus: ['PRE_TRANSIT', 'TRANSIT', 'DELIVERED'][statusIndex],
         statusDetail: [
@@ -156,17 +173,47 @@ export function detectCarrier(trackingNumber) {
     
     const cleaned = trackingNumber.replace(/\s/g, '').toUpperCase();
     
-    // UPS tracking numbers
+    // UPS tracking numbers - starts with 1Z followed by 16 alphanumeric characters
     if (/^1Z[0-9A-Z]{16}$/.test(cleaned)) return 'ups';
     
-    // FedEx tracking numbers
-    if (/^[0-9]{12}$/.test(cleaned) || /^[0-9]{14}$/.test(cleaned)) return 'fedex';
+    // UPS tracking numbers - 18 digits starting with T
+    if (/^T[0-9]{18}$/.test(cleaned)) return 'ups';
     
-    // USPS tracking numbers (various formats)
-    if (/^(94|93|92|91|82|81|80|23|13)[0-9]{20}$/.test(cleaned)) return 'usps';
+    // FedEx tracking numbers - 12 digits
+    if (/^[0-9]{12}$/.test(cleaned)) {
+        // FedEx Express (12 digits) vs USPS (can also be 12 digits but different patterns)
+        // FedEx typically starts with specific patterns, but we'll check length first
+        return 'fedex';
+    }
+    
+    // FedEx tracking numbers - 14 digits
+    if (/^[0-9]{14}$/.test(cleaned)) return 'fedex';
+    
+    // FedEx tracking numbers - 15 digits
+    if (/^[0-9]{15}$/.test(cleaned)) return 'fedex';
+    
+    // FedEx tracking numbers - alphanumeric format (e.g., 123456789012 or 1234567890123)
+    if (/^[0-9]{10,15}$/.test(cleaned) && cleaned.length >= 10 && cleaned.length <= 15) {
+        // Could be FedEx, but need more context - check if it's a common FedEx pattern
+        if (/^[0-9]{12,15}$/.test(cleaned)) return 'fedex';
+    }
+    
+    // USPS tracking numbers - 20 digits starting with specific prefixes
+    if (/^(94|93|92|91|82|81|80|23|13|20|21|22|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|48|49|50|51|52|53|54|55|56|57|58|59|60|61|62|63|64|65|66|67|68|69|70|71|72|73|74|75|76|77|78|79)[0-9]{18}$/.test(cleaned)) return 'usps';
+    
+    // USPS tracking numbers - alphanumeric format (e.g., EA123456789US)
     if (/^[A-Z]{2}[0-9]{9}[A-Z]{2}$/.test(cleaned)) return 'usps';
     
-    // Default to USPS
+    // USPS tracking numbers - 22 digits (domestic)
+    if (/^[0-9]{22}$/.test(cleaned)) return 'usps';
+    
+    // DHL tracking numbers - 10 digits
+    if (/^[0-9]{10}$/.test(cleaned)) return 'dhl';
+    
+    // DHL tracking numbers - alphanumeric (e.g., 1234567890 or JJD0123456789)
+    if (/^[A-Z]{3}[0-9]{10}$/.test(cleaned)) return 'dhl';
+    
+    // Default to USPS (most common)
     return 'usps';
 }
 

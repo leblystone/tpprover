@@ -58,31 +58,72 @@ export default function Dashboard() {
     } catch { return {} }
   }, [])
 
-  const incomingOrder = useMemo(() => {
-    if (!orders || orders.length === 0) return null;
+  const incomingOrders = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
     
-    // Get most recent non-delivered order (any status except delivered)
+    const now = new Date();
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    // Get active orders (non-delivered) OR delivered orders within last 3 days
     const activeOrders = orders.filter(o => {
         const status = (o.status || '').toLowerCase();
-        return !status.includes('delivered');
+        const isDelivered = status.includes('delivered');
+        
+        if (!isDelivered) {
+            return true; // Include all non-delivered orders
+        }
+        
+        // For delivered orders, only include if delivered within last 3 days
+        if (o.deliveryDate) {
+            const deliveryDate = new Date(o.deliveryDate);
+            return deliveryDate >= threeDaysAgo;
+        }
+        
+        // If no delivery date but status is delivered, check if order date is within 3 days
+        if (o.date) {
+            const orderDate = new Date(o.date);
+            return orderDate >= threeDaysAgo;
+        }
+        
+        return false;
     });
     
-    if (activeOrders.length === 0) return null;
+    if (activeOrders.length === 0) return [];
     
-    // Sort by date to get the most recent
-    activeOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-    const latest = activeOrders[0];
+    // Sort by date to get the most recent first
+    activeOrders.sort((a, b) => {
+        const dateA = new Date(a.deliveryDate || a.date || 0);
+        const dateB = new Date(b.deliveryDate || b.date || 0);
+        return dateB - dateA;
+    });
     
-    return {
-        peptide: latest.items?.[0]?.name || 'Unknown Item',
-        mg: latest.items?.[0]?.mg || 'N/A',
-        vendor: latest.vendorName || latest.vendor || 'Unknown Vendor',
-        status: latest.status || 'Order Placed',
-        shipDate: latest.shipDate || latest.date,
-        deliveryDate: latest.deliveryDate,
-        tracking: latest.tracking
-    };
+    // Map to widget format
+    const mappedOrders = activeOrders.map(order => ({
+        id: order.id,
+        peptide: order.items?.[0]?.name || 'Unknown Item',
+        mg: order.items?.[0]?.mg || 'N/A',
+        vendor: order.vendorName || order.vendor || 'Unknown Vendor',
+        status: order.status || 'Order Placed',
+        shipDate: order.shipDate || order.date,
+        deliveryDate: order.deliveryDate,
+        date: order.date, // Order placed date
+        tracking: order.tracking
+    }));
+    
+    console.log('📦 Incoming orders found:', {
+      totalOrders: orders.length,
+      activeOrdersCount: activeOrders.length,
+      mappedOrdersCount: mappedOrders.length,
+      orders: mappedOrders.map(o => ({ id: o.id, peptide: o.peptide, status: o.status }))
+    });
+    
+    // Ensure we always return an array
+    return Array.isArray(mappedOrders) ? mappedOrders : [];
   }, [orders]);
+  
+  // Get first order for backward compatibility
+  const incomingOrder = incomingOrders.length > 0 ? incomingOrders[0] : null;
 
   // Get actual pending vendors (auto-created with isStub: true)
   const pendingVendors = useMemo(() => {
@@ -1062,7 +1103,7 @@ export default function Dashboard() {
         <div className="flex flex-col gap-0 md:gap-4" data-tour-id="incoming">
             <UpcomingOrderCard 
                 theme={theme}
-                order={incomingOrder}
+                orders={Array.isArray(incomingOrders) ? incomingOrders : []}
                 onNewOrder={() => {
                   if (isReadOnly) {
                     setShowUpgradeModal(true);

@@ -17,6 +17,7 @@ import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
 import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
 import { recordDeletion, getDeletionTracking } from '../utils/deletionTracking'
+import { syncAllOrdersFromTracking } from '../utils/trackingStatusSync'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
@@ -211,6 +212,164 @@ export default function Orders() {
 		}
 	}, [location.state, location.search, location.pathname, orders, isReadOnly])
 
+	// Sync editingOrder with updated orders when order changes (e.g., from quick buttons)
+	useEffect(() => {
+		if (editingOrder?.id && showAddModal) {
+			const updatedOrder = orders.find(o => o.id === editingOrder.id);
+			if (updatedOrder) {
+				// Check if status or other key fields changed
+				const statusChanged = updatedOrder.status !== editingOrder.status;
+				const shipDateChanged = updatedOrder.shipDate !== editingOrder.shipDate;
+				const deliveryDateChanged = updatedOrder.deliveryDate !== editingOrder.deliveryDate;
+				const updatedAtChanged = updatedOrder.updatedAt !== editingOrder.updatedAt;
+				
+				if (statusChanged || shipDateChanged || deliveryDateChanged || updatedAtChanged) {
+					setEditingOrder(updatedOrder);
+				}
+			}
+		}
+	}, [orders, editingOrder?.id, showAddModal])
+
+	// Automatically sync order status from tracking data
+	useEffect(() => {
+		let syncInterval;
+		let isSyncing = false;
+		const lastSyncRef = { time: 0 };
+		
+		const syncOrdersFromTracking = async () => {
+			// Prevent concurrent syncs and throttle to at most once per minute
+			const now = Date.now();
+			if (isSyncing) {
+				console.log('⏸️ Tracking sync already in progress, skipping...');
+				return;
+			}
+			if ((now - lastSyncRef.time) < 60000) {
+				console.log(`⏸️ Tracking sync throttled (last sync ${Math.round((now - lastSyncRef.time) / 1000)}s ago)`);
+				return;
+			}
+			
+			isSyncing = true;
+			lastSyncRef.time = now;
+			
+			try {
+				// Get current orders from localStorage (most up-to-date source)
+				const currentOrders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
+				const ordersWithTracking = currentOrders.filter(o => o?.tracking && o.tracking.trim() !== '');
+				console.log(`📦 Tracking sync: Found ${ordersWithTracking.length} order(s) with tracking numbers out of ${currentOrders.length} total`);
+				
+				if (ordersWithTracking.length === 0) {
+					console.log('ℹ️ No orders with tracking numbers to sync');
+					return;
+				}
+				
+				console.log(`🔄 Syncing ${ordersWithTracking.length} order(s) from tracking...`);
+				const updatedOrders = await syncAllOrdersFromTracking(currentOrders);
+				
+				if (updatedOrders.length === 0) {
+					console.log('ℹ️ No order statuses changed from tracking data');
+				}
+				
+				if (updatedOrders.length > 0) {
+					console.log(`✅ Successfully synced ${updatedOrders.length} order(s) from tracking`);
+					
+					// Update each order that changed
+					updatedOrders.forEach(updatedOrder => {
+						const originalOrder = currentOrders.find(o => o.id === updatedOrder.id);
+						if (originalOrder) {
+							// Update stockpile if status changed to/from delivered
+							handleStockpileUpdate(originalOrder, updatedOrder);
+							
+							// Update orders state using functional update
+							setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+							
+							// Show toast notification
+							if (updatedOrder.status === 'Shipped') {
+								window.dispatchEvent(new CustomEvent('tpp:toast', { 
+									detail: { 
+										message: `🚚 Order #${updatedOrder.publicOrderNumber || updatedOrder.id} is now in transit!`, 
+										type: 'info',
+										duration: 4000
+									} 
+								}));
+							} else if (updatedOrder.status === 'Delivered') {
+								window.dispatchEvent(new CustomEvent('tpp:toast', { 
+									detail: { 
+										message: `📦 Order #${updatedOrder.publicOrderNumber || updatedOrder.id} has been delivered!`, 
+										type: 'success',
+										duration: 5000
+									} 
+								}));
+							}
+						}
+					});
+					
+					// Save to cloud after state updates
+					setTimeout(async () => {
+						try {
+							// Get updated orders from localStorage (they should be saved by AppContext useEffect)
+							const savedOrders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]');
+							
+							// Sync to cloud if user is logged in
+							const currentFirebaseUser = firebaseUser; // Access from closure
+							if (currentFirebaseUser && updatedOrders.length > 0) {
+								const userId = currentFirebaseUser.uid;
+								const userEmail = currentFirebaseUser.email;
+								const taskCompletion = safeLocalStorageGet('tpprover_task_completion', userEmail) || {};
+								const calendarDone = safeLocalStorageGet('tpprover_calendar_done', userEmail) || {};
+								const currentStockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
+								
+								const appData = {
+									protocols: protocols || [],
+									reconItems: reconItems || [],
+									reconHistory: reconHistory || [],
+									supplements: supplements || [],
+									orders: savedOrders,
+									metrics: metrics || [],
+									vendors: vendors || [],
+									calendarNotes: calendarNotes || {},
+									stockpile: currentStockpile,
+									scheduledBuys: scheduledBuys || [],
+									taskCompletion,
+									calendarDone
+								};
+								
+								await saveAppData(userId, appData);
+								console.log('✅ Synced order status updates to cloud');
+							}
+						} catch (error) {
+							console.error('❌ Failed to sync order status updates to cloud:', error);
+						}
+					}, 200);
+				}
+			} catch (error) {
+				console.error('❌ Error syncing orders from tracking:', error);
+			} finally {
+				isSyncing = false;
+			}
+		};
+		
+		// Sync immediately on mount (with a small delay to let component settle)
+		console.log('🔄 Orders page mounted - setting up tracking sync');
+		const initialTimeout = setTimeout(() => {
+			console.log('🔄 Starting initial tracking sync...');
+			syncOrdersFromTracking();
+		}, 2000);
+		
+		// Then sync every 5 minutes (tracking cache is 30 minutes, so this is reasonable)
+		syncInterval = setInterval(() => {
+			console.log('🔄 Running periodic tracking sync...');
+			syncOrdersFromTracking();
+		}, 5 * 60 * 1000);
+		
+		return () => {
+			console.log('🔄 Orders page unmounting - cleaning up tracking sync');
+			clearTimeout(initialTimeout);
+			if (syncInterval) {
+				clearInterval(syncInterval);
+			}
+		};
+	}, []) // Empty deps - only run once on mount/unmount
+
 	// Set topbar tabs via custom event
 	useEffect(() => {
 		const tabs = [
@@ -390,7 +549,7 @@ export default function Orders() {
 		}
 	};
 
-	const advanceOrderStatus = (order) => {
+	const advanceOrderStatus = async (order) => {
 		const currentStatus = (order.status || 'Order Placed').toLowerCase();
 		let nextStatus = 'Order Placed';
 		if (currentStatus.includes('placed') || currentStatus.includes('delayed')) {
@@ -401,13 +560,70 @@ export default function Orders() {
 			return; // Don't cycle past 'Delivered'
 		}
 
-		const updatedOrder = { ...order, status: nextStatus };
+		const now = new Date().toISOString();
+		const updatedOrder = { 
+			...order, 
+			status: nextStatus,
+			updatedAt: now
+		};
+		if (nextStatus === 'Shipped' && !order.shipDate) {
+			updatedOrder.shipDate = now.slice(0, 10); // YYYY-MM-DD format
+		}
 		if (nextStatus === 'Delivered' && !order.deliveryDate) {
-			updatedOrder.deliveryDate = new Date().toISOString();
+			updatedOrder.deliveryDate = now.slice(0, 10); // YYYY-MM-DD format
 		}
 		
 		handleStockpileUpdate(order, updatedOrder);
-		setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
+		
+		// Calculate updated orders list
+		const updatedOrders = orders.map(o => o.id === order.id ? updatedOrder : o);
+		
+		// Update local state
+		setOrders(updatedOrders);
+		
+		// Explicitly save to localStorage immediately
+		try {
+			localStorage.setItem('tpprover_orders', JSON.stringify(updatedOrders));
+		} catch (error) {
+			console.error('❌ Failed to save order status to localStorage:', error);
+		}
+		
+		// Sync to cloud if user is logged in (async, fire and forget)
+		if (firebaseUser) {
+			// Use a small delay to ensure stockpile state has updated from handleStockpileUpdate
+			setTimeout(async () => {
+				try {
+					const userId = firebaseUser.uid;
+					const userEmail = firebaseUser.email;
+					const taskCompletion = safeLocalStorageGet('tpprover_task_completion', userEmail) || {};
+					const calendarDone = safeLocalStorageGet('tpprover_calendar_done', userEmail) || {};
+					
+					// Get current stockpile from localStorage to ensure we have the latest
+					const currentStockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
+					
+					const appData = {
+						protocols: protocols || [],
+						reconItems: reconItems || [],
+						reconHistory: reconHistory || [],
+						supplements: supplements || [],
+						orders: updatedOrders,
+						metrics: metrics || [],
+						vendors: vendors || [],
+						calendarNotes: calendarNotes || {},
+						stockpile: currentStockpile,
+						scheduledBuys: scheduledBuys || [],
+						taskCompletion,
+						calendarDone
+					};
+					
+					await saveAppData(userId, appData);
+					console.log('✅ Order status synced to cloud');
+				} catch (error) {
+					console.error('❌ Failed to sync order status to cloud:', error);
+					// Don't show error to user - local change is saved, cloud sync will retry later
+				}
+			}, 100); // Small delay to allow stockpile state to update
+		}
 		
 		// Show toast notification
 		if (nextStatus === 'Shipped') {

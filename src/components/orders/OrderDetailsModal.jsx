@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
-import { CheckCircle, Clock, Truck, Paperclip, Upload, FileText, PlusCircle, PackageOpen, ListChecks, TruckElectric, ImageUp } from 'lucide-react';
+import { CheckCircle, Clock, Truck, Paperclip, Upload, FileText, PlusCircle, PackageOpen, ListChecks, TruckElectric, ImageUp, RefreshCw, MapPin } from 'lucide-react';
 import { formatMMDDYYYY } from '../../utils/date';
 import { formatCurrency } from '../../utils/currencyUtils';
 import OrderItemSubForm from './OrderItemSubForm'; // Import the new sub-form
@@ -11,11 +11,14 @@ import useAutoSave from '../../utils/useAutoSave';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { generateId } from '../../utils/string';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
+import { getCachedTrackingInfo, detectCarrier } from '../../services/tracking';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], maxWidth = "max-w-3xl", isReadOnly = false, onUpgrade, activeTab = 'domestic', isDeleting = false }) {
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
+  const [trackingInfo, setTrackingInfo] = useState(null);
+  const [isLoadingTracking, setIsLoadingTracking] = useState(false);
 
   const primaryColor = theme?.primary || '#3b82f6';
   const toSubtleBackground = (hex) => {
@@ -125,7 +128,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       setAttachments(initialData.attachments || []);
       setOriginalStatus(initialData.status || 'Order Placed');
     }
-  }, [open, order, activeTab]);
+  }, [open, order?.id, order?.status, order?.shipDate, order?.deliveryDate, order?.updatedAt, activeTab]);
 
   // Debug form changes
   useEffect(() => {
@@ -590,6 +593,42 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               customTextColor={theme.isDark ? null : "#181A18"}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
+            {/* Tracking Status Display */}
+            {form.tracking && (
+              <div className="p-3 rounded-lg border" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb', borderColor: theme.border }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold" style={{ color: theme.text }}>Tracking Status</span>
+                  {isLoadingTracking && <RefreshCw size={14} className="animate-spin" style={{ color: theme.primary }} />}
+                </div>
+                {trackingInfo ? (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium" style={{ color: theme.text }}>
+                      {trackingInfo.status}
+                    </div>
+                    {trackingInfo.statusDetail && (
+                      <div className="text-xs" style={{ color: theme.textLight }}>
+                        {trackingInfo.statusDetail}
+                      </div>
+                    )}
+                    {trackingInfo.location?.city && trackingInfo.location?.state && (
+                      <div className="text-xs flex items-center gap-1" style={{ color: theme.textLight }}>
+                        <MapPin size={12} />
+                        {trackingInfo.location.city}, {trackingInfo.location.state}
+                      </div>
+                    )}
+                    <div className="text-xs mt-2 pt-2 border-t" style={{ borderColor: theme.border, color: theme.textLight }}>
+                      Status automatically synced from tracking
+                    </div>
+                  </div>
+                ) : isLoadingTracking ? (
+                  <div className="text-xs" style={{ color: theme.textLight }}>Loading tracking information...</div>
+                ) : (
+                  <div className="text-xs" style={{ color: theme.textLight }}>
+                    No tracking data available. Status will update automatically when tracking information is available.
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Date Ordered</label>
