@@ -378,6 +378,11 @@ function generateEmailHTML(template, variables = {}) {
   } else {
     logger.info(`🔗 Using template ctaLink: ${ctaLinkValue.substring(0, 50)}...`);
   }
+  // Ensure the link is absolute (starts with http:// or https://)
+  if (ctaLinkValue && ctaLinkValue !== '#' && !ctaLinkValue.startsWith('http://') && !ctaLinkValue.startsWith('https://')) {
+    logger.warn(`⚠️ ctaLink is not absolute, prepending https://: ${ctaLinkValue}`);
+    ctaLinkValue = `https://${ctaLinkValue}`;
+  }
   processedTemplate.ctaLink = ctaLinkValue;
   processedTemplate.postCtaNote = replaceVars(template.postCtaNote);
   processedTemplate.subject = replaceVars(template.subject);
@@ -414,19 +419,36 @@ function generateEmailHTML(template, variables = {}) {
   if (variables.verificationLink) {
     const linkValue = variables.verificationLink;
     // Replace %VERIFICATION_LINK% (with underscore) - used in default templates
-    if (html.includes('%VERIFICATION_LINK%')) {
-      html = html.replace(/%VERIFICATION_LINK%/g, linkValue);
-      logger.info('✅ Replaced %VERIFICATION_LINK% in HTML');
-    }
-    // Replace %VERIFICATIONLINK% (without underscore)
-    if (html.includes('%VERIFICATIONLINK%')) {
-      html = html.replace(/%VERIFICATIONLINK%/g, linkValue);
-      logger.info('✅ Replaced %VERIFICATIONLINK% in HTML');
-    }
-    // Replace %LINK% if it exists and link variable wasn't provided
-    if (html.includes('%LINK%') && !variables.link) {
-      html = html.replace(/%LINK%/g, linkValue);
-      logger.info('✅ Replaced %LINK% in HTML with verificationLink');
+    // Check for it in various contexts: href="...", src="...", or plain text
+    const patterns = [
+      { regex: /%VERIFICATION_LINK%/g, name: '%VERIFICATION_LINK%' },
+      { regex: /%VERIFICATIONLINK%/g, name: '%VERIFICATIONLINK%' },
+      { regex: /%LINK%/g, name: '%LINK%' }
+    ];
+    
+    patterns.forEach(({ regex, name }) => {
+      if (html.match(regex)) {
+        const beforeCount = (html.match(regex) || []).length;
+        html = html.replace(regex, linkValue);
+        logger.info(`✅ Replaced ${beforeCount} occurrence(s) of ${name} in HTML`);
+      }
+    });
+    
+    // Final pass: Replace any remaining placeholders that look like verification links
+    // This catches any edge cases where the placeholder might be in a different format
+    html = html.replace(/%VERIFICATION[_\s]*LINK%/gi, linkValue);
+    
+    // Also check for any remaining placeholders that might cause issues
+    const remainingPlaceholders = html.match(/%[A-Z_]+%/g);
+    if (remainingPlaceholders && remainingPlaceholders.length > 0) {
+      const uniquePlaceholders = [...new Set(remainingPlaceholders)];
+      logger.warn(`⚠️ Found ${remainingPlaceholders.length} remaining placeholder(s) in HTML: ${uniquePlaceholders.join(', ')}`);
+      // If we still have verification link placeholders, try one more aggressive replacement
+      if (uniquePlaceholders.some(p => p.includes('VERIFICATION') || p.includes('LINK'))) {
+        logger.warn(`⚠️ Attempting aggressive replacement of remaining link placeholders`);
+        html = html.replace(/%[A-Z_]*VERIFICATION[_\s]*LINK[A-Z_]*%/gi, linkValue);
+        html = html.replace(/%[A-Z_]*LINK[A-Z_]*%/gi, linkValue);
+      }
     }
   }
   
