@@ -979,12 +979,14 @@ exports.verifyEmailWithToken = onCall(
       throw new HttpsError('invalid-argument', 'Invalid verification token. Please request a new verification email.');
     }
 
-    // Check if email is already verified (optional - doesn't prevent verification, just logs)
+    // Check if email is already verified
     let userRecord;
+    let alreadyVerified = false;
     try {
       userRecord = await admin.auth().getUser(tokenData.userId);
       if (userRecord.emailVerified) {
-        logger.info(`ℹ️ Email already verified for user: ${tokenData.userId}, but processing token anyway`);
+        alreadyVerified = true;
+        logger.info(`ℹ️ Email already verified for user: ${tokenData.userId}`);
       }
     } catch (authError) {
       logger.warn(`⚠️ Could not check verification status:`, authError);
@@ -997,6 +999,16 @@ exports.verifyEmailWithToken = onCall(
     });
 
     logger.info(`📝 Token marked as used for user: ${tokenData.userId}`);
+
+    // If already verified, return early with a friendly message
+    if (alreadyVerified) {
+      logger.info(`✅ Email already verified for user: ${tokenData.userId}, returning early`);
+      return { 
+        success: true, 
+        alreadyVerified: true,
+        message: 'Your email is already verified. You\'re all set!' 
+      };
+    }
 
     // Update user's email verification status in Firebase Auth (CRITICAL: This is what the frontend checks)
     try {

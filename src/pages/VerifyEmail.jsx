@@ -14,6 +14,7 @@ export default function VerifyEmail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [alreadyVerified, setAlreadyVerified] = useState(false);
   const [token, setToken] = useState('');
 
   useEffect(() => {
@@ -38,24 +39,46 @@ export default function VerifyEmail() {
       const result = await verifyEmailWithToken({ token });
       
       if (result.data.success) {
-        setSuccess(true);
-        
-        // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
-        const auth = getAuth();
-        if (auth.currentUser) {
-          await auth.currentUser.reload();
-          console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
+        // Check if email was already verified
+        if (result.data.alreadyVerified) {
+          setAlreadyVerified(true);
+          
+          // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
+          const auth = getAuth();
+          if (auth.currentUser) {
+            await auth.currentUser.reload();
+            console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
+          }
+          
+          // Show info toast
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: '✅ Your email is already verified!', type: 'success' }
+          }));
+          
+          // Redirect to dashboard after a short delay
+          setTimeout(() => {
+            navigate('/app/dashboard');
+          }, 3000);
+        } else {
+          setSuccess(true);
+          
+          // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
+          const auth = getAuth();
+          if (auth.currentUser) {
+            await auth.currentUser.reload();
+            console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
+          }
+          
+          // Show success toast
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: '✅ Email verified successfully! Welcome to The Pep Planner!', type: 'success' }
+          }));
+          
+          // Redirect to dashboard after a short delay
+          setTimeout(() => {
+            navigate('/app/dashboard');
+          }, 3000);
         }
-        
-        // Show success toast
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '✅ Email verified successfully! Welcome to The Pep Planner!', type: 'success' }
-        }));
-        
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          navigate('/app/dashboard');
-        }, 3000);
       } else {
         setError(result.data.message || 'Failed to verify email');
       }
@@ -272,6 +295,38 @@ export default function VerifyEmail() {
             40% { transform: translateY(-8px); }
           }
         `}</style>
+      </div>
+    );
+  }
+
+  if (alreadyVerified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center" style={{ backgroundColor: theme.cardBackground }}>
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-4" style={{ color: theme.text }}>Already Verified!</h1>
+            <p className="text-gray-600 mb-6" style={{ color: theme.textSecondary }}>
+              Your email address is already verified. You're all set to use all features of The Pep Planner!
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/app/dashboard')}
+                className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
+                style={{ backgroundColor: theme.primary }}
+              >
+                Go to Dashboard
+              </button>
+              <p className="text-sm text-gray-500">
+                Redirecting automatically in 3 seconds...
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
