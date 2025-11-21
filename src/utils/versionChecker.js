@@ -128,7 +128,7 @@ export async function fetchVersionConfig() {
     }
     // Only log non-permission errors
     if (error.code !== 'permission-denied') {
-      console.error('❌ Error fetching version config:', error);
+    console.error('❌ Error fetching version config:', error);
     }
     return null;
   }
@@ -152,7 +152,7 @@ export async function checkForUpdates() {
     if (!config || !config.latestVersion) {
       // Only warn in production - in dev, missing config is expected
       if (process.env.NODE_ENV === 'production' && window.location.hostname !== 'localhost') {
-        console.warn('⚠️ No version config available');
+      console.warn('⚠️ No version config available');
       }
       return null;
     }

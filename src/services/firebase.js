@@ -1317,6 +1317,27 @@ export async function updateTicketStatus(ticketId, status, adminPassword) {
   }
 }
 
+/**
+ * Mark ticket as read by user
+ * @param {string} ticketId - The ticket ID
+ * @returns {Promise<void>}
+ */
+export async function markTicketAsRead(ticketId) {
+  try {
+    const functions = getFunctions();
+    const markAsRead = httpsCallable(functions, 'markTicketAsRead');
+    
+    const result = await markAsRead({ ticketId });
+    
+    if (!result.data.success) {
+      throw new Error(result.data.message || 'Failed to mark ticket as read');
+    }
+  } catch (error) {
+    console.error('❌ Failed to mark ticket as read:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // NOTIFICATIONS
 // ============================================================================

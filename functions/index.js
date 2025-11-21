@@ -1765,6 +1765,13 @@ exports.addTicketMessage = onCall(
         updateData.status = 'in-progress';
       }
 
+      // If user sends message to a closed ticket (like a thank you), preserve userReadAt
+      // so the 24-hour countdown continues (ticket stays marked as read)
+      if (senderType === 'user' && (ticketData.status === 'closed' || ticketData.status === 'resolved')) {
+        // Don't reset userReadAt - keep it as is so countdown continues
+        logger.info(`💬 User sent message to closed ticket ${ticketId} - preserving userReadAt status`);
+      }
+
       await ticketRef.update(updateData);
 
       // No email notifications for messages - all communication happens in-app
@@ -1808,10 +1815,31 @@ exports.updateTicketStatus = onCall(
       const FieldValue = admin.firestore.FieldValue;
 
       const ticketRef = db.collection('supportTickets').doc(ticketId);
-      await ticketRef.update({
+      
+      // Get current ticket data to check previous status
+      const ticketDoc = await ticketRef.get();
+      const currentStatus = ticketDoc.exists ? ticketDoc.data().status : null;
+      
+      const updateData = {
         status: status,
         updatedAt: FieldValue.serverTimestamp()
-      });
+      };
+
+      // When ticket is closed/resolved, mark as unread and set closedAt timestamp
+      if (status === 'closed' || status === 'resolved') {
+        updateData.userReadAt = null; // Mark as unread for user
+        updateData.closedAt = FieldValue.serverTimestamp();
+        logger.info(`📌 Ticket ${ticketId} marked as closed - user will see unread notification`);
+      }
+      
+      // When reopening ticket from closed/resolved to in-progress, clear countdown fields
+      if (status === 'in-progress' && (currentStatus === 'closed' || currentStatus === 'resolved')) {
+        updateData.userReadAt = null; // Reset read status
+        updateData.closedAt = null; // Clear closed timestamp
+        logger.info(`🔄 Ticket ${ticketId} reopened from closed - countdown fields cleared`);
+      }
+
+      await ticketRef.update(updateData);
 
       logger.info(`✅ Ticket status updated: ${ticketId} -> ${status}`);
       return { 
@@ -1821,6 +1849,42 @@ exports.updateTicketStatus = onCall(
     } catch (error) {
       logger.error(`❌ Error updating ticket status: ${error.message}`);
       throw new Error('Failed to update ticket status');
+    }
+  }
+);
+
+// Mark ticket as read by user
+exports.markTicketAsRead = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { ticketId } = request.data;
+
+    if (!ticketId) {
+      throw new Error('Ticket ID is required');
+    }
+
+    logger.info(`👁️ Marking ticket as read: ${ticketId}`);
+
+    try {
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      const ticketRef = db.collection('supportTickets').doc(ticketId);
+      await ticketRef.update({
+        userReadAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      logger.info(`✅ Ticket marked as read: ${ticketId}`);
+      return { 
+        success: true, 
+        message: 'Ticket marked as read successfully' 
+      };
+    } catch (error) {
+      logger.error(`❌ Error marking ticket as read: ${error.message}`);
+      throw new Error('Failed to mark ticket as read');
     }
   }
 );

@@ -20,6 +20,14 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
     scrollToBottom();
   }, [messages]);
 
+  // Mark as read when modal opens (only once)
+  useEffect(() => {
+    if (ticket?.id && onMarkRead) {
+      // Mark ticket as read when modal is opened
+      onMarkRead();
+    }
+  }, [ticket?.id]); // Only run when ticket changes, not on every message update
+
   // Load messages in real-time
   useEffect(() => {
     if (!ticket?.id) return;
@@ -35,18 +43,13 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
       }));
       setMessages(msgs);
       setLoading(false);
-
-      // Mark as read when modal opens
-      if (onMarkRead) {
-        onMarkRead();
-      }
     }, (error) => {
       console.error('❌ Error loading messages:', error);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [ticket?.id, onMarkRead]);
+  }, [ticket?.id]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !ticket?.id || !user) return;

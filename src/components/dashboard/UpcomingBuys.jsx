@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatMMDDYYYY } from '../../utils/date'
 import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, HandCoins } from 'lucide-react'
@@ -14,11 +14,32 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [renderKey, setRenderKey] = useState(0);
   
+  // Ref to store previous prop IDs to prevent infinite loops
+  const prevPropIdsRef = useRef('');
+  
+  // Helper function to deduplicate array by ID (keep last occurrence)
+  // Memoized to prevent recreation on every render
+  const deduplicateById = useCallback((items) => {
+    const seen = new Map();
+    // Process in reverse order so the last occurrence wins
+    const reversed = [...items].reverse();
+    reversed.forEach(item => {
+      const idKey = String(item.id);
+      if (!seen.has(idKey)) {
+        seen.set(idKey, { ...item });
+      }
+    });
+    // Return in original order (reverse again)
+    return Array.from(seen.values()).reverse();
+  }, []);
+  
   // Reload list from localStorage when it changes
   const reloadList = () => {
     try {
       const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
-      return rawScheduled ? JSON.parse(rawScheduled) : [];
+      const loaded = rawScheduled ? JSON.parse(rawScheduled) : [];
+      // Deduplicate on load to prevent duplicates from localStorage
+      return deduplicateById(loaded);
     } catch (error) {
       console.error('Error loading scheduled buys:', error);
       return [];
@@ -28,31 +49,91 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   // Use local list state that syncs with localStorage
   const [localList, setLocalList] = useState(() => {
     const propList = Array.isArray(buys) ? buys : items;
-    return propList.length > 0 ? propList : reloadList();
+    const initialList = propList.length > 0 ? propList : reloadList();
+    // Deduplicate initial list to prevent duplicates from props
+    return deduplicateById(initialList);
   });
   
   // Update local list when props change
+  // CRITICAL: Only sync props to localList if we don't have unsaved edits
+  // This prevents props from overwriting state when we have unsaved changes
   useEffect(() => {
+    // Skip syncing if we have unsaved edits - preserve them
+    const hasUnsavedEdits = Object.keys(editingItems).length > 0;
+    if (hasUnsavedEdits) {
+      return;
+    }
+    
     const propList = Array.isArray(buys) ? buys : items;
     if (propList.length > 0) {
-      setLocalList(propList);
+      // Create sorted array of IDs for comparison
+      const propIds = propList.map(b => String(b.id)).sort();
+      const propIdsStr = propIds.join(',');
+      
+      // Compare with previous prop IDs to avoid unnecessary updates
+      if (propIdsStr === prevPropIdsRef.current) {
+        // Props haven't changed, skip update
+        return;
+      }
+      
+      // Update ref with new IDs
+      prevPropIdsRef.current = propIdsStr;
+      
+      // Use functional update to access current localList state
+      setLocalList(prevLocalList => {
+        // Create sorted array of current local IDs
+        const prevIds = prevLocalList.map(b => String(b.id)).sort().join(',');
+        
+        // Only update if the ID sets are actually different
+        if (propIdsStr !== prevIds) {
+          // Deduplicate props before setting
+          const deduplicated = deduplicateById(propList);
+          // Double-check we're not creating a duplicate state (prevent infinite loop)
+          const deduplicatedIds = deduplicated.map(b => String(b.id)).sort().join(',');
+          
+          // Only update if the deduplicated result is actually different
+          if (deduplicatedIds !== prevIds) {
+            return deduplicated;
+          }
+        }
+        // IDs are the same, don't update (avoid infinite loop)
+        return prevLocalList;
+      });
     }
-  }, [buys, items]);
+  }, [buys, items, editingItems, deduplicateById]); // deduplicateById is memoized, safe to include
   
   // Listen for delete events to refresh list (update events are handled directly in handleSave)
+  // CRITICAL: Don't reload from localStorage here as it will lose unsaved edits
+  // The confirmDelete function already updates localList state correctly
+  // This listener is only needed if other components delete items externally
   useEffect(() => {
-    const handleDeleteEvent = () => {
+    const handleDeleteEvent = (e) => {
+      // Skip reload if the event indicates it was handled internally
+      if (e.detail?.skipReload) {
+        return;
+      }
+      
+      // Only reload if we don't have any unsaved edits to preserve
+      if (Object.keys(editingItems).length === 0) {
       const updatedList = reloadList();
-      setLocalList(updatedList.map(buy => ({ ...buy })));
+      // Deduplicate before setting (reloadList already deduplicates, but be safe)
+      setLocalList(deduplicateById(updatedList.map(buy => ({ ...buy }))));
+      }
+      // If there are unsaved edits, keep current localList to preserve them
     };
     
     window.addEventListener('tpp:group-buy-deleted', handleDeleteEvent);
     return () => {
       window.removeEventListener('tpp:group-buy-deleted', handleDeleteEvent);
     };
-  }, []);
+  }, [editingItems]); // Include editingItems in dependencies to check for unsaved changes
   
-  const list = localList;
+  // CRITICAL: Deduplicate list by ID to prevent duplicate keys
+  // Always use the last occurrence of each ID (most recent data)
+  // This is a final safety net in case duplicates somehow get into localList
+  const list = useMemo(() => {
+    return deduplicateById(localList);
+  }, [localList]);
   
   // Terracotta gradient for delete button
   const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
@@ -63,6 +144,8 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   }
 
   const handleItemClick = (item) => {
+    // CRITICAL: Preserve any unsaved edits when switching items
+    // Don't clear editingItems here - let users save or cancel explicitly
     setSelectedItem(item);
     setShowModal(true);
   }
@@ -181,7 +264,8 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // Update local list immediately - create a new array reference to force re-render
       // Map through to create new object references so React detects the change
       const updatedList = scheduledBuys.map(buy => ({ ...buy }));
-      setLocalList(updatedList);
+      // Deduplicate before setting to prevent duplicates
+      setLocalList(deduplicateById(updatedList));
       
       // CRITICAL: Dispatch event to update parent component's state (AppContext)
       // This prevents AppContext from overwriting our localStorage changes
@@ -221,13 +305,63 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
 
   const confirmDelete = (itemId) => {
     try {
-      // CRITICAL: Use current localList state instead of reading from localStorage
-      // This ensures we preserve any recent edits that haven't been synced yet
-      const updatedBuys = localList.filter(item => item.id !== itemId);
+      // CRITICAL: Start with current localList state (which includes any unsaved edits)
+      // Read fresh from localStorage to merge with current state
+      const storedBuys = reloadList();
+      
+      // Create a map of stored items for quick lookup
+      const storedMap = new Map(storedBuys.map(b => [String(b.id), b]));
+      
+      // Build the final list: merge stored data with localList (which has any unsaved edits)
+      // Priority: localList > stored data (localList has the most recent state)
+      const mergedMap = new Map();
+      
+      // First, add all items from localList (these have unsaved edits if any)
+      localList.forEach(item => {
+        mergedMap.set(String(item.id), { ...item });
+      });
+      
+      // Then, add items from stored that aren't in localList (shouldn't happen, but safety)
+      storedBuys.forEach(item => {
+        if (!mergedMap.has(String(item.id))) {
+          mergedMap.set(String(item.id), { ...item });
+        }
+      });
+      
+      // Now apply any unsaved edits from editingItems
+      Object.keys(editingItems).forEach(editingId => {
+        if (editingId !== itemId && editingItems[editingId]) {
+          const editedData = editingItems[editingId];
+          const existingItem = mergedMap.get(String(editingId));
+          
+          if (existingItem) {
+            // Update existing item with edits
+            mergedMap.set(String(editingId), {
+              ...existingItem,
+              ...editedData,
+              id: editingId,
+              updatedAt: new Date().toISOString(),
+              name: editedData.item || existingItem.name || existingItem.item,
+              peptideName: editedData.item || existingItem.peptideName || existingItem.item,
+              date: editedData.openDate || existingItem.date || existingItem.openDate,
+              description: editedData.notes || existingItem.description || existingItem.notes
+            });
+          }
+        }
+      });
+      
+      // Remove the deleted item
+      mergedMap.delete(String(itemId));
+      
+      // Convert map to array - this ensures no duplicates
+      const updatedBuys = Array.from(mergedMap.values());
+      
+      // Save to localStorage
       localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updatedBuys));
       
-      // Update local list immediately
-      setLocalList([...updatedBuys]);
+      // Update local list immediately with the saved data (already deduplicated from Map)
+      // But deduplicate again to be extra safe
+      setLocalList(deduplicateById(updatedBuys.map(b => ({ ...b }))));
       
       // CRITICAL: Dispatch event to update parent component's state (AppContext)
       window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
@@ -237,24 +371,40 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // Trigger calendar sync
       window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
       
-      // Remove from editing state
-      setEditingItems(prev => {
-        const newState = { ...prev };
-        delete newState[itemId];
-        return newState;
-      });
+      // Clear ALL editing state after save (edits have been saved)
+      setEditingItems({});
       
       // Close modal if item was selected
       if (selectedItem?.id === itemId) {
-        setShowModal(false);
-        setSelectedItem(null);
+        // If there are other items, select the first one, otherwise close
+        if (updatedBuys.length > 0) {
+          setSelectedItem({ ...updatedBuys[0] });
+        } else {
+          setShowModal(false);
+          setSelectedItem(null);
+        }
+      } else if (selectedItem) {
+        // Update selectedItem to match updated data if it exists
+        const updatedSelected = updatedBuys.find(b => String(b.id) === String(selectedItem.id));
+        if (updatedSelected) {
+          setSelectedItem({ ...updatedSelected });
+        }
       }
       
       // Dispatch a custom event to notify parent components of the change
-      window.dispatchEvent(new CustomEvent('tpp:group-buy-deleted', { detail: { itemId } }));
+      // BUT: Don't trigger a reload that would overwrite our state
+      window.dispatchEvent(new CustomEvent('tpp:group-buy-deleted', { 
+        detail: { 
+          itemId,
+          skipReload: true // Flag to prevent other listeners from reloading
+        } 
+      }));
       
       // Close delete confirmation
       setDeleteConfirmId(null);
+      
+      console.log('✅ Deleted group buy:', itemId);
+      console.log('📋 Updated list after delete:', updatedBuys);
       
     } catch (error) {
       console.error('Error deleting group buy:', error);

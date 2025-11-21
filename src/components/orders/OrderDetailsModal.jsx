@@ -87,12 +87,12 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         initialData.type = activeTab;
       } else {
         // Existing order: preserve category, but migrate type to category if needed
-        if (!initialData.category && !initialData.type) {
+      if (!initialData.category && !initialData.type) {
           initialData.category = activeTab;
           initialData.type = activeTab;
-        } else if (initialData.type && !initialData.category) {
-          // Migration: use 'type' as 'category' for consistency
-          initialData.category = initialData.type;
+      } else if (initialData.type && !initialData.category) {
+        // Migration: use 'type' as 'category' for consistency
+        initialData.category = initialData.type;
         }
       }
       
@@ -327,12 +327,12 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 }}
                 onMouseEnter={(e) => {
                   if (!isDeleting) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isDeleting) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
                   }
                 }}
               >

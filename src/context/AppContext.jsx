@@ -510,15 +510,15 @@ export function AppProvider({ children }) {
                         }
                 } else {
                         // No local data, just use cloud
-                        if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
-                        if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
-                        if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
-                        if (cloudAppData.supplements) setSupplements(cloudAppData.supplements);
-                        if (cloudAppData.orders) setOrders(cloudAppData.orders);
-                        if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
-                        if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
-                        if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
-                        if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
+                    if (cloudAppData.protocols) setProtocols(cloudAppData.protocols);
+                    if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
+                    if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
+                    if (cloudAppData.supplements) setSupplements(cloudAppData.supplements);
+                    if (cloudAppData.orders) setOrders(cloudAppData.orders);
+                    if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
+                    if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
+                    if (cloudAppData.calendarNotes) setCalendarNotes(cloudAppData.calendarNotes);
+                    if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
                         if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
                         
                         // Restore task completion data from cloud

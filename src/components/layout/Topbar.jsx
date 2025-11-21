@@ -6,7 +6,7 @@ import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
 import TrialButton from '../common/TrialButton';
 import { useAppContext } from '../../context/AppContext';
-import { getUserTickets } from '../../services/firebase';
+import { getUserTickets, markTicketAsRead } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 
 export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator, trialInfo }) {
@@ -61,17 +61,54 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
       try {
         const tickets = await getUserTickets(user.email);
         
-        // Find first open ticket (new or in-progress)
-        const open = tickets.find(t => t.status === 'new' || t.status === 'in-progress');
-        setOpenTicket(open || null);
+        // Helper function to check if closed ticket should be shown
+        const shouldShowClosedTicket = (ticket) => {
+          if (ticket.status !== 'closed' && ticket.status !== 'resolved') {
+            return false;
+          }
+          
+          // Show if unread (userReadAt is null or doesn't exist)
+          if (!ticket.userReadAt || ticket.userReadAt === null) {
+            return true;
+          }
+          
+          // Show if read within last 24 hours
+          const readAt = ticket.userReadAt?.toDate ? ticket.userReadAt.toDate() : new Date(ticket.userReadAt);
+          const now = new Date();
+          const hoursSinceRead = (now - readAt) / (1000 * 60 * 60);
+          
+          return hoursSinceRead < 24;
+        };
         
-        // Check if there are unread admin responses
-        if (open && open.lastAdminMessageAt) {
-          const lastRead = localStorage.getItem(`ticket_${open.id}_lastRead`);
-          const lastReadTime = lastRead ? new Date(lastRead) : new Date(0);
-          const lastAdminTime = open.lastAdminMessageAt?.toDate ? open.lastAdminMessageAt.toDate() : new Date(open.lastAdminMessageAt);
-          const hasUnread = lastAdminTime > lastReadTime;
-          setHasUnreadResponse(hasUnread);
+        // Find tickets to show: open tickets OR closed tickets that meet criteria
+        const visibleTicket = tickets.find(t => {
+          // Always show open tickets
+          if (t.status === 'new' || t.status === 'in-progress') {
+            return true;
+          }
+          // Show closed tickets if unread or read within 24 hours
+          return shouldShowClosedTicket(t);
+        });
+        
+        setOpenTicket(visibleTicket || null);
+        
+        // Check if there are unread responses
+        if (visibleTicket) {
+          // For open tickets, check admin messages
+          if ((visibleTicket.status === 'new' || visibleTicket.status === 'in-progress') && visibleTicket.lastAdminMessageAt) {
+            const lastRead = localStorage.getItem(`ticket_${visibleTicket.id}_lastRead`);
+            const lastReadTime = lastRead ? new Date(lastRead) : new Date(0);
+            const lastAdminTime = visibleTicket.lastAdminMessageAt?.toDate ? visibleTicket.lastAdminMessageAt.toDate() : new Date(visibleTicket.lastAdminMessageAt);
+            const hasUnread = lastAdminTime > lastReadTime;
+            setHasUnreadResponse(hasUnread);
+          }
+          // For closed tickets, check if unread
+          else if (visibleTicket.status === 'closed' || visibleTicket.status === 'resolved') {
+            const isUnread = !visibleTicket.userReadAt || visibleTicket.userReadAt === null;
+            setHasUnreadResponse(isUnread);
+          } else {
+            setHasUnreadResponse(false);
+          }
         } else {
           setHasUnreadResponse(false);
         }
@@ -87,10 +124,20 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   }, [user?.email]);
 
   // Mark ticket as read
-  const handleMarkAsRead = () => {
+  const handleMarkAsRead = async () => {
     if (openTicket) {
-      localStorage.setItem(`ticket_${openTicket.id}_lastRead`, new Date().toISOString());
-      setHasUnreadResponse(false);
+      try {
+        // Mark as read in Firestore (for closed tickets)
+        await markTicketAsRead(openTicket.id);
+        
+        // Also update localStorage for backward compatibility with open tickets
+        localStorage.setItem(`ticket_${openTicket.id}_lastRead`, new Date().toISOString());
+        
+        // Update local state to remove unread indicator
+        setHasUnreadResponse(false);
+      } catch (error) {
+        console.error('❌ Failed to mark ticket as read:', error);
+      }
     }
   };
 
