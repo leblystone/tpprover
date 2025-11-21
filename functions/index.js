@@ -968,18 +968,13 @@ exports.verifyEmailWithToken = onCall(
       }
     }
 
-    // Check if token is already used
-    if (tokenData.used) {
-      logger.warn(`⚠️ Verification failed: Token already used for user: ${tokenData.userId}`);
-      throw new HttpsError('already-exists', 'This verification link has already been used.');
-    }
-
     if (!tokenData.userId) {
       logger.error(`❌ Verification failed: Token missing userId: ${token.substring(0, 8)}...`);
       throw new HttpsError('invalid-argument', 'Invalid verification token. Please request a new verification email.');
     }
 
-    // Check if email is already verified
+    // Check if email is already verified FIRST (before checking if token is used)
+    // This allows us to show a friendly "Already Verified" message even if they click a used link
     let userRecord;
     let alreadyVerified = false;
     try {
@@ -990,6 +985,22 @@ exports.verifyEmailWithToken = onCall(
       }
     } catch (authError) {
       logger.warn(`⚠️ Could not check verification status:`, authError);
+    }
+
+    // Check if token is already used
+    if (tokenData.used) {
+      // If email is already verified, show friendly message instead of error
+      if (alreadyVerified) {
+        logger.info(`✅ Email already verified and token was used - showing friendly message`);
+        return { 
+          success: true, 
+          alreadyVerified: true,
+          message: 'Your email is already verified. You\'re all set!' 
+        };
+      }
+      // Otherwise, show error for used token
+      logger.warn(`⚠️ Verification failed: Token already used for user: ${tokenData.userId}`);
+      throw new HttpsError('already-exists', 'This verification link has already been used.');
     }
 
     // Mark token as used FIRST (before updating user) to prevent race conditions
