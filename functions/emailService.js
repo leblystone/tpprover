@@ -496,6 +496,26 @@ function generateEmailHTML(template, variables = {}) {
     return colors[colorKey] || match;
   });
 
+  // Final validation: Check if there are any problematic href attributes
+  const problematicHrefs = html.match(/href=["'](about:blank|#|%[A-Z_]+%)["']/gi);
+  if (problematicHrefs && problematicHrefs.length > 0) {
+    logger.error(`❌ Found ${problematicHrefs.length} problematic href attribute(s): ${problematicHrefs.join(', ')}`);
+    if (variables.verificationLink) {
+      logger.warn(`⚠️ Attempting emergency replacement with verification link`);
+      html = html.replace(/href=["'](about:blank|#)["']/gi, `href="${variables.verificationLink}"`);
+    }
+  }
+  
+  // Log a sample of the final HTML to verify the link is correct (first 500 chars)
+  if (html.includes('Verify Email') || html.includes('Verify')) {
+    const buttonMatch = html.match(/<a[^>]*href=["']([^"']+)["'][^>]*>.*?Verify[^<]*<\/a>/i);
+    if (buttonMatch) {
+      logger.info(`✅ Final button href: ${buttonMatch[1]}`);
+    } else {
+      logger.warn(`⚠️ Could not find Verify button href in final HTML`);
+    }
+  }
+
   return html;
 }
 

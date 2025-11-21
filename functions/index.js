@@ -979,6 +979,17 @@ exports.verifyEmailWithToken = onCall(
       throw new HttpsError('invalid-argument', 'Invalid verification token. Please request a new verification email.');
     }
 
+    // Check if email is already verified (optional - doesn't prevent verification, just logs)
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUser(tokenData.userId);
+      if (userRecord.emailVerified) {
+        logger.info(`ℹ️ Email already verified for user: ${tokenData.userId}, but processing token anyway`);
+      }
+    } catch (authError) {
+      logger.warn(`⚠️ Could not check verification status:`, authError);
+    }
+
     // Mark token as used FIRST (before updating user) to prevent race conditions
     await tokenRef.update({ 
       used: true, 
