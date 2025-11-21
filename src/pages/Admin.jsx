@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
   Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft, MessageSquareDot
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -3217,38 +3217,13 @@ function Admin() {
                   >
                     <CheckCircle size={18} />
                     <span>Closed Tickets</span>
-                    {(() => {
-                      const closedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
-                      const closedWithNewMessages = closedTickets.filter(ticket => {
-                        // Check if ticket has new messages after closure
-                        if (!ticket.closedAt || !ticket.lastMessageAt) return false;
-                        const closedAt = ticket.closedAt?.toDate ? ticket.closedAt.toDate() : new Date(ticket.closedAt);
-                        const lastMessageAt = ticket.lastMessageAt?.toDate ? ticket.lastMessageAt.toDate() : new Date(ticket.lastMessageAt);
-                        return lastMessageAt > closedAt;
-                      });
-                      
-                      return (
-                        <div className="flex items-center gap-1">
-                          <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
-                               style={{ 
-                                 backgroundColor: supportView === 'closed-tickets' ? theme.success : theme.textLight + '30',
-                                 color: supportView === 'closed-tickets' ? theme.white : theme.textLight 
-                               }}>
-                            {closedTickets.length}
-                          </div>
-                          {closedWithNewMessages.length > 0 && (
-                            <div className="px-2 py-0.5 rounded-full text-xs font-bold animate-pulse" 
-                                 style={{ 
-                                   backgroundColor: theme.warning,
-                                   color: '#fff'
-                                 }}
-                                 title={`${closedWithNewMessages.length} closed ticket${closedWithNewMessages.length > 1 ? 's' : ''} with new messages`}>
-                              {closedWithNewMessages.length}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                         style={{ 
+                           backgroundColor: supportView === 'closed-tickets' ? theme.success : theme.textLight + '30',
+                           color: supportView === 'closed-tickets' ? theme.white : theme.textLight 
+                         }}>
+                      {tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length}
+                    </div>
                   </button>
                 </div>
               </div>
@@ -3709,41 +3684,12 @@ function Admin() {
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
-                        {supportView === 'open-tickets' ? (
-                          <div className="text-sm" style={{ color: theme.textLight }}>
-                            {tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length} open
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm" style={{ color: theme.textLight }}>
-                              {tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length} closed
-                            </div>
-                            {(() => {
-                              const closedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
-                              const closedWithNewMessages = closedTickets.filter(ticket => {
-                                if (!ticket.closedAt || !ticket.lastMessageAt) return false;
-                                const closedAt = ticket.closedAt?.toDate ? ticket.closedAt.toDate() : new Date(ticket.closedAt);
-                                const lastMessageAt = ticket.lastMessageAt?.toDate ? ticket.lastMessageAt.toDate() : new Date(ticket.lastMessageAt);
-                                return lastMessageAt > closedAt;
-                              });
-                              
-                              if (closedWithNewMessages.length > 0) {
-                                return (
-                                  <div className="px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse" 
-                                       style={{ 
-                                         backgroundColor: theme.warning,
-                                         color: '#fff'
-                                       }}
-                                       title={`${closedWithNewMessages.length} closed ticket${closedWithNewMessages.length > 1 ? 's' : ''} with new messages`}>
-                                    <MessageSquareDot size={12} />
-                                    {closedWithNewMessages.length} new message{closedWithNewMessages.length > 1 ? 's' : ''}
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </div>
-                        )}
+                        <div className="text-sm" style={{ color: theme.textLight }}>
+                          {supportView === 'open-tickets'
+                            ? `${tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length} open`
+                            : `${tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length} closed`
+                          }
+                        </div>
                         <button
                           onClick={loadTickets}
                           className="p-2 rounded hover:opacity-70"
@@ -3813,45 +3759,11 @@ function Admin() {
                           }
                           return true;
                         })
-                        .sort((a, b) => {
-                          // For closed tickets, prioritize ones with new messages
-                          if (supportView === 'closed-tickets') {
-                            const aHasNewMessages = a.closedAt && a.lastMessageAt && (() => {
-                              const closedAt = a.closedAt?.toDate ? a.closedAt.toDate() : new Date(a.closedAt);
-                              const lastMessageAt = a.lastMessageAt?.toDate ? a.lastMessageAt.toDate() : new Date(a.lastMessageAt);
-                              return lastMessageAt > closedAt;
-                            })();
-                            const bHasNewMessages = b.closedAt && b.lastMessageAt && (() => {
-                              const closedAt = b.closedAt?.toDate ? b.closedAt.toDate() : new Date(b.closedAt);
-                              const lastMessageAt = b.lastMessageAt?.toDate ? b.lastMessageAt.toDate() : new Date(b.lastMessageAt);
-                              return lastMessageAt > closedAt;
-                            })();
-                            
-                            if (aHasNewMessages && !bHasNewMessages) return -1;
-                            if (!aHasNewMessages && bHasNewMessages) return 1;
-                          }
-                          // Sort by last message time (most recent first)
-                          const aTime = a.lastMessageAt?.toDate ? a.lastMessageAt.toDate() : new Date(a.lastMessageAt || 0);
-                          const bTime = b.lastMessageAt?.toDate ? b.lastMessageAt.toDate() : new Date(b.lastMessageAt || 0);
-                          return bTime - aTime;
-                        })
-                        .map((ticket) => {
-                          // Check if closed ticket has new messages after closure
-                          const hasNewMessages = (ticket.status === 'closed' || ticket.status === 'resolved') && 
-                                                 ticket.closedAt && ticket.lastMessageAt && (() => {
-                            const closedAt = ticket.closedAt?.toDate ? ticket.closedAt.toDate() : new Date(ticket.closedAt);
-                            const lastMessageAt = ticket.lastMessageAt?.toDate ? ticket.lastMessageAt.toDate() : new Date(ticket.lastMessageAt);
-                            return lastMessageAt > closedAt;
-                          })();
-                          
-                          return (
+                        .map((ticket) => (
                           <div
                             key={ticket.id}
                             className="p-4 hover:bg-opacity-50 transition-colors cursor-pointer"
-                            style={{ 
-                              backgroundColor: hasNewMessages ? theme.warning + '15' : theme.background,
-                              borderLeft: hasNewMessages ? `3px solid ${theme.warning}` : 'none'
-                            }}
+                            style={{ backgroundColor: theme.background }}
                             onClick={() => loadTicketChat(ticket.id)}
                           >
                             <div className="flex items-start justify-between mb-2">
@@ -3860,16 +3772,6 @@ function Admin() {
                                 {ticket.type === 'suggestion' && <Lightbulb size={16} style={{ color: theme.warning }} />}
                                 {ticket.type === 'support' && <Mail size={16} style={{ color: theme.info }} />}
                                 <span className="font-semibold" style={{ color: theme.text }}>{ticket.subject}</span>
-                                {hasNewMessages && (
-                                  <div className="px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 animate-pulse" 
-                                       style={{ 
-                                         backgroundColor: theme.warning,
-                                         color: '#fff'
-                                       }}>
-                                    <MessageSquareDot size={12} />
-                                    New
-                                  </div>
-                                )}
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <div 
@@ -3903,8 +3805,7 @@ function Admin() {
                               {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleString() : 'Recently'}
                             </div>
                           </div>
-                          );
-                        }))
+                        ))
                     )}
                   </div>
                 </div>

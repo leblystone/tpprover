@@ -7,7 +7,7 @@ import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 // Current app version (matches package.json and android/ios builds)
-export const APP_VERSION = '1.0.4';
+export const APP_VERSION = '1.0.6';
 
 // Local storage keys
 const VERSION_CHECK_KEY = 'tpp_version_check';
@@ -140,6 +140,14 @@ export async function fetchVersionConfig() {
  */
 export async function checkForUpdates() {
   try {
+    // Only check for updates on native apps (Android/iOS)
+    // PWA users get instant updates automatically, so no need to check
+    const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+    if (!isNative) {
+      console.log('✅ Update check: Skipping (not a native app - PWA users get instant updates)');
+      return null;
+    }
+    
     // Skip if recently dismissed
     if (wasRecentlyDismissed()) {
       console.log('✅ Update check: Recently dismissed');

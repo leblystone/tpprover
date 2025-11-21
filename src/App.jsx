@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from 'react'
+import React, { Suspense, useState, useEffect, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileSidebar'
@@ -29,6 +29,35 @@ import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
 import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
+
+// Mock update data for testing (local development only)
+const mockUpdates = {
+  optional: {
+    currentVersion: "1.0.5",
+    latestVersion: "1.0.6",
+    urgency: "optional",
+    isRequired: false,
+    releaseNotes: "Bug fixes and performance improvements\nSmall UI tweaks\nBetter error handling",
+    storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+  },
+  recommended: {
+    currentVersion: "1.0.5",
+    latestVersion: "1.1.0",
+    urgency: "recommended",
+    isRequired: false,
+    releaseNotes: "Fixed those pesky bugs from yesterday\nMade the dashboard even prettier\nProtocols load faster now\nLots of small improvements you'll love",
+    storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+  },
+  critical: {
+    currentVersion: "1.0.5",
+    latestVersion: "2.0.0",
+    minimumVersion: "1.0.6",
+    urgency: "critical",
+    isRequired: true,
+    releaseNotes: "Important security updates to keep your data safe\nFixed critical issues\nYour app will be safer and faster",
+    storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
+  }
+};
 
 function App() {
   const location = useLocation();
@@ -93,43 +122,18 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, []);
 
+  // Test function to trigger update modal
+  const testUpdateModal = useCallback((type = 'recommended') => {
+    const mockData = mockUpdates[type] || mockUpdates.recommended;
+    console.log('🧪 Testing update prompt:', type, mockData);
+    setUpdateInfo(mockData);
+    setShowUpdatePrompt(true);
+  }, []);
+
   // TEST HELPER: Manual test trigger (remove in production)
   useEffect(() => {
-    window.testUpdatePrompt = (type = 'recommended') => {
-      const mockUpdates = {
-        optional: {
-          currentVersion: "1.0.4",
-          latestVersion: "1.0.5",
-          urgency: "optional",
-          isRequired: false,
-          releaseNotes: "Bug fixes and performance improvements",
-          storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
-        },
-        recommended: {
-          currentVersion: "1.0.4",
-          latestVersion: "1.1.0",
-          urgency: "recommended",
-          isRequired: false,
-          releaseNotes: "Fixed those pesky bugs from yesterday\nMade the dashboard even prettier\nProtocols load faster now\nLots of small improvements you'll love",
-          storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
-        },
-        critical: {
-          currentVersion: "1.0.4",
-          latestVersion: "2.0.0",
-          minimumVersion: "1.0.5",
-          urgency: "critical",
-          isRequired: true,
-          releaseNotes: "Important security updates to keep your data safe\nFixed critical issues\nYour app will be safer and faster",
-          storeUrls: { android: "https://play.google.com/store/apps/details?id=com.thepepplanner.app" }
-        }
-      };
-      
-      const mockData = mockUpdates[type] || mockUpdates.recommended;
-      console.log('🧪 Testing update prompt:', type, mockData);
-      setUpdateInfo(mockData);
-      setShowUpdatePrompt(true);
-    };
-  }, []);
+    window.testUpdatePrompt = testUpdateModal;
+  }, [testUpdateModal]);
 
   // App is now live - no beta restrictions
 
