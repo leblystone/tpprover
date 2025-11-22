@@ -763,7 +763,9 @@ export function AppProvider({ children }) {
                             if (!isNewUser) {
                                 console.log('📝 Creating initial agreement data for existing user');
                                 try {
-                                    await createInitialAgreementsForExistingUser(parsedUser.email);
+                                    // Get account creation date from Firebase user metadata or user object
+                                    const accountCreationDate = firebaseUser?.metadata?.creationTime || parsedUser.createdAt;
+                                    await createInitialAgreementsForExistingUser(parsedUser.email, accountCreationDate);
                                 } catch (error) {
                                     console.error('Failed to create initial agreements:', error);
                                 }
@@ -826,7 +828,9 @@ export function AppProvider({ children }) {
                             if (!isNewUser) {
                                 console.log('📝 Creating initial agreement data for existing user');
                                 try {
-                                    await createInitialAgreementsForExistingUser(userProfile.email);
+                                    // Get account creation date from Firebase user metadata
+                                    const accountCreationDate = firebaseUser?.metadata?.creationTime || userProfile.createdAt;
+                                    await createInitialAgreementsForExistingUser(userProfile.email, accountCreationDate);
                                 } catch (error) {
                                     console.error('Failed to create initial agreements:', error);
                                 }

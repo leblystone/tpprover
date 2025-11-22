@@ -142,12 +142,6 @@ export default function AccountLegal() {
               actionText={agreementData.privacyAgreement ? 'View' : 'Agree'}
               theme={theme}
             />
-            <LegalDocumentLink
-              title="Cancellation Policy"
-              description="View our cancellation and refund policy"
-              onAction={() => window.open('/cancellation-policy', '_blank')}
-              theme={theme}
-            />
           </div>
         </div>
 

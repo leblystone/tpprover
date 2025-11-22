@@ -1412,6 +1412,39 @@ exports.sendAccountDeletionEmail = onCall(
   }
 );
 
+// Send account deletion request notification to admin
+exports.sendAccountDeletionRequestToAdmin = onCall(
+  {
+    cors: true,
+    secrets: ['SENDGRID_API_KEY']
+  },
+  async (request) => {
+    const { userEmail, userName, dataSummary } = request.data;
+
+    if (!userEmail) {
+      throw new Error('userEmail is required');
+    }
+
+    logger.info(`📧 Sending account deletion request notification for: ${userEmail}`);
+
+    try {
+      const emailService = require('./emailService');
+      const success = await emailService.sendAccountDeletionRequestToAdmin(userEmail, userName, dataSummary);
+      
+      if (success) {
+        logger.info(`✅ Account deletion request notification sent successfully for: ${userEmail}`);
+        return { success: true, message: 'Account deletion request notification sent successfully' };
+      } else {
+        logger.warn(`⚠️ Failed to send account deletion request notification for: ${userEmail}`);
+        return { success: false, message: 'Failed to send notification email' };
+      }
+    } catch (error) {
+      logger.error(`❌ Error sending account deletion request notification: ${error.message}`);
+      throw new Error('Failed to send account deletion request notification');
+    }
+  }
+);
+
 // Send in-depth request email
 exports.sendInDepthRequestEmail = onCall(
   {

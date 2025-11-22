@@ -188,11 +188,18 @@ export function getAgreementHistory() {
 
 /**
  * Record a new agreement
+ * @param {string} type - Agreement type
+ * @param {string} version - Agreement version
+ * @param {object} additionalData - Additional data to store
+ * @param {string} userEmail - User email
+ * @param {string|Date} customTimestamp - Optional custom timestamp (ISO string or Date object) to use instead of current date
  */
-export async function recordAgreement(type, version = null, additionalData = {}, userEmail = null) {
+export async function recordAgreement(type, version = null, additionalData = {}, userEmail = null, customTimestamp = null) {
   try {
     const history = getAgreementHistory();
-    const now = new Date();
+    // Use custom timestamp if provided, otherwise use current date
+    const timestampDate = customTimestamp ? new Date(customTimestamp) : new Date();
+    const now = timestampDate;
     // Calculate retention expiration date based on agreement type
     const getRetentionInfo = (agreementType) => {
       // Legal agreements get 10-year retention
@@ -352,25 +359,30 @@ export function hasAnyAgreementData() {
 /**
  * Create initial agreement records for existing users who don't have agreement data
  * This should be called when a user first loads the app and has no agreement history
+ * @param {string} userEmail - User email
+ * @param {string|Date} accountCreationDate - Account creation date (ISO string or Date object) to use for agreement timestamps
  */
-export async function createInitialAgreementsForExistingUser(userEmail = null) {
+export async function createInitialAgreementsForExistingUser(userEmail = null, accountCreationDate = null) {
   try {
     // Only create if user has no agreement data
     if (hasAnyAgreementData()) {
       return false; // User already has agreement data
     }
 
-    // Create initial agreements with current timestamp
-    const now = new Date().toISOString();
+    // Use account creation date if provided, otherwise fallback to current date (shouldn't happen for existing users)
+    const agreementDate = accountCreationDate ? (typeof accountCreationDate === 'string' ? accountCreationDate : accountCreationDate.toISOString()) : new Date().toISOString();
+    
+    console.log('📝 Creating initial agreements with date:', agreementDate);
     
     await recordAgreement(
       AGREEMENT_TYPES.SIGNUP_TERMS,
       AGREEMENT_VERSIONS.TERMS_OF_SERVICE,
       { 
         migratedFromExistingUser: true,
-        originalSignupDate: now // Use current date as we don't know the original date
+        originalSignupDate: agreementDate
       },
-      userEmail
+      userEmail,
+      agreementDate // Pass custom timestamp
     );
     
     await recordAgreement(
@@ -378,12 +390,13 @@ export async function createInitialAgreementsForExistingUser(userEmail = null) {
       AGREEMENT_VERSIONS.PRIVACY_POLICY,
       { 
         migratedFromExistingUser: true,
-        originalSignupDate: now
+        originalSignupDate: agreementDate
       },
-      userEmail
+      userEmail,
+      agreementDate // Pass custom timestamp
     );
 
-    console.log('📝 Created initial agreements for existing user:', userEmail);
+    console.log('📝 Created initial agreements for existing user:', userEmail, 'with date:', agreementDate);
     return true;
   } catch (error) {
     console.error('Error creating initial agreements for existing user:', error);

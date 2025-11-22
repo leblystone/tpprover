@@ -7,6 +7,7 @@ import { useFirebase } from '../context/FirebaseContext'
 import { useAppContext } from '../context/AppContext'
 import { saveAppData } from '../services/cloudStorage'
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers'
+import DeleteAccountModal from '../components/common/DeleteAccountModal'
 
 export default function SettingsData() {
   const { theme } = useOutletContext()
@@ -20,6 +21,8 @@ export default function SettingsData() {
   const [pwaPrompted, setPWAPrompted] = useState(false)
   const [recoveryStatus, setRecoveryStatus] = useState(null)
   const [hasRecoverySnapshot, setHasRecoverySnapshot] = useState(false)
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
+  const [hasDeletionRequest, setHasDeletionRequest] = useState(false)
 
   // Check for recovery snapshot on mount and when it might appear
   useEffect(() => {
@@ -33,6 +36,37 @@ export default function SettingsData() {
     const interval = setInterval(checkSnapshot, 2000);
     return () => clearInterval(interval);
   }, [])
+
+  // Check for deletion request status
+  useEffect(() => {
+    const checkDeletionRequest = () => {
+      try {
+        const deletionRequest = localStorage.getItem('tpprover_deletion_request_submitted');
+        if (deletionRequest) {
+          const data = JSON.parse(deletionRequest);
+          // Only show if it's for the current user
+          if (data.email === firebaseUser?.email) {
+            setHasDeletionRequest(true);
+          } else {
+            setHasDeletionRequest(false);
+          }
+        } else {
+          setHasDeletionRequest(false);
+        }
+      } catch (e) {
+        console.error('Error checking deletion request:', e);
+        setHasDeletionRequest(false);
+      }
+    };
+    
+    checkDeletionRequest();
+    // Also check when modal closes
+    const handleModalClose = () => {
+      setTimeout(checkDeletionRequest, 100);
+    };
+    window.addEventListener('tpp:deletion-request-submitted', handleModalClose);
+    return () => window.removeEventListener('tpp:deletion-request-submitted', handleModalClose);
+  }, [firebaseUser?.email])
 
   useEffect(() => {
     const handler = (e) => {
@@ -434,6 +468,30 @@ export default function SettingsData() {
 
       {/* Data Settings */}
       <div className="space-y-4">
+        {/* Deletion Request Chip */}
+        {hasDeletionRequest && (
+          <div 
+            className="p-3 rounded-lg border flex items-center gap-3"
+            style={{ 
+              backgroundColor: theme?.isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2',
+              borderColor: '#dc2626'
+            }}
+          >
+            <div 
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: '#dc2626' }}
+            />
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: '#dc2626' }}>
+                Account Deletion Request Submitted
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: theme?.textLight }}>
+                Your account will be deleted within 48 hours. A confirmation email will be sent upon completion.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Recovery Section */}
         <div 
           className="p-4 rounded-lg space-y-3"
@@ -506,7 +564,7 @@ export default function SettingsData() {
               style={{ backgroundColor: '#8B1A1A' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7A1515'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8B1A1A'}
-              onClick={() => window.open('/delete-account', '_blank')}
+              onClick={() => setShowDeleteAccountModal(true)}
             >
               Delete Account Permanently
             </button>
@@ -515,6 +573,12 @@ export default function SettingsData() {
         </div>
       </div>
 
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        open={showDeleteAccountModal}
+        onClose={() => setShowDeleteAccountModal(false)}
+        theme={theme}
+      />
     </section>
   )
 }

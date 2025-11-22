@@ -995,3 +995,67 @@ exports.sendInviteEmail = async (userEmail, userName = null, inviteLink = null) 
   return sendEmail(userEmail, subject, html);
 };
 
+/**
+ * Send account deletion request notification to admin
+ * This sends an email to contact@thepepplanner.com with user details
+ */
+exports.sendAccountDeletionRequestToAdmin = async (userEmail, userName = null, dataSummary = {}) => {
+  const adminEmail = 'contact@thepepplanner.com';
+  
+  const subject = `Account Deletion Request - ${userEmail}`;
+  
+  // Build data summary text
+  const dataSummaryText = Object.entries(dataSummary)
+    .map(([key, value]) => {
+      const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
+      return `  • ${label}: ${value}`;
+    })
+    .join('\n');
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #344E41, #3A5A40); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .data-summary { background: white; padding: 15px; margin: 15px 0; border-left: 4px solid #dc2626; border-radius: 4px; }
+        .footer { background: #f0f0f0; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 8px 8px; }
+        .warning { color: #dc2626; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>🗑️ Account Deletion Request</h2>
+        </div>
+        <div class="content">
+          <p><strong>User Email:</strong> ${userEmail}</p>
+          <p><strong>User Name:</strong> ${userName || 'Not provided'}</p>
+          <p><strong>Request Date:</strong> ${new Date().toLocaleString()}</p>
+          
+          <div class="data-summary">
+            <p class="warning">⚠️ The following data will be deleted within 48 hours:</p>
+            <pre style="margin: 10px 0; font-family: monospace; font-size: 12px;">${dataSummaryText || '  • No data summary available'}</pre>
+          </div>
+          
+          <p><strong>Action Required:</strong> Please manually delete this user's account and all associated data from Firebase/Firestore within 48 hours.</p>
+          
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+            <small>This is an automated notification from The Pep Planner account deletion system.</small>
+          </p>
+        </div>
+        <div class="footer">
+          <p>The Pep Planner - Account Management System</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  return sendEmail(adminEmail, subject, html);
+};
+
