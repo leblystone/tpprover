@@ -29,8 +29,6 @@ const SpendingWidget = ({ widget, theme }) => {
     
     // Create a set of order IDs that have costs (to avoid double-counting stockpile items)
     const ordersWithCosts = new Set();
-    
-    console.log('💰 SpendingWidget - Processing orders:', orders.length, 'stockpile items:', stockpile.length);
 
     // Process all orders (regardless of status) - use order date for time calculations
     orders.forEach(order => {
@@ -61,14 +59,6 @@ const SpendingWidget = ({ widget, theme }) => {
         
         // Use order date (not delivery date) for time-based calculations
         const orderDate = order.date ? new Date(order.date) : null;
-        
-        console.log('💰 SpendingWidget - Counting order:', {
-          orderId: order.id,
-          orderDate: order.date,
-          itemsCost,
-          shippingCost,
-          totalCost
-        });
         
         // Total spend (all time) - count all orders with amounts
         totalSpend += totalCost;
@@ -101,13 +91,6 @@ const SpendingWidget = ({ widget, theme }) => {
         if (!linkedOrderHasCost) {
           // This is either a manually added item (no orderId) or linked to an order without cost
           // Count it in totals
-          console.log('💰 SpendingWidget - Counting stockpile item:', {
-            stockItemId: stockItem.id,
-            orderId: orderId || 'none (manually added)',
-            costPerVial,
-            quantity,
-            stockItemTotal
-          });
           
           // Total spend (all time)
           totalSpend += stockItemTotal;
@@ -124,19 +107,8 @@ const SpendingWidget = ({ widget, theme }) => {
           if (purchaseDate && purchaseDate >= lastMonth && purchaseDate <= lastMonthEnd) {
             lastMonthSpend += stockItemTotal;
           }
-        } else {
-          console.log('💰 SpendingWidget - Skipping stockpile item (already counted in order):', {
-            stockItemId: stockItem.id,
-            orderId
-          });
         }
       }
-    });
-    
-    console.log('💰 SpendingWidget - Final totals:', {
-      lastMonthSpend,
-      last90DaysSpend,
-      totalSpend
     });
 
     return { 
