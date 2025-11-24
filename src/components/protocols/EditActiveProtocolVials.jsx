@@ -41,7 +41,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
     const isLinked = linkedItem?.status === 'linked';
     const deliveryMethod = linkedItem?.deliveryMethod || {};
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (supports both mouse and touch)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (penTypeDropdownRef.current && !penTypeDropdownRef.current.contains(event.target)) {
@@ -49,8 +49,13 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
             }
         };
         if (penTypeDropdownOpen) {
+            // Support both mouse and touch events for mobile compatibility
             document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+                document.removeEventListener('touchstart', handleClickOutside);
+            };
         }
     }, [penTypeDropdownOpen]);
 
@@ -301,11 +306,20 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                         <button
                                             type="button"
                                             onClick={() => setPenTypeDropdownOpen(!penTypeDropdownOpen)}
-                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                                            onMouseDown={(e) => {
+                                              // Prevent any parent blur events on mobile
+                                              e.preventDefault();
+                                            }}
+                                            onTouchStart={(e) => {
+                                              // Prevent any parent blur events on touch devices
+                                              e.preventDefault();
+                                            }}
+                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
                                             style={{
                                                 borderColor: penTypeDropdownOpen ? theme.primary : theme.border,
                                                 backgroundColor: theme.cardBackground,
-                                                color: deliveryMethod.penType ? theme.text : theme.textLight
+                                                color: deliveryMethod.penType ? theme.text : theme.textLight,
+                                                WebkitTapHighlightColor: 'transparent'
                                             }}
                                         >
                                             <span>
@@ -353,14 +367,25 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                                         )}
                                                         <button
                                                             type="button"
-                                                            onClick={() => {
-                                                                handleDeliveryMethodChange('penType', option.value);
-                                                                setPenTypeDropdownOpen(false);
+                                                            onMouseDown={(e) => {
+                                                              // Prevent blur events on mobile
+                                                              e.preventDefault();
                                                             }}
-                                                            className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                            onTouchStart={(e) => {
+                                                              // Prevent blur events on touch devices
+                                                              e.preventDefault();
+                                                            }}
+                                                            onClick={(e) => {
+                                                              e.preventDefault();
+                                                              e.stopPropagation();
+                                                              handleDeliveryMethodChange('penType', option.value);
+                                                              setPenTypeDropdownOpen(false);
+                                                            }}
+                                                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
                                                             style={{
                                                                 color: deliveryMethod.penType === option.value ? theme.primary : theme.text,
-                                                                backgroundColor: 'transparent'
+                                                                backgroundColor: 'transparent',
+                                                                WebkitTapHighlightColor: 'transparent'
                                                             }}
                                                             onMouseEnter={(e) => {
                                                                 e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
@@ -574,11 +599,20 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                         <button
                                             type="button"
                                             onClick={() => setPenTypeDropdownOpen(!penTypeDropdownOpen)}
-                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                                            onMouseDown={(e) => {
+                                              // Prevent any parent blur events on mobile
+                                              e.preventDefault();
+                                            }}
+                                            onTouchStart={(e) => {
+                                              // Prevent any parent blur events on touch devices
+                                              e.preventDefault();
+                                            }}
+                                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
                                             style={{
                                                 borderColor: penTypeDropdownOpen ? theme.primary : theme.border,
                                                 backgroundColor: theme.cardBackground,
-                                                color: deliveryMethod.penType ? theme.text : theme.textLight
+                                                color: deliveryMethod.penType ? theme.text : theme.textLight,
+                                                WebkitTapHighlightColor: 'transparent'
                                             }}
                                         >
                                             <span>
@@ -626,14 +660,25 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                                         )}
                                                         <button
                                                             type="button"
-                                                            onClick={() => {
-                                                                handleDeliveryMethodChange('penType', option.value);
-                                                                setPenTypeDropdownOpen(false);
+                                                            onMouseDown={(e) => {
+                                                              // Prevent blur events on mobile
+                                                              e.preventDefault();
                                                             }}
-                                                            className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                            onTouchStart={(e) => {
+                                                              // Prevent blur events on touch devices
+                                                              e.preventDefault();
+                                                            }}
+                                                            onClick={(e) => {
+                                                              e.preventDefault();
+                                                              e.stopPropagation();
+                                                              handleDeliveryMethodChange('penType', option.value);
+                                                              setPenTypeDropdownOpen(false);
+                                                            }}
+                                                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
                                                             style={{
                                                                 color: deliveryMethod.penType === option.value ? theme.primary : theme.text,
-                                                                backgroundColor: 'transparent'
+                                                                backgroundColor: 'transparent',
+                                                                WebkitTapHighlightColor: 'transparent'
                                                             }}
                                                             onMouseEnter={(e) => {
                                                                 e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;

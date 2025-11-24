@@ -190,7 +190,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
         }
     }, [isOpen]);
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (supports both mouse and touch)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (buttonRef.current && !buttonRef.current.contains(event.target) &&
@@ -200,8 +200,13 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
         };
 
         if (isOpen) {
+            // Support both mouse and touch events for mobile compatibility
             document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+                document.removeEventListener('touchstart', handleClickOutside);
+            };
         }
     }, [isOpen]);
 
@@ -373,8 +378,20 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                             <button
                                 key={day}
                                 type="button"
-                                onClick={() => handleDateSelect(day)}
-                                className={`aspect-square rounded-lg transition-all ${compact ? 'text-xs' : 'text-sm'} font-medium`}
+                                onMouseDown={(e) => {
+                                    // Prevent blur events on mobile
+                                    e.preventDefault();
+                                }}
+                                onTouchStart={(e) => {
+                                    // Prevent blur events on touch devices
+                                    e.preventDefault();
+                                }}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDateSelect(day);
+                                }}
+                                className={`aspect-square rounded-lg transition-all ${compact ? 'text-xs' : 'text-sm'} font-medium touch-manipulation`}
                                 style={{
                                     backgroundColor: isSelectedDate
                                         ? theme.primary
@@ -393,7 +410,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                                             ? `inset 0 1px 0 rgba(255, 255, 255, 0.3)`
                                             : 'none',
                                     backdropFilter: !isSelectedDate ? 'blur(4px)' : 'none',
-                                    WebkitBackdropFilter: !isSelectedDate ? 'blur(4px)' : 'none'
+                                    WebkitBackdropFilter: !isSelectedDate ? 'blur(4px)' : 'none',
+                                    WebkitTapHighlightColor: 'transparent'
                                 }}
                                 onMouseEnter={(e) => {
                                     if (!isSelectedDate) {
@@ -480,12 +498,21 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between`}
+                onMouseDown={(e) => {
+                    // Prevent any parent blur events on mobile
+                    e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                    // Prevent any parent blur events on touch devices
+                    e.preventDefault();
+                }}
+                className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between touch-manipulation`}
                 style={{
                     border: `1px solid #f0eee7`,
                     boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                     backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                    color: theme.isDark ? theme.text : '#181A18'
+                    color: theme.isDark ? theme.text : '#181A18',
+                    WebkitTapHighlightColor: 'transparent'
                 }}
             >
                 <span className={compact ? 'text-sm' : ''} style={{ color: value ? (theme.isDark ? theme.text : '#181A18') : (theme.textLight || theme.text) }}>

@@ -161,7 +161,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState({}); // Track which peptide's dropdown is open
     const penTypeDropdownRefs = useRef({});
 
-    // Close dropdowns when clicking outside
+    // Close dropdowns when clicking outside (supports both mouse and touch)
     useEffect(() => {
         const handleClickOutside = (event) => {
             Object.keys(penTypeDropdownOpen).forEach(peptideId => {
@@ -175,9 +175,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         };
 
         if (Object.keys(penTypeDropdownOpen).some(key => penTypeDropdownOpen[key])) {
+            // Support both mouse and touch events for mobile compatibility
             document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
             return () => {
                 document.removeEventListener('mousedown', handleClickOutside);
+                document.removeEventListener('touchstart', handleClickOutside);
             };
         }
     }, [penTypeDropdownOpen]);
@@ -690,11 +693,20 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                             [peptideId]: !prev[peptideId]
                                                                         }));
                                                                     }}
-                                                                    className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                                                                    onMouseDown={(e) => {
+                                                                      // Prevent any parent blur events on mobile
+                                                                      e.preventDefault();
+                                                                    }}
+                                                                    onTouchStart={(e) => {
+                                                                      // Prevent any parent blur events on touch devices
+                                                                      e.preventDefault();
+                                                                    }}
+                                                                    className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
                                                                     style={{
                                                                         borderColor: penTypeDropdownOpen[peptideId] ? theme.primary : theme.border,
                                                                         backgroundColor: theme.cardBackground,
-                                                                        color: deliveryData.penType ? theme.text : theme.textLight
+                                                                        color: deliveryData.penType ? theme.text : theme.textLight,
+                                                                        WebkitTapHighlightColor: 'transparent'
                                                                     }}
                                                                 >
                                                                     <span>
@@ -742,7 +754,17 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                                 )}
                                                                                 <button
                                                                                     type="button"
-                                                                                    onClick={() => {
+                                                                                    onMouseDown={(e) => {
+                                                                                      // Prevent blur events on mobile
+                                                                                      e.preventDefault();
+                                                                                    }}
+                                                                                    onTouchStart={(e) => {
+                                                                                      // Prevent blur events on touch devices
+                                                                                      e.preventDefault();
+                                                                                    }}
+                                                                                    onClick={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        e.stopPropagation();
                                                                                         setSkippedPeptideDeliveryMethods(prev => ({
                                                                                             ...prev,
                                                                                             [peptideId]: {
@@ -755,9 +777,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                                             [peptideId]: false
                                                                                         }));
                                                                                     }}
-                                                                                    className="w-full text-left px-3 py-2 text-sm transition-all"
+                                                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
                                                                                     style={{
                                                                                         color: deliveryData.penType === option.value ? theme.primary : theme.text,
+                                                                                        WebkitTapHighlightColor: 'transparent',
                                                                                         backgroundColor: 'transparent'
                                                                                     }}
                                                                                     onMouseEnter={(e) => {

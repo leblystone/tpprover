@@ -4,6 +4,7 @@ import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCompletionSta
 import TaskDisplay from './TaskDisplay';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
+import { toKey } from './MonthGrid';
 
 // Normalize timeslot labels for consistent storage/IDs
 function normalizeSlot(slot) {
@@ -28,6 +29,38 @@ function getSupplementIcon(delivery, size = 16) {
     }
 }
 
+// Helper to safely parse YYYY-MM-DD strings into local time dates
+// This prevents timezone issues where UTC parsing causes the wrong day to display
+function parseDateString(dateString) {
+    try {
+        if (!dateString) return null;
+        // If it's already a Date object, return it
+        if (dateString instanceof Date) return dateString;
+        // Ensure it's a string before trying to split
+        if (typeof dateString !== 'string') {
+            // Try to convert to string or create new Date
+            return new Date(dateString);
+        }
+        // Try to parse as YYYY-MM-DD format
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+            const [year, month, day] = parts.map(Number);
+            // Validate the numbers are valid
+            if (isNaN(year) || isNaN(month) || isNaN(day)) {
+                return new Date(dateString);
+            }
+            // Create date in local timezone to avoid UTC conversion issues
+            return new Date(year, month - 1, day);
+        }
+        // Fallback for other formats
+        return new Date(dateString);
+    } catch (error) {
+        console.error('Error parsing date string:', dateString, error);
+        // Return current date as fallback
+        return new Date();
+    }
+}
+
 export default function CalendarQuickEdit({ date, scheduledData, theme, onClose, onTasksUpdated }) {
     const [completedTasks, setCompletedTasks] = useState({});
     const [loading, setLoading] = useState(false);
@@ -36,9 +69,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
     const [pendingInjectionTasks, setPendingInjectionTasks] = useState([]);
     const [pendingMarkAllContext, setPendingMarkAllContext] = useState(null); // Store { timeSlot, slotKey, allTaskIds }
 
-    // Convert date string to Date object if needed
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-
+    // Convert date string to Date object if needed - use local time parsing to avoid timezone issues
+    const dateObj = parseDateString(date);
 
     // Listen for task completion events to force re-render
     useEffect(() => {
@@ -440,7 +472,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                         const taskId = generateTaskId(task);
                         const isCompleted = completedTasks[timeSlot]?.[taskId] || false;
 
-                        const dateKey = typeof date === 'string' ? date : dateObj.toISOString().slice(0,10);
+                        // Use the original date string if available, otherwise generate from dateObj using local time
+                        const dateKey = typeof date === 'string' ? date : (dateObj ? toKey(dateObj) : '');
                         return (
                             <TaskDisplay
                                 key={`peptide-${index}-${forceRender}`}
@@ -469,7 +502,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                         const taskId = generateTaskId(task);
                         const isCompleted = completedTasks[timeSlot]?.[taskId] || false;
 
-                        const dateKey = typeof date === 'string' ? date : dateObj.toISOString().slice(0,10);
+                        // Use the original date string if available, otherwise generate from dateObj using local time
+                        const dateKey = typeof date === 'string' ? date : (dateObj ? toKey(dateObj) : '');
                         return (
                             <TaskDisplay
                                 key={`supplement-${index}-${forceRender}`}
@@ -488,15 +522,17 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
         );
     }, [date, completedTasks, forceRender, dateObj, theme, loading, handleMarkAllCompleted, handleTaskToggle]);
 
-    if (!scheduledData?.bySlot) {
+    // Don't render if date or scheduledData is invalid
+    if (!date || !dateObj || !scheduledData?.bySlot) {
         return null;
     }
 
-    const dateDisplay = new Date(date).toLocaleDateString('en-US', {
+    // Use dateObj (properly parsed in local time) for display
+    const dateDisplay = dateObj ? dateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric'
-    });
+    }) : '';
 
     // Calculate overall completion stats
     const allSlots = Object.keys(scheduledData.bySlot || {});

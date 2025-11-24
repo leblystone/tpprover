@@ -17,7 +17,7 @@ export default function ColorSwatchDropdown({
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (supports both mouse and touch)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -26,11 +26,14 @@ export default function ColorSwatchDropdown({
         };
 
         if (isOpen) {
+            // Support both mouse and touch events for mobile compatibility
             document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
         };
     }, [isOpen]);
 
@@ -50,11 +53,20 @@ export default function ColorSwatchDropdown({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                onMouseDown={(e) => {
+                    // Prevent any parent blur events on mobile
+                    e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                    // Prevent any parent blur events on touch devices
+                    e.preventDefault();
+                }}
+                className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
                 style={{
                     borderColor: isOpen ? theme.primary : theme.border,
                     backgroundColor: theme.cardBackground,
-                    color: theme.text
+                    color: theme.text,
+                    WebkitTapHighlightColor: 'transparent'
                 }}
             >
                 <span className="flex items-center gap-2">
@@ -98,16 +110,26 @@ export default function ColorSwatchDropdown({
                                     key={name}
                                     type="button"
                                     title={name}
-                                    onClick={() => {
+                                    onMouseDown={(e) => {
+                                        // Prevent blur events on mobile
+                                        e.preventDefault();
+                                    }}
+                                    onTouchStart={(e) => {
+                                        // Prevent blur events on touch devices
+                                        e.preventDefault();
+                                    }}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         onChange(hex);
                                         setIsOpen(false);
                                     }}
-                                    className={`relative w-full aspect-square rounded-lg transition-all duration-200 hover:scale-105 ${
+                                    className={`relative w-full aspect-square rounded-lg transition-all duration-200 hover:scale-105 touch-manipulation ${
                                         isSelected 
                                             ? 'ring-2 ring-offset-2 shadow-lg' 
                                             : 'hover:shadow-md border-2 border-gray-300'
                                     }`}
-                                    style={isSelected ? { ...style, ringColor: theme.primary } : style}
+                                    style={isSelected ? { ...style, ringColor: theme.primary, WebkitTapHighlightColor: 'transparent' } : { ...style, WebkitTapHighlightColor: 'transparent' }}
                                 >
                                     {isSelected && (
                                         <div className="absolute inset-0 flex items-center justify-center">

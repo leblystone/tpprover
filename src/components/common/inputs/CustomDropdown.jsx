@@ -16,7 +16,7 @@ export default function CustomDropdown({
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (supports both mouse and touch)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -25,11 +25,14 @@ export default function CustomDropdown({
         };
 
         if (isOpen) {
+            // Support both mouse and touch events for mobile compatibility
             document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
         };
     }, [isOpen]);
 
@@ -48,11 +51,20 @@ export default function CustomDropdown({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                onMouseDown={(e) => {
+                    // Prevent any parent blur events on mobile
+                    e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                    // Prevent any parent blur events on touch devices
+                    e.preventDefault();
+                }}
+                className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
                 style={{
                     borderColor: isOpen ? theme.primary : theme.border,
                     backgroundColor: theme.cardBackground,
-                    color: value ? theme.text : theme.textLight
+                    color: value ? theme.text : theme.textLight,
+                    WebkitTapHighlightColor: 'transparent'
                 }}
             >
                 <span>{displayText}</span>
@@ -79,14 +91,25 @@ export default function CustomDropdown({
                                 <button
                                     key={option.value}
                                     type="button"
-                                    onClick={() => {
+                                    onMouseDown={(e) => {
+                                        // Prevent blur events on mobile
+                                        e.preventDefault();
+                                    }}
+                                    onTouchStart={(e) => {
+                                        // Prevent blur events on touch devices
+                                        e.preventDefault();
+                                    }}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         onChange(option.value);
                                         setIsOpen(false);
                                     }}
-                                    className="w-full px-3 py-2 text-sm text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                    className="w-full px-3 py-2 text-sm text-left flex items-center justify-between hover:bg-gray-50 transition-colors touch-manipulation"
                                     style={{
                                         backgroundColor: isSelected ? theme.primary + '10' : 'transparent',
-                                        color: theme.text
+                                        color: theme.text,
+                                        WebkitTapHighlightColor: 'transparent'
                                     }}
                                 >
                                     <span className="flex items-center gap-2">

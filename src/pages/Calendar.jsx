@@ -755,11 +755,23 @@ export default function Calendar() {
           }
 
           // Force complete refresh instead of merging to prevent stale data
-          // Debug logging removed - uncomment below if needed for debugging:
-          // console.log('🔄 Calendar: Refreshing with new data', { supplements: supps.length, goals: goals.length });
+          // Debug logging to help diagnose missing scheduled tasks
+          const scheduledKeys = Object.keys(next);
+          const keysWithTasks = scheduledKeys.filter(k => {
+            const dayData = next[k];
+            return (dayData?.bySlot && Object.keys(dayData.bySlot).length > 0) || 
+                   (dayData?.peptides && dayData.peptides.length > 0) ||
+                   (dayData?.supplements && dayData.supplements.length > 0);
+          });
+          if (keysWithTasks.length > 0) {
+            console.log('📅 Calendar: Scheduled tasks found for', keysWithTasks.length, 'days');
+          } else {
+            console.warn('⚠️ Calendar: No scheduled tasks found in loadData. Protocols:', protocols.length, 'Supplements:', supps.length);
+          }
           setScheduled(next)
         } catch (e) {
           console.error('[Calendar Debug] Error in loadData:', e);
+          console.error('Error stack:', e.stack);
         }
   }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals, viewMode]);
 
@@ -1082,6 +1094,10 @@ export default function Calendar() {
     }
   };
 
+  // Safety check - don't render if theme is not available (after all hooks)
+  if (!theme) {
+    return null;
+  }
 
   return (
     <section className="flex flex-col h-full">

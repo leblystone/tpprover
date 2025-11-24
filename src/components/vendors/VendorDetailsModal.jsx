@@ -81,7 +81,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
     }
   }, [open, vendor, activeTab])
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns when clicking outside (supports both mouse and touch)
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Check if click is outside any dropdown
@@ -91,9 +91,12 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       }
     }
     if (Object.keys(openDropdowns).some(idx => openDropdowns[idx])) {
+      // Support both mouse and touch events for mobile compatibility
       document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('touchstart', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('touchstart', handleClickOutside)
       }
     }
   }, [openDropdowns])
@@ -289,7 +292,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                       value={c.value || ''} 
                       onChange={e => updateContact(idx, 'value', e.target.value)} 
                       onFocus={() => setContactFocused(prev => ({ ...prev, [idx]: true }))}
-                      onBlur={() => setContactFocused(prev => ({ ...prev, [idx]: false }))}
+                      onBlur={(e) => {
+                        // Delay blur to allow dropdown clicks to register on mobile
+                        setTimeout(() => {
+                          // Only blur if dropdown is closed or if focus moved outside the dropdown container
+                          const relatedTarget = e.relatedTarget || document.activeElement
+                          const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                          if (!isClickingDropdown && !openDropdowns[idx]) {
+                            setContactFocused(prev => ({ ...prev, [idx]: false }))
+                          }
+                        }, 150)
+                      }}
                       placeholder={!contactFocused[idx] && !c.value ? getContactPlaceholder(c.type) : ' '}
                       className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                       style={{
@@ -303,6 +316,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                     <button
                       type="button"
                       onClick={() => setOpenDropdowns(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                      onMouseDown={(e) => {
+                        // Prevent input blur when clicking dropdown button
+                        e.preventDefault()
+                      }}
+                      onTouchStart={(e) => {
+                        // Prevent input blur on touch devices
+                        e.preventDefault()
+                      }}
                       className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                       data-dropdown-container
                       style={{ 
@@ -324,7 +345,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                       </svg>
                     </button>
                     {openDropdowns[idx] && (
-                      <div className="relative">
+                      <div className="relative" data-dropdown-container>
                         <div 
                           className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
                           style={{
@@ -354,14 +375,25 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                                 )}
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onMouseDown={(e) => {
+                                    // Prevent input blur when clicking dropdown option
+                                    e.preventDefault()
+                                  }}
+                                  onTouchStart={(e) => {
+                                    // Prevent input blur on touch devices
+                                    e.preventDefault()
+                                  }}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
                                     updateContact(idx, 'type', option.value);
                                     setOpenDropdowns(prev => ({ ...prev, [idx]: false }));
                                   }}
-                                  className="w-full text-left px-3 py-2 text-sm transition-all"
+                                  className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
                                   style={{
                                     color: c.type === option.value ? theme.primary : theme.text,
-                                    backgroundColor: 'transparent'
+                                    backgroundColor: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent'
                                   }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;

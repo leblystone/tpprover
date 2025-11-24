@@ -239,7 +239,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
     }
   };
 
-  // Handle click outside for pen type dropdown
+  // Handle click outside for pen type dropdown (supports both mouse and touch)
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (penTypeDropdownRef.current && !penTypeDropdownRef.current.contains(event.target)) {
@@ -248,11 +248,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
     };
 
     if (isPenTypeDropdownOpen) {
+      // Support both mouse and touch events for mobile compatibility
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isPenTypeDropdownOpen]);
 
@@ -747,11 +750,20 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                           <button
                             type="button"
                             onClick={() => setIsPenTypeDropdownOpen(prev => !prev)}
-                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400"
+                            onMouseDown={(e) => {
+                              // Prevent any parent blur events on mobile
+                              e.preventDefault();
+                            }}
+                            onTouchStart={(e) => {
+                              // Prevent any parent blur events on touch devices
+                              e.preventDefault();
+                            }}
+                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
                             style={{
                               borderColor: isPenTypeDropdownOpen ? theme.primary : theme.border,
                               backgroundColor: theme.cardBackground,
-                              color: form.penType ? theme.text : theme.textLight
+                              color: form.penType ? theme.text : theme.textLight,
+                              WebkitTapHighlightColor: 'transparent'
                             }}
                           >
                             <span>
@@ -799,14 +811,25 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
                                   )}
                                   <button
                                     type="button"
-                                    onClick={() => {
+                                    onMouseDown={(e) => {
+                                      // Prevent blur events on mobile
+                                      e.preventDefault();
+                                    }}
+                                    onTouchStart={(e) => {
+                                      // Prevent blur events on touch devices
+                                      e.preventDefault();
+                                    }}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
                                       setForm(prev => ({ ...prev, penType: option.value }));
                                       setIsPenTypeDropdownOpen(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 text-sm transition-all"
+                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
                                     style={{
                                       color: form.penType === option.value ? theme.primary : theme.text,
-                                      backgroundColor: 'transparent'
+                                      backgroundColor: 'transparent',
+                                      WebkitTapHighlightColor: 'transparent'
                                     }}
                                     onMouseEnter={(e) => {
                                       e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;

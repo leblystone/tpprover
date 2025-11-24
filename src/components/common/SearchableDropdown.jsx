@@ -32,9 +32,12 @@ export default function SearchableDropdown({
                 setIsOpen(false);
             }
         };
+        // Support both mouse and touch events for mobile compatibility
         document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
         };
     }, []);
 
@@ -66,10 +69,22 @@ export default function SearchableDropdown({
                     setIsOpen(true);
                     setQuery('');
                 }}
+                onBlur={(e) => {
+                    // Delay blur to allow dropdown clicks to register on mobile
+                    setTimeout(() => {
+                        const relatedTarget = e.relatedTarget || document.activeElement;
+                        const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]') || 
+                                                   dropdownRef.current?.contains(relatedTarget);
+                        if (!isClickingDropdown && !isOpen) {
+                            // Only close if not clicking inside dropdown
+                        }
+                    }, 150);
+                }}
             />
             {isOpen && (
                 <div 
-                    className="absolute mt-1 w-full rounded shadow-lg z-20 border-0" 
+                    className="absolute mt-1 w-full rounded shadow-lg z-20 border-0"
+                    data-dropdown-container
                     style={{ 
                         backgroundColor: theme.isDark ? '#1f2937' : '#fff',
                         border: 'none',
@@ -83,12 +98,21 @@ export default function SearchableDropdown({
                             filteredOptions.map(option => (
                                 <li
                                     key={option.value}
-                                    className="p-2 cursor-pointer flex justify-between items-center transition-colors"
+                                    className="p-2 cursor-pointer flex justify-between items-center transition-colors touch-manipulation"
                                     style={{
                                         backgroundColor: value === option.value 
                                             ? (theme.isDark ? '#374151' : theme.secondary)
                                             : 'transparent',
-                                        color: theme.text
+                                        color: theme.text,
+                                        WebkitTapHighlightColor: 'transparent'
+                                    }}
+                                    onMouseDown={(e) => {
+                                        // Prevent input blur on mobile
+                                        e.preventDefault();
+                                    }}
+                                    onTouchStart={(e) => {
+                                        // Prevent input blur on touch devices
+                                        e.preventDefault();
                                     }}
                                     onMouseEnter={(e) => {
                                         if (value !== option.value) {
@@ -100,7 +124,11 @@ export default function SearchableDropdown({
                                             e.currentTarget.style.backgroundColor = 'transparent';
                                         }
                                     }}
-                                    onClick={() => handleSelect(option.value)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleSelect(option.value);
+                                    }}
                                 >
                                     <span>{option.label}</span>
                                     {value === option.value && <Check size={16} style={{ color: theme.primary }} />}

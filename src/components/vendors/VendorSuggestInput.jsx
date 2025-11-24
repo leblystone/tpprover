@@ -17,11 +17,56 @@ export default function VendorSuggestInput({ label = 'Vendor', value, onChange, 
 
   return (
     <div className="relative">
-      <TextInput label={label} value={q} onChange={(v) => { setQ(v); onChange?.(v); setOpen(true) }} placeholder={placeholder} theme={theme} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)} outlined={true} customTextColor={theme.isDark ? null : "#181A18"} customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} maxLength={maxLength} />
+      <TextInput 
+        label={label} 
+        value={q} 
+        onChange={(v) => { setQ(v); onChange?.(v); setOpen(true) }} 
+        placeholder={placeholder} 
+        theme={theme} 
+        onFocus={() => setOpen(true)} 
+        onBlur={(e) => {
+          // Delay blur to allow dropdown clicks to register on mobile
+          setTimeout(() => {
+            const relatedTarget = e.relatedTarget || document.activeElement;
+            const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]');
+            if (!isClickingDropdown && !open) {
+              setOpen(false);
+            }
+          }, 150);
+        }} 
+        outlined={true} 
+        customTextColor={theme.isDark ? null : "#181A18"} 
+        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'} 
+        maxLength={maxLength} 
+      />
       {open && list.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow" style={{ borderColor: theme?.border }}>
+        <div 
+          className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow" 
+          data-dropdown-container
+          style={{ borderColor: theme?.border }}
+        >
           {list.map(v => (
-            <button key={v} type="button" className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => { onChange?.(v); setQ(v); setOpen(false) }}>
+            <button 
+              key={v} 
+              type="button" 
+              className="w-full text-left px-3 py-2 hover:bg-gray-50 touch-manipulation" 
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              onMouseDown={(e) => {
+                // Prevent input blur on mobile
+                e.preventDefault();
+              }}
+              onTouchStart={(e) => {
+                // Prevent input blur on touch devices
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onChange?.(v);
+                setQ(v);
+                setOpen(false);
+              }}
+            >
               {v}
             </button>
           ))}
