@@ -12,6 +12,7 @@ function useLocal(key, fallback) {
 
 const SpendingWidget = ({ widget, theme }) => {
   const orders = useLocal('tpprover_orders', []);
+  const stockpile = useLocal('tpprover_stockpile', []);
 
   const spendingData = useMemo(() => {
     const now = new Date();
@@ -25,36 +26,117 @@ const SpendingWidget = ({ widget, theme }) => {
     let lastMonthSpend = 0;
     let last90DaysSpend = 0;
     let totalSpend = 0;
+    
+    // Create a set of order IDs that have costs (to avoid double-counting stockpile items)
+    const ordersWithCosts = new Set();
+    
+    console.log('💰 SpendingWidget - Processing orders:', orders.length, 'stockpile items:', stockpile.length);
 
+    // Process all orders (regardless of status) - use order date for time calculations
     orders.forEach(order => {
-      if (order.status === 'delivered' && order.deliveredDate) {
-        const deliveryDate = new Date(order.deliveredDate);
-        const itemsCost = order.items?.reduce((sum, item) => {
+      // Handle both new structure (items array) and old structure (cost field)
+      let itemsCost = 0;
+      if (order.items && order.items.length > 0) {
+        // New structure: calculate from items array
+        itemsCost = order.items.reduce((sum, item) => {
           const price = parseFloat(item.price) || 0;
           const quantity = parseInt(item.quantity, 10) || 1;
           return sum + (price * quantity);
-        }, 0) || 0;
+        }, 0);
+      } else if (order.cost) {
+        // Old structure: use cost field directly
+        itemsCost = parseFloat(String(order.cost).replace(/[^0-9.]/g, '')) || 0;
+      }
+      
+      // Check if shipping costs should be included
+      const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      const includeShipping = settings.orders?.includeShippingInCosts ?? true;
+      const shippingCost = includeShipping ? (parseFloat(order.shippingCost) || 0) : 0;
+      const totalCost = itemsCost + shippingCost;
+      
+      // Only count if there's actually a cost
+      if (totalCost > 0) {
+        // Track that this order has a cost (for stockpile deduplication)
+        ordersWithCosts.add(order.id);
         
-        // Check if shipping costs should be included
-        const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
-        const includeShipping = settings.orders?.includeShippingInCosts ?? true;
-        console.log('💰 SpendingWidget - includeShipping setting:', includeShipping, 'from settings:', settings.orders);
-        const shippingCost = includeShipping ? (parseFloat(order.shippingCost) || 0) : 0;
-        const totalCost = itemsCost + shippingCost;
+        // Use order date (not delivery date) for time-based calculations
+        const orderDate = order.date ? new Date(order.date) : null;
         
-        // Total spend (all time)
+        console.log('💰 SpendingWidget - Counting order:', {
+          orderId: order.id,
+          orderDate: order.date,
+          itemsCost,
+          shippingCost,
+          totalCost
+        });
+        
+        // Total spend (all time) - count all orders with amounts
         totalSpend += totalCost;
         
-        // Last 90 days spend
-        if (deliveryDate >= last90Days) {
+        // Last 90 days spend - based on order date
+        if (orderDate && orderDate >= last90Days) {
           last90DaysSpend += totalCost;
         }
         
-        // Last month spend
-        if (deliveryDate >= lastMonth && deliveryDate <= lastMonthEnd) {
+        // Last month spend - based on order date
+        if (orderDate && orderDate >= lastMonth && orderDate <= lastMonthEnd) {
           lastMonthSpend += totalCost;
         }
       }
+    });
+    
+    // Process stockpile items - only count items that don't have an orderId OR 
+    // items whose orderId doesn't exist in orders or doesn't have a cost
+    stockpile.forEach(stockItem => {
+      const orderId = stockItem.orderId;
+      const costPerVial = parseFloat(stockItem.cost) || 0;
+      const quantity = parseFloat(stockItem.quantity) || 0;
+      const stockItemTotal = costPerVial * quantity;
+      
+      // Only count if there's a cost and quantity
+      if (stockItemTotal > 0) {
+        // Check if this stockpile item is linked to an order that we already counted
+        const linkedOrderHasCost = orderId && ordersWithCosts.has(orderId);
+        
+        if (!linkedOrderHasCost) {
+          // This is either a manually added item (no orderId) or linked to an order without cost
+          // Count it in totals
+          console.log('💰 SpendingWidget - Counting stockpile item:', {
+            stockItemId: stockItem.id,
+            orderId: orderId || 'none (manually added)',
+            costPerVial,
+            quantity,
+            stockItemTotal
+          });
+          
+          // Total spend (all time)
+          totalSpend += stockItemTotal;
+          
+          // Time-based calculations for stockpile items
+          const purchaseDate = stockItem.purchaseDate ? new Date(stockItem.purchaseDate) : null;
+          
+          // Last 90 days spend
+          if (purchaseDate && purchaseDate >= last90Days) {
+            last90DaysSpend += stockItemTotal;
+          }
+          
+          // Last month spend
+          if (purchaseDate && purchaseDate >= lastMonth && purchaseDate <= lastMonthEnd) {
+            lastMonthSpend += stockItemTotal;
+          }
+        } else {
+          console.log('💰 SpendingWidget - Skipping stockpile item (already counted in order):', {
+            stockItemId: stockItem.id,
+            orderId
+          });
+        }
+      }
+    });
+    
+    console.log('💰 SpendingWidget - Final totals:', {
+      lastMonthSpend,
+      last90DaysSpend,
+      totalSpend
     });
 
     return { 
@@ -62,7 +144,7 @@ const SpendingWidget = ({ widget, theme }) => {
       last90DaysSpend, 
       totalSpend
     };
-  }, [orders]);
+  }, [orders, stockpile]);
 
   const getTrendColor = (trend) => {
     if (trend > 10) return theme.error;
