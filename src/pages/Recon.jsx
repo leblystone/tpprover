@@ -39,6 +39,7 @@ export default function Recon() {
     const [draft, setDraft] = useState({})
     const { isSaving, lastSaved, clearSavedData, updateFormData } = useAutoSave('tpprover_recon_add_draft', draft, setDraft, 1200)
 	const [prefill, setPrefill] = useState(null)
+	const [draftIdToRemove, setDraftIdToRemove] = useState(null) // Track draft ID to remove when saving
 	const [activeTab, setActiveTab] = useState('reconstituted') // reconstituted | history | calculator
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showHistoryFilters, setShowHistoryFilters] = useState(false)
@@ -331,7 +332,7 @@ export default function Recon() {
 		return 'mcg';
 	};
 
-	const handleCalculatorSave = useCallback((data) => {
+	const handleCalculatorSave = useCallback(async (data) => {
         if (isReadOnly) {
             setShowUpgradeModal(true);
             return;
@@ -377,23 +378,73 @@ export default function Recon() {
             updatedAt: now
         };
 
-        setReconItems(prev => [newItem, ...prev]);
+        // Calculate updated items (remove draft if present, add new item)
+        const draftId = draftIdToRemove;
+        setReconItems(prev => {
+            const filtered = draftId 
+                ? prev.filter(i => i.id !== draftId)
+                : prev;
+            return [newItem, ...filtered];
+        });
+        
+        // Calculate updated items for cloud sync (use current state)
+        const updatedItems = draftId 
+            ? [newItem, ...reconItems.filter(i => i.id !== draftId)]
+            : [newItem, ...reconItems];
         
         // Adjust stockpile - this will update quantities and remove items with 0
         console.log('🔄 Calling adjustStockpileAfterRecon with peptides:', peptides);
         adjustStockpileAfterRecon(peptides);
 
+        // Clear prefill and draft tracking
         setPrefill(null);
+        setDraftIdToRemove(null);
+        
         try {
             localStorage.removeItem('tpprover_recon_prefill');
         } catch {}
 
         setActiveTab('reconstituted');
 
+        // CRITICAL: Force immediate cloud sync to ensure draft is removed and new item is saved
+        if (firebaseUser && updatedItems) {
+            try {
+                const userId = firebaseUser.uid;
+                
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: updatedItems,
+                    reconHistory: reconHistory || [],
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                
+                // Force immediate sync with skipMerge to overwrite server data
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    if (draftId) {
+                        console.log('✅ Draft removed and new item synced to cloud immediately');
+                    } else {
+                        console.log('✅ New item synced to cloud immediately');
+                    }
+                } else {
+                    console.error('❌ Failed to sync to cloud');
+                }
+            } catch (error) {
+                console.error('❌ Error syncing to cloud:', error);
+                // Don't throw - the auto-sync will handle it
+            }
+        }
+
         window.dispatchEvent(new CustomEvent('tpp:toast', {
             detail: { message: 'Calculation saved successfully!', type: 'success' }
         }));
-    }, [isReadOnly, setShowUpgradeModal, vendors, setReconItems, adjustStockpileAfterRecon, setPrefill, setActiveTab]);
+    }, [isReadOnly, setShowUpgradeModal, vendors, setReconItems, adjustStockpileAfterRecon, setPrefill, setActiveTab, draftIdToRemove, firebaseUser, reconItems, protocols, reconHistory, supplements, orders, metrics, calendarNotes, stockpile, scheduledBuys]);
 
 	const filteredItems = reconItems.filter(i => {
 		const vendorName = i.vendorId ? vendorMap[i.vendorId] || '' : (i.vendor || '');
@@ -404,9 +455,44 @@ export default function Recon() {
 	const filteredHistory = reconHistory.filter(i => (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || (i.vendor || '').toLowerCase().includes(searchQuery.toLowerCase()))
 	const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.usedDate) - new Date(a.usedDate));
 
-    const handleMarkAsUsed = (itemToMove) => {
-        setReconItems(prev => prev.filter(i => i.id !== itemToMove.id));
-        setReconHistory(prev => [{ ...itemToMove, usedDate: new Date().toISOString() }, ...prev]);
+    const handleMarkAsUsed = async (itemToMove) => {
+        // Update local state immediately
+        const updatedItems = reconItems.filter(i => i.id !== itemToMove.id);
+        const updatedHistory = [{ ...itemToMove, usedDate: new Date().toISOString() }, ...reconHistory];
+        
+        setReconItems(updatedItems);
+        setReconHistory(updatedHistory);
+        
+        // CRITICAL: Force immediate cloud sync with skipMerge to ensure the change persists
+        // This prevents server data from restoring the item back to reconItems
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: updatedItems, // Use updated items with item removed
+                    reconHistory: updatedHistory, // Use updated history with item added
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                
+                // Force immediate sync with skipMerge to overwrite server data
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('✅ Marked as used - synced to cloud immediately');
+                } else {
+                    console.error('❌ Failed to sync marked-as-used item to cloud');
+                }
+            } catch (error) {
+                console.error('❌ Error syncing marked-as-used item to cloud:', error);
+                // Don't throw - the auto-sync will handle it
+            }
+        }
     };
 
 	// Set topbar tabs via custom event
@@ -549,8 +635,9 @@ export default function Recon() {
 												penColor: item.penColor || '',
 												cost: item.cost || ''
 											});
+											setDraftIdToRemove(item.id); // Track which draft to remove when saving
 											setActiveTab('calculator');
-											// Remove draft from list (will be replaced when saved)
+											// Remove draft from list visually (will be permanently removed when saved)
 											setReconItems(prev => prev.filter(i => i.id !== item.id));
 										} : undefined}
 									>
@@ -638,10 +725,39 @@ export default function Recon() {
                                                 )}
 											</div>
                                             <div className="flex items-center">
-											    <button className="p-2 rounded-md text-xs flex items-center gap-1 action-button-hover" style={{ color: theme.textLight }} onClick={() => handleMarkAsUsed(item)}>
-                                                    <CheckCircle size={14} className="icon-hover" /> <span className="text-hover">Mark as Used</span>
-                                                </button>
-                                                <button className="p-2 rounded-md action-button-hover" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-4 w-4 icon-hover" /></button>
+											    {item.isDraft ? (
+                                                    <button 
+                                                        className="p-2 rounded-md text-xs flex items-center gap-1 action-button-hover" 
+                                                        style={{ color: theme.primary }} 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent card click
+                                                            // Prefill calculator with draft data
+                                                            setPrefill({
+                                                                peptides: item.peptides || [{ name: item.peptide, mg: item.mg, dose: item.dose, doseUnit: item.doseUnit || 'mcg' }],
+                                                                vendor: item.vendor || '',
+                                                                water: item.water || 2,
+                                                                deliveryMethod: item.deliveryMethod || 'pipette',
+                                                                administrationRoute: item.administrationRoute || 'subq',
+                                                                penType: item.penType || '',
+                                                                penColor: item.penColor || '',
+                                                                cost: item.cost || ''
+                                                            });
+                                                            setDraftIdToRemove(item.id); // Track which draft to remove when saving
+                                                            setActiveTab('calculator');
+                                                            // Remove draft from list visually (will be permanently removed when saved)
+                                                            setReconItems(prev => prev.filter(i => i.id !== item.id));
+                                                        }}
+                                                    >
+                                                        <Calculator size={14} className="icon-hover" /> <span className="text-hover">Continue Draft</span>
+                                                    </button>
+                                                ) : (
+                                                    <>
+                                                        <button className="p-2 rounded-md text-xs flex items-center gap-1 action-button-hover" style={{ color: theme.textLight }} onClick={() => handleMarkAsUsed(item)}>
+                                                            <CheckCircle size={14} className="icon-hover" /> <span className="text-hover">Mark as Used</span>
+                                                        </button>
+                                                        <button className="p-2 rounded-md action-button-hover" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-4 w-4 icon-hover" /></button>
+                                                    </>
+                                                )}
                                             </div>
 										</div>
 
