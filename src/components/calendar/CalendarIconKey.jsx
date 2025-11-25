@@ -17,6 +17,16 @@ export default function CalendarIconKey({ theme, isVisible, onClose }) {
 
     const iconItems = [
         {
+            icon: <CheckCircle className="h-4 w-4" style={{ color: '#4CAF50' }} />,
+            label: 'All Research Completed',
+            description: 'Circle check mark shows all research for the day has been completed'
+        },
+        {
+            icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#73796D' }} />,
+            label: 'Research Incomplete',
+            description: 'Grey dot indicates there is still research to be completed'
+        },
+        {
             icon: getSupplementIcon('pill', 'h-4 w-4'),
             label: 'Oral Supplements',
             description: 'Pills, capsules, or oral medications'
@@ -79,14 +89,6 @@ export default function CalendarIconKey({ theme, isVisible, onClose }) {
                             </div>
                         </div>
                     ))}
-                </div>
-
-                <div className="p-4 border-t" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-                    <div className="text-xs" style={{ color: theme.textLight }}>
-                        <p className="mb-2"><strong>Mobile vs Desktop:</strong></p>
-                        <p className="mb-1">📱 <strong>Mobile:</strong> Shows essential icons and compact counts</p>
-                        <p>🖥️ <strong>Desktop:</strong> Shows all icons and detailed peptide names</p>
-                    </div>
                 </div>
             </div>
         </div>
