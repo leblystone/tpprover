@@ -14,6 +14,7 @@ const giftAccess = require('./giftAccess');
 const founderOffer = require('./founderOffer');
 const manualSyncSubscription = require('./manualSyncSubscription');
 const recoverLifetimePurchases = require('./recoverLifetimePurchases');
+const shippo = require('./shippo');
 // Test webhook email simulation
 const testWebhookSimulation = require('./testWebhookSimulation');
 
@@ -28,6 +29,9 @@ exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
 exports.completeGiftFromSession = stripe.completeGiftFromSession;
 exports.getFounderOfferStatus = founderOffer.getFounderOfferStatus;
+
+// Shippo Tracking Functions
+exports.getTrackingInfo = shippo.getTrackingInfo;
 
 // Admin Functions - Use Admin SDK to bypass client-side security rules
 exports.adminGrantLifetimeAccess = onCall(
@@ -1952,6 +1956,64 @@ exports.markTicketAsRead = onCall(
     } catch (error) {
       logger.error(`❌ Error marking ticket as read: ${error.message}`);
       throw new Error('Failed to mark ticket as read');
+    }
+  }
+);
+
+// ===== ADMIN MESSAGES FUNCTIONS =====
+
+// Create admin message (one-way message from admin to user)
+exports.createAdminMessage = onCall(
+  {
+    cors: true,
+    region: 'us-central1'
+  },
+  async (request) => {
+    try {
+      const { userEmail, message, adminPassword } = request.data || {};
+
+      if (!userEmail || !message || !adminPassword) {
+        logger.error('❌ Missing required fields:', { userEmail: !!userEmail, message: !!message, adminPassword: !!adminPassword });
+        throw new HttpsError('invalid-argument', 'User email, message, and admin password are required');
+      }
+
+      // Verify admin password
+      const ADMIN_PASSWORD = 'j&jm9102';
+      if (adminPassword !== ADMIN_PASSWORD) {
+        logger.error('❌ Invalid admin password');
+        throw new HttpsError('permission-denied', 'Invalid admin password');
+      }
+
+      logger.info(`📨 Creating admin message for: ${userEmail}`);
+
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      // Create admin message document
+      const messageRef = db.collection('adminMessages').doc();
+      const messageData = {
+        messageId: messageRef.id,
+        userEmail: userEmail.toLowerCase().trim(),
+        message: message.trim(),
+        createdAt: FieldValue.serverTimestamp(),
+        userReadAt: null, // Initially unread
+        createdBy: 'admin'
+      };
+
+      await messageRef.set(messageData);
+
+      logger.info(`✅ Admin message created: ${messageRef.id}`);
+      return { 
+        success: true, 
+        messageId: messageRef.id,
+        message: 'Admin message created successfully' 
+      };
+    } catch (error) {
+      logger.error(`❌ Error creating admin message: ${error.message}`, error);
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+      throw new HttpsError('internal', `Failed to create admin message: ${error.message}`);
     }
   }
 );

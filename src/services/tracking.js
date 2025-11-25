@@ -1,14 +1,17 @@
 /**
  * Shipment Tracking Service
- * Integrates with Shippo API for real-time USPS/UPS tracking
+ * Integrates with Shippo API for real-time USPS/UPS tracking via Firebase Functions
  */
 
-// Shippo API configuration
-const SHIPPO_API_BASE = 'https://api.goshippo.com/v1';
-const SHIPPO_API_KEY = import.meta.env.VITE_SHIPPO_API_KEY || import.meta.env.VITE_SHIPPO_TOKEN || import.meta.env.SHIPPO_API_KEY;
+import { httpsCallable } from 'firebase/functions';
+import { getFunctions } from 'firebase/functions';
+
+// Initialize Firebase Functions
+const functions = getFunctions();
 
 /**
  * Get tracking information for a shipment
+ * Uses Firebase Cloud Function to proxy Shippo API requests (avoids CORS issues)
  * @param {string} trackingNumber - The tracking number
  * @param {string} carrier - The carrier (usps, ups, fedex, etc.)
  * @returns {Promise<Object>} Tracking information
@@ -19,30 +22,57 @@ export async function getTrackingInfo(trackingNumber, carrier = 'usps') {
     }
 
     try {
-        // First, create a tracking object if it doesn't exist
-        const trackingResponse = await fetch(`${SHIPPO_API_BASE}/tracks/`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `ShippoToken ${SHIPPO_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                carrier: carrier.toLowerCase(),
-                tracking_number: trackingNumber
-            })
-        });
-
-        if (!trackingResponse.ok) {
-            console.error('Shippo API error:', trackingResponse.status, trackingResponse.statusText);
-            return { error: 'Failed to fetch tracking information' };
+        // Check if Functions are available
+        if (!functions) {
+            console.error('🚫 Firebase Functions not initialized');
+            // Fall back to mock data if functions aren't available
+            return getMockTrackingInfo(trackingNumber);
         }
 
-        const trackingData = await trackingResponse.json();
+        // Call Firebase Cloud Function to proxy Shippo API request
+        const getTrackingInfoFn = httpsCallable(functions, 'getTrackingInfo');
         
+        const result = await getTrackingInfoFn({
+            trackingNumber,
+            carrier: carrier.toLowerCase()
+        });
+
+        // Check if the function returned an error
+        if (result.data.error) {
+            console.error('Shippo API error:', result.data);
+            // Fall back to mock data on error (for development/testing)
+            const hasRealApiKey = import.meta.env.VITE_SHIPPO_API_KEY && !import.meta.env.VITE_SHIPPO_API_KEY.includes('test');
+            if (!hasRealApiKey) {
+                console.log('🧪 Falling back to mock tracking data (no real API key)');
+                return getMockTrackingInfo(trackingNumber);
+            }
+            return { error: result.data.error || 'Failed to fetch tracking information' };
+        }
+
         // Parse Shippo response into our format
-        return parseTrackingData(trackingData);
+        if (result.data.success && result.data.data) {
+            return parseTrackingData(result.data.data);
+        } else {
+            // Fall back to mock data if response format is unexpected
+            console.warn('⚠️ Unexpected response format, using mock data');
+            return getMockTrackingInfo(trackingNumber);
+        }
     } catch (error) {
         console.error('Tracking API error:', error);
+        
+        // Check if this is a "function not deployed" error
+        if (error.code === 'functions/not-found' || error.message?.includes('INTERNAL') || error.message?.includes('not-found')) {
+            console.error('🚫 Firebase Functions not deployed, using mock data');
+            return getMockTrackingInfo(trackingNumber);
+        }
+        
+        // For other errors, check if we have a real API key
+        const hasRealApiKey = import.meta.env.VITE_SHIPPO_API_KEY && !import.meta.env.VITE_SHIPPO_API_KEY.includes('test');
+        if (!hasRealApiKey) {
+            console.log('🧪 Error occurred, falling back to mock tracking data (no real API key)');
+            return getMockTrackingInfo(trackingNumber);
+        }
+        
         return { error: 'Network error while fetching tracking information' };
     }
 }

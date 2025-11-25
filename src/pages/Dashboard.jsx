@@ -62,10 +62,10 @@ export default function Dashboard() {
     if (!orders || orders.length === 0) return [];
     
     const now = new Date();
-    const threeDaysAgo = new Date(now);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
-    // Get active orders (non-delivered) OR delivered orders within last 3 days
+    // Get active orders (non-delivered) OR delivered orders within last 7 days
     const activeOrders = orders.filter(o => {
         const status = (o.status || '').toLowerCase();
         const isDelivered = status.includes('delivered');
@@ -74,16 +74,16 @@ export default function Dashboard() {
             return true; // Include all non-delivered orders
         }
         
-        // For delivered orders, only include if delivered within last 3 days
+        // For delivered orders, only include if delivered within last 7 days
         if (o.deliveryDate) {
             const deliveryDate = new Date(o.deliveryDate);
-            return deliveryDate >= threeDaysAgo;
+            return deliveryDate >= sevenDaysAgo;
         }
         
-        // If no delivery date but status is delivered, check if order date is within 3 days
+        // If no delivery date but status is delivered, check if order date is within 7 days
         if (o.date) {
             const orderDate = new Date(o.date);
-            return orderDate >= threeDaysAgo;
+            return orderDate >= sevenDaysAgo;
         }
         
         return false;
@@ -158,7 +158,7 @@ export default function Dashboard() {
   const [showNewProtocol, setShowNewProtocol] = useState(false)
   const [vendorNames, setVendorNames] = useState(() => { try { return JSON.parse(localStorage.getItem('tpprover_vendors')||'[]') } catch { return [] } })
   const [goals, setGoals] = useLocalStorage('tpprover_goals', [])
-  const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', [])
+  // metrics and setMetrics are already provided by useAppContext above
   const [showMetrics, setShowMetrics] = useState(false)
   const [editingMetric, setEditingMetric] = useState(null)
   const [showGoal, setShowGoal] = useState(false)
@@ -1098,17 +1098,19 @@ export default function Dashboard() {
             </div>
         </div>
         <div className="flex flex-col gap-0 md:gap-4" data-tour-id="incoming">
-            <UpcomingOrderCard 
-                theme={theme}
-                orders={Array.isArray(incomingOrders) ? incomingOrders : []}
-                onNewOrder={() => {
-                  if (isReadOnly) {
-                    setShowUpgradeModal(true);
-                    return;
-                  }
-                  setShowNewOrder(true);
-                }}
-            />
+            <div className="h-[320px] md:h-auto">
+              <UpcomingOrderCard 
+                  theme={theme}
+                  orders={Array.isArray(incomingOrders) ? incomingOrders : []}
+                  onNewOrder={() => {
+                    if (isReadOnly) {
+                      setShowUpgradeModal(true);
+                      return;
+                    }
+                    setShowNewOrder(true);
+                  }}
+              />
+            </div>
             <UpcomingBuys 
               buys={upcomingBuys} 
               theme={theme} 
@@ -1384,12 +1386,12 @@ export default function Dashboard() {
                 return;
             }
             
-            const now = new Date().toISOString();
+            const createdAt = new Date().toISOString();
             const newBuy = { 
                 ...buy, 
                 id: generateId(), 
-                createdAt: now, 
-                updatedAt: now 
+                createdAt: createdAt, 
+                updatedAt: createdAt 
             };
             setScheduledBuys(prev => [...prev, newBuy]);
             

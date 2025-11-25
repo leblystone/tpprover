@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Calendar, Target, History, CalendarCheck } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Target, History } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -540,14 +540,13 @@ export default function Protocols() {
                 return bStart.getTime() - aStart.getTime();
               });
 
-              // Group protocols by month/year
+              // Group protocols by month/year only
               const groupedProtocols = sortedProtocols.reduce((acc, p) => {
                 if (!p.endDate) return acc;
                 const endDate = new Date(p.endDate);
                 const month = endDate.toLocaleDateString('en-US', { month: 'short' });
-                const year = endDate.getFullYear().toString().slice(-2);
-                const day = endDate.getDate();
-                const key = `${month}|${day}'${year}`;
+                const year = endDate.getFullYear();
+                const key = `${month} ${year}`;
                 
                 if (!acc[key]) {
                   acc[key] = [];
@@ -556,330 +555,54 @@ export default function Protocols() {
                 return acc;
               }, {});
 
-              const formatMonthYear = (dateStr) => {
-                const date = new Date(dateStr);
-                const month = date.toLocaleDateString('en-US', { month: 'short' });
-                const year = date.getFullYear().toString().slice(-2);
-                const day = date.getDate();
-                return `${month}|${day}'${year}`;
-              };
-
               return (
-                <div className="relative pl-8">
-                  {/* Timeline vertical line */}
-                  <div 
-                    className="absolute left-6 top-0 bottom-0 w-0.5"
-                    style={{ backgroundColor: theme.border }}
-                  />
-                  
-                  <div className="space-y-8">
+                <div className="space-y-6">
                     {Object.entries(groupedProtocols).map(([dateKey, protocols]) => (
-                      <div key={dateKey} className="relative">
-                        {/* Date header */}
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="relative z-10 flex-shrink-0">
-                            <div 
-                              className="w-8 h-8 rounded-full flex items-center justify-center border-2"
-                              style={{ 
-                                backgroundColor: theme.cardBackground,
-                                borderColor: theme.primary,
-                                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
-                              }}
-                            >
-                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
-                            </div>
-                          </div>
-                          <h3 
-                            className="text-sm font-bold uppercase tracking-wider"
-                            style={{ color: theme.textLight }}
-                          >
-                            {dateKey}
-                          </h3>
-                        </div>
+                      <div key={dateKey} className="space-y-3">
+                        {/* Month/Year header */}
+                        <h3 
+                          className="text-base font-semibold"
+                          style={{ color: theme.text }}
+                        >
+                          {dateKey}
+                        </h3>
 
-                        <div className="space-y-4 ml-12">
+                        <ul className="space-y-2 ml-4">
                           {protocols.map((p) => {
                             const startDate = p.startDate ? new Date(p.startDate) : null;
                             const endDate = p.endDate ? new Date(p.endDate) : null;
                             const startDateStr = startDate ? formatMMDDYYYY(p.startDate) : 'Not started';
                             const endDateStr = endDate ? formatMMDDYYYY(p.endDate) : 'Ongoing';
                             
-                            // Calculate duration and progress for horizontal timeline
+                            // Calculate duration
                             let durationDays = 0;
-                            let currentDay = 0;
-                            let progressPercent = 100; // Default to 100% for completed protocols
-                            
                             if (startDate && endDate) {
                               durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-                              // For completed protocols, current day equals total days
-                              currentDay = durationDays;
-                              progressPercent = 100;
                             }
                             
-                            // Get vials and vendors from linkedItems
-                            const linkedItems = p.linkedItems || {};
-                            const vialInfo = [];
-                            const vendors = new Set();
-                            
-                            Object.values(linkedItems).forEach(item => {
-                              if (item.status === 'linked' && item.vialId) {
-                                const vial = stockpile.find(v => v.id === item.vialId);
-                                if (vial) {
-                                  vialInfo.push({
-                                    name: vial.name || 'Unknown',
-                                    mg: vial.mg || 'N/A',
-                                    vendor: vial.vendor || 'Unknown'
-                                  });
-                                  if (vial.vendor) vendors.add(vial.vendor);
-                                }
-                              }
-                            });
-                            
                             return (
-                              <div key={p.id} className="relative flex items-start gap-4">
-                                {/* Timeline dot */}
-                                <div className="relative z-10 flex-shrink-0">
-                                  <div 
-                                    className="w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all"
-                                    style={{ 
-                                      backgroundColor: theme.cardBackground,
-                                      borderColor: theme.primary,
-                                      boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
-                                    }}
-                                  >
-                                    <Calendar size={16} style={{ color: theme.primary }} />
-                                  </div>
-                                </div>
-                                
-                                {/* Content card - Modern styled */}
-                                <div 
-                                  className="flex-1 min-w-0 p-4 rounded-xl cursor-pointer transition-all"
-                                  style={{
-                                    backgroundColor: theme.cardBackground,
-                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : theme.border}`,
-                                    boxShadow: theme.isDark
-                                      ? `0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`
-                                      : `0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)`
-                                  }}
+                              <li key={p.id} className="list-disc">
+                                <button
                                   onClick={() => setHistoryProtocol(p)}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateX(4px)';
-                                    e.currentTarget.style.boxShadow = theme.isDark
-                                      ? `0 6px 16px rgba(0,0,0,0.4), 0 3px 6px rgba(0,0,0,0.3)`
-                                      : `0 6px 16px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.08)`;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateX(0)';
-                                    e.currentTarget.style.boxShadow = theme.isDark
-                                      ? `0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`
-                                      : `0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)`;
-                                  }}
+                                  className="text-left hover:opacity-80 transition-opacity"
+                                  style={{ color: theme.text }}
                                 >
-                                  <div className="space-y-3">
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                                        <h4 className="font-semibold text-base truncate" style={{ color: theme.text }}>
-                                          {p.protocolName || 'Unnamed Protocol'}
-                                        </h4>
-                                        {/* Emoji support - can be added to protocol data */}
-                                        {p.emoji && <span className="text-base flex-shrink-0">{p.emoji}</span>}
-                                      </div>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setHistoryProtocol(p);
-                                        }}
-                                        className="p-1.5 rounded-full hover:bg-opacity-20 transition-all flex-shrink-0"
-                                        style={{ 
-                                          color: theme.textLight,
-                                          backgroundColor: 'transparent'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.secondary;
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'transparent';
-                                        }}
-                                        title="View detailed history"
-                                      >
-                                        <History size={16} />
-                                      </button>
-                                    </div>
-
-                                    {/* Modern Timeline with gradient bar */}
-                                    {startDate && endDate && durationDays > 0 && (
-                                      <div className="relative w-full mt-4">
-                                        {/* Timeline bar container */}
-                                        <div 
-                                          className="relative h-10 rounded-full overflow-hidden"
-                                          style={{ 
-                                            background: theme.isDark 
-                                              ? `${theme.primary}15`
-                                              : `${theme.primary}10`,
-                                            boxShadow: theme.isDark 
-                                              ? 'inset 0 2px 4px rgba(0,0,0,0.3)'
-                                              : 'inset 0 1px 3px rgba(0,0,0,0.1)'
-                                          }}
-                                        >
-                                          {/* Gradient progress fill */}
-                                          <div 
-                                            className="absolute inset-0 opacity-40"
-                                            style={{
-                                              background: `linear-gradient(90deg, ${theme.primary}30 0%, ${theme.primaryDark || theme.primary}30 100%)`,
-                                            }}
-                                          />
-                                          
-                                          {/* Content overlay */}
-                                          <div className="relative h-full flex items-center justify-between px-4">
-                                            {/* Start marker */}
-                                            <div className="flex items-center gap-2 z-10">
-                                              <div 
-                                                className="w-7 h-7 rounded-full flex items-center justify-center"
-                                                style={{ 
-                                                  background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-                                                  boxShadow: theme.isDark 
-                                                    ? '0 4px 8px rgba(0,0,0,0.4)'
-                                                    : '0 4px 8px rgba(0,0,0,0.15)'
-                                                }}
-                                              >
-                                                <CalendarCheck size={14} style={{ color: '#ffffff' }} />
-                                              </div>
-                                              <div className="flex flex-col">
-                                                <span 
-                                                  className="text-[10px] font-semibold leading-tight"
-                                                  style={{ color: theme.text }}
-                                                >
-                                                  {startDateStr.split('/')[0]}/{startDateStr.split('/')[1]}
-                                                </span>
-                                                <span 
-                                                  className="text-[8px] leading-tight"
-                                                  style={{ color: theme.textLight }}
-                                                >
-                                                  Started
-                                                </span>
-                                              </div>
-                                            </div>
-                                            
-                                            {/* Duration indicator */}
-                                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1 rounded-full"
-                                              style={{
-                                                background: theme.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)',
-                                                backdropFilter: 'blur(4px)',
-                                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
-                                                boxShadow: theme.isDark 
-                                                  ? '0 2px 4px rgba(0,0,0,0.3)'
-                                                  : '0 2px 4px rgba(0,0,0,0.08)'
-                                              }}
-                                            >
-                                              <span 
-                                                className="text-[9px] font-semibold"
-                                                style={{ color: theme.primary }}
-                                              >
-                                                {durationDays} day{durationDays !== 1 ? 's' : ''}
-                                              </span>
-                                            </div>
-                                            
-                                            {/* End marker */}
-                                            <div className="flex items-center gap-2 z-10 flex-row-reverse">
-                                              <div 
-                                                className="w-7 h-7 rounded-full flex items-center justify-center"
-                                                style={{ 
-                                                  background: p.endType === 'completed'
-                                                    ? `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`
-                                                    : 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                                                  boxShadow: theme.isDark 
-                                                    ? '0 4px 8px rgba(0,0,0,0.4)'
-                                                    : '0 4px 8px rgba(0,0,0,0.15)'
-                                                }}
-                                              >
-                                                {p.endType === 'completed' ? (
-                                                  <CheckCircle size={14} style={{ color: '#ffffff' }} />
-                                                ) : (
-                                                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                                    <circle cx="7" cy="7" r="5" stroke="white" strokeWidth="1.5"/>
-                                                    <path d="M5 5L9 9M9 5L5 9" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                                                  </svg>
-                                                )}
-                                              </div>
-                                              <div className="flex flex-col items-end">
-                                                <span 
-                                                  className="text-[10px] font-semibold leading-tight"
-                                                  style={{ color: theme.text }}
-                                                >
-                                                  {endDateStr.split('/')[0]}/{endDateStr.split('/')[1]}
-                                                </span>
-                                                <span 
-                                                  className="text-[8px] leading-tight"
-                                                  style={{ color: theme.textLight }}
-                                                >
-                                                  {p.endType === 'completed' ? 'Completed' : 'Ended'}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* End Type Badge */}
-                                    {p.endType && (
-                                      <div className="flex items-center gap-2">
-                                        <span 
-                                          className="px-2 py-0.5 rounded text-xs font-medium"
-                                          style={{ 
-                                            backgroundColor: p.endType === 'completed' 
-                                              ? (theme.isDark ? '#065f46' : '#d1fae5')
-                                              : (theme.isDark ? '#7f1d1d' : '#fee2e2'),
-                                            color: p.endType === 'completed' 
-                                              ? (theme.isDark ? '#6ee7b7' : '#065f46')
-                                              : (theme.isDark ? '#fca5a5' : '#991b1b')
-                                          }}
-                                        >
-                                          {p.endType === 'completed' ? '✓ Completed' : '⚠ Manually Ended'}
-                                        </span>
-                                        {durationDays > 0 && (
-                                          <span className="text-xs" style={{ color: theme.textLight }}>
-                                            {durationDays} day{durationDays !== 1 ? 's' : ''}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {/* Vials and Vendor Info */}
-                                    {vialInfo.length > 0 && (
-                                      <div className="space-y-1.5 pt-2 border-t" style={{ borderColor: theme.border }}>
-                                        <div className="text-xs font-medium" style={{ color: theme.textLight }}>Vials Used:</div>
-                                        <div className="flex flex-wrap gap-2">
-                                          {vialInfo.map((vial, idx) => (
-                                            <span 
-                                              key={idx}
-                                              className="px-2 py-1 rounded text-xs"
-                                              style={{ 
-                                                backgroundColor: theme.isDark ? '#374151' : theme.secondary,
-                                                color: theme.text
-                                              }}
-                                            >
-                                              {vial.name} ({vial.mg}mg)
-                                            </span>
-                                          ))}
-                                        </div>
-                                        {vendors.size > 0 && (
-                                          <div className="text-xs mt-1.5" style={{ color: theme.textLight }}>
-                                            <span className="font-medium">Vendor{vendors.size > 1 ? 's' : ''}:</span>{' '}
-                                            {Array.from(vendors).join(', ')}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                                  <span className="font-medium">
+                                    {p.protocolName || 'Unnamed Protocol'}
+                                  </span>
+                                  {p.emoji && <span className="ml-1">{p.emoji}</span>}
+                                  {durationDays > 0 && (
+                                    <span className="ml-2 text-sm" style={{ color: theme.textLight }}>
+                                      ({durationDays} day{durationDays !== 1 ? 's' : ''})
+                                    </span>
+                                  )}
+                                </button>
+                              </li>
                             );
                           })}
-                        </div>
+                        </ul>
                       </div>
                     ))}
-                  </div>
                 </div>
               );
             })()}

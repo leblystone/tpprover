@@ -74,6 +74,20 @@ service cloud.firestore {
       }
     }
     
+    // Admin messages - one-way messages from admin to users
+    match /adminMessages/{messageId} {
+      allow create: if isAdmin(); // Only admin can create messages (via function)
+      allow read: if request.auth != null && (
+        request.auth.token.email == resource.data.userEmail || // Users can read their own messages
+        isAdmin() // Admin can read all messages
+      );
+      allow update: if request.auth != null && (
+        request.auth.token.email == resource.data.userEmail || // Users can mark their own messages as read
+        isAdmin() // Admin can update all messages
+      );
+      allow delete: if isAdmin(); // Only admin can delete messages
+    }
+    
     // Notifications - users can read/update their own notifications, admin can create
     match /notifications/{notificationId} {
       allow read, update, delete: if request.auth != null && 
@@ -113,6 +127,11 @@ service cloud.firestore {
     
     // User state - onboarding, demo flags
     match /userState/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User security settings - 2FA, authentication settings
+    match /userSecurity/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     

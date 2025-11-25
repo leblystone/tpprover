@@ -103,7 +103,15 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
   const isModern = variant === 'modern';
   const backdropClass = isModern ? 'bg-black/60 backdrop-blur-sm' : 'backdrop-blur-md bg-black/30';
   const modalClass = isModern ? 'rounded-2xl shadow-2xl' : 'rounded-2xl shadow-2xl';
-  const headerStyle = isModern && theme ? {
+  
+  // Check if this is the sage/default theme
+  const isSageTheme = theme?.name === 'Sage';
+  
+  // Header styling: sage theme gets light background with dark text, others use gradient
+  const headerStyle = isSageTheme ? {
+    background: theme.background || '#EFF2EE',
+    color: theme.text || '#2F3B3A'
+  } : isModern && theme ? {
     background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`,
     color: theme.textOnPrimary
   } : { 
@@ -111,7 +119,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     color: '#FFFFFF'
   };
   const titleClass = isModern ? 'text-lg font-semibold' : 'text-lg font-bold';
-  const titleExtraClass = isModern ? 'text-sm opacity-90' : 'text-sm text-white/90 mt-0.5';
+  const titleExtraClass = isSageTheme 
+    ? 'text-sm opacity-70 mt-0.5' 
+    : isModern 
+      ? 'text-sm opacity-90' 
+      : 'text-sm text-white/90 mt-0.5';
   
   const content = (
     <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 overflow-x-hidden">
@@ -141,7 +153,11 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={headerStyle}>
           <div className="flex items-center gap-3">
             {onBack && (
-              <button onClick={onBack} className="p-1 rounded-full -ml-2 hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
+              <button 
+                onClick={onBack} 
+                className={`p-1 rounded-full -ml-2 transition-colors ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
+                style={{ color: headerStyle.color }}
+              >
                 <ChevronLeft size={20} />
               </button>
             )}
@@ -149,9 +165,13 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
           </div>
           <div className="flex items-center gap-3">
             {titleExtra && (
-              <div className={titleExtraClass}>{titleExtra}</div>
+              <div className={titleExtraClass} style={{ color: headerStyle.color }}>{titleExtra}</div>
             )}
-            <button onClick={handleBackdropClick} className="p-1.5 rounded-full hover:bg-white/20 transition-colors" style={{ color: headerStyle.color }}>
+            <button 
+              onClick={handleBackdropClick} 
+              className={`p-1.5 rounded-full transition-colors ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
+              style={{ color: headerStyle.color }}
+            >
               <X size={24} />
             </button>
           </div>

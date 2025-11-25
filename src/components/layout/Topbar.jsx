@@ -6,8 +6,9 @@ import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
 import TrialButton from '../common/TrialButton';
 import { useAppContext } from '../../context/AppContext';
-import { getUserTickets, markTicketAsRead } from '../../services/firebase';
+import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
+import AdminMessageModal from '../common/AdminMessageModal';
 
 export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator, trialInfo }) {
   const location = useLocation();
@@ -50,6 +51,11 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
   const [openTicket, setOpenTicket] = useState(null);
   const [hasUnreadResponse, setHasUnreadResponse] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
+  
+  // Admin message state
+  const [adminMessage, setAdminMessage] = useState(null);
+  const [hasUnreadAdminMessage, setHasUnreadAdminMessage] = useState(false);
+  const [showAdminMessage, setShowAdminMessage] = useState(false);
 
   // Load user's open tickets
   useEffect(() => {
@@ -123,6 +129,62 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
     return () => clearInterval(interval);
   }, [user?.email]);
 
+  // Load user's admin messages
+  useEffect(() => {
+    if (!user?.email) {
+      return;
+    }
+
+    const loadAdminMessages = async () => {
+      try {
+        console.log('📨 Loading admin messages for:', user.email);
+        const messages = await getUserAdminMessages(user.email);
+        console.log('📨 Found admin messages:', messages.length);
+        
+        // Find the most recent message that should be shown
+        const visibleMessage = messages.find(msg => {
+          // Show if unread
+          if (!msg.userReadAt || msg.userReadAt === null) {
+            console.log('📨 Found unread message:', msg.id);
+            return true;
+          }
+          
+          // Show if read within last 24 hours
+          const readAt = msg.userReadAt?.toDate ? msg.userReadAt.toDate() : new Date(msg.userReadAt);
+          const now = new Date();
+          const hoursSinceRead = (now - readAt) / (1000 * 60 * 60);
+          
+          if (hoursSinceRead < 24) {
+            console.log('📨 Found message read within 24h:', msg.id, hoursSinceRead.toFixed(1), 'hours ago');
+            return true;
+          }
+          
+          return false;
+        });
+        
+        console.log('📨 Visible admin message:', visibleMessage ? visibleMessage.id : 'none');
+        setAdminMessage(visibleMessage || null);
+        
+        // Check if message is unread
+        if (visibleMessage) {
+          const isUnread = !visibleMessage.userReadAt || visibleMessage.userReadAt === null;
+          setHasUnreadAdminMessage(isUnread);
+          console.log('📨 Admin message unread status:', isUnread);
+        } else {
+          setHasUnreadAdminMessage(false);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load admin messages:', error);
+        console.error('❌ Error details:', error);
+      }
+    };
+
+    loadAdminMessages();
+    // Reload every 30 seconds to check for new messages
+    const interval = setInterval(loadAdminMessages, 30000);
+    return () => clearInterval(interval);
+  }, [user?.email]);
+
   // Mark ticket as read
   const handleMarkAsRead = async () => {
     if (openTicket) {
@@ -137,6 +199,18 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         setHasUnreadResponse(false);
       } catch (error) {
         console.error('❌ Failed to mark ticket as read:', error);
+      }
+    }
+  };
+
+  // Mark admin message as read
+  const handleMarkAdminMessageAsRead = async () => {
+    if (adminMessage) {
+      try {
+        await markAdminMessageAsRead(adminMessage.id);
+        setHasUnreadAdminMessage(false);
+      } catch (error) {
+        console.error('❌ Failed to mark admin message as read:', error);
       }
     }
   };
@@ -283,7 +357,24 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               {autoSaveIndicator}
             </div>
           )}
-          {/* Support Response Chip - Only show on dashboard */}
+          {/* Admin Message Chip - Only show on dashboard, appears first (before support response) */}
+          {onDashboard && adminMessage && (
+              <button
+                onClick={() => setShowAdminMessage(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  hasUnreadAdminMessage ? 'animate-sway' : ''
+                }`}
+              style={{
+                backgroundColor: hasUnreadAdminMessage ? '#B8704C' : '#B8704C80',
+                color: '#FFFFFF',
+                boxShadow: hasUnreadAdminMessage ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none'
+              }}
+              >
+                <span className="whitespace-nowrap">From the Team🥼</span>
+                <MessageSquareDot size={14} />
+              </button>
+          )}
+          {/* Support Response Chip - Only show on dashboard, appears after admin message */}
           {onDashboard && openTicket && (
               <button
                 onClick={() => setShowSupportChat(true)}
@@ -379,6 +470,16 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           )}
         </div>
       </header>
+
+      {/* Admin Message Modal */}
+      {showAdminMessage && adminMessage && (
+        <AdminMessageModal
+          message={adminMessage}
+          onClose={() => setShowAdminMessage(false)}
+          theme={theme}
+          onMarkRead={handleMarkAdminMessageAsRead}
+        />
+      )}
 
       {/* Support Chat Modal */}
       {showSupportChat && openTicket && (

@@ -211,11 +211,14 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
 
   return (
     <div 
-      className={`${hideHeader ? 'p-3' : 'p-4'} w-full h-full flex flex-col transition-all min-h-0 rounded-xl content-card`} 
+      className={`${hideHeader ? 'p-3' : 'p-4'} w-full h-full flex flex-col transition-all min-h-0 rounded-xl content-card overflow-visible relative`} 
       style={{ 
         backgroundColor: theme.cardBackground, 
         borderColor: theme.border,
-        cursor: currentOrder?.id ? 'pointer' : 'default'
+        cursor: currentOrder?.id ? 'pointer' : 'default',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative'
       }}
       onClick={handleWidgetClick}
       onMouseEnter={(e) => {
@@ -228,13 +231,21 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
       }}
     >
       {!hideHeader && (
-        <div className="px-3 py-2 border-b mb-3 flex-shrink-0" style={{ borderColor: theme.border }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-3 py-2 border-b mb-2 flex-shrink-0" style={{ borderColor: theme.border }} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-semibold" style={{ color: theme.text }}>
                 Incoming Orders
               </h3>
               <Truck size={18} style={{ color: theme.primary }} />
+              {ordersList.length > 1 && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ 
+                  backgroundColor: theme.primary + '20', 
+                  color: theme.primary 
+                }}>
+                  {currentIndex + 1} / {ordersList.length}
+                </span>
+              )}
             </div>
             {currentOrder?.tracking ? (
               <button
@@ -278,83 +289,120 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
           </div>
         </div>
       )}
-      <div className="w-full flex flex-col mb-3 flex-shrink-0">
-        <div className="text-base font-semibold mb-1 text-center" style={{ color: theme.primary }}>{currentOrder?.peptide || 'N/A'} {currentOrder?.mg || ''}mg</div>
-        <div className="text-xs mb-2 text-center" style={{ color: theme.textLight }}>
-          <span style={{ fontWeight: 500, color: theme.text }}>Vendor:</span> {currentOrder?.vendor || 'Unknown'}
+      
+      {/* Main content area with side arrows */}
+      <div className="flex-1 flex items-stretch min-h-0 gap-2">
+        {/* Left Arrow - only show when multiple orders */}
+        {ordersList.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handlePrevious(e)
+            }}
+            disabled={currentIndex === 0}
+            className="flex-shrink-0 flex items-center justify-center p-1 rounded-md transition-all self-center"
+            style={{ 
+              backgroundColor: currentIndex === 0 ? 'transparent' : theme.primary + '15',
+              color: currentIndex === 0 ? theme.textLight : theme.primary,
+              cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+              border: `1px solid ${currentIndex === 0 ? theme.border : theme.primary}`,
+              opacity: currentIndex === 0 ? 0.4 : 1,
+              width: '32px',
+              minWidth: '32px',
+              height: '32px'
+            }}
+            title="Previous order"
+            onMouseEnter={(e) => {
+              if (currentIndex > 0) {
+                e.currentTarget.style.backgroundColor = theme.primary
+                e.currentTarget.style.color = theme.textOnPrimary || '#ffffff'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentIndex > 0) {
+                e.currentTarget.style.backgroundColor = theme.primary + '15'
+                e.currentTarget.style.color = theme.primary
+              }
+            }}
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
+        
+        {/* Scrollable content area - allows content to scroll while keeping pagination visible */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto" style={{ maxHeight: '100%' }}>
+        <div className="w-full flex flex-col mb-2 flex-shrink-0">
+          <div className="text-base font-semibold mb-1 text-center" style={{ color: theme.primary }}>{currentOrder?.peptide || 'N/A'} {currentOrder?.mg || ''}mg</div>
+          <div className="text-xs mb-2 text-center" style={{ color: theme.textLight }}>
+            <span style={{ fontWeight: 500, color: theme.text }}>Vendor:</span> {currentOrder?.vendor || 'Unknown'}
+          </div>
+          
+          {/* Only show location for REAL tracking data, not mock */}
+          {isRealTrackingData && trackingInfo.location && (
+            <div className="mb-2 text-center">
+              <div className="text-xs flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
+                <MapPin size={10} />
+                {[
+                  trackingInfo.location.city,
+                  trackingInfo.location.state,
+                  trackingInfo.location.country
+                ].filter(Boolean).join(', ')}
+              </div>
+            </div>
+          )}
+          
+          {/* Tracking display */}
+          {currentOrder?.tracking && (() => {
+            // Prioritize carrier from API response (most accurate), then fall back to detection
+            const detectedCarrier = detectCarrier(currentOrder.tracking)
+            // Get carrier from trackingInfo - check both direct property and ensure it's a valid string
+            const carrierFromAPI = trackingInfo?.carrier && typeof trackingInfo.carrier === 'string' && trackingInfo.carrier.trim() 
+              ? trackingInfo.carrier.trim().toLowerCase() 
+              : null
+            
+            const carrierToUse = carrierFromAPI || detectedCarrier
+            const carrierDisplay = carrierToUse ? carrierToUse.toUpperCase() : 'USPS'
+            
+            // Create Google tracking URL
+            const googleTrackingUrl = `https://www.google.com/search?q=${encodeURIComponent(currentOrder.tracking + ' tracking')}`
+            
+            return (
+              <div className="mb-2">
+                <a
+                  href={googleTrackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded transition-all hover:opacity-80 w-full justify-center"
+                  style={{ 
+                    backgroundColor: theme.secondary, 
+                    color: theme.text,
+                    border: `1px solid ${theme.border}`,
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onClick={(e) => {
+                    // Allow the link to work normally
+                    e.stopPropagation()
+                  }}
+                >
+                  <span style={{ color: theme.textLight, fontWeight: 500 }}>Tracking via:</span>
+                  <span className="font-semibold" style={{ color: theme.primary }}>
+                    {carrierDisplay}
+                  </span>
+                  {isLoadingTracking && <RefreshCw size={12} className="animate-spin flex-shrink-0" style={{ color: theme.primary }} />}
+                </a>
+              </div>
+            )
+          })()}
+          
+          {/* Error display */}
+          {trackingError && (
+            <div className="text-xs mt-1 mb-2 px-2 py-1 rounded" style={{ backgroundColor: theme.errorBg || '#fee2e2', color: theme.error || '#dc2626' }}>
+              {trackingError}
+            </div>
+          )}
         </div>
-        
-        {/* Only show location for REAL tracking data, not mock */}
-        {isRealTrackingData && trackingInfo.location && (
-          <div className="mb-2 text-center">
-            <div className="text-xs flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
-              <MapPin size={10} />
-              {[
-                trackingInfo.location.city,
-                trackingInfo.location.state,
-                trackingInfo.location.country
-              ].filter(Boolean).join(', ')}
-            </div>
-          </div>
-        )}
-        
-        {/* Tracking number display */}
-        {currentOrder?.tracking && (() => {
-          // Prioritize carrier from API response (most accurate), then fall back to detection
-          const detectedCarrier = detectCarrier(currentOrder.tracking)
-          // Get carrier from trackingInfo - check both direct property and ensure it's a valid string
-          const carrierFromAPI = trackingInfo?.carrier && typeof trackingInfo.carrier === 'string' && trackingInfo.carrier.trim() 
-            ? trackingInfo.carrier.trim().toLowerCase() 
-            : null
-          
-          const carrierToUse = carrierFromAPI || detectedCarrier
-          const carrierDisplay = carrierToUse ? carrierToUse.toUpperCase() : 'USPS'
-          
-          // Create Google tracking URL
-          const googleTrackingUrl = `https://www.google.com/search?q=${encodeURIComponent(currentOrder.tracking + ' tracking')}`
-          
-          return (
-            <div className="mb-2">
-              <a
-                href={googleTrackingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded transition-all hover:opacity-80 break-all w-full"
-                style={{ 
-                  backgroundColor: theme.secondary, 
-                  color: theme.text,
-                  border: `1px solid ${theme.border}`,
-                  textDecoration: 'none',
-                  cursor: 'pointer'
-                }}
-                onClick={(e) => {
-                  // Allow the link to work normally
-                  e.stopPropagation()
-                }}
-              >
-                <span style={{ color: theme.textLight, fontWeight: 500 }}>Tracking Number:</span>
-                <span className="font-mono flex-1">{currentOrder.tracking}</span>
-                <div className="text-xs px-2 py-0.5 rounded flex-shrink-0" style={{ 
-                  backgroundColor: theme.primary + '20', 
-                  color: theme.primary,
-                  fontWeight: 600
-                }}>
-                  {carrierDisplay}
-                </div>
-                {isLoadingTracking && <RefreshCw size={12} className="animate-spin flex-shrink-0" style={{ color: theme.primary }} />}
-              </a>
-            </div>
-          )
-        })()}
-        
-        {/* Error display */}
-        {trackingError && (
-          <div className="text-xs mt-1 mb-2 px-2 py-1 rounded" style={{ backgroundColor: theme.errorBg || '#fee2e2', color: theme.error || '#dc2626' }}>
-            {trackingError}
-          </div>
-        )}
-      </div>
-      <div className="w-full mb-4 flex-shrink-0">
+        <div className="w-full flex-shrink-0">
         <div className="w-full flex items-center justify-between relative mb-2">
           <div 
             className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-1" 
@@ -390,12 +438,11 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
 
         <div className="w-full flex justify-between flex-shrink-0">
           {steps.map((s, idx) => {
-            // Get dates for display below "Order Placed" - only compute once for first step
+            const orderDate = currentOrder?.date || currentOrder?.shipDate;
+            const deliveryDate = currentOrder?.deliveryDate;
+            
+            // Show order date under "Order Placed" (first step)
             if (idx === 0) {
-              const orderDate = currentOrder?.date || currentOrder?.shipDate;
-              const deliveryDate = currentOrder?.deliveryDate;
-              const hasDates = orderDate || deliveryDate;
-              
               return (
                 <div key={s.status} className="flex flex-col items-center flex-1">
                   <span
@@ -404,24 +451,33 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
                   >
                     {s.label}
                   </span>
-                  {hasDates && (
-                    <div className="flex flex-col items-center gap-0.5 mt-1 text-xs">
-                      {orderDate && (
-                        <div style={{ color: theme.textLight, fontSize: '10px' }}>
-                          {formatMMDDYYYY(orderDate)}
-                        </div>
-                      )}
-                      {deliveryDate && (
-                        <div style={{ color: theme.textLight, fontSize: '10px' }}>
-                          {formatMMDDYYYY(deliveryDate)}
-                        </div>
-                      )}
+                  {orderDate && (
+                    <div className="mt-1 text-xs" style={{ color: theme.textLight, fontSize: '10px' }}>
+                      {formatMMDDYYYY(orderDate)}
                     </div>
                   )}
                 </div>
               );
             }
             
+            // Show delivery date under "Delivered" (last step, idx === 2)
+            if (idx === 2 && deliveryDate) {
+              return (
+                <div key={s.status} className="flex flex-col items-center flex-1">
+                  <span
+                    className="text-xs text-center"
+                    style={{ color: idx <= current ? theme.primaryDark : theme.textLight, fontWeight: idx <= current ? '600' : '400' }}
+                  >
+                    {s.label}
+                  </span>
+                  <div className="mt-1 text-xs text-center" style={{ color: theme.textLight, fontSize: '10px' }}>
+                    {formatMMDDYYYY(deliveryDate)}
+                  </div>
+                </div>
+              );
+            }
+            
+            // Default: no dates
             return (
               <div key={s.status} className="flex flex-col items-center flex-1">
                 <span
@@ -434,58 +490,46 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
             );
           })}
         </div>
-      </div>
-      
-      {/* Pagination controls */}
-      {(() => {
-        const shouldShow = ordersList.length > 1;
-        console.log('🔍 Pagination check:', {
-          ordersListLength: ordersList.length,
-          shouldShow,
-          ordersList: ordersList.map(o => o?.id)
-        });
-        if (!shouldShow) return null;
+        </div>
+        </div>
         
-        return (
-        <div className="mt-auto w-full flex items-center justify-center gap-2 pt-2 pb-2 border-t flex-shrink-0" style={{ borderColor: theme.border }} onClick={(e) => e.stopPropagation()}>
+        {/* Right Arrow - only show when multiple orders */}
+        {ordersList.length > 1 && (
           <button
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-            className="p-1.5 rounded-md transition-all flex items-center justify-center"
-            style={{ 
-              color: currentIndex === 0 ? theme.textLight : theme.primary,
-              cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-              backgroundColor: 'transparent',
-              border: 'none',
-              outline: 'none',
-              opacity: currentIndex === 0 ? 0.5 : 1
+            onClick={(e) => {
+              e.stopPropagation()
+              handleNext(e)
             }}
-            title="Previous order"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="text-xs" style={{ color: theme.textLight }}>
-            {currentIndex + 1} / {ordersList.length}
-          </span>
-          <button
-            onClick={handleNext}
             disabled={currentIndex >= ordersList.length - 1}
-            className="p-1.5 rounded-md transition-all flex items-center justify-center"
+            className="flex-shrink-0 flex items-center justify-center p-1 rounded-md transition-all self-center"
             style={{ 
+              backgroundColor: currentIndex >= ordersList.length - 1 ? 'transparent' : theme.primary + '15',
               color: currentIndex >= ordersList.length - 1 ? theme.textLight : theme.primary,
               cursor: currentIndex >= ordersList.length - 1 ? 'not-allowed' : 'pointer',
-              backgroundColor: 'transparent',
-              border: 'none',
-              outline: 'none',
-              opacity: currentIndex >= ordersList.length - 1 ? 0.5 : 1
+              border: `1px solid ${currentIndex >= ordersList.length - 1 ? theme.border : theme.primary}`,
+              opacity: currentIndex >= ordersList.length - 1 ? 0.4 : 1,
+              width: '32px',
+              minWidth: '32px',
+              height: '32px'
             }}
             title="Next order"
+            onMouseEnter={(e) => {
+              if (currentIndex < ordersList.length - 1) {
+                e.currentTarget.style.backgroundColor = theme.primary
+                e.currentTarget.style.color = theme.textOnPrimary || '#ffffff'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentIndex < ordersList.length - 1) {
+                e.currentTarget.style.backgroundColor = theme.primary + '15'
+                e.currentTarget.style.color = theme.primary
+              }
+            }}
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </button>
-        </div>
-        );
-      })()}
+        )}
+      </div>
     </div>
   )
 }

@@ -773,7 +773,10 @@ export async function getUserList() {
           return { userId, subscription: subData.subscription || subData };
         }
       } catch (err) {
-        console.warn(`Failed to fetch subscription for ${userId}:`, err);
+        // Suppress permission errors - these are expected when admin doesn't have access to all user subscriptions
+        if (err.code !== 'permission-denied' && err.code !== 'permissions-denied') {
+          console.warn(`Failed to fetch subscription for ${userId}:`, err);
+        }
       }
       return { userId, subscription: null };
     });
@@ -1339,6 +1342,145 @@ export async function markTicketAsRead(ticketId) {
 }
 
 // ============================================================================
+// ADMIN MESSAGES (ONE-WAY MESSAGES FROM ADMIN TO USERS)
+// ============================================================================
+
+/**
+ * Get admin messages for a user
+ * @param {string} userEmail - User's email
+ * @returns {Promise<Array>} - Array of admin messages
+ */
+export async function getUserAdminMessages(userEmail) {
+  try {
+    const messagesRef = collection(db, 'adminMessages');
+    
+    // Try to query with orderBy, but fallback to simple query if index doesn't exist
+    let querySnapshot;
+    try {
+      const q = query(
+        messagesRef,
+        where('userEmail', '==', userEmail.toLowerCase()),
+        orderBy('createdAt', 'desc')
+      );
+      querySnapshot = await getDocs(q);
+    } catch (orderByError) {
+      // If orderBy fails (likely missing index), try without orderBy
+      console.warn('⚠️ Admin messages orderBy query failed, trying without orderBy:', orderByError.message);
+      const q = query(
+        messagesRef,
+        where('userEmail', '==', userEmail.toLowerCase())
+      );
+      querySnapshot = await getDocs(q);
+    }
+    
+    const messages = [];
+    const now = new Date();
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const message = {
+        id: doc.id,
+        ...data
+      };
+      
+      // Check if message should be shown (unread or read within 24 hours)
+      if (!message.userReadAt || message.userReadAt === null) {
+        // Unread - always show
+        messages.push(message);
+      } else {
+        // Check if read within last 24 hours
+        const readAt = message.userReadAt?.toDate ? message.userReadAt.toDate() : new Date(message.userReadAt);
+        const hoursSinceRead = (now - readAt) / (1000 * 60 * 60);
+        if (hoursSinceRead < 24) {
+          messages.push(message);
+        }
+      }
+    });
+    
+    // Sort manually if we couldn't use orderBy (most recent first)
+    if (messages.length > 0) {
+      messages.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 
+                     a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 
+                     b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return bTime - aTime; // Descending order (most recent first)
+      });
+    }
+    
+    console.log('📨 Loaded admin messages:', messages.length, 'for', userEmail);
+    return messages;
+  } catch (error) {
+    console.error('❌ Failed to get admin messages:', error);
+    console.error('❌ Error details:', {
+      code: error.code,
+      message: error.message
+    });
+    throw error;
+  }
+}
+
+/**
+ * Mark admin message as read
+ * @param {string} messageId - The message ID
+ * @returns {Promise<void>}
+ */
+export async function markAdminMessageAsRead(messageId) {
+  try {
+    const messageRef = doc(db, 'adminMessages', messageId);
+    await updateDoc(messageRef, {
+      userReadAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('❌ Failed to mark admin message as read:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create an admin message (admin only, via cloud function)
+ * @param {string} userEmail - User's email
+ * @param {string} message - Message content
+ * @param {string} adminPassword - Admin password
+ * @returns {Promise<string>} - The message ID
+ */
+export async function createAdminMessage(userEmail, message, adminPassword) {
+  try {
+    const functions = getFunctions();
+    const createMessage = httpsCallable(functions, 'createAdminMessage');
+    
+    const result = await createMessage({
+      userEmail: userEmail.toLowerCase(),
+      message: message.trim(),
+      adminPassword
+    });
+    
+    if (!result.data.success) {
+      throw new Error(result.data.message || 'Failed to create admin message');
+    }
+    
+    return result.data.messageId;
+  } catch (error) {
+    console.error('❌ Failed to create admin message:', error);
+    
+    // Provide helpful error message
+    if (error.code === 'functions/not-found' || error.code === 'functions/internal') {
+      const helpfulError = new Error('Admin message function not deployed. Please deploy Firebase functions first.');
+      helpfulError.code = error.code;
+      throw helpfulError;
+    }
+    
+    if (error.code === 'functions/unavailable') {
+      const helpfulError = new Error('Firebase functions are unavailable. Please check your connection and try again.');
+      helpfulError.code = error.code;
+      throw helpfulError;
+    }
+    
+    throw error;
+  }
+}
+
+// ============================================================================
 // NOTIFICATIONS
 // ============================================================================
 
@@ -1525,22 +1667,16 @@ export async function checkLifetimeAccessFirestore(userId) {
  */
 export async function getAllLifetimeUsers() {
   try {
-    console.log('🔍 getAllLifetimeUsers: Starting query...');
-    console.log('🔑 Current Firebase user:', auth.currentUser?.email || 'NOT LOGGED IN');
-    
     const users = [];
 
     // Active lifetime access documents (users who already exist)
     const lifetimeRef = collection(db, 'lifetimeAccess');
     const lifetimeQuery = query(lifetimeRef, where('hasLifetimeAccess', '==', true));
     
-    console.log('📊 Querying lifetimeAccess collection...');
     const lifetimeSnapshot = await getDocs(lifetimeQuery);
-    console.log(`✅ lifetimeAccess query complete: ${lifetimeSnapshot.size} documents found`);
 
     lifetimeSnapshot.forEach(docSnapshot => {
       const data = docSnapshot.data() || {};
-      console.log('📄 Found lifetime user:', data.email, '(userId:', docSnapshot.id, ')');
       users.push({
         id: docSnapshot.id,
         userId: docSnapshot.id,
@@ -1559,16 +1695,13 @@ export async function getAllLifetimeUsers() {
     // Pre-grants for emails (both pending and applied)
     const preGrantRef = collection(db, 'lifetimeAccessPreGrants');
     
-    console.log('📊 Querying lifetimeAccessPreGrants collection...');
     // Get ALL pre-grants (not just pending) so we can see activated ones too
     const preGrantSnapshot = await getDocs(preGrantRef);
-    console.log(`✅ lifetimeAccessPreGrants query complete: ${preGrantSnapshot.size} documents found`);
 
     preGrantSnapshot.forEach(docSnapshot => {
       const data = docSnapshot.data() || {};
       const email = data.email || docSnapshot.id || '';
       const status = data.status || 'pending';
-      console.log('📄 Found pre-grant:', email, '| Status:', status, '| Applied to:', data.appliedToUserId || 'N/A');
       
       // ⚠️ SECURITY CHECK: Flag suspicious wildcard emails
       if (email.includes('*') || email === '' || email.length < 3) {
@@ -1607,10 +1740,6 @@ export async function getAllLifetimeUsers() {
 
     users.sort((a, b) => getTimestampValue(b.grantedAt) - getTimestampValue(a.grantedAt));
 
-    console.log(`📋 TOTAL: Found ${users.length} lifetime entries (active: ${lifetimeSnapshot.size}, pending: ${preGrantSnapshot.size})`);
-    if (users.length > 0) {
-      console.log('📋 Sample entries:', users.slice(0, 3).map(u => ({ email: u.email, source: u.source, isPreGrant: u.isPreGrant })));
-    }
     return users;
   } catch (error) {
     console.error('❌ Failed to get lifetime users:', error);

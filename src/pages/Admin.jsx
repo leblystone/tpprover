@@ -35,7 +35,8 @@ import {
   getTicketWithMessages,
   addTicketMessage,
   updateTicketStatus,
-  subscribeToTicketMessages
+  subscribeToTicketMessages,
+  createAdminMessage
 } from '../services/firebase';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -332,99 +333,99 @@ const analyzeFeedback = (feedbackList) => {
   };
 };
 
-// Dark Elegant Palette - Extracted from the moody interior image 🌙
+// Soft Dark Grey Palette - Easy on the Eyes
 const elegantPalette = {
-  // Dark Charcoal/Black - Main dark background (from wallpaper)
+  // Dark Grey Backgrounds - Softer than black
   dark: {
-    wallpaper: '#1A1A1A',      // Very dark charcoal (wallpaper base)
-    deep: '#0F0F0F',           // Almost black
-    charcoal: '#2D2D2D',       // Dark charcoal
-    soft: '#3A3A3A',           // Soft dark grey
-    piano: '#2B2B2B',          // Piano dark brown-black
-    surface: '#252525',        // Dark surface
+    wallpaper: '#2D3748',      // Soft dark grey background
+    deep: '#1A202C',           // Darker grey
+    charcoal: '#4A5568',       // Medium-dark grey
+    soft: '#718096',           // Medium grey
+    piano: '#2D3748',          // Same as wallpaper
+    surface: '#374151',        // Dark grey for cards (softer than black)
   },
   
-  // Grey Taupe - Darker, moodier tones
+  // Grey Scale
   taupe: {
-    dark: '#4A4139',           // Dark taupe
-    darker: '#3D352F',         // Darker taupe
-    main: '#6B5E52',           // Main grey taupe (from worn piano)
-    muted: '#5A5048',          // Muted taupe
-    light: '#8A7D70',          // Light taupe (lighter accent)
+    dark: '#4B5563',           // Medium-dark grey
+    darker: '#374151',         // Dark grey
+    main: '#6B7280',           // Main grey
+    muted: '#9CA3AF',          // Muted grey
+    light: '#D1D5DB',          // Light grey
   },
   
-  // Black - Pure darkness
+  // Text Colors - Light on dark
   black: {
     pure: '#000000',           // Pure black
-    deep: '#1A1A1A',           // Deep black
-    text: '#E8E0D9',           // Light text on dark
-    textMuted: '#C4B8AD',      // Muted text on dark
+    deep: '#F9FAFB',           // Very light text
+    text: '#F3F4F6',           // Light text on dark
+    textMuted: '#D1D5DB',      // Muted light text
   },
   
-  // Metallic Gold/Bronze - THE POP COLOR (from wallpaper pattern & accents)
+  // Soft Accent - Gentle Blue/Teal instead of purple
   gold: {
-    // Bronze tones from the metallic pattern
-    bronze: '#CD7F32',         // Rich bronze
-    metallic: '#D4AF37',       // Classic metallic gold (clock/stand)
-    bright: '#FFD700',         // Bright gold (highlights)
-    dark: '#B8941F',           // Dark gold (shadows)
-    light: '#E5C158',          // Light gold (highlights)
-    warm: '#DAA520',           // Warm gold
-    // Shiny gradient colors - bronze to gold
-    gradientStart: '#FFD700',  // Bright gold start
-    gradientMid: '#D4AF37',    // Metallic gold mid
-    gradientEnd: '#CD7F32',    // Bronze end
-    gradientDark: '#B8941F',   // Dark gold for depth
+    // Soft blue-teal gradient
+    bronze: '#4FD1C7',         // Soft teal
+    metallic: '#5B9BD5',       // Soft blue (main accent - easy on eyes)
+    bright: '#7DD3FC',         // Light blue
+    dark: '#0891B2',           // Darker blue
+    light: '#A5D8FF',          // Very light blue
+    warm: '#0EA5E9',           // Warm blue
+    // Soft gradient colors
+    gradientStart: '#5B9BD5',  // Soft blue start
+    gradientMid: '#4FD1C7',    // Teal mid
+    gradientEnd: '#0891B2',    // Deeper blue end
+    gradientDark: '#0EA5E9',   // Dark blue for depth
   },
   
-  // Accent colors extracted from the image
+  // Soft Accent Colors
   accents: {
-    lampAmber: '#D4A574',      // Amber from lamp (warm accent)
-    lampGreen: '#8B9A7A',      // Smoky green from lamp
-    rosewood: '#5D4037',       // Dark rosewood tones
+    lampAmber: '#F59E0B',      // Amber
+    lampGreen: '#10B981',      // Green
+    rosewood: '#EC4899',       // Pink
   },
   
-  // Supporting colors (dark mode friendly)
+  // Supporting colors (dark theme friendly)
   neutral: {
     white: '#FFFFFF',
-    offWhite: '#F5F5F5',       // Off-white for contrast
-    lightGray: '#8A7D70',      // Light taupe-gray
-    darkGray: '#4A4A4A',       // Dark gray
+    offWhite: '#F9FAFB',       // Very light grey
+    lightGray: '#E5E7EB',      // Light grey
+    darkGray: '#4B5563',       // Medium-dark grey
   },
   
-  // Functional colors (adjusted for dark theme)
+  // Soft Functional colors
   functional: {
-    success: '#9CAF88',        // Soft sage green
-    warning: '#D4A574',        // Warm amber (from lamp)
-    error: '#C4858A',          // Soft rose
-    info: '#8A7D70'            // Light taupe for info
+    success: '#10B981',        // Green
+    warning: '#F59E0B',        // Amber
+    error: '#EF4444',          // Red
+    info: '#5B9BD5'            // Soft blue
   }
 };
 
-// Apply The Dark Elegant Theme - Moody & Sophisticated
+// Soft Dark Grey Theme - Easy on the Eyes
 const adminTheme = {
-  // Dark colors - primary backgrounds
-  primary: elegantPalette.dark.charcoal,           // Dark charcoal
-  primaryLight: elegantPalette.dark.soft,          // Soft dark
-  primaryLighter: elegantPalette.dark.surface,     // Dark surface
-  primaryDark: elegantPalette.dark.deep,           // Deep black
-  primaryDarker: elegantPalette.dark.wallpaper,    // Wallpaper dark
+  // Dark grey colors
+  primary: elegantPalette.dark.charcoal,           // Medium-dark grey
+  primaryLight: elegantPalette.dark.soft,          // Medium grey
+  primaryLighter: elegantPalette.dark.surface,     // Dark grey surface
+  primaryDark: elegantPalette.black.deep,         // Light text
+  primaryDarker: elegantPalette.dark.deep,       // Darker grey
   
   // Black colors
   black: elegantPalette.black.deep,
-  blackSoft: elegantPalette.dark.charcoal,
+  blackSoft: elegantPalette.taupe.dark,
   
-  // Backgrounds - DARK like the wallpaper
-  background: elegantPalette.dark.wallpaper,       // Very dark wallpaper background
-  cardBackground: elegantPalette.dark.surface,     // Dark surface for cards
+  // Backgrounds - Soft Dark Grey
+  background: elegantPalette.dark.wallpaper,       // Soft dark grey background
+  cardBackground: elegantPalette.dark.surface,     // Dark grey cards
   cardBackgroundLighter: elegantPalette.dark.charcoal, // Slightly lighter cards
   
-  // Taupe colors - for subtle accents
+  // Gray colors - for subtle accents
   taupe: elegantPalette.taupe.main,
   taupeLight: elegantPalette.taupe.light,
   taupeDark: elegantPalette.taupe.dark,
   
-  // Metallic Gold/Bronze - THE POP COLOR (shiny against dark!)
+  // Soft Blue Accent - Easy on the Eyes!
   accent: elegantPalette.gold.metallic,
   gold: elegantPalette.gold.metallic,
   goldBright: elegantPalette.gold.bright,
@@ -432,25 +433,25 @@ const adminTheme = {
   goldLight: elegantPalette.gold.light,
   goldBronze: elegantPalette.gold.bronze,
   
-  // Functional colors (adjusted for dark theme)
+  // Soft Functional colors
   success: elegantPalette.functional.success,
-  warning: elegantPalette.functional.warning,      // Amber from lamp
+  warning: elegantPalette.functional.warning,
   error: elegantPalette.functional.error,
   info: elegantPalette.functional.info,
   
-  // Text - LIGHT on dark backgrounds
+  // Text - Light on dark backgrounds
   text: elegantPalette.black.text,                 // Light text on dark
   textLight: elegantPalette.black.textMuted,       // Muted light text
-  textDark: elegantPalette.taupe.light,            // For contrast elements
+  textDark: elegantPalette.black.deep,             // Light text for contrast
   
   // Borders & accents - subtle on dark
-  border: elegantPalette.dark.soft + '40',         // Subtle borders
-  borderGold: elegantPalette.gold.metallic + '50', // Gold borders
+  border: elegantPalette.dark.soft + '50',          // Subtle borders
+  borderGold: elegantPalette.gold.metallic + '40', // Soft blue borders
   
   textOnPrimary: elegantPalette.black.text,        // Light text on dark
-  textOnGold: elegantPalette.dark.deep,            // Dark text on gold
+  textOnGold: '#FFFFFF',                           // White text on blue
   successBg: elegantPalette.functional.success + '20',
-  accentText: elegantPalette.black.text,           // Light text
+  accentText: '#FFFFFF',                           // White text on accent
   white: elegantPalette.neutral.white
 };
 
@@ -609,6 +610,7 @@ function Admin() {
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
+  const [sendAsAdminMessage, setSendAsAdminMessage] = useState(false);
   const [selectedFeedbackTypeFilter, setSelectedFeedbackTypeFilter] = useState('all');
   const [selectedFeedbackStatusFilter, setSelectedFeedbackStatusFilter] = useState('new');
   
@@ -643,6 +645,7 @@ function Admin() {
     thisWeek: 0,
     recentRegistrations: []
   });
+  const [stripeSubscriptions, setStripeSubscriptions] = useState([]);
   const [featureFlags, setFeatureFlags] = useState({
     betaFeatures: {},
     uiExperiments: {},
@@ -808,7 +811,12 @@ function Admin() {
       const result = await getStripeSubscriptions();
       setStripeSubscriptions(result.data.data);
     } catch (error) {
-      console.error('Error fetching Stripe data:', error);
+      // Suppress Stripe errors - function may not be deployed or configured
+      // Only log if it's not a 500/function error
+      if (error.code !== 'functions/internal' && error.code !== 'internal') {
+        console.error('Error fetching Stripe data:', error);
+      }
+      setStripeSubscriptions([]);
     }
   };
 
@@ -1384,12 +1392,26 @@ function Admin() {
 
     try {
       setLoading(prev => ({ ...prev, submitting: true }));
-      console.log('📤 Sending response to feedback:', { 
-        id: feedbackItem.id, 
-        userEmail: feedbackItem.userEmail,
-        responseText: responseText.trim()
-      });
-      await respondToFeedback(feedbackItem.id, responseText.trim(), feedbackItem.userEmail);
+      
+      if (sendAsAdminMessage) {
+        // Send as admin message (one-way message to user)
+        console.log('📨 Sending admin message:', { 
+          userEmail: feedbackItem.userEmail,
+          message: responseText.trim()
+        });
+        await createAdminMessage(feedbackItem.userEmail, responseText.trim(), ADMIN_PASSWORD);
+        
+        // Also mark feedback as reviewed
+        await updateFeedback(feedbackItem.id, { status: 'reviewed' });
+      } else {
+        // Send as feedback response (existing behavior)
+        console.log('📤 Sending response to feedback:', { 
+          id: feedbackItem.id, 
+          userEmail: feedbackItem.userEmail,
+          responseText: responseText.trim()
+        });
+        await respondToFeedback(feedbackItem.id, responseText.trim(), feedbackItem.userEmail);
+      }
       
       // Refresh feedback list to show updated status
       await loadFeedback();
@@ -1397,9 +1419,20 @@ function Admin() {
       // Reset response state
       setRespondingToFeedback(null);
       setResponseText('');
+      setSendAsAdminMessage(false);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { 
+          message: sendAsAdminMessage ? 'Admin message sent! 📨' : 'Response sent!', 
+          type: 'success' 
+        } 
+      }));
       
     } catch (error) {
       console.error('❌ Failed to send response:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+        detail: { message: 'Failed to send message', type: 'error' } 
+      }));
     } finally {
       setLoading(prev => ({ ...prev, submitting: false }));
     }
@@ -1766,27 +1799,27 @@ function Admin() {
         backgroundColor: elegantPalette.dark.wallpaper,
         backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
       }}>
-        {/* Decorative elements - very subtle on dark */}
-        <div className="absolute top-10 right-10 opacity-3">
+        {/* Decorative elements - subtle soft accents */}
+        <div className="absolute top-10 right-10 opacity-5">
           <Book size={120} style={{ color: elegantPalette.dark.soft }} />
         </div>
-        <div className="absolute bottom-10 left-10 opacity-5">
+        <div className="absolute bottom-10 left-10 opacity-6">
           <LayoutDashboard size={100} style={{ 
             color: elegantPalette.gold.metallic,
-            filter: 'drop-shadow(0 2px 12px rgba(212,175,55,0.3))'
+            filter: 'drop-shadow(0 2px 12px rgba(91,155,213,0.25))'
           }} />
         </div>
-        <div className="absolute top-1/2 right-1/4 opacity-4">
+        <div className="absolute top-1/2 right-1/4 opacity-5">
           <Star size={80} style={{ 
             color: elegantPalette.gold.bright,
-            filter: 'drop-shadow(0 2px 12px rgba(255,215,0,0.4)) drop-shadow(0 0 8px rgba(212,175,55,0.3))'
+            filter: 'drop-shadow(0 2px 12px rgba(91,155,213,0.3)) drop-shadow(0 0 8px rgba(91,155,213,0.2))'
           }} />
         </div>
         
         <div className="max-w-md w-full p-8 rounded-xl border shadow-lg relative z-10 backdrop-blur-sm" style={{ 
-          borderColor: elegantPalette.gold.metallic + '50', 
+          borderColor: elegantPalette.gold.metallic + '30', 
           backgroundColor: elegantPalette.dark.surface,
-          boxShadow: `0 8px 40px ${elegantPalette.dark.deep}90, 0 0 25px ${elegantPalette.gold.metallic}20, inset 0 1px 0 ${elegantPalette.gold.metallic}15`
+          boxShadow: `0 8px 40px ${elegantPalette.dark.deep}60, 0 0 25px ${elegantPalette.gold.metallic}20, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
         }}>
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg" style={{ 
@@ -1879,32 +1912,32 @@ function Admin() {
         backgroundColor: elegantPalette.dark.wallpaper,
         backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
       }}>
-        {/* Dark Decorative Elements - Extracted from the moody image */}
+        {/* Soft Decorative Elements - Subtle & Easy on Eyes */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          {/* Very subtle dark taupe accents */}
-          <Book size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.02]" style={{ color: elegantPalette.taupe.dark, filter: 'drop-shadow(0 4px 8px rgba(107,94,82,0.1))' }} />
-          <Book size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.025]" style={{ color: elegantPalette.taupe.muted, filter: 'drop-shadow(0 4px 8px rgba(90,80,72,0.1))' }} />
+          {/* Subtle grey accents */}
+          <Book size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.03]" style={{ color: elegantPalette.taupe.dark, filter: 'drop-shadow(0 4px 8px rgba(75,85,99,0.1))' }} />
+          <Book size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.025]" style={{ color: elegantPalette.taupe.muted, filter: 'drop-shadow(0 4px 8px rgba(107,114,128,0.1))' }} />
           <BookOpen size={180} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.02]" style={{ color: elegantPalette.taupe.dark }} />
           <LayoutDashboard size={160} className="absolute bottom-1/4 left-1/3 -rotate-25 opacity-[0.02]" style={{ color: elegantPalette.dark.soft }} />
           
-          {/* Dark depth elements */}
-          <Layers size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.piano, filter: 'drop-shadow(0 4px 8px rgba(43,43,43,0.2))' }} />
+          {/* Subtle depth elements */}
+          <Layers size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.piano, filter: 'drop-shadow(0 4px 8px rgba(45,55,72,0.1))' }} />
           <Settings size={200} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.charcoal }} />
           
-          {/* Metallic Gold accents - SHINY against dark! */}
-          <Star size={150} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.08]" style={{ 
+          {/* Soft Blue accents - Easy on the Eyes! */}
+          <Star size={150} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.05]" style={{ 
             color: elegantPalette.gold.metallic, 
-            filter: `drop-shadow(0 4px 20px rgba(212,175,55,0.5)) drop-shadow(0 0 12px rgba(255,215,0,0.4))`,
-            textShadow: '0 0 15px rgba(255,215,0,0.6)'
+            filter: `drop-shadow(0 4px 20px rgba(91,155,213,0.25)) drop-shadow(0 0 12px rgba(91,155,213,0.15))`,
+            textShadow: '0 0 15px rgba(91,155,213,0.3)'
           }} />
-          <Award size={120} className="absolute top-1/2 left-1/3 rotate-12 opacity-[0.06]" style={{ 
+          <Award size={120} className="absolute top-1/2 left-1/3 rotate-12 opacity-[0.04]" style={{ 
             color: elegantPalette.gold.bright,
-            filter: 'drop-shadow(0 2px 12px rgba(255,215,0,0.4))'
+            filter: 'drop-shadow(0 2px 12px rgba(125,211,252,0.25))'
           }} />
-          {/* Bronze accent */}
-          <Award size={100} className="absolute top-1/4 right-1/4 -rotate-12 opacity-[0.05]" style={{ 
+          {/* Soft teal accent */}
+          <Award size={100} className="absolute top-1/4 right-1/4 -rotate-12 opacity-[0.03]" style={{ 
             color: elegantPalette.gold.bronze,
-            filter: 'drop-shadow(0 2px 10px rgba(205,127,50,0.3))'
+            filter: 'drop-shadow(0 2px 10px rgba(79,209,197,0.2))'
           }} />
         </div>
         
@@ -2135,7 +2168,7 @@ function Admin() {
           backdropFilter: 'blur(12px)',
           borderBottom: `2px solid ${elegantPalette.gold.metallic}30`,
           zIndex: 20,
-          boxShadow: `0 2px 20px ${elegantPalette.dark.deep}80, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+          boxShadow: `0 2px 20px ${elegantPalette.dark.soft}30, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
         }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -2168,7 +2201,7 @@ function Admin() {
             <div className="rounded-xl p-5 relative overflow-hidden border-2" style={{
               background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 50%, ${elegantPalette.dark.piano} 100%)`,
               borderColor: elegantPalette.gold.metallic + '60',
-              boxShadow: `0 4px 24px ${elegantPalette.dark.deep}90, 0 0 20px ${elegantPalette.gold.metallic}20, inset 0 1px 0 ${elegantPalette.gold.metallic}15`
+              boxShadow: `0 4px 24px ${elegantPalette.dark.soft}30, 0 0 20px ${elegantPalette.gold.metallic}15, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
             }}>
               <div className="flex items-center gap-4 relative z-10">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{
@@ -2217,6 +2250,50 @@ function Admin() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      // Test admin message - send to current admin user
+                      const testEmail = auth.currentUser?.email || email;
+                      if (!testEmail) {
+                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                          detail: { message: 'Please log in first', type: 'error' } 
+                        }));
+                        return;
+                      }
+                      try {
+                        setLoading(prev => ({ ...prev, submitting: true }));
+                        await createAdminMessage(testEmail, 'This is a test admin message! 🧪 You can use this to test the "From the Team🥼" chip and modal. This message will remain visible for 24 hours after you open it.', ADMIN_PASSWORD);
+                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                          detail: { message: 'Test admin message sent! Check your dashboard.', type: 'success' } 
+                        }));
+                      } catch (error) {
+                        console.error('❌ Failed to send test message:', error);
+                        let errorMessage = 'Failed to send test message';
+                        if (error.code === 'functions/internal' || error.code === 'functions/not-found') {
+                          errorMessage = 'Function not deployed. Please deploy Firebase functions: cd functions && firebase deploy --only functions:createAdminMessage';
+                        } else if (error.message) {
+                          errorMessage = error.message;
+                        }
+                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                          detail: { message: errorMessage, type: 'error' } 
+                        }));
+                      } finally {
+                        setLoading(prev => ({ ...prev, submitting: false }));
+                      }
+                    }}
+                    disabled={loading.submitting}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-all hover:opacity-90 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ 
+                      borderColor: theme.primary + '60',
+                      backgroundColor: theme.primary + '20',
+                      color: theme.primary,
+                      cursor: loading.submitting ? 'not-allowed' : 'pointer'
+                    }}
+                    title="Test Admin Message - sends a test message to your account"
+                  >
+                    <Shield size={14} />
+                    {loading.submitting ? 'Sending...' : 'Test Message'}
+                  </button>
                   <div className="text-sm px-3 py-1 rounded-lg" style={{ 
                     backgroundColor: feedback.filter(f => f.status === 'new').length > 0 ? theme.warning + '20' : theme.success + '20',
                     color: feedback.filter(f => f.status === 'new').length > 0 ? theme.warning : theme.success
@@ -3240,6 +3317,50 @@ function Admin() {
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
+                      <button
+                        onClick={async () => {
+                          // Test admin message - send to current admin user
+                          const testEmail = auth.currentUser?.email || email;
+                          if (!testEmail) {
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                              detail: { message: 'Please log in first', type: 'error' } 
+                            }));
+                            return;
+                          }
+                          try {
+                            setLoading(prev => ({ ...prev, submitting: true }));
+                            await createAdminMessage(testEmail, 'This is a test admin message! 🧪 You can use this to test the "From the Team🥼" chip and modal. This message will remain visible for 24 hours after you open it.', ADMIN_PASSWORD);
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                              detail: { message: 'Test admin message sent! Check your dashboard.', type: 'success' } 
+                            }));
+                          } catch (error) {
+                            console.error('❌ Failed to send test message:', error);
+                            let errorMessage = 'Failed to send test message';
+                            if (error.code === 'functions/internal' || error.code === 'functions/not-found') {
+                              errorMessage = 'Function not deployed. Please deploy Firebase functions: cd functions && firebase deploy --only functions:createAdminMessage';
+                            } else if (error.message) {
+                              errorMessage = error.message;
+                            }
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                              detail: { message: errorMessage, type: 'error' } 
+                            }));
+                          } finally {
+                            setLoading(prev => ({ ...prev, submitting: false }));
+                          }
+                        }}
+                        disabled={loading.submitting}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-all hover:opacity-90 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ 
+                          borderColor: theme.primary + '60',
+                          backgroundColor: theme.primary + '20',
+                          color: theme.primary,
+                          cursor: loading.submitting ? 'not-allowed' : 'pointer'
+                        }}
+                        title="Test Admin Message - sends a test message to your account"
+                      >
+                        <Shield size={14} />
+                        {loading.submitting ? 'Sending...' : 'Test Message'}
+                      </button>
                       <div className="text-sm" style={{ color: theme.textLight }}>
                         {feedback.filter(f => f.status === 'new').length} new, {feedback.length} total
                       </div>
@@ -3458,26 +3579,53 @@ function Admin() {
                                   rows="4"
                                   placeholder="Type your response to the user here..."
                                 />
+                                <div className="flex items-center gap-2 p-2 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background + '50' }}>
+                                  <input
+                                    type="checkbox"
+                                    id={`admin-message-${item.id}`}
+                                    checked={sendAsAdminMessage}
+                                    onChange={(e) => setSendAsAdminMessage(e.target.checked)}
+                                    className="cursor-pointer"
+                                  />
+                                  <label 
+                                    htmlFor={`admin-message-${item.id}`}
+                                    className="text-xs cursor-pointer flex items-center gap-1"
+                                    style={{ color: theme.text }}
+                                  >
+                                    <Shield size={12} style={{ color: sendAsAdminMessage ? theme.primary : theme.textLight }} />
+                                    Send as Admin Message (one-way, shows as "From the Team🥼" chip)
+                                  </label>
+                                </div>
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => handleRespondToFeedback(item)}
                                     disabled={!responseText.trim() || loading.submitting}
-                                    className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                                   >
                                     {loading.submitting ? (
                                       <>
-                                        <Loader size={14} className="animate-spin mr-2" />
+                                        <Loader size={14} className="animate-spin" />
                                         Sending...
                                       </>
                                     ) : (
-                                      'Send Response'
+                                      <>
+                                        {sendAsAdminMessage ? (
+                                          <>
+                                            <Shield size={14} />
+                                            Send Admin Message
+                                          </>
+                                        ) : (
+                                          'Send Response'
+                                        )}
+                                      </>
                                     )}
                                   </button>
                                   <button
                                     onClick={() => {
                                       setRespondingToFeedback(null);
                                       setResponseText('');
+                                      setSendAsAdminMessage(false);
                                     }}
                                     className="px-4 py-2 rounded-lg text-sm font-semibold border"
                                     style={{ borderColor: theme.border, color: theme.text }}
@@ -4385,24 +4533,18 @@ function Admin() {
 
         </div>
       </div>
-      {console.log('🔍 Checking modal render condition:', { isUserModalOpen, selectedUser: !!selectedUser })}
-      {isUserModalOpen && selectedUser ? (
-        <>
-          {console.log('✅ Modal SHOULD render now!')}
-          <UserDetailModal 
-            user={selectedUser} 
-            onClose={() => {
-              setIsUserModalOpen(false);
-              setSelectedUser(null);
-            }}
-            theme={theme}
-            onExtendTrial={handleExtendTrial}
-            isExtendingTrial={isExtendingTrial}
-            isLoadingDetails={isLoadingUserDetails}
-          />
-        </>
-      ) : (
-        console.log('❌ Modal NOT rendering:', { isUserModalOpen, hasUser: !!selectedUser })
+      {isUserModalOpen && selectedUser && (
+        <UserDetailModal 
+          user={selectedUser} 
+          onClose={() => {
+            setIsUserModalOpen(false);
+            setSelectedUser(null);
+          }}
+          theme={theme}
+          onExtendTrial={handleExtendTrial}
+          isExtendingTrial={isExtendingTrial}
+          isLoadingDetails={isLoadingUserDetails}
+        />
       )}
 
       {/* Research Topic Edit Modal */}

@@ -446,6 +446,85 @@ export default function Recon() {
         }));
     }, [isReadOnly, setShowUpgradeModal, vendors, setReconItems, adjustStockpileAfterRecon, setPrefill, setActiveTab, draftIdToRemove, firebaseUser, reconItems, protocols, reconHistory, supplements, orders, metrics, calendarNotes, stockpile, scheduledBuys]);
 
+    const handleCalculatorSaveDraft = useCallback(async (data) => {
+        if (isReadOnly) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
+        const peptides = Array.isArray(data?.peptides) ? data.peptides : [];
+        
+        const peptideNames = peptides.length > 0
+            ? peptides.map(p => p.name || 'Unnamed').join(' + ')
+            : (data?.peptide || 'Draft');
+
+        const totalMg = peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0);
+        const totalDose = peptides.reduce((sum, p) => {
+            const dose = Number(p.dose) || 0;
+            return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
+        }, 0);
+
+        const vendorId = data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null;
+        const now = new Date().toISOString();
+
+        const draftItem = {
+            id: `draft_${Date.now()}`,
+            peptide: peptideNames,
+            mg: totalMg,
+            dose: totalDose,
+            vendor: data.vendor || '',
+            vendorId,
+            water: data.water || 0,
+            deliveryMethod: data.deliveryMethod || 'pipette',
+            penColor: data.penColor || '',
+            cost: data.cost || '',
+            date: now,
+            peptides, // Include full peptides array with stockpileId
+            notes: '',
+            isDraft: true,
+            createdAt: now,
+            updatedAt: now
+        };
+        
+        setReconItems(prev => {
+            // Remove any existing drafts matching this form
+            const existingDraftIndex = prev.findIndex(item => item.isDraft && item.peptide === draftItem.peptide);
+            const filtered = existingDraftIndex >= 0 
+                ? prev.filter((_, idx) => idx !== existingDraftIndex)
+                : prev.filter(item => !item.isDraft || item.id !== draftItem.id);
+            return [draftItem, ...filtered];
+        });
+
+        // Sync to cloud
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const updatedItems = [draftItem, ...reconItems.filter(item => !item.isDraft || item.id !== draftItem.id)];
+                
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: updatedItems,
+                    reconHistory: reconHistory || [],
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+                
+                await saveAppData(userId, appData, { skipMerge: true });
+            } catch (error) {
+                console.warn('Failed to sync draft to cloud:', error);
+            }
+        }
+
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Draft saved successfully!', type: 'success' }
+        }));
+    }, [isReadOnly, setShowUpgradeModal, vendors, setReconItems, firebaseUser, reconItems, protocols, reconHistory, supplements, orders, metrics, calendarNotes, stockpile, scheduledBuys]);
+
 	const filteredItems = reconItems.filter(i => {
 		const vendorName = i.vendorId ? vendorMap[i.vendorId] || '' : (i.vendor || '');
 		return (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || vendorName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -553,7 +632,8 @@ export default function Recon() {
                         prefill={prefill} 
                         isReadOnly={isReadOnly} 
                         onUpgrade={() => setShowUpgradeModal(true)} 
-                        onSave={handleCalculatorSave} 
+                        onSave={handleCalculatorSave}
+                        onSaveDraft={handleCalculatorSaveDraft}
                     />
 					</div>
 				</div>
@@ -567,7 +647,8 @@ export default function Recon() {
                     prefill={prefill} 
                     isReadOnly={isReadOnly} 
                     onUpgrade={() => setShowUpgradeModal(true)} 
-                    onSave={handleCalculatorSave} 
+                    onSave={handleCalculatorSave}
+                    onSaveDraft={handleCalculatorSaveDraft}
                 />
 				</div>
 

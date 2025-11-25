@@ -7,6 +7,7 @@ import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import SignupAgreementModal from '../components/legal/SignupAgreementModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
+import TwoFactorModal from '../components/auth/TwoFactorModal';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import { clearAllUserData, clearAllLocalStorage } from '../utils/clearUserData';
@@ -19,6 +20,8 @@ import {
   getAccountStatus
 } from '../services/firebase';
 import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking';
+import { getTwoFactorSettings, verifyAndConsumeBackupCode } from '../services/twoFactorAuth';
+import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
 
 // Lightweight local auth to mirror old app behavior for local testing
@@ -128,6 +131,10 @@ export default function Login() {
     const [emailValidation, setEmailValidation] = useState({ valid: true, error: '', tip: '' });
     const [isReturningUser, setIsReturningUser] = useState(false);
     const [showIOSPopup, setShowIOSPopup] = useState(false);
+    const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
+    const [twoFactorMethod, setTwoFactorMethod] = useState('authenticator');
+    const [twoFactorSecret, setTwoFactorSecret] = useState('');
+    const [pendingLoginData, setPendingLoginData] = useState(null);
     
     // Check if user is already authenticated
     useEffect(() => {
@@ -323,6 +330,35 @@ export default function Login() {
         const firebaseUser = await loginUser(email, password);
         console.log('✅ Firebase authentication successful');
         
+        console.log('🔄 Step 3.5: Checking for two-factor authentication...');
+        // Check if 2FA is enabled for this user
+        const twoFactorSettings = await getTwoFactorSettings(firebaseUser.uid, password);
+        
+        if (twoFactorSettings && twoFactorSettings.enabled && twoFactorSettings.method === 'authenticator' && twoFactorSettings.secret) {
+          console.log('🔐 Two-factor authentication enabled - requiring verification');
+          // Store password temporarily for decryption
+          sessionStorage.setItem('tpprover_user_password', password);
+          
+          // Store pending login data to resume after 2FA verification
+          setPendingLoginData({
+            firebaseUser,
+            password,
+            existingData,
+            hasExistingData,
+            sampleDataCleared,
+            sampleDataClearedAt,
+            sampleBannerDismissed
+          });
+          
+          // Set 2FA state
+          setTwoFactorMethod(twoFactorSettings.method);
+          setTwoFactorSecret(twoFactorSettings.secret);
+          setShowTwoFactorModal(true);
+          
+          // Pause login flow - will resume after 2FA verification
+          return true; // Return true to prevent error, but don't navigate yet
+        }
+        
         console.log('🔄 Step 4: Setting up encryption...');
         // Store password for encryption
         setFirebasePassword(password);
@@ -450,9 +486,12 @@ export default function Login() {
         sessionStorage.removeItem('tpp_login_in_progress');
         
         console.log('✅ Login complete! Navigating to dashboard...');
-        startTransition(() => {
+        // Small delay to ensure context is updated before navigation
+        setTimeout(() => {
+          startTransition(() => {
             navigate('/app/dashboard');
-        });
+          });
+        }, 100);
         return true;
       } catch (error) {
         // Clear login flag on error too
@@ -488,6 +527,154 @@ export default function Login() {
         }
         return false;
       }
+    };
+
+    // Handle 2FA verification and continue login
+    const handleTwoFactorVerify = async (code) => {
+      if (!pendingLoginData) {
+        throw new Error('No pending login data');
+      }
+
+      const { firebaseUser, password, existingData, hasExistingData, sampleDataCleared, sampleDataClearedAt, sampleBannerDismissed } = pendingLoginData;
+
+      // Verify the code
+      let isValid = false;
+      
+      if (twoFactorMethod === 'authenticator' && twoFactorSecret) {
+        // Verify TOTP code
+        if (!isValidCodeFormat(code)) {
+          throw new Error('Please enter a valid 6-digit code');
+        }
+        isValid = verifyTOTPCode(twoFactorSecret, code);
+        
+        // If TOTP fails, try backup code
+        if (!isValid) {
+          isValid = await verifyAndConsumeBackupCode(firebaseUser.uid, code, password);
+        }
+      }
+
+      if (!isValid) {
+        throw new Error('Invalid verification code. Please try again.');
+      }
+
+      console.log('✅ Two-factor authentication verified');
+
+      // Clear 2FA modal
+      setShowTwoFactorModal(false);
+      setPendingLoginData(null);
+
+      // Continue with the rest of the login flow
+      console.log('🔄 Step 4: Setting up encryption...');
+      setFirebasePassword(password);
+
+      console.log('🔄 Step 5: Checking founder status...');
+      try {
+        const isFounder = await getUserFounderStatus(firebaseUser.uid);
+        if (isFounder) {
+          localStorage.setItem('tpprover_is_founder', 'true');
+          console.log('👑 Founder status confirmed');
+        }
+      } catch (error) {
+        console.error('Error checking existing founder status:', error);
+      }
+      
+      console.log('🔄 Step 6: Checking beta tester status...');
+      try {
+        const { checkLifetimeAccessFirestore } = await import('../services/firebase');
+        const lifetimeAccess = await checkLifetimeAccessFirestore(firebaseUser.uid);
+        if (lifetimeAccess && lifetimeAccess.metadata?.isBetaTester) {
+          localStorage.setItem('tpprover_is_tester', 'true');
+          console.log('🧪 Beta tester status synced from Firestore');
+        }
+      } catch (error) {
+        console.error('Error checking beta tester status:', error);
+      }
+
+      console.log('🔄 Step 7: Setting up user context...');
+      let user = { 
+        email: firebaseUser.email, 
+        name: firebaseUser.email.split('@')[0],
+        uid: firebaseUser.uid
+      };
+      
+      const lastUserEmail = localStorage.getItem('tpprover_last_user_email');
+      if (lastUserEmail && lastUserEmail !== user.email) {
+        console.log('🚨 SECURITY: User change detected during login!');
+        clearAllUserData();
+        console.log('✅ Confirmed: Account data cleared for new user');
+      }
+      
+      localStorage.setItem('tpprover_last_user_email', user.email);
+      
+      try {
+        const existingUser = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
+        if (existingUser.createdAt) {
+          user.createdAt = existingUser.createdAt;
+        } else if (firebaseUser.metadata?.creationTime) {
+          user.createdAt = new Date(firebaseUser.metadata.creationTime).toISOString();
+        } else {
+          user.createdAt = new Date().toISOString();
+        }
+      } catch {
+        if (firebaseUser.metadata?.creationTime) {
+          user.createdAt = new Date(firebaseUser.metadata.creationTime).toISOString();
+        } else {
+          user.createdAt = new Date().toISOString();
+        }
+      }
+      
+      console.log('🔄 Step 8: Storing user data...');
+      try { localStorage.setItem('tpprover_user', JSON.stringify(user)) } catch {}
+      
+      console.log('🔄 Step 9: Setting auth token...');
+      try {
+        localStorage.setItem('tpprover_auth_token', 'firebase_token');
+        console.log('🔑 Auth token set');
+      } catch (e) {
+        console.error('❌ Failed to set auth token:', e);
+      }
+      
+      console.log('🔄 Step 10: Restoring backed up data...');
+      if (hasExistingData) {
+        console.log('💾 Restoring backed up data to prevent data loss...');
+        localStorage.setItem('tpprover_data_backup', JSON.stringify(existingData));
+        Object.keys(existingData).forEach(key => {
+          if (existingData[key]) {
+            localStorage.setItem(key, JSON.stringify(existingData[key]));
+          }
+        });
+      }
+      
+      if (sampleDataCleared) {
+        localStorage.setItem('tpprover_sample_data_cleared', sampleDataCleared);
+      }
+      if (sampleDataClearedAt) {
+        localStorage.setItem('tpprover_sample_data_cleared_at', sampleDataClearedAt);
+      }
+      if (sampleBannerDismissed) {
+        localStorage.setItem('tpprover_sample_banner_dismissed', sampleBannerDismissed);
+      }
+      
+      console.log('🔄 Step 11: Setting user context...');
+      setUser(user);
+      
+      sessionStorage.removeItem('tpp_login_in_progress');
+      
+      console.log('✅ Login complete! Navigating to dashboard...');
+      // Small delay to ensure context is updated before navigation
+      setTimeout(() => {
+        startTransition(() => {
+          navigate('/app/dashboard');
+        });
+      }, 100);
+    };
+
+    const handleTwoFactorCancel = () => {
+      setShowTwoFactorModal(false);
+      setPendingLoginData(null);
+      setLoading(false);
+      sessionStorage.removeItem('tpp_login_in_progress');
+      setError('Login cancelled. Two-factor authentication is required.');
     };
 
     // Validate signup credentials without creating account
@@ -1246,6 +1433,17 @@ export default function Login() {
                 open={showContact}
                 onClose={() => setShowContact(false)}
             />
+
+            {/* Two-Factor Authentication Modal */}
+            {showTwoFactorModal && (
+                <TwoFactorModal
+                    open={showTwoFactorModal}
+                    onClose={handleTwoFactorCancel}
+                    onVerify={handleTwoFactorVerify}
+                    theme={theme}
+                    method={twoFactorMethod}
+                />
+            )}
 
             {/* iOS Coming Soon Popup */}
             {showIOSPopup && (

@@ -9,7 +9,7 @@ import { formatCurrency } from '../../utils/currencyUtils'
 import { PlusCircle, Beaker, Info, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import VialLabelPreview from './VialLabelPreview'
 
-export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData }) {
+export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData }) {
   // Use controlled form if provided, otherwise use internal state
   const [internalForm, setInternalForm] = useState({ vendor: '', water: '', peptides: [{ id: 1, name: '', mg: '', dose: '', doseUnit: 'mcg' }] });
   const form = formData !== undefined ? formData : internalForm;
@@ -1040,6 +1040,48 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, noCard = false, c
           <FilePlus size={16} />
           Save Calculation
         </button>
+        {onSaveDraft && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // Convert hex color to name before saving
+              const selectedPenColor = penColors.find(p => p.hex === penColor);
+              const penColorName = deliveryMethod === 'pen' ? selectedPenColor?.name : undefined;
+              
+              // Ensure all form fields are included, and preserve stockpileId/quantityUsed in peptides
+              const peptidesWithStockpile = (form.peptides || []).map(pep => ({
+                ...pep,
+                // Ensure stockpileId and quantityUsed are preserved
+                stockpileId: pep.stockpileId || null,
+                quantityUsed: pep.quantityUsed || 1
+              }));
+              
+              const dataToSave = { 
+                ...form,
+                peptides: peptidesWithStockpile,
+                deliveryMethod: form.deliveryMethod || deliveryMethod, 
+                administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
+                penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
+                penColor: penColorName || form.penColor, 
+                cost: form.cost || cost
+              };
+              
+              onSaveDraft(dataToSave);
+            }}
+            type="button"
+            className="w-full mt-2 text-sm font-medium transition-all hover:opacity-80 underline"
+            style={{ 
+              color: theme?.primary || theme?.text || '#2563eb',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            Save as Draft
+          </button>
+        )}
         <div className="p-3 rounded-md bg-yellow-50 text-yellow-800 text-xs mt-4 border border-yellow-200 text-center">
           <Info size={14} className="inline mr-1" />
           For research purposes only. Always verify calculations with alternative methods.

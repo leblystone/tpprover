@@ -147,30 +147,68 @@ export default function CustomizableDashboard() {
     };
   }, []);
 
-  // Compute dashboard data
-  const incomingOrder = useMemo(() => {
-    if (!orders || orders.length === 0) return null;
+  // Compute dashboard data - incomingOrders array for pagination support
+  const incomingOrders = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
     
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    // Get active orders (non-delivered) OR delivered orders within last 7 days
     const activeOrders = orders.filter(o => {
-      const status = (o.status || '').toLowerCase();
-      return !status.includes('delivered');
+        const status = (o.status || '').toLowerCase();
+        const isDelivered = status.includes('delivered');
+        
+        if (!isDelivered) {
+            return true; // Include all non-delivered orders
+        }
+        
+        // For delivered orders, only include if delivered within last 7 days
+        if (o.deliveryDate) {
+            const deliveryDate = new Date(o.deliveryDate);
+            return deliveryDate >= sevenDaysAgo;
+        }
+        
+        // If no delivery date but status is delivered, check if order date is within 7 days
+        if (o.date) {
+            const orderDate = new Date(o.date);
+            return orderDate >= sevenDaysAgo;
+        }
+        
+        return false;
     });
     
-    if (activeOrders.length === 0) return null;
+    if (activeOrders.length === 0) return [];
     
-    activeOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-    const latest = activeOrders[0];
+    // Sort by date to get the most recent first
+    activeOrders.sort((a, b) => {
+        const dateA = new Date(a.deliveryDate || a.date || 0);
+        const dateB = new Date(b.deliveryDate || b.date || 0);
+        return dateB - dateA;
+    });
     
-    return {
-      peptide: latest.items?.[0]?.name || 'Unknown Item',
-      mg: latest.items?.[0]?.mg || 'N/A',
-      vendor: latest.vendorName || latest.vendor || 'Unknown Vendor',
-      status: latest.status || 'Order Placed',
-      shipDate: latest.shipDate || latest.date,
-      deliveryDate: latest.deliveryDate,
-      tracking: latest.tracking
-    };
+    // Map to widget format
+    const mappedOrders = activeOrders.map(order => ({
+        id: order.id,
+        peptide: order.items?.[0]?.name || 'Unknown Item',
+        mg: order.items?.[0]?.mg || 'N/A',
+        vendor: order.vendorName || order.vendor || 'Unknown Vendor',
+        status: order.status || 'Order Placed',
+        shipDate: order.shipDate || order.date,
+        deliveryDate: order.deliveryDate,
+        date: order.date, // Order placed date
+        tracking: order.tracking
+    }));
+    
+    return Array.isArray(mappedOrders) ? mappedOrders : [];
   }, [orders]);
+
+  // Compute single incomingOrder for backward compatibility
+  const incomingOrder = useMemo(() => {
+    if (!incomingOrders || incomingOrders.length === 0) return null;
+    return incomingOrders[0];
+  }, [incomingOrders]);
 
   const pendingVendors = useMemo(() => {
     return vendors.filter(vendor => vendor.isStub === true);
@@ -824,6 +862,7 @@ export default function CustomizableDashboard() {
                       theme={theme}
                       tasks={todaysTasks}
                       incomingOrder={incomingOrder}
+                      incomingOrders={incomingOrders}
                       upcomingBuys={(() => {
                         // Additional safety filter: remove mock buys if sample data was cleared
                         const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
@@ -954,6 +993,7 @@ export default function CustomizableDashboard() {
                         theme={theme}
                         tasks={todaysTasks}
                         incomingOrder={incomingOrder}
+                        incomingOrders={incomingOrders}
                         upcomingBuys={scheduledBuys}
                         pendingVendors={pendingVendors}
                         goals={goals}
