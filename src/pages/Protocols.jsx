@@ -187,7 +187,7 @@ export default function Protocols() {
     };
 }, [startConfirm, startDate]);
 
-  const isActiveNow = (p) => {
+  const isActiveNow = React.useCallback((p) => {
     try {
       if (p?.active !== true) return false
       if (!p?.startDate) return false
@@ -207,7 +207,7 @@ export default function Protocols() {
       else if (String(d.unit).toLowerCase() === 'month') e.setMonth(e.getMonth() + Number(d.count))
       return today <= new Date(e.getFullYear(), e.getMonth(), e.getDate())
     } catch { return false }
-  }
+  }, [])
 
   useEffect(() => {
     try { 
@@ -340,6 +340,33 @@ export default function Protocols() {
     );
   }, [protocols, searchQuery]);
 
+  // Organize protocols: active first, then inactive (alphabetically sorted)
+  const organizedProtocols = React.useMemo(() => {
+    const active = [];
+    const inactive = [];
+
+    filteredProtocols.forEach(p => {
+      const isActive = p.active === true || isActiveNow(p);
+      if (isActive) {
+        active.push(p);
+      } else {
+        inactive.push(p);
+      }
+    });
+
+    // Sort both groups alphabetically by name
+    const sortByName = (a, b) => {
+      const nameA = (a.name || a.protocolName || '').toLowerCase();
+      const nameB = (b.name || b.protocolName || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    };
+
+    active.sort(sortByName);
+    inactive.sort(sortByName);
+
+    return { active, inactive };
+  }, [filteredProtocols, isActiveNow]);
+
   // Check for draft start protocol data
   const hasDraftStart = React.useCallback((protocolId) => {
     try {
@@ -398,19 +425,60 @@ export default function Protocols() {
                 </div>
               ) : null
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredProtocols.map(p => (
-                  <ProtocolCard 
-                    key={p.id}
-                    item={p}
-                    theme={theme}
-                    isActive={p.active === true || isActiveNow(p)}
-                    onStartClick={handleStartClick}
-                    onEditClick={handleEditClick}
-                    onHistoryClick={setHistoryProtocol}
-                    hasDraftStart={hasDraftStart(p.id)}
-                  />
-                ))}
+              <div className="space-y-6">
+                {/* Active Protocols Section */}
+                {organizedProtocols.active.length > 0 && (
+                  <div className="space-y-4">
+                    <h2 
+                      className="text-sm font-semibold uppercase tracking-wider px-1"
+                      style={{ color: theme.textLight }}
+                    >
+                      Active Protocols
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {organizedProtocols.active.map(p => (
+                        <ProtocolCard 
+                          key={p.id}
+                          item={p}
+                          theme={theme}
+                          isActive={true}
+                          onStartClick={handleStartClick}
+                          onEditClick={handleEditClick}
+                          onHistoryClick={setHistoryProtocol}
+                          hasDraftStart={hasDraftStart(p.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Inactive Protocols Section */}
+                {organizedProtocols.inactive.length > 0 && (
+                  <div className="space-y-4">
+                    {organizedProtocols.active.length > 0 && (
+                      <h2 
+                        className="text-sm font-semibold uppercase tracking-wider px-1"
+                        style={{ color: theme.textLight }}
+                      >
+                        Inactive Protocols
+                      </h2>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {organizedProtocols.inactive.map(p => (
+                        <ProtocolCard 
+                          key={p.id}
+                          item={p}
+                          theme={theme}
+                          isActive={false}
+                          onStartClick={handleStartClick}
+                          onEditClick={handleEditClick}
+                          onHistoryClick={setHistoryProtocol}
+                          hasDraftStart={hasDraftStart(p.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -889,10 +957,29 @@ export default function Protocols() {
           const newEndDate = computeEndDate(updatedProtocol);
           const finalProtocol = { ...updatedProtocol, endDate: newEndDate };
 
-          // Update protocol - this will automatically update all schedules on dashboard and calendar
-          // since they dynamically read from localStorage on each render
-          // Changes to dosage, frequency, duration, unitValue, etc. will all reflect immediately
+          // Update protocol
           updateProtocol(finalProtocol);
+          
+          // Save to protocol draft for real-time sync with tasks/calendar
+          try {
+            const draftKey = `tpprover_protocol_draft_${finalProtocol.id}`;
+            localStorage.setItem(draftKey, JSON.stringify({
+              data: finalProtocol,
+              timestamp: new Date().toISOString()
+            }));
+            
+            // Emit event so Dashboard, TasksWidget, and Calendar pick up the changes immediately
+            window.dispatchEvent(new CustomEvent('tpp:protocol-autosaved', {
+              detail: { storageKey: draftKey, formData: finalProtocol }
+            }));
+            
+            // Trigger calendar and dashboard refresh
+            window.dispatchEvent(new CustomEvent('tpp:calendar-sync', { detail: { protocolUpdated: true } }));
+            window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', { detail: { protocolUpdated: true } }));
+          } catch (e) {
+            console.warn('Failed to save protocol draft:', e);
+          }
+          
           setEditing(null); 
         }}
         onDelete={(toDel) => {

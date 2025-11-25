@@ -229,6 +229,7 @@ export default function Calendar() {
                     supplements: [...(bySlot[slot]?.supplements || []), {
                       name: s.name || 'Supplement',
                       delivery: s.delivery || 'oral',
+                      deliveryMethod: s.deliveryMethod || s.delivery || 'oral', // Match Dashboard structure
                       dose: s.dose
                     }],
                   }
@@ -367,6 +368,8 @@ export default function Calendar() {
                       let isScheduledToday = false;
                       
                       // Adjust for timezone when comparing dates
+                      // Skip if protocol start date is null
+                      if (!ps) return acc;
                       const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
                       const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
 
@@ -418,6 +421,8 @@ export default function Calendar() {
                       let isScheduledToday = false;
                       
                       // Adjust for timezone when comparing dates
+                      // Skip if protocol start date is null
+                      if (!ps) return;
                       const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
                       const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
 
@@ -530,7 +535,8 @@ export default function Calendar() {
                           name: p.protocolName || 'Blended Protocol',
                           dose: dose,
                           unit: unit,
-                          deliveryMethod: reconItem?.deliveryMethod || firstPeptide?.deliveryMethod,
+                          deliveryMethod: reconItem?.deliveryMethod || firstPeptide?.deliveryMethod || firstPeptide?.delivery || 'injection',
+                          delivery: firstPeptide?.delivery || 'injection', // Also include delivery field for fallback
                           penColor: reconItem?.penColor || firstPeptide?.penColor,
                           penType: reconItem?.penType || firstPeptide?.penType,
                           protocolId: p.id,
@@ -553,6 +559,8 @@ export default function Calendar() {
                       const freq = pep.frequency || {};
                       let isScheduledToday = false;
                       
+                      // Skip if protocol start date is null
+                      if (!ps) return;
                       const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
                       const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
 
@@ -625,7 +633,8 @@ export default function Calendar() {
                                   name: pep.name || 'Peptide',
                                   dose: dose,
                                   unit: unit,
-                                  deliveryMethod: reconItem?.deliveryMethod || pep.deliveryMethod,
+                                  deliveryMethod: reconItem?.deliveryMethod || pep.deliveryMethod || pep.delivery || 'injection',
+                                  delivery: pep.delivery || 'injection', // Also include delivery field for fallback
                                   penColor: reconItem?.penColor || pep.penColor,
                                   penType: reconItem?.penType || pep.penType,
                                   protocolId: p.id,

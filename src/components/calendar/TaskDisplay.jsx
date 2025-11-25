@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, Check, PenTool, Beaker, Pipette, Droplet } from 'lucide-react';
+import { Pill, Check, PenTool, Beaker, Pipette } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -8,25 +8,37 @@ import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion';
 // Delivery icon component
 const DeliveryIcon = ({ task, theme, size = 14 }) => {
   if (task.type === 'peptide') {
-    if (task.deliveryMethod === 'pen') {
+    // Check both deliveryMethod and delivery fields, with fallback
+    const deliveryMethod = task.deliveryMethod || task.delivery || 'injection';
+    const deliveryLower = String(deliveryMethod).toLowerCase();
+    
+    if (deliveryLower === 'pen') {
       return <PenTool size={size} style={{ color: theme.textLight }} />;
     }
-    if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
+    if (deliveryLower === 'syringe' || deliveryLower === 'pipette' || deliveryLower === 'injection') {
       return <Pipette size={size} style={{ color: theme.textLight }} />;
     }
-    if (task.deliveryMethod === 'nasal') {
+    if (deliveryLower === 'nasal') {
       return <Pipette size={size} style={{ color: theme.textLight }} />;
     }
+    // Default fallback for peptides (typically injected)
+    return <Pipette size={size} style={{ color: theme.textLight }} />;
   }
   
   if (task.type === 'supplement') {
-    switch (String(task.delivery || '').toLowerCase()) {
-      case 'injection': return <Droplet size={size} style={{ color: theme.textLight }} />;
-      case 'powder': return <Beaker size={size} style={{ color: theme.textLight }} />;
-      case 'pill':
-      case 'oral':
-      default: return <Pill size={size} style={{ color: theme.textLight }} />;
+    // Match TasksList logic: check both delivery and deliveryMethod
+    const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
+    if (delivery === 'injection' || delivery === 'syringe') {
+      return <Pipette size={size} style={{ color: theme.textLight }} />;
     }
+    if (delivery === 'powder') {
+      return <Beaker size={size} style={{ color: theme.textLight }} />;
+    }
+    if (delivery === 'pill' || delivery === 'oral') {
+      return <Pill size={size} style={{ color: theme.textLight }} />;
+    }
+    // Default to pill for supplements
+    return <Pill size={size} style={{ color: theme.textLight }} />;
   }
   
   return null;
@@ -59,7 +71,8 @@ const TaskDisplay = ({
   size = 'normal', // 'compact', 'normal', 'detailed'
   showCheckbox = true,
   showPenDetails = true,
-  dateKey: dateKeyOverride
+  dateKey: dateKeyOverride,
+  disableInjectionSelector = false // Allow parent to handle injection selector
 }) => {
   // Prefer an explicit date key if provided to avoid timezone parsing issues
   const dateKey = dateKeyOverride || (date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '');
@@ -98,7 +111,8 @@ const TaskDisplay = ({
     const deliveryMethod = task.deliveryMethod || task.delivery;
     const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
     
-    if (isInjection && !isCompleted) {
+    // If injection selector is disabled, let parent handle it
+    if (isInjection && !isCompleted && !disableInjectionSelector) {
       setShowInjectionSelector(true);
     } else if (onToggle) {
       onToggle(task, date);

@@ -464,8 +464,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             dose: peptide.dose || '',
                             unit: peptide.unit || '',
                             time: slotKey,
-                            delivery: peptide.delivery || 'injection',
-                            deliveryMethod: peptide.deliveryMethod || 'injection',
+                            delivery: peptide.delivery || peptide.deliveryMethod || 'injection',
+                            deliveryMethod: peptide.deliveryMethod || peptide.delivery || 'injection',
                             penColor: peptide.penColor,
                             penType: peptide.penType
                         };
@@ -484,6 +484,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                                 dateKey={dateKey}
                                 onToggle={() => handleTaskToggle(timeSlot, taskId)}
                                 size="normal"
+                                disableInjectionSelector={true}
                             />
                         );
                     })}
@@ -497,7 +498,8 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             dose: suppData.dose || '',
                             unit: suppData.unit || '',
                             time: slotKey,
-                            delivery: suppData.delivery || 'oral'
+                            delivery: suppData.delivery || suppData.deliveryMethod || 'oral',
+                            deliveryMethod: suppData.deliveryMethod || suppData.delivery || 'oral'
                         };
                         const taskId = generateTaskId(task);
                         const isCompleted = completedTasks[timeSlot]?.[taskId] || false;
@@ -514,6 +516,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                                 dateKey={dateKey}
                                 onToggle={() => handleTaskToggle(timeSlot, taskId)}
                                 size="normal"
+                                disableInjectionSelector={true}
                             />
                         );
                     })}
