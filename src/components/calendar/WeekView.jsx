@@ -685,9 +685,9 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
         backgroundColor: theme.primary + (theme.isDark ? '30' : '20'),
         color: theme.primary
       }}
-      title={`Mark all ${timeSlot} tasks as done`}
+      title={`Check all ${timeSlot} tasks as done`}
     >
-      Mark All
+      Check All
     </button>
   );
 }

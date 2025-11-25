@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Pill, Beaker, ShoppingCart, Pipette } from 'lucide-react';
+import { Check, X, Pill, Beaker, ShoppingCart, Pipette, CalendarCheck2 } from 'lucide-react';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCompletionStats } from '../../utils/taskCompletion';
 import TaskDisplay from './TaskDisplay';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
@@ -421,10 +421,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             </span>
                         </div>
                         <div>
-                            <h4 className="text-sm font-semibold" style={{ color: theme.text }}>
-                                {labelForSlot(timeSlot)}
-                            </h4>
-                            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                            <p className="text-xs" style={{ color: theme.textLight }}>
                                 {completedCount} of {totalTasks} completed
                             </p>
                         </div>
@@ -439,7 +436,7 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             }}
                             disabled={loading}
                         >
-                            Mark All
+                            Check All
                         </button>
                     )}
                     {completedCount === totalTasks && (
@@ -594,12 +591,10 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                          backgroundColor: theme.cardBackground
                      }}>
                     <div className="flex-1">
-                        <h3 className="text-xl font-bold mb-1" style={{ color: theme.text }}>
+                        <h3 className="text-xl font-bold mb-1 flex items-center gap-2" style={{ color: theme.text }}>
+                            <CalendarCheck2 size={20} style={{ color: theme.primary }} />
                             {dateDisplay}
                         </h3>
-                        <p className="text-sm" style={{ color: theme.textLight }}>
-                            {completedTasksOverall} of {totalTasksOverall} tasks completed
-                        </p>
                     </div>
                     <button
                         onClick={onClose}
