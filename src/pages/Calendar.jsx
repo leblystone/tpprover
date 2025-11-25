@@ -491,9 +491,29 @@ export default function Calendar() {
                   });
 
                   if (isBlended) {
-                    let doseDisplay = ""
+                    const peptides = getNormalizedPeptides(p);
+                    // Check if any peptide has unitValue
+                    const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
                     
-                    if (reconItem) {
+                    // Build dose display from all peptides in the blend
+                    const doseParts = peptides.map(pep => 
+                        `${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`
+                    );
+                    
+                    // For blended protocols, build dose display with pipe format
+                    // Get the first peptide's dose info for the base display
+                    const firstPeptide = peptides[0];
+                    const baseDose = firstPeptide?.dosage?.amount || '';
+                    const baseUnit = firstPeptide?.dosage?.unit || 'mcg';
+                    
+                    let dose = '';
+                    let unit = '';
+                    
+                    if (additionalUnits) {
+                        // Show original dose/unit with pipe separator: "600 mcg | 15 units"
+                        dose = `${baseDose} ${baseUnit} | ${additionalUnits} units`;
+                        unit = ''; // Clear unit since it's included in dose
+                    } else if (reconItem) {
                         const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
                             const dose = Number(pep.dose) || 0;
                             return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
@@ -501,19 +521,19 @@ export default function Calendar() {
                         const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
                         const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
                         if (calc.unitsPerDose > 0) {
-                            doseDisplay = ` - ${calc.unitsPerDose.toFixed(0)} units`;
+                            dose = `${calc.unitsPerDose.toFixed(0)} units`;
+                            unit = ''; // Clear unit since it's included in dose
+                        } else {
+                            dose = `${baseDose} ${baseUnit}`;
+                            unit = ''; // Clear unit since it's included in dose
                         }
                     } else {
-                        const doseParts = [];
-                        getNormalizedPeptides(p).forEach(pep => { 
-                            doseParts.push(`${pep.name} ${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`);
-                        })
-                        doseDisplay = `: ${doseParts.join(' + ')}`;
+                        dose = `${baseDose} ${baseUnit}`;
+                        unit = ''; // Clear unit since it's included in dose
                     }
 
                     // For blended protocols, all peptides share the same frequency
                     // Get times from the first peptide only
-                    const peptides = getNormalizedPeptides(p);
                     const times = peptides.length > 0 ? (peptides[0].frequency?.time || ['AM']) : ['AM'];
                     
                     Array.from(times).forEach(t => {
@@ -523,13 +543,7 @@ export default function Calendar() {
                       let deliveryInfo = '';
                       if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
                       if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Syringe)';
-                      const peptideName = `${p.protocolName || 'Blended Protocol'}${doseDisplay}${deliveryInfo}`;
-                      // For blended protocols, we'll use the first peptide's dose info
-                      const firstPeptide = getNormalizedPeptides(p)[0];
-                      const doseInfo = `${firstPeptide?.dosage?.amount || ''} ${firstPeptide?.dosage?.unit || 'mcg'}`;
-                      const doseMatch = doseInfo.match(/^(\d+(?:\.\d+)?)\s*(units?|mg|mcg|ml)$/);
-                      const dose = doseMatch ? doseMatch[1] : '';
-                      const unit = doseMatch ? doseMatch[2] : '';
+                      const peptideName = `${p.protocolName || 'Blended Protocol'} - ${dose}${deliveryInfo}`;
 
                       const peptideData = {
                           name: p.protocolName || 'Blended Protocol',
@@ -606,28 +620,40 @@ export default function Calendar() {
                               // Use AM/PM format directly
                               const normalizedTimeSlot = t;
                               const currentSlot = obj[normalizedTimeSlot] || { peptides: [], supplements: [] };
-                              let doseInfo = `${pep.dosage?.amount || ''} ${pep.dosage?.unit || 'mcg'}`;
+                              
+                              let dose = pep.dosage?.amount || '';
+                              let unit = pep.dosage?.unit || '';
+                              let additionalUnits = pep.unitValue || ''; // Get units value from peptide
 
-                              if (reconItem) {
+                              // Build dose display with pipe format to match Today's Research widget
+                              if (additionalUnits) {
+                                  // Show original dose/unit with pipe separator: "600 mcg | 15 units"
+                                  dose = `${dose} ${unit} | ${additionalUnits} units`;
+                                  unit = ''; // Clear unit since it's included in dose
+                              } else if (reconItem) {
                                   const calc = calculateRecon({ 
                                       mg: reconItem.mg, 
                                       water: reconItem.water, 
                                       dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
                                   });
                                   if (calc.unitsPerDose > 0) {
-                                      doseInfo = `${calc.unitsPerDose.toFixed(0)} units`;
+                                      dose = `${calc.unitsPerDose.toFixed(0)} units`;
+                                      unit = ''; // Clear unit since it's included in dose
+                                  } else {
+                                      dose = `${dose} ${unit}`;
+                                      unit = ''; // Clear unit since it's included in dose
                                   }
+                              } else {
+                                  // Simple case: just dose and unit
+                                  dose = `${dose} ${unit}`;
+                                  unit = ''; // Clear unit since it's included in dose
                               }
 
                               let deliveryInfo = '';
                               if (reconItem?.deliveryMethod === 'pen') deliveryInfo = ' (Pen)';
                               if (reconItem?.deliveryMethod === 'syringe' || reconItem?.deliveryMethod === 'pipette') deliveryInfo = ' (Syringe)';
 
-                              const peptideName = `${pep.name || 'Peptide'} - ${doseInfo}${deliveryInfo}`;
-                              // Parse dose and unit from doseInfo
-                              const doseMatch = doseInfo.match(/^(\d+(?:\.\d+)?)\s*(units?|mg|mcg|ml)$/);
-                              const dose = doseMatch ? doseMatch[1] : '';
-                              const unit = doseMatch ? doseMatch[2] : '';
+                              const peptideName = `${pep.name || 'Peptide'} - ${dose}${deliveryInfo}`;
 
                               const peptideData = {
                                   name: pep.name || 'Peptide',
