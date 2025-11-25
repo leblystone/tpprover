@@ -23,6 +23,7 @@ import AutoSaveIndicator from '../components/common/AutoSaveIndicator'
 import { saveAppData } from '../services/cloudStorage'
 import { useFirebase } from '../context/FirebaseContext'
 import GlassmorphismDatePicker from '../components/common/GlassmorphismDatePicker'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -33,6 +34,7 @@ export default function Stockpile() {
   const [activeTab, setActiveTab] = useState('onhand')
   const [openAdd, setOpenAdd] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
   const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', documentation: [] })
   const [isAmountFocused, setIsAmountFocused] = useState(false)
   const [isQuantityFocused, setIsQuantityFocused] = useState(false)
@@ -274,7 +276,15 @@ export default function Stockpile() {
   const [showHistory, setShowHistory] = useState(false)
   const openManage = (peptideName) => {
     setManageName(peptideName)
-    const rows = ((items || []) || []).filter(i => (i.name || '') === peptideName).map(i => ({ ...i }))
+    // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
+    const matchesName = (itemName, targetName) => {
+      const normalizedItemName = itemName || ''
+      if (targetName === 'Unknown') {
+        return normalizedItemName === '' || normalizedItemName === 'Unknown'
+      }
+      return normalizedItemName === targetName
+    }
+    const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
     if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [] })
     setManageRows(rows)
   }
@@ -478,10 +488,20 @@ export default function Stockpile() {
     });
 
     const cleaned = convertedRows.filter(r => (r.name || '').trim())
-    const others = (items || []).filter(i => (i.name || '') !== manageName)
+    
+    // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
+    const matchesManageName = (itemName) => {
+      const normalizedItemName = itemName || ''
+      if (manageName === 'Unknown') {
+        return normalizedItemName === '' || normalizedItemName === 'Unknown'
+      }
+      return normalizedItemName === manageName
+    }
+    
+    const others = (items || []).filter(i => !matchesManageName(i.name))
     
     // Track deleted items for logging
-    const before = (items || []).filter(i => (i.name || '') === manageName)
+    const before = (items || []).filter(i => matchesManageName(i.name))
     const deletedItems = before.filter(b => {
       const afterMatch = cleaned.find(a => String(a.mg) === String(b.mg) && (a.vendorId ? a.vendorId === b.vendorId : (a.vendor||'') === (b.vendor||'')))
       return !afterMatch
@@ -601,14 +621,18 @@ export default function Stockpile() {
     );
     
     if (hasData && !isSavingToStockpile) {
-      const shouldClose = window.confirm(
-        'You have unsaved changes. Are you sure you want to close without saving?'
-      );
-      if (!shouldClose) return;
+      setShowCloseConfirmation(true);
+      return;
     }
     
     setOpenAdd(false);
     clearSavedData();
+  };
+
+  const handleConfirmClose = () => {
+    setOpenAdd(false);
+    clearSavedData();
+    setShowCloseConfirmation(false);
   };
 
   return (
@@ -1742,6 +1766,19 @@ export default function Stockpile() {
         onClose={() => setPreviewImage(null)}
         theme={theme}
         readonly={true}
+      />
+
+      {/* Close Confirmation Modal */}
+      <ConfirmationModal
+        open={showCloseConfirmation}
+        onClose={() => setShowCloseConfirmation(false)}
+        onConfirm={handleConfirmClose}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to close without saving?"
+        confirmText="Close Without Saving"
+        cancelText="Cancel"
+        type="warning"
+        theme={theme}
       />
     </section>
   )
