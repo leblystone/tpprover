@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import { X } from 'lucide-react';
 
-export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem }) {
+export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem, hasNameError = false }) {
     const [isNameFocused, setIsNameFocused] = useState(false);
     const [isAmountFocused, setIsAmountFocused] = useState(false);
     const [isQuantityFocused, setIsQuantityFocused] = useState(false);
@@ -51,8 +51,10 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         placeholder=" "
                         className="w-full px-3 py-3 rounded-lg outline-none transition-all"
                         style={{
-                            border: `1px solid #f0eee7`,
-                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                            border: hasNameError ? `2px solid #c87a5c` : `1px solid #f0eee7`,
+                            boxShadow: hasNameError 
+                                ? (theme.isDark ? '0 0 0 3px rgba(200, 122, 92, 0.2)' : '0 0 0 3px rgba(200, 122, 92, 0.1)')
+                                : (theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'),
                             backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                             color: theme.isDark ? theme.text : '#181A18'
                         }}
@@ -66,12 +68,18 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                             left: (isNameFocused || (item.name && String(item.name).trim())) ? '12px' : '16px',
                             padding: (isNameFocused || (item.name && String(item.name).trim())) ? '0 4px' : '0',
                             background: (isNameFocused || (item.name && String(item.name).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                            color: (isNameFocused || (item.name && String(item.name).trim())) ? theme.primary : (theme.textLight || theme.text),
+                            color: hasNameError ? '#c87a5c' : ((isNameFocused || (item.name && String(item.name).trim())) ? theme.primary : (theme.textLight || theme.text)),
                             fontWeight: 500
                         }}
                     >
-                        Peptide/Amino Name
+                        Peptide/Amino Name {hasNameError && <span style={{ color: '#c87a5c' }}>*</span>}
                     </label>
+                    {hasNameError && (
+                        <div className="mt-1 text-xs flex items-center gap-1" style={{ color: '#c87a5c' }}>
+                            <span>⚠️</span>
+                            <span>Peptide name is required</span>
+                        </div>
+                    )}
                 </div>
                 
                 {/* Row 2: Amount and Quantity */}

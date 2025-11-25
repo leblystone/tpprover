@@ -59,6 +59,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   // State for save operations
   const [isSavingToOrders, setIsSavingToOrders] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [saveAttempted, setSaveAttempted] = useState(false);
 
   const totalCost = useMemo(() => {
     const itemsCost = (form.items || []).reduce((sum, item) => {
@@ -82,6 +83,10 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   useEffect(() => {
     if (open) {
       const initialData = order ? { ...order } : { date: new Date().toISOString(), status: 'Order Placed' };
+      
+      // Reset save attempted state when modal opens
+      setSaveAttempted(false);
+      setSaveError(null);
       
       // For new orders, default category to activeTab. For existing orders, preserve their category.
       if (!order) {
@@ -200,8 +205,20 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 
     setIsSavingToOrders(true);
     setSaveError(null);
+    setSaveAttempted(true);
 
     try {
+      // Validate that all items have a peptide name
+      const itemsWithMissingNames = (form.items || []).filter(item => {
+        const trimmedName = (item.name || '').trim();
+        return !trimmedName;
+      });
+
+      if (itemsWithMissingNames.length > 0) {
+        setIsSavingToOrders(false);
+        return;
+      }
+
       const normalizedCategory = form.category || form.type || 'domestic';
       const normalizedItems = (form.items || []).map((item, index) => {
         const trimmedName = (item.name || '').trim();
@@ -263,6 +280,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       }));
 
       // Close the modal after successful save
+      setSaveAttempted(false);
       onClose();
     } catch (error) {
       console.error('❌ Failed to save order:', error);
@@ -466,16 +484,28 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               <ListChecks size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
             </div>
             <div className="space-y-3">
-                {form.items?.map((item, index) => (
-                    <OrderItemSubForm 
-                        key={item.id || index}
-                        item={item}
-                        onChange={(updated) => handleItemChange(index, updated)}
-                        onRemove={() => removeItem(index)}
-                        theme={theme}
-                        isOnlyItem={form.items.length === 1}
-                    />
-                ))}
+                {form.items?.map((item, index) => {
+                    const trimmedName = (item.name || '').trim();
+                    const hasNameError = saveAttempted && !trimmedName;
+                    return (
+                        <OrderItemSubForm 
+                            key={item.id || index}
+                            item={item}
+                            onChange={(updated) => {
+                                handleItemChange(index, updated);
+                                // Clear save attempted state when user starts typing
+                                if (saveAttempted && updated.name && updated.name.trim()) {
+                                    setSaveAttempted(false);
+                                    setSaveError(null);
+                                }
+                            }}
+                            onRemove={() => removeItem(index)}
+                            theme={theme}
+                            isOnlyItem={form.items.length === 1}
+                            hasNameError={hasNameError}
+                        />
+                    );
+                })}
             </div>
             <button
               type="button"
