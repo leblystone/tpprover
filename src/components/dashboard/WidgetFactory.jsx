@@ -53,7 +53,6 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           widget={widget} 
           theme={theme} 
           order={props.incomingOrder}
-          orders={props.incomingOrders}
           onNewOrder={props.onNewOrder}
           isReadOnly={isReadOnly}
           onUpgrade={onUpgrade}

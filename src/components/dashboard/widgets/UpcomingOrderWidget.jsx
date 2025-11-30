@@ -2,16 +2,9 @@ import React from 'react';
 import { Truck, Lock } from 'lucide-react';
 import UpcomingOrderCard from '../UpcomingOrderCard';
 
-const UpcomingOrderWidget = ({ widget, theme, order, orders, onNewOrder, isReadOnly = false, onUpgrade }) => {
-  // Determine if we have orders - prefer orders array, fall back to single order
-  const hasOrdersProp = orders !== undefined && orders !== null && Array.isArray(orders)
-  const ordersList = hasOrdersProp && orders.length > 0 
-    ? orders 
-    : (order ? [order] : [])
-  const hasOrders = ordersList.length > 0
-
-  // If no orders, show compact version
-  if (!hasOrders) {
+const UpcomingOrderWidget = ({ widget, theme, order, onNewOrder, isReadOnly = false, onUpgrade }) => {
+  // If no order, show compact version
+  if (!order) {
     return (
       <div className="relative h-full flex flex-col">
         <div className="px-4 py-3 border-b" style={{ borderColor: theme.border }}>
@@ -66,11 +59,11 @@ const UpcomingOrderWidget = ({ widget, theme, order, orders, onNewOrder, isReadO
     );
   }
 
-  // If there are orders, show with consistent header
+  // If there's an order, show with consistent header
   return (
-    <div className="relative h-full flex flex-col rounded-xl content-card overflow-visible" style={{ backgroundColor: theme.cardBackground, minHeight: 0 }}>
+    <div className="relative h-full flex flex-col rounded-xl content-card" style={{ backgroundColor: theme.cardBackground }}>
       {/* Consistent Header */}
-      <div className="px-4 py-3 border-b rounded-t-xl flex-shrink-0" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-3 border-b rounded-t-xl" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
             Incoming Orders
@@ -79,12 +72,11 @@ const UpcomingOrderWidget = ({ widget, theme, order, orders, onNewOrder, isReadO
         </div>
       </div>
       
-      {/* Order Content - Allow content to properly flex and pagination to show */}
-      <div className="flex-1 rounded-b-xl flex flex-col min-h-0 overflow-visible" style={{ minHeight: 0 }}>
+      {/* Order Content */}
+      <div className="flex-1 rounded-b-xl overflow-hidden">
         <UpcomingOrderCard 
           theme={theme}
-          orders={hasOrdersProp ? orders : undefined}
-          order={!hasOrdersProp && order ? order : undefined}
+          order={order}
           onNewOrder={onNewOrder}
           hideHeader={true}
         />

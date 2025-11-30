@@ -1449,19 +1449,25 @@ export async function createAdminMessage(userEmail, message, adminPassword) {
     const functions = getFunctions();
     const createMessage = httpsCallable(functions, 'createAdminMessage');
     
+    console.log('📨 Calling createAdminMessage function...');
     const result = await createMessage({
       userEmail: userEmail.toLowerCase(),
       message: message.trim(),
       adminPassword
     });
     
-    if (!result.data.success) {
-      throw new Error(result.data.message || 'Failed to create admin message');
+    console.log('📨 Function response:', result);
+    
+    if (!result.data || !result.data.success) {
+      throw new Error(result.data?.message || 'Failed to create admin message');
     }
     
     return result.data.messageId;
   } catch (error) {
     console.error('❌ Failed to create admin message:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Full error:', error);
     
     // Provide helpful error message
     if (error.code === 'functions/not-found' || error.code === 'functions/internal') {
@@ -1473,6 +1479,13 @@ export async function createAdminMessage(userEmail, message, adminPassword) {
     if (error.code === 'functions/unavailable') {
       const helpfulError = new Error('Firebase functions are unavailable. Please check your connection and try again.');
       helpfulError.code = error.code;
+      throw helpfulError;
+    }
+    
+    // Handle CORS or MIME type errors
+    if (error.message && error.message.includes('MIME type') || error.message && error.message.includes('CORS')) {
+      const helpfulError = new Error('Function deployment issue. Please redeploy: firebase deploy --only functions:createAdminMessage');
+      helpfulError.code = 'functions/deployment-error';
       throw helpfulError;
     }
     

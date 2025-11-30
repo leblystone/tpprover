@@ -1805,26 +1805,24 @@ function Admin() {
         </div>
         <div className="absolute bottom-10 left-10 opacity-6">
           <LayoutDashboard size={100} style={{ 
-            color: elegantPalette.gold.metallic,
-            filter: 'drop-shadow(0 2px 12px rgba(91,155,213,0.25))'
+            color: elegantPalette.gold.metallic
           }} />
         </div>
         <div className="absolute top-1/2 right-1/4 opacity-5">
           <Star size={80} style={{ 
-            color: elegantPalette.gold.bright,
-            filter: 'drop-shadow(0 2px 12px rgba(91,155,213,0.3)) drop-shadow(0 0 8px rgba(91,155,213,0.2))'
+            color: elegantPalette.gold.bright
           }} />
         </div>
         
         <div className="max-w-md w-full p-8 rounded-xl border shadow-lg relative z-10 backdrop-blur-sm" style={{ 
           borderColor: elegantPalette.gold.metallic + '30', 
           backgroundColor: elegantPalette.dark.surface,
-          boxShadow: `0 8px 40px ${elegantPalette.dark.deep}60, 0 0 25px ${elegantPalette.gold.metallic}20, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+          boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
         }}>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg" style={{ 
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ 
               background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-              boxShadow: `0 6px 25px ${elegantPalette.gold.metallic}70, 0 0 20px ${elegantPalette.gold.bright}50, inset 0 2px 4px rgba(255,255,255,0.3)`,
+              boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
               border: `2px solid ${elegantPalette.gold.light}`
             }}>
               <Book size={32} style={{ color: elegantPalette.black.deep }} />
@@ -1879,7 +1877,7 @@ function Admin() {
               style={{ 
                 background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
                 color: elegantPalette.black.deep,
-                boxShadow: `0 6px 25px ${elegantPalette.gold.metallic}70, 0 0 20px ${elegantPalette.gold.bright}50, inset 0 2px 4px rgba(255,255,255,0.3)`,
+                boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
                 border: `2px solid ${elegantPalette.gold.light}`
               }}
             >
@@ -1915,29 +1913,25 @@ function Admin() {
         {/* Soft Decorative Elements - Subtle & Easy on Eyes */}
         <div className="fixed inset-0 pointer-events-none z-0">
           {/* Subtle grey accents */}
-          <Book size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.03]" style={{ color: elegantPalette.taupe.dark, filter: 'drop-shadow(0 4px 8px rgba(75,85,99,0.1))' }} />
-          <Book size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.025]" style={{ color: elegantPalette.taupe.muted, filter: 'drop-shadow(0 4px 8px rgba(107,114,128,0.1))' }} />
+          <Book size={420} className="absolute top-8 right-8 rotate-12 opacity-[0.03]" style={{ color: elegantPalette.taupe.dark }} />
+          <Book size={240} className="absolute bottom-16 right-1/4 -rotate-12 opacity-[0.025]" style={{ color: elegantPalette.taupe.muted }} />
           <BookOpen size={180} className="absolute top-1/3 right-1/3 rotate-45 opacity-[0.02]" style={{ color: elegantPalette.taupe.dark }} />
           <LayoutDashboard size={160} className="absolute bottom-1/4 left-1/3 -rotate-25 opacity-[0.02]" style={{ color: elegantPalette.dark.soft }} />
           
           {/* Subtle depth elements */}
-          <Layers size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.piano, filter: 'drop-shadow(0 4px 8px rgba(45,55,72,0.1))' }} />
+          <Layers size={340} className="absolute bottom-28 left-8 -rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.piano }} />
           <Settings size={200} className="absolute top-1/4 left-1/4 rotate-12 opacity-[0.015]" style={{ color: elegantPalette.dark.charcoal }} />
           
           {/* Soft Blue accents - Easy on the Eyes! */}
           <Star size={150} className="absolute bottom-1/3 right-1/3 rotate-45 opacity-[0.05]" style={{ 
-            color: elegantPalette.gold.metallic, 
-            filter: `drop-shadow(0 4px 20px rgba(91,155,213,0.25)) drop-shadow(0 0 12px rgba(91,155,213,0.15))`,
-            textShadow: '0 0 15px rgba(91,155,213,0.3)'
+            color: elegantPalette.gold.metallic
           }} />
           <Award size={120} className="absolute top-1/2 left-1/3 rotate-12 opacity-[0.04]" style={{ 
-            color: elegantPalette.gold.bright,
-            filter: 'drop-shadow(0 2px 12px rgba(125,211,252,0.25))'
+            color: elegantPalette.gold.bright
           }} />
           {/* Soft teal accent */}
           <Award size={100} className="absolute top-1/4 right-1/4 -rotate-12 opacity-[0.03]" style={{ 
-            color: elegantPalette.gold.bronze,
-            filter: 'drop-shadow(0 2px 10px rgba(79,209,197,0.2))'
+            color: elegantPalette.gold.bronze
           }} />
         </div>
         
@@ -1946,15 +1940,15 @@ function Admin() {
         borderColor: elegantPalette.gold.metallic + '30',
         backgroundColor: elegantPalette.dark.surface + 'E0',
         backdropFilter: 'blur(10px)',
-        boxShadow: `0 2px 20px ${elegantPalette.dark.deep}80, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+        boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`
       }}>
         <div className="px-4 lg:px-6 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Logo & Title */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ 
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ 
                 background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                boxShadow: `0 4px 20px ${elegantPalette.gold.metallic}60, 0 0 15px ${elegantPalette.gold.bright}40, inset 0 1px 0 rgba(255,255,255,0.3)`,
+                boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
                 border: `1px solid ${elegantPalette.gold.light}`
               }}>
                 <Book size={20} style={{ color: elegantPalette.black.deep }} />
@@ -2168,7 +2162,7 @@ function Admin() {
           backdropFilter: 'blur(12px)',
           borderBottom: `2px solid ${elegantPalette.gold.metallic}30`,
           zIndex: 20,
-          boxShadow: `0 2px 20px ${elegantPalette.dark.soft}30, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+          boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`
         }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -2179,7 +2173,7 @@ function Admin() {
                   style={{ 
                     background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
                     color: elegantPalette.black.deep,
-                    boxShadow: `0 4px 15px ${elegantPalette.gold.metallic}60, 0 0 12px ${elegantPalette.gold.bright}40, inset 0 1px 2px rgba(255,255,255,0.3)`,
+                    boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
                     border: `1px solid ${elegantPalette.gold.light}`
                   }}
                 >
@@ -2201,12 +2195,12 @@ function Admin() {
             <div className="rounded-xl p-5 relative overflow-hidden border-2" style={{
               background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 50%, ${elegantPalette.dark.piano} 100%)`,
               borderColor: elegantPalette.gold.metallic + '60',
-              boxShadow: `0 4px 24px ${elegantPalette.dark.soft}30, 0 0 20px ${elegantPalette.gold.metallic}15, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+              boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
             }}>
               <div className="flex items-center gap-4 relative z-10">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{
                   background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                  boxShadow: `0 4px 20px ${elegantPalette.gold.metallic}60, 0 0 15px ${elegantPalette.gold.bright}40, inset 0 2px 4px rgba(255,255,255,0.3)`,
+                  boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
                   border: `2px solid ${elegantPalette.gold.light}`
                 }}>
                   <LayoutDashboard size={32} style={{ color: elegantPalette.black.deep }} />
@@ -2222,8 +2216,7 @@ function Admin() {
                 <div className="hidden md:flex items-center gap-3">
                   <Book size={36} style={{ color: elegantPalette.taupe.dark }} className="opacity-50" />
                   <Star size={32} style={{ 
-                    color: elegantPalette.gold.metallic,
-                    filter: 'drop-shadow(0 2px 10px rgba(212,175,55,0.5)) drop-shadow(0 0 8px rgba(255,215,0,0.4))'
+                    color: elegantPalette.gold.metallic
                   }} className="opacity-90" />
                 </div>
               </div>
@@ -2237,12 +2230,12 @@ function Admin() {
             <div className="rounded-xl border-2 p-6 content-card" style={{ 
               borderColor: elegantPalette.gold.metallic + '40',
               backgroundColor: elegantPalette.dark.surface,
-              boxShadow: `0 4px 24px ${elegantPalette.dark.deep}90, 0 0 15px ${elegantPalette.gold.metallic}15, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+              boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
             }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: elegantPalette.black.text }}>
-                    <MessagesSquare size={20} style={{ color: elegantPalette.gold.metallic, filter: 'drop-shadow(0 2px 10px rgba(212,175,55,0.6)) drop-shadow(0 0 6px rgba(255,215,0,0.4))' }} />
+                    <MessagesSquare size={20} style={{ color: elegantPalette.gold.metallic }} />
                     Support & Feedback
                   </h2>
                   <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -2315,7 +2308,7 @@ function Admin() {
                     style={{ 
                       background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
                       color: elegantPalette.black.deep,
-                      boxShadow: `0 3px 12px ${elegantPalette.gold.metallic}60, 0 0 10px ${elegantPalette.gold.bright}40, inset 0 1px 2px rgba(255,255,255,0.3)`,
+                      boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
                       border: `1px solid ${elegantPalette.gold.light}`
                     }}
                   >
@@ -2513,12 +2506,12 @@ function Admin() {
             <div className="rounded-xl border-2 p-6 content-card" style={{ 
               borderColor: elegantPalette.gold.metallic + '40',
               backgroundColor: elegantPalette.dark.surface,
-              boxShadow: `0 4px 24px ${elegantPalette.dark.deep}90, 0 0 15px ${elegantPalette.gold.metallic}15, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+              boxShadow: `0 4px 12px ${elegantPalette.dark.deep}40`
             }}>
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: elegantPalette.black.text }}>
-                    <TrendingUp size={20} style={{ color: elegantPalette.gold.metallic, filter: 'drop-shadow(0 2px 10px rgba(212,175,55,0.6)) drop-shadow(0 0 6px rgba(255,215,0,0.4))' }} />
+                    <TrendingUp size={20} style={{ color: elegantPalette.gold.metallic }} />
                     User Growth
                   </h2>
                   <p className="text-sm mt-1" style={{ color: theme.textLight }}>Daily registration & activity</p>
@@ -2559,7 +2552,7 @@ function Admin() {
                                   : `${theme.border}`,
                                 height: hasNewUsers ? `${(day.newUsers / maxNewUsers) * 180}px` : '2px',
                                 minHeight: '2px',
-                                boxShadow: hasNewUsers ? `0 4px 20px ${elegantPalette.gold.metallic}60, 0 0 15px ${elegantPalette.gold.bright}40, inset 0 1px 2px rgba(255,255,255,0.2)` : 'none'
+                                boxShadow: hasNewUsers ? `0 2px 8px ${elegantPalette.dark.deep}40` : 'none'
                               }}
                             >
                               {hasNewUsers && (
@@ -2582,7 +2575,7 @@ function Admin() {
                   <div className="p-4 rounded-xl border-2" style={{ 
                     background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`,
                     borderColor: elegantPalette.gold.metallic + '30',
-                    boxShadow: `0 2px 15px ${elegantPalette.dark.deep}70, inset 0 1px 0 ${elegantPalette.gold.metallic}10`
+                    boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`
                   }}>
                     <div className="text-2xl font-bold" style={{ color: elegantPalette.gold.metallic }}>{analytics.totalUsers}</div>
                     <div className="text-sm font-medium" style={{ color: theme.textLight }}>Total Users</div>
@@ -2613,7 +2606,7 @@ function Admin() {
               background: `linear-gradient(135deg, ${elegantPalette.dark.charcoal} 0%, ${elegantPalette.dark.surface} 100%)`
             }}>
               <div className="flex items-center gap-2 mb-3">
-                <Activity size={16} style={{ color: elegantPalette.gold.metallic, filter: 'drop-shadow(0 2px 6px rgba(212,175,55,0.5))' }} />
+                <Activity size={16} style={{ color: elegantPalette.gold.metallic }} />
                 <h2 className="text-sm font-semibold" style={{ color: elegantPalette.black.text }}>Feature Usage (Estimated)</h2>
               </div>
               <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">

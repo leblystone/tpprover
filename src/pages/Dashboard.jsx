@@ -62,10 +62,10 @@ export default function Dashboard() {
     if (!orders || orders.length === 0) return [];
     
     const now = new Date();
-    const sevenDaysAgo = new Date(now);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     
-    // Get active orders (non-delivered) OR delivered orders within last 7 days
+    // Get active orders (non-delivered) OR delivered orders within last 3 days
     const activeOrders = orders.filter(o => {
         const status = (o.status || '').toLowerCase();
         const isDelivered = status.includes('delivered');
@@ -74,16 +74,16 @@ export default function Dashboard() {
             return true; // Include all non-delivered orders
         }
         
-        // For delivered orders, only include if delivered within last 7 days
+        // For delivered orders, only include if delivered within last 3 days
         if (o.deliveryDate) {
             const deliveryDate = new Date(o.deliveryDate);
-            return deliveryDate >= sevenDaysAgo;
+            return deliveryDate >= threeDaysAgo;
         }
         
-        // If no delivery date but status is delivered, check if order date is within 7 days
+        // If no delivery date but status is delivered, check if order date is within 3 days
         if (o.date) {
             const orderDate = new Date(o.date);
-            return orderDate >= sevenDaysAgo;
+            return orderDate >= threeDaysAgo;
         }
         
         return false;
@@ -158,7 +158,7 @@ export default function Dashboard() {
   const [showNewProtocol, setShowNewProtocol] = useState(false)
   const [vendorNames, setVendorNames] = useState(() => { try { return JSON.parse(localStorage.getItem('tpprover_vendors')||'[]') } catch { return [] } })
   const [goals, setGoals] = useLocalStorage('tpprover_goals', [])
-  // metrics and setMetrics are already provided by useAppContext above
+  const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', [])
   const [showMetrics, setShowMetrics] = useState(false)
   const [editingMetric, setEditingMetric] = useState(null)
   const [showGoal, setShowGoal] = useState(false)
@@ -367,21 +367,8 @@ export default function Dashboard() {
                 // Check if any peptide has unitValue
                 const additionalUnits = peptides.find(pep => pep.unitValue)?.unitValue || '';
                 
-                // For blended protocols, build dose display with pipe format
-                // Get the first peptide's dose info for the base display
-                const firstPeptide = peptides[0];
-                const baseDose = firstPeptide?.dosage?.amount || '';
-                const baseUnit = firstPeptide?.dosage?.unit || 'mcg';
-                
-                let doseDisplay = '';
-                let dose = '';
-                let unit = '';
-                
-                if (additionalUnits) {
-                    // Show original dose/unit with pipe separator: "600 mcg | 15 units"
-                    dose = `${baseDose} ${baseUnit} | ${additionalUnits} units`;
-                    unit = ''; // Clear unit since it's included in dose
-                } else if (reconItem) {
+                let doseDisplay = doseParts.join(' + ');
+                if (reconItem) {
                     const totalDoseInMcg = reconItem.peptides.reduce((sum, pep) => {
                         const dose = Number(pep.dose) || 0;
                         return pep.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
@@ -389,21 +376,35 @@ export default function Dashboard() {
                     const totalMg = reconItem.peptides.reduce((sum, pep) => sum + (Number(pep.mg) || 0), 0);
                     const calc = calculateRecon({ ...reconItem, mg: totalMg, dose: totalDoseInMcg });
                     if (calc.unitsPerDose > 0) {
-                        dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                        unit = ''; // Clear unit since it's included in dose
-                    } else {
-                        dose = `${baseDose} ${baseUnit}`;
-                        unit = ''; // Clear unit since it's included in dose
+                        if (additionalUnits) {
+                            doseDisplay = `${calc.unitsPerDose.toFixed(0)} (${additionalUnits} units)`;
+                        } else {
+                            doseDisplay = `${calc.unitsPerDose.toFixed(0)} units`;
+                        }
+                    } else if (additionalUnits) {
+                        doseDisplay = `${doseDisplay} (${additionalUnits} units)`;
                     }
-                } else {
-                    dose = `${baseDose} ${baseUnit}`;
-                    unit = ''; // Clear unit since it's included in dose
+                } else if (additionalUnits) {
+                    doseDisplay = `${doseDisplay} (${additionalUnits} units)`;
                 }
 
                 // Create one task per scheduled time
                 const times = freq.time || ['AM'];
                 times.forEach(t => {
                     const timeSlot = t; // Already using AM/PM format
+                    
+                    // For complex dose displays, keep the full string as dose and extract primary unit
+                    let dose = doseDisplay;
+                    let unit = '';
+                    
+                    // Extract the primary unit (mcg takes precedence over mg, units takes precedence over both)
+                    if (doseDisplay.includes('units')) {
+                        unit = 'units';
+                    } else if (doseDisplay.includes('mcg')) {
+                        unit = 'mcg';
+                    } else if (doseDisplay.includes('mg')) {
+                        unit = 'mg';
+                    }
                     
                     // Get delivery method from recon item or from first peptide in blend
                     const firstPeptide = peptides[0];
@@ -474,28 +475,30 @@ export default function Dashboard() {
                 protocolName: p.protocolName
               });
               
-              // Build dose display with pipe format to match Today's Research widget
-              if (additionalUnits) {
-                  // Show original dose/unit with pipe separator: "600 mcg | 15 units"
-                  dose = `${dose} ${unit} | ${additionalUnits} units`;
-                  unit = ''; // Clear unit since it's included in dose
-              } else if (reconItem) {
+              if (reconItem) {
                 const calc = calculateRecon({ 
                     mg: reconItem.mg, 
                     water: reconItem.water, 
                     dose: pep.dosage?.unit === 'mg' ? (pep.dosage?.amount || 0) * 1000 : pep.dosage?.amount 
                 });
                  if (calc.unitsPerDose > 0) {
-                    dose = `${calc.unitsPerDose.toFixed(0)} units`;
-                    unit = ''; // Clear unit since it's included in dose
-                } else {
-                    dose = `${dose} ${unit}`;
-                    unit = ''; // Clear unit since it's included in dose
+                    // If unitValue is set, show both calculated units and custom units
+                    if (additionalUnits) {
+                        dose = `${calc.unitsPerDose.toFixed(0)} (${additionalUnits} units)`;
+                        unit = 'units';
+                    } else {
+                        dose = calc.unitsPerDose.toFixed(0);
+                        unit = 'units';
+                    }
+                } else if (additionalUnits) {
+                    // If no recon but has unitValue, append it
+                    dose = `${dose} ${unit} (${additionalUnits} units)`;
+                    unit = 'units';
                 }
-              } else {
-                  // Simple case: just dose and unit
-                  dose = `${dose} ${unit}`;
-                  unit = ''; // Clear unit since it's included in dose
+              } else if (additionalUnits) {
+                // No recon but has unitValue
+                dose = `${dose} ${unit} (${additionalUnits} units)`;
+                unit = 'units';
               }
 
               // Create a single task entry for this peptide with all its scheduled times
@@ -1098,19 +1101,17 @@ export default function Dashboard() {
             </div>
         </div>
         <div className="flex flex-col gap-0 md:gap-4" data-tour-id="incoming">
-            <div className="h-[320px] md:h-auto">
-              <UpcomingOrderCard 
-                  theme={theme}
-                  orders={Array.isArray(incomingOrders) ? incomingOrders : []}
-                  onNewOrder={() => {
-                    if (isReadOnly) {
-                      setShowUpgradeModal(true);
-                      return;
-                    }
-                    setShowNewOrder(true);
-                  }}
-              />
-            </div>
+            <UpcomingOrderCard 
+                theme={theme}
+                orders={Array.isArray(incomingOrders) ? incomingOrders : []}
+                onNewOrder={() => {
+                  if (isReadOnly) {
+                    setShowUpgradeModal(true);
+                    return;
+                  }
+                  setShowNewOrder(true);
+                }}
+            />
             <UpcomingBuys 
               buys={upcomingBuys} 
               theme={theme} 
@@ -1386,12 +1387,12 @@ export default function Dashboard() {
                 return;
             }
             
-            const createdAt = new Date().toISOString();
+            const now = new Date().toISOString();
             const newBuy = { 
                 ...buy, 
                 id: generateId(), 
-                createdAt: createdAt, 
-                updatedAt: createdAt 
+                createdAt: now, 
+                updatedAt: now 
             };
             setScheduledBuys(prev => [...prev, newBuy]);
             
