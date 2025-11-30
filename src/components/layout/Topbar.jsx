@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot } from 'lucide-react';
+import { Menu, Search, Upload, Edit, Plus, X, MessageSquareDot, Bell, AlertCircle, MessageCircleReply } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -357,21 +357,36 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               {autoSaveIndicator}
             </div>
           )}
-          {/* Admin Message Chip - Only show on dashboard, appears first (before support response) */}
+          {/* Admin Message Chip - Only show on dashboard, appears first (before support response) - Personal Alert Style */}
           {onDashboard && adminMessage && (
               <button
                 onClick={() => setShowAdminMessage(true)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border-2 ${
                   hasUnreadAdminMessage ? 'animate-sway' : ''
                 }`}
               style={{
-                backgroundColor: hasUnreadAdminMessage ? '#B8704C' : '#B8704C80',
+                backgroundColor: hasUnreadAdminMessage 
+                  ? (theme.primary || '#6366F1') 
+                  : `${theme.primary || '#6366F1'}80`,
                 color: '#FFFFFF',
-                boxShadow: hasUnreadAdminMessage ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none'
+                borderColor: hasUnreadAdminMessage 
+                  ? `${theme.primary || '#6366F1'}CC` 
+                  : `${theme.primary || '#6366F1'}60`,
+                boxShadow: hasUnreadAdminMessage 
+                  ? `0 0 0 3px ${theme.primary || '#6366F1'}20, 0 2px 8px ${theme.primary || '#6366F1'}40` 
+                  : `0 0 0 2px ${theme.primary || '#6366F1'}10`
               }}
               >
-                <span className="whitespace-nowrap">From the Team🥼</span>
-                <MessageSquareDot size={14} />
+                {hasUnreadAdminMessage && (
+                  <AlertCircle size={14} className="animate-pulse" fill="currentColor" />
+                )}
+                <span className="whitespace-nowrap flex items-center gap-1">
+                  From the Team
+                  <MessageCircleReply size={14} />
+                </span>
+                {hasUnreadAdminMessage && (
+                  <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                )}
               </button>
           )}
           {/* Support Response Chip - Only show on dashboard, appears after admin message */}

@@ -77,12 +77,15 @@ service cloud.firestore {
     // Admin messages - one-way messages from admin to users
     match /adminMessages/{messageId} {
       allow create: if isAdmin(); // Only admin can create messages (via function)
+      // Allow reading - users can read their own messages, admin can read all
+      // Note: Emails are stored in lowercase in database. Query filters by lowercase email.
+      // Auth token email should match the stored lowercase email.
       allow read: if request.auth != null && (
-        request.auth.token.email == resource.data.userEmail || // Users can read their own messages
+        resource.data.userEmail == request.auth.token.email || // Users can read their own messages
         isAdmin() // Admin can read all messages
       );
       allow update: if request.auth != null && (
-        request.auth.token.email == resource.data.userEmail || // Users can mark their own messages as read
+        resource.data.userEmail == request.auth.token.email || // Users can mark their own messages as read
         isAdmin() // Admin can update all messages
       );
       allow delete: if isAdmin(); // Only admin can delete messages
