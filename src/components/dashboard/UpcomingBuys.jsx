@@ -114,7 +114,6 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
           
           // Only update if the deduplicated result is actually different
           if (deduplicatedIds !== prevIds) {
-            console.log('🔄 Syncing props to localList (filtered):', deduplicated.map(b => ({ id: b.id })));
             return deduplicated;
           }
         }

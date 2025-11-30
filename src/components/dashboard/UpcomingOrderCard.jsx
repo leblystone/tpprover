@@ -19,21 +19,6 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
     : (order ? [order] : [])
   const currentOrder = ordersList[currentIndex] || null
   
-  // Debug logging
-  console.log('📦 UpcomingOrderCard orders:', {
-    ordersProp: orders,
-    ordersPropType: typeof orders,
-    ordersPropIsArray: Array.isArray(orders),
-    ordersPropLength: orders?.length,
-    hasOrdersProp,
-    orderProp: order,
-    ordersList: ordersList,
-    ordersListLength: ordersList.length,
-    currentIndex,
-    currentOrder: currentOrder?.id,
-    showPagination: ordersList.length > 1
-  })
-  
   // Reset index if it's out of bounds
   useEffect(() => {
     if (ordersList.length === 0) {
@@ -439,11 +424,6 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
       {/* Pagination controls */}
       {(() => {
         const shouldShow = ordersList.length > 1;
-        console.log('🔍 Pagination check:', {
-          ordersListLength: ordersList.length,
-          shouldShow,
-          ordersList: ordersList.map(o => o?.id)
-        });
         if (!shouldShow) return null;
         
         return (

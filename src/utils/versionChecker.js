@@ -144,7 +144,6 @@ export async function checkForUpdates() {
     // PWA users get instant updates automatically, so no need to check
     const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
     if (!isNative) {
-      console.log('✅ Update check: Skipping (not a native app - PWA users get instant updates)');
       return null;
     }
     

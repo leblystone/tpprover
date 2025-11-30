@@ -1370,11 +1370,9 @@ export function AppProvider({ children }) {
                 
                 if (ordersWithTracking.length === 0) return;
 
-                console.log(`🔄 Global tracking sync: Checking ${ordersWithTracking.length} order(s) with tracking`);
                 const updatedOrders = await syncAllOrdersFromTracking(orders);
 
                 if (updatedOrders.length > 0) {
-                    console.log(`✅ Global sync: Updated ${updatedOrders.length} order(s) from tracking`);
                     // Update orders state - AppContext will handle saving
                     updatedOrders.forEach(updatedOrder => {
                         const originalOrder = orders.find(o => o.id === updatedOrder.id);

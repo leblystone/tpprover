@@ -32,10 +32,8 @@ export async function syncOrderStatusFromTracking(order) {
     // In production with real API key, prefer real data but allow mock if that's what we got
     if (trackingInfo.isMockData) {
       if (!hasRealApiKey) {
-        console.log(`🧪 Order ${order.id}: Using mock tracking data (no real API key - development mode)`);
         // Continue with mock data for testing
       } else {
-        console.log(`⚠️ Order ${order.id}: Got mock data despite having real API key`);
         // Still continue - might be a test tracking number
       }
     }
@@ -63,8 +61,6 @@ export async function syncOrderStatusFromTracking(order) {
     const currentNormalized = normalizeStatus(currentStatus);
     const trackingNormalized = normalizeStatus(trackingStatusLower);
 
-    console.log(`🔍 Order ${order.id}: Status comparison - current: "${currentStatus}" (${currentNormalized}), tracking: "${trackingStatus}" (${trackingNormalized})`);
-
     // Check if status actually changed (update if tracking shows a more advanced status)
     // Priority: delivered > shipped > placed
     const statusChanged = 
@@ -75,15 +71,11 @@ export async function syncOrderStatusFromTracking(order) {
     if (!statusChanged) {
       // If statuses are the same, no update needed
       if (currentNormalized === trackingNormalized) {
-        console.log(`📦 Order ${order.id}: Status unchanged (both are ${currentNormalized})`);
         return null;
       }
       // If tracking shows a less advanced status, don't downgrade
-      console.log(`📦 Order ${order.id}: Tracking shows less advanced status (${trackingNormalized} vs ${currentNormalized}), not updating`);
       return null;
     }
-
-    console.log(`🔄 Order ${order.id}: Status changed from "${currentStatus}" to "${trackingStatus}" via tracking`);
 
     // Build updated order
     const now = new Date().toISOString();
