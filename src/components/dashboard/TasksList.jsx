@@ -163,7 +163,10 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                             </div>
                             
                             <button
-                                onClick={() => {
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   // Check if this is an injection task that's not completed
                                   const deliveryMethod = task.deliveryMethod || task.delivery;
                                   const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
@@ -172,7 +175,7 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                                   if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
                                     setInjectionTask(task);
                                   } else {
-                                    onToggle(task);
+                                    onToggle(task.id);
                                   }
                                 }}
                                 className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer`}
