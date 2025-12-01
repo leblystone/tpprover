@@ -36,7 +36,10 @@ import {
   addTicketMessage,
   updateTicketStatus,
   subscribeToTicketMessages,
-  createAdminMessage
+  createAdminMessage,
+  getAllAdminMessages,
+  deleteAdminMessage,
+  deleteAllAdminMessagesForUser
 } from '../services/firebase';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -618,7 +621,7 @@ function Admin() {
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketMessages, setTicketMessages] = useState([]);
-  const [supportView, setSupportView] = useState('open-tickets'); // 'feedback', 'open-tickets', or 'closed-tickets'
+  const [supportView, setSupportView] = useState('tickets'); // 'feedback' or 'tickets'
   const [ticketView, setTicketView] = useState('list'); // 'list' or 'chat'
   const [selectedTicketStatusFilter, setSelectedTicketStatusFilter] = useState('new');
   const [selectedTicketTypeFilter, setSelectedTicketTypeFilter] = useState('all');
@@ -1393,25 +1396,15 @@ function Admin() {
     try {
       setLoading(prev => ({ ...prev, submitting: true }));
       
-      if (sendAsAdminMessage) {
-        // Send as admin message (one-way message to user)
-        console.log('📨 Sending admin message:', { 
-          userEmail: feedbackItem.userEmail,
-          message: responseText.trim()
-        });
-        await createAdminMessage(feedbackItem.userEmail, responseText.trim(), ADMIN_PASSWORD);
-        
-        // Also mark feedback as reviewed
-        await updateFeedback(feedbackItem.id, { status: 'reviewed' });
-      } else {
-        // Send as feedback response (existing behavior)
-        console.log('📤 Sending response to feedback:', { 
-          id: feedbackItem.id, 
-          userEmail: feedbackItem.userEmail,
-          responseText: responseText.trim()
-        });
-        await respondToFeedback(feedbackItem.id, responseText.trim(), feedbackItem.userEmail);
-      }
+      // Always send as admin message (one-way message to user)
+      console.log('📨 Sending admin message:', { 
+        userEmail: feedbackItem.userEmail,
+        message: responseText.trim()
+      });
+      await createAdminMessage(feedbackItem.userEmail, responseText.trim(), ADMIN_PASSWORD);
+      
+      // Also mark feedback as reviewed
+      await updateFeedback(feedbackItem.id, { status: 'reviewed' });
       
       // Refresh feedback list to show updated status
       await loadFeedback();
@@ -1419,19 +1412,18 @@ function Admin() {
       // Reset response state
       setRespondingToFeedback(null);
       setResponseText('');
-      setSendAsAdminMessage(false);
       
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { 
-          message: sendAsAdminMessage ? 'Admin message sent! 📨' : 'Response sent!', 
+          message: 'Admin message sent! 📨 User will see it on their dashboard.', 
           type: 'success' 
         } 
       }));
       
     } catch (error) {
-      console.error('❌ Failed to send response:', error);
+      console.error('❌ Failed to send admin message:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
-        detail: { message: 'Failed to send message', type: 'error' } 
+        detail: { message: 'Failed to send admin message', type: 'error' } 
       }));
     } finally {
       setLoading(prev => ({ ...prev, submitting: false }));
@@ -2245,7 +2237,27 @@ function Admin() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={async () => {
-                      // Test admin message - send to current admin user
+                      // Delete all test messages first
+                      try {
+                        const allMessages = await getAllAdminMessages();
+                        const testMessages = allMessages.filter(msg => 
+                          msg.message?.includes('test admin message') || 
+                          msg.message?.includes('Test admin message') ||
+                          msg.message?.includes('🧪')
+                        );
+                        for (const msg of testMessages) {
+                          await deleteAdminMessage(msg.id);
+                        }
+                        if (testMessages.length > 0) {
+                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                            detail: { message: `Deleted ${testMessages.length} test message(s)`, type: 'success' } 
+                          }));
+                        }
+                      } catch (error) {
+                        console.error('❌ Failed to delete test messages:', error);
+                      }
+                      
+                      // Then send new test message
                       const testEmail = auth.currentUser?.email || email;
                       if (!testEmail) {
                         window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -2255,7 +2267,7 @@ function Admin() {
                       }
                       try {
                         setLoading(prev => ({ ...prev, submitting: true }));
-                        await createAdminMessage(testEmail, 'This is a test admin message! 🧪 You can use this to test the "From the Team🥼" chip and modal. This message will remain visible for 24 hours after you open it.', ADMIN_PASSWORD);
+                        await createAdminMessage(testEmail, 'This is a test admin message! 🧪 You can use this to test the "From the Team" chip and modal. This message will remain visible for 24 hours after you open it.', ADMIN_PASSWORD);
                         window.dispatchEvent(new CustomEvent('tpp:toast', { 
                           detail: { message: 'Test admin message sent! Check your dashboard.', type: 'success' } 
                         }));
@@ -2282,10 +2294,85 @@ function Admin() {
                       color: theme.primary,
                       cursor: loading.submitting ? 'not-allowed' : 'pointer'
                     }}
-                    title="Test Admin Message - sends a test message to your account"
+                    title="Test Admin Message - sends a test message to your account (auto-deletes old test messages)"
                   >
                     <Shield size={14} />
                     {loading.submitting ? 'Sending...' : 'Test Message'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(prev => ({ ...prev, submitting: true }));
+                        const allMessages = await getAllAdminMessages();
+                        console.log('📋 All admin messages:', allMessages.length);
+                        console.log('📋 Message IDs:', allMessages.map(m => ({ id: m.id, message: m.message?.substring(0, 50), userEmail: m.userEmail })));
+                        
+                        // More aggressive filter to catch all test messages
+                        const testMessages = allMessages.filter(msg => {
+                          const msgText = (msg.message || '').toLowerCase();
+                          return msgText.includes('test admin message') || 
+                                 msgText.includes('test message') ||
+                                 msgText.includes('🧪') ||
+                                 msgText.includes('📝') ||
+                                 msgText.includes('you can use this to test') ||
+                                 msgText.includes('from the team') && msgText.includes('chip');
+                        });
+                        console.log('🗑️ Found test messages to delete:', testMessages.length, testMessages.map(m => ({ id: m.id, preview: m.message?.substring(0, 60) })));
+                        
+                        // Delete ALL messages for your account to clean up completely
+                        const userEmail = auth.currentUser?.email || email;
+                        const userMessages = allMessages.filter(msg => 
+                          msg.userEmail?.toLowerCase() === userEmail?.toLowerCase()
+                        );
+                        const messagesToDelete = userMessages.length > 0 ? userMessages : testMessages.length > 0 ? testMessages : allMessages;
+                        console.log('🗑️ Will delete', messagesToDelete.length, 'message(s) for', userEmail);
+                        
+                        let deletedCount = 0;
+                        for (const msg of messagesToDelete) {
+                          console.log('🗑️ Deleting message:', msg.id, '|', msg.message?.substring(0, 50), '|', msg.userEmail);
+                          try {
+                            await deleteAdminMessage(msg.id);
+                            deletedCount++;
+                            console.log('✅ Successfully deleted:', msg.id);
+                          } catch (deleteError) {
+                            console.error('❌ Failed to delete message', msg.id, ':', deleteError);
+                            console.error('❌ Error code:', deleteError.code, 'Error message:', deleteError.message);
+                            // Continue with other messages
+                          }
+                          // Small delay to avoid rate limiting
+                          await new Promise(resolve => setTimeout(resolve, 150));
+                        }
+                        console.log(`✅ Deleted ${deletedCount} out of ${messagesToDelete.length} message(s)`);
+                        
+                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                          detail: { message: `Deleted ${deletedCount} message(s). Refreshing dashboard...`, type: 'success' } 
+                        }));
+                        
+                        // Force reload after a moment
+                        setTimeout(() => {
+                          window.location.reload();
+                        }, 1500);
+                      } catch (error) {
+                        console.error('❌ Failed to delete messages:', error);
+                        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                          detail: { message: `Failed: ${error.message}`, type: 'error' } 
+                        }));
+                      } finally {
+                        setLoading(prev => ({ ...prev, submitting: false }));
+                      }
+                    }}
+                    disabled={loading.submitting}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-all hover:opacity-90 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ 
+                      borderColor: theme.error + '60',
+                      backgroundColor: theme.error + '20',
+                      color: theme.error,
+                      cursor: loading.submitting ? 'not-allowed' : 'pointer'
+                    }}
+                    title="Delete all test messages and refresh"
+                  >
+                    <Trash2 size={14} />
+                    Delete Test Messages
                   </button>
                   <div className="text-sm px-3 py-1 rounded-lg" style={{ 
                     backgroundColor: feedback.filter(f => f.status === 'new').length > 0 ? theme.warning + '20' : theme.success + '20',
@@ -2302,7 +2389,7 @@ function Admin() {
                   <button
                     onClick={() => {
                       setActiveTab('feedback');
-                      setSupportView('feedback');
+                      setSupportView('tickets');
                     }}
                     className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
                     style={{ 
@@ -2486,6 +2573,7 @@ function Admin() {
                           setActiveTab('feedback');
                           setSupportView('tickets');
                           setTicketView('list');
+                          setSelectedTicketStatusFilter('new');
                         }}
                         className="w-full py-2 text-sm font-medium rounded-lg border transition-all hover:opacity-90"
                         style={{ 
@@ -3162,10 +3250,70 @@ function Admin() {
 
         {activeTab === 'feedback' && (
           <div className="space-y-6">
-            {/* Status Filter Tabs */}
-            <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+
+            {/* Top Level Navigation: Tickets vs Feedback */}
+            <div className="rounded-lg border content-card shadow-sm mb-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <div className="p-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSupportView('tickets');
+                      setTicketView('list');
+                      loadTickets();
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      supportView === 'tickets' || supportView === 'open-tickets' || supportView === 'closed-tickets' ? '' : 'opacity-60 hover:opacity-80'
+                    }`}
+                    style={{
+                      backgroundColor: (supportView === 'tickets' || supportView === 'open-tickets' || supportView === 'closed-tickets') ? theme.warning + '20' : 'transparent',
+                      color: (supportView === 'tickets' || supportView === 'open-tickets' || supportView === 'closed-tickets') ? theme.warning : theme.textLight,
+                      border: `2px solid ${(supportView === 'tickets' || supportView === 'open-tickets' || supportView === 'closed-tickets') ? theme.warning : theme.border}`
+                    }}
+                  >
+                    <MessagesSquare size={18} />
+                    <span>Support Requests</span>
+                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                         style={{ 
+                           backgroundColor: (supportView === 'tickets' || supportView === 'open-tickets' || supportView === 'closed-tickets') ? theme.warning : theme.textLight + '30',
+                           color: (supportView === 'tickets' || supportView === 'open-tickets' || supportView === 'closed-tickets') ? theme.white : theme.textLight 
+                         }}>
+                      {tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length}
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setSupportView('feedback');
+                      loadFeedback();
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      supportView === 'feedback' ? '' : 'opacity-60 hover:opacity-80'
+                    }`}
+                    style={{
+                      backgroundColor: supportView === 'feedback' ? theme.primary + '20' : 'transparent',
+                      color: supportView === 'feedback' ? theme.primary : theme.textLight,
+                      border: `2px solid ${supportView === 'feedback' ? theme.primary : theme.border}`
+                    }}
+                  >
+                    <MessageSquare size={18} />
+                    <span>Bug & Feature Reports</span>
+                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                         style={{ 
+                           backgroundColor: supportView === 'feedback' ? theme.primary : theme.textLight + '30',
+                           color: supportView === 'feedback' ? theme.white : theme.textLight 
+                         }}>
+                      {feedback.filter(f => f.status === 'new').length}
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {supportView === 'feedback' ? (
+              <div className="space-y-6">
+                <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
               <div className="p-4 border-b" style={{ borderColor: theme.border }}>
-                <h3 className="text-xs font-semibold mb-3" style={{ color: theme.textLight }}>FILTER BY STATUS</h3>
+                <h3 className="text-xs font-semibold mb-3" style={{ color: theme.textLight }}>FILTER FEEDBACK STATUS</h3>
                 <div className="flex items-center gap-3 overflow-x-auto pb-2">
                   {(() => {
                     const statusFilters = [
@@ -3212,94 +3360,7 @@ function Admin() {
                   })()}
               </div>
             </div>
-
-              </div>
-
-            {/* Main Tab Navigation */}
-            <div className="rounded-lg border content-card shadow-sm mb-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="p-4">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setSupportView('feedback');
-                      loadFeedback();
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                      supportView === 'feedback' ? '' : 'opacity-60 hover:opacity-80'
-                    }`}
-                    style={{
-                      backgroundColor: supportView === 'feedback' ? theme.primary + '20' : 'transparent',
-                      color: supportView === 'feedback' ? theme.primary : theme.textLight,
-                      border: `2px solid ${supportView === 'feedback' ? theme.primary : theme.border}`
-                    }}
-                  >
-                    <MessageSquare size={18} />
-                    <span>Feedback</span>
-                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
-                         style={{ 
-                           backgroundColor: supportView === 'feedback' ? theme.primary : theme.textLight + '30',
-                           color: supportView === 'feedback' ? theme.white : theme.textLight 
-                         }}>
-                      {feedback.length}
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSupportView('open-tickets');
-                      setTicketView('list');
-                      setSelectedTicketStatusFilter('new');
-                      loadTickets();
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                      supportView === 'open-tickets' ? '' : 'opacity-60 hover:opacity-80'
-                    }`}
-                    style={{
-                      backgroundColor: supportView === 'open-tickets' ? theme.warning + '20' : 'transparent',
-                      color: supportView === 'open-tickets' ? theme.warning : theme.textLight,
-                      border: `2px solid ${supportView === 'open-tickets' ? theme.warning : theme.border}`
-                    }}
-                  >
-                    <MessagesSquare size={18} />
-                    <span>Open Tickets</span>
-                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
-                         style={{ 
-                           backgroundColor: supportView === 'open-tickets' ? theme.warning : theme.textLight + '30',
-                           color: supportView === 'open-tickets' ? theme.white : theme.textLight 
-                         }}>
-                      {tickets.filter(t => t.status === 'new' || t.status === 'in-progress').length}
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSupportView('closed-tickets');
-                      setTicketView('list');
-                      setSelectedTicketStatusFilter('resolved');
-                      loadTickets();
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                      supportView === 'closed-tickets' ? '' : 'opacity-60 hover:opacity-80'
-                    }`}
-                    style={{
-                      backgroundColor: supportView === 'closed-tickets' ? theme.success + '20' : 'transparent',
-                      color: supportView === 'closed-tickets' ? theme.success : theme.textLight,
-                      border: `2px solid ${supportView === 'closed-tickets' ? theme.success : theme.border}`
-                    }}
-                  >
-                    <CheckCircle size={18} />
-                    <span>Closed Tickets</span>
-                    <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
-                         style={{ 
-                           backgroundColor: supportView === 'closed-tickets' ? theme.success : theme.textLight + '30',
-                           color: supportView === 'closed-tickets' ? theme.white : theme.textLight 
-                         }}>
-                      {tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length}
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {supportView === 'feedback' ? (
+              
               <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
                 <div className="p-6 border-b" style={{ borderColor: theme.border }}>
                   <div className="flex items-center justify-between">
@@ -3312,7 +3373,27 @@ function Admin() {
                     <div className="flex items-center gap-4">
                       <button
                         onClick={async () => {
-                          // Test admin message - send to current admin user
+                          // Delete all test messages first
+                          try {
+                            const allMessages = await getAllAdminMessages();
+                            const testMessages = allMessages.filter(msg => 
+                              msg.message?.includes('test admin message') || 
+                              msg.message?.includes('Test admin message') ||
+                              msg.message?.includes('🧪')
+                            );
+                            for (const msg of testMessages) {
+                              await deleteAdminMessage(msg.id);
+                            }
+                            if (testMessages.length > 0) {
+                              window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                detail: { message: `Deleted ${testMessages.length} test message(s)`, type: 'success' } 
+                              }));
+                            }
+                          } catch (error) {
+                            console.error('❌ Failed to delete test messages:', error);
+                          }
+                          
+                          // Then send new test message
                           const testEmail = auth.currentUser?.email || email;
                           if (!testEmail) {
                             window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -3322,7 +3403,7 @@ function Admin() {
                           }
                           try {
                             setLoading(prev => ({ ...prev, submitting: true }));
-                            await createAdminMessage(testEmail, 'This is a test admin message! 🧪 You can use this to test the "From the Team🥼" chip and modal. This message will remain visible for 24 hours after you open it.', ADMIN_PASSWORD);
+                            await createAdminMessage(testEmail, 'This is a test admin message! 🧪 You can use this to test the "From the Team" chip and modal. This message will remain visible for 24 hours after you open it.', ADMIN_PASSWORD);
                             window.dispatchEvent(new CustomEvent('tpp:toast', { 
                               detail: { message: 'Test admin message sent! Check your dashboard.', type: 'success' } 
                             }));
@@ -3349,7 +3430,7 @@ function Admin() {
                           color: theme.primary,
                           cursor: loading.submitting ? 'not-allowed' : 'pointer'
                         }}
-                        title="Test Admin Message - sends a test message to your account"
+                        title="Test Admin Message - sends a test message to your account (auto-deletes old test messages)"
                       >
                         <Shield size={14} />
                         {loading.submitting ? 'Sending...' : 'Test Message'}
@@ -3572,22 +3653,11 @@ function Admin() {
                                   rows="4"
                                   placeholder="Type your response to the user here..."
                                 />
-                                <div className="flex items-center gap-2 p-2 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background + '50' }}>
-                                  <input
-                                    type="checkbox"
-                                    id={`admin-message-${item.id}`}
-                                    checked={sendAsAdminMessage}
-                                    onChange={(e) => setSendAsAdminMessage(e.target.checked)}
-                                    className="cursor-pointer"
-                                  />
-                                  <label 
-                                    htmlFor={`admin-message-${item.id}`}
-                                    className="text-xs cursor-pointer flex items-center gap-1"
-                                    style={{ color: theme.text }}
-                                  >
-                                    <Shield size={12} style={{ color: sendAsAdminMessage ? theme.primary : theme.textLight }} />
-                                    Send as Admin Message (one-way, shows as "From the Team🥼" chip)
-                                  </label>
+                                <div className="flex items-center gap-2 p-2 rounded-lg border" style={{ borderColor: theme.primary + '40', backgroundColor: theme.primary + '10' }}>
+                                  <Shield size={14} style={{ color: theme.primary }} />
+                                  <span className="text-xs" style={{ color: theme.text }}>
+                                    This will send a one-way admin message (shows as "From the Team" chip on user's dashboard)
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <button
@@ -3603,14 +3673,8 @@ function Admin() {
                                       </>
                                     ) : (
                                       <>
-                                        {sendAsAdminMessage ? (
-                                          <>
-                                            <Shield size={14} />
-                                            Send Admin Message
-                                          </>
-                                        ) : (
-                                          'Send Response'
-                                        )}
+                                        <Shield size={14} />
+                                        Send Admin Message
                                       </>
                                     )}
                                   </button>
@@ -3618,7 +3682,6 @@ function Admin() {
                                     onClick={() => {
                                       setRespondingToFeedback(null);
                                       setResponseText('');
-                                      setSendAsAdminMessage(false);
                                     }}
                                     className="px-4 py-2 rounded-lg text-sm font-semibold border"
                                     style={{ borderColor: theme.border, color: theme.text }}
@@ -3656,7 +3719,50 @@ function Admin() {
                 })()}
               </div>
             </div>
-            ) : (supportView === 'open-tickets' || supportView === 'closed-tickets') ? (
+          </div>
+            ) : (supportView === 'tickets' || supportView === 'open-tickets' || supportView === 'closed-tickets') ? (
+              <div className="space-y-6">
+                {/* Ticket Filters */}
+                <div className="rounded-lg border content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                    <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+                        <h3 className="text-xs font-semibold mb-3" style={{ color: theme.textLight }}>FILTER SUPPORT REQUESTS</h3>
+                        <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                            {[
+                                { id: 'new', label: 'New', icon: Clock, color: theme.success },
+                                { id: 'in-progress', label: 'In Progress', icon: Loader, color: theme.warning },
+                                { id: 'resolved', label: 'Closed', icon: CheckCircle, color: theme.error },
+                                { id: 'all', label: 'All Requests', icon: LayoutDashboard, color: theme.primaryDark }
+                            ].map(filter => {
+                                const isActive = selectedTicketStatusFilter === filter.id;
+                                const FilterIcon = filter.icon;
+                                return (
+                                     <button
+                                        key={filter.id}
+                                        onClick={() => setSelectedTicketStatusFilter(filter.id)}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all"
+                                        style={{ 
+                                            backgroundColor: isActive ? filter.color + '25' : theme.background,
+                                            color: isActive ? filter.color : theme.text,
+                                            border: isActive ? `2px solid ${filter.color}` : `1px solid ${theme.border}`
+                                        }}
+                                    >
+                                        <FilterIcon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                                        <span>{filter.label}</span>
+                                        <div className="px-2 py-0.5 rounded-full text-xs font-bold" 
+                                             style={{ 
+                                               backgroundColor: isActive ? filter.color : theme.textLight + '30',
+                                               color: isActive ? theme.white : theme.textLight 
+                                             }}>
+                                          {filter.id === 'all' ? tickets.length : tickets.filter(t => 
+                                              filter.id === 'resolved' ? (t.status === 'resolved' || t.status === 'closed') : t.status === filter.id
+                                          ).length}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                 </div>
               // Tickets View
               ticketView === 'chat' && selectedTicket ? (
                 // Chat View
@@ -3883,10 +3989,18 @@ function Admin() {
                         return tickets;
                       })()
                         .filter(ticket => {
-                          // Filter by tab (open vs closed)
-                          if (supportView === 'open-tickets') {
+                          // Filter by status using selectedTicketStatusFilter
+                          if (selectedTicketStatusFilter !== 'all') {
+                            if (selectedTicketStatusFilter === 'resolved') {
+                              if (ticket.status !== 'resolved' && ticket.status !== 'closed') return false;
+                            } else {
+                              if (ticket.status !== selectedTicketStatusFilter) return false;
+                            }
+                          } else if (supportView === 'open-tickets') {
+                            // Fallback for legacy view state
                             if (ticket.status !== 'new' && ticket.status !== 'in-progress') return false;
                           } else if (supportView === 'closed-tickets') {
+                            // Fallback for legacy view state
                             if (ticket.status !== 'resolved' && ticket.status !== 'closed') return false;
                           }
                           
@@ -4524,8 +4638,6 @@ function Admin() {
           </div>
         )}
 
-        </div>
-      </div>
       {isUserModalOpen && selectedUser && (
         <UserDetailModal 
           user={selectedUser} 
@@ -4539,6 +4651,7 @@ function Admin() {
           isLoadingDetails={isLoadingUserDetails}
         />
       )}
+      </div>
 
       {/* Research Topic Edit Modal */}
       {showTopicModal && editingTopic && (
@@ -4715,7 +4828,6 @@ function Admin() {
           </div>
         </Modal>
         )}
-      </div>
     </div>
     </>
   );

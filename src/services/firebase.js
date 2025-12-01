@@ -1438,6 +1438,98 @@ export async function markAdminMessageAsRead(messageId) {
 }
 
 /**
+ * Delete an admin message (admin only)
+ * @param {string} messageId - The message ID
+ * @returns {Promise<void>}
+ */
+export async function deleteAdminMessage(messageId) {
+  try {
+    console.log('🗑️ Attempting to delete admin message:', messageId);
+    const messageRef = doc(db, 'adminMessages', messageId);
+    
+    // First check if document exists
+    const messageDoc = await getDoc(messageRef);
+    if (!messageDoc.exists()) {
+      console.warn('⚠️ Message does not exist:', messageId);
+      return; // Already deleted
+    }
+    
+    console.log('🗑️ Message exists, deleting:', messageId);
+    await deleteDoc(messageRef);
+    console.log('✅ Admin message deleted successfully:', messageId);
+    
+    // Verify deletion
+    const verifyDoc = await getDoc(messageRef);
+    if (verifyDoc.exists()) {
+      console.error('❌ Message still exists after deletion!');
+      throw new Error('Message was not deleted');
+    } else {
+      console.log('✅ Deletion verified - message no longer exists');
+    }
+  } catch (error) {
+    console.error('❌ Failed to delete admin message:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get all admin messages (admin only)
+ * @returns {Promise<Array>} - Array of all admin messages
+ */
+export async function getAllAdminMessages() {
+  try {
+    const messagesRef = collection(db, 'adminMessages');
+    const q = query(messagesRef, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const messages = [];
+    querySnapshot.forEach((doc) => {
+      messages.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return messages;
+  } catch (error) {
+    console.error('❌ Failed to get all admin messages:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all admin messages for a specific user (admin only)
+ * @param {string} userEmail - User's email
+ * @returns {Promise<number>} - Number of messages deleted
+ */
+export async function deleteAllAdminMessagesForUser(userEmail) {
+  try {
+    const messagesRef = collection(db, 'adminMessages');
+    const q = query(messagesRef, where('userEmail', '==', userEmail.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+    
+    let deletedCount = 0;
+    for (const docSnapshot of querySnapshot.docs) {
+      try {
+        await deleteDoc(doc(db, 'adminMessages', docSnapshot.id));
+        deletedCount++;
+        console.log('✅ Deleted message:', docSnapshot.id);
+      } catch (error) {
+        console.error('❌ Failed to delete message', docSnapshot.id, ':', error);
+      }
+    }
+    
+    console.log(`✅ Deleted ${deletedCount} message(s) for ${userEmail}`);
+    return deletedCount;
+  } catch (error) {
+    console.error('❌ Failed to delete messages for user:', error);
+    throw error;
+  }
+}
+
+/**
  * Create an admin message (admin only, via cloud function)
  * @param {string} userEmail - User's email
  * @param {string} message - Message content

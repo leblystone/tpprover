@@ -6,7 +6,7 @@ import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import NotificationBell from '../common/NotificationBell';
 import TrialButton from '../common/TrialButton';
 import { useAppContext } from '../../context/AppContext';
-import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead } from '../../services/firebase';
+import { getUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 
@@ -361,32 +361,21 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {onDashboard && adminMessage && (
               <button
                 onClick={() => setShowAdminMessage(true)}
-                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border-2 ${
-                  hasUnreadAdminMessage ? 'animate-sway' : ''
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  hasUnreadAdminMessage ? 'animate-shake' : ''
                 }`}
               style={{
                 backgroundColor: hasUnreadAdminMessage 
                   ? (theme.primary || '#6366F1') 
                   : `${theme.primary || '#6366F1'}80`,
                 color: '#FFFFFF',
-                borderColor: hasUnreadAdminMessage 
-                  ? `${theme.primary || '#6366F1'}CC` 
-                  : `${theme.primary || '#6366F1'}60`,
-                boxShadow: hasUnreadAdminMessage 
-                  ? `0 0 0 3px ${theme.primary || '#6366F1'}20, 0 2px 8px ${theme.primary || '#6366F1'}40` 
-                  : `0 0 0 2px ${theme.primary || '#6366F1'}10`
+                boxShadow: hasUnreadAdminMessage ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none'
               }}
               >
-                {hasUnreadAdminMessage && (
-                  <AlertCircle size={14} className="animate-pulse" fill="currentColor" />
-                )}
                 <span className="whitespace-nowrap flex items-center gap-1">
                   From the Team
                   <MessageCircleReply size={14} />
                 </span>
-                {hasUnreadAdminMessage && (
-                  <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-                )}
               </button>
           )}
           {/* Support Response Chip - Only show on dashboard, appears after admin message */}
@@ -493,6 +482,11 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           onClose={() => setShowAdminMessage(false)}
           theme={theme}
           onMarkRead={handleMarkAdminMessageAsRead}
+          onDelete={() => {
+            // Reload messages after deletion
+            setAdminMessage(null);
+            setHasUnreadAdminMessage(false);
+          }}
         />
       )}
 
@@ -514,6 +508,14 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         }
         .animate-sway {
           animation: sway 2s ease-in-out infinite;
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+          20%, 40%, 60%, 80% { transform: translateX(2px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out infinite;
         }
       `}</style>
     </>

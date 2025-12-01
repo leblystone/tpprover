@@ -1,0 +1,10 @@
+- When writing or creating new code for this application (TPP - The Pep Planner), always maintain the "research principal" in the background. This means using research-focused terminology and framing (e.g., "research," "protocols," "lab access") rather than direct medical or treatment language. This principle helps maintain consistency across the app and reduces the likelihood of errors or inconsistencies in terminology throughout the codebase. The app is designed around the concept of users conducting peptide research, not medical treatment. (ID: 9833806)
+- The user-facing brand name is "The Pep Planner" for all UI elements. "TPP Splendide" and "TPP Rover" are internal code names only and should never be shown to users. All titles, headers, and user-visible text should display "The Pep Planner" instead. (ID: 8953299)
+- The user prefers that the assistant finish tasks and confirm progress while the request is open without requiring a new request. (ID: 8566394)
+- The user prefers that terminal commands run automatically without requiring manually pressing enter in the console. (ID: 8566391)
+- Do not push commits to the remote repository unless explicitly instructed by the user. After committing changes, I should wait for confirmation before pushing. (ID: 8247770)
+- The user prefers that the assistant finish updates before closing a request and not require them to ask for an update. (ID: 8247683)
+- The user prefers that I bold text where needed in responses. (ID: 8247682)
+- The user prefers that the assistant summarize what was fixed in commits going forward. (ID: 8247681)
+- The user prefers that the assistant not confirm commit messages with them. (ID: 8247680)
+- When drafting customer responses, use a friendly, human tone with emojis (e.g., "Hey! 👋", "Thanks for catching that", "Give it a try! 🧪"). Avoid overly formal or robotic language.
