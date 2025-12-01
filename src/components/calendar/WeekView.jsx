@@ -10,6 +10,7 @@ import { formatMMDDYYYY } from '../../utils/date';
 import { useAppContext } from '../../context/AppContext';
 import { useFirebase } from '../../context/FirebaseContext';
 import { safeLocalStorageGet } from '../../utils/dataBleedDiagnostic';
+import { areGroupBuysEnabled } from '../../utils/featureSettings';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method
@@ -59,6 +60,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
   const [forceRender, setForceRender] = useState(0);
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null); // Track which group buy is expanded (dayKey)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null); // Full data for expanded group buy
+  
+  // Check if group buys are enabled
+  const groupBuysEnabled = areGroupBuysEnabled();
   
   // Reset expanded state on refresh/calendar bump
   useEffect(() => {
@@ -313,7 +317,7 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             </div>
 
             {/* Group Buys - expandable chip */}
-            {groupBuyInfo && (
+            {groupBuyInfo && groupBuysEnabled && (
                 <div className="mt-2">
                     <button
                         className="w-full inline-flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all cursor-pointer"

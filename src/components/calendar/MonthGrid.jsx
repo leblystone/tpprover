@@ -4,7 +4,7 @@ import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, Ch
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
-import { areWashoutIconsEnabled } from '../../utils/featureSettings'
+import { areWashoutIconsEnabled, areGroupBuysEnabled } from '../../utils/featureSettings'
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
@@ -146,6 +146,8 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
   
   // Check if washout icons should be shown
   const showWashoutIcons = areWashoutIconsEnabled();
+  // Check if group buys are enabled
+  const groupBuysEnabled = areGroupBuysEnabled();
   
   return (
     <div className="h-full flex flex-col">
@@ -181,7 +183,10 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     // Get unique delivery methods for icon display
                     const deliveryMethods = [...new Set(allSupplements.map(s => typeof s === 'object' ? s.delivery : 'oral'))];
                     const primaryDelivery = deliveryMethods[0] || 'oral';
-                    const buyCount = (sched.buys || 0) + (sched.groupBuys?.length || 0)
+                    // Count regular orders and group buys (if enabled)
+                    const regularBuys = sched.buys || 0;
+                    const groupBuysCount = groupBuysEnabled ? (sched.groupBuys?.length || 0) : 0;
+                    const buyCount = regularBuys + groupBuysCount;
                     const dayGoals = sched.goals || []
                     const completedGoals = dayGoals.filter(g => g.completed).length
                     const totalGoals = dayGoals.length
@@ -242,7 +247,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const iconGridEls = [];
                     if (peptideCount > 0) iconGridEls.push(<Pipette key="i-pep" className="w-4 h-4" style={{ color: iconColor }} />);
                     if (suppCount > 0) iconGridEls.push(<Pill key="i-sup" className="w-4 h-4" style={{ color: iconColor }} />);
-                    if (buyCount > 0) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" style={{ color: iconColor }} />);
+                    if (buyCount > 0 && groupBuysEnabled) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" style={{ color: iconColor }} />);
                     while (iconGridEls.length < 4) iconGridEls.push(<span key={`i-empty-${iconGridEls.length}`} />);
 
                     // Build simple task name list (first 6), peptides + supplements
@@ -309,7 +314,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                                     <Pill size={12} style={{ color: iconColor }} />
                                                 </div>
                                             )}
-                                            {buyCount > 0 && (
+                                            {buyCount > 0 && groupBuysEnabled && (
                                                 <div className="flex items-center justify-center">
                                                     <ShoppingCart size={12} style={{ color: iconColor }} />
                                                 </div>
@@ -319,7 +324,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         <div className="hidden sm:flex justify-center lg:hidden items-center gap-1 sm:gap-1.5">
                                             {peptideCount > 0 && <Pipette className="w-3 h-3" style={{ color: iconColor }} />}
                                             {suppCount > 0 && <Pill className="w-3 h-3" style={{ color: iconColor }} />}
-                                            {buyCount > 0 && <ShoppingCart className="w-3 h-3" style={{ color: iconColor }} />}
+                                            {buyCount > 0 && groupBuysEnabled && <ShoppingCart className="w-3 h-3" style={{ color: iconColor }} />}
                                         </div>
                                         <div className="hidden lg:grid grid-cols-4 gap-1 w-full justify-items-center">
                                             {iconGridEls}
