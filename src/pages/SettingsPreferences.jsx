@@ -150,15 +150,35 @@ export default function SettingsPreferences() {
             <SettingToggle 
               checked={settings.features?.analytics ?? true} 
               onChange={v => update('features.analytics', v)} 
-              label="Analytics Dashboard" 
-              description="Display analytics and metrics in dashboard" 
+              label="Analytics" 
+              description="Display Research Consistency, Spending, and Average Delivery Time in Dashboard" 
               theme={theme} 
             />
             <SettingToggle 
               checked={settings.features?.toastNotifications ?? true} 
               onChange={v => update('features.toastNotifications', v)} 
-              label="Toast Notifications" 
-              description="Show toast notifications for app events" 
+              label="In-App Notifications" 
+              description="Show in-app notifications" 
+              theme={theme} 
+            />
+            <SettingToggle 
+              checked={settings.features?.showWashoutIcons ?? true} 
+              onChange={v => update('features.showWashoutIcons', v)} 
+              label={
+                <span>
+                  Washout Icons{' '}
+                  <span style={{ color: theme.mutedText, opacity: 0.7 }}>(Monthly View Only)</span>
+                </span>
+              }
+              description={
+                <span className="flex items-center gap-1.5">
+                  Show washout period 
+                  <span className="px-1 py-0.5 text-[9px] rounded border-2 border-gray-600 text-white bg-gray-600 font-bold">
+                    W
+                  </span>
+                  on monthly calendar view
+                </span>
+              }
               theme={theme} 
             />
           </div>
@@ -174,8 +194,8 @@ export default function SettingsPreferences() {
             <SettingToggle 
               checked={settings.orders?.autoStockpileUpdate ?? true} 
               onChange={v => update('orders.autoStockpileUpdate', v)} 
-              label="Auto Stockpile Updates" 
-              description="Automatically add delivered orders to stockpile" 
+              label="Automatically Update Stockpile" 
+              description="Automatically add delivered orders to stockpile. Enabled feature will increase inventory when an order is marked as delivered." 
               theme={theme} 
             />
             <SettingToggle 
@@ -188,8 +208,8 @@ export default function SettingsPreferences() {
             <SettingToggle 
               checked={settings.orders?.includeShippingInCosts ?? true} 
               onChange={v => handleShippingCostToggle(v)} 
-              label="Include Shipping in Costs" 
-              description="Include shipping costs in stockpile and reconstitution calculations" 
+              label="Shipping Costs in Total Spent" 
+              description="Include shipping costs when averaging price per vial/mg" 
               theme={theme} 
             />
           </div>
@@ -295,8 +315,8 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled 
     style={{ backgroundColor: theme.secondary }}
   >
     <div className="flex-1 pr-4">
-      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{label}</div>
-      <div className="text-xs" style={{ color: theme.mutedText }}>{description}</div>
+      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>{typeof label === 'string' ? label : label}</div>
+      <div className="text-xs" style={{ color: theme.mutedText }}>{typeof description === 'string' ? description : description}</div>
     </div>
     <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} />

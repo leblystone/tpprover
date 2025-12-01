@@ -112,3 +112,17 @@ export function getResearchPreferences() {
     };
   }
 }
+
+/**
+ * Check if washout icons should be shown in monthly calendar view
+ */
+export function areWashoutIconsEnabled() {
+  try {
+    const settings = loadSettings();
+    // Default to true if the setting is not explicitly set
+    return settings?.features?.showWashoutIcons !== false;
+  } catch (error) {
+    console.error('Failed to read washout icons setting:', error);
+    return true; // Default to enabled in case of error
+  }
+}

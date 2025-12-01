@@ -54,8 +54,37 @@ export function saveSettings(obj) {
   }
 }
 
+/**
+ * Get the device's local timezone
+ * Works in web, iOS (WKWebView), and Android (Chrome WebView)
+ * No permissions required - reads from system settings
+ */
+export function getLocalTimezone() {
+  try {
+    // Primary method: Intl.DateTimeFormat (works in modern browsers and Capacitor WebViews)
+    if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+      const options = Intl.DateTimeFormat().resolvedOptions();
+      if (options && options.timeZone) {
+        return options.timeZone;
+      }
+    }
+    
+    // Fallback: Calculate from timezone offset (works everywhere but less precise)
+    const offset = -new Date().getTimezoneOffset(); // Negative because getTimezoneOffset returns opposite
+    const hours = Math.floor(Math.abs(offset) / 60);
+    const minutes = Math.abs(offset) % 60;
+    const sign = offset >= 0 ? '+' : '-';
+    
+    // Return offset format as fallback (e.g., "UTC-5")
+    return `UTC${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  } catch (error) {
+    console.warn('⚠️ Could not detect timezone, defaulting to UTC:', error);
+    return 'UTC';
+  }
+}
+
 export function getDefaultSettings() {
-  const tz = Intl?.DateTimeFormat?.().resolvedOptions?.().timeZone || 'UTC'
+  const tz = getLocalTimezone()
   const defaults = {
     notifications: {
       email: true,
@@ -87,6 +116,7 @@ export function getDefaultSettings() {
       analytics: true, // Enable analytics dashboard
       metricsTracking: true, // Track usage metrics and progress
       toastNotifications: true, // Enable toast notifications
+      showWashoutIcons: true, // Show washout icons in monthly calendar view
     },
     calendar: {
       defaultView: 'month', // 'month' | 'week'

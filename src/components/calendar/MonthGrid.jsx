@@ -4,6 +4,7 @@ import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, Ch
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
+import { areWashoutIconsEnabled } from '../../utils/featureSettings'
 
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
@@ -142,6 +143,9 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
   const weekdayHeaders = weekStartsOn === 'sunday' 
     ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  
+  // Check if washout icons should be shown
+  const showWashoutIcons = areWashoutIconsEnabled();
   
   return (
     <div className="h-full flex flex-col">
@@ -339,10 +343,10 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     {entryText}
                                 </div>
 
-                                {/* Washout indicator */}
-                                {sched.washout && sched.washout.length > 0 && (
+                                {/* Washout indicator - only show if enabled in settings */}
+                                {showWashoutIcons && sched.washout && sched.washout.length > 0 && (
                                     <div className="mt-1">
-                                        <span className="px-1.5 py-0.5 text-[8px] sm:text-[9px] rounded border-2 border-gray-600 text-white bg-gray-600 font-bold" title={`Washout: ${sched.washout.join(', ')}`}>
+                                        <span className="px-1 py-0.5 text-[8px] sm:text-[9px] rounded border-2 border-gray-600 text-white bg-gray-600 font-bold" title={`Washout: ${sched.washout.join(', ')}`}>
                                             W
                                         </span>
                                     </div>
