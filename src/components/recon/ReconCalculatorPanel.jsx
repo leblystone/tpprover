@@ -378,10 +378,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 icon={<Info size={16} />} 
                 label="Vial Cost ($)" 
                 type="number" 
-                value={cost} 
+                value={cost === 0 ? '' : (cost || '')} 
                 onChange={v => {
-                  setCost(v);
-                  setForm(prev => ({ ...prev, cost: v }));
+                  // Preserve user input exactly as typed - allow empty strings, don't convert to 0
+                  // Only convert to number when needed for calculations (handled in costPerDose)
+                  const newValue = v === '' || v === null || v === undefined ? '' : String(v);
+                  setCost(newValue);
+                  setForm(prev => ({ ...prev, cost: newValue }));
                 }} 
                 placeholder="e.g., 60" 
                 theme={theme}
