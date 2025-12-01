@@ -190,11 +190,11 @@ export default function Calendar() {
         const migrated = {};
         for (const key in parsed) {
           if (typeof parsed[key] === 'string') {
-            // Old format: string, migrate to object (no isMock for user notes)
+            // Old format: string, migrate to object
             migrated[key] = { text: parsed[key] };
           } else if (parsed[key] && typeof parsed[key] === 'object') {
-            // Already in object format, preserve it (including isMock if it exists for sample data)
-            migrated[key] = parsed[key];
+            // Already in object format, extract just the text (ignore isMock)
+            migrated[key] = { text: parsed[key].text || '' };
           }
         }
         setEntries(migrated);
@@ -1060,24 +1060,6 @@ export default function Calendar() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Seed a mock group buy once so visuals show up
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem('tpprover_seed_groupbuy')) {
-        const raw = localStorage.getItem('tpprover_orders')
-        const all = raw ? JSON.parse(raw) : []
-        const hasGB = all.some(o => !!o.group)
-        if (!hasGB) {
-          const d = new Date()
-          d.setDate(Math.min(28, d.getDate() + 3))
-          const gb = { id: Date.now(), vendor: 'Community Round', peptide: 'BPC-157', mg: 10, cost: '200', status: 'Order Placed', date: d.toISOString().slice(0,10), group: { title: 'BPC-157 Round', participants: ['alice','bob'], notes: 'Mock preview' }, category: 'groupbuy', type: 'groupbuy', isMock: true }
-          all.unshift(gb)
-          localStorage.setItem('tpprover_orders', JSON.stringify(all))
-        }
-        localStorage.setItem('tpprover_seed_groupbuy', '1')
-      }
-    } catch {}
-  }, [])
 
   useEffect(() => { try { localStorage.setItem('tpprover_calendar_notes', JSON.stringify(entries)) } catch {} }, [entries])
   useEffect(() => { try { localStorage.setItem('tpprover_calendar_done', JSON.stringify(done)) } catch {} }, [done])
@@ -1129,15 +1111,7 @@ export default function Calendar() {
   const handleSaveDay = (text) => {
     if (!activeDay) return
     const key = toKey(activeDay);
-    setEntries(prev => {
-      const existing = prev[key];
-      // Only preserve isMock if it exists (for sample data), otherwise don't include it
-      const newEntry = { text };
-      if (existing?.isMock !== undefined) {
-        newEntry.isMock = existing.isMock;
-      }
-      return { ...prev, [key]: newEntry };
-    })
+    setEntries(prev => ({ ...prev, [key]: { text } }))
     setActiveDay(null)
   }
 
@@ -1148,15 +1122,7 @@ export default function Calendar() {
       }
       if (!editingNotesFor) return;
       const key = toKey(editingNotesFor);
-      setEntries(prev => {
-        const existing = prev[key];
-        // Only preserve isMock if it exists (for sample data), otherwise don't include it
-        const newEntry = { text };
-        if (existing?.isMock !== undefined) {
-          newEntry.isMock = existing.isMock;
-        }
-        return { ...prev, [key]: newEntry };
-      });
+      setEntries(prev => ({ ...prev, [key]: { text } }));
   }
 
   const handlePrev = () => {

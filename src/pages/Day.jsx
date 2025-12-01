@@ -20,12 +20,7 @@ export default function Day() {
     try { 
       const raw = localStorage.getItem('tpprover_calendar_notes'); 
       const obj = raw ? JSON.parse(raw) : {}; 
-      // Only preserve isMock if it exists (for sample data), otherwise don't include it
-      const newEntry = { text };
-      if (obj[key]?.isMock !== undefined) {
-        newEntry.isMock = obj[key].isMock;
-      }
-      obj[key] = newEntry; 
+      obj[key] = { text }; 
       localStorage.setItem('tpprover_calendar_notes', JSON.stringify(obj)) 
     } catch {} 
   }
