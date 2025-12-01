@@ -257,8 +257,11 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
     const handleDateSelect = (day) => {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth();
-        // Format as YYYY-MM-DD without timezone conversion to preserve the selected date
-        const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // Create date in local timezone to avoid timezone conversion issues
+        // This ensures the selected date is preserved correctly
+        const localDate = new Date(year, month, day);
+        // Format as YYYY-MM-DD using local date components to preserve the selected date
+        const dateString = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
         onChange(dateString);
         setIsOpen(false);
     };
@@ -439,7 +442,7 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                     type="button"
                     onClick={() => {
                         const today = new Date();
-                        // Format as YYYY-MM-DD without timezone conversion to preserve today's date
+                        // Format as YYYY-MM-DD using local date components to preserve today's date
                         const year = today.getFullYear();
                         const month = today.getMonth();
                         const day = today.getDate();

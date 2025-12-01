@@ -41,6 +41,20 @@ function parseDateString(dateString) {
     return new Date(year, month - 1, day);
 }
 
+// Helper to normalize a date to midnight in local time for accurate day difference calculations
+function normalizeToMidnight(date) {
+    if (!date) return null;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+// Helper to calculate day difference between two dates (normalized to midnight)
+function getDayDifference(date1, date2) {
+    const normalized1 = normalizeToMidnight(date1);
+    const normalized2 = normalizeToMidnight(date2);
+    if (!normalized1 || !normalized2) return null;
+    return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
+}
+
 function getWindows(p) {
     try {
       if (!p?.startDate) return { start: null, end: null, washStart: null, washEnd: null }
@@ -168,7 +182,24 @@ export default function Calendar() {
   const [pendingMarkAllContext, setPendingMarkAllContext] = useState(null); // { date, timeSlot, slotKey, allTaskIds }
   // Load persisted notes (entries) and done slots
   useEffect(() => {
-    try { const raw = localStorage.getItem('tpprover_calendar_notes'); if (raw) setEntries(JSON.parse(raw)) } catch {}
+    try { 
+      const raw = localStorage.getItem('tpprover_calendar_notes'); 
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Migrate old string format to object format
+        const migrated = {};
+        for (const key in parsed) {
+          if (typeof parsed[key] === 'string') {
+            // Old format: string, migrate to object (no isMock for user notes)
+            migrated[key] = { text: parsed[key] };
+          } else if (parsed[key] && typeof parsed[key] === 'object') {
+            // Already in object format, preserve it (including isMock if it exists for sample data)
+            migrated[key] = parsed[key];
+          }
+        }
+        setEntries(migrated);
+      }
+    } catch {}
     // Load done data from unified completion system
     setDone(getCalendarDone());
   }, [])
@@ -367,11 +398,10 @@ export default function Calendar() {
                       const freq = peptides[0].frequency || {};
                       let isScheduledToday = false;
                       
-                      // Adjust for timezone when comparing dates
                       // Skip if protocol start date is null
                       if (!ps) return acc;
-                      const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
-                      const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                      const protocolStartDate = normalizeToMidnight(ps);
+                      const currentDate = normalizeToMidnight(d);
 
                       switch (freq.type) {
                           case 'daily':
@@ -388,8 +418,8 @@ export default function Calendar() {
                               const off = Number(freq.offDays) || 0;
                               if (on > 0) {
                                   const cycleLen = on + off;
-                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                                  if (dayDiff >= 0) {
+                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                  if (dayDiff !== null && dayDiff >= 0) {
                                       const dayInCycle = dayDiff % cycleLen;
                                       if (dayInCycle < on) {
                                           isScheduledToday = true;
@@ -400,8 +430,8 @@ export default function Calendar() {
                           case 'custom':
                               const customDays = Number(freq.customDays) || 1;
                               if (customDays > 0) {
-                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                                  if (dayDiff >= 0 && dayDiff % customDays === 0) {
+                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                  if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
                                       isScheduledToday = true;
                                   }
                               }
@@ -420,11 +450,10 @@ export default function Calendar() {
                       const freq = pep.frequency || {};
                       let isScheduledToday = false;
                       
-                      // Adjust for timezone when comparing dates
                       // Skip if protocol start date is null
                       if (!ps) return;
-                      const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
-                      const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                      const protocolStartDate = normalizeToMidnight(ps);
+                      const currentDate = normalizeToMidnight(d);
 
                       switch (freq.type) {
                           case 'daily':
@@ -441,8 +470,8 @@ export default function Calendar() {
                               const off = Number(freq.offDays) || 0;
                               if (on > 0) {
                                   const cycleLen = on + off;
-                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                                  if (dayDiff >= 0) {
+                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                  if (dayDiff !== null && dayDiff >= 0) {
                                       const dayInCycle = dayDiff % cycleLen;
                                       if (dayInCycle < on) {
                                           isScheduledToday = true;
@@ -453,8 +482,8 @@ export default function Calendar() {
                           case 'custom':
                               const customDays = Number(freq.customDays) || 1;
                               if (customDays > 0) {
-                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                                  if (dayDiff >= 0 && dayDiff % customDays === 0) {
+                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                  if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
                                       isScheduledToday = true;
                                   }
                               }
@@ -575,8 +604,8 @@ export default function Calendar() {
                       
                       // Skip if protocol start date is null
                       if (!ps) return;
-                      const protocolStartDate = new Date(ps.getTime() + ps.getTimezoneOffset() * 60000);
-                      const currentDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                      const protocolStartDate = normalizeToMidnight(ps);
+                      const currentDate = normalizeToMidnight(d);
 
                       switch (freq.type) {
                           case 'daily':
@@ -593,8 +622,8 @@ export default function Calendar() {
                               const off = Number(freq.offDays) || 0;
                               if (on > 0) {
                                   const cycleLen = on + off;
-                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                                  if (dayDiff >= 0) {
+                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                  if (dayDiff !== null && dayDiff >= 0) {
                                       const dayInCycle = dayDiff % cycleLen;
                                       if (dayInCycle < on) {
                                           isScheduledToday = true;
@@ -605,8 +634,8 @@ export default function Calendar() {
                           case 'custom':
                               const customDays = Number(freq.customDays) || 1;
                               if (customDays > 0) {
-                                  const dayDiff = Math.floor((currentDate - protocolStartDate) / (1000 * 60 * 60 * 24));
-                                  if (dayDiff >= 0 && dayDiff % customDays === 0) {
+                                  const dayDiff = getDayDifference(protocolStartDate, currentDate);
+                                  if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
                                       isScheduledToday = true;
                                   }
                               }
@@ -1099,7 +1128,16 @@ export default function Calendar() {
 
   const handleSaveDay = (text) => {
     if (!activeDay) return
-    setEntries(prev => ({ ...prev, [toKey(activeDay)]: text }))
+    const key = toKey(activeDay);
+    setEntries(prev => {
+      const existing = prev[key];
+      // Only preserve isMock if it exists (for sample data), otherwise don't include it
+      const newEntry = { text };
+      if (existing?.isMock !== undefined) {
+        newEntry.isMock = existing.isMock;
+      }
+      return { ...prev, [key]: newEntry };
+    })
     setActiveDay(null)
   }
 
@@ -1110,7 +1148,15 @@ export default function Calendar() {
       }
       if (!editingNotesFor) return;
       const key = toKey(editingNotesFor);
-      setEntries(prev => ({ ...prev, [key]: text }));
+      setEntries(prev => {
+        const existing = prev[key];
+        // Only preserve isMock if it exists (for sample data), otherwise don't include it
+        const newEntry = { text };
+        if (existing?.isMock !== undefined) {
+          newEntry.isMock = existing.isMock;
+        }
+        return { ...prev, [key]: newEntry };
+      });
   }
 
   const handlePrev = () => {

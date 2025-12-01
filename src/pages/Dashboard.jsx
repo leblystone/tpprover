@@ -280,6 +280,39 @@ export default function Dashboard() {
       return Math.ceil((date.getDate() + firstDay) / 7)
     }
     const weekId = `${today.getFullYear()}-${today.getMonth() + 1}-week-${getWeekOfMonth(today)}`
+    
+    // Helper to safely parse YYYY-MM-DD strings into local time dates (prevents timezone issues)
+    const parseDateString = (dateString) => {
+      if (!dateString) return null;
+      if (dateString instanceof Date) return dateString;
+      if (typeof dateString !== 'string') return new Date(dateString);
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        const [year, month, day] = parts.map(Number);
+        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+          // Create date in local timezone to avoid UTC conversion issues
+          return new Date(year, month - 1, day);
+        }
+      }
+      return new Date(dateString);
+    };
+    
+    // Helper to normalize a date to midnight in local time for accurate day difference calculations
+    const normalizeToMidnight = (date) => {
+      if (!date) return null;
+      // If it's a string, parse it first to avoid timezone issues
+      const parsed = date instanceof Date ? date : parseDateString(date);
+      if (!parsed) return null;
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    };
+    
+    // Helper to calculate day difference between two dates (normalized to midnight)
+    const getDayDifference = (date1, date2) => {
+      const normalized1 = normalizeToMidnight(date1);
+      const normalized2 = normalizeToMidnight(date2);
+      if (!normalized1 || !normalized2) return null;
+      return Math.floor((normalized2 - normalized1) / (1000 * 60 * 60 * 24));
+    };
 
     // Build peptide tasks from active (legacy-compatible) protocols for today
     let peptideTasks = []
@@ -299,14 +332,18 @@ export default function Dashboard() {
       }
       const isTodayInRange = (p) => {
         if (!p?.startDate) return false
-        const s = new Date(p.startDate)
-        const startOnly = new Date(s.getFullYear(), s.getMonth(), s.getDate())
-        const tOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+        // Use safe date parsing to avoid timezone issues
+        const s = parseDateString(p.startDate)
+        if (!s) return false
+        const startOnly = normalizeToMidnight(s)
+        const tOnly = normalizeToMidnight(today)
         if (tOnly < startOnly) return false
         if (p.endDate) {
-          const e = new Date(p.endDate)
-          const endOnly = new Date(e.getFullYear(), e.getMonth(), e.getDate())
-          if (tOnly > endOnly) return false
+          const e = parseDateString(p.endDate)
+          if (e) {
+            const endOnly = normalizeToMidnight(e)
+            if (tOnly > endOnly) return false
+          }
         } else if (p.duration && p.duration.noEnd !== true && Number(p.duration.count) > 0) {
           const e = new Date(s)
           const unit = String(p.duration.unit || 'week').toLowerCase()
@@ -314,7 +351,7 @@ export default function Dashboard() {
           if (unit === 'day') e.setDate(e.getDate() + count - 1)
           else if (unit === 'week') e.setDate(e.getDate() + (count * 7) - 1)
           else if (unit === 'month') { e.setMonth(e.getMonth() + count); e.setDate(e.getDate() - 1) }
-          const endOnly = new Date(e.getFullYear(), e.getMonth(), e.getDate())
+          const endOnly = normalizeToMidnight(e)
           if (tOnly > endOnly) return false
         }
         return p.active !== false
@@ -349,11 +386,25 @@ export default function Dashboard() {
                 case 'cycle':
                     const on = Number(freq.onDays) || 0;
                     const off = Number(freq.offDays) || 0;
-                    if (on > 0) {
+                    if (on > 0 && p.startDate) {
                         const cycleLen = on + off;
-                        const ps = new Date(p.startDate);
-                        const dayDiff = Math.floor((today - ps) / (1000 * 60 * 60 * 24));
-                        if (dayDiff >= 0 && (dayDiff % cycleLen) < on) isScheduledToday = true;
+                        const ps = normalizeToMidnight(parseDateString(p.startDate));
+                        const todayNormalized = normalizeToMidnight(today);
+                        const dayDiff = getDayDifference(ps, todayNormalized);
+                        if (dayDiff !== null && dayDiff >= 0 && (dayDiff % cycleLen) < on) {
+                            isScheduledToday = true;
+                        }
+                    }
+                    break;
+                case 'custom':
+                    const customDays = Number(freq.customDays) || 1;
+                    if (customDays > 0 && p.startDate) {
+                        const ps = normalizeToMidnight(parseDateString(p.startDate));
+                        const todayNormalized = normalizeToMidnight(today);
+                        const dayDiff = getDayDifference(ps, todayNormalized);
+                        if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
+                            isScheduledToday = true;
+                        }
                     }
                     break;
             }
@@ -446,13 +497,25 @@ export default function Dashboard() {
                 case 'cycle':
                   const on = Number(freq.onDays) || 0
                   const off = Number(freq.offDays) || 0
-                  if (on > 0) {
+                  if (on > 0 && p.startDate) {
                     const cycleLen = on + off
-                    const ps = new Date(p.startDate)
-                    const dayDiff = Math.floor((today - ps) / (1000 * 60 * 60 * 24))
-                    if (dayDiff >= 0) {
+                    const ps = normalizeToMidnight(parseDateString(p.startDate))
+                    const todayNormalized = normalizeToMidnight(today)
+                    const dayDiff = getDayDifference(ps, todayNormalized)
+                    if (dayDiff !== null && dayDiff >= 0) {
                       const dayInCycle = dayDiff % cycleLen
                       if (dayInCycle < on) isScheduledToday = true
+                    }
+                  }
+                  break
+                case 'custom':
+                  const customDays = Number(freq.customDays) || 1
+                  if (customDays > 0 && p.startDate) {
+                    const ps = normalizeToMidnight(parseDateString(p.startDate))
+                    const todayNormalized = normalizeToMidnight(today)
+                    const dayDiff = getDayDifference(ps, todayNormalized)
+                    if (dayDiff !== null && dayDiff >= 0 && dayDiff % customDays === 0) {
+                      isScheduledToday = true
                     }
                   }
                   break
@@ -557,9 +620,9 @@ export default function Dashboard() {
       for (const p of protocols) {
         if (!p?.washout?.enabled || !p?.startDate) continue
         // compute end date from either endDate or duration
-        let end = p.endDate ? new Date(p.endDate) : null
+        let end = p.endDate ? parseDateString(p.endDate) : null
         if (!end && p.duration && p.duration.noEnd !== true && Number(p.duration.count) > 0) {
-          end = new Date(p.startDate)
+          end = parseDateString(p.startDate)
           const unit = String(p.duration.unit || 'week').toLowerCase()
           const count = Number(p.duration.count) || 0
           if (unit === 'day') end.setDate(end.getDate() + count - 1)
