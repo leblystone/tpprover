@@ -698,7 +698,36 @@ export default function Recon() {
                                 const displayDoseValue = hasDoseValue ? rawDoseInput : null;
 
 								const calc = calculateRecon({ ...item, mg: totalMg, dose: summaryDoseValueNumeric, doseUnit: summaryDoseUnit });
-								const costPerDose = item.cost ? formatCurrency(item.cost / calc.dosesPerVial) : null
+								
+								// Calculate cost per dose: use costPerMg if available, otherwise divide cost by doses per vial
+								let costPerDose = null;
+								if (item.costPerMg && summaryDoseValueNumeric > 0) {
+									// Convert dose to mg for calculation
+									let doseInMg = 0;
+									if (summaryDoseUnit === 'mg') {
+										doseInMg = summaryDoseValueNumeric;
+									} else if (summaryDoseUnit === 'mcg') {
+										doseInMg = summaryDoseValueNumeric / 1000;
+									} else if (summaryDoseUnit === 'sprays') {
+										doseInMg = (summaryDoseValueNumeric * 100) / 1000; // 100 mcg per spray
+									} else if (summaryDoseUnit === 'mL') {
+										const concentration = calc.concentration || 0; // mcg per mL
+										const doseMcg = summaryDoseValueNumeric * concentration;
+										doseInMg = doseMcg / 1000;
+									}
+									
+									if (doseInMg > 0) {
+										const costPerMgNum = Number(item.costPerMg);
+										if (!isNaN(costPerMgNum) && costPerMgNum > 0) {
+											costPerDose = formatCurrency(costPerMgNum * doseInMg);
+										}
+									}
+								}
+								
+								// Fall back to dividing cost by doses per vial if costPerMg not available
+								if (!costPerDose && item.cost && calc.dosesPerVial > 0) {
+									costPerDose = formatCurrency(item.cost / calc.dosesPerVial);
+								}
 								return (
 									<div 
 										key={item.id} 

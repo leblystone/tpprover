@@ -87,7 +87,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           dose: '', 
           doseUnit: 'mcg',
           stockpileId: prefill.stockpileId || null,
-          quantityUsed: prefill.quantityUsed || 1
+          quantityUsed: prefill.quantityUsed || 1,
+          costPerMg: prefill.costPerMg || '' // Include costPerMg if available
         };
         setForm(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
         setCost(prefill.cost || '');
@@ -157,9 +158,46 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     });
   }, [totalMg, safeForm.water, safeForm.peptides, safeForm.peptides[0]?.dose, safeForm.peptides[0]?.doseUnit])
   const costPerDose = useMemo(() => {
-    if (cost && calc.dosesPerVial > 0) return formatCurrency(Number(cost) / calc.dosesPerVial)
-    return ''
-  }, [cost, calc.dosesPerVial])
+    // Check if costPerMg is available from prefill or peptides
+    const firstPeptide = safeForm.peptides?.[0];
+    const costPerMg = firstPeptide?.costPerMg || prefill?.costPerMg;
+    
+    // If costPerMg is provided, use it to calculate cost per dose
+    if (costPerMg && firstPeptide?.dose) {
+      const doseValue = Number(firstPeptide.dose) || 0;
+      const doseUnit = firstPeptide.doseUnit || 'mcg';
+      
+      // Convert dose to mg
+      let doseInMg = 0;
+      if (doseUnit === 'mg') {
+        doseInMg = doseValue;
+      } else if (doseUnit === 'mcg') {
+        doseInMg = doseValue / 1000;
+      } else if (doseUnit === 'sprays') {
+        // Nasal sprays: typically 100 mcg per spray
+        doseInMg = (doseValue * 100) / 1000;
+      } else if (doseUnit === 'mL') {
+        // For mL dosing, calculate based on concentration
+        const concentration = calc.concentration || 0; // mcg per mL
+        const doseMcg = doseValue * concentration;
+        doseInMg = doseMcg / 1000;
+      }
+      
+      if (doseInMg > 0) {
+        const costPerMgNum = Number(costPerMg);
+        if (!isNaN(costPerMgNum) && costPerMgNum > 0) {
+          return formatCurrency(costPerMgNum * doseInMg);
+        }
+      }
+    }
+    
+    // Fall back to dividing cost by doses per vial (default behavior)
+    if (cost && calc.dosesPerVial > 0) {
+      return formatCurrency(Number(cost) / calc.dosesPerVial);
+    }
+    
+    return '';
+  }, [cost, calc.dosesPerVial, calc.concentration, safeForm.peptides, prefill?.costPerMg])
 
   const addPeptide = () => {
     const peptides = safeForm.peptides || [];

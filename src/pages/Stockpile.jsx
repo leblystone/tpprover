@@ -722,6 +722,7 @@ export default function Stockpile() {
                                                                             mg: String(item.mg), 
                                                                             vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
                                                                             cost: item.cost || '',
+                                                                            costPerMg: item.costPerMg || '', // Include costPerMg if available
                                                                             stockpileId: item.id,
                                                                             quantity: item.quantity,
                                                                             unit: item.unit,

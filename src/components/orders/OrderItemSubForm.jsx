@@ -1,12 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import { X } from 'lucide-react';
+import { formatCurrencyWithSymbol } from '../../utils/currencyUtils';
 
 export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem, hasNameError = false }) {
     const [isNameFocused, setIsNameFocused] = useState(false);
     const [isAmountFocused, setIsAmountFocused] = useState(false);
     const [isQuantityFocused, setIsQuantityFocused] = useState(false);
     const [isPriceFocused, setIsPriceFocused] = useState(false);
+    const [isCostPerMgFocused, setIsCostPerMgFocused] = useState(false);
+
+    // Calculate cost per milligram based on current values
+    const calculatedCostPerMg = useMemo(() => {
+        const price = parseFloat(item.price) || 0;
+        const mg = Number(item.mg) || 0;
+        const quantity = Math.max(1, Number(item.quantity) || 1);
+        const unitMult = String(item.unit || 'vial').toLowerCase() === 'kit' ? 10 : 1;
+        const totalMg = mg * quantity * unitMult;
+        
+        if (totalMg > 0 && price > 0) {
+            return price / totalMg;
+        }
+        return null;
+    }, [item.price, item.mg, item.quantity, item.unit]);
 
     const handleChange = (field, value) => {
         onChange({ ...item, [field]: value });
@@ -216,39 +232,85 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                     </div>
                 </div>
                 
-                {/* Row 3: Price */}
-                <div className="relative">
-                    <input
-                        type="text"
-                        id={`price-input-${item.id || 'new'}`}
-                        value={item.price || ''}
-                        onChange={e => handleChange('price', e.target.value)}
-                        onFocus={() => setIsPriceFocused(true)}
-                        onBlur={() => setIsPriceFocused(false)}
-                        placeholder=" "
-                        className="w-full px-3 py-3 rounded-lg outline-none transition-all"
-                        style={{
-                            border: `1px solid #f0eee7`,
-                            boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
-                            backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
-                            color: theme.isDark ? theme.text : '#181A18'
-                        }}
-                    />
-                    <label 
-                        htmlFor={`price-input-${item.id || 'new'}`}
-                        className="absolute pointer-events-none transition-all"
-                        style={{
-                            fontSize: (isPriceFocused || (item.price && String(item.price).trim())) ? '0.75rem' : '0.9375rem',
-                            top: (isPriceFocused || (item.price && String(item.price).trim())) ? '-8px' : '14px',
-                            left: (isPriceFocused || (item.price && String(item.price).trim())) ? '12px' : '16px',
-                            padding: (isPriceFocused || (item.price && String(item.price).trim())) ? '0 4px' : '0',
-                            background: (isPriceFocused || (item.price && String(item.price).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                            color: (isPriceFocused || (item.price && String(item.price).trim())) ? theme.primary : (theme.textLight || theme.text),
-                            fontWeight: 500
-                        }}
-                    >
-                        Price ($)
-                    </label>
+                {/* Row 3: Price and Cost per Milligram */}
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Price Column */}
+                    <div className="relative">
+                        <input
+                            type="text"
+                            id={`price-input-${item.id || 'new'}`}
+                            value={item.price || ''}
+                            onChange={e => handleChange('price', e.target.value)}
+                            onFocus={() => setIsPriceFocused(true)}
+                            onBlur={() => setIsPriceFocused(false)}
+                            placeholder=" "
+                            className="w-full px-3 py-3 rounded-lg outline-none transition-all"
+                            style={{
+                                border: `1px solid #f0eee7`,
+                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                                color: theme.isDark ? theme.text : '#181A18'
+                            }}
+                        />
+                        <label 
+                            htmlFor={`price-input-${item.id || 'new'}`}
+                            className="absolute pointer-events-none transition-all"
+                            style={{
+                                fontSize: (isPriceFocused || (item.price && String(item.price).trim())) ? '0.75rem' : '0.9375rem',
+                                top: (isPriceFocused || (item.price && String(item.price).trim())) ? '-8px' : '14px',
+                                left: (isPriceFocused || (item.price && String(item.price).trim())) ? '12px' : '16px',
+                                padding: (isPriceFocused || (item.price && String(item.price).trim())) ? '0 4px' : '0',
+                                background: (isPriceFocused || (item.price && String(item.price).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                color: (isPriceFocused || (item.price && String(item.price).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                fontWeight: 500
+                            }}
+                        >
+                            Price ($)
+                        </label>
+                    </div>
+
+                    {/* Cost per Milligram Column */}
+                    <div className="relative">
+                        <input
+                            type="text"
+                            id={`costpermg-input-${item.id || 'new'}`}
+                            value={item.costPerMg || ''}
+                            onChange={e => handleChange('costPerMg', e.target.value)}
+                            onFocus={() => setIsCostPerMgFocused(true)}
+                            onBlur={() => setIsCostPerMgFocused(false)}
+                            placeholder=" "
+                            className="w-full px-3 py-3 rounded-lg outline-none transition-all"
+                            style={{
+                                border: `1px solid #f0eee7`,
+                                boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
+                                color: theme.isDark ? theme.text : '#181A18'
+                            }}
+                        />
+                        <label 
+                            htmlFor={`costpermg-input-${item.id || 'new'}`}
+                            className="absolute pointer-events-none transition-all"
+                            style={{
+                                fontSize: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0.75rem' : '0.9375rem',
+                                top: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '-8px' : '14px',
+                                left: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '12px' : '16px',
+                                padding: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? '0 4px' : '0',
+                                background: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                                color: (isCostPerMgFocused || (item.costPerMg && String(item.costPerMg).trim())) ? theme.primary : (theme.textLight || theme.text),
+                                fontWeight: 500
+                            }}
+                        >
+                            Cost per Milligram ($/mg) {item.costPerMg && <span className="text-xs" style={{ color: theme.textLight }}>(override)</span>}
+                        </label>
+                        {calculatedCostPerMg !== null && !item.costPerMg && (
+                            <div className="mt-1 text-xs flex items-center gap-1 flex-wrap" style={{ color: theme.textLight }}>
+                                <span>💡</span>
+                                <span style={{ color: theme.primary, fontWeight: 500 }}>
+                                    {formatCurrencyWithSymbol(calculatedCostPerMg)}/mg
+                                </span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

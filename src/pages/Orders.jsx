@@ -482,6 +482,7 @@ export default function Orders() {
 					quantity: quantity * vialsPerItem,
 					unit: 'vial',
 					cost: costPerVial,
+					costPerMg: item.costPerMg || '', // Include costPerMg if set
 					vendor: newOrder.vendor || '',
 					vendorId: newOrder.vendorId,
 					purchaseDate: newOrder.date,
@@ -525,6 +526,7 @@ export default function Orders() {
 					quantity: quantity * vialsPerItem,
 					unit: 'vial',
 					cost: costPerVial,
+					costPerMg: item.costPerMg || '', // Include costPerMg if set
 					vendor: newOrder.vendor || '',
 					vendorId: newOrder.vendorId,
 					purchaseDate: newOrder.date,

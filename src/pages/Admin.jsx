@@ -1891,7 +1891,7 @@ function Admin() {
   }
 
   return (
-    <>
+  <div>
       <WelcomeModal 
         isOpen={showWelcomeModal}
         onClose={() => setShowWelcomeModal(false)}
@@ -4638,198 +4638,204 @@ function Admin() {
           </div>
         )}
 
-      {isUserModalOpen && selectedUser && (
-        <UserDetailModal 
-          user={selectedUser} 
-          onClose={() => {
-            setIsUserModalOpen(false);
-            setSelectedUser(null);
-          }}
-          theme={theme}
-          onExtendTrial={handleExtendTrial}
-          isExtendingTrial={isExtendingTrial}
-          isLoadingDetails={isLoadingUserDetails}
-        />
-      )}
-      </div>
-
-      {/* Research Topic Edit Modal */}
-      {showTopicModal && editingTopic && (
-        <Modal
-          isOpen={showTopicModal}
-          onClose={() => {
-            setShowTopicModal(false);
-            setEditingTopic(null);
-          }}
-          title="Edit Research Topic"
-          theme={theme}
-          size="large"
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Topic Name
-              </label>
-              <input
-                type="text"
-                value={editingTopic.name || ''}
-                onChange={(e) => setEditingTopic({...editingTopic, name: e.target.value})}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Description
-              </label>
-              <textarea
-                value={editingTopic.description || ''}
-                onChange={(e) => setEditingTopic({...editingTopic, description: e.target.value})}
-                rows={4}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                placeholder="Add a description for this research topic..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Category
-              </label>
-              <input
-                type="text"
-                value={editingTopic.category || ''}
-                onChange={(e) => setEditingTopic({...editingTopic, category: e.target.value})}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                placeholder="e.g., Peptide, Hormone, etc."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Common Names / Aliases
-              </label>
-              <input
-                type="text"
-                value={(editingTopic.aliases || []).join(', ')}
-                onChange={(e) => setEditingTopic({
-                  ...editingTopic, 
-                  aliases: e.target.value.split(',').map(a => a.trim()).filter(Boolean)
-                })}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                placeholder="Separate with commas"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => {
-                  setShowTopicModal(false);
-                  setEditingTopic(null);
-                }}
-                className="px-4 py-2 rounded-lg border"
-                style={{ borderColor: theme.border, color: theme.text }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setContentData(prev => ({
-                    ...prev,
-                    topics: prev.topics.map(t => t.id === editingTopic.id ? editingTopic : t)
-                  }));
-                  setShowTopicModal(false);
-                  setEditingTopic(null);
-                  window.dispatchEvent(new CustomEvent('tpp:toast', {
-                    detail: { message: 'Topic updated! Remember to save changes.', type: 'success' }
-                  }));
-                }}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                Update Topic
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Pen Type Edit Modal */}
-      {showPenTypeModal && editingPenType && (
-        <Modal
-          isOpen={showPenTypeModal}
-          onClose={() => {
-            setShowPenTypeModal(false);
-            setEditingPenType(null);
-          }}
-          title="Edit Pen Type"
-          theme={theme}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                Pen Type Name
-              </label>
-              <input
-                type="text"
-                value={editingPenType.name || ''}
-                onChange={(e) => setEditingPenType({...editingPenType, name: e.target.value})}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                ID / Value
-              </label>
-              <input
-                type="text"
-                value={editingPenType.id || ''}
-                onChange={(e) => setEditingPenType({...editingPenType, id: e.target.value})}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                placeholder="e.g., tirz_pen, sema_pen"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => {
-                  setShowPenTypeModal(false);
-                  setEditingPenType(null);
-                }}
-                className="px-4 py-2 rounded-lg border"
-                style={{ borderColor: theme.border, color: theme.text }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setContentData(prev => ({
-                    ...prev,
-                    penTypes: prev.penTypes.map(p => p.id === editingPenType.id ? editingPenType : p)
-                  }));
-                  setShowPenTypeModal(false);
-                  setEditingPenType(null);
-                  window.dispatchEvent(new CustomEvent('tpp:toast', {
-                    detail: { message: 'Pen type updated! Remember to save changes.', type: 'success' }
-                  }));
-                }}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                Update Pen Type
-              </button>
-            </div>
-          </div>
-        </Modal>
+        {isUserModalOpen && selectedUser && (
+          <UserDetailModal 
+            user={selectedUser} 
+            onClose={() => {
+              setIsUserModalOpen(false);
+              setSelectedUser(null);
+            }}
+            theme={theme}
+            onExtendTrial={handleExtendTrial}
+            isExtendingTrial={isExtendingTrial}
+            isLoadingDetails={isLoadingUserDetails}
+          />
         )}
+
+        {/* Research Topic Edit Modal */}
+        {showTopicModal && editingTopic && (
+          <Modal
+            isOpen={showTopicModal}
+            onClose={() => {
+              setShowTopicModal(false);
+              setEditingTopic(null);
+            }}
+            title="Edit Research Topic"
+            theme={theme}
+            size="large"
+          >
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  Topic Name
+                </label>
+                <input
+                  type="text"
+                  value={editingTopic.name || ''}
+                  onChange={(e) => setEditingTopic({ ...editingTopic, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  Description
+                </label>
+                <textarea
+                  value={editingTopic.description || ''}
+                  onChange={(e) => setEditingTopic({ ...editingTopic, description: e.target.value })}
+                  rows={4}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  placeholder="Add a description for this research topic..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  Category
+                </label>
+                <input
+                  type="text"
+                  value={editingTopic.category || ''}
+                  onChange={(e) => setEditingTopic({ ...editingTopic, category: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  placeholder="e.g., Peptide, Hormone, etc."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  Common Names / Aliases
+                </label>
+                <input
+                  type="text"
+                  value={(editingTopic.aliases || []).join(', ')}
+                  onChange={(e) =>
+                    setEditingTopic({
+                      ...editingTopic,
+                      aliases: e.target.value.split(',').map(a => a.trim()).filter(Boolean)
+                    })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  placeholder="Separate with commas"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowTopicModal(false);
+                    setEditingTopic(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border"
+                  style={{ borderColor: theme.border, color: theme.text }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setContentData(prev => ({
+                      ...prev,
+                      topics: prev.topics.map(t => (t.id === editingTopic.id ? editingTopic : t))
+                    }));
+                    setShowTopicModal(false);
+                    setEditingTopic(null);
+                    window.dispatchEvent(
+                      new CustomEvent('tpp:toast', {
+                        detail: { message: 'Topic updated! Remember to save changes.', type: 'success' }
+                      })
+                    );
+                  }}
+                  className="px-4 py-2 rounded-lg"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  Update Topic
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Pen Type Edit Modal */}
+        {showPenTypeModal && editingPenType && (
+          <Modal
+            isOpen={showPenTypeModal}
+            onClose={() => {
+              setShowPenTypeModal(false);
+              setEditingPenType(null);
+            }}
+            title="Edit Pen Type"
+            theme={theme}
+          >
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  Pen Type Name
+                </label>
+                <input
+                  type="text"
+                  value={editingPenType.name || ''}
+                  onChange={(e) => setEditingPenType({ ...editingPenType, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                  ID / Value
+                </label>
+                <input
+                  type="text"
+                  value={editingPenType.id || ''}
+                  onChange={(e) => setEditingPenType({ ...editingPenType, id: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  placeholder="e.g., tirz_pen, sema_pen"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowPenTypeModal(false);
+                    setEditingPenType(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border"
+                  style={{ borderColor: theme.border, color: theme.text }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setContentData(prev => ({
+                      ...prev,
+                      penTypes: prev.penTypes.map(p => (p.id === editingPenType.id ? editingPenType : p))
+                    }));
+                    setShowPenTypeModal(false);
+                    setEditingPenType(null);
+                    window.dispatchEvent(
+                      new CustomEvent('tpp:toast', {
+                        detail: { message: 'Pen type updated! Remember to save changes.', type: 'success' }
+                      })
+                    );
+                  }}
+                  className="px-4 py-2 rounded-lg"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                >
+                  Update Pen Type
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+        </div>
+      </div>
     </div>
-    </>
   );
 }
 

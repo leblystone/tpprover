@@ -137,8 +137,55 @@ export function renderCost(cost, currencyCode = null) {
 
 /**
  * Enhanced renderCostPerMg function that uses currency preferences
+ * Supports manual costPerMg override on order or item level
  */
 export function renderCostPerMg(order, currencyCode = null) {
+  // Check for manual override on order level (for backward compatibility)
+  if (order?.costPerMg != null && order.costPerMg !== '') {
+    const manualCostPerMg = Number(order.costPerMg);
+    if (!isNaN(manualCostPerMg) && manualCostPerMg > 0) {
+      return formatCurrencyWithSymbol(manualCostPerMg, currencyCode);
+    }
+  }
+
+  // For orders with items, check if any item has a manual override
+  if (order?.items && Array.isArray(order.items) && order.items.length > 0) {
+    // Check if all items have the same costPerMg override (for consistency)
+    const itemsWithOverride = order.items.filter(item => 
+      item.costPerMg != null && item.costPerMg !== '' && !isNaN(Number(item.costPerMg)) && Number(item.costPerMg) > 0
+    );
+    
+    if (itemsWithOverride.length > 0) {
+      // Use the first item's override (or could average if needed)
+      const manualCostPerMg = Number(itemsWithOverride[0].costPerMg);
+      if (!isNaN(manualCostPerMg) && manualCostPerMg > 0) {
+        return formatCurrencyWithSymbol(manualCostPerMg, currencyCode);
+      }
+    }
+    
+    // Calculate from items if no override
+    const itemsTotalCost = order.items.reduce((sum, item) => {
+      const price = parseFloat(item.price) || 0;
+      const quantity = Number(item.quantity) || 1;
+      return sum + (price * quantity);
+    }, 0);
+    const shippingCost = parseFloat(order.shippingCost) || 0;
+    const totalCost = itemsTotalCost + shippingCost;
+    
+    const totalMg = order.items.reduce((sum, item) => {
+      const mgPerVial = Number(item.mg) || 0;
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const unitMult = String(item.unit || 'vial').toLowerCase() === 'kit' ? 10 : 1;
+      return sum + (mgPerVial * qty * unitMult);
+    }, 0);
+    
+    if (totalMg > 0 && totalCost > 0) {
+      const costPerMg = totalCost / totalMg;
+      return formatCurrencyWithSymbol(costPerMg, currencyCode);
+    }
+  }
+
+  // Fallback to old calculation for single-item orders
   const c = Number(order?.cost);
   const mgPerVial = Number(order?.mg);
   const qty = Math.max(1, Number(order?.quantity) || 1);

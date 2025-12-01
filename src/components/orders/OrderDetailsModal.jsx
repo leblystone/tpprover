@@ -225,6 +225,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         const normalizedQuantity = item.quantity ?? '';
         const normalizedPrice = item.price ?? '';
         const normalizedMg = item.mg ?? '';
+        const normalizedCostPerMg = item.costPerMg ?? '';
 
         return {
           ...item,
@@ -234,7 +235,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           mgUnit: item.mgUnit || 'mg',
           quantity: normalizedQuantity,
           unit: item.unit || 'vial',
-          price: normalizedPrice
+          price: normalizedPrice,
+          costPerMg: normalizedCostPerMg
         };
       }).filter(item => {
         const hasQuantity = item.quantity !== undefined && item.quantity !== '' && Number(item.quantity) > 0;

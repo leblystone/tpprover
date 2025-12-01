@@ -934,7 +934,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 return {
                     id: peptideId, name: p.name, mg: vial.mg,
                     dose: p.dosage?.amount || '', doseUnit: p.dosage?.unit || 'mcg',
-                    cost: singleVialCost, vendor: vial.vendor,
+                    cost: singleVialCost, 
+                    costPerMg: vial.costPerMg || '', // Include costPerMg if available
+                    vendor: vial.vendor,
                     stockpileId: vial.id,
                     quantityUsed: 1,
                     unit: vial.unit
