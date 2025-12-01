@@ -88,20 +88,35 @@ export default function Recon() {
 	}, [reconHistory]);
 
 	// Load prefill data from stockpile and auto-open calculator
+	// Only load if it's valid data (has peptide name or peptides array)
 	useEffect(() => {
 		try {
 			const raw = localStorage.getItem('tpprover_recon_prefill')
 			if (raw) {
 				const data = JSON.parse(raw)
-				setPrefill(data)
-				// Automatically switch to calculator tab when prefill data exists
-				setActiveTab('calculator')
-				// Show toast to let user know data was loaded
-				window.dispatchEvent(new CustomEvent('tpp:toast', { 
-					detail: { message: `✅ Loaded ${data.peptide} from stockpile!`, type: 'success' } 
-				}));
+				// Only use prefill if it has valid data (peptide name or peptides array)
+				// This prevents stale test data from prefilling the calculator
+				const hasValidPrefill = (data.peptide && data.peptide.trim() !== '') || 
+				                       (Array.isArray(data.peptides) && data.peptides.length > 0 && data.peptides.some(p => p.name && p.name.trim() !== ''))
+				
+				if (hasValidPrefill) {
+					setPrefill(data)
+					// Automatically switch to calculator tab when valid prefill data exists
+					setActiveTab('calculator')
+					// Show toast to let user know data was loaded
+					const peptideName = data.peptide || (data.peptides && data.peptides[0]?.name) || 'peptide'
+					window.dispatchEvent(new CustomEvent('tpp:toast', { 
+						detail: { message: `✅ Loaded ${peptideName} from stockpile!`, type: 'success' } 
+					}));
+				} else {
+					// Clear invalid/stale prefill data
+					localStorage.removeItem('tpprover_recon_prefill')
+				}
 			}
-		} catch {}
+		} catch {
+			// Clear corrupted prefill data
+			try { localStorage.removeItem('tpprover_recon_prefill') } catch {}
+		}
 	}, [])
 
 	// Handle click outside for dropdowns (supports both mouse and touch)

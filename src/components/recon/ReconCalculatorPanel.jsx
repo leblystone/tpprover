@@ -60,6 +60,18 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     if (prefill && prefillStr !== lastPrefillRef.current) {
       lastPrefillRef.current = prefillStr;
       
+      // Validate prefill has valid data before using it
+      const hasValidPeptide = (prefill.peptide && prefill.peptide.trim() !== '') || 
+                             (Array.isArray(prefill.peptides) && prefill.peptides.length > 0 && 
+                              prefill.peptides.some(p => p.name && p.name.trim() !== ''));
+      
+      // Only process prefill if it has a valid peptide name
+      // This prevents stale test data from prefilling the calculator
+      if (!hasValidPeptide) {
+        try { localStorage.removeItem('tpprover_recon_prefill') } catch {}
+        return;
+      }
+      
       // Wizard prefill (multi-peptide)
       if (prefill.peptides && prefill.peptides.length > 0) {
         const vendors = [...new Set(prefill.peptides.map(p => p.vendor).filter(Boolean))].join(', ');
@@ -73,10 +85,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             id: pep.id || index + 1, 
             doseUnit: pep.doseUnit || 'mcg',
             stockpileId: pep.stockpileId || null,
-            quantityUsed: pep.quantityUsed || 1
+            quantityUsed: pep.quantityUsed || 1,
+            // Only use dose if it's provided and valid, otherwise leave empty
+            dose: (pep.dose && pep.dose !== '251' && pep.dose !== 251) ? pep.dose : ''
           }))
         }));
-        setCost(String(totalCost));
+        // Only set cost if it's valid (not 0 or empty)
+        const costValue = totalCost > 0 ? String(totalCost) : '';
+        setCost(costValue);
       } 
       // Simple prefill (single peptide from stockpile page, etc.)
       else if (prefill.peptide) {
@@ -84,6 +100,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           id: 1, 
           name: prefill.peptide || '', 
           mg: prefill.mg || '', 
+          // Don't prefill dose - let user enter it
           dose: '', 
           doseUnit: 'mcg',
           stockpileId: prefill.stockpileId || null,
@@ -91,7 +108,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           costPerMg: prefill.costPerMg || '' // Include costPerMg if available
         };
         setForm(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
-        setCost(prefill.cost || '');
+        // Only set cost if it's valid (not 0 or empty)
+        const costValue = (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : '';
+        setCost(costValue);
       }
       // Handle formData prefill (from modal)
       else if (prefill.vendor !== undefined || prefill.water !== undefined || prefill.peptides) {
@@ -108,7 +127,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         if (prefill.deliveryMethod) setDeliveryMethod(prefill.deliveryMethod);
         if (prefill.administrationRoute) setAdministrationRoute(prefill.administrationRoute);
         if (prefill.penColor) setPenColor(prefill.penColor);
-        if (prefill.cost) setCost(prefill.cost);
+        // Only set cost if it's valid (not 0 or empty)
+        if (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) {
+          setCost(String(prefill.cost));
+        }
       }
 
       try { localStorage.removeItem('tpprover_recon_prefill') } catch {}
