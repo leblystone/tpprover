@@ -610,7 +610,6 @@ function Admin() {
   const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [respondingToFeedback, setRespondingToFeedback] = useState(null);
   const [responseText, setResponseText] = useState('');
-  const [sendAsAdminMessage, setSendAsAdminMessage] = useState(false);
   const [selectedFeedbackTypeFilter, setSelectedFeedbackTypeFilter] = useState('all');
   const [selectedFeedbackStatusFilter, setSelectedFeedbackStatusFilter] = useState('new');
   
@@ -1393,25 +1392,15 @@ function Admin() {
     try {
       setLoading(prev => ({ ...prev, submitting: true }));
       
-      if (sendAsAdminMessage) {
-        // Send as admin message (one-way message to user)
-        console.log('📨 Sending admin message:', { 
-          userEmail: feedbackItem.userEmail,
-          message: responseText.trim()
-        });
-        await createAdminMessage(feedbackItem.userEmail, responseText.trim(), ADMIN_PASSWORD);
-        
-        // Also mark feedback as reviewed
-        await updateFeedback(feedbackItem.id, { status: 'reviewed' });
-      } else {
-        // Send as feedback response (existing behavior)
-        console.log('📤 Sending response to feedback:', { 
-          id: feedbackItem.id, 
-          userEmail: feedbackItem.userEmail,
-          responseText: responseText.trim()
-        });
-        await respondToFeedback(feedbackItem.id, responseText.trim(), feedbackItem.userEmail);
-      }
+      // Always send as admin message (one-way message to user)
+      console.log('📨 Sending admin message:', { 
+        userEmail: feedbackItem.userEmail,
+        message: responseText.trim()
+      });
+      await createAdminMessage(feedbackItem.userEmail, responseText.trim(), ADMIN_PASSWORD);
+      
+      // Also mark feedback as reviewed
+      await updateFeedback(feedbackItem.id, { status: 'reviewed' });
       
       // Refresh feedback list to show updated status
       await loadFeedback();
@@ -1419,11 +1408,10 @@ function Admin() {
       // Reset response state
       setRespondingToFeedback(null);
       setResponseText('');
-      setSendAsAdminMessage(false);
       
       window.dispatchEvent(new CustomEvent('tpp:toast', { 
         detail: { 
-          message: sendAsAdminMessage ? 'Admin message sent! 📨' : 'Response sent!', 
+          message: 'Admin message sent! 📨', 
           type: 'success' 
         } 
       }));
@@ -3585,23 +3573,6 @@ function Admin() {
                                   rows="4"
                                   placeholder="Type your response to the user here..."
                                 />
-                                <div className="flex items-center gap-2 p-2 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.background + '50' }}>
-                                  <input
-                                    type="checkbox"
-                                    id={`admin-message-${item.id}`}
-                                    checked={sendAsAdminMessage}
-                                    onChange={(e) => setSendAsAdminMessage(e.target.checked)}
-                                    className="cursor-pointer"
-                                  />
-                                  <label 
-                                    htmlFor={`admin-message-${item.id}`}
-                                    className="text-xs cursor-pointer flex items-center gap-1"
-                                    style={{ color: theme.text }}
-                                  >
-                                    <Shield size={12} style={{ color: sendAsAdminMessage ? theme.primary : theme.textLight }} />
-                                    Send as Admin Message (one-way, shows as "From the Team🥼" chip)
-                                  </label>
-                                </div>
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => handleRespondToFeedback(item)}
@@ -3616,14 +3587,8 @@ function Admin() {
                                       </>
                                     ) : (
                                       <>
-                                        {sendAsAdminMessage ? (
-                                          <>
-                                            <Shield size={14} />
-                                            Send Admin Message
-                                          </>
-                                        ) : (
-                                          'Send Response'
-                                        )}
+                                        <Shield size={14} />
+                                        Send Admin Message
                                       </>
                                     )}
                                   </button>
@@ -3631,7 +3596,6 @@ function Admin() {
                                     onClick={() => {
                                       setRespondingToFeedback(null);
                                       setResponseText('');
-                                      setSendAsAdminMessage(false);
                                     }}
                                     className="px-4 py-2 rounded-lg text-sm font-semibold border"
                                     style={{ borderColor: theme.border, color: theme.text }}
