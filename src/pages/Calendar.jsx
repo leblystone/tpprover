@@ -369,10 +369,10 @@ export default function Calendar() {
               const cd = parseDateString(gb.closeDate)
               const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
               if (dOnly >= new Date(od.getFullYear(), od.getMonth(), od.getDate()) && dOnly <= new Date(cd.getFullYear(), cd.getMonth(), cd.getDate())) {
-                const label = gb.item || 'Group Buy'
+                // Store full group buy object instead of just label to preserve vendor and other details
                 next[key] = {
                   ...(next[key] || {}),
-                  groupBuys: [ ...(next[key]?.groupBuys || []), label ],
+                  groupBuys: [ ...(next[key]?.groupBuys || []), gb ],
                 }
               }
             }
@@ -771,7 +771,7 @@ export default function Calendar() {
                 }
               }
             }
-            // Scheduled Group Buys
+            // Scheduled Group Buys (duplicate check - already handled above, but keeping for compatibility)
             const dayBuys = contextScheduledBuys.filter(b => {
                 if (!b?.openDate || !b?.closeDate) return false;
                 const open = parseDateString(b.openDate);
@@ -780,7 +780,13 @@ export default function Calendar() {
                 return dOnly >= open && dOnly <= close;
             });
             if (dayBuys.length > 0) {
-                next[key] = { ...(next[key] || {}), groupBuys: [...(next[key]?.groupBuys || []), ...dayBuys.map(b => b.item)] };
+                // Store full group buy objects instead of just item names
+                const existingGroupBuys = next[key]?.groupBuys || [];
+                const existingIds = new Set(existingGroupBuys.map(gb => typeof gb === 'object' ? gb.id : null).filter(Boolean));
+                const newBuys = dayBuys.filter(b => !existingIds.has(b.id));
+                if (newBuys.length > 0) {
+                    next[key] = { ...(next[key] || {}), groupBuys: [...existingGroupBuys, ...newBuys] };
+                }
             }
           }
           // Group buys: mark any order with .group that falls on this month (for subtle count in month header)
@@ -789,7 +795,27 @@ export default function Calendar() {
             const od = parseDateString(o.date)
             if (od.getMonth() === currentDate.getMonth() && od.getFullYear() === currentDate.getFullYear()) {
               const key = toKey(od)
-              next[key] = { ...(next[key] || {}), groupBuys: [ ...(next[key]?.groupBuys || []), (o.group.title || 'Group Buy') ] }
+              // Store order object with group buy info to preserve vendor and other details
+              const groupBuyObj = {
+                item: (o.group && (o.group.title || o.group.name)) || o.peptide || o.item || 'Group Buy',
+                vendor: o.vendor || o.seller || o.source || '',
+                price: o.cost ?? o.price ?? o.amount ?? '',
+                openDate: o.date,
+                closeDate: o.date,
+                location: o.location,
+                participants: o.group?.participants,
+                notes: o.group?.notes || o.notes,
+                source: 'orders',
+                orderId: o.id
+              };
+              // Check if this group buy already exists (avoid duplicates)
+              const existingGroupBuys = next[key]?.groupBuys || [];
+              const isDuplicate = existingGroupBuys.some(gb => 
+                typeof gb === 'object' && gb.orderId === o.id
+              );
+              if (!isDuplicate) {
+                next[key] = { ...(next[key] || {}), groupBuys: [ ...existingGroupBuys, groupBuyObj ] };
+              }
             }
           }
           // Attach metrics if present for each day key

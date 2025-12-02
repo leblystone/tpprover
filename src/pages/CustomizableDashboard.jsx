@@ -1244,6 +1244,7 @@ export default function CustomizableDashboard() {
         open={showAddBuyModal}
         onClose={() => setShowAddBuyModal(false)}
         theme={theme}
+        buy={null}
         onSave={(buy) => {
           const newBuy = { 
             ...buy, 
@@ -1268,6 +1269,8 @@ export default function CustomizableDashboard() {
             // Save to localStorage immediately
             try {
               localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updated));
+              // Also set the protection timestamp
+              localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
             } catch (e) {
               console.error('Failed to save scheduled buys to localStorage:', e);
             }
@@ -1282,6 +1285,31 @@ export default function CustomizableDashboard() {
           
           setShowAddBuyModal(false);
           addToast(buy.id ? 'Scheduled buy updated' : 'Scheduled buy added', 'success');
+        }}
+        onDelete={(buyId) => {
+          // Delete the scheduled buy
+          setScheduledBuys(prev => {
+            const updated = prev.filter(b => b.id !== buyId);
+            
+            // Save to localStorage immediately
+            try {
+              localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updated));
+              // Set the protection timestamp
+              localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
+            } catch (e) {
+              console.error('Failed to save scheduled buys to localStorage:', e);
+            }
+            
+            // Dispatch event to trigger cloud sync protection
+            window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
+              detail: { scheduledBuys: updated }
+            }));
+            
+            return updated;
+          });
+          
+          setShowAddBuyModal(false);
+          addToast('Scheduled buy deleted', 'success');
         }}
       />
 

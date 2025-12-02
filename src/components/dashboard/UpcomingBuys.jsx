@@ -308,6 +308,8 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       });
       
       localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(scheduledBuys));
+      // Also set protection timestamp to prevent Firebase overwrite
+      localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
       
       // Update local list immediately - create a new array reference to force re-render
       // Map through to create new object references so React detects the change
@@ -403,6 +405,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         console.log('🔧 Force filtered, final count:', finalBuys.length);
         // Save the force-filtered version
         localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(finalBuys));
+        localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
         setLocalList(deduplicateById(finalBuys.map(b => ({ ...b }))));
         window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
           detail: { scheduledBuys: finalBuys }
@@ -411,6 +414,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         // Save to localStorage
         console.log('💾 Saving to localStorage, count:', updatedBuys.length);
         localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updatedBuys));
+        localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
         
         // Update local list immediately
         setLocalList(deduplicateById(updatedBuys.map(b => ({ ...b }))));
@@ -429,6 +433,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         // Force remove from localStorage one more time
         const corrected = verifySaved.filter(b => String(b.id) !== String(itemId));
         localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(corrected));
+        localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
         setLocalList(deduplicateById(corrected.map(b => ({ ...b }))));
         window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
           detail: { scheduledBuys: corrected }

@@ -1444,6 +1444,7 @@ export default function Dashboard() {
         open={showAddBuyModal}
         onClose={() => setShowAddBuyModal(false)}
         theme={theme}
+        buy={null}
         onSave={(buy) => {
             if (isReadOnly) {
                 setShowUpgradeModal(true);
@@ -1472,6 +1473,7 @@ export default function Dashboard() {
                 // Save to localStorage immediately
                 try {
                     localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updated));
+                    localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
                 } catch (e) {
                     console.error('Failed to save scheduled buys to localStorage:', e);
                 }
@@ -1522,6 +1524,32 @@ export default function Dashboard() {
                 });
             }
             
+            setShowAddBuyModal(false);
+        }}
+        onDelete={(buyId) => {
+            if (isReadOnly) {
+                setShowUpgradeModal(true);
+                return;
+            }
+            
+            setScheduledBuys(prev => {
+                const updated = prev.filter(b => b.id !== buyId);
+                
+                try {
+                    localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updated));
+                    localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
+                } catch (e) {
+                    console.error('Failed to save scheduled buys to localStorage:', e);
+                }
+                
+                window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
+                    detail: { scheduledBuys: updated }
+                }));
+                
+                return updated;
+            });
+            
+            setUpcomingBuys(prev => prev.filter(b => b.id !== buyId));
             setShowAddBuyModal(false);
         }}
       />
