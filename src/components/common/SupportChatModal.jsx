@@ -1,15 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader, Clock, User, ShieldCheck } from 'lucide-react';
+import { X, Send, Loader, Clock, User, ShieldCheck, XCircle, RotateCcw, Archive } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { reopenTicket } from '../../services/firebase';
 
-export default function SupportChatModal({ ticket, onClose, theme, onMarkRead }) {
+export default function SupportChatModal({ ticket: initialTicket, onClose, theme, onMarkRead, onTicketUpdate }) {
   const { user } = useAppContext();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reopening, setReopening] = useState(false);
+  const [ticketStatus, setTicketStatus] = useState(initialTicket?.status || 'new');
+  const [closedAt, setClosedAt] = useState(initialTicket?.closedAt || null);
   const messagesEndRef = useRef(null);
+
+  // Check if ticket is closed
+  const isClosed = ticketStatus === 'closed' || ticketStatus === 'resolved';
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -22,18 +29,38 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
 
   // Mark as read when modal opens (only once)
   useEffect(() => {
-    if (ticket?.id && onMarkRead) {
+    if (initialTicket?.id && onMarkRead) {
       // Mark ticket as read when modal is opened
       onMarkRead();
     }
-  }, [ticket?.id]); // Only run when ticket changes, not on every message update
+  }, [initialTicket?.id]); // Only run when ticket changes, not on every message update
+
+  // Listen to ticket status changes in real-time
+  useEffect(() => {
+    if (!initialTicket?.id) return;
+
+    const db = getFirestore();
+    const ticketRef = doc(db, 'supportTickets', initialTicket.id);
+
+    const unsubscribe = onSnapshot(ticketRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        setTicketStatus(data.status);
+        setClosedAt(data.closedAt);
+      }
+    }, (error) => {
+      console.error('❌ Error listening to ticket status:', error);
+    });
+
+    return () => unsubscribe();
+  }, [initialTicket?.id]);
 
   // Load messages in real-time
   useEffect(() => {
-    if (!ticket?.id) return;
+    if (!initialTicket?.id) return;
 
     const db = getFirestore();
-    const messagesRef = collection(db, 'supportTickets', ticket.id, 'messages');
+    const messagesRef = collection(db, 'supportTickets', initialTicket.id, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -49,15 +76,15 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
     });
 
     return () => unsubscribe();
-  }, [ticket?.id]);
+  }, [initialTicket?.id]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !ticket?.id || !user) return;
+    if (!newMessage.trim() || !initialTicket?.id || !user) return;
 
     setSending(true);
     try {
       const db = getFirestore();
-      const messagesRef = collection(db, 'supportTickets', ticket.id, 'messages');
+      const messagesRef = collection(db, 'supportTickets', initialTicket.id, 'messages');
 
       await addDoc(messagesRef, {
         message: newMessage.trim(),
@@ -81,6 +108,51 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
       }));
     } finally {
       setSending(false);
+    }
+  };
+
+  // Handle reopening the ticket
+  const handleReopenTicket = async () => {
+    if (!initialTicket?.id || !user) return;
+
+    setReopening(true);
+    try {
+      await reopenTicket(initialTicket.id);
+      
+      // Notify parent component if provided
+      if (onTicketUpdate) {
+        onTicketUpdate();
+      }
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Support request reopened! 🔓', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('❌ Error reopening ticket:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to reopen request. Please try again.', type: 'error' }
+      }));
+    } finally {
+      setReopening(false);
+    }
+  };
+
+  // Format the closed date/time
+  const formatClosedDate = () => {
+    if (!closedAt) return '';
+    
+    try {
+      const date = closedAt.toDate ? closedAt.toDate() : new Date(closedAt);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch {
+      return 'Recently';
     }
   };
 
@@ -173,48 +245,115 @@ export default function SupportChatModal({ ticket, onClose, theme, onMarkRead })
               );
             })
           )}
+
+          {/* Closed Ticket System Message */}
+          {isClosed && (
+            <div className="flex justify-center my-4">
+              <div
+                className="rounded-lg p-4 text-center max-w-md"
+                style={{
+                  backgroundColor: theme.error + '10',
+                  border: `1px dashed ${theme.error}40`
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <XCircle size={18} style={{ color: theme.error }} />
+                  <span className="font-semibold text-sm" style={{ color: theme.error }}>
+                    This support request has been closed
+                  </span>
+                </div>
+                {closedAt && (
+                  <p className="text-xs" style={{ color: theme.textLight }}>
+                    {formatClosedDate()}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
+        {/* Input / Closed State Footer */}
         <div 
           className="p-4 border-t"
           style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
         >
-          <div className="flex items-end gap-2">
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message... (Press Enter to send)"
-              rows={3}
-              className="flex-1 px-3 py-2 rounded-lg border text-sm resize-none"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-                color: theme.text
-              }}
-              disabled={sending}
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!newMessage.trim() || sending}
-              className="p-3 rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              style={{
-                backgroundColor: '#D2691E',
-                color: '#FFFFFF'
-              }}
-            >
-              {sending ? (
-                <Loader size={18} className="animate-spin" />
-              ) : (
-                <Send size={18} />
-              )}
-            </button>
-          </div>
-          <p className="text-xs mt-2" style={{ color: theme.textLight }}>
-            💡 You'll receive a notification when the admin responds
-          </p>
+          {isClosed ? (
+            /* Closed ticket footer */
+            <div className="space-y-3">
+              {/* Archive disclaimer */}
+              <div 
+                className="flex items-center gap-2 p-3 rounded-lg text-xs"
+                style={{ 
+                  backgroundColor: theme.textLight + '10',
+                  color: theme.textLight
+                }}
+              >
+                <Archive size={14} style={{ color: theme.textLight, flexShrink: 0 }} />
+                <span>
+                  This chat will be archived in your support requests in 24 hours.
+                </span>
+              </div>
+              
+              {/* Reopen button */}
+              <button
+                onClick={handleReopenTicket}
+                disabled={reopening}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: theme.primary,
+                  border: `1px solid ${theme.primary}40`
+                }}
+              >
+                {reopening ? (
+                  <Loader size={14} className="animate-spin" />
+                ) : (
+                  <RotateCcw size={14} />
+                )}
+                <span>Reopen support request</span>
+              </button>
+            </div>
+          ) : (
+            /* Active ticket input */
+            <>
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your message... (Press Enter to send)"
+                  rows={3}
+                  className="flex-1 px-3 py-2 rounded-lg border text-sm resize-none"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  disabled={sending}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || sending}
+                  className="p-3 rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  style={{
+                    backgroundColor: '#D2691E',
+                    color: '#FFFFFF'
+                  }}
+                >
+                  {sending ? (
+                    <Loader size={18} className="animate-spin" />
+                  ) : (
+                    <Send size={18} />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs mt-2" style={{ color: theme.textLight }}>
+                💡 You'll receive a notification when the admin responds
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

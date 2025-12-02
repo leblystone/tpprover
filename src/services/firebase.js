@@ -1341,6 +1341,30 @@ export async function markTicketAsRead(ticketId) {
   }
 }
 
+/**
+ * Reopen a closed support ticket (user action)
+ * @param {string} ticketId - The ticket ID to reopen
+ * @returns {Promise<void>}
+ */
+export async function reopenTicket(ticketId) {
+  try {
+    const functions = getFunctions();
+    const reopen = httpsCallable(functions, 'reopenTicket');
+    
+    const result = await reopen({ ticketId });
+    
+    if (!result.data.success) {
+      throw new Error(result.data.message || 'Failed to reopen ticket');
+    }
+    
+    console.log('🔓 Ticket reopened successfully:', ticketId);
+    return result.data;
+  } catch (error) {
+    console.error('❌ Failed to reopen ticket:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // ADMIN MESSAGES (ONE-WAY MESSAGES FROM ADMIN TO USERS)
 // ============================================================================

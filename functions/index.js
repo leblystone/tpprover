@@ -1924,6 +1924,71 @@ exports.updateTicketStatus = onCall(
   }
 );
 
+// Reopen a closed ticket (user action)
+exports.reopenTicket = onCall(
+  {
+    cors: true
+  },
+  async (request) => {
+    const { ticketId } = request.data;
+
+    if (!ticketId) {
+      throw new Error('Ticket ID is required');
+    }
+
+    // Ensure user is authenticated
+    if (!request.auth) {
+      throw new Error('Authentication required');
+    }
+
+    logger.info(`🔓 User reopening ticket: ${ticketId}`);
+
+    try {
+      const db = admin.firestore();
+      const FieldValue = admin.firestore.FieldValue;
+
+      const ticketRef = db.collection('supportTickets').doc(ticketId);
+      const ticketDoc = await ticketRef.get();
+
+      if (!ticketDoc.exists) {
+        throw new Error('Ticket not found');
+      }
+
+      const ticketData = ticketDoc.data();
+
+      // Verify the user owns this ticket
+      if (ticketData.userEmail !== request.auth.token.email && 
+          ticketData.userId !== request.auth.uid) {
+        throw new Error('Not authorized to reopen this ticket');
+      }
+
+      // Only allow reopening closed/resolved tickets
+      if (ticketData.status !== 'closed' && ticketData.status !== 'resolved') {
+        throw new Error('Only closed tickets can be reopened');
+      }
+
+      // Reopen the ticket by setting status to 'in-progress' and clearing closed fields
+      await ticketRef.update({
+        status: 'in-progress',
+        closedAt: null,
+        userReadAt: null,
+        updatedAt: FieldValue.serverTimestamp(),
+        reopenedAt: FieldValue.serverTimestamp(),
+        reopenedBy: request.auth.token.email || request.auth.uid
+      });
+
+      logger.info(`✅ Ticket reopened successfully: ${ticketId}`);
+      return { 
+        success: true, 
+        message: 'Ticket reopened successfully' 
+      };
+    } catch (error) {
+      logger.error(`❌ Error reopening ticket: ${error.message}`);
+      throw new Error(error.message || 'Failed to reopen ticket');
+    }
+  }
+);
+
 // Mark ticket as read by user
 exports.markTicketAsRead = onCall(
   {
