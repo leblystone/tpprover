@@ -932,21 +932,52 @@ exports.sendCustomAnnouncementEmail = async (userEmail, userName = null) => {
  * Send account deletion email
  */
 exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
+  // Temporarily bypass Firestore template to ensure correct account deletion email is sent
+  // TODO: Once Firestore template is updated, re-enable template loading with validation
+  logger.info('📧 Using account deletion confirmation template');
+  
+  const subject = 'Account Deletion Confirmation - The Pep Planner';
+  const defaultTemplate = {
+    heading: 'Your Account Has Been Deleted',
+    greeting: `Hi ${userName || 'User'},`,
+    mainMessage: `Your account associated with ${userEmail} has been permanently deleted. All your research data, protocols, and account information have been removed from our system.`,
+    ctaText: '',
+    ctaLink: '',
+    highlightTitle: '⚠️ Important Information',
+    highlightMessage: 'This action cannot be undone. If you would like to use The Pep Planner again in the future, you will need to create a new account.',
+    features: []
+  };
+  const html = generateEmailHTML(defaultTemplate, { userName: userName || 'User', userEmail });
+  return sendEmail(userEmail, subject, html);
+  
+  /* Original code with Firestore loading - commented out temporarily
   try {
     const customTemplate = await loadEmailTemplate('accountDeletion');
     if (customTemplate) {
-      const subject = customTemplate.subject || 'Account Deletion Request - The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { userName, userEmail });
-      return sendEmail(userEmail, subject, html);
+      // Validate template to ensure it's not the old lifetime access template
+      const templateText = JSON.stringify(customTemplate).toLowerCase();
+      const isOldTemplate = customTemplate.html && customTemplate.html.toLowerCase().includes('lifetime access') ||
+        customTemplate.heading && (
+          customTemplate.heading.toLowerCase().includes('lifetime') ||
+          customTemplate.heading.toLowerCase().includes('access granted')
+        ) ||
+        (customTemplate.mainMessage && customTemplate.mainMessage.toLowerCase().includes('lifetime access')) ||
+        templateText.includes('lifetime access granted');
+      
+      if (!isOldTemplate && customTemplate.heading && customTemplate.heading.toLowerCase().includes('deleted')) {
+        logger.info('✅ Using account deletion template from Firestore');
+        const subject = customTemplate.subject || 'Account Deletion Confirmation - The Pep Planner';
+        const html = generateEmailHTML(customTemplate, { userName, userEmail });
+        return sendEmail(userEmail, subject, html);
+      } else {
+        logger.warn('⚠️ Found old or invalid template in Firestore, using updated fallback template instead');
+        logger.warn('⚠️ Template heading:', customTemplate.heading);
+      }
     }
   } catch (error) {
     logger.warn('Failed to load account deletion template, using default:', error);
   }
-  
-  // Fallback to hardcoded template
-  const subject = 'Account Deletion Request - The Pep Planner';
-  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User'); // Reuse structure
-  return sendEmail(userEmail, subject, html);
+  */
 };
 
 /**

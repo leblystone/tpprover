@@ -11,6 +11,10 @@ export default function SingleMessageSender({ theme }) {
   const [isSending, setIsSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isTesting, setIsTesting] = useState(false);
+  const [useCustomEmail, setUseCustomEmail] = useState(false);
+  const [customEmail, setCustomEmail] = useState('');
+  const [customName, setCustomName] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -38,15 +42,43 @@ export default function SingleMessageSender({ theme }) {
     return email.includes(term) || name.includes(term);
   });
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const sendMessage = async () => {
-    if (!selectedUser) {
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: '⚠️ Please select a user first', type: 'warning' }
-      }));
-      return;
+    let targetEmail, targetName;
+
+    if (useCustomEmail) {
+      if (!customEmail.trim()) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '⚠️ Please enter an email address', type: 'warning' }
+        }));
+        return;
+      }
+
+      if (!validateEmail(customEmail.trim())) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '⚠️ Please enter a valid email address', type: 'warning' }
+        }));
+        return;
+      }
+
+      targetEmail = customEmail.trim();
+      targetName = customName.trim() || customEmail.split('@')[0];
+    } else {
+      if (!selectedUser) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '⚠️ Please select a user or enter a custom email', type: 'warning' }
+        }));
+        return;
+      }
+      targetEmail = selectedUser.email;
+      targetName = selectedUser.displayName || selectedUser.email.split('@')[0];
     }
 
-    if (!confirm(`Are you sure you want to send a ${getMessageTypeLabel(messageType)} email to ${selectedUser.email}?`)) {
+    if (!confirm(`Are you sure you want to send a ${getMessageTypeLabel(messageType)} email to ${targetEmail}?`)) {
       return;
     }
 
@@ -72,22 +104,24 @@ export default function SingleMessageSender({ theme }) {
       }
 
       const result = await sendFunction({
-        userEmail: selectedUser.email,
-        userName: selectedUser.displayName || selectedUser.email.split('@')[0],
+        userEmail: targetEmail,
+        userName: targetName,
         inviteLink: messageType === 'inviteEmail' ? 'https://thepepplanner.app/signup' : undefined
       });
 
       if (result.data.success) {
         setSendResult({ 
           success: true, 
-          message: `✅ ${getMessageTypeLabel(messageType)} email sent successfully to ${selectedUser.email}!` 
+          message: `✅ ${getMessageTypeLabel(messageType)} email sent successfully to ${targetEmail}!` 
         });
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: `✅ Email sent to ${selectedUser.email}`, type: 'success' }
+          detail: { message: `✅ Email sent to ${targetEmail}`, type: 'success' }
         }));
         // Clear selection after successful send
         setTimeout(() => {
           setSelectedUser(null);
+          setCustomEmail('');
+          setCustomName('');
           setSendResult(null);
         }, 3000);
       } else {
@@ -136,6 +170,47 @@ export default function SingleMessageSender({ theme }) {
     }
   };
 
+  const sendTestEmail = async () => {
+    setIsTesting(true);
+    setSendResult(null);
+
+    try {
+      const functions = getFunctions();
+      const sendFunction = httpsCallable(functions, 'sendAccountDeletionEmail');
+
+      const result = await sendFunction({
+        userEmail: 'thepepplanner@gmail.com',
+        userName: 'Test User'
+      });
+
+      if (result.data.success) {
+        setSendResult({ 
+          success: true, 
+          message: '✅ Test account deletion email sent successfully to thepepplanner@gmail.com!' 
+        });
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '✅ Test email sent to thepepplanner@gmail.com', type: 'success' }
+        }));
+      } else {
+        setSendResult({ 
+          success: false, 
+          message: result.data.message || 'Failed to send test email' 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      setSendResult({ 
+        success: false, 
+        message: `Error: ${error.message}` 
+      });
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `❌ Failed to send test email: ${error.message}`, type: 'error' }
+      }));
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -148,6 +223,24 @@ export default function SingleMessageSender({ theme }) {
             Send individual messages to users: account deletion, in-depth requests, or invites
           </p>
         </div>
+        <button
+          onClick={sendTestEmail}
+          disabled={isTesting || isSending}
+          className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+          style={{ backgroundColor: theme.secondary, color: theme.text }}
+        >
+          {isTesting ? (
+            <>
+              <Loader size={16} className="animate-spin" />
+              Sending Test...
+            </>
+          ) : (
+            <>
+              <Mail size={16} />
+              Test Account Deletion Email
+            </>
+          )}
+        </button>
       </div>
 
       {/* Message Type Selector */}
@@ -198,90 +291,160 @@ export default function SingleMessageSender({ theme }) {
         </div>
       </div>
 
-      {/* User Search and Selection */}
+      {/* Recipient Selection */}
       <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <label className="block text-sm font-semibold mb-3" style={{ color: theme.text }}>
-          Select User
-        </label>
-        
-        {/* Search Input */}
-        <div className="relative mb-4">
-          <Search 
-            size={18} 
-            className="absolute left-3 top-1/2 transform -translate-y-1/2" 
-            style={{ color: theme.textLight }} 
-          />
-          <input
-            type="text"
-            placeholder="Search by email or name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+        <div className="flex items-center justify-between mb-3">
+          <label className="block text-sm font-semibold" style={{ color: theme.text }}>
+            Recipient
+          </label>
+          <button
+            onClick={() => {
+              setUseCustomEmail(!useCustomEmail);
+              setSelectedUser(null);
+              setCustomEmail('');
+              setCustomName('');
+              setSendResult(null);
+            }}
+            className="text-xs px-3 py-1 rounded-lg border transition-all hover:opacity-90"
             style={{
               borderColor: theme.border,
-              backgroundColor: theme.background,
-              color: theme.text,
-              focusRingColor: theme.primary
+              backgroundColor: useCustomEmail ? theme.primary + '20' : theme.background,
+              color: useCustomEmail ? theme.primary : theme.text
             }}
-          />
+          >
+            {useCustomEmail ? 'Switch to User List' : 'Enter Custom Email'}
+          </button>
         </div>
 
-        {/* User List */}
-        {loading ? (
-          <div className="text-center py-8">
-            <Loader size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
-            <p className="text-sm mt-2" style={{ color: theme.textLight }}>Loading users...</p>
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm" style={{ color: theme.textLight }}>
-              {searchTerm ? 'No users found matching your search' : 'No users available'}
-            </p>
+        {useCustomEmail ? (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
+                Email Address *
+              </label>
+              <input
+                type="email"
+                placeholder="user@example.com"
+                value={customEmail}
+                onChange={(e) => setCustomEmail(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
+                Name (optional)
+              </label>
+              <input
+                type="text"
+                placeholder="User's name"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+              />
+            </div>
+            {customEmail && (
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                Will send to: <strong style={{ color: theme.text }}>{customEmail}</strong>
+              </p>
+            )}
           </div>
         ) : (
-          <div className="max-h-64 overflow-y-auto space-y-2">
-            {filteredUsers.map((user) => {
-              const isSelected = selectedUser?.uid === user.uid;
-              return (
-                <button
-                  key={user.uid}
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setSendResult(null);
-                  }}
-                  className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                    isSelected ? 'ring-2' : 'hover:opacity-90'
-                  }`}
-                  style={{
-                    borderColor: isSelected ? theme.primary : theme.border,
-                    backgroundColor: isSelected ? theme.primary + '10' : theme.background,
-                    ringColor: theme.primary
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                      {user.photoURL ? (
-                        <img src={user.photoURL} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <User size={20} style={{ color: theme.textLight }} />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm" style={{ color: theme.text }}>
-                        {user.displayName || 'No Name'}
+          <>
+            {/* Search Input */}
+            <div className="relative mb-4">
+              <Search 
+                size={18} 
+                className="absolute left-3 top-1/2 transform -translate-y-1/2" 
+                style={{ color: theme.textLight }} 
+              />
+              <input
+                type="text"
+                placeholder="Search by email or name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+              />
+            </div>
+
+            {/* User List */}
+            {loading ? (
+              <div className="text-center py-8">
+                <Loader size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+                <p className="text-sm mt-2" style={{ color: theme.textLight }}>Loading users...</p>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm" style={{ color: theme.textLight }}>
+                  {searchTerm ? 'No users found matching your search' : 'No users available'}
+                </p>
+                <p className="text-xs mt-2" style={{ color: theme.textLight }}>
+                  Use "Enter Custom Email" to send to any email address
+                </p>
+              </div>
+            ) : (
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {filteredUsers.map((user) => {
+                  const isSelected = selectedUser?.uid === user.uid;
+                  return (
+                    <button
+                      key={user.uid}
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setSendResult(null);
+                      }}
+                      className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
+                        isSelected ? 'ring-2' : 'hover:opacity-90'
+                      }`}
+                      style={{
+                        borderColor: isSelected ? theme.primary : theme.border,
+                        backgroundColor: isSelected ? theme.primary + '10' : theme.background,
+                        ringColor: theme.primary
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                          {user.photoURL ? (
+                            <img src={user.photoURL} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <User size={20} style={{ color: theme.textLight }} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm" style={{ color: theme.text }}>
+                            {user.displayName || 'No Name'}
+                          </div>
+                          <div className="text-xs truncate" style={{ color: theme.textLight }}>
+                            {user.email}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle size={18} style={{ color: theme.primary }} />
+                        )}
                       </div>
-                      <div className="text-xs truncate" style={{ color: theme.textLight }}>
-                        {user.email}
-                      </div>
-                    </div>
-                    {isSelected && (
-                      <CheckCircle size={18} style={{ color: theme.primary }} />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -289,7 +452,7 @@ export default function SingleMessageSender({ theme }) {
       <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <button
           onClick={sendMessage}
-          disabled={!selectedUser || isSending}
+          disabled={(!selectedUser && !useCustomEmail) || (useCustomEmail && !customEmail.trim()) || isSending}
           className="w-full px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ 
             backgroundColor: theme.primary,
@@ -310,7 +473,7 @@ export default function SingleMessageSender({ theme }) {
           )}
         </button>
 
-        {selectedUser && (
+        {selectedUser && !useCustomEmail && (
           <p className="text-xs mt-3 text-center" style={{ color: theme.textLight }}>
             Will send to: <strong style={{ color: theme.text }}>{selectedUser.email}</strong>
           </p>
