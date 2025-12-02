@@ -482,7 +482,13 @@ export function AppProvider({ children }) {
                             setVendors(cloudAppData.vendors);
                         }
                         
-                        if (localScheduledBuys) {
+                        // Check protection window before merging scheduledBuys
+                        const timeSinceScheduledBuysUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
+                        if (timeSinceScheduledBuysUpdate < 15000 && localScheduledBuys) {
+                            // In protection window - prefer local data, skip merge
+                            console.log('🔒 Initial load: Using local scheduledBuys (in protection window)');
+                            setScheduledBuys(JSON.parse(localScheduledBuys));
+                        } else if (localScheduledBuys) {
                             setScheduledBuys(mergeWithTimestamps(
                                 JSON.parse(localScheduledBuys),
                                 cloudAppData.scheduledBuys || [],
@@ -1990,8 +1996,14 @@ export function AppProvider({ children }) {
                                     setStockpile(filtered);
                                 }
                                 if (freshData.scheduledBuys) {
-                                    const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
-                                    setScheduledBuys(filtered);
+                                    // Check protection window before applying
+                                    const timeSinceUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
+                                    if (timeSinceUpdate >= 15000) {
+                                        const filtered = freshData.scheduledBuys.filter(buy => !buy.isMock);
+                                        setScheduledBuys(filtered);
+                                    } else {
+                                        console.log('🔒 Skipping scheduledBuys update from sample data clear - in protection window');
+                                    }
                                 }
                             }
                             
@@ -2089,10 +2101,16 @@ export function AppProvider({ children }) {
                                 setStockpile(filtered);
                             }
                             if (freshData.scheduledBuys) {
-                                const filtered = sampleDataCleared 
-                                    ? freshData.scheduledBuys.filter(buy => !buy.isMock)
-                                    : freshData.scheduledBuys;
-                setScheduledBuys(filtered);
+                                // Check protection window before applying
+                                const timeSinceUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
+                                if (timeSinceUpdate >= 15000) {
+                                    const filtered = sampleDataCleared 
+                                        ? freshData.scheduledBuys.filter(buy => !buy.isMock)
+                                        : freshData.scheduledBuys;
+                                    setScheduledBuys(filtered);
+                                } else {
+                                    console.log('🔒 Skipping scheduledBuys from remote update - in protection window');
+                                }
                             }
             }
             

@@ -64,7 +64,7 @@ export default function Imports() {
       try {
         const raw = localStorage.getItem('tpprover_calendar_notes')
         const obj = raw ? JSON.parse(raw) : {}
-        const dateKey = imp.date || new Date().toISOString().slice(0,10)
+        const dateKey = imp.date || getLocalDateString()
         obj[dateKey] = (obj[dateKey] ? obj[dateKey] + ' ' : '') + (imp.notes || '')
         localStorage.setItem('tpprover_calendar_notes', JSON.stringify(obj))
       } catch {}

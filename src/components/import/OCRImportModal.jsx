@@ -1,6 +1,7 @@
  import React, { useMemo, useState } from 'react'
  import Modal from '../common/Modal'
  import { generateId } from '../../utils/string'
+ import { getLocalDateString } from '../../utils/date'
 
 export default function OCRImportModal({ open, onClose, theme, onImport }) {
   const [file, setFile] = useState(null)
@@ -20,14 +21,14 @@ export default function OCRImportModal({ open, onClose, theme, onImport }) {
     } else {
       // Stub: image/PDF OCR not implemented yet
       setText('')
-      setParsed({ date: new Date().toISOString().slice(0,10), tasks: [], notes: 'OCR not implemented yet. Please upload a .txt for demo.' })
+      setParsed({ date: getLocalDateString(), tasks: [], notes: 'OCR not implemented yet. Please upload a .txt for demo.' })
     }
   }
 
   const parseText = (t) => {
     // Enhanced parser that tries to detect different data types
     const lines = t.split(/\r?\n/).filter(line => line.trim())
-    let date = new Date().toISOString().slice(0,10)
+    let date = getLocalDateString()
     const tasks = []
     const notes = []
     const potentialOrders = []
