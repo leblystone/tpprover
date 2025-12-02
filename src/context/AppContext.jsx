@@ -138,11 +138,15 @@ export function AppProvider({ children }) {
                 console.log('📥 AppContext received scheduledBuys update event');
                 console.log('📦 Data received:', JSON.parse(JSON.stringify(event.detail.scheduledBuys)));
                 
+                // CRITICAL: Mark that a local update just happened to prevent Firebase from overwriting
+                lastLocalScheduledBuysUpdateRef.current = Date.now();
+                
                 // Ensure we're setting the complete data
                 const newScheduledBuys = event.detail.scheduledBuys.map(buy => ({...buy}));
                 setScheduledBuys(newScheduledBuys);
                 
                 console.log('✅ AppContext state updated with scheduledBuys');
+                console.log('🔒 Firebase overwrite protection active for 5 seconds');
             }
         };
         

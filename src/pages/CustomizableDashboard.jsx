@@ -1247,13 +1247,41 @@ export default function CustomizableDashboard() {
         onSave={(buy) => {
           const newBuy = { 
             ...buy, 
-            id: Date.now(),
+            id: buy.id || Date.now(),
             name: buy.item, // Map item to name for display
-            peptideName: buy.item // Also set peptideName for backward compatibility
+            peptideName: buy.item, // Also set peptideName for backward compatibility
+            createdAt: new Date().toISOString()
           };
-          setScheduledBuys(prev => [...prev, newBuy]);
+          
+          // Update state
+          setScheduledBuys(prev => {
+            const isEdit = buy.id && prev.some(b => b.id === buy.id);
+            let updated;
+            if (isEdit) {
+              // Update existing buy
+              updated = prev.map(b => b.id === buy.id ? { ...b, ...newBuy, updatedAt: new Date().toISOString() } : b);
+            } else {
+              // Add new buy
+              updated = [...prev, newBuy];
+            }
+            
+            // Save to localStorage immediately
+            try {
+              localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updated));
+            } catch (e) {
+              console.error('Failed to save scheduled buys to localStorage:', e);
+            }
+            
+            // Dispatch event to trigger cloud sync protection
+            window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
+              detail: { scheduledBuys: updated }
+            }));
+            
+            return updated;
+          });
+          
           setShowAddBuyModal(false);
-          addToast('Scheduled buy added', 'success');
+          addToast(buy.id ? 'Scheduled buy updated' : 'Scheduled buy added', 'success');
         }}
       />
 

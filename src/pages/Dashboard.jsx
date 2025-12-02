@@ -1450,32 +1450,76 @@ export default function Dashboard() {
                 return;
             }
             
-            const now = new Date().toISOString();
+            const timestamp = new Date().toISOString();
             const newBuy = { 
                 ...buy, 
-                id: generateId(), 
-                createdAt: now, 
-                updatedAt: now 
+                id: buy.id || generateId(), 
+                createdAt: buy.createdAt || timestamp, 
+                updatedAt: timestamp,
+                name: buy.item,
+                peptideName: buy.item
             };
-            setScheduledBuys(prev => [...prev, newBuy]);
+            
+            setScheduledBuys(prev => {
+                const isEdit = buy.id && prev.some(b => b.id === buy.id);
+                let updated;
+                if (isEdit) {
+                    updated = prev.map(b => b.id === buy.id ? { ...b, ...newBuy } : b);
+                } else {
+                    updated = [...prev, newBuy];
+                }
+                
+                // Save to localStorage immediately
+                try {
+                    localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updated));
+                } catch (e) {
+                    console.error('Failed to save scheduled buys to localStorage:', e);
+                }
+                
+                // Dispatch event to trigger cloud sync protection
+                window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
+                    detail: { scheduledBuys: updated }
+                }));
+                
+                return updated;
+            });
             
             // Update local upcomingBuys state immediately
-            const now = new Date();
-            if (new Date(newBuy.openDate) >= now || (new Date(newBuy.closeDate) >= now && new Date(newBuy.openDate) <= now)) {
-                setUpcomingBuys(prev => [...prev, {
-                    id: newBuy.id,
-                    name: newBuy.item,
-                    peptideName: newBuy.item, // Keep backward compatibility
-                    date: newBuy.openDate,
-                    vendor: newBuy.vendor,
-                    location: newBuy.location,
-                    participants: newBuy.participants,
-                    price: newBuy.price,
-                    openDate: newBuy.openDate,
-                    closeDate: newBuy.closeDate,
-                    description: newBuy.notes,
-                    notes: newBuy.notes // Keep backward compatibility
-                }]);
+            const currentDate = new Date();
+            if (new Date(newBuy.openDate) >= currentDate || (new Date(newBuy.closeDate) >= currentDate && new Date(newBuy.openDate) <= currentDate)) {
+                setUpcomingBuys(prev => {
+                    const isEdit = buy.id && prev.some(b => b.id === buy.id);
+                    if (isEdit) {
+                        return prev.map(b => b.id === buy.id ? {
+                            id: newBuy.id,
+                            name: newBuy.item,
+                            peptideName: newBuy.item,
+                            date: newBuy.openDate,
+                            vendor: newBuy.vendor,
+                            location: newBuy.location,
+                            participants: newBuy.participants,
+                            price: newBuy.price,
+                            openDate: newBuy.openDate,
+                            closeDate: newBuy.closeDate,
+                            description: newBuy.notes,
+                            notes: newBuy.notes
+                        } : b);
+                    }
+                    return [...prev, {
+                        id: newBuy.id,
+                        name: newBuy.item,
+                        peptideName: newBuy.item,
+                        date: newBuy.openDate,
+                        vendor: newBuy.vendor,
+                        location: newBuy.location,
+                        participants: newBuy.participants,
+                        price: newBuy.price,
+                        openDate: newBuy.openDate,
+                        closeDate: newBuy.closeDate,
+                        description: newBuy.notes,
+                        notes: newBuy.notes
+                    }];
+                });
             }
             
             setShowAddBuyModal(false);
