@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader, Clock, User, ShieldCheck, XCircle, RotateCcw, Archive } from 'lucide-react';
+import { X, Send, Loader, Clock, User, ShieldCheck, RotateCcw, Archive } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { reopenTicket } from '../../services/firebase';
@@ -246,28 +246,16 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
             })
           )}
 
-          {/* Closed Ticket System Message */}
+          {/* Closed Ticket - Minimal Page Break Style */}
           {isClosed && (
-            <div className="flex justify-center my-4">
-              <div
-                className="rounded-lg p-4 text-center max-w-md"
-                style={{
-                  backgroundColor: theme.error + '10',
-                  border: `1px dashed ${theme.error}40`
-                }}
-              >
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <XCircle size={18} style={{ color: theme.error }} />
-                  <span className="font-semibold text-sm" style={{ color: theme.error }}>
-                    This support request has been closed
-                  </span>
-                </div>
-                {closedAt && (
-                  <p className="text-xs" style={{ color: theme.textLight }}>
-                    {formatClosedDate()}
-                  </p>
-                )}
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+              <div className="flex items-center gap-2 px-3 py-1">
+                <span className="text-xs" style={{ color: theme.textLight }}>
+                  Closed {closedAt ? `· ${formatClosedDate()}` : ''}
+                </span>
               </div>
+              <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
             </div>
           )}
           
