@@ -43,37 +43,6 @@ if (typeof window !== 'undefined') {
     // Prevent default handling that could crash the renderer
     event.preventDefault();
   });
-  
-  // Monitor for excessive main thread blocking
-  let frameCount = 0;
-  let lastFrameTime = performance.now();
-  
-  const checkFrameRate = () => {
-    const now = performance.now();
-    const delta = now - lastFrameTime;
-    lastFrameTime = now;
-    
-    // If frame took more than 100ms, it's blocking the main thread
-    if (delta > 100) {
-      console.warn(`⚠️ Main thread blocking detected: ${delta.toFixed(2)}ms frame time`);
-    }
-    
-    frameCount++;
-    if (frameCount < 60) {
-      requestAnimationFrame(checkFrameRate);
-    } else {
-      frameCount = 0;
-      // Check again after a delay
-      setTimeout(() => {
-        requestAnimationFrame(checkFrameRate);
-      }, 1000);
-    }
-  };
-  
-  // Start monitoring after initial load
-  setTimeout(() => {
-    requestAnimationFrame(checkFrameRate);
-  }, 2000);
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
