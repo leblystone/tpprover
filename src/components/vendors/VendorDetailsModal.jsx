@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { Lock, Building2, Phone, CreditCard, FileText, History, X, Wallet, Coins, DollarSign, Smartphone, Banknote, CheckCircle, BadgeCheck, Truck, PackagePlus, Beaker, Pill, Droplet, TrendingUp, AlertCircle, Clock, PackageX, AlertTriangle, UserX, Ban, Ship, Amphora, Turtle, Rabbit, CircleGauge, EggOff } from 'lucide-react'
-import { SiZelle, SiCashapp } from 'react-icons/si'
+import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
+
+// Venmo icon wrapper - passes through size directly
+const VenmoIcon = ({ size = 18, style, className }) => {
+    return <SiVenmo size={size} style={style} className={className} />;
+}
 import { FaPaypal, FaAlipay } from 'react-icons/fa6'
 import Modal from '../common/Modal'
+
 import TextInput from '../common/inputs/TextInput'
 import { formatMMDDYYYY } from '../../utils/date'
 import useAutoSave from '../../utils/useAutoSave'
@@ -482,7 +488,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               { name: 'Crypto', key: 'crypto', icon: Coins },
               { name: 'PayPal', key: 'paypal', icon: FaPaypal },
               { name: 'Wire', key: 'wire', icon: Banknote },
-              { name: 'Venmo', key: 'venmo', icon: FaPaypal },
+              { name: 'Venmo', key: 'venmo', icon: VenmoIcon },
               { name: 'CashApp', key: 'cashapp', icon: SiCashapp },
               { name: 'AliPay', key: 'alipay', icon: FaAlipay }
             ].map(payment => {
@@ -515,7 +521,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                     }
                   }}
                 >
-                  <Icon size={18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
+                  <Icon size={payment.key === 'venmo' ? 24 : 18} style={{ marginBottom: '2px', position: 'relative', zIndex: 1 }} />
                   <span className="text-xs font-medium text-center leading-tight" style={{ position: 'relative', zIndex: 1 }}>{payment.name}</span>
                 </button>
               )

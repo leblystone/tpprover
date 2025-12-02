@@ -85,31 +85,41 @@ function getWindows(p) {
                   } else if (fullCycles > 0) {
                       totalDays -= offDays;
                   }
-                  endDt = new Date(startDt);
-                  endDt.setDate(endDt.getDate() + totalDays - 1);
+                  if (startDt) {
+                    endDt = new Date(startDt);
+                    endDt.setDate(endDt.getDate() + totalDays - 1);
+                  }
               }
           } else {
             // Fallback for non-cycle protocols
-            endDt = new Date(startDt);
-            const unit = String(p.duration.unit || 'week').toLowerCase();
-            const count = Number(p.duration.count) || 0;
-            if (unit.includes('day')) endDt.setDate(endDt.getDate() + count - 1);
-            else if (unit.includes('week')) endDt.setDate(endDt.getDate() + (count * 7) - 1);
-            else if (unit.includes('month')) { endDt.setMonth(endDt.getMonth() + count); endDt.setDate(endDt.getDate() - 1); }
+            if (startDt) {
+              endDt = new Date(startDt);
+              const unit = String(p.duration.unit || 'week').toLowerCase();
+              const count = Number(p.duration.count) || 0;
+              if (unit.includes('day')) endDt.setDate(endDt.getDate() + count - 1);
+              else if (unit.includes('week')) endDt.setDate(endDt.getDate() + (count * 7) - 1);
+              else if (unit.includes('month')) { endDt.setMonth(endDt.getMonth() + count); endDt.setDate(endDt.getDate() - 1); }
+            }
           }
       }
 
       let washStart = null, washEnd = null
       if (p.washout?.enabled && endDt) {
-        washStart = new Date(endDt.getFullYear(), endDt.getMonth(), endDt.getDate() + 1)
-        washEnd = new Date(washStart)
-        const wUnit = String(p.washout.unit || 'week').toLowerCase()
-        const wCount = Number(p.washout.count) || 0
-        if (wCount > 0) {
-          if (wUnit === 'day') washEnd.setDate(washEnd.getDate() + wCount - 1)
-          else if (wUnit === 'week') washEnd.setDate(washEnd.getDate() + (wCount * 7) - 1)
-          else if (wUnit === 'month') { washEnd.setMonth(washEnd.getMonth() + wCount); washEnd.setDate(washEnd.getDate() - 1) }
-        } else { washStart = null; washEnd = null }
+        try {
+          washStart = new Date(endDt.getFullYear(), endDt.getMonth(), endDt.getDate() + 1)
+          washEnd = new Date(washStart)
+          const wUnit = String(p.washout.unit || 'week').toLowerCase()
+          const wCount = Number(p.washout.count) || 0
+          if (wCount > 0) {
+            if (wUnit === 'day') washEnd.setDate(washEnd.getDate() + wCount - 1)
+            else if (wUnit === 'week') washEnd.setDate(washEnd.getDate() + (wCount * 7) - 1)
+            else if (wUnit === 'month') { washEnd.setMonth(washEnd.getMonth() + wCount); washEnd.setDate(washEnd.getDate() - 1) }
+          } else { washStart = null; washEnd = null }
+        } catch (e) {
+          // If endDt is invalid, skip washout calculation
+          washStart = null;
+          washEnd = null;
+        }
       }
       return { start: startDt, end: endDt, washStart, washEnd }
     } catch { return { start: null, end: null, washStart: null, washEnd: null } }
@@ -207,6 +217,20 @@ export default function Calendar() {
   // Define loadData function outside useEffect so it can be referenced elsewhere
   const loadData = React.useCallback(() => {
         try {
+          // Debug logging for Android builds - log data availability
+          const dataCheck = {
+            protocols: protocols?.length || 0,
+            supplements: supplements?.length || 0,
+            reconItems: reconItems?.length || 0,
+            scheduledBuys: scheduledBuys?.length || 0
+          };
+          
+          if (dataCheck.protocols === 0 && dataCheck.supplements === 0) {
+            console.warn('⚠️ Calendar loadData: No protocols or supplements available', dataCheck);
+          } else {
+            console.log('📅 Calendar loadData: Starting with data', dataCheck);
+          }
+          
           const supps = supplements
           // Calculate date range based on view mode
           // For week view, include the full week (may span across months)
@@ -280,6 +304,8 @@ export default function Calendar() {
           for (const o of orders) {
             if ((o.status || '') !== 'Order Placed' || !o.date) continue
             const od = parseDateString(o.date)
+            // Add null check to prevent getTime() errors on Android
+            if (!od) continue
             if (od >= today && od <= horizon) {
               const key = toKey(od)
               const label = (o.group && o.group.title) ? o.group.title : (o.peptide || 'Buy')
@@ -313,6 +339,8 @@ export default function Calendar() {
           const metricsByKey = (metrics || []).reduce((map, m) => {
             try {
               const d = parseDateString(m.date)
+              // Add null check to prevent getTime() errors on Android
+              if (!d) return map
               const key = toKey(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
               map[key] = m
             } catch {}
@@ -367,6 +395,8 @@ export default function Calendar() {
               if (!gb?.openDate || !gb?.closeDate) continue
               const od = parseDateString(gb.openDate)
               const cd = parseDateString(gb.closeDate)
+              // Add null checks to prevent getTime() errors on Android
+              if (!od || !cd) continue
               const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
               if (dOnly >= new Date(od.getFullYear(), od.getMonth(), od.getDate()) && dOnly <= new Date(cd.getFullYear(), cd.getMonth(), cd.getDate())) {
                 // Store full group buy object instead of just label to preserve vendor and other details
@@ -402,6 +432,8 @@ export default function Calendar() {
                       if (!ps) return acc;
                       const protocolStartDate = normalizeToMidnight(ps);
                       const currentDate = normalizeToMidnight(d);
+                      // Add null checks to prevent getTime() errors on Android
+                      if (!protocolStartDate || !currentDate) return acc;
 
                       switch (freq.type) {
                           case 'daily':
@@ -454,6 +486,8 @@ export default function Calendar() {
                       if (!ps) return;
                       const protocolStartDate = normalizeToMidnight(ps);
                       const currentDate = normalizeToMidnight(d);
+                      // Add null checks to prevent getTime() errors on Android
+                      if (!protocolStartDate || !currentDate) return;
 
                       switch (freq.type) {
                           case 'daily':
@@ -606,6 +640,8 @@ export default function Calendar() {
                       if (!ps) return;
                       const protocolStartDate = normalizeToMidnight(ps);
                       const currentDate = normalizeToMidnight(d);
+                      // Add null checks to prevent getTime() errors on Android
+                      if (!protocolStartDate || !currentDate) return;
 
                       switch (freq.type) {
                           case 'daily':
@@ -776,6 +812,8 @@ export default function Calendar() {
                 if (!b?.openDate || !b?.closeDate) return false;
                 const open = parseDateString(b.openDate);
                 const close = parseDateString(b.closeDate);
+                // Add null checks to prevent getTime() errors on Android
+                if (!open || !close) return false;
                 const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
                 return dOnly >= open && dOnly <= close;
             });
@@ -793,6 +831,8 @@ export default function Calendar() {
           for (const o of orders) {
             if (!o.group || !o.date) continue
             const od = parseDateString(o.date)
+            // Add null check to prevent getTime() errors on Android
+            if (!od) continue
             if (od.getMonth() === currentDate.getMonth() && od.getFullYear() === currentDate.getFullYear()) {
               const key = toKey(od)
               // Store order object with group buy info to preserve vendor and other details
@@ -868,6 +908,40 @@ export default function Calendar() {
   useEffect(() => {
     loadData(); // Initial load
   }, [loadData]);
+
+  // Debug: Monitor data availability and log when it changes
+  useEffect(() => {
+    const dataStatus = {
+      protocols: protocols?.length || 0,
+      supplements: supplements?.length || 0,
+      reconItems: reconItems?.length || 0,
+      scheduledBuys: scheduledBuys?.length || 0,
+      scheduledKeys: Object.keys(scheduled || {}).length
+    };
+    
+    // Log when data becomes available (especially useful for Android debugging)
+    if (dataStatus.protocols > 0 || dataStatus.supplements > 0) {
+      console.log('📅 Calendar: Data available', dataStatus);
+    } else {
+      console.warn('⚠️ Calendar: No protocols or supplements loaded yet', dataStatus);
+    }
+  }, [protocols, supplements, reconItems, scheduledBuys, scheduled]);
+
+  // Force calendar refresh when data becomes available (Android fix)
+  useEffect(() => {
+    // If we have protocols or supplements but no scheduled data, force a refresh
+    const hasData = (protocols?.length > 0 || supplements?.length > 0);
+    const hasScheduled = Object.keys(scheduled).length > 0;
+    
+    if (hasData && !hasScheduled) {
+      console.log('🔄 Calendar: Data available but no scheduled items - forcing refresh');
+      setCalendarBump(prev => prev + 1);
+      // Also trigger loadData directly
+      setTimeout(() => {
+        loadData();
+      }, 100);
+    }
+  }, [protocols?.length, supplements?.length, scheduled]);
 
   // Task completion handler - unified with Dashboard
 

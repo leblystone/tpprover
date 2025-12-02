@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Send, User, Mail, Search, Loader, CheckCircle, AlertCircle, UserPlus, Trash2, MessageSquare } from 'lucide-react';
+import { Send, User, Mail, Search, Loader, CheckCircle, AlertCircle, UserPlus, Trash2, MessageSquare, Edit3 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getUserList } from '../../services/firebase';
+
+// Default email templates
+const EMAIL_TEMPLATES = {
+  inDepthRequest: {
+    subject: 'In-Depth Request - The Pep Planner',
+    greeting: 'Hi %USERNAME%,',
+    mainMessage: 'Thank you for your in-depth request. We have received your inquiry and will review it carefully. Our team will get back to you as soon as possible.',
+    signature: 'Happy Researching! ✌🏻,\nThe Pep Planner Team'
+  },
+  inviteEmail: {
+    subject: 'You\'re Invited to The Pep Planner! 🎉',
+    greeting: 'Hi there!',
+    mainMessage: 'You\'ve been invited to join The Pep Planner, your complete research management platform. Create an account to get started with organizing your research protocols and tracking your progress.',
+    signature: 'Happy Researching! ✌🏻,\nThe Pep Planner Team'
+  }
+};
 
 export default function SingleMessageSender({ theme }) {
   const [users, setUsers] = useState([]);
@@ -15,10 +31,44 @@ export default function SingleMessageSender({ theme }) {
   const [useCustomEmail, setUseCustomEmail] = useState(false);
   const [customEmail, setCustomEmail] = useState('');
   const [customName, setCustomName] = useState('');
+  
+  // Email composer fields (only for inDepthRequest and inviteEmail)
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailGreeting, setEmailGreeting] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailSignature, setEmailSignature] = useState('');
 
   useEffect(() => {
     loadUsers();
   }, []);
+
+  // Pre-fill email composer when message type changes
+  useEffect(() => {
+    if (messageType !== 'accountDeletion' && EMAIL_TEMPLATES[messageType]) {
+      const template = EMAIL_TEMPLATES[messageType];
+      setEmailSubject(template.subject);
+      setEmailGreeting(template.greeting);
+      setEmailBody(template.mainMessage);
+      setEmailSignature(template.signature);
+    }
+  }, [messageType]);
+
+  // Update greeting when recipient changes (only if greeting contains placeholder)
+  useEffect(() => {
+    if (messageType !== 'accountDeletion' && emailGreeting) {
+      const recipientName = useCustomEmail 
+        ? (customName.trim() || (customEmail ? customEmail.split('@')[0] : 'there'))
+        : (selectedUser?.displayName || selectedUser?.email?.split('@')[0] || 'there');
+      
+      // Only auto-update if greeting contains %USERNAME% placeholder
+      if (emailGreeting.includes('%USERNAME%') && recipientName) {
+        const updatedGreeting = emailGreeting.replace(/%USERNAME%/g, recipientName);
+        if (updatedGreeting !== emailGreeting) {
+          setEmailGreeting(updatedGreeting);
+        }
+      }
+    }
+  }, [selectedUser, customEmail, customName, useCustomEmail, messageType]);
 
   const loadUsers = async () => {
     try {
@@ -78,6 +128,16 @@ export default function SingleMessageSender({ theme }) {
       targetName = selectedUser.displayName || selectedUser.email.split('@')[0];
     }
 
+    // Validate email composer fields for non-account-deletion emails
+    if (messageType !== 'accountDeletion') {
+      if (!emailSubject.trim() || !emailBody.trim()) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: '⚠️ Please fill in subject and message body', type: 'warning' }
+        }));
+        return;
+      }
+    }
+
     if (!confirm(`Are you sure you want to send a ${getMessageTypeLabel(messageType)} email to ${targetEmail}?`)) {
       return;
     }
@@ -88,6 +148,10 @@ export default function SingleMessageSender({ theme }) {
     try {
       const functions = getFunctions();
       let sendFunction;
+      let sendData = {
+        userEmail: targetEmail,
+        userName: targetName
+      };
 
       switch (messageType) {
         case 'accountDeletion':
@@ -95,19 +159,34 @@ export default function SingleMessageSender({ theme }) {
           break;
         case 'inDepthRequest':
           sendFunction = httpsCallable(functions, 'sendInDepthRequestEmail');
+          // Add custom email content if provided
+          if (emailSubject || emailBody) {
+            sendData.customContent = {
+              subject: emailSubject,
+              greeting: emailGreeting,
+              mainMessage: emailBody,
+              signature: emailSignature
+            };
+          }
           break;
         case 'inviteEmail':
           sendFunction = httpsCallable(functions, 'sendInviteEmail');
+          sendData.inviteLink = 'https://thepepplanner.app/signup';
+          // Add custom email content if provided
+          if (emailSubject || emailBody) {
+            sendData.customContent = {
+              subject: emailSubject,
+              greeting: emailGreeting,
+              mainMessage: emailBody,
+              signature: emailSignature
+            };
+          }
           break;
         default:
           throw new Error('Invalid message type');
       }
 
-      const result = await sendFunction({
-        userEmail: targetEmail,
-        userName: targetName,
-        inviteLink: messageType === 'inviteEmail' ? 'https://thepepplanner.app/signup' : undefined
-      });
+      const result = await sendFunction(sendData);
 
       if (result.data.success) {
         setSendResult({ 
@@ -211,6 +290,8 @@ export default function SingleMessageSender({ theme }) {
     }
   };
 
+  const showComposer = messageType !== 'accountDeletion';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -220,27 +301,29 @@ export default function SingleMessageSender({ theme }) {
             Send Single Message
           </h2>
           <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-            Send individual messages to users: account deletion, in-depth requests, or invites
+            {showComposer ? 'Compose and send custom emails' : 'Send account deletion confirmation emails'}
           </p>
         </div>
-        <button
-          onClick={sendTestEmail}
-          disabled={isTesting || isSending}
-          className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
-          style={{ backgroundColor: theme.secondary, color: theme.text }}
-        >
-          {isTesting ? (
-            <>
-              <Loader size={16} className="animate-spin" />
-              Sending Test...
-            </>
-          ) : (
-            <>
-              <Mail size={16} />
-              Test Account Deletion Email
-            </>
-          )}
-        </button>
+        {messageType === 'accountDeletion' && (
+          <button
+            onClick={sendTestEmail}
+            disabled={isTesting || isSending}
+            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+            style={{ backgroundColor: theme.secondary, color: theme.text }}
+          >
+            {isTesting ? (
+              <>
+                <Loader size={16} className="animate-spin" />
+                Sending Test...
+              </>
+            ) : (
+              <>
+                <Mail size={16} />
+                Test Account Deletion Email
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Message Type Selector */}
@@ -295,7 +378,7 @@ export default function SingleMessageSender({ theme }) {
       <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="flex items-center justify-between mb-3">
           <label className="block text-sm font-semibold" style={{ color: theme.text }}>
-            Recipient
+            To
           </label>
           <button
             onClick={() => {
@@ -319,12 +402,9 @@ export default function SingleMessageSender({ theme }) {
         {useCustomEmail ? (
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                Email Address *
-              </label>
               <input
                 type="email"
-                placeholder="user@example.com"
+                placeholder="Recipient email address"
                 value={customEmail}
                 onChange={(e) => setCustomEmail(e.target.value)}
                 className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
@@ -337,12 +417,9 @@ export default function SingleMessageSender({ theme }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
-                Name (optional)
-              </label>
               <input
                 type="text"
-                placeholder="User's name"
+                placeholder="Recipient name (optional)"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
@@ -354,11 +431,6 @@ export default function SingleMessageSender({ theme }) {
                 }}
               />
             </div>
-            {customEmail && (
-              <p className="text-xs" style={{ color: theme.textLight }}>
-                Will send to: <strong style={{ color: theme.text }}>{customEmail}</strong>
-              </p>
-            )}
           </div>
         ) : (
           <>
@@ -448,11 +520,112 @@ export default function SingleMessageSender({ theme }) {
         )}
       </div>
 
+      {/* Email Composer - Only for inDepthRequest and inviteEmail */}
+      {showComposer && (
+        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Edit3 size={18} style={{ color: theme.primary }} />
+            <label className="block text-sm font-semibold" style={{ color: theme.text }}>
+              Compose Email
+            </label>
+          </div>
+
+          <div className="space-y-4">
+            {/* Subject */}
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
+                Subject
+              </label>
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Email subject"
+                className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+              />
+            </div>
+
+            {/* Greeting */}
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
+                Greeting
+              </label>
+              <input
+                type="text"
+                value={emailGreeting}
+                onChange={(e) => setEmailGreeting(e.target.value)}
+                placeholder="Hi there,"
+                className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  focusRingColor: theme.primary
+                }}
+              />
+            </div>
+
+            {/* Message Body */}
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
+                Message
+              </label>
+              <textarea
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                placeholder="Your message here..."
+                rows={6}
+                className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 resize-y"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  focusRingColor: theme.primary,
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            {/* Signature */}
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: theme.textLight }}>
+                Signature
+              </label>
+              <textarea
+                value={emailSignature}
+                onChange={(e) => setEmailSignature(e.target.value)}
+                placeholder="Happy Researching! ✌🏻,&#10;The Pep Planner Team"
+                rows={3}
+                className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 resize-y"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  focusRingColor: theme.primary,
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Send Button */}
       <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <button
           onClick={sendMessage}
-          disabled={(!selectedUser && !useCustomEmail) || (useCustomEmail && !customEmail.trim()) || isSending}
+          disabled={
+            (!selectedUser && !useCustomEmail) || 
+            (useCustomEmail && !customEmail.trim()) || 
+            (showComposer && (!emailSubject.trim() || !emailBody.trim())) ||
+            isSending
+          }
           className="w-full px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ 
             backgroundColor: theme.primary,
@@ -473,9 +646,11 @@ export default function SingleMessageSender({ theme }) {
           )}
         </button>
 
-        {selectedUser && !useCustomEmail && (
+        {((selectedUser && !useCustomEmail) || (useCustomEmail && customEmail)) && (
           <p className="text-xs mt-3 text-center" style={{ color: theme.textLight }}>
-            Will send to: <strong style={{ color: theme.text }}>{selectedUser.email}</strong>
+            Will send to: <strong style={{ color: theme.text }}>
+              {useCustomEmail ? customEmail : selectedUser.email}
+            </strong>
           </p>
         )}
       </div>
@@ -500,7 +675,3 @@ export default function SingleMessageSender({ theme }) {
     </div>
   );
 }
-
-
-
-

@@ -1456,7 +1456,7 @@ exports.sendInDepthRequestEmail = onCall(
     secrets: ['SENDGRID_API_KEY']
   },
   async (request) => {
-    const { userEmail, userName } = request.data;
+    const { userEmail, userName, customContent } = request.data;
 
     if (!userEmail) {
       throw new Error('userEmail is required');
@@ -1466,7 +1466,7 @@ exports.sendInDepthRequestEmail = onCall(
 
     try {
       const emailService = require('./emailService');
-      const success = await emailService.sendInDepthRequestEmail(userEmail, userName);
+      const success = await emailService.sendInDepthRequestEmail(userEmail, userName, customContent);
       
       if (success) {
         logger.info(`✅ In-depth request email sent successfully to: ${userEmail}`);
@@ -1489,7 +1489,7 @@ exports.sendInviteEmail = onCall(
     secrets: ['SENDGRID_API_KEY']
   },
   async (request) => {
-    const { userEmail, userName, inviteLink } = request.data;
+    const { userEmail, userName, inviteLink, customContent } = request.data;
 
     if (!userEmail) {
       throw new Error('userEmail is required');
@@ -1499,7 +1499,7 @@ exports.sendInviteEmail = onCall(
 
     try {
       const emailService = require('./emailService');
-      const success = await emailService.sendInviteEmail(userEmail, userName, inviteLink);
+      const success = await emailService.sendInviteEmail(userEmail, userName, inviteLink, customContent);
       
       if (success) {
         logger.info(`✅ Invite email sent successfully to: ${userEmail}`);

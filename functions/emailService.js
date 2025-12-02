@@ -983,7 +983,38 @@ exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
 /**
  * Send in-depth request email
  */
-exports.sendInDepthRequestEmail = async (userEmail, userName = null) => {
+exports.sendInDepthRequestEmail = async (userEmail, userName = null, customContent = null) => {
+  // If custom content is provided, use it directly
+  if (customContent && (customContent.subject || customContent.mainMessage)) {
+    logger.info('📧 Using custom email content for in-depth request');
+    const subject = customContent.subject || 'In-Depth Request - The Pep Planner';
+    const template = {
+      heading: 'In-Depth Request',
+      greeting: customContent.greeting || `Hi ${userName || 'there'},`,
+      mainMessage: customContent.mainMessage || '',
+      ctaText: '',
+      ctaLink: '',
+      highlightTitle: '',
+      highlightMessage: '',
+      features: []
+    };
+    
+    // Build HTML with custom content
+    let html = generateEmailHTML(template, { userName, userEmail });
+    
+    // Replace signature if provided
+    if (customContent.signature) {
+      const signatureHtml = customContent.signature.replace(/\n/g, '<br>');
+      html = html.replace(
+        /Happy Researching! ✌🏻,<br>\s*<strong[^>]*>The Pep Planner Team<\/strong>/,
+        signatureHtml
+      );
+    }
+    
+    return sendEmail(userEmail, subject, html);
+  }
+  
+  // Otherwise, use template from Firestore or default
   try {
     const customTemplate = await loadEmailTemplate('inDepthRequest');
     if (customTemplate) {
@@ -997,14 +1028,55 @@ exports.sendInDepthRequestEmail = async (userEmail, userName = null) => {
   
   // Fallback to hardcoded template
   const subject = 'In-Depth Request - The Pep Planner';
-  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User'); // Reuse structure
+  const defaultTemplate = {
+    heading: 'In-Depth Request',
+    greeting: `Hi ${userName || 'there'},`,
+    mainMessage: 'Thank you for your in-depth request. We have received your inquiry and will review it carefully. Our team will get back to you as soon as possible.',
+    ctaText: '',
+    ctaLink: '',
+    highlightTitle: '📋 Request Received',
+    highlightMessage: 'We typically respond within 24-48 hours.',
+    features: []
+  };
+  const html = generateEmailHTML(defaultTemplate, { userName, userEmail });
   return sendEmail(userEmail, subject, html);
 };
 
 /**
  * Send invite email
  */
-exports.sendInviteEmail = async (userEmail, userName = null, inviteLink = null) => {
+exports.sendInviteEmail = async (userEmail, userName = null, inviteLink = null, customContent = null) => {
+  // If custom content is provided, use it directly
+  if (customContent && (customContent.subject || customContent.mainMessage)) {
+    logger.info('📧 Using custom email content for invite');
+    const subject = customContent.subject || 'You\'re Invited to The Pep Planner! 🎉';
+    const template = {
+      heading: 'You\'re Invited!',
+      greeting: customContent.greeting || `Hi ${userName || 'there'}!`,
+      mainMessage: customContent.mainMessage || '',
+      ctaText: 'Accept Invitation',
+      ctaLink: inviteLink || 'https://thepepplanner.app/signup',
+      highlightTitle: '🎁 Special Invitation',
+      highlightMessage: 'Join our research community and start organizing your protocols today.',
+      features: []
+    };
+    
+    // Build HTML with custom content
+    let html = generateEmailHTML(template, { userName, userEmail, inviteLink: inviteLink || 'https://thepepplanner.app/signup' });
+    
+    // Replace signature if provided
+    if (customContent.signature) {
+      const signatureHtml = customContent.signature.replace(/\n/g, '<br>');
+      html = html.replace(
+        /Happy Researching! ✌🏻,<br>\s*<strong[^>]*>The Pep Planner Team<\/strong>/,
+        signatureHtml
+      );
+    }
+    
+    return sendEmail(userEmail, subject, html);
+  }
+  
+  // Otherwise, use template from Firestore or default
   try {
     const customTemplate = await loadEmailTemplate('inviteEmail');
     if (customTemplate) {
@@ -1022,7 +1094,17 @@ exports.sendInviteEmail = async (userEmail, userName = null, inviteLink = null) 
   
   // Fallback to hardcoded template
   const subject = 'You\'re Invited to The Pep Planner! 🎉';
-  const html = emailTemplates.lifetimeAccessGrantedEmail(userEmail, userName || 'User'); // Reuse structure
+  const defaultTemplate = {
+    heading: 'You\'re Invited!',
+    greeting: `Hi ${userName || 'there'}!`,
+    mainMessage: 'You\'ve been invited to join The Pep Planner, your complete research management platform. Create an account to get started with organizing your research protocols and tracking your progress.',
+    ctaText: 'Accept Invitation',
+    ctaLink: inviteLink || 'https://thepepplanner.app/signup',
+    highlightTitle: '🎁 Special Invitation',
+    highlightMessage: 'Join our research community and start organizing your protocols today.',
+    features: []
+  };
+  const html = generateEmailHTML(defaultTemplate, { userName, userEmail, inviteLink: inviteLink || 'https://thepepplanner.app/signup' });
   return sendEmail(userEmail, subject, html);
 };
 

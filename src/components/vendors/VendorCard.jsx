@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, Edit, ShoppingCart, FileText } from 'lucide-react';
 import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaFacebook } from 'react-icons/fa';
-import { SiZelle, SiCashapp } from 'react-icons/si';
+import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si';
 import { FaPaypal, FaAlipay } from 'react-icons/fa6';
 import { RiBitCoinFill } from "react-icons/ri";
 import ShareModal from '../common/ShareModal';
+
+// Venmo icon wrapper - makes it bigger for better visibility
+const VenmoIcon = ({ className, size, style }) => {
+    const actualSize = size || (className?.includes('w-') ? undefined : 20);
+    const actualClassName = className?.replace(/w-\d+/, 'w-5').replace(/h-\d+/, 'h-5') || 'w-5 h-5';
+    return <SiVenmo className={actualClassName} size={actualSize} style={style} />;
+};
+
 
 const GOOD_LABELS = ['Reliable', 'Fast Shipping', 'Overfill', 'Vetted', 'Reshipper'];
 const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'Out of Service', 'Puck Problem'];
@@ -87,7 +95,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
     if (p.zelle) paymentMethods.push({ label: 'Zelle', Icon: SiZelle });
     if (p.crypto) paymentMethods.push({ label: 'Crypto', Icon: RiBitCoinFill });
     if (p.paypal) paymentMethods.push({ label: 'PayPal', Icon: FaPaypal });
-    if (p.venmo) paymentMethods.push({ label: 'Venmo', Icon: FaPaypal }); // Using PayPal icon for Venmo as it's a subsidiary and visually similar
+    if (p.venmo) paymentMethods.push({ label: 'Venmo', Icon: VenmoIcon });
     if (p.cashapp) paymentMethods.push({ label: 'CashApp', Icon: SiCashapp });
     if (p.alipay) paymentMethods.push({ label: 'AliPay', Icon: FaAlipay });
 
