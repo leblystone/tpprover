@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { useFirebase } from '../context/FirebaseContext';
 
 /**
  * Hook to check subscription access and trial status
@@ -8,7 +9,9 @@ import { useAppContext } from '../context/AppContext';
  */
 export function useSubscriptionAccess() {
   const { subscription } = useAppContext();
+  const { firebaseUser } = useFirebase();
   const [isLoading, setIsLoading] = useState(true); // Track if we're still loading subscription data
+  const [hasCheckedLifetime, setHasCheckedLifetime] = useState(false); // Track if we've checked lifetime access
   const [accessInfo, setAccessInfo] = useState({
     hasAccess: true,
     isTrialExpired: false,
@@ -18,6 +21,90 @@ export function useSubscriptionAccess() {
     subscriptionStatus: 'loading',
     subscriptionInterval: null,
   });
+
+  // Check subscription directly from Firestore if subscription hasn't loaded yet
+  // This prevents showing expired chip for ANY subscription type while loading
+  useEffect(() => {
+    const checkSubscriptionDirectly = async () => {
+      // Only check if we don't have subscription yet and haven't checked
+      if (subscription || !firebaseUser || hasCheckedLifetime) {
+        return;
+      }
+
+      try {
+        // Import loadUserSubscription which checks all sources including lifetimeAccess
+        const { loadUserSubscription } = await import('../services/cloudStorage');
+        const directSubscription = await loadUserSubscription(firebaseUser.uid);
+        
+        if (directSubscription) {
+          console.log('✅ Found subscription via direct check:', directSubscription.interval || directSubscription.plan);
+          setHasCheckedLifetime(true);
+          
+          // Set access info directly to prevent showing expired chip
+          const hasLifetime = directSubscription.hasLifetimeAccess || 
+                            directSubscription.interval === 'lifetime' || 
+                            directSubscription.plan === 'lifetime';
+          
+          if (hasLifetime) {
+            setAccessInfo({
+              hasAccess: true,
+              isTrialExpired: false,
+              isReadOnly: false,
+              showUpgradePrompt: false,
+              daysRemaining: Infinity,
+              subscriptionStatus: 'active',
+              subscriptionInterval: 'lifetime',
+              isLifetimeGranted: !!directSubscription.lifetimeReason,
+              lifetimeReason: directSubscription.lifetimeReason || 'Admin grant'
+            });
+          } else if (directSubscription.status === 'active') {
+            // Active paid subscription (monthly/annual)
+            const now = new Date();
+            const endDate = directSubscription.currentPeriodEnd ? new Date(directSubscription.currentPeriodEnd) : null;
+            const timeLeft = endDate ? (endDate.getTime() - now.getTime()) : 0;
+            const daysLeftDisplay = endDate ? Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24))) : 0;
+            
+            setAccessInfo({
+              hasAccess: true,
+              isTrialExpired: false,
+              isReadOnly: false,
+              showUpgradePrompt: false,
+              daysRemaining: daysLeftDisplay,
+              subscriptionStatus: 'active',
+              subscriptionInterval: directSubscription.interval,
+            });
+          } else if (directSubscription.status === 'trialing') {
+            // Active trial
+            const now = new Date();
+            const endDate = directSubscription.currentPeriodEnd ? new Date(directSubscription.currentPeriodEnd) : null;
+            const timeLeft = endDate ? (endDate.getTime() - now.getTime()) : 0;
+            const daysLeftDisplay = endDate ? Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24))) : 0;
+            
+            if (timeLeft > 0) {
+              setAccessInfo({
+                hasAccess: true,
+                isTrialExpired: false,
+                isReadOnly: false,
+                showUpgradePrompt: daysLeftDisplay <= 2,
+                daysRemaining: daysLeftDisplay,
+                subscriptionStatus: 'trialing',
+                subscriptionInterval: 'trial',
+              });
+            }
+          }
+          
+          setIsLoading(false);
+        } else {
+          setHasCheckedLifetime(true);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error checking subscription directly:', error);
+        setHasCheckedLifetime(true);
+      }
+    };
+
+    checkSubscriptionDirectly();
+  }, [subscription, firebaseUser, hasCheckedLifetime]);
 
   useEffect(() => {
     const checkSubscriptionAccess = () => {
@@ -50,7 +137,8 @@ export function useSubscriptionAccess() {
           }
         }
         
-        // If still loading (no subscription yet), don't mark as expired
+        // CRITICAL: If still loading (no subscription yet), don't mark as expired
+        // This prevents showing expired chip for ANY subscription type while loading
         if (!effectiveSubscription && isLoading) {
           // Only log in development mode to reduce console spam
           if (import.meta.env.DEV) {
@@ -63,6 +151,25 @@ export function useSubscriptionAccess() {
         setIsLoading(false);
         
         if (!effectiveSubscription) {
+          // CRITICAL: Don't mark as expired if we already found any active subscription
+          // This prevents overriding subscription status while subscription is still loading
+          if (accessInfo.hasAccess && accessInfo.subscriptionStatus !== 'expired' && accessInfo.subscriptionStatus !== 'error') {
+            if (import.meta.env.DEV) {
+              console.log('⏳ Subscription not loaded yet, but access already confirmed - keeping access');
+            }
+            return;
+          }
+          
+          // Only mark as expired if we've confirmed there's no subscription
+          // AND we've already checked (hasCheckedLifetime means we've done a direct check)
+          if (!hasCheckedLifetime) {
+            // Still waiting for direct check to complete
+            if (import.meta.env.DEV) {
+              console.log('⏳ Waiting for direct subscription check to complete');
+            }
+            return;
+          }
+          
           if (import.meta.env.DEV) {
             console.log('❌ No subscription found after loading - marking as expired');
           }
@@ -81,29 +188,13 @@ export function useSubscriptionAccess() {
         // Mark loading as complete - we have subscription data
         setIsLoading(false);
 
-        const now = new Date();
-        const endDate = new Date(effectiveSubscription.currentPeriodEnd);
-        const timeLeft = endDate.getTime() - now.getTime();
-        // Display-friendly days remaining: ceil so the last partial day counts as 1
-        // This avoids prematurely marking trials as expired while hours remain
-        const daysLeftDisplay = Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24)));
-
-        // Active paid subscription (monthly, annual, lifetime)
-        if (effectiveSubscription.status === 'active' && effectiveSubscription.interval !== 'trial') {
-          setAccessInfo({
-            hasAccess: true,
-            isTrialExpired: false,
-            isReadOnly: false,
-            showUpgradePrompt: false,
-            daysRemaining: effectiveSubscription.interval === 'lifetime' ? Infinity : daysLeftDisplay,
-            subscriptionStatus: 'active',
-            subscriptionInterval: effectiveSubscription.interval,
-          });
-          return;
-        }
-
-        // Lifetime subscription
-        if (effectiveSubscription.interval === 'lifetime') {
+        // CRITICAL FIX: Check for lifetime access FIRST, before any trial checks
+        // This prevents lifetime users from being locked out even if they have trial status
+        const hasLifetimeAccess = effectiveSubscription.hasLifetimeAccess || 
+                                  effectiveSubscription.interval === 'lifetime' || 
+                                  effectiveSubscription.plan === 'lifetime';
+        
+        if (hasLifetimeAccess) {
           // Check if this is a granted lifetime access (not purchased)
           const isLifetimeGranted = effectiveSubscription.lifetimeReason && 
             !effectiveSubscription.paymentMethodId && 
@@ -119,6 +210,28 @@ export function useSubscriptionAccess() {
             subscriptionInterval: 'lifetime',
             isLifetimeGranted: isLifetimeGranted,
             lifetimeReason: effectiveSubscription.lifetimeReason || 'Purchased'
+          });
+          return;
+        }
+
+        const now = new Date();
+        // Handle null/undefined currentPeriodEnd for subscriptions without end dates
+        const endDate = effectiveSubscription.currentPeriodEnd ? new Date(effectiveSubscription.currentPeriodEnd) : null;
+        const timeLeft = endDate ? (endDate.getTime() - now.getTime()) : 0;
+        // Display-friendly days remaining: ceil so the last partial day counts as 1
+        // This avoids prematurely marking trials as expired while hours remain
+        const daysLeftDisplay = endDate ? Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24))) : 0;
+
+        // Active paid subscription (monthly, annual)
+        if (effectiveSubscription.status === 'active' && effectiveSubscription.interval !== 'trial') {
+          setAccessInfo({
+            hasAccess: true,
+            isTrialExpired: false,
+            isReadOnly: false,
+            showUpgradePrompt: false,
+            daysRemaining: daysLeftDisplay,
+            subscriptionStatus: 'active',
+            subscriptionInterval: effectiveSubscription.interval,
           });
           return;
         }
@@ -164,12 +277,13 @@ export function useSubscriptionAccess() {
       }
     };
 
-    // Check on mount, but give cloud data time to load first
-    const initialTimeout = setTimeout(() => {
-      setIsLoading(false); // After 2 seconds, stop loading state
-    }, 2000);
-
+    // Check immediately
     checkSubscriptionAccess();
+    
+    // Also check after a short delay to catch subscriptions that load after initial render
+    const delayedCheck = setTimeout(() => {
+      checkSubscriptionAccess();
+    }, 500);
 
     // Listen for subscription updates
     const handleSubscriptionUpdate = () => {
@@ -182,11 +296,11 @@ export function useSubscriptionAccess() {
     const interval = setInterval(checkSubscriptionAccess, 60000);
 
     return () => {
-      clearTimeout(initialTimeout);
+      clearTimeout(delayedCheck);
       window.removeEventListener('subscription:updated', handleSubscriptionUpdate);
       clearInterval(interval);
     };
-  }, [subscription]); // Re-check when subscription changes from cloud
+  }, [subscription, isLoading]); // Re-check when subscription changes from cloud
 
   return { ...accessInfo, isLoading };
 }

@@ -362,10 +362,36 @@ export async function saveUserSubscription(userId, subscription) {
 
 /**
  * Load user subscription data
- * Checks both userSubscriptions collection and users/{userId} subscription field
+ * Checks userSubscriptions collection, users/{userId} subscription field, and lifetimeAccess collection
  */
 export async function loadUserSubscription(userId) {
   try {
+    // CRITICAL: First check lifetimeAccess collection (where admin grants are stored)
+    // This must be checked FIRST to prevent lifetime users from being locked out
+    try {
+      const lifetimeRef = doc(db, 'lifetimeAccess', userId);
+      const lifetimeDoc = await getDoc(lifetimeRef);
+      
+      if (lifetimeDoc.exists() && lifetimeDoc.data().hasLifetimeAccess) {
+        const lifetimeData = lifetimeDoc.data();
+        console.log('✅ Found lifetime access in lifetimeAccess collection');
+        return {
+          hasLifetimeAccess: true,
+          interval: 'lifetime',
+          status: 'active',
+          plan: 'lifetime',
+          lifetimeReason: lifetimeData.reason || lifetimeData.lifetimeReason || 'Admin grant',
+          lifetimeGrantedAt: lifetimeData.grantedAt || lifetimeData.lifetimeGrantedAt || new Date().toISOString(),
+          currentPeriodEnd: null, // Lifetime has no end date
+          currentPeriodStart: lifetimeData.grantedAt || lifetimeData.lifetimeGrantedAt || new Date().toISOString(),
+          userId: userId
+        };
+      }
+    } catch (lifetimeError) {
+      console.warn('⚠️ Error checking lifetimeAccess collection:', lifetimeError);
+      // Continue to check other sources
+    }
+
     // Primary: Check userSubscriptions collection (where Stripe subscriptions are stored)
     const data = await loadUserData(userId, COLLECTIONS.USER_SUBSCRIPTION);
     if (data?.subscription) {
