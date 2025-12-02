@@ -129,60 +129,72 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
     return () => clearInterval(interval);
   }, [user?.email]);
 
-  // Load user's admin messages
+  // Load user's admin messages (optimized to reduce main thread blocking)
   useEffect(() => {
     if (!user?.email) {
       return;
     }
 
+    let isMounted = true;
+    let intervalId = null;
+
     const loadAdminMessages = async () => {
+      if (!isMounted) return;
+      
       try {
-        console.log('📨 Loading admin messages for:', user.email);
+        // Defer non-critical work to avoid blocking main thread
         const messages = await getUserAdminMessages(user.email);
-        console.log('📨 Found admin messages:', messages.length);
         
-        // Find the most recent message that should be shown
-        const visibleMessage = messages.find(msg => {
+        if (!isMounted) return;
+        
+        // Optimize: Calculate once outside the loop
+        const now = Date.now();
+        const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
+        
+        // Find the most recent message that should be shown (optimized)
+        let visibleMessage = null;
+        for (const msg of messages) {
           // Show if unread
           if (!msg.userReadAt || msg.userReadAt === null) {
-            console.log('📨 Found unread message:', msg.id);
-            return true;
+            visibleMessage = msg;
+            break; // First unread message is the one to show
           }
           
-          // Show if read within last 24 hours
-          const readAt = msg.userReadAt?.toDate ? msg.userReadAt.toDate() : new Date(msg.userReadAt);
-          const now = new Date();
-          const hoursSinceRead = (now - readAt) / (1000 * 60 * 60);
+          // Show if read within last 24 hours (optimized date comparison)
+          const readAt = msg.userReadAt?.toMillis 
+            ? msg.userReadAt.toMillis() 
+            : (msg.userReadAt?.toDate ? msg.userReadAt.toDate().getTime() : new Date(msg.userReadAt).getTime());
           
-          if (hoursSinceRead < 24) {
-            console.log('📨 Found message read within 24h:', msg.id, hoursSinceRead.toFixed(1), 'hours ago');
-            return true;
+          if (readAt >= twentyFourHoursAgo) {
+            visibleMessage = msg;
+            break; // Most recent message within 24h
           }
-          
-          return false;
-        });
-        
-        console.log('📨 Visible admin message:', visibleMessage ? visibleMessage.id : 'none');
-        setAdminMessage(visibleMessage || null);
-        
-        // Check if message is unread
-        if (visibleMessage) {
-          const isUnread = !visibleMessage.userReadAt || visibleMessage.userReadAt === null;
-          setHasUnreadAdminMessage(isUnread);
-          console.log('📨 Admin message unread status:', isUnread);
-        } else {
-          setHasUnreadAdminMessage(false);
         }
+        
+        if (!isMounted) return;
+        
+        // Update state in a single batch
+        setAdminMessage(visibleMessage || null);
+        setHasUnreadAdminMessage(visibleMessage ? (!visibleMessage.userReadAt || visibleMessage.userReadAt === null) : false);
       } catch (error) {
-        console.error('❌ Failed to load admin messages:', error);
-        console.error('❌ Error details:', error);
+        if (isMounted) {
+          console.error('❌ Failed to load admin messages:', error);
+        }
       }
     };
 
-    loadAdminMessages();
-    // Reload every 30 seconds to check for new messages
-    const interval = setInterval(loadAdminMessages, 30000);
-    return () => clearInterval(interval);
+    // Initial load with slight delay to avoid blocking initial render
+    const timeoutId = setTimeout(() => {
+      loadAdminMessages();
+      // Reload every 60 seconds (reduced frequency to reduce main thread pressure)
+      intervalId = setInterval(loadAdminMessages, 60000);
+    }, 500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [user?.email]);
 
   // Mark ticket as read

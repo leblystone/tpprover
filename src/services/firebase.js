@@ -1398,7 +1398,9 @@ export async function getUserAdminMessages(userEmail) {
     }
     
     const messages = [];
-    const now = new Date();
+    // Optimize: Calculate once outside the loop
+    const now = Date.now();
+    const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
     
     querySnapshot.forEach((doc) => {
       const data = doc.data();
@@ -1412,27 +1414,28 @@ export async function getUserAdminMessages(userEmail) {
         // Unread - always show
         messages.push(message);
       } else {
-        // Check if read within last 24 hours
-        const readAt = message.userReadAt?.toDate ? message.userReadAt.toDate() : new Date(message.userReadAt);
-        const hoursSinceRead = (now - readAt) / (1000 * 60 * 60);
-        if (hoursSinceRead < 24) {
+        // Check if read within last 24 hours (optimized timestamp comparison)
+        const readAt = message.userReadAt?.toMillis 
+          ? message.userReadAt.toMillis() 
+          : (message.userReadAt?.toDate ? message.userReadAt.toDate().getTime() : new Date(message.userReadAt).getTime());
+        
+        if (readAt >= twentyFourHoursAgo) {
           messages.push(message);
         }
       }
     });
     
     // Sort manually if we couldn't use orderBy (most recent first)
+    // Optimize: Only sort if needed and use efficient timestamp comparison
     if (messages.length > 0) {
       messages.sort((a, b) => {
-        const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 
-                     a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 
-                     b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        const aTime = a.createdAt?.toMillis ?? 
+                     (a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0);
+        const bTime = b.createdAt?.toMillis ?? 
+                     (b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0);
         return bTime - aTime; // Descending order (most recent first)
       });
     }
-    
-    console.log('📨 Loaded admin messages:', messages.length, 'for', userEmail);
     return messages;
   } catch (error) {
     console.error('❌ Failed to get admin messages:', error);

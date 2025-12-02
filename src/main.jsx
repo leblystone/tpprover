@@ -16,6 +16,66 @@ import './index.css'
 initCacheBusting();
 setupSafeAreaSupport();
 
+// Global error handlers to prevent renderer crashes
+if (typeof window !== 'undefined') {
+  // Catch unhandled JavaScript errors
+  window.addEventListener('error', (event) => {
+    console.error('🚨 Global error caught:', {
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      error: event.error
+    });
+    
+    // Prevent default error handling that could crash the renderer
+    // Only log, don't throw - let React error boundaries handle it
+    event.preventDefault();
+  }, true); // Use capture phase to catch errors early
+  
+  // Catch unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('🚨 Unhandled promise rejection:', {
+      reason: event.reason,
+      promise: event.promise
+    });
+    
+    // Prevent default handling that could crash the renderer
+    event.preventDefault();
+  });
+  
+  // Monitor for excessive main thread blocking
+  let frameCount = 0;
+  let lastFrameTime = performance.now();
+  
+  const checkFrameRate = () => {
+    const now = performance.now();
+    const delta = now - lastFrameTime;
+    lastFrameTime = now;
+    
+    // If frame took more than 100ms, it's blocking the main thread
+    if (delta > 100) {
+      console.warn(`⚠️ Main thread blocking detected: ${delta.toFixed(2)}ms frame time`);
+    }
+    
+    frameCount++;
+    if (frameCount < 60) {
+      requestAnimationFrame(checkFrameRate);
+    } else {
+      frameCount = 0;
+      // Check again after a delay
+      setTimeout(() => {
+        requestAnimationFrame(checkFrameRate);
+      }, 1000);
+    }
+  };
+  
+  // Start monitoring after initial load
+  setTimeout(() => {
+    requestAnimationFrame(checkFrameRate);
+  }, 2000);
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ChunkErrorBoundary>
