@@ -8,3 +8,5 @@
 - The user prefers that the assistant summarize what was fixed in commits going forward. (ID: 8247681)
 - The user prefers that the assistant not confirm commit messages with them. (ID: 8247680)
 - When drafting customer responses, use a friendly, human tone with emojis (e.g., "Hey! 👋", "Thanks for catching that", "Give it a try! 🧪"). Avoid overly formal or robotic language.
+
+
