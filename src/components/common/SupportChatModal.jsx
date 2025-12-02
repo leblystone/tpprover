@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader, Clock, User, ShieldCheck, RotateCcw, Archive } from 'lucide-react';
+import { X, Send, Loader, Clock, User, ShieldCheck, RotateCcw } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { reopenTicket } from '../../services/firebase';
@@ -137,7 +137,7 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
     }
   };
 
-  // Format the closed date/time
+  // Format the closed date (date only, no time)
   const formatClosedDate = () => {
     if (!closedAt) return '';
     
@@ -146,13 +146,10 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
+        year: 'numeric'
       });
     } catch {
-      return 'Recently';
+      return '';
     }
   };
 
@@ -248,14 +245,19 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
 
           {/* Closed Ticket - Minimal Page Break Style */}
           {isClosed && (
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-              <div className="flex items-center gap-2 px-3 py-1">
-                <span className="text-xs" style={{ color: theme.textLight }}>
-                  Closed {closedAt ? `· ${formatClosedDate()}` : ''}
-                </span>
+            <div className="my-6 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+                <div className="flex items-center gap-2 px-3 py-1">
+                  <span className="text-xs" style={{ color: theme.textLight }}>
+                    Closed {closedAt ? `· ${formatClosedDate()}` : ''}
+                  </span>
+                </div>
+                <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
               </div>
-              <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+              <p className="text-xs text-center" style={{ color: theme.textLight }}>
+                This chat will be archived in your support requests in 24 hours.
+              </p>
             </div>
           )}
           
@@ -268,23 +270,8 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
           style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
         >
           {isClosed ? (
-            /* Closed ticket footer */
-            <div className="space-y-3">
-              {/* Archive disclaimer */}
-              <div 
-                className="flex items-center gap-2 p-3 rounded-lg text-xs"
-                style={{ 
-                  backgroundColor: theme.textLight + '10',
-                  color: theme.textLight
-                }}
-              >
-                <Archive size={14} style={{ color: theme.textLight, flexShrink: 0 }} />
-                <span>
-                  This chat will be archived in your support requests in 24 hours.
-                </span>
-              </div>
-              
-              {/* Reopen button */}
+            /* Closed ticket footer - reopen button only */
+            <div>
               <button
                 onClick={handleReopenTicket}
                 disabled={reopening}
