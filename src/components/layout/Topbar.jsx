@@ -362,7 +362,7 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
               <button
                 onClick={() => setShowAdminMessage(true)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  hasUnreadAdminMessage ? 'animate-shake' : ''
+                  hasUnreadAdminMessage ? 'animate-breathe' : ''
                 }`}
               style={{
                 backgroundColor: hasUnreadAdminMessage 
@@ -509,13 +509,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         .animate-sway {
           animation: sway 2s ease-in-out infinite;
         }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-          20%, 40%, 60%, 80% { transform: translateX(2px); }
+        @keyframes breathe {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.9; }
         }
-        .animate-shake {
-          animation: shake 0.5s ease-in-out infinite;
+        .animate-breathe {
+          animation: breathe 2s ease-in-out infinite;
         }
       `}</style>
     </>
