@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { CheckCircle, Clock, Truck, Paperclip, Upload, FileText, PlusCircle, PackageOpen, ListChecks, TruckElectric, ImageUp, RefreshCw, MapPin } from 'lucide-react';
-import { formatMMDDYYYY } from '../../utils/date';
+import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 import { formatCurrency } from '../../utils/currencyUtils';
 import OrderItemSubForm from './OrderItemSubForm'; // Import the new sub-form
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
@@ -151,8 +151,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   if (form?.deliveryDate) current = 2
   else if (form?.shipDate) current = 1
 
-  const markShipped = () => setForm(prev => ({ ...prev, status: 'Shipped', shipDate: new Date().toISOString().slice(0, 10) }))
-  const markDelivered = () => setForm(prev => ({ ...prev, status: 'Delivered', deliveryDate: new Date().toISOString().slice(0, 10) }))
+  const markShipped = () => setForm(prev => ({ ...prev, status: 'Shipped', shipDate: getLocalDateString() }))
+  const markDelivered = () => setForm(prev => ({ ...prev, status: 'Delivered', deliveryDate: getLocalDateString() }))
 
   const handleItemChange = (index, updatedItem) => {
     setForm(prev => {
@@ -571,8 +571,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                   const newForm = { 
                     ...form, 
                     status: opt.value, 
-                    shipDate: opt.value==='Shipped' ? (form.shipDate || new Date().toISOString().slice(0,10)) : form.shipDate, 
-                    deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || new Date().toISOString().slice(0,10)) : form.deliveryDate 
+                    shipDate: opt.value==='Shipped' ? (form.shipDate || getLocalDateString()) : form.shipDate, 
+                    deliveryDate: opt.value==='Delivered' ? (form.deliveryDate || getLocalDateString()) : form.deliveryDate 
                   };
                   setForm(newForm);
                   
@@ -665,7 +665,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               <div>
                 <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Date Ordered</label>
                 <GlassmorphismDatePicker
-                  value={form.date ? new Date(form.date).toISOString().slice(0,10) : ''}
+                  value={form.date || ''}
                   onChange={(dateString) => setForm({ ...form, date: dateString })}
                   theme={theme}
                   placeholder="Date Ordered"
@@ -674,7 +674,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               <div>
                 <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>Delivery Date</label>
                 <GlassmorphismDatePicker
-                  value={form.deliveryDate ? new Date(form.deliveryDate).toISOString().slice(0,10) : ''}
+                  value={form.deliveryDate || ''}
                   onChange={(dateString) => setForm({ ...form, deliveryDate: dateString })}
                   theme={theme}
                   placeholder="Delivery Date"

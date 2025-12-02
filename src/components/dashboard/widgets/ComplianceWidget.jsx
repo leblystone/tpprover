@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { getLocalDateString } from '../../../utils/date';
 
 function useLocal(key, fallback) {
   try {
@@ -16,9 +17,11 @@ const ComplianceWidget = ({ widget, theme }) => {
 
   const complianceData = useMemo(() => {
     // Calculate 7-day compliance
-    const days = [...Array(7)].map((_, i) => 
-      new Date(Date.now() - (6 - i) * 86400000).toISOString().slice(0, 10)
-    );
+    const days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return getLocalDateString(d);
+    });
     
     let planned = 0, done = 0;
     for (const day of days) {
@@ -43,11 +46,11 @@ const ComplianceWidget = ({ widget, theme }) => {
     
     // Calculate current streak
     let streak = 0;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateString();
     let checkDate = new Date();
     
     while (streak < 30) { // Max 30 days back
-      const dateStr = checkDate.toISOString().slice(0, 10);
+      const dateStr = getLocalDateString(checkDate);
       const weekday = checkDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       
       let dayPlanned = 0, dayDone = 0;

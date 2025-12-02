@@ -4,7 +4,7 @@ import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, B
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
-import { formatMMDDYYYY } from '../../utils/date';
+import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 import { formatCurrency } from '../../utils/currencyUtils';
 import TextInput from '../common/inputs/TextInput';
 import VendorSuggestInput from '../vendors/VendorSuggestInput';
@@ -154,7 +154,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
 export default function StartProtocolWizard({ open, onClose, protocol, stockpile, setStockpile, theme, onStart }) {
     const [stage, setStage] = useState('linking'); // linking, recon_strategy, reconstituting, confirm
     const [linkedData, setLinkedData] = useState({});
-    const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10));
+    const [startDate, setStartDate] = useState(() => getLocalDateString());
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
     const [skippedPeptideDeliveryMethods, setSkippedPeptideDeliveryMethods] = useState({}); // Store delivery method info for skipped peptides
     const [isSkippedQuestionsOpen, setIsSkippedQuestionsOpen] = useState(false);

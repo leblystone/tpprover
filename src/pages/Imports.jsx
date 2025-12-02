@@ -1,5 +1,6 @@
 import React from 'react'
 import { themes, defaultThemeName } from '../theme/themes'
+import { getLocalDateString } from '../utils/date'
 
 function fmtMMDDYYYY(isoDate) {
   if (!isoDate) return ''
@@ -43,7 +44,7 @@ export default function Imports() {
           mg: Number(imp.mg) || 0,
           cost: imp.cost || '',
           status: imp.status || 'Order Placed',
-          date: imp.date || new Date().toISOString().slice(0,10),
+          date: imp.date || getLocalDateString(),
         }
         arr.unshift(order)
         localStorage.setItem('tpprover_orders', JSON.stringify(arr))

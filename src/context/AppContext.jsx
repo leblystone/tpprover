@@ -46,7 +46,21 @@ export function AppProvider({ children }) {
     // Real-time sync control
     const isApplyingRemoteUpdateRef = useRef(false);
     const lastRemoteUpdateTimeRef = useRef(0);
-    const lastLocalScheduledBuysUpdateRef = useRef(0);
+    // Initialize from localStorage to persist across page refreshes (15 second protection window)
+    const lastLocalScheduledBuysUpdateRef = useRef((() => {
+        try {
+            const stored = localStorage.getItem('tpprover_scheduledBuys_lastUpdate');
+            const timestamp = stored ? parseInt(stored, 10) : 0;
+            // Only respect timestamps within last 15 seconds (protection window for page refresh)
+            if (Date.now() - timestamp < 15000) {
+                console.log('🔒 Restoring scheduledBuys protection from localStorage, age:', Date.now() - timestamp, 'ms');
+                return timestamp;
+            }
+            return 0;
+        } catch {
+            return 0;
+        }
+    })());
     
     // Track in-progress deletions to prevent race conditions
     const deletingSupplementsRef = useRef(new Set());
@@ -139,14 +153,22 @@ export function AppProvider({ children }) {
                 console.log('📦 Data received:', JSON.parse(JSON.stringify(event.detail.scheduledBuys)));
                 
                 // CRITICAL: Mark that a local update just happened to prevent Firebase from overwriting
-                lastLocalScheduledBuysUpdateRef.current = Date.now();
+                const now = Date.now();
+                lastLocalScheduledBuysUpdateRef.current = now;
+                
+                // Also persist to localStorage so it survives page refresh
+                try {
+                    localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(now));
+                } catch (e) {
+                    console.error('Failed to save scheduledBuys timestamp:', e);
+                }
                 
                 // Ensure we're setting the complete data
                 const newScheduledBuys = event.detail.scheduledBuys.map(buy => ({...buy}));
                 setScheduledBuys(newScheduledBuys);
                 
                 console.log('✅ AppContext state updated with scheduledBuys');
-                console.log('🔒 Firebase overwrite protection active for 5 seconds');
+                console.log('🔒 Firebase overwrite protection active for 15 seconds (survives refresh)');
             }
         };
         
@@ -924,10 +946,11 @@ export function AppProvider({ children }) {
                                     if (firebaseData.calendarNotes) setCalendarNotes(firebaseData.calendarNotes);
                                     if (firebaseData.stockpile) setStockpile(firebaseData.stockpile);
                                     if (firebaseData.scheduledBuys) {
-                                        // Check if we recently made a local update (within last 5 seconds)
+                                        // Check if we recently made a local update (within last 15 seconds)
+                                        // This protects local edits from being overwritten, even across page refreshes
                                         const timeSinceLocalUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
-                                        if (timeSinceLocalUpdate < 5000) {
-                                            console.log('⏸️ Skipping Firebase scheduledBuys update - recent local change detected');
+                                        if (timeSinceLocalUpdate < 15000) {
+                                            console.log('⏸️ Skipping Firebase scheduledBuys update - recent local change detected (' + Math.round(timeSinceLocalUpdate/1000) + 's ago)');
                                             return;
                                         }
                                         
@@ -951,12 +974,19 @@ export function AppProvider({ children }) {
                                         localStorage.setItem('tpprover_vendors', JSON.stringify(firebaseData.vendors || []));
                                         localStorage.setItem('tpprover_calendar_notes', JSON.stringify(firebaseData.calendarNotes || {}));
                                         localStorage.setItem('tpprover_stockpile', JSON.stringify(firebaseData.stockpile || []));
-                                        // Filter out mock scheduled buys when saving to localStorage if sample data was cleared
-                                        const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                                        const filteredScheduledBuys = sampleDataCleared && firebaseData.scheduledBuys
-                                            ? firebaseData.scheduledBuys.filter(buy => !buy.isMock)
-                                            : (firebaseData.scheduledBuys || []);
-                                        localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(filteredScheduledBuys));
+                                        
+                                        // Only backup scheduledBuys if not in protection window
+                                        const timeSinceScheduledBuysUpdate = Date.now() - lastLocalScheduledBuysUpdateRef.current;
+                                        if (timeSinceScheduledBuysUpdate >= 15000) {
+                                            // Filter out mock scheduled buys when saving to localStorage if sample data was cleared
+                                            const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
+                                            const filteredScheduledBuys = sampleDataCleared && firebaseData.scheduledBuys
+                                                ? firebaseData.scheduledBuys.filter(buy => !buy.isMock)
+                                                : (firebaseData.scheduledBuys || []);
+                                            localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(filteredScheduledBuys));
+                                        } else {
+                                            console.log('🔒 Skipping localStorage backup for scheduledBuys - in protection window');
+                                        }
                                     } catch (backupError) {
                                         console.error('❌ Failed to backup Firebase data to localStorage:', backupError);
                                     }

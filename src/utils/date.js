@@ -1,3 +1,16 @@
+/**
+ * Returns today's date in YYYY-MM-DD format using LOCAL timezone.
+ * This avoids the timezone bug with toISOString() which converts to UTC.
+ * @param {Date} [date] - Optional date object, defaults to today
+ * @returns {string} Date in YYYY-MM-DD format
+ */
+export function getLocalDateString(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function formatMMDDYYYY(value) {
   if (!value) return '';
   try {

@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from '../common/Modal';
-import { formatMMDDYYYY } from '../../utils/date';
+import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 import { Calendar, Play, Square, Package, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 
@@ -32,7 +32,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
             const vial = stockpile.find(v => v.id === item.vialId);
             if (vial) {
                 // Use protocol startDate as fallback for vial addition date
-                const eventDate = protocol.startDate || protocol.updatedAt || new Date().toISOString().slice(0, 10);
+                const eventDate = protocol.startDate || protocol.updatedAt || getLocalDateString();
                 historyEvents.push({
                     date: eventDate,
                     event: 'Vial Added',
@@ -48,7 +48,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
     
     // Notes events (if protocol has notes field)
     if (protocol.notes) {
-        const notesDate = protocol.updatedAt || protocol.startDate || new Date().toISOString().slice(0, 10);
+        const notesDate = protocol.updatedAt || protocol.startDate || getLocalDateString();
         historyEvents.push({
             date: notesDate,
             event: 'Note Added',

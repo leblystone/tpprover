@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { formatMMDDYYYY } from '../utils/date'
+import { formatMMDDYYYY, getLocalDateString } from '../utils/date'
 import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
@@ -33,7 +33,7 @@ export default function Protocols() {
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0,10))
+  const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [stockpile, setStockpile] = useState([]);
   const [manageConfirm, setManageConfirm] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -56,7 +56,7 @@ export default function Protocols() {
   }, [updateProtocol]);
 
   const endProtocol = (protocolToEnd) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateString();
     const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: 'manual' };
     updateProtocol(updatedProtocol);
     window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol has been ended.', type: 'success' } }));
@@ -67,7 +67,7 @@ export default function Protocols() {
     // Only run this check once per day to avoid excessive updates
     const checkKey = 'tpprover_last_auto_end_check';
     const lastCheck = localStorage.getItem(checkKey);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateString();
     
     // Skip if we already checked today
     if (lastCheck === today) return;
@@ -100,7 +100,7 @@ export default function Protocols() {
         
         // If today is past the calculated end date, mark as finished
         if (calculatedEndDate && todayOnly > calculatedEndDate) {
-          const endDateString = calculatedEndDate.toISOString().slice(0, 10);
+          const endDateString = getLocalDateString(calculatedEndDate);
           updateProtocol({ ...p, active: false, endDate: endDateString, endType: 'completed' });
           hasUpdates = true;
         }
@@ -294,7 +294,7 @@ export default function Protocols() {
       setManageConfirm(protocol);
     } else {
       setStartConfirm(protocol);
-      setStartDate(protocol.startDate || new Date().toISOString().slice(0,10));
+      setStartDate(protocol.startDate || getLocalDateString());
     }
   };
 
@@ -673,7 +673,7 @@ export default function Protocols() {
                       else if (unit.includes('week')) end.setDate(end.getDate() + (count * 7) - 1);
                       else if (unit.includes('month')) { end.setMonth(end.getMonth() + count); end.setDate(end.getDate() - 1); }
                   }
-                  return end ? end.toISOString().slice(0,10) : p.endDate || null;
+                  return end ? getLocalDateString(end) : p.endDate || null;
               } catch { return p.endDate || null; }
           };
 
@@ -912,7 +912,7 @@ export default function Protocols() {
                         else if (unit.includes('week')) end.setDate(end.getDate() + (count * 7) - 1);
                         else if (unit.includes('month')) { end.setMonth(end.getMonth() + count); end.setDate(end.getDate() - 1); }
                     }
-                    return end ? end.toISOString().slice(0,10) : null;
+                    return end ? getLocalDateString(end) : null;
                 } catch { return null; }
             };
 

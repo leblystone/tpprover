@@ -3,6 +3,7 @@ import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { ShoppingCart, HandCoins } from 'lucide-react';
+import { getLocalDateString } from '../../utils/date';
 
 export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave, onDelete }) {
     const [form, setForm] = useState({ 
@@ -24,8 +25,8 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
             if (buy) {
                 setForm({ 
                     item: '', 
-                    openDate: new Date().toISOString().slice(0, 10), 
-                    closeDate: new Date().toISOString().slice(0, 10), 
+                    openDate: getLocalDateString(), 
+                    closeDate: getLocalDateString(), 
                     vendor: '', 
                     location: '',
                     participants: '',
@@ -35,10 +36,12 @@ export default function AddScheduledBuyModal({ open, onClose, theme, buy, onSave
                     ...buy 
                 });
             } else {
+                const closeDate = new Date();
+                closeDate.setDate(closeDate.getDate() + 7);
                 setForm({ 
                     item: '', 
-                    openDate: new Date().toISOString().slice(0, 10), 
-                    closeDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), 
+                    openDate: getLocalDateString(), 
+                    closeDate: getLocalDateString(closeDate), 
                     vendor: '', 
                     location: '',
                     participants: '',

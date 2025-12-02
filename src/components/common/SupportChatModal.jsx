@@ -287,7 +287,7 @@ export default function SupportChatModal({ ticket: initialTicket, onClose, theme
                 ) : (
                   <RotateCcw size={14} />
                 )}
-                <span>Reopen support request</span>
+                <span>Reopen request</span>
               </button>
             </div>
           ) : (

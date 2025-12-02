@@ -676,9 +676,30 @@ export default function Stockpile() {
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groups.filter(g => g.totalVials > 0).map(g => (
+                {groups.filter(g => g.totalVials > 0).map(g => {
+                    // Check if this is an "Unknown" group (items with empty/null names)
+                    const isUnknownGroup = (g.name === 'Unknown' || !g.name || g.name.trim() === '');
+                    
+                    return (
                     <div key={g.name} className="relative p-4 rounded-lg content-card shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between" style={{ backgroundColor: theme.cardBackground }}>
                         <div>
+                                {/* Unknown Group Alert Banner */}
+                                {isUnknownGroup && (
+                                    <div className="mb-3 p-3 rounded-lg flex items-start gap-2" style={{ 
+                                        backgroundColor: theme.isDark ? '#7c2d12' : '#fef3c7',
+                                        border: theme.isDark ? '1px solid #9a3412' : '1px solid #fbbf24'
+                                    }}>
+                                        <AlertCircle size={18} style={{ color: theme.isDark ? '#fbbf24' : '#d97706', marginTop: '2px', flexShrink: 0 }} />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold mb-1" style={{ color: theme.isDark ? '#fbbf24' : '#92400e' }}>
+                                                Unnamed Peptide Items
+                                            </p>
+                                            <p className="text-xs" style={{ color: theme.isDark ? '#fcd34d' : '#78350f' }}>
+                                                These items need a name. Merge them into an existing group below to organize your inventory.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex items-center justify-between mb-2">
                                 <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
                                 <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
@@ -818,59 +839,110 @@ export default function Stockpile() {
                             </div>
                         </div>
                         <div className="mt-4 flex items-center justify-end gap-2">
-                            <button 
-                              className="p-1 rounded-md transition-colors" 
-                              style={{ 
-                                color: theme.primary,
-                                opacity: isReadOnly ? 0.6 : 1,
-                                cursor: isReadOnly ? 'not-allowed' : 'pointer'
-                              }} 
-                              onClick={() => {
-                                if (isReadOnly) {
-                                  setShowUpgradeModal(true);
-                                  return;
-                                }
-                                // Find another group to merge with (show selection modal)
-                                const otherGroups = groups.filter(og => og.groupKey !== g.groupKey && og.totalVials > 0);
-                                if (otherGroups.length > 0) {
-                                  setMergeSourceGroup(g);
-                                  setShowMergeSelectionModal(true);
-                                } else {
-                                  window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                    detail: { 
-                                      message: 'No other groups available to merge with', 
-                                      type: 'info' 
-                                    } 
-                                  }));
-                                }
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              title="Merge with another group"
-                            >
-                                <Merge size={16} />
-                            </button>
-                            <button 
-                              className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" 
-                              style={{ 
-                                backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
-                                color: theme.textOnPrimary,
-                                opacity: isReadOnly ? 0.6 : 1,
-                                cursor: isReadOnly ? 'not-allowed' : 'pointer'
-                              }} 
-                              onClick={() => {
-                                if (isReadOnly) {
-                                  setShowUpgradeModal(true);
-                                  return;
-                                }
-                                openManage(g.name);
-                              }}
-                            >
-                                <Edit size={14} /> Manage
-                            </button>
+                            {/* For Unknown groups, show prominent merge button; for others, show icon button */}
+                            {isUnknownGroup ? (
+                                <button 
+                                  className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all shadow-md" 
+                                  style={{ 
+                                    backgroundColor: theme.isDark ? '#f59e0b' : '#f59e0b', 
+                                    color: '#ffffff',
+                                    opacity: isReadOnly ? 0.6 : 1,
+                                    cursor: isReadOnly ? 'not-allowed' : 'pointer',
+                                    border: 'none'
+                                  }} 
+                                  onClick={() => {
+                                    if (isReadOnly) {
+                                      setShowUpgradeModal(true);
+                                      return;
+                                    }
+                                    // Find another group to merge with (show selection modal)
+                                    const otherGroups = groups.filter(og => og.groupKey !== g.groupKey && og.totalVials > 0 && og.name !== 'Unknown' && og.name && og.name.trim() !== '');
+                                    if (otherGroups.length > 0) {
+                                      setMergeSourceGroup(g);
+                                      setShowMergeSelectionModal(true);
+                                    } else {
+                                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                        detail: { 
+                                          message: 'No named groups available to merge with. Please add a named peptide first.', 
+                                          type: 'info' 
+                                        } 
+                                      }));
+                                    }
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!isReadOnly) {
+                                      e.currentTarget.style.backgroundColor = theme.isDark ? '#d97706' : '#d97706';
+                                      e.currentTarget.style.transform = 'translateY(-1px)';
+                                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.3)';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f59e0b';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                  }}
+                                  title="Merge Unknown items into a named group"
+                                >
+                                    <Merge size={16} /> Merge to Named Group
+                                </button>
+                            ) : (
+                                <>
+                                    <button 
+                                      className="p-1 rounded-md transition-colors" 
+                                      style={{ 
+                                        color: theme.primary,
+                                        opacity: isReadOnly ? 0.6 : 1,
+                                        cursor: isReadOnly ? 'not-allowed' : 'pointer'
+                                      }} 
+                                      onClick={() => {
+                                        if (isReadOnly) {
+                                          setShowUpgradeModal(true);
+                                          return;
+                                        }
+                                        // Find another group to merge with (show selection modal)
+                                        const otherGroups = groups.filter(og => og.groupKey !== g.groupKey && og.totalVials > 0);
+                                        if (otherGroups.length > 0) {
+                                          setMergeSourceGroup(g);
+                                          setShowMergeSelectionModal(true);
+                                        } else {
+                                          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                            detail: { 
+                                              message: 'No other groups available to merge with', 
+                                              type: 'info' 
+                                            } 
+                                          }));
+                                        }
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                      title="Merge with another group"
+                                    >
+                                        <Merge size={16} />
+                                    </button>
+                                    <button 
+                                      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all" 
+                                      style={{ 
+                                        backgroundColor: isReadOnly ? theme.textLight : theme.primary, 
+                                        color: theme.textOnPrimary,
+                                        opacity: isReadOnly ? 0.6 : 1,
+                                        cursor: isReadOnly ? 'not-allowed' : 'pointer'
+                                      }} 
+                                      onClick={() => {
+                                        if (isReadOnly) {
+                                          setShowUpgradeModal(true);
+                                          return;
+                                        }
+                                        openManage(g.name);
+                                      }}
+                                    >
+                                        <Edit size={14} /> Manage
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
               </div>
             )}
@@ -1632,7 +1704,15 @@ export default function Stockpile() {
           setMergeSourceGroup(null)
         }}
         sourceGroup={mergeSourceGroup}
-        availableGroups={groups.filter(g => g.groupKey !== mergeSourceGroup?.groupKey && g.totalVials > 0)}
+        availableGroups={groups.filter(g => {
+          // When merging from Unknown, only show named groups (exclude other Unknown groups)
+          const isSourceUnknown = mergeSourceGroup && (mergeSourceGroup.name === 'Unknown' || !mergeSourceGroup.name || mergeSourceGroup.name.trim() === '');
+          const isTargetUnknown = g.name === 'Unknown' || !g.name || g.name.trim() === '';
+          
+          return g.groupKey !== mergeSourceGroup?.groupKey && 
+                 g.totalVials > 0 && 
+                 (!isSourceUnknown || !isTargetUnknown); // If source is Unknown, exclude Unknown targets
+        })}
         onSelectGroup={handleSelectMergeGroup}
         theme={theme}
       />

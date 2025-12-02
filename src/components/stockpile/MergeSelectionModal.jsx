@@ -35,12 +35,17 @@ export default function MergeSelectionModal({
           <div className="flex items-center gap-2">
             <Package size={14} style={{ color: theme.primary }} />
             <span className="font-medium text-sm" style={{ color: theme.text }}>
-              {sourceGroup.name}
+              {sourceGroup.name || 'Unnamed Items'}
             </span>
             <span className="text-xs" style={{ color: theme.textLight }}>
               ({sourceGroup.totalMg} {sourceGroup.unit || 'mg'} • {sourceGroup.totalVials} vials)
             </span>
           </div>
+          {(sourceGroup.name === 'Unknown' || !sourceGroup.name || sourceGroup.name.trim() === '') && (
+            <p className="text-xs mt-2" style={{ color: theme.textLight }}>
+              Select a named group below to merge these unnamed items into.
+            </p>
+          )}
         </div>
 
         {/* Available Groups */}

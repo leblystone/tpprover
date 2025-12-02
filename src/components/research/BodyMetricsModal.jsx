@@ -5,6 +5,7 @@ import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
 import { Weight, Percent, Bed, Smile, ShieldAlert, Calendar, Activity, CalendarClock, Scale, Heart, CloudSunRain, Moon, MoonStar, BatteryLow, Battery, BatteryFull, Zap, Frown, Meh, CheckCircle, AlertCircle, AlertTriangle, XCircle, Trash2, ArrowLeft } from 'lucide-react'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
+import { getLocalDateString } from '../../utils/date'
 
 const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type }) => {
     const getRatingOptions = (type) => {
@@ -90,7 +91,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
   )
   useEffect(() => {
     if (open) {
-      setForm(metric ? { ...metric, date: (metric.date || new Date().toISOString()).slice(0, 10) } : { date: new Date().toISOString().slice(0, 10) })
+      setForm(metric ? { ...metric, date: metric.date || getLocalDateString() } : { date: getLocalDateString() })
     }
   }, [open, metric])
   const onOk = async () => { 
