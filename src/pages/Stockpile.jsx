@@ -6,7 +6,7 @@ import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import Modal from '../components/common/Modal'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -78,6 +78,7 @@ export default function Stockpile() {
   const [showMergeSelectionModal, setShowMergeSelectionModal] = useState(false)
   const [mergeData, setMergeData] = useState({ source: null, target: null })
   const [mergeSourceGroup, setMergeSourceGroup] = useState(null)
+  const [mergeSourceItem, setMergeSourceItem] = useState(null) // For individual item merge
   
   // Duplicate detection state - load from localStorage and persist across re-renders
   const [dismissedDuplicates, setDismissedDuplicates] = useState(() => {
@@ -304,6 +305,33 @@ export default function Stockpile() {
     setMergeSourceGroup(null)
   }
 
+  // Handle merging individual item from Unknown category
+  const handleMergeIndividualItem = (item) => {
+    setMergeSourceItem(item)
+    setShowMergeSelectionModal(true)
+  }
+
+  const handleSelectGroupForItem = (targetGroup) => {
+    if (!mergeSourceItem) return
+    // Create a temporary group structure for the single item
+    const tempSourceGroup = {
+      name: mergeSourceItem.name || 'Unknown',
+      groupKey: `temp-${mergeSourceItem.id}`,
+      totalVials: Number(mergeSourceItem.quantity) || 0,
+      totalMg: (Number(mergeSourceItem.quantity) || 0) * (Number(mergeSourceItem.mg) || 0),
+      unit: mergeSourceItem.mgUnit || 'mg',
+      variants: {
+        [`${mergeSourceItem.mg || ''}__${mergeSourceItem.mgUnit || 'mg'}`]: {
+          items: [mergeSourceItem]
+        }
+      }
+    }
+    setMergeData({ source: tempSourceGroup, target: targetGroup })
+    setShowMergeModal(true)
+    setShowMergeSelectionModal(false)
+    setMergeSourceItem(null)
+  }
+
   const handleConfirmMerge = async (mergeConfig) => {
     const { sourceItems, targetItems, mergedName, mergedUnit } = mergeConfig
 
@@ -388,6 +416,22 @@ export default function Stockpile() {
       setShowMergeModal(false)
       setMergeData({ source: null, target: null })
       setIsDragMode(false)
+      
+      // If merging from manage modal (individual item), remove it from manageRows
+      if (mergeSourceItem) {
+        setManageRows(prev => {
+          const remaining = prev.filter(r => r.id !== mergeSourceItem.id)
+          // If no more rows, close the manage modal
+          if (remaining.length === 0) {
+            setTimeout(() => {
+              setManageName(null)
+              setManageRows([])
+            }, 100)
+          }
+          return remaining
+        })
+        setMergeSourceItem(null)
+      }
       
       // Also dismiss this duplicate pair so it doesn't show again
       const duplicateKey = `${mergeConfig.sourceGroup.groupKey}-${mergeConfig.targetGroup.groupKey}`;
@@ -685,24 +729,19 @@ export default function Stockpile() {
                         <div>
                                 {/* Unknown Group Alert Banner */}
                                 {isUnknownGroup && (
-                                    <div className="mb-3 p-3 rounded-lg flex items-start gap-2" style={{ 
-                                        backgroundColor: theme.isDark ? '#7c2d12' : '#fef3c7',
-                                        border: theme.isDark ? '1px solid #9a3412' : '1px solid #fbbf24'
+                                    <div className="mb-3 p-2 rounded-lg text-center" style={{ 
+                                        backgroundColor: theme.isDark ? '#374151' : '#f3f4f6',
+                                        border: theme.isDark ? '1px solid #4b5563' : '1px solid #e5e7eb'
                                     }}>
-                                        <AlertCircle size={18} style={{ color: theme.isDark ? '#fbbf24' : '#d97706', marginTop: '2px', flexShrink: 0 }} />
-                                        <div className="flex-1">
-                                            <p className="text-sm font-semibold mb-1" style={{ color: theme.isDark ? '#fbbf24' : '#92400e' }}>
-                                                Unnamed Peptide Items
-                                            </p>
-                                            <p className="text-xs" style={{ color: theme.isDark ? '#fcd34d' : '#78350f' }}>
-                                                These items need a name. Merge them into an existing group below to organize your inventory.
-                                            </p>
-                                        </div>
+                                        <p className="text-xs" style={{ color: theme.textLight }}>
+                                            Unnamed items - merge or delete to organize
+                                        </p>
                                     </div>
                                 )}
                                 <div className="flex items-center justify-between mb-2">
                                 <div className="font-semibold text-base" style={{ color: theme.text }}>{g.name}</div>
-                                <div className="px-2 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                                <div className="px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1" style={{ backgroundColor: isUnknownGroup ? '#c87a5c' : theme.primary, color: '#ffffff' }}>
+                                  {isUnknownGroup && <PenTool size={12} />}
                                   {g.totalMg > 0 ? `${g.totalMg} ${g.unit || 'mg'}` : `${g.totalVials} ${g.totalVials === 1 ? 'vial' : 'vials'}`}
                                 </div>
                             </div>
@@ -718,7 +757,74 @@ export default function Stockpile() {
                                                 <li key={item.id} className="space-y-1">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2 font-medium"><Package size={12} /> {item.vendorId ? vendorMap[item.vendorId] : item.vendor}</div>
-                                                        <div className="flex items-center">
+                                                        <div className="flex items-center gap-1">
+                                                            {isUnknownGroup && (
+                                                                <>
+                                                                    <button 
+                                                                        title="Merge into another peptide" 
+                                                                        className="p-1 rounded-md transition-colors" 
+                                                                        style={{ color: theme.primary }} 
+                                                                        onClick={() => {
+                                                                            if (isReadOnly) {
+                                                                                setShowUpgradeModal(true);
+                                                                                return;
+                                                                            }
+                                                                            handleMergeIndividualItem(item);
+                                                                        }}
+                                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+                                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                                    >
+                                                                        <Merge size={14} />
+                                                                    </button>
+                                                                    <button 
+                                                                        title="Delete this item" 
+                                                                        className="p-1 rounded-md transition-colors" 
+                                                                        style={{ color: '#c87a5c' }} 
+                                                                        onClick={() => {
+                                                                            if (isReadOnly) {
+                                                                                setShowUpgradeModal(true);
+                                                                                return;
+                                                                            }
+                                                                            // Delete the item directly
+                                                                            const updatedItems = items.filter(i => i.id !== item.id);
+                                                                            setItems(updatedItems);
+                                                                            
+                                                                            // Sync to cloud
+                                                                            if (firebaseUser) {
+                                                                                try {
+                                                                                    const userId = firebaseUser.uid;
+                                                                                    const appData = {
+                                                                                        protocols: protocols || [],
+                                                                                        reconItems: reconItems || [],
+                                                                                        reconHistory: reconHistory || [],
+                                                                                        supplements: supplements || [],
+                                                                                        orders: orders || [],
+                                                                                        metrics: metrics || [],
+                                                                                        vendors: vendors || [],
+                                                                                        calendarNotes: calendarNotes || {},
+                                                                                        stockpile: updatedItems,
+                                                                                        scheduledBuys: scheduledBuys || []
+                                                                                    };
+                                                                                    saveAppData(userId, appData, { skipMerge: true });
+                                                                                } catch (e) {
+                                                                                    console.error('Failed to sync deleted item to cloud:', e);
+                                                                                }
+                                                                            }
+                                                                            
+                                                                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                                                                                detail: { 
+                                                                                    message: 'Item deleted', 
+                                                                                    type: 'success' 
+                                                                                } 
+                                                                            }));
+                                                                        }}
+                                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#7c2d12' : '#fef3c7'}
+                                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                                    >
+                                                                        <X size={14} />
+                                                                    </button>
+                                                                </>
+                                                            )}
                                                             {item.orderId && (
                                                                 <button 
                                                                     title="View Source Order" 
@@ -731,33 +837,35 @@ export default function Stockpile() {
                                                                     <ShoppingCart size={14} />
                                                                 </button>
                                                             )}
-                                                            <button 
-                                                                title="Send to Recon Calculator" 
-                                                                className="p-1 rounded-md transition-colors" 
-                                                                style={{ color: theme.primary }} 
-                                                                onClick={() => {
-                                                                    try {
-                                                                        // Cost is already per vial in stockpile, so use it directly
-                                                                        const payload = { 
-                                                                            peptide: g.name, 
-                                                                            mg: String(item.mg), 
-                                                                            vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
-                                                                            cost: item.cost || '',
-                                                                            costPerMg: item.costPerMg || '', // Include costPerMg if available
-                                                                            stockpileId: item.id,
-                                                                            quantity: item.quantity,
-                                                                            unit: item.unit,
-                                                                            quantityUsed: 1
-                                                                        };
-                                                                        localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
-                                                                        navigate('/app/recon');
-                                                                    } catch { }
-                                                                }}
-                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
-                                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                            >
-                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C12 2 5 9 5 14a7 7 0 0 0 14 0c0-5-7-12-7-12z"></path></svg>
-                                                            </button>
+                                                            {!isUnknownGroup && (
+                                                                <button 
+                                                                    title="Send to Recon Calculator" 
+                                                                    className="p-1 rounded-md transition-colors" 
+                                                                    style={{ color: theme.primary }} 
+                                                                    onClick={() => {
+                                                                        try {
+                                                                            // Cost is already per vial in stockpile, so use it directly
+                                                                            const payload = { 
+                                                                                peptide: g.name, 
+                                                                                mg: String(item.mg), 
+                                                                                vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
+                                                                                cost: item.cost || '',
+                                                                                costPerMg: item.costPerMg || '', // Include costPerMg if available
+                                                                                stockpileId: item.id,
+                                                                                quantity: item.quantity,
+                                                                                unit: item.unit,
+                                                                                quantityUsed: 1
+                                                                            };
+                                                                            localStorage.setItem('tpprover_recon_prefill', JSON.stringify(payload));
+                                                                            navigate('/app/recon');
+                                                                        } catch { }
+                                                                    }}
+                                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15'}
+                                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                                >
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C12 2 5 9 5 14a7 7 0 0 0 14 0c0-5-7-12-7-12z"></path></svg>
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     {item.date && <div className="text-xs text-gray-400 pl-5">Acquired: {new Date(item.date).toLocaleDateString()}</div>}
@@ -839,53 +947,8 @@ export default function Stockpile() {
                             </div>
                         </div>
                         <div className="mt-4 flex items-center justify-end gap-2">
-                            {/* For Unknown groups, show prominent merge button; for others, show icon button */}
-                            {isUnknownGroup ? (
-                                <button 
-                                  className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-all shadow-md" 
-                                  style={{ 
-                                    backgroundColor: theme.isDark ? '#f59e0b' : '#f59e0b', 
-                                    color: '#ffffff',
-                                    opacity: isReadOnly ? 0.6 : 1,
-                                    cursor: isReadOnly ? 'not-allowed' : 'pointer',
-                                    border: 'none'
-                                  }} 
-                                  onClick={() => {
-                                    if (isReadOnly) {
-                                      setShowUpgradeModal(true);
-                                      return;
-                                    }
-                                    // Find another group to merge with (show selection modal)
-                                    const otherGroups = groups.filter(og => og.groupKey !== g.groupKey && og.totalVials > 0 && og.name !== 'Unknown' && og.name && og.name.trim() !== '');
-                                    if (otherGroups.length > 0) {
-                                      setMergeSourceGroup(g);
-                                      setShowMergeSelectionModal(true);
-                                    } else {
-                                      window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                        detail: { 
-                                          message: 'No named groups available to merge with. Please add a named peptide first.', 
-                                          type: 'info' 
-                                        } 
-                                      }));
-                                    }
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!isReadOnly) {
-                                      e.currentTarget.style.backgroundColor = theme.isDark ? '#d97706' : '#d97706';
-                                      e.currentTarget.style.transform = 'translateY(-1px)';
-                                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.3)';
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f59e0b';
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = 'none';
-                                  }}
-                                  title="Merge Unknown items into a named group"
-                                >
-                                    <Merge size={16} /> Merge to Named Group
-                                </button>
-                            ) : (
+                            {/* For Unknown groups, no merge button (each item has its own); for others, show icon button */}
+                            {!isUnknownGroup && (
                                 <>
                                     <button 
                                       className="p-1 rounded-md transition-colors" 
@@ -1645,24 +1708,90 @@ export default function Stockpile() {
                 />
               </div>
 
-              <div className="flex justify-end">
-                <button
-                  className="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                  style={{
-                    background: terracottaGradient,
-                    color: '#ffffff',
-                    border: 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = terracottaHoverGradient;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = terracottaGradient;
-                  }}
-                  onClick={() => removeManageRow(row.id)}
-                >
-                  Remove
-                </button>
+              <div className="flex justify-end gap-2">
+                {/* Show Merge and Delete buttons for Unknown items */}
+                {(manageName === 'Unknown' || !manageName || manageName.trim() === '') ? (
+                  <>
+                    <button
+                      className="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1"
+                      style={{
+                        backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                        color: theme.primary,
+                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                      }}
+                      onClick={() => {
+                        if (isReadOnly) {
+                          setShowUpgradeModal(true);
+                          return;
+                        }
+                        handleMergeIndividualItem(row);
+                      }}
+                    >
+                      <Merge size={14} />
+                      Merge
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                      style={{
+                        background: terracottaGradient,
+                        color: '#ffffff',
+                        border: 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = terracottaHoverGradient;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = terracottaGradient;
+                      }}
+                      onClick={() => deleteManageRow(row.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                      style={{
+                        backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                        color: theme.text,
+                        border: theme.isDark ? 'none' : `1px solid ${theme.border}`
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
+                      }}
+                      onClick={() => removeManageRow(row.id)}
+                    >
+                      Remove
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
+                      style={{
+                        background: terracottaGradient,
+                        color: '#ffffff',
+                        border: 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = terracottaHoverGradient;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = terracottaGradient;
+                      }}
+                      onClick={() => deleteManageRow(row.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -1702,18 +1831,28 @@ export default function Stockpile() {
         onClose={() => {
           setShowMergeSelectionModal(false)
           setMergeSourceGroup(null)
+          setMergeSourceItem(null)
         }}
-        sourceGroup={mergeSourceGroup}
+        sourceGroup={mergeSourceGroup || (mergeSourceItem ? {
+          name: mergeSourceItem.name || 'Unknown',
+          groupKey: `temp-${mergeSourceItem.id}`,
+          totalVials: Number(mergeSourceItem.quantity) || 0,
+          totalMg: (Number(mergeSourceItem.quantity) || 0) * (Number(mergeSourceItem.mg) || 0),
+          unit: mergeSourceItem.mgUnit || 'mg'
+        } : null)}
         availableGroups={groups.filter(g => {
-          // When merging from Unknown, only show named groups (exclude other Unknown groups)
-          const isSourceUnknown = mergeSourceGroup && (mergeSourceGroup.name === 'Unknown' || !mergeSourceGroup.name || mergeSourceGroup.name.trim() === '');
+          // When merging from Unknown (group or item), only show named groups (exclude other Unknown groups)
+          const isSourceUnknown = (mergeSourceGroup && (mergeSourceGroup.name === 'Unknown' || !mergeSourceGroup.name || mergeSourceGroup.name.trim() === '')) ||
+                                  (mergeSourceItem && (!mergeSourceItem.name || mergeSourceItem.name.trim() === ''));
           const isTargetUnknown = g.name === 'Unknown' || !g.name || g.name.trim() === '';
           
-          return g.groupKey !== mergeSourceGroup?.groupKey && 
+          const sourceKey = mergeSourceGroup?.groupKey || (mergeSourceItem ? `temp-${mergeSourceItem.id}` : null);
+          
+          return g.groupKey !== sourceKey && 
                  g.totalVials > 0 && 
                  (!isSourceUnknown || !isTargetUnknown); // If source is Unknown, exclude Unknown targets
         })}
-        onSelectGroup={handleSelectMergeGroup}
+        onSelectGroup={mergeSourceItem ? handleSelectGroupForItem : handleSelectMergeGroup}
         theme={theme}
       />
       
