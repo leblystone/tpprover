@@ -2458,18 +2458,31 @@ function Admin() {
                                 {ticket.subject}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <div 
-                                className="w-2 h-2 rounded-full" 
-                                style={{ 
-                                  backgroundColor: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
-                                }} 
-                              />
-                              <span className="text-xs font-medium capitalize" style={{ 
-                                color: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
-                              }}>
-                                {ticket.status === 'resolved' || ticket.status === 'closed' ? 'Closed' : ticket.status}
-                              </span>
+                            <div className="flex items-center gap-2">
+                              {ticket.customerReopened && (
+                                <span 
+                                  className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                  style={{ 
+                                    backgroundColor: theme.warning + '20',
+                                    color: theme.warning
+                                  }}
+                                >
+                                  Reopened
+                                </span>
+                              )}
+                              <div className="flex items-center gap-1">
+                                <div 
+                                  className="w-2 h-2 rounded-full" 
+                                  style={{ 
+                                    backgroundColor: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                                  }} 
+                                />
+                                <span className="text-xs font-medium capitalize" style={{ 
+                                  color: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                                }}>
+                                  {ticket.status === 'resolved' || ticket.status === 'closed' ? 'Closed' : ticket.status}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           <p className="text-xs mb-1" style={{ color: theme.textLight }}>
@@ -3914,18 +3927,31 @@ function Admin() {
                                 {ticket.type === 'support' && <Mail size={16} style={{ color: theme.info }} />}
                                 <span className="font-semibold" style={{ color: theme.text }}>{ticket.subject}</span>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <div 
-                                  className="w-2 h-2 rounded-full" 
-                                  style={{ 
-                                    backgroundColor: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
-                                  }} 
-                                />
-                                <span className="text-xs font-medium capitalize" style={{ 
-                                  color: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
-                                }}>
-                                  {ticket.status === 'resolved' || ticket.status === 'closed' ? 'Closed' : ticket.status}
-                                </span>
+                              <div className="flex items-center gap-2">
+                                {ticket.customerReopened && (
+                                  <span 
+                                    className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                    style={{ 
+                                      backgroundColor: theme.warning + '20',
+                                      color: theme.warning
+                                    }}
+                                  >
+                                    Reopened
+                                  </span>
+                                )}
+                                <div className="flex items-center gap-1.5">
+                                  <div 
+                                    className="w-2 h-2 rounded-full" 
+                                    style={{ 
+                                      backgroundColor: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                                    }} 
+                                  />
+                                  <span className="text-xs font-medium capitalize" style={{ 
+                                    color: ticket.status === 'new' ? theme.success : ticket.status === 'in-progress' ? theme.warning : theme.error
+                                  }}>
+                                    {ticket.status === 'resolved' || ticket.status === 'closed' ? 'Closed' : ticket.status}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <div className="space-y-1 mb-2">

@@ -1900,13 +1900,15 @@ exports.updateTicketStatus = onCall(
       if (status === 'closed' || status === 'resolved') {
         updateData.userReadAt = null; // Mark as unread for user
         updateData.closedAt = FieldValue.serverTimestamp();
+        updateData.customerReopened = false; // Clear the reopened tag
         logger.info(`📌 Ticket ${ticketId} marked as closed - user will see unread notification`);
       }
       
-      // When reopening ticket from closed/resolved to in-progress, clear countdown fields
+      // When admin reopens ticket from closed/resolved to in-progress, clear countdown fields
       if (status === 'in-progress' && (currentStatus === 'closed' || currentStatus === 'resolved')) {
         updateData.userReadAt = null; // Reset read status
         updateData.closedAt = null; // Clear closed timestamp
+        updateData.customerReopened = false; // Clear the reopened tag (admin reopened, not customer)
         logger.info(`🔄 Ticket ${ticketId} reopened from closed - countdown fields cleared`);
       }
 
@@ -1967,14 +1969,16 @@ exports.reopenTicket = onCall(
         throw new Error('Only closed tickets can be reopened');
       }
 
-      // Reopen the ticket by setting status to 'in-progress' and clearing closed fields
+      // Reopen the ticket by setting status to 'in-progress' and marking as customer reopened
       await ticketRef.update({
         status: 'in-progress',
         closedAt: null,
         userReadAt: null,
+        adminReadAt: null, // Mark as unread for admin
         updatedAt: FieldValue.serverTimestamp(),
         reopenedAt: FieldValue.serverTimestamp(),
-        reopenedBy: request.auth.token.email || request.auth.uid
+        reopenedBy: request.auth.token.email || request.auth.uid,
+        customerReopened: true // Tag for admin to see
       });
 
       logger.info(`✅ Ticket reopened successfully: ${ticketId}`);
