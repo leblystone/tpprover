@@ -35,6 +35,7 @@ import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 import { saveAppData } from '../services/cloudStorage'
+import { recordDeletion } from '../utils/deletionTracking'
 import { useFirebase } from '../context/FirebaseContext'
 
 export default function Dashboard() {
@@ -1531,6 +1532,9 @@ export default function Dashboard() {
                 setShowUpgradeModal(true);
                 return;
             }
+            
+            // Record deletion in persistent tracking to prevent restoration
+            recordDeletion('scheduledBuys', String(buyId));
             
             setScheduledBuys(prev => {
                 const updated = prev.filter(b => b.id !== buyId);

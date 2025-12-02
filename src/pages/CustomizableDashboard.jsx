@@ -43,6 +43,7 @@ import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { saveAppData } from '../services/cloudStorage';
 import { useFirebase } from '../context/FirebaseContext';
+import { recordDeletion } from '../utils/deletionTracking';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -1287,6 +1288,9 @@ export default function CustomizableDashboard() {
           addToast(buy.id ? 'Scheduled buy updated' : 'Scheduled buy added', 'success');
         }}
         onDelete={(buyId) => {
+          // Record deletion in persistent tracking to prevent restoration
+          recordDeletion('scheduledBuys', String(buyId));
+          
           // Delete the scheduled buy
           setScheduledBuys(prev => {
             const updated = prev.filter(b => b.id !== buyId);

@@ -6,6 +6,7 @@ import Modal from '../common/Modal'
 import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
+import { recordDeletion } from '../../utils/deletionTracking'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [showModal, setShowModal] = useState(false);
@@ -481,6 +482,10 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // We never clear this - deleted items should stay deleted
       justDeletedIdsRef.current.add(String(itemId));
       justDeletedRef.current = true;
+      
+      // CRITICAL: Record deletion in persistent tracking to prevent restoration across refreshes/syncs
+      recordDeletion('scheduledBuys', String(itemId));
+      console.log('📝 Recorded deletion in persistent tracking for scheduledBuys:', itemId);
       
       // Update prevPropIdsRef to reflect the deletion
       const finalList = verifyDeleted ? JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]') : updatedBuys;
