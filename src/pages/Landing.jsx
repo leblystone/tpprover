@@ -41,6 +41,16 @@ export default function Landing() {
   const [showContact, setShowContact] = useState(false);
   const [showIOSPopup, setShowIOSPopup] = useState(false);
 
+  // Enable scrolling on landing page
+  useEffect(() => {
+    document.body.classList.add('landing-page');
+    document.documentElement.classList.add('landing-page-active');
+    return () => {
+      document.body.classList.remove('landing-page');
+      document.documentElement.classList.remove('landing-page-active');
+    };
+  }, []);
+
   // Redirect mobile/native app users to login page
   useEffect(() => {
     if (isNative()) {

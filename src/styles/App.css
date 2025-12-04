@@ -221,3 +221,18 @@ html, body {
     }
   }
 }
+
+/* Enable scrolling on landing page */
+html.landing-page-active,
+html.landing-page-active body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh;
+}
+
+html.landing-page-active #root {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 100vh;
+}
