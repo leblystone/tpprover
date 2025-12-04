@@ -54,8 +54,9 @@
 
 html, body {
   overflow-x: hidden;
+  overflow-y: hidden; /* Prevent body scroll - main content handles scrolling */
   max-width: 100vw;
-  overflow-y: auto;
+  height: 100%; /* Ensure full height */
   /* Support viewport units that respect safe areas */
   min-height: 100vh;
   min-height: -webkit-fill-available;
@@ -63,8 +64,10 @@ html, body {
 
 /* Ensure full viewport height on iOS */
 #root {
+  height: 100%;
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  overflow: hidden; /* Prevent root from scrolling */
 }
 
 /* Mobile and tablet-specific spacing overrides for dashboard */
@@ -120,7 +123,10 @@ html, body {
   h1, h2, h3, h4, h5, h6, p, span, button, a {
     word-wrap: break-word;
     overflow-wrap: break-word;
-    hyphens: auto;
+    hyphens: none; /* Disable auto-hyphenation - causes issues in Safari */
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
   }
 
   /* Reduce padding on very small screens (iPhone SE, mini) */
@@ -174,5 +180,44 @@ html, body {
   /* Allow specific elements to be wider if needed */
   .allow-overflow {
     max-width: none;
+  }
+}
+
+/* Safari Mobile-specific fixes for landing page */
+@supports (-webkit-touch-callout: none) {
+  /* Target Safari on iOS */
+  @media (max-width: 768px) {
+    /* Disable hyphenation globally for Safari */
+    * {
+      -webkit-hyphens: none !important;
+      hyphens: none !important;
+    }
+    
+    /* Improve text rendering on landing page */
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    
+    /* Better text wrapping without hyphenation */
+    h1, h2, h3, h4, h5, h6, p, span, div {
+      word-break: normal;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      -webkit-hyphens: none;
+      hyphens: none;
+    }
+    
+    /* Prevent awkward line breaks */
+    h1, h2, h3 {
+      line-height: 1.2;
+    }
+    
+    /* Allow certain elements to keep words together when possible */
+    .whitespace-nowrap,
+    [class*="whitespace-nowrap"] {
+      white-space: nowrap;
+    }
   }
 }

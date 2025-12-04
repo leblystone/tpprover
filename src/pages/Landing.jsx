@@ -32,7 +32,6 @@ import logo from '../assets/tpp_logo.png';
 import LandingTermsModal from '../components/legal/LandingTermsModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
 import LandingContactModal from '../components/legal/LandingContactModal';
-import IOSInstallBanner from '../components/landing/IOSInstallBanner';
 import { isNative } from '../utils/platform';
 
 export default function Landing() {
@@ -354,11 +353,6 @@ export default function Landing() {
                 </div>
               </div>
             </button>
-          </div>
-
-          {/* iOS Install Banner - Only shows on iOS */}
-          <div className="mt-8 max-w-3xl mx-auto">
-            <IOSInstallBanner />
           </div>
         </div>
       </section>
