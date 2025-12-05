@@ -6,6 +6,13 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(() => {
         if (value) {
+            // Parse YYYY-MM-DD string directly to avoid timezone issues
+            const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (match) {
+                const [, year, month] = match;
+                return new Date(parseInt(year), parseInt(month) - 1, 1);
+            }
+            // Fallback to Date parse if format doesn't match
             const date = new Date(value);
             return new Date(date.getFullYear(), date.getMonth(), 1);
         }
@@ -15,8 +22,16 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
     const buttonRef = useRef(null);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
-    // Parse value to Date object
-    const selectedDate = value ? new Date(value) : null;
+    // Parse value to Date object - parse YYYY-MM-DD string directly to avoid timezone issues
+    const selectedDate = value ? (() => {
+        const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (match) {
+            const [, year, month, day] = match;
+            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        }
+        // Fallback to Date parse if format doesn't match
+        return new Date(value);
+    })() : null;
 
     // Calculate dropdown position when opening and on scroll/resize
     const updatePosition = () => {
@@ -213,14 +228,31 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
     // Update currentMonth when value changes
     useEffect(() => {
         if (value) {
-            const date = new Date(value);
-            setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+            // Parse YYYY-MM-DD string directly to avoid timezone issues
+            const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (match) {
+                const [, year, month] = match;
+                setCurrentMonth(new Date(parseInt(year), parseInt(month) - 1, 1));
+            } else {
+                // Fallback to Date parse if format doesn't match
+                const date = new Date(value);
+                setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+            }
         }
     }, [value]);
 
     const formatDisplayDate = (dateString) => {
         if (!dateString) return placeholder;
-        const date = new Date(dateString);
+        // Parse YYYY-MM-DD string directly to avoid timezone issues
+        const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        let date;
+        if (match) {
+            const [, year, month, day] = match;
+            date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+            // Fallback to Date parse if format doesn't match
+            date = new Date(dateString);
+        }
         return date.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric', 
