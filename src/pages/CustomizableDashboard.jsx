@@ -210,13 +210,21 @@ export default function CustomizableDashboard() {
           );
           setScheduledBuys(upcoming.map(b => ({
             id: b.id,
-            name: b.item,
+            item: b.item, // CRITICAL: Preserve the item field for display
+            name: b.name || b.item, // Map for backward compatibility
+            peptideName: b.peptideName || b.item, // Map for backward compatibility
             date: b.openDate,
             openDate: b.openDate,
             closeDate: b.closeDate,
             vendor: b.vendor,
+            location: b.location,
+            participants: b.participants,
+            price: b.price,
             notes: b.notes,
-            isMock: b.isMock // Preserve isMock flag for filtering
+            description: b.description,
+            isMock: b.isMock, // Preserve isMock flag for filtering
+            createdAt: b.createdAt,
+            updatedAt: b.updatedAt
           })));
         } else {
           // If no data in localStorage, clear the state

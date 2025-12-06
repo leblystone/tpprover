@@ -54,9 +54,9 @@
 
 html, body {
   overflow-x: hidden;
-  overflow-y: hidden; /* Prevent body scroll - main content handles scrolling */
+  overflow-y: auto; /* Allow page scroll */
   max-width: 100vw;
-  height: 100%; /* Ensure full height */
+  height: auto; /* Allow natural height */
   /* Support viewport units that respect safe areas */
   min-height: 100vh;
   min-height: -webkit-fill-available;
@@ -64,10 +64,9 @@ html, body {
 
 /* Ensure full viewport height on iOS */
 #root {
-  height: 100%;
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  overflow: hidden; /* Prevent root from scrolling */
+  overflow: visible; /* Allow scroll to propagate */
 }
 
 /* Mobile and tablet-specific spacing overrides for dashboard */

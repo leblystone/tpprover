@@ -52,18 +52,65 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                 durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
             }
             
-            // Determine completion status
+            // Determine completion status based on planned vs actual duration
             let completionStatus = 'unknown';
             if (entry.endDate) {
-                if (entry.completionStatus === 'completed') {
-                    completionStatus = 'completed';
-                } else if (entry.completionStatus === 'ended_early') {
-                    completionStatus = 'ended_early';
-                } else if (entry.completionStatus === 'rescheduled') {
-                    completionStatus = 'rescheduled';
+                // First check if completionStatus is explicitly set
+                if (entry.completionStatus === 'completed' || entry.completionStatus === 'ended_early' || entry.completionStatus === 'rescheduled') {
+                    completionStatus = entry.completionStatus;
                 } else {
-                    // Infer from endType if available
-                    completionStatus = entry.endType === 'completed' ? 'completed' : 'ended_early';
+                    // Calculate expected duration from protocol data or protocol object
+                    let expectedDurationDays = null;
+                    const protocolData = entry.protocolData || {};
+                    let duration = protocolData.duration;
+                    
+                    // Fallback to protocol object if duration not in history entry
+                    if (!duration && protocol?.duration) {
+                        duration = protocol.duration;
+                    }
+                    
+                    if (duration && !duration.noEnd && duration.count > 0 && duration.unit) {
+                        const unit = String(duration.unit).toLowerCase();
+                        const count = Number(duration.count) || 0;
+                        
+                        if (unit.includes('day')) {
+                            expectedDurationDays = count;
+                        } else if (unit.includes('week')) {
+                            expectedDurationDays = count * 7;
+                        } else if (unit.includes('month')) {
+                            expectedDurationDays = count * 30; // Approximation
+                        }
+                    }
+                    
+                    // Compare actual vs expected duration
+                    if (expectedDurationDays !== null && durationDays > 0) {
+                        const diffDays = durationDays - expectedDurationDays;
+                        // Allow 2 day tolerance for "completed on time"
+                        if (Math.abs(diffDays) <= 2) {
+                            completionStatus = 'completed';
+                        } else if (diffDays < -2) {
+                            // Ended significantly early
+                            completionStatus = 'ended_early';
+                        } else {
+                            // Went over expected duration
+                            completionStatus = 'completed'; // Still consider it completed if it went over
+                        }
+                    } else {
+                        // Fallback to endType if we can't calculate
+                        if (entry.endType === 'completed') {
+                            completionStatus = 'completed';
+                        } else if (entry.endType === 'manual') {
+                            // Manual end without duration info - check if it seems early
+                            // If duration is very short (1-2 days) and no planned duration, likely a test/quick protocol
+                            if (durationDays <= 2) {
+                                completionStatus = 'completed'; // Short protocols are likely intentional
+                            } else {
+                                completionStatus = 'ended_early';
+                            }
+                        } else {
+                            completionStatus = 'ended_early';
+                        }
+                    }
                 }
             }
             
@@ -78,7 +125,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
         });
         
         return entries;
-    }, [historyEntries]);
+    }, [historyEntries, protocol]);
 
     const getStatusBadge = (status) => {
         switch (status) {
