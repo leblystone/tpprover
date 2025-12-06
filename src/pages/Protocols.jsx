@@ -333,11 +333,11 @@ export default function Protocols() {
 
   const filteredProtocols = React.useMemo(() => {
     if (!searchQuery) return protocols;
-    return protocols.filter(p => 
-      (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.purpose || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const query = searchQuery.toLowerCase();
+    return protocols.filter(p => {
+      const protocolName = (p.protocolName || p.name || '').toLowerCase();
+      return protocolName.includes(query);
+    });
   }, [protocols, searchQuery]);
 
   // Organize protocols: active first, then inactive (alphabetically sorted)
