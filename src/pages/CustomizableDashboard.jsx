@@ -44,6 +44,7 @@ import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/ord
 import { saveAppData } from '../services/cloudStorage';
 import { useFirebase } from '../context/FirebaseContext';
 import { recordDeletion } from '../utils/deletionTracking';
+import { generateId } from '../utils/string';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -1247,12 +1248,14 @@ export default function CustomizableDashboard() {
         theme={theme}
         buy={null}
         onSave={(buy) => {
+          const timestamp = new Date().toISOString();
           const newBuy = { 
             ...buy, 
-            id: buy.id || Date.now(),
+            id: buy.id || generateId(),
             name: buy.item, // Map item to name for display
             peptideName: buy.item, // Also set peptideName for backward compatibility
-            createdAt: new Date().toISOString()
+            createdAt: buy.createdAt || timestamp,
+            updatedAt: timestamp
           };
           
           // Update state

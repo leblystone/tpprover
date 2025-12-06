@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import { formatMMDDYYYY, getLocalDateString } from '../utils/date'
@@ -269,13 +269,13 @@ export default function Protocols() {
     }
   }
 
-  const handleAddClick = () => {
+  const handleAddClick = useCallback(() => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
       return;
     }
     setOpenAdd(true);
-  };
+  }, [isReadOnly]);
 
   const handleEditClick = (protocol) => {
     if (isReadOnly) {
@@ -329,7 +329,7 @@ export default function Protocols() {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
       window.removeEventListener('tpp:protocols-search', handleSearch);
     };
-  }, [activeTab, isReadOnly]);
+  }, [activeTab, isReadOnly, handleAddClick]);
 
   const filteredProtocols = React.useMemo(() => {
     if (!searchQuery) return protocols;

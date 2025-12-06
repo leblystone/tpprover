@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send } from 'lucide-react';
+import { createAdminMessage, createSupportTicket } from '../../services/firebase';
 
 export default function UserDetailModal({
   user,
@@ -7,7 +8,8 @@ export default function UserDetailModal({
   theme: enhancedTheme,
   onExtendTrial,
   isExtendingTrial = false,
-  isLoadingDetails = false
+  isLoadingDetails = false,
+  adminPassword = null
 }) {
   // Safety check
   if (!user) {
@@ -32,6 +34,14 @@ export default function UserDetailModal({
   const [extensionNote, setExtensionNote] = useState('');
   const [localMessage, setLocalMessage] = useState(null);
   const [localMessageType, setLocalMessageType] = useState('success');
+  
+  // Support response state
+  const [showOneWayModal, setShowOneWayModal] = useState(false);
+  const [showTwoWayModal, setShowTwoWayModal] = useState(false);
+  const [oneWayMessage, setOneWayMessage] = useState('');
+  const [twoWayMessage, setTwoWayMessage] = useState('');
+  const [twoWaySubject, setTwoWaySubject] = useState('');
+  const [isSendingSupport, setIsSendingSupport] = useState(false);
 
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
 
@@ -162,6 +172,86 @@ export default function UserDetailModal({
     } catch (error) {
       setLocalMessage(error.message || 'Unable to extend the research trial right now.');
       setLocalMessageType('error');
+    }
+  };
+
+  const handleSendOneWayMessage = async () => {
+    if (!oneWayMessage.trim() || !user?.email || !adminPassword) {
+      setLocalMessage('Please enter a message and ensure admin password is set.');
+      setLocalMessageType('error');
+      return;
+    }
+
+    setIsSendingSupport(true);
+    setLocalMessage(null);
+    
+    try {
+      await createAdminMessage(user.email, oneWayMessage.trim(), adminPassword);
+      setLocalMessage('One-way support message sent successfully! 📨');
+      setLocalMessageType('success');
+      setOneWayMessage('');
+      setShowOneWayModal(false);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'One-way message sent! The user will see it in their dashboard.', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('❌ Failed to send one-way message:', error);
+      setLocalMessage(error.message || 'Failed to send message. Please try again.');
+      setLocalMessageType('error');
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to send message', type: 'error' }
+      }));
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
+
+  const handleSendTwoWayMessage = async () => {
+    if (!twoWayMessage.trim() || !twoWaySubject.trim() || !user?.email) {
+      setLocalMessage('Please enter both a subject and message.');
+      setLocalMessageType('error');
+      return;
+    }
+
+    setIsSendingSupport(true);
+    setLocalMessage(null);
+    
+    try {
+      await createSupportTicket({
+        userId: user.uid || user.id || null,
+        userEmail: user.email,
+        userName: user.displayName || user.email?.split('@')[0] || 'App User',
+        type: 'support',
+        subject: twoWaySubject.trim(),
+        message: twoWayMessage.trim(),
+        metadata: {
+          createdBy: 'admin',
+          userAgent: 'Admin Panel',
+          url: window.location.href
+        }
+      });
+      
+      setLocalMessage('Two-way support ticket created successfully! 🎫');
+      setLocalMessageType('success');
+      setTwoWayMessage('');
+      setTwoWaySubject('');
+      setShowTwoWayModal(false);
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Support ticket created! The user can now respond.', type: 'success' }
+      }));
+    } catch (error) {
+      console.error('❌ Failed to create support ticket:', error);
+      setLocalMessage(error.message || 'Failed to create ticket. Please try again.');
+      setLocalMessageType('error');
+      
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to create ticket', type: 'error' }
+      }));
+    } finally {
+      setIsSendingSupport(false);
     }
   };
 
@@ -551,7 +641,227 @@ export default function UserDetailModal({
               </div>
               <h4 className="font-bold" style={{ color: enhancedTheme.primaryDark }}>Emergency Actions</h4>
             </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* One-Way Support Response Button */}
+              <button
+                onClick={() => setShowOneWayModal(true)}
+                className="p-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                style={{ 
+                  backgroundColor: enhancedTheme.info,
+                  color: '#FFFFFF',
+                  boxShadow: `0 4px 15px ${enhancedTheme.info}30`
+                }}
+              >
+                <MessageSquare size={18} />
+                Send One-Way Message
+              </button>
+              
+              {/* Two-Way Support Response Button */}
+              <button
+                onClick={() => setShowTwoWayModal(true)}
+                className="p-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                style={{ 
+                  backgroundColor: enhancedTheme.primary,
+                  color: enhancedTheme.textOnPrimary || '#FFFFFF',
+                  boxShadow: `0 4px 15px ${enhancedTheme.primary}30`
+                }}
+              >
+                <Send size={18} />
+                Open Support Ticket
+              </button>
+            </div>
           </div>
+          
+          {/* One-Way Message Modal */}
+          {showOneWayModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg relative"
+                style={{ 
+                  backgroundColor: enhancedTheme.cardBackground,
+                  border: `1px solid ${enhancedTheme.border}`
+                }}>
+                <div className="p-6 border-b flex justify-between items-center"
+                  style={{ borderColor: enhancedTheme.border }}>
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={20} style={{ color: enhancedTheme.info }} />
+                    <h3 className="text-lg font-bold" style={{ color: enhancedTheme.primaryDark }}>
+                      Send One-Way Message
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowOneWayModal(false);
+                      setOneWayMessage('');
+                    }}
+                    className="p-2 rounded-lg hover:opacity-70"
+                    style={{ backgroundColor: enhancedTheme.background }}
+                  >
+                    <X size={18} style={{ color: enhancedTheme.textLight }} />
+                  </button>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: enhancedTheme.text }}>
+                      Message to {user.email}
+                    </label>
+                    <textarea
+                      value={oneWayMessage}
+                      onChange={(e) => setOneWayMessage(e.target.value)}
+                      rows={6}
+                      className="w-full p-3 rounded-lg border text-sm"
+                      style={{ 
+                        borderColor: enhancedTheme.border, 
+                        backgroundColor: enhancedTheme.background, 
+                        color: enhancedTheme.text 
+                      }}
+                      placeholder="Type your message here. This will appear as a 'From the Team🥼' notification in the user's dashboard."
+                    />
+                    <p className="text-xs mt-2" style={{ color: enhancedTheme.textLight }}>
+                      This is a one-way message. The user will see it in their dashboard but cannot reply directly.
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        setShowOneWayModal(false);
+                        setOneWayMessage('');
+                      }}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold border"
+                      style={{ borderColor: enhancedTheme.border, color: enhancedTheme.text }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSendOneWayMessage}
+                      disabled={!oneWayMessage.trim() || isSendingSupport}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      style={{ backgroundColor: enhancedTheme.info, color: '#FFFFFF' }}
+                    >
+                      {isSendingSupport ? (
+                        <>
+                          <Loader size={14} className="animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={14} />
+                          Send Message
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Two-Way Support Ticket Modal */}
+          {showTwoWayModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg relative"
+                style={{ 
+                  backgroundColor: enhancedTheme.cardBackground,
+                  border: `1px solid ${enhancedTheme.border}`
+                }}>
+                <div className="p-6 border-b flex justify-between items-center"
+                  style={{ borderColor: enhancedTheme.border }}>
+                  <div className="flex items-center gap-2">
+                    <Send size={20} style={{ color: enhancedTheme.primary }} />
+                    <h3 className="text-lg font-bold" style={{ color: enhancedTheme.primaryDark }}>
+                      Open Support Ticket
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowTwoWayModal(false);
+                      setTwoWayMessage('');
+                      setTwoWaySubject('');
+                    }}
+                    className="p-2 rounded-lg hover:opacity-70"
+                    style={{ backgroundColor: enhancedTheme.background }}
+                  >
+                    <X size={18} style={{ color: enhancedTheme.textLight }} />
+                  </button>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: enhancedTheme.text }}>
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={twoWaySubject}
+                      onChange={(e) => setTwoWaySubject(e.target.value)}
+                      className="w-full p-3 rounded-lg border text-sm"
+                      style={{ 
+                        borderColor: enhancedTheme.border, 
+                        backgroundColor: enhancedTheme.background, 
+                        color: enhancedTheme.text 
+                      }}
+                      placeholder="e.g., Account Question, Feature Request, etc."
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: enhancedTheme.text }}>
+                      Initial Message
+                    </label>
+                    <textarea
+                      value={twoWayMessage}
+                      onChange={(e) => setTwoWayMessage(e.target.value)}
+                      rows={6}
+                      className="w-full p-3 rounded-lg border text-sm"
+                      style={{ 
+                        borderColor: enhancedTheme.border, 
+                        backgroundColor: enhancedTheme.background, 
+                        color: enhancedTheme.text 
+                      }}
+                      placeholder="Type your initial message here. The user will be able to reply to this ticket."
+                    />
+                    <p className="text-xs mt-2" style={{ color: enhancedTheme.textLight }}>
+                      This creates a support ticket that allows two-way conversation. The user can respond to your message.
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        setShowTwoWayModal(false);
+                        setTwoWayMessage('');
+                        setTwoWaySubject('');
+                      }}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold border"
+                      style={{ borderColor: enhancedTheme.border, color: enhancedTheme.text }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSendTwoWayMessage}
+                      disabled={!twoWayMessage.trim() || !twoWaySubject.trim() || isSendingSupport}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      style={{ backgroundColor: enhancedTheme.primary, color: enhancedTheme.textOnPrimary || '#FFFFFF' }}
+                    >
+                      {isSendingSupport ? (
+                        <>
+                          <Loader size={14} className="animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={14} />
+                          Create Ticket
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

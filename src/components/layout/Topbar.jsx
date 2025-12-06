@@ -73,28 +73,181 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             return false;
           }
           
-          // Show if unread (userReadAt is null or doesn't exist)
-          if (!ticket.userReadAt || ticket.userReadAt === null) {
+          const now = new Date();
+          const twentyFourHoursAgo = now.getTime() - (24 * 60 * 60 * 1000);
+          
+          // Helper to convert Firestore Timestamp to Date
+          const convertTimestamp = (timestamp) => {
+            if (!timestamp) return null;
+            try {
+              if (timestamp?.toDate) {
+                return timestamp.toDate();
+              } else if (timestamp?.toMillis) {
+                return new Date(timestamp.toMillis());
+              } else if (timestamp instanceof Date) {
+                return timestamp;
+              } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+                return new Date(timestamp);
+              } else {
+                return new Date(timestamp);
+              }
+            } catch (error) {
+              console.warn('⚠️ Error converting timestamp:', error, timestamp);
+              return null;
+            }
+          };
+          
+          // Check closedAt timestamp - if closed more than 24 hours ago, hide it
+          let closedAt = convertTimestamp(ticket.closedAt);
+          const updatedAt = convertTimestamp(ticket.updatedAt);
+          const readAt = convertTimestamp(ticket.userReadAt);
+          
+          // If no closedAt, we need to be smart about using updatedAt
+          // updatedAt gets updated when ticket is read, so we can't trust it if readAt is more recent
+          if ((!closedAt || isNaN(closedAt.getTime())) && (ticket.status === 'closed' || ticket.status === 'resolved')) {
+            // Only use updatedAt if it's older than userReadAt (meaning it wasn't updated when read)
+            // OR if there's no userReadAt
+            if (updatedAt && !isNaN(updatedAt.getTime())) {
+              if (!readAt || isNaN(readAt.getTime()) || updatedAt.getTime() < readAt.getTime()) {
+                // updatedAt is valid and predates the read, so it likely represents when ticket was closed
+                closedAt = updatedAt;
+              }
+            }
+          }
+          
+          // If still no closedAt, use createdAt as last resort (ticket creation time)
+          // This handles edge cases where tickets don't have proper timestamps
+          if ((!closedAt || isNaN(closedAt.getTime())) && (ticket.status === 'closed' || ticket.status === 'resolved')) {
+            const createdAt = convertTimestamp(ticket.createdAt);
+            if (createdAt && !isNaN(createdAt.getTime())) {
+              closedAt = createdAt;
+            }
+          }
+          
+          // Primary check: if we have a closedAt timestamp, use it
+          if (closedAt && !isNaN(closedAt.getTime())) {
+            const hoursSinceClosed = (now.getTime() - closedAt.getTime()) / (1000 * 60 * 60);
+            // If closed more than 24 hours ago, hide it regardless of read status
+            if (hoursSinceClosed >= 24) {
+              return false;
+            }
+          }
+          
+          // If no closedAt timestamp, we need to be more careful
+          // If userReadAt exists and is > 24h ago, ticket was definitely closed > 24h ago (closed before read)
+          // If userReadAt is recent, we can't determine closure time reliably, so hide it
+          if ((!closedAt || isNaN(closedAt.getTime()))) {
+            if (!readAt || isNaN(readAt.getTime())) {
+              // No read timestamp - can't determine closure time, hide it
+              console.warn('⚠️ Ticket has no closedAt and no userReadAt, hiding:', ticket.id);
+              return false;
+            }
+            
+            // Use readAt as proxy: if ticket was read > 24h ago, it was closed > 24h ago
+            // If read recently, we can't tell when it was closed, so hide it to be safe
+            const hoursSinceRead = (now.getTime() - readAt.getTime()) / (1000 * 60 * 60);
+            if (hoursSinceRead >= 24) {
+              // Read more than 24 hours ago - ticket was definitely closed > 24h ago
+              return false;
+            }
+            
+            // Read within last 24 hours, but we don't know when it was closed
+            // To prevent indefinite display of old tickets, hide it if we can't determine closure time
+            // Only show if we have updatedAt that predates the read (indicating closure before read)
+            if (updatedAt && !isNaN(updatedAt.getTime()) && updatedAt.getTime() < readAt.getTime()) {
+              // updatedAt predates readAt, so it likely represents closure time
+              const hoursSinceUpdated = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+              if (hoursSinceUpdated >= 24) {
+                return false; // Closed more than 24h ago
+              }
+              return true; // Closed within 24h
+            }
+            
+            // Can't reliably determine closure time - hide it
+            console.warn('⚠️ Ticket has no closedAt and updatedAt is not reliable, hiding:', ticket.id);
+            return false;
+          }
+          
+          // We have a valid closedAt and it's within 24 hours
+          // Show if unread OR read within last 24 hours
+          if (!readAt || isNaN(readAt.getTime())) {
+            // Ticket was closed within 24 hours and is unread - show it
             return true;
           }
           
-          // Show if read within last 24 hours
-          const readAt = ticket.userReadAt?.toDate ? ticket.userReadAt.toDate() : new Date(ticket.userReadAt);
-          const now = new Date();
-          const hoursSinceRead = (now - readAt) / (1000 * 60 * 60);
-          
-          return hoursSinceRead < 24;
+          // Ticket was closed within 24 hours - show it regardless of read status
+          // (The 24-hour timer is based on closure, not read time)
+          return true;
         };
         
         // Find tickets to show: open tickets OR closed tickets that meet criteria
-        const visibleTicket = tickets.find(t => {
+        let visibleTicket = null;
+        let foundOpenTicket = false;
+        
+        for (const t of tickets) {
           // Always show open tickets
           if (t.status === 'new' || t.status === 'in-progress') {
-            return true;
+            visibleTicket = t;
+            foundOpenTicket = true;
+            console.log('✅ Showing open ticket:', { id: t.id, status: t.status });
+            break; // Open tickets take priority
           }
-          // Show closed tickets if unread or read within 24 hours
-          return shouldShowClosedTicket(t);
-        });
+          
+          // Check closed tickets
+          const shouldShow = shouldShowClosedTicket(t);
+          
+          // Debug logging for closed tickets
+          if (t.status === 'closed' || t.status === 'resolved') {
+            const closedAt = t.closedAt?.toDate ? t.closedAt.toDate() : (t.closedAt?.toMillis ? new Date(t.closedAt.toMillis()) : null);
+            const readAt = t.userReadAt?.toDate ? t.userReadAt.toDate() : (t.userReadAt?.toMillis ? new Date(t.userReadAt.toMillis()) : null);
+            const updatedAt = t.updatedAt?.toDate ? t.updatedAt.toDate() : (t.updatedAt?.toMillis ? new Date(t.updatedAt.toMillis()) : null);
+            const now = new Date();
+            const hoursSinceClosed = closedAt ? (now.getTime() - closedAt.getTime()) / (1000 * 60 * 60) : null;
+            const hoursSinceRead = readAt ? (now.getTime() - readAt.getTime()) / (1000 * 60 * 60) : null;
+            const hoursSinceUpdated = updatedAt ? (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60) : null;
+            
+            if (shouldShow) {
+              console.log('✅ Showing closed ticket:', {
+                id: t.id,
+                status: t.status,
+                closedAt: closedAt?.toISOString() || 'undefined',
+                userReadAt: readAt?.toISOString() || 'undefined',
+                updatedAt: updatedAt?.toISOString() || 'undefined',
+                hoursSinceClosed: hoursSinceClosed?.toFixed(2) || 'N/A',
+                hoursSinceRead: hoursSinceRead?.toFixed(2) || 'N/A',
+                hoursSinceUpdated: hoursSinceUpdated?.toFixed(2) || 'N/A',
+                rawClosedAt: t.closedAt,
+                rawUserReadAt: t.userReadAt,
+                rawUpdatedAt: t.updatedAt
+              });
+              if (!visibleTicket) {
+                visibleTicket = t; // Use first visible closed ticket
+              }
+            } else {
+              console.log('🚫 Hiding closed ticket:', {
+                id: t.id,
+                status: t.status,
+                closedAt: closedAt?.toISOString() || 'undefined',
+                userReadAt: readAt?.toISOString() || 'undefined',
+                updatedAt: updatedAt?.toISOString() || 'undefined',
+                hoursSinceClosed: hoursSinceClosed?.toFixed(2) || 'N/A',
+                hoursSinceRead: hoursSinceRead?.toFixed(2) || 'N/A',
+                hoursSinceUpdated: hoursSinceUpdated?.toFixed(2) || 'N/A'
+              });
+            }
+          }
+        }
+        
+        // Summary log
+        if (visibleTicket) {
+          console.log('📌 Support response visible:', { 
+            id: visibleTicket.id, 
+            status: visibleTicket.status,
+            isOpen: foundOpenTicket
+          });
+        } else {
+          console.log('✅ No support response to show (all tickets filtered out)');
+        }
         
         setOpenTicket(visibleTicket || null);
         
@@ -233,9 +386,25 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
         <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
           {/* Mobile Menu Button - back on left side for consistency */}
           <button 
-            onClick={onMenuClick} 
-            className="lg:hidden no-shadow p-2" 
-            style={{ color: theme.text }}
+            type="button"
+            onMouseDown={(e) => {
+              // Prevent blur events on mobile
+              e.preventDefault();
+            }}
+            onTouchStart={(e) => {
+              // Prevent blur events on touch devices
+              e.preventDefault();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onMenuClick();
+            }}
+            className="lg:hidden no-shadow p-2 touch-manipulation" 
+            style={{ 
+              color: theme.text,
+              WebkitTapHighlightColor: 'transparent'
+            }}
             aria-label="Open navigation menu"
             aria-expanded="false"
           >
@@ -249,8 +418,21 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             {tabs.map(tab => (
               <button
                 key={tab.value}
-                onClick={() => onTabChange(tab.value)}
-                className={`px-3 py-1.5 text-xs uppercase tracking-tight rounded-lg transition-all duration-200 relative whitespace-nowrap ${
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onTabChange(tab.value);
+                }}
+                className={`px-3 py-1.5 text-xs uppercase tracking-tight rounded-lg transition-all duration-200 relative whitespace-nowrap touch-manipulation ${
                   activeTab === tab.value 
                     ? 'shadow-sm' 
                     : 'hover:bg-gray-800 hover:text-white hover:shadow'
@@ -258,7 +440,8 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 style={{
                   backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
                   color: activeTab === tab.value ? theme.primary : theme.textLight,
-                  fontWeight: activeTab === tab.value ? 600 : 500
+                  fontWeight: activeTab === tab.value ? 600 : 500,
+                  WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {tab.label}
@@ -279,14 +462,28 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             )}
             {onActionClick && (
               <button 
-                className="p-1.5 md:p-2 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200" 
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onActionClick();
+                }}
+                className="p-1.5 md:p-2 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 touch-manipulation" 
                 style={{ 
                   color: actionDisabled ? theme.textLight : '#ffffff', 
                   backgroundColor: actionDisabled ? theme.textLight : theme.primary,
                   opacity: actionDisabled ? 0.6 : 1,
-                  cursor: actionDisabled ? 'not-allowed' : 'pointer'
+                  cursor: actionDisabled ? 'not-allowed' : 'pointer',
+                  WebkitTapHighlightColor: 'transparent'
                 }} 
-                onClick={onActionClick}
                 disabled={actionDisabled}
                 title="Add New"
               >
@@ -320,8 +517,21 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
             {tabs.map(tab => (
               <button
                 key={tab.value}
-                onClick={() => onTabChange(tab.value)}
-                className={`px-1.5 py-0.5 text-[10px] uppercase tracking-tighter rounded-lg transition-all duration-200 relative whitespace-nowrap flex-shrink-0 ${
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onTabChange(tab.value);
+                }}
+                className={`px-1.5 py-0.5 text-[10px] uppercase tracking-tighter rounded-lg transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation ${
                   activeTab === tab.value 
                     ? 'shadow-sm' 
                     : 'hover:opacity-80'
@@ -329,7 +539,8 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 style={{
                   backgroundColor: activeTab === tab.value ? `${theme.primary}20` : 'transparent',
                   color: activeTab === tab.value ? theme.primary : theme.textLight,
-                  fontWeight: activeTab === tab.value ? 600 : 500
+                  fontWeight: activeTab === tab.value ? 600 : 500,
+                  WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {tab.label}
@@ -349,14 +560,28 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {/* Mobile Add button - positioned in right container to avoid cutoff */}
           {tabs && tabs.length > 0 && onActionClick && (
             <button 
-              className="lg:hidden p-1.5 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 flex-shrink-0" 
+              type="button"
+              onMouseDown={(e) => {
+                // Prevent blur events on mobile
+                e.preventDefault();
+              }}
+              onTouchStart={(e) => {
+                // Prevent blur events on touch devices
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onActionClick();
+              }}
+              className="lg:hidden p-1.5 rounded-lg hover:opacity-90 hover:shadow transition-all duration-200 flex-shrink-0 touch-manipulation" 
               style={{ 
                 color: actionDisabled ? theme.textLight : '#ffffff', 
                 backgroundColor: actionDisabled ? theme.textLight : theme.primary,
                 opacity: actionDisabled ? 0.6 : 1,
-                cursor: actionDisabled ? 'not-allowed' : 'pointer'
+                cursor: actionDisabled ? 'not-allowed' : 'pointer',
+                WebkitTapHighlightColor: 'transparent'
               }} 
-              onClick={onActionClick}
               disabled={actionDisabled}
               title="Add New"
             >
@@ -372,8 +597,21 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {/* Admin Message Chip - Only show on dashboard, appears first (before support response) - Personal Alert Style */}
           {onDashboard && adminMessage && (
               <button
-                onClick={() => setShowAdminMessage(true)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowAdminMessage(true);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 touch-manipulation ${
                   hasUnreadAdminMessage ? 'animate-breathe' : ''
                 }`}
               style={{
@@ -381,7 +619,8 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                   ? (theme.primary || '#6366F1') 
                   : `${theme.primary || '#6366F1'}80`,
                 color: '#FFFFFF',
-                boxShadow: hasUnreadAdminMessage ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none'
+                boxShadow: hasUnreadAdminMessage ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none',
+                WebkitTapHighlightColor: 'transparent'
               }}
               >
                 <span className="whitespace-nowrap flex items-center gap-1">
@@ -393,14 +632,28 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           {/* Support Response Chip - Only show on dashboard, appears after admin message */}
           {onDashboard && openTicket && (
               <button
-                onClick={() => setShowSupportChat(true)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowSupportChat(true);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 touch-manipulation ${
                   hasUnreadResponse ? 'animate-sway' : ''
                 }`}
               style={{
                 backgroundColor: hasUnreadResponse ? '#B8704C' : '#B8704C80',
                 color: '#FFFFFF',
-                boxShadow: hasUnreadResponse ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none'
+                boxShadow: hasUnreadResponse ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none',
+                WebkitTapHighlightColor: 'transparent'
               }}
               >
                 <span className="whitespace-nowrap">Support Response</span>
@@ -470,14 +723,28 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           */}
           {onDashboard && onDashboardCustomize && (
               <button 
-                className={`p-1.5 lg:p-2 rounded-full no-shadow transition-all duration-200 ${
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDashboardCustomize();
+                }}
+                className={`p-1.5 lg:p-2 rounded-full no-shadow transition-all duration-200 touch-manipulation ${
                   customizingState ? 'ring-2 ring-opacity-50' : ''
                 }`}
-                onClick={onDashboardCustomize}
                 style={{ 
                   color: theme.text,
                   backgroundColor: customizingState ? theme.primary : 'transparent',
-                  ringColor: customizingState ? theme.primary : 'transparent'
+                  ringColor: customizingState ? theme.primary : 'transparent',
+                  WebkitTapHighlightColor: 'transparent'
                 }}
                 aria-label={customizingState ? "Done editing dashboard" : "Customize dashboard"}
               >

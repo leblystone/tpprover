@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
+import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers'
 import pwaNotificationService from '../services/pwaNotifications'
 import { Capacitor } from '@capacitor/core'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
@@ -99,7 +99,14 @@ export default function SettingsNotifications() {
     };
   }, []);
 
-  const update = (path, value) => {
+  // Sync notification settings to Firestore on component load
+  useEffect(() => {
+    if (firebaseUser) {
+      syncNotificationSettingsToFirestore();
+    }
+  }, [firebaseUser]);
+
+  const update = async (path, value) => {
     const next = { ...settings }
     const segs = path.split('.')
     let ref = next
@@ -114,6 +121,11 @@ export default function SettingsNotifications() {
     ref[segs[segs.length - 1]] = value
     setSettings(next)
     saveSettings(next)
+    
+    // Sync notification settings to Firestore when they change
+    if (path.startsWith('notifications.')) {
+      await syncNotificationSettingsToFirestore();
+    }
   }
 
   // Handle PWA notification toggle
@@ -178,7 +190,7 @@ export default function SettingsNotifications() {
   };
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 w-full min-h-full">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -195,7 +207,7 @@ export default function SettingsNotifications() {
       </div>
 
       {/* Notification Settings */}
-      <div className="space-y-4">
+      <div className="space-y-4 pb-4">
         {/* Master Control */}
         <div 
           className="p-4 rounded-lg space-y-3"

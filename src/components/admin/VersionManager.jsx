@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, addDoc, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { useFirebase } from '../../context/FirebaseContext';
+import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, Info, History, Clock } from 'lucide-react';
 
 export default function VersionManager({ theme }) {
+  const { firebaseUser } = useFirebase();
   const [config, setConfig] = useState({
     latestVersion: '1.0.4',
     minimumVersion: '1.0.0',
@@ -16,10 +18,18 @@ export default function VersionManager({ theme }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  const [versionHistory, setVersionHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   useEffect(() => {
     loadVersionConfig();
+    loadVersionHistory();
   }, []);
+
+  useEffect(() => {
+    loadVersionHistory();
+  }, [showAllHistory]);
 
   const loadVersionConfig = async () => {
     try {
@@ -34,6 +44,29 @@ export default function VersionManager({ theme }) {
       setMessage({ type: 'error', text: 'Failed to load version config' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadVersionHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const historyQuery = query(
+        collection(db, 'versionUpdateHistory'),
+        orderBy('createdAt', 'desc'),
+        limit(showAllHistory ? 100 : 20) // Show last 20 or 100 updates
+      );
+      const snapshot = await getDocs(historyQuery);
+      const history = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt)
+      }));
+      setVersionHistory(history);
+    } catch (error) {
+      console.error('Error loading version history:', error);
+      setMessage({ type: 'error', text: 'Failed to load version history' });
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -58,6 +91,26 @@ export default function VersionManager({ theme }) {
         ...config,
         updatedAt: new Date().toISOString()
       });
+      
+      // Log to version update history
+      try {
+        const adminEmail = firebaseUser?.email || 'unknown@admin.com';
+        await addDoc(collection(db, 'versionUpdateHistory'), {
+          latestVersion: config.latestVersion,
+          minimumVersion: config.minimumVersion || null,
+          releaseNotes: config.releaseNotes || '',
+          storeUrls: config.storeUrls || {},
+          createdBy: adminEmail,
+          createdAt: Timestamp.now(),
+          updatedAt: new Date().toISOString()
+        });
+        
+        // Reload history to show the new entry
+        await loadVersionHistory();
+      } catch (historyError) {
+        console.error('Error logging version update history:', historyError);
+        // Don't fail the save if history logging fails
+      }
       
       setMessage({ type: 'success', text: 'Version config saved successfully!' });
       
@@ -325,6 +378,179 @@ export default function VersionManager({ theme }) {
             </p>
           )}
         </div>
+      </div>
+
+      {/* Version Update History */}
+      <div
+        className="rounded-lg p-6"
+        style={{
+          background: theme.cardBackground,
+          border: `1px solid ${theme.border}`
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <History size={20} style={{ color: theme.primary }} />
+            <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+              Version Configuration History
+            </h3>
+            {versionHistory.length > 0 && (
+              <span 
+                className="text-xs px-2 py-1 rounded-full font-medium"
+                style={{ 
+                  background: theme.primary + '20',
+                  color: theme.primary 
+                }}
+              >
+                {versionHistory.length} {versionHistory.length === 1 ? 'entry' : 'entries'}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAllHistory(!showAllHistory)}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium hover:opacity-80 transition-opacity"
+              style={{
+                background: theme.background,
+                color: theme.text,
+                border: `1px solid ${theme.border}`
+              }}
+            >
+              {showAllHistory ? 'Show Recent (20)' : 'Show All'}
+            </button>
+            <button
+              onClick={loadVersionHistory}
+              disabled={loadingHistory}
+              className="p-1.5 rounded-lg hover:opacity-80 transition-opacity"
+              style={{
+                background: theme.background,
+                color: theme.primary,
+                border: `1px solid ${theme.border}`
+              }}
+              title="Refresh history"
+            >
+              <RefreshCw size={16} className={loadingHistory ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        </div>
+        
+        {loadingHistory ? (
+          <div className="flex items-center justify-center py-8">
+            <RefreshCw className="animate-spin" size={20} style={{ color: theme.primary }} />
+            <span className="ml-2 text-sm" style={{ color: theme.textLight }}>Loading history...</span>
+          </div>
+        ) : versionHistory.length === 0 ? (
+          <div className="text-center py-8">
+            <History size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+            <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>
+              No version configuration history yet
+            </p>
+            <p className="text-xs" style={{ color: theme.textLight }}>
+              History will appear here after you save version configurations
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {versionHistory.map((entry, index) => (
+              <div
+                key={entry.id}
+                className="rounded-lg p-4 hover:shadow-md transition-shadow"
+                style={{
+                  background: theme.background,
+                  border: `1px solid ${theme.border}`,
+                  borderLeft: `4px solid ${theme.primary}`
+                }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-base font-bold" style={{ color: theme.primary }}>
+                      v{entry.latestVersion}
+                    </span>
+                    {entry.minimumVersion && (
+                      <span className="text-xs px-2 py-1 rounded font-medium" style={{ 
+                        background: '#fee2e2', 
+                        color: '#991b1b',
+                        border: '1px solid #fecaca'
+                      }}>
+                        Min: v{entry.minimumVersion}
+                      </span>
+                    )}
+                    {index === 0 && (
+                      <span className="text-xs px-2 py-1 rounded font-medium" style={{ 
+                        background: '#d1fae5', 
+                        color: '#065f46',
+                        border: '1px solid #a7f3d0'
+                      }}>
+                        Latest
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: theme.textLight }}>
+                    <Clock size={14} />
+                    <span>
+                      {entry.createdAt?.toLocaleString ? 
+                        entry.createdAt.toLocaleString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 
+                        new Date(entry.createdAt).toLocaleString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                    </span>
+                  </div>
+                </div>
+                
+                {entry.releaseNotes && (
+                  <div className="mb-3 p-3 rounded" style={{ background: theme.cardBackground }}>
+                    <p className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: theme.textLight }}>
+                      Release Notes:
+                    </p>
+                    <p className="text-sm whitespace-pre-line leading-relaxed" style={{ color: theme.text }}>
+                      {entry.releaseNotes}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${theme.border}` }}>
+                  <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
+                    <span>
+                      <strong>Updated by:</strong> {entry.createdBy || 'Unknown'}
+                    </span>
+                    {entry.storeUrls?.android && (
+                      <a
+                        href={entry.storeUrls.android}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline font-medium"
+                        style={{ color: theme.primary }}
+                      >
+                        View on Play Store →
+                      </a>
+                    )}
+                    {entry.storeUrls?.ios && (
+                      <a
+                        href={entry.storeUrls.ios}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline font-medium"
+                        style={{ color: theme.primary }}
+                      >
+                        View on App Store →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

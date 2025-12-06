@@ -381,6 +381,8 @@ exports.scheduledResearchReminders = onSchedule({
         .get();
 
       const todayTasks = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of day for comparison
       
       for (const protocolDoc of protocolsSnapshot.docs) {
         const protocol = protocolDoc.data();
@@ -388,7 +390,9 @@ exports.scheduledResearchReminders = onSchedule({
         // Check if protocol is active today
         if (protocol.startDate && protocol.endDate) {
           const startDate = new Date(protocol.startDate);
+          startDate.setHours(0, 0, 0, 0);
           const endDate = new Date(protocol.endDate);
+          endDate.setHours(23, 59, 59, 999);
           
           if (today >= startDate && today <= endDate) {
             // Add protocol tasks to today's list
@@ -546,6 +550,134 @@ exports.sendTestNotification = onCall(async (request) => {
   };
 
   return pushNotifications.sendPushNotificationByType(userId, type, notificationData);
+});
+
+/**
+ * Test function to manually trigger research reminders
+ * Useful for testing without waiting for the scheduled time
+ */
+exports.testResearchReminders = onCall(async (request) => {
+  // Verify user is authenticated
+  if (!request.auth) {
+    throw new Error('User must be authenticated');
+  }
+
+  // Check if user is admin (optional - remove if you want any user to test)
+  const adminEmail = 'lebrockmaldonado@gmail.com';
+  const userEmail = request.auth.token.email;
+  
+  if (userEmail !== adminEmail) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+
+  logger.info('🧪 Manually triggering research reminders test...');
+
+  try {
+    const now = new Date();
+    
+    // Get all users who have notifications enabled
+    const usersSnapshot = await admin.firestore()
+      .collection('users')
+      .where('notificationSettings.researchReminders', '==', true)
+      .get();
+
+    logger.info(`📋 Found ${usersSnapshot.size} users with research reminders enabled`);
+
+    const promises = [];
+    const results = [];
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+      
+      // Get user's timezone settings (default to America/New_York if not set)
+      const userSettings = userData.settings || {};
+      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
+      
+      logger.info(`⏰ Checking user ${userId} in timezone ${userTimezone}`);
+      
+      // Get user's protocols and check for scheduled tasks today
+      const protocolsSnapshot = await admin.firestore()
+        .collection('userdata')
+        .doc(userId)
+        .collection('protocols')
+        .get();
+
+      const todayTasks = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      for (const protocolDoc of protocolsSnapshot.docs) {
+        const protocol = protocolDoc.data();
+        
+        // Check if protocol is active today
+        if (protocol.startDate && protocol.endDate) {
+          const startDate = new Date(protocol.startDate);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = new Date(protocol.endDate);
+          endDate.setHours(23, 59, 59, 999);
+          
+          if (today >= startDate && today <= endDate) {
+            // Add protocol tasks to today's list
+            if (protocol.peptides) {
+              protocol.peptides.forEach(peptide => {
+                if (peptide.frequency && peptide.frequency.time) {
+                  peptide.frequency.time.forEach(time => {
+                    todayTasks.push({
+                      name: peptide.name || 'Peptide',
+                      dose: peptide.dosage?.amount || '',
+                      unit: peptide.dosage?.unit || 'mcg',
+                      time: time
+                    });
+                  });
+                }
+              });
+            }
+          }
+        }
+      }
+
+      // Send reminder if there are tasks today (skip timezone check for testing)
+      if (todayTasks.length > 0) {
+        const notificationData = {
+          title: 'Research Reminder (Test)',
+          body: `You have ${todayTasks.length} research task(s) scheduled for today`,
+          tasks: todayTasks,
+          appUrl: 'https://thepepplanner.com/app/dashboard'
+        };
+
+        const promise = pushNotifications.sendPushNotificationByType(userId, 'researchReminders', notificationData)
+          .then(result => ({ userId, success: result.success, tasks: todayTasks.length }))
+          .catch(error => ({ userId, success: false, error: error.message }));
+        
+        promises.push(promise);
+      } else {
+        results.push({ userId, skipped: true, reason: 'No tasks today' });
+      }
+    }
+
+    const notificationResults = await Promise.allSettled(promises);
+    const successful = notificationResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    
+    const finalResults = [
+      ...results,
+      ...notificationResults.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason })
+    ];
+    
+    logger.info(`✅ Test completed: ${successful}/${promises.length} notifications sent`);
+    
+    return { 
+      success: true, 
+      sent: successful, 
+      total: promises.length,
+      usersChecked: usersSnapshot.size,
+      results: finalResults
+    };
+    
+  } catch (error) {
+    logger.error('❌ Error in test research reminders:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 // Admin notification functions
@@ -1369,11 +1501,37 @@ exports.sendCustomAnnouncementEmail = onCall(
       const emailService = require('./emailService');
       const success = await emailService.sendCustomAnnouncementEmail(userEmail, userName);
       
+      const db = admin.firestore();
+      
       if (success) {
         logger.info(`✅ Custom announcement email sent successfully to: ${userEmail}`);
+        
+        // Log to email history
+        await db.collection('emailHistory').add({
+          type: 'announcement',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Important Announcement - The Pep Planner',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'admin'
+        });
+        
         return { success: true, message: 'Custom announcement email sent successfully' };
       } else {
         logger.warn(`⚠️ Failed to send custom announcement email to: ${userEmail}`);
+        
+        // Log failed attempt
+        await db.collection('emailHistory').add({
+          type: 'announcement',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Important Announcement - The Pep Planner',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin'
+        });
+        
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
@@ -1399,14 +1557,39 @@ exports.sendAccountDeletionEmail = onCall(
     logger.info(`📧 Sending account deletion email to: ${userEmail}`);
 
     try {
+      const db = admin.firestore();
       const emailService = require('./emailService');
       const success = await emailService.sendAccountDeletionEmail(userEmail, userName);
       
       if (success) {
         logger.info(`✅ Account deletion email sent successfully to: ${userEmail}`);
+        
+        // Log to email history
+        await db.collection('emailHistory').add({
+          type: 'account_deletion',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Account Deletion Confirmation - The Pep Planner',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'admin'
+        });
+        
         return { success: true, message: 'Account deletion email sent successfully' };
       } else {
         logger.warn(`⚠️ Failed to send account deletion email to: ${userEmail}`);
+        
+        // Log failed attempt
+        await db.collection('emailHistory').add({
+          type: 'account_deletion',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Account Deletion Confirmation - The Pep Planner',
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin'
+        });
+        
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
@@ -1465,14 +1648,43 @@ exports.sendInDepthRequestEmail = onCall(
     logger.info(`📧 Sending in-depth request email to: ${userEmail}`);
 
     try {
+      const db = admin.firestore();
       const emailService = require('./emailService');
       const success = await emailService.sendInDepthRequestEmail(userEmail, userName, customContent);
       
+      const emailSubject = customContent?.subject || 'In-Depth Request - The Pep Planner';
+      
       if (success) {
         logger.info(`✅ In-depth request email sent successfully to: ${userEmail}`);
+        
+        // Log to email history
+        await db.collection('emailHistory').add({
+          type: 'in_depth_request',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: emailSubject,
+          customContent: customContent || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'admin'
+        });
+        
         return { success: true, message: 'In-depth request email sent successfully' };
       } else {
         logger.warn(`⚠️ Failed to send in-depth request email to: ${userEmail}`);
+        
+        // Log failed attempt
+        await db.collection('emailHistory').add({
+          type: 'in_depth_request',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: emailSubject,
+          customContent: customContent || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin'
+        });
+        
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
@@ -1498,14 +1710,45 @@ exports.sendInviteEmail = onCall(
     logger.info(`📧 Sending invite email to: ${userEmail}`);
 
     try {
+      const db = admin.firestore();
       const emailService = require('./emailService');
       const success = await emailService.sendInviteEmail(userEmail, userName, inviteLink, customContent);
       
+      const emailSubject = customContent?.subject || 'You\'re Invited to The Pep Planner! 🎉';
+      
       if (success) {
         logger.info(`✅ Invite email sent successfully to: ${userEmail}`);
+        
+        // Log to email history
+        await db.collection('emailHistory').add({
+          type: 'invite',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: emailSubject,
+          inviteLink: inviteLink || null,
+          customContent: customContent || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'admin'
+        });
+        
         return { success: true, message: 'Invite email sent successfully' };
       } else {
         logger.warn(`⚠️ Failed to send invite email to: ${userEmail}`);
+        
+        // Log failed attempt
+        await db.collection('emailHistory').add({
+          type: 'invite',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: emailSubject,
+          inviteLink: inviteLink || null,
+          customContent: customContent || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin'
+        });
+        
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
@@ -1532,14 +1775,41 @@ exports.sendLifetimeAccessEmail = onCall(
     logger.info(`📧 Email params: userName=${userName}, reason=${reason}`);
 
     try {
+      const db = admin.firestore();
       const emailService = require('./emailService');
       const success = await emailService.sendLifetimeAccessEmail(userEmail, userName, reason);
       
       if (success) {
         logger.info(`✅ Lifetime access email sent successfully to: ${userEmail}`);
+        
+        // Log to email history
+        await db.collection('emailHistory').add({
+          type: 'lifetime_access',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Lifetime Access Granted - The Pep Planner',
+          reason: reason || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'sent',
+          sentBy: 'admin'
+        });
+        
         return { success: true, message: 'Lifetime access email sent successfully' };
       } else {
         logger.warn(`⚠️ Failed to send lifetime access email to: ${userEmail}`);
+        
+        // Log failed attempt
+        await db.collection('emailHistory').add({
+          type: 'lifetime_access',
+          recipientEmail: userEmail,
+          recipientName: userName || null,
+          subject: 'Lifetime Access Granted - The Pep Planner',
+          reason: reason || null,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'failed',
+          sentBy: 'admin'
+        });
+        
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {

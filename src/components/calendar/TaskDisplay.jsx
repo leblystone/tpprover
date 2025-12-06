@@ -201,8 +201,21 @@ const TaskDisplay = ({
         {/* Checkbox - Matching Today's Research widget design */}
         {showCheckbox && (
           <button
-            onClick={handleToggle}
-            className="relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer border-2 rounded-sm"
+            type="button"
+            onMouseDown={(e) => {
+              // Prevent blur events on mobile
+              e.preventDefault();
+            }}
+            onTouchStart={(e) => {
+              // Prevent blur events on touch devices
+              e.preventDefault();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleToggle();
+            }}
+            className="relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer border-2 rounded-sm touch-manipulation"
             style={{
               width: size === 'compact' ? '16px' : size === 'normal' ? '24px' : '24px',
               height: size === 'compact' ? '16px' : size === 'normal' ? '24px' : '24px',
@@ -210,7 +223,8 @@ const TaskDisplay = ({
               minHeight: size === 'compact' ? '16px' : '24px',
               backgroundColor: isCompleted ? theme.primary : 'transparent',
               borderColor: isCompleted ? theme.primary : theme.border,
-              borderRadius: '4px'
+              borderRadius: '4px',
+              WebkitTapHighlightColor: 'transparent'
             }}
             title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
           >

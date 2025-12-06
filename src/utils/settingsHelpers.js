@@ -83,14 +83,77 @@ export function getLocalTimezone() {
   }
 }
 
+/**
+ * Sync notification settings to Firestore
+ * This ensures the scheduled functions can read user preferences
+ */
+export async function syncNotificationSettingsToFirestore() {
+  try {
+    const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+    const { db } = await import('../config/firebase');
+    
+    // Get current user from localStorage
+    const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+    if (!user?.email && !user?.uid) {
+      console.warn('📱 No user found, cannot sync notification settings to Firestore');
+      return;
+    }
+
+    // Get settings from localStorage
+    const settings = loadSettings();
+    if (!settings?.notifications) {
+      console.warn('📱 No notification settings found in localStorage');
+      return;
+    }
+
+    // Use uid if available, otherwise use email
+    const userId = user.uid || user.email?.toLowerCase();
+    if (!userId) {
+      console.warn('📱 No user ID found, cannot sync notification settings');
+      return;
+    }
+
+    const userRef = doc(db, 'users', userId);
+    
+    // Sync notification settings to Firestore
+    // Map localStorage structure to Firestore structure
+    await setDoc(userRef, {
+      notificationSettings: {
+        push: settings.notifications.push === true,
+        billing: settings.notifications.billing === true,
+        researchReminders: settings.notifications.researchReminders === true,
+        groupBuys: settings.notifications.groupBuys === true,
+        lowStockAlerts: settings.notifications.lowStockAlerts === true,
+        orderStatusUpdates: settings.notifications.orderStatusUpdates === true,
+        washoutReminders: settings.notifications.washoutReminders === true,
+        cycleReminders: settings.notifications.cycleReminders === true,
+        lastUpdated: serverTimestamp()
+      },
+      // Also sync settings.region.timeZone for timezone-aware reminders
+      settings: {
+        region: {
+          timeZone: settings.region?.timeZone || getLocalTimezone()
+        }
+      }
+    }, { merge: true });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Notification settings synced to Firestore:', settings.notifications);
+    }
+  } catch (error) {
+    console.error('❌ Failed to sync notification settings to Firestore:', error);
+    // Don't throw - this is a background sync operation
+  }
+}
+
 export function getDefaultSettings() {
   const tz = getLocalTimezone()
   const defaults = {
     notifications: {
       email: true,
-      push: false,
+      push: true,
       billing: true,
-      researchReminders: false,
+      researchReminders: true,
       groupBuys: true,
       lowStockAlerts: true,
       orderStatusUpdates: true,

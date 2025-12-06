@@ -180,6 +180,11 @@ service cloud.firestore {
       allow write: if isAdmin(); // Only admin can write version config (via Admin panel)
     }
     
+    // Version update history - admin only (tracks when version updates are sent)
+    match /versionUpdateHistory/{historyId} {
+      allow read, write: if isAdmin(); // Only admin can read/write version update history
+    }
+    
     // User agreements - users can create their own agreements, admin can read all
     match /user_agreements/{agreementId} {
       allow create: if request.auth != null; // Authenticated users can create agreements
@@ -192,6 +197,12 @@ service cloud.firestore {
     match /emailTemplates/{templateId} {
       allow read: if true; // Cloud functions and admin need to read templates for email sending
       allow write: if isAdmin(); // Only admin can modify email templates
+    }
+    
+    // Email history - admin can read, cloud functions can write
+    match /emailHistory/{emailId} {
+      allow read: if isAdmin(); // Only admin can read email history
+      allow write: if false; // Only cloud functions can write (they bypass rules)
     }
     
     // Verification tokens - used for email verification

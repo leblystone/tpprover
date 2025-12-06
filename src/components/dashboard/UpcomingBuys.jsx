@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatMMDDYYYY } from '../../utils/date'
 import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, HandCoins } from 'lucide-react'
@@ -6,7 +6,7 @@ import Modal from '../common/Modal'
 import ModernTooltip from '../ui/ModernTooltip'
 import TextInput from '../common/inputs/TextInput'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
-import { recordDeletion } from '../../utils/deletionTracking'
+import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletionTracking'
 
 export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [showModal, setShowModal] = useState(false);
@@ -15,12 +15,30 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [renderKey, setRenderKey] = useState(0);
   
-  // Ref to store previous prop IDs to prevent infinite loops
-  const prevPropIdsRef = useRef('');
-  
   // Ref to track if we just deleted an item (prevent props from restoring it)
-  const justDeletedRef = useRef(false);
   const justDeletedIdsRef = useRef(new Set());
+  
+  // Initialize deleted IDs from persistent deletion tracking on mount ONLY
+  const initializedRef = useRef(false);
+  const hasLoggedRef = useRef(false);
+  if (!initializedRef.current) {
+    const persistentDeletedIds = getDeletedItems('scheduledBuys');
+    persistentDeletedIds.forEach(id => {
+      justDeletedIdsRef.current.add(String(id));
+    });
+    if (persistentDeletedIds.length > 0 && !hasLoggedRef.current) {
+      console.log('🔒 Initialized deleted IDs from persistent tracking:', persistentDeletedIds);
+      hasLoggedRef.current = true;
+    }
+    initializedRef.current = true;
+  }
+  
+  // Helper function to check if an item is deleted (uses both ref and persistent tracking)
+  const isItemDeleted = useCallback((itemId) => {
+    const idStr = String(itemId);
+    // Check both the ref (session-based) and persistent tracking (cross-session)
+    return justDeletedIdsRef.current.has(idStr) || isDeleted('scheduledBuys', idStr);
+  }, []);
   
   // Helper function to deduplicate array by ID (keep last occurrence)
   // Memoized to prevent recreation on every render
@@ -38,124 +56,24 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
     return Array.from(seen.values()).reverse();
   }, []);
   
-  // Reload list from localStorage when it changes
-  const reloadList = () => {
-    try {
-      const rawScheduled = localStorage.getItem('tpprover_scheduled_buys');
-      const loaded = rawScheduled ? JSON.parse(rawScheduled) : [];
-      // Deduplicate on load to prevent duplicates from localStorage
-      return deduplicateById(loaded);
-    } catch (error) {
-      console.error('Error loading scheduled buys:', error);
-      return [];
-    }
-  };
-  
-  // Use local list state that syncs with localStorage
-  const [localList, setLocalList] = useState(() => {
-    const propList = Array.isArray(buys) ? buys : items;
-    const initialList = propList.length > 0 ? propList : reloadList();
-    // Deduplicate initial list to prevent duplicates from props
-    return deduplicateById(initialList);
-  });
-  
-  // Update local list when props change
-  // CRITICAL: Only sync props to localList if we don't have unsaved edits
-  // This prevents props from overwriting state when we have unsaved changes
-  useEffect(() => {
-    // Skip syncing if we have unsaved edits - preserve them
-    const hasUnsavedEdits = Object.keys(editingItems).length > 0;
-    if (hasUnsavedEdits) {
-      return;
-    }
-    
-    const propList = Array.isArray(buys) ? buys : items;
-    if (propList.length > 0) {
-      // CRITICAL: Always filter out deleted items from props, even if guard is not active
-      // This prevents deleted items from being restored via props
-      let filteredProps = propList;
-      if (justDeletedIdsRef.current.size > 0) {
-        filteredProps = propList.filter(b => !justDeletedIdsRef.current.has(String(b.id)));
-        if (filteredProps.length !== propList.length) {
-          console.log('🚫 Filtered out deleted items from props:', 
-            propList.length - filteredProps.length, 'items removed');
-        }
-      }
-      
-      // Create sorted array of IDs for comparison (using filtered props)
-      const propIds = filteredProps.map(b => String(b.id)).sort();
-      const propIdsStr = propIds.join(',');
-      
-      // Compare with previous prop IDs to avoid unnecessary updates
-      if (propIdsStr === prevPropIdsRef.current) {
-        // Props haven't changed, skip update
-        return;
-      }
-      
-      // Update ref with new IDs (from filtered props)
-      prevPropIdsRef.current = propIdsStr;
-      
-      // Use functional update to access current localList state
-      setLocalList(prevLocalList => {
-        // Also filter deleted items from current localList
-        let filteredLocalList = prevLocalList;
-        if (justDeletedIdsRef.current.size > 0) {
-          filteredLocalList = prevLocalList.filter(b => !justDeletedIdsRef.current.has(String(b.id)));
-        }
-        
-        // Create sorted array of current local IDs
-        const prevIds = filteredLocalList.map(b => String(b.id)).sort().join(',');
-        
-        // Only update if the ID sets are actually different
-        if (propIdsStr !== prevIds) {
-          // Deduplicate filtered props before setting
-          const deduplicated = deduplicateById(filteredProps);
-          // Double-check we're not creating a duplicate state (prevent infinite loop)
-          const deduplicatedIds = deduplicated.map(b => String(b.id)).sort().join(',');
-          
-          // Only update if the deduplicated result is actually different
-          if (deduplicatedIds !== prevIds) {
-            return deduplicated;
-          }
-        }
-        // IDs are the same, don't update (avoid infinite loop)
-        return filteredLocalList.length !== prevLocalList.length ? filteredLocalList : prevLocalList;
-      });
-    }
-  }, [buys, items, editingItems, deduplicateById]); // deduplicateById is memoized, safe to include
-  
-  // Listen for delete events to refresh list (update events are handled directly in handleSave)
-  // CRITICAL: Don't reload from localStorage here as it will lose unsaved edits
-  // The confirmDelete function already updates localList state correctly
-  // This listener is only needed if other components delete items externally
-  useEffect(() => {
-    const handleDeleteEvent = (e) => {
-      // Skip reload if the event indicates it was handled internally
-      if (e.detail?.skipReload) {
-        return;
-      }
-      
-      // Only reload if we don't have any unsaved edits to preserve
-      if (Object.keys(editingItems).length === 0) {
-      const updatedList = reloadList();
-      // Deduplicate before setting (reloadList already deduplicates, but be safe)
-      setLocalList(deduplicateById(updatedList.map(buy => ({ ...buy }))));
-      }
-      // If there are unsaved edits, keep current localList to preserve them
-    };
-    
-    window.addEventListener('tpp:group-buy-deleted', handleDeleteEvent);
-    return () => {
-      window.removeEventListener('tpp:group-buy-deleted', handleDeleteEvent);
-    };
-  }, [editingItems]); // Include editingItems in dependencies to check for unsaved changes
-  
-  // CRITICAL: Deduplicate list by ID to prevent duplicate keys
-  // Always use the last occurrence of each ID (most recent data)
-  // This is a final safety net in case duplicates somehow get into localList
+  // SIMPLIFIED: Just use props directly, filter in useMemo (no complex syncing)
   const list = useMemo(() => {
-    return deduplicateById(localList);
-  }, [localList]);
+    const propList = Array.isArray(buys) ? buys : items;
+    
+    // Filter deleted items using persistent tracking
+    const filtered = propList.filter(item => !isItemDeleted(item.id));
+    
+    // Deduplicate
+    const seen = new Map();
+    const reversed = [...filtered].reverse();
+    reversed.forEach(item => {
+      const idKey = String(item.id);
+      if (!seen.has(idKey)) {
+        seen.set(idKey, { ...item });
+      }
+    });
+    return Array.from(seen.values()).reverse();
+  }, [buys, items, isItemDeleted]);
   
   // Terracotta gradient for delete button
   const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
@@ -214,21 +132,16 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
     // Save changes to localStorage
     try {
       console.log('💾 Starting save for itemId:', itemId);
-      console.log('📋 Current localList before save:', localList.map(b => ({ id: b.id })));
+      console.log('📋 Current list before save:', list.map(b => ({ id: b.id })));
       
-      // CRITICAL: Use current localList state instead of reading from localStorage
-      // Reading from localStorage can give stale data if a previous save hasn't been written yet
-      // Also filter out any deleted items that might have been restored
-      let scheduledBuys = localList.filter(item => {
-        // If we have deleted items tracked, filter them out
-        if (justDeletedIdsRef.current.size > 0) {
-          const shouldKeep = !justDeletedIdsRef.current.has(String(item.id));
-          if (!shouldKeep) {
-            console.log('🚫 Filtering out deleted item during save:', item.id);
-          }
-          return shouldKeep;
+      // CRITICAL: Use current list (from props) instead of reading from localStorage
+      // Filter out any deleted items that might have been restored using persistent tracking
+      let scheduledBuys = list.filter(item => {
+        const shouldKeep = !isItemDeleted(item.id);
+        if (!shouldKeep) {
+          console.log('🚫 Filtering out deleted item during save:', item.id);
         }
-        return true;
+        return shouldKeep;
       });
       
       const editedData = editingItems[itemId];
@@ -287,11 +200,11 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // Deduplicate before saving
       const deduplicated = deduplicateById(scheduledBuys);
       
-      // Verify no deleted items are in the list
-      const hasDeletedItems = deduplicated.some(item => justDeletedIdsRef.current.has(String(item.id)));
+      // Verify no deleted items are in the list using persistent tracking
+      const hasDeletedItems = deduplicated.some(item => isItemDeleted(item.id));
       if (hasDeletedItems) {
         console.warn('⚠️ Deleted items found in save list, filtering them out');
-        const filtered = deduplicated.filter(item => !justDeletedIdsRef.current.has(String(item.id)));
+        const filtered = deduplicated.filter(item => !isItemDeleted(item.id));
         scheduledBuys = filtered;
       } else {
         scheduledBuys = deduplicated;
@@ -312,27 +225,17 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // Also set protection timestamp to prevent Firebase overwrite
       localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
       
-      // Update local list immediately - create a new array reference to force re-render
-      // Map through to create new object references so React detects the change
-      const updatedList = scheduledBuys.map(buy => ({ ...buy }));
-      // Deduplicate before setting to prevent duplicates
-      setLocalList(deduplicateById(updatedList));
-      
-      // Update prevPropIdsRef to reflect current state
-      const updatedIds = updatedList.map(b => String(b.id)).sort().join(',');
-      prevPropIdsRef.current = updatedIds;
-      
       // CRITICAL: Dispatch event to update parent component's state (AppContext)
-      // This prevents AppContext from overwriting our localStorage changes
+      // This will trigger a prop update which will re-render this component
       window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
-        detail: { scheduledBuys: updatedList }
+        detail: { scheduledBuys }
       }));
       
       // Trigger calendar sync
       window.dispatchEvent(new CustomEvent('tpp:calendar-sync'));
       
       console.log('✅ Saved group buy:', itemId, editedData);
-      console.log('📋 Updated list after save:', updatedList.map(b => ({ id: b.id })));
+      console.log('📋 Updated list after save:', scheduledBuys.map(b => ({ id: b.id })));
       
       // Force exit edit mode immediately
       setEditingItems({});
@@ -340,9 +243,9 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // Increment render key to force complete re-render
       setRenderKey(prev => prev + 1);
       
-      // Re-select the item from the updatedList (which has fresh data)
+      // Re-select the item from the scheduledBuys (which has fresh data)
       setTimeout(() => {
-        const savedItem = updatedList.find(buy => buy.id === itemId);
+        const savedItem = scheduledBuys.find(buy => buy.id === itemId);
         if (savedItem) {
           console.log('🔄 Re-selecting item with fresh data:', savedItem);
           setSelectedItem({ ...savedItem }); // Create new reference
@@ -361,11 +264,11 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
   const confirmDelete = (itemId) => {
     try {
       console.log('🗑️ Starting delete for itemId:', itemId);
-      console.log('📋 Current localList before delete:', localList.map(b => ({ id: b.id })));
+      console.log('📋 Current list before delete:', list.map(b => ({ id: b.id })));
       
-      // CRITICAL: Start with current localList state (which includes any unsaved edits)
+      // CRITICAL: Start with current list (from props)
       // Filter out the deleted item first
-      let buysToSave = localList.filter(item => {
+      let buysToSave = list.filter(item => {
         const itemIdStr = String(item.id);
         const deleteIdStr = String(itemId);
         const shouldKeep = itemIdStr !== deleteIdStr;
@@ -407,7 +310,6 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         // Save the force-filtered version
         localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(finalBuys));
         localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
-        setLocalList(deduplicateById(finalBuys.map(b => ({ ...b }))));
         window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
           detail: { scheduledBuys: finalBuys }
         }));
@@ -416,9 +318,6 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         console.log('💾 Saving to localStorage, count:', updatedBuys.length);
         localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(updatedBuys));
         localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
-        
-        // Update local list immediately
-        setLocalList(deduplicateById(updatedBuys.map(b => ({ ...b }))));
         
         // CRITICAL: Dispatch event to update parent component's state (AppContext)
         window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
@@ -435,7 +334,6 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         const corrected = verifySaved.filter(b => String(b.id) !== String(itemId));
         localStorage.setItem('tpprover_scheduled_buys', JSON.stringify(corrected));
         localStorage.setItem('tpprover_scheduledBuys_lastUpdate', String(Date.now()));
-        setLocalList(deduplicateById(corrected.map(b => ({ ...b }))));
         window.dispatchEvent(new CustomEvent('tpp:scheduled-buys-updated', {
           detail: { scheduledBuys: corrected }
         }));
@@ -481,16 +379,10 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
       // CRITICAL: Permanently track deleted items to prevent props from restoring them
       // We never clear this - deleted items should stay deleted
       justDeletedIdsRef.current.add(String(itemId));
-      justDeletedRef.current = true;
       
       // CRITICAL: Record deletion in persistent tracking to prevent restoration across refreshes/syncs
       recordDeletion('scheduledBuys', String(itemId));
       console.log('📝 Recorded deletion in persistent tracking for scheduledBuys:', itemId);
-      
-      // Update prevPropIdsRef to reflect the deletion
-      const finalList = verifyDeleted ? JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]') : updatedBuys;
-      const finalIds = finalList.map(b => String(b.id)).sort().join(',');
-      prevPropIdsRef.current = finalIds;
       
       const finalVerify = JSON.parse(localStorage.getItem('tpprover_scheduled_buys') || '[]');
       console.log('✅ Deleted group buy:', itemId);
@@ -516,8 +408,21 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
             <ShoppingCart size={20} style={{ color: theme.primary }} />
             <ModernTooltip text="Add" position="top">
               <button
-                onClick={onAdd}
-                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onAdd();
+                }}
+                className="rounded-full flex items-center justify-center action-button-hover transition-colors touch-manipulation"
                 style={{ 
                   color: '#ffffff',
                   backgroundColor: theme.primary,
@@ -525,7 +430,8 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                   height: '28px',
                   padding: 0,
                   border: 'none',
-                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+                  WebkitTapHighlightColor: 'transparent'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.opacity = '0.9';
@@ -568,12 +474,26 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
         {list.length > 0 && (
           <div className="mt-2 pt-2 border-t flex justify-center" style={{ borderColor: theme.border }}>
             <button 
-              onClick={handleViewAll} 
-              className="px-2 py-0.5 rounded text-xs font-medium border transition-colors opacity-70 hover:opacity-100" 
+              type="button"
+              onMouseDown={(e) => {
+                // Prevent blur events on mobile
+                e.preventDefault();
+              }}
+              onTouchStart={(e) => {
+                // Prevent blur events on touch devices
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleViewAll();
+              }}
+              className="px-2 py-0.5 rounded text-xs font-medium border transition-colors opacity-70 hover:opacity-100 touch-manipulation" 
               style={{ 
                 borderColor: theme.border, 
                 color: theme.textLight,
-                backgroundColor: 'transparent'
+                backgroundColor: 'transparent',
+                WebkitTapHighlightColor: 'transparent'
               }}
             >
               View All
@@ -606,9 +526,26 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd }) {
                 You don't have any scheduled group buys yet. Group buys are a great way to save money on bulk peptide orders.
               </p>
               <button
-                onClick={onAdd}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onAdd();
+                }}
+                className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all hover:opacity-90 hover:scale-105 touch-manipulation"
+                style={{ 
+                  backgroundColor: theme.primary, 
+                  color: theme.textOnPrimary,
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               >
                 <Plus size={18} />
                 Schedule a Group Buy

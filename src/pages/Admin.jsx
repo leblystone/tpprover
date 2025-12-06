@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Megaphone, Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
+  Plus, Edit, Trash2, Save, X, Eye, Sparkles, Wrench, Users, Mail, Key, Copy, Check, Loader, MessageSquare, Clock, CheckCircle,
   BarChart3, TrendingUp, Activity, Smartphone, Monitor, DollarSign, Target, ToggleLeft, ToggleRight, 
-  Flag, Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
+  Palette, Bell, Settings, Hash, ThumbsUp, ThumbsDown, TrendingDown, Shield, AlertTriangle, RefreshCw, Info,
   UserPlus, Briefcase, BookOpen, Star, Award, Send, Coffee, Wine, Book, ChevronDown, ChevronRight, Layout, MessageCircle,
-  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, Radio, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft
+  LayoutDashboard, Crown, Gift, Layers, MessagesSquare, Lightbulb, BellRing, MailOpen, Sliders, FileCheck, Search, ArrowLeft
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
@@ -13,9 +13,6 @@ import WelcomeModal from '../components/admin/WelcomeModal';
 import {
   getEmailWhitelist,
   updateEmailWhitelist,
-  getAnnouncements,
-  saveAnnouncement,
-  deleteAnnouncement,
   getAllFeedback,
   updateFeedback,
   deleteFeedback,
@@ -23,8 +20,6 @@ import {
   getAnalytics,
   getUserList,
   getAdminUserProfile,
-  getFeatureFlags,
-  updateFeatureFlag,
   getAllLifetimeUsers,
   grantLifetimeAccessFirestore,
   revokeLifetimeAccess,
@@ -47,6 +42,7 @@ import {
 import AgreementTracking from '../components/admin/AgreementTracking';
 import ManualLifetimeGrant from '../components/admin/ManualLifetimeGrant';
 import EmailTemplateManager from '../components/admin/EmailTemplateManager';
+import EmailHistory from '../components/admin/EmailHistory';
 import EmailTriggerManager from '../components/admin/EmailTriggerManager';
 import TriggeredNotificationManager from '../components/admin/TriggeredNotificationManager';
 import ImprovementsTracker from '../components/admin/ImprovementsTracker';
@@ -458,14 +454,11 @@ const adminTheme = {
 function Admin() {
   const theme = adminTheme;
   const { firebaseUser } = useFirebase();
-  const [announcements, setAnnouncements] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [activeTab, setActiveTab] = useState('analytics');
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -645,12 +638,6 @@ function Admin() {
     recentRegistrations: []
   });
   const [stripeSubscriptions, setStripeSubscriptions] = useState([]);
-  const [featureFlags, setFeatureFlags] = useState({
-    betaFeatures: {},
-    uiExperiments: {},
-    emailSettings: {},
-    maintenanceMode: false
-  });
   const [feedbackAnalysis, setFeedbackAnalysis] = useState({
     categories: {},
     sentiment: {},
@@ -659,7 +646,6 @@ function Admin() {
   });
   const [lifetimeUsers, setLifetimeUsers] = useState([]);
   const [loading, setLoading] = useState({
-    announcements: false,
     feedback: false,
     emailWhitelist: false,
     submitting: false,
@@ -669,12 +655,6 @@ function Admin() {
     trialExtension: false,
     selectedUser: false
   });
-  const [formData, setFormData] = useState({
-    title: '',
-    body: '',
-    category: 'General',
-    date: new Date().toISOString().slice(0, 10)
-  });
 
   // Simple admin authentication
   const ADMIN_PASSWORD = 'j&jm9102';
@@ -682,13 +662,6 @@ function Admin() {
     'lebrockmaldonado@gmail.com',
     'contact@thepepplanner.com',
     'thepepplanner@gmail.com'
-  ];
-
-  const categoryOptions = [
-    { value: 'New Feature', icon: Sparkles, color: theme.info },
-    { value: 'Improvement', icon: Wrench, color: theme.success },
-    { value: 'Community', icon: Users, color: theme.warning },
-    { value: 'General', icon: Megaphone, color: theme.textLight }
   ];
 
   useEffect(() => {
@@ -711,13 +684,11 @@ function Admin() {
     }
     
     // Load data
-    loadAnnouncements();
     loadEmailWhitelist();
     loadFeedback();
     loadTickets();
     loadRealAnalytics();
     loadUserData();
-    loadFeatureFlags();
     loadFeedbackAnalysis();
     loadStripeData();
     loadLifetimeUsers();
@@ -816,27 +787,6 @@ function Admin() {
         console.error('Error fetching Stripe data:', error);
       }
       setStripeSubscriptions([]);
-    }
-  };
-
-  const loadAnnouncements = async () => {
-    setLoading(prev => ({ ...prev, announcements: true }));
-    try {
-      const firebaseAnnouncements = await getAnnouncements();
-      setAnnouncements(firebaseAnnouncements);
-    } catch (error) {
-      console.error('Error loading announcements:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, announcements: false }));
-    }
-  };
-
-  const saveAnnouncementToFirebase = async (announcement) => {
-    try {
-      await saveAnnouncement(announcement);
-      await loadAnnouncements();
-    } catch (error) {
-      console.error('Error saving announcement:', error);
     }
   };
 
@@ -1180,22 +1130,6 @@ function Admin() {
     }
   };
 
-  const loadFeatureFlags = async () => {
-    try {
-      // Load feature flags from localStorage for now - in production, from Firebase
-      const flags = JSON.parse(localStorage.getItem('tpp_admin_feature_flags') || '{}');
-      const firebaseFlags = await getFeatureFlags();
-      setFeatureFlags({
-        betaFeatures: firebaseFlags.betaFeatures || flags.betaFeatures || {},
-        uiExperiments: firebaseFlags.uiExperiments || flags.uiExperiments || {},
-        emailSettings: firebaseFlags.emailSettings || flags.emailSettings || {},
-        maintenanceMode: firebaseFlags.maintenanceMode || flags.maintenanceMode || false
-      });
-    } catch (error) {
-      console.error('❌ Error loading feature flags:', error);
-    }
-  };
-
   const loadFeedbackAnalysis = async () => {
     try {
       // Analyze existing feedback for insights
@@ -1496,80 +1430,6 @@ function Admin() {
       setIsLoggingIn(false);
     }
   };
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(prev => ({ ...prev, submitting: true }));
-    
-    try {
-      const newAnnouncement = {
-        ...formData,
-        ...(editingAnnouncement?.id && { id: editingAnnouncement.id })
-      };
-
-      await saveAnnouncementToFirebase(newAnnouncement);
-      resetForm();
-    } catch (error) {
-      console.error('Error submitting announcement:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, submitting: false }));
-    }
-  };
-
-  const handleEdit = (announcement) => {
-    setEditingAnnouncement(announcement);
-    setFormData({
-      title: announcement.title,
-      body: announcement.body,
-      category: announcement.category,
-      date: announcement.date
-    });
-    setShowAddForm(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this announcement?')) {
-      await deleteAnnouncement(id);
-      await loadAnnouncements();
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      body: '',
-      category: 'General',
-      date: new Date().toISOString().slice(0, 10)
-    });
-    setEditingAnnouncement(null);
-    setShowAddForm(false);
-  };
-
-  const handleFlagToggle = async (flagKey, newValue) => {
-    try {
-      await updateFeatureFlag(flagKey, newValue);
-      setFeatureFlags(prev => {
-        const newFlags = { ...prev };
-        let updated = false;
-        for (const category in newFlags) {
-          if (typeof newFlags[category] === 'object' && newFlags[category] !== null && flagKey in newFlags[category]) {
-            newFlags[category][flagKey] = newValue;
-            updated = true;
-            break;
-          }
-        }
-        if (!updated) {
-          newFlags[flagKey] = newValue;
-        }
-        return newFlags;
-      });
-    } catch (error) {
-      console.error('Error updating feature flag:', error);
-      alert('Failed to update feature flag.');
-    }
-  };
-
 
 
   // Render navigation group with collapsible sections (OLD - kept for mobile)
@@ -1894,7 +1754,7 @@ function Admin() {
         theme={theme}
       />
       
-      <div className="h-screen flex flex-col relative" style={{ 
+      <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ 
         backgroundColor: elegantPalette.dark.wallpaper,
         backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
       }}>
@@ -1994,7 +1854,6 @@ function Admin() {
                 title="Comms"
                 icon={MailOpen}
                 items={[
-                  { id: 'announcements', label: 'Announcements', icon: Radio, count: announcements.length, color: theme.primary },
                   { id: 'notifications', label: 'Notifications', icon: BellRing, count: Object.keys(JSON.parse(localStorage.getItem('tpp_triggered_notifications') || '{}')).length, color: '#10b981' },
                   { id: 'emails', label: 'Email Templates', icon: MailOpen, count: 0, color: '#06b6d4' },
                   { id: 'emailTriggers', label: 'Email Triggers', icon: Clock, count: 0, color: '#8b5cf6' }
@@ -2009,7 +1868,6 @@ function Admin() {
                 title="Settings"
                 icon={Sliders}
                 items={[
-                  { id: 'features', label: 'Feature Flags', icon: Sliders, count: Object.keys(featureFlags.betaFeatures || {}).length, color: '#f59e0b' },
                   { id: 'version', label: 'App Version', icon: Smartphone, count: 0, color: '#8b5cf6' },
                   { id: 'agreements', label: 'Legal', icon: FileCheck, count: 0, color: '#ef4444' }
                 ]}
@@ -2071,8 +1929,6 @@ function Admin() {
               { id: 'lifetime', label: 'Lifetime', icon: Award, color: '#f59e0b', short: 'Beta' },
               { id: 'content', label: 'Content', icon: BookOpen, color: '#8b5cf6', short: 'Content' },
               { id: 'feedback', label: 'Feedback', icon: MessageSquare, color: '#8b5cf6', short: 'Feedback' },
-              { id: 'announcements', label: 'Posts', icon: Megaphone, color: theme.primary, short: 'Posts' },
-              { id: 'features', label: 'Features', icon: Flag, color: '#f59e0b', short: 'Flags' },
               { id: 'agreements', label: 'Legal', icon: Shield, color: '#ef4444', short: 'Legal' },
               { id: 'gifts', label: 'Gifts', icon: Star, color: '#ec4899', short: 'Gifts' },
               { id: 'notifications', label: 'Notifications', icon: Bell, color: '#10b981', short: 'Notify' },
@@ -2120,11 +1976,6 @@ function Admin() {
                       {feedback.filter(f => f.status === 'new').length}
                     </span>
                   )}
-                  {tab.id === 'announcements' && announcements.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
-                      {announcements.length}
-                    </span>
-                  )}
                   {tab.id === 'whitelist' && emailWhitelist.length > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: tab.color + '30', color: tab.color }}>
                       {emailWhitelist.length}
@@ -2143,7 +1994,7 @@ function Admin() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10 overflow-hidden">
         {/* Page Title Bar */}
         <div className="p-4 lg:p-6 flex-shrink-0 relative z-10 sticky top-0" style={{
           backgroundColor: elegantPalette.dark.surface + 'E0',
@@ -2154,28 +2005,13 @@ function Admin() {
         }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
-              {activeTab === 'announcements' && (
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:scale-105 transition-all"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${elegantPalette.gold.gradientStart} 0%, ${elegantPalette.gold.gradientMid} 50%, ${elegantPalette.gold.gradientEnd} 100%)`,
-                    color: elegantPalette.black.deep,
-                    boxShadow: `0 2px 8px ${elegantPalette.dark.deep}40`,
-                    border: `1px solid ${elegantPalette.gold.light}`
-                  }}
-                >
-                  <Plus size={18} />
-                  New Announcement
-                </button>
-              )}
             </div>
             
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-4 lg:p-6 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 p-4 lg:p-6 overflow-y-auto overflow-x-hidden min-h-0" style={{ maxHeight: '100%' }}>
 
         {activeTab === 'analytics' && (
           <div className="space-y-5">
@@ -2856,307 +2692,6 @@ function Admin() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'features' && (
-          <div className="space-y-6">
-            {/* Feature Flags Explanation */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.warning + '20' }}>
-                  <AlertTriangle size={24} style={{ color: theme.warning }} />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold mb-2" style={{ color: theme.primaryDark }}>Feature Flags - Now Functional!</h2>
-                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                    This system is now connected to Firebase. Toggling a feature will update its value in the database, allowing for real-time control over app functionality.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-sm" style={{ color: theme.success }}>Future Benefits:</h3>
-                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
-                        <li>• Gradual feature rollouts (10% → 50% → 100% users)</li>
-                        <li>• A/B testing different UI versions</li>
-                        <li>• Beta features for select users</li>
-                        <li>• Instant kill switches for problematic features</li>
-                        <li>• User tier-based feature access</li>
-                      </ul>
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-sm" style={{ color: theme.info }}>Example Use Cases:</h3>
-                      <ul className="text-xs space-y-1" style={{ color: theme.textLight }}>
-                        <li>• New protocol builder → 25% of users first</li>
-                        <li>• Advanced analytics → paid users only</li>
-                        <li>• Team collaboration → beta testers</li>
-                        <li>• Export features → disable if server overloaded</li>
-                        <li>• New UI design → A/B test vs old design</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mock Feature Flags (Non-Functional) */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>Feature Flags (Demo Only)</h2>
-                  <p className="text-sm mt-1" style={{ color: theme.textLight }}>These toggles don't actually control anything yet</p>
-                </div>
-                <span className="px-3 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
-                  Not Functional
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                {[
-                  { name: 'Enhanced Dashboard', key: 'enhanced_dashboard', enabled: true, description: 'Advanced analytics and insights', rollout: '100%' },
-                  { name: 'Protocol Sharing', key: 'protocol_sharing', enabled: false, description: 'Share protocols with other users', rollout: '0%' },
-                  { name: 'PDF Exports', key: 'pdf_exports', enabled: true, description: 'Export data as PDF reports', rollout: '100%' },
-                  { name: 'Team Workspaces', key: 'team_workspaces', enabled: false, description: 'Collaborate with team members', rollout: '0%' },
-                  { name: 'Advanced Search', key: 'advanced_search', enabled: false, description: 'Enhanced search and filtering', rollout: '25%' }
-                ].map((flag) => (
-                  <div key={flag.key} className="flex items-center justify-between p-4 rounded-lg border" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Flag size={16} style={{ color: flag.enabled ? theme.success : theme.textLight }} />
-                        <span className="font-medium" style={{ color: theme.text }}>{flag.name}</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${flag.enabled ? 'text-green-700 bg-green-100' : 'text-gray-700 bg-gray-100'}`}>
-                          {flag.enabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                        <span className="px-2 py-1 text-xs rounded" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-                          {flag.rollout}
-                        </span>
-                      </div>
-                      <p className="text-sm" style={{ color: theme.textLight }}>{flag.description}</p>
-                    </div>
-                    <button 
-                      className="ml-4 p-2 rounded-lg hover:opacity-70 cursor-not-allowed opacity-50"
-                      style={{ color: flag.enabled ? theme.success : theme.textLight }}
-                      title="Not functional - demo only"
-                    >
-                      {flag.enabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                    </button>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: theme.info + '10' }}>
-                <p className="text-xs" style={{ color: theme.textLight }}>
-                  💡 <strong>Implementation Note:</strong> To make this functional, we'd need to create a Firebase collection for feature flags, 
-                  add flag checking logic throughout the app, and implement user segmentation rules.
-                </p>
-              </div>
-            </div>
-
-            {/* Maintenance Mode */}
-            <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.error + '20' }}>
-                    <Shield size={24} style={{ color: theme.error }} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold" style={{ color: theme.primaryDark }}>Maintenance Mode</h3>
-                    <p className="text-sm" style={{ color: theme.textLight }}>Would temporarily disable app access for updates</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
-                    Demo Only
-                  </span>
-                  <button 
-                    className="p-2 rounded-lg hover:opacity-70 cursor-not-allowed opacity-50"
-                    style={{ color: featureFlags.maintenanceMode ? theme.error : theme.textLight }}
-                    title="Not functional - demo only"
-                  >
-                    {featureFlags.maintenanceMode ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'announcements' && (
-          <div className="space-y-6">
-            {showAddForm && (
-              <div className="rounded-lg border p-6 content-card shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
-                    {editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}
-                  </h2>
-                  <button onClick={resetForm} className="p-1 hover:opacity-70">
-                    <X size={20} style={{ color: theme.textLight }} />
-                  </button>
-                </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Title</label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full p-3 rounded border"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Body</label>
-                    <textarea
-                      value={formData.body}
-                      onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
-                      className="w-full p-3 rounded border h-32 resize-none"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Category</label>
-                      <select
-                        value={formData.category}
-                        onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                        className="w-full p-3 rounded border"
-                        style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                      >
-                        {categoryOptions.map(cat => (
-                          <option key={cat.value} value={cat.value}>{cat.value}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Date</label>
-                      <input
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                        className="w-full p-3 rounded border"
-                        style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 pt-2">
-                    <button
-                      type="submit"
-                      disabled={loading.submitting}
-                      className="px-6 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
-                    >
-                      {loading.submitting ? (
-                        <>
-                          <Loader size={18} className="animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save size={18} />
-                          {editingAnnouncement ? 'Update' : 'Create'}
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetForm}
-                      className="px-6 py-2 rounded-md font-semibold"
-                      style={{ backgroundColor: theme.accent, color: theme.accentText }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>
-                  Recent Announcements
-                </h2>
-                <div className="text-sm" style={{ color: theme.textLight }}>
-                  {announcements.length} total
-                </div>
-              </div>
-              
-              {announcements.length === 0 ? (
-                <div className="bg-white rounded-xl p-12 text-center border" style={{ borderColor: theme.border }}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-                    <Megaphone size={32} style={{ color: theme.primary }} />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No announcements yet</h3>
-                  <p className="text-sm mb-6" style={{ color: theme.textLight }}>Create your first announcement to communicate with users</p>
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="px-6 py-3 rounded-lg font-semibold flex items-center gap-2 mx-auto hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                  >
-                    <Plus size={18} />
-                    Create Announcement
-                  </button>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {announcements.map(announcement => {
-                    const categoryInfo = categoryOptions.find(cat => cat.value === announcement.category);
-                    const CategoryIcon = categoryInfo?.icon || Megaphone;
-                    
-                    return (
-                      <div key={announcement.id} className="bg-white rounded-xl p-6 border hover:shadow-md transition-shadow" style={{ borderColor: theme.border }}>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: categoryInfo?.color + '20', color: categoryInfo?.color }}>
-                                <CategoryIcon size={12} />
-                                {announcement.category}
-                              </div>
-                              <div className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.border, color: theme.textLight }}>
-                                {formatMMDDYYYY(announcement.date)}
-                              </div>
-                            </div>
-                            
-                            <h3 className="font-semibold text-lg mb-2" style={{ color: theme.text }}>
-                              {announcement.title}
-                            </h3>
-                            <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                              {announcement.body}
-                            </p>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 ml-4">
-                            <button
-                              onClick={() => handleEdit(announcement)}
-                              className="p-2 rounded-lg hover:scale-105 transition-transform"
-                              style={{ backgroundColor: theme.primary + '15', color: theme.primary }}
-                              title="Edit announcement"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(announcement.id)}
-                              className="p-2 rounded-lg hover:scale-105 transition-transform"
-                              style={{ backgroundColor: theme.error + '15', color: theme.error }}
-                              title="Delete announcement"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -4383,6 +3918,7 @@ function Admin() {
           <div className="space-y-6">
             <SingleMessageSender theme={theme} />
             <EmailTemplateManager theme={theme} />
+            <EmailHistory theme={theme} />
           </div>
         )}
 
@@ -4527,6 +4063,7 @@ function Admin() {
           onExtendTrial={handleExtendTrial}
           isExtendingTrial={isExtendingTrial}
           isLoadingDetails={isLoadingUserDetails}
+          adminPassword={ADMIN_PASSWORD}
         />
       )}
 

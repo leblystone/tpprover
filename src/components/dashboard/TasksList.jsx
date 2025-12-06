@@ -164,27 +164,36 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask }) => {
                             
                             <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  // Check if this is an injection task that's not completed
-                                  const deliveryMethod = task.deliveryMethod || task.delivery;
-                                  const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
-                                  
-                                  // Only show injection site selector if tracking is enabled AND it's an injection task
-                                  if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
-                                    setInjectionTask(task);
-                                  } else {
-                                    onToggle(task.id);
-                                  }
+                                onMouseDown={(e) => {
+                                    // Prevent blur events on mobile
+                                    e.preventDefault();
                                 }}
-                                className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer`}
+                                onTouchStart={(e) => {
+                                    // Prevent blur events on touch devices
+                                    e.preventDefault();
+                                }}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    // Check if this is an injection task that's not completed
+                                    const deliveryMethod = task.deliveryMethod || task.delivery;
+                                    const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
+                                    
+                                    // Only show injection site selector if tracking is enabled AND it's an injection task
+                                    if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
+                                        setInjectionTask(task);
+                                    } else {
+                                        onToggle(task.id);
+                                    }
+                                }}
+                                className={`w-6 h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation`}
                                 style={{
                                     borderColor: task.completed ? theme.primary : theme.border,
                                     backgroundColor: task.completed ? theme.primary : 'transparent',
                                     borderRadius: '4px',
                                     minWidth: '24px',
-                                    minHeight: '24px'
+                                    minHeight: '24px',
+                                    WebkitTapHighlightColor: 'transparent'
                                 }}
                                 title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
                             >

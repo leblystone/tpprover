@@ -10,3 +10,4 @@
 - When drafting customer responses, use a friendly, human tone with emojis (e.g., "Hey! 👋", "Thanks for catching that", "Give it a try! 🧪"). Avoid overly formal or robotic language.
 
 
+

@@ -154,9 +154,25 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
           <div className="flex items-center gap-3">
             {onBack && (
               <button 
-                onClick={onBack} 
-                className={`p-1 rounded-full -ml-2 transition-colors ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
-                style={{ color: headerStyle.color }}
+                type="button"
+                onMouseDown={(e) => {
+                  // Prevent blur events on mobile
+                  e.preventDefault();
+                }}
+                onTouchStart={(e) => {
+                  // Prevent blur events on touch devices
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onBack();
+                }}
+                className={`p-1 rounded-full -ml-2 transition-colors touch-manipulation ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
+                style={{ 
+                  color: headerStyle.color,
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               >
                 <ChevronLeft size={20} />
               </button>
@@ -168,9 +184,25 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
               <div className={titleExtraClass} style={{ color: headerStyle.color }}>{titleExtra}</div>
             )}
             <button 
-              onClick={handleBackdropClick} 
-              className={`p-1.5 rounded-full transition-colors ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
-              style={{ color: headerStyle.color }}
+              type="button"
+              onMouseDown={(e) => {
+                // Prevent blur events on mobile
+                e.preventDefault();
+              }}
+              onTouchStart={(e) => {
+                // Prevent blur events on touch devices
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleBackdropClick();
+              }}
+              className={`p-1.5 rounded-full transition-colors touch-manipulation ${isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
+              style={{ 
+                color: headerStyle.color,
+                WebkitTapHighlightColor: 'transparent'
+              }}
             >
               <X size={24} />
             </button>

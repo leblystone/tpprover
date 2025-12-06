@@ -251,7 +251,18 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                           <DeliveryIcon task={task} theme={theme} />
                         </div>
                         <button
-                          onClick={() => {
+                          type="button"
+                          onMouseDown={(e) => {
+                            // Prevent blur events on mobile
+                            e.preventDefault();
+                          }}
+                          onTouchStart={(e) => {
+                            // Prevent blur events on touch devices
+                            e.preventDefault();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             // Prevent action if injection site selector is already showing
                             if (injectionTask) {
                               return;
@@ -268,12 +279,14 @@ const TasksWidget = ({ widget, theme, tasks, onToggle }) => {
                               onToggle(task);
                             }
                           }}
-                          className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 cursor-pointer`}
+                          className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 cursor-pointer touch-manipulation`}
                           style={{
                             borderColor: task.completed ? theme.primary : theme.border,
                             backgroundColor: task.completed ? theme.primary : 'transparent',
-                            borderRadius: '4px'
+                            borderRadius: '4px',
+                            WebkitTapHighlightColor: 'transparent'
                           }}
+                          title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
                         >
                           {task.completed && (
                             <Check size={12} className="text-white" style={{ strokeWidth: 3 }} />
