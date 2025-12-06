@@ -485,7 +485,7 @@ export default function Protocols() {
         )}
 
         {activeTab === 'history' && (
-          <div className="space-y-4">
+          <div className="relative">
             {(() => {
               // Filter for finished protocols - must have BOTH startDate AND endDate
               const finishedProtocols = filteredProtocols.filter(p => {
@@ -540,69 +540,150 @@ export default function Protocols() {
                 return bStart.getTime() - aStart.getTime();
               });
 
-              // Group protocols by month/year only
-              const groupedProtocols = sortedProtocols.reduce((acc, p) => {
-                if (!p.endDate) return acc;
+              // Group protocols by month/year and create timeline entries
+              const timelineEntries = [];
+              let currentMonthYear = null;
+              
+              sortedProtocols.forEach((p, index) => {
+                if (!p.endDate) return;
                 const endDate = new Date(p.endDate);
                 const month = endDate.toLocaleDateString('en-US', { month: 'short' });
                 const year = endDate.getFullYear();
-                const key = `${month} ${year}`;
+                const monthYearKey = `${month} ${year}`;
                 
-                if (!acc[key]) {
-                  acc[key] = [];
+                // Add month/year header if it's a new month
+                if (monthYearKey !== currentMonthYear) {
+                  timelineEntries.push({
+                    type: 'header',
+                    key: monthYearKey,
+                    month,
+                    year,
+                    date: endDate
+                  });
+                  currentMonthYear = monthYearKey;
                 }
-                acc[key].push(p);
-                return acc;
-              }, {});
+                
+                // Add protocol entry
+                const startDate = p.startDate ? new Date(p.startDate) : null;
+                const endDateObj = p.endDate ? new Date(p.endDate) : null;
+                let durationDays = 0;
+                if (startDate && endDateObj) {
+                  durationDays = Math.ceil((endDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                }
+                
+                timelineEntries.push({
+                  type: 'protocol',
+                  protocol: p,
+                  durationDays,
+                  startDate: startDate ? formatMMDDYYYY(p.startDate) : 'Not started',
+                  endDate: endDateObj ? formatMMDDYYYY(p.endDate) : 'Ongoing'
+                });
+              });
 
               return (
-                <div className="space-y-6">
-                    {Object.entries(groupedProtocols).map(([dateKey, protocols]) => (
-                      <div key={dateKey} className="space-y-3">
-                        {/* Month/Year header */}
-                        <h3 
-                          className="text-base font-semibold"
-                          style={{ color: theme.text }}
-                        >
-                          {dateKey}
-                        </h3>
+                <div className="relative pl-8 md:pl-12">
+                  {/* Vertical timeline line */}
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-0.5"
+                    style={{ 
+                      backgroundColor: theme.border || (theme.isDark ? '#374151' : '#e5e7eb'),
+                      marginLeft: '1.5rem',
+                      zIndex: 1
+                    }}
+                  />
 
-                        <ul className="space-y-2 ml-4">
-                          {protocols.map((p) => {
-                            const startDate = p.startDate ? new Date(p.startDate) : null;
-                            const endDate = p.endDate ? new Date(p.endDate) : null;
-                            const startDateStr = startDate ? formatMMDDYYYY(p.startDate) : 'Not started';
-                            const endDateStr = endDate ? formatMMDDYYYY(p.endDate) : 'Ongoing';
+                  {/* Timeline entries */}
+                  <div className="space-y-6">
+                    {timelineEntries.map((entry, index) => {
+                      if (entry.type === 'header') {
+                        // Month/Year header
+                        return (
+                          <div key={entry.key} className="relative flex items-center">
+                            {/* Timeline node for header */}
+                            <div 
+                              className="absolute left-0 w-4 h-4 rounded-full border-2 -ml-8 md:-ml-12 z-10"
+                              style={{ 
+                                backgroundColor: theme.cardBackground || theme.background,
+                                borderColor: theme.primary,
+                                marginLeft: '-1.5rem'
+                              }}
+                            />
                             
-                            // Calculate duration
-                            let durationDays = 0;
-                            if (startDate && endDate) {
-                              durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-                            }
+                            {/* Month/Year label */}
+                            <h3 
+                              className="text-lg font-bold uppercase tracking-wider pl-4"
+                              style={{ color: theme.text }}
+                            >
+                              {entry.month} {entry.year}
+                            </h3>
+                          </div>
+                        );
+                      } else {
+                        // Protocol entry
+                        return (
+                          <div key={entry.protocol.id} className="relative pl-4">
+                            {/* Timeline node for protocol */}
+                            <div 
+                              className="absolute left-0 w-3 h-3 rounded-full -ml-8 md:-ml-12 z-10"
+                              style={{ 
+                                backgroundColor: theme.primary,
+                                marginLeft: '-1.5rem',
+                                marginTop: '0.5rem',
+                                border: `2px solid ${theme.cardBackground || theme.background}`
+                              }}
+                            />
                             
-                            return (
-                              <li key={p.id} className="list-disc">
-                                <button
-                                  onClick={() => setHistoryProtocol(p)}
-                                  className="text-left hover:opacity-80 transition-opacity"
-                                  style={{ color: theme.text }}
-                                >
-                                  <span className="font-medium">
-                                    {p.protocolName || 'Unnamed Protocol'}
-                                  </span>
-                                  {p.emoji && <span className="ml-1">{p.emoji}</span>}
-                                  {durationDays > 0 && (
-                                    <span className="ml-2 text-sm" style={{ color: theme.textLight }}>
-                                      ({durationDays} day{durationDays !== 1 ? 's' : ''})
+                            {/* Protocol card */}
+                            <button
+                              onClick={() => setHistoryProtocol(entry.protocol)}
+                              className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99]"
+                              style={{ 
+                                backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
+                                border: `1px solid ${theme.border || (theme.isDark ? '#374151' : '#e5e7eb')}`,
+                                boxShadow: theme.isDark 
+                                  ? '0 2px 4px rgba(0, 0, 0, 0.3)' 
+                                  : '0 2px 4px rgba(0, 0, 0, 0.05)'
+                              }}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="font-semibold text-base" style={{ color: theme.text }}>
+                                      {entry.protocol.protocolName || entry.protocol.name || 'Unnamed Protocol'}
                                     </span>
-                                  )}
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    ))}
+                                    {entry.protocol.emoji && (
+                                      <span className="text-lg">{entry.protocol.emoji}</span>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex flex-wrap items-center gap-3 text-sm" style={{ color: theme.textLight }}>
+                                    <span className="flex items-center gap-1">
+                                      <Clock size={14} />
+                                      {entry.startDate} → {entry.endDate}
+                                    </span>
+                                    {entry.durationDays > 0 && (
+                                      <span>
+                                        {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Arrow indicator */}
+                                <div className="flex-shrink-0 opacity-50">
+                                  <ChevronDown 
+                                    size={20} 
+                                    className="transform rotate-[-90deg]"
+                                    style={{ color: theme.textLight }}
+                                  />
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
                 </div>
               );
             })()}
