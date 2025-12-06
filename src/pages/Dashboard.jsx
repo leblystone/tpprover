@@ -237,9 +237,20 @@ export default function Dashboard() {
             const upcoming = filteredBuys.filter(b => new Date(b.openDate) >= now || (new Date(b.closeDate) >= now && new Date(b.openDate) <= now));
             setUpcomingBuys(upcoming.map(b => ({
                 id: b.id,
-                name: b.item,
+                item: b.item, // CRITICAL: Preserve the item field for display
+                name: b.name || b.item, // Map for backward compatibility
+                peptideName: b.peptideName || b.item, // Map for backward compatibility
                 date: b.openDate, // Use openDate for display
+                openDate: b.openDate,
+                closeDate: b.closeDate,
                 vendor: b.vendor,
+                location: b.location,
+                participants: b.participants,
+                price: b.price,
+                notes: b.notes,
+                description: b.description,
+                createdAt: b.createdAt,
+                updatedAt: b.updatedAt
             })));
         }
     } catch {}
@@ -260,9 +271,20 @@ export default function Dashboard() {
                     const upcoming = filteredBuys.filter(b => new Date(b.openDate) >= now || (new Date(b.closeDate) >= now && new Date(b.openDate) <= now));
                     setUpcomingBuys(upcoming.map(b => ({
                         id: b.id,
-                        name: b.item,
+                        item: b.item, // CRITICAL: Preserve the item field for display
+                        name: b.name || b.item, // Map for backward compatibility
+                        peptideName: b.peptideName || b.item, // Map for backward compatibility
                         date: b.openDate, // Use openDate for display
+                        openDate: b.openDate,
+                        closeDate: b.closeDate,
                         vendor: b.vendor,
+                        location: b.location,
+                        participants: b.participants,
+                        price: b.price,
+                        notes: b.notes,
+                        description: b.description,
+                        createdAt: b.createdAt,
+                        updatedAt: b.updatedAt
                     })));
                 }
             } catch {}
