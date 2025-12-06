@@ -1,6 +1,7 @@
 import React from 'react'
 import { themes, defaultThemeName } from '../theme/themes'
 import { getLocalDateString } from '../utils/date'
+import { generateId } from '../utils/string'
 
 function fmtMMDDYYYY(isoDate) {
   if (!isoDate) return ''
@@ -38,7 +39,7 @@ export default function Imports() {
         const raw = localStorage.getItem('tpprover_orders')
         const arr = raw ? JSON.parse(raw) : []
         const order = {
-          id: Date.now(),
+          id: generateId(),
           vendor: imp.vendor || '',
           peptide: imp.peptide || '',
           mg: Number(imp.mg) || 0,
@@ -54,7 +55,7 @@ export default function Imports() {
         const raw = localStorage.getItem('tpprover_stockpile')
         const arr = raw ? JSON.parse(raw) : []
         const row = {
-          id: Date.now(),
+          id: generateId(),
           name: imp.name || '', mg: String(imp.mg || ''), quantity: String(imp.quantity || '1'), vendor: imp.vendor || '', capColor: imp.capColor || '', batchNumber: imp.batchNumber || '', minQty: String(imp.minQty || '1')
         }
         arr.unshift(row)

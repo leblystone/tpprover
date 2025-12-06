@@ -12,6 +12,7 @@ import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import { appendStockEvent } from '../../utils/stockHistory';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
+import { generateId } from '../../utils/string';
 
 
 const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, theme }) => {
@@ -414,7 +415,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
     const handleSaveNewAndLink = (peptideId, newItemData) => {
         const newItem = {
-            id: `stock-${Date.now()}`,
+            id: `stock-${generateId()}`,
             ...newItemData,
             notes: "Added during protocol start. Review details."
         };
@@ -959,7 +960,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         allowRemovePeptide={false}
                         allowAddPeptide={false}
                         onSave={(reconData) => {
-                            const newReconId = `recon-${Date.now()}`;
+                            const newReconId = `recon-${generateId()}`;
 
                             // We need to enrich the peptides with their original vial cost for accurate history
                             const peptidesWithDetails = reconData.peptides.map(p => {

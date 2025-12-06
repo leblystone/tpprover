@@ -114,7 +114,7 @@ export default function Goals() {
         onSave={(form) => {
           setGoals(prev => {
             if (form.id) return prev.map(g => g.id === form.id ? form : g)
-            return [{ ...form, id: Date.now() }, ...prev]
+            return [{ ...form, id: generateId() }, ...prev]
           })
           setShowGoal(false)
           setEditingGoal(null)

@@ -9,6 +9,7 @@ import {
 import { useFirebase } from '../context/FirebaseContext';
 import { formatMMDDYYYY } from '../utils/date';
 import { Zap } from '../icons/lucide-safe';
+import { generateId } from '../utils/string';
 import WelcomeModal from '../components/admin/WelcomeModal';
 import {
   getEmailWhitelist,
@@ -538,13 +539,13 @@ function Admin() {
           'Tesofensine', 'Metformin', 'NMN', 'NAD+', 'Glutathione'
         ];
         topics = defaultTopics.map((name, index) => ({
-          id: Date.now() + index,
+          id: generateId(),
           name: name
         }));
         console.log('📚 Created default topics:', topics);
       } else {
         topics = glossary.map(g => ({ 
-          id: g.id || Date.now() + Math.random(), 
+          id: g.id || generateId(), 
           name: g.name || g.peptide || 'Unnamed'
         }));
       }
@@ -1754,7 +1755,7 @@ function Admin() {
         theme={theme}
       />
       
-      <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ 
+      <div className="min-h-screen w-screen flex flex-col" style={{ 
         backgroundColor: elegantPalette.dark.wallpaper,
         backgroundImage: `linear-gradient(135deg, ${elegantPalette.dark.deep} 0%, ${elegantPalette.dark.wallpaper} 50%, ${elegantPalette.dark.charcoal} 100%)`
       }}>
@@ -1994,7 +1995,7 @@ function Admin() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Page Title Bar */}
         <div className="p-4 lg:p-6 flex-shrink-0 relative z-10 sticky top-0" style={{
           backgroundColor: elegantPalette.dark.surface + 'E0',
@@ -2011,7 +2012,7 @@ function Admin() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-4 lg:p-6 overflow-y-auto overflow-x-hidden min-h-0" style={{ maxHeight: '100%' }}>
+        <div className="flex-1 p-4 lg:p-6">
 
         {activeTab === 'analytics' && (
           <div className="space-y-5">
@@ -3738,7 +3739,7 @@ function Admin() {
                       if (e.key === 'Enter' && contentData.newTopic.trim()) {
                         setContentData(prev => ({
                           ...prev,
-                          topics: [...prev.topics, { id: Date.now(), name: contentData.newTopic.trim() }],
+                          topics: [...prev.topics, { id: generateId(), name: contentData.newTopic.trim() }],
                           newTopic: ''
                         }));
                       }
@@ -3749,7 +3750,7 @@ function Admin() {
                       if (contentData.newTopic.trim()) {
                         setContentData(prev => ({
                           ...prev,
-                          topics: [...prev.topics, { id: Date.now(), name: contentData.newTopic.trim() }],
+                          topics: [...prev.topics, { id: generateId(), name: contentData.newTopic.trim() }],
                           newTopic: ''
                         }));
                       }
@@ -3832,7 +3833,7 @@ function Admin() {
                       if (e.key === 'Enter' && contentData.newPenType.trim()) {
                         setContentData(prev => ({
                           ...prev,
-                          penTypes: [...prev.penTypes, { id: Date.now(), name: contentData.newPenType.trim() }],
+                          penTypes: [...prev.penTypes, { id: generateId(), name: contentData.newPenType.trim() }],
                           newPenType: ''
                         }));
                       }
@@ -3843,7 +3844,7 @@ function Admin() {
                       if (contentData.newPenType.trim()) {
                         setContentData(prev => ({
                           ...prev,
-                          penTypes: [...prev.penTypes, { id: Date.now(), name: contentData.newPenType.trim() }],
+                          penTypes: [...prev.penTypes, { id: generateId(), name: contentData.newPenType.trim() }],
                           newPenType: ''
                         }));
                       }
@@ -4242,8 +4243,8 @@ function Admin() {
           </div>
         </Modal>
         )}
+        </div>
       </div>
-    </div>
     </>
   );
 }

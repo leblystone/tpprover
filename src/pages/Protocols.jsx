@@ -23,10 +23,11 @@ import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
+import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry } from '../utils/protocolHistory';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
-  const { protocols, setProtocols, addProtocol, updateProtocol, deleteProtocol } = useAppContext();
+  const { protocols, setProtocols, addProtocol, updateProtocol, deleteProtocol, stockpile, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history'
   const [openAdd, setOpenAdd] = useState(false)
@@ -34,7 +35,6 @@ export default function Protocols() {
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
   const [startDate, setStartDate] = useState(() => getLocalDateString())
-  const [stockpile, setStockpile] = useState([]);
   const [manageConfirm, setManageConfirm] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +59,31 @@ export default function Protocols() {
     const today = getLocalDateString();
     const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: 'manual' };
     updateProtocol(updatedProtocol);
+    
+    // Update history entry
+    const activeHistoryEntry = findActiveProtocolHistoryEntry(protocolToEnd.id);
+    if (activeHistoryEntry) {
+      // Determine completion status
+      const expectedEndDate = updatedProtocol.endDate || updatedProtocol.expectedEndDate;
+      let completionStatus = 'ended_early';
+      
+      if (expectedEndDate) {
+        const expected = new Date(expectedEndDate);
+        const actual = new Date(today);
+        const diffDays = Math.abs(actual - expected) / (1000 * 60 * 60 * 24);
+        // If ended within 2 days of expected, consider it completed on time
+        if (diffDays <= 2 && actual <= expected) {
+          completionStatus = 'completed';
+        }
+      }
+      
+      updateProtocolHistoryEntry(activeHistoryEntry.id, {
+        endDate: today,
+        completionStatus: completionStatus,
+        endType: 'manual'
+      });
+    }
+    
     window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol has been ended.', type: 'success' } }));
   };
 
@@ -209,12 +234,6 @@ export default function Protocols() {
     } catch { return false }
   }, [])
 
-  useEffect(() => {
-    try { 
-      const rawStockpile = localStorage.getItem('tpprover_stockpile');
-      if (rawStockpile) setStockpile(JSON.parse(rawStockpile));
-    } catch {}
-  }, []);
   React.useEffect(() => {
     const onOpenNew = () => setOpenAdd(true)
     window.addEventListener('tpp:open_protocol_new', onOpenNew)
@@ -255,7 +274,7 @@ export default function Protocols() {
           const dCount = durCountIdx>=0 ? Number(cols[durCountIdx])||0 : 0
           const dUnit = durUnitIdx>=0 ? (cols[durUnitIdx]||'Week') : 'Week'
           const noEnd = noEndIdx>=0 ? /true|1|yes/i.test(cols[noEndIdx]) : false
-          rows.push({ id: Date.now()+i, name, purpose, frequency: { count, per, time: times }, duration: { count: dCount, unit: dUnit, noEnd } })
+          rows.push({ id: generateId(), name, purpose, frequency: { count, per, time: times }, duration: { count: dCount, unit: dUnit, noEnd } })
         }
       }
       if (rows.length > 0) {
@@ -1011,6 +1030,77 @@ export default function Protocols() {
             const toSave = explicitEnd ? { ...withTimes, endDate: explicitEnd } : withTimes;
 
             updateProtocol(toSave);
+
+            // Save protocol history entry
+            try {
+                // Extract vial information from linkedItems
+                const vials = [];
+                const linkedItems = finalizedProtocol.linkedItems || {};
+                Object.entries(linkedItems).forEach(([peptideId, item]) => {
+                    if (item.status === 'linked' && item.vialId) {
+                        const vial = stockpile.find(v => v.id === item.vialId);
+                        if (vial) {
+                            vials.push({
+                                vialId: vial.id,
+                                stockpileId: vial.id,
+                                name: vial.name,
+                                mg: vial.mg,
+                                vendor: vial.vendor,
+                                cost: vial.cost,
+                                reconstitutionDate: null // Will be set from recon data if available
+                            });
+                        }
+                    }
+                });
+
+                // Try to find the most recent reconstitution data for this protocol
+                let reconstitutionData = null;
+                try {
+                    const reconItems = JSON.parse(localStorage.getItem('tpprover_recon_items') || '[]');
+                    // Find recon items that match this protocol name
+                    const matchingRecon = reconItems
+                        .filter(item => item.name && item.name.includes(finalizedProtocol.protocolName))
+                        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                    
+                    if (matchingRecon.length > 0) {
+                        const latestRecon = matchingRecon[0];
+                        reconstitutionData = {
+                            date: latestRecon.date,
+                            reconStrategy: latestRecon.reconStrategy,
+                            peptides: latestRecon.peptides
+                        };
+                        
+                        // Update vial reconstitution dates from recon data
+                        if (latestRecon.peptides) {
+                            latestRecon.peptides.forEach(reconPep => {
+                                const vial = vials.find(v => v.vialId === reconPep.stockpileId || v.name === reconPep.name);
+                                if (vial) {
+                                    vial.reconstitutionDate = latestRecon.date;
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to load reconstitution data for history:', e);
+                }
+
+                // Save history entry
+                saveProtocolHistoryEntry({
+                    protocolId: finalizedProtocol.id,
+                    protocolName: finalizedProtocol.protocolName || 'Unnamed Protocol',
+                    startDate: finalizedProtocol.startDate,
+                    protocolData: {
+                        protocolName: finalizedProtocol.protocolName,
+                        peptides: finalizedProtocol.peptides,
+                        duration: finalizedProtocol.duration,
+                        purpose: finalizedProtocol.purpose
+                    },
+                    vials: vials,
+                    reconstitutionData: reconstitutionData
+                });
+            } catch (error) {
+                console.error('Failed to save protocol history:', error);
+            }
 
             // Trigger dashboard and calendar refresh
             window.dispatchEvent(new CustomEvent('tpp:calendar-sync', { detail: { protocolUpdated: true } }));

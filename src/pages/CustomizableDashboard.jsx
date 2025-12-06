@@ -1058,7 +1058,7 @@ export default function CustomizableDashboard() {
             if (existing) {
               return prev.map(p => p.id === savedVendor.id ? savedVendor : p);
             }
-            return [...prev, { ...savedVendor, id: Date.now() }];
+            return [...prev, { ...savedVendor, id: generateId() }];
           });
           setEditingVendor(null);
           setShowNewVendor(false);
@@ -1080,7 +1080,7 @@ export default function CustomizableDashboard() {
             const nextNumber = getNextPublicOrderNumber(normalizedPrev);
             const newOrder = { 
               ...o, 
-              id: o.id || Date.now(), 
+              id: o.id || generateId(), 
               category, 
               type: category,
               publicOrderNumber: nextNumber
@@ -1091,7 +1091,7 @@ export default function CustomizableDashboard() {
             setVendors(prev => {
               const existing = prev.find(v => v.name === o.vendor);
               if (existing) return prev;
-              return [...prev, { id: Date.now(), name: o.vendor }];
+              return [...prev, { id: generateId(), name: o.vendor }];
             });
           }
           setShowNewOrder(false);
@@ -1108,7 +1108,7 @@ export default function CustomizableDashboard() {
           if (editingGoal) {
             setGoals(prev => prev.map(g => g.id === editingGoal.id ? { ...editingGoal, ...goal } : g));
           } else {
-            setGoals(prev => [...prev, { ...goal, id: Date.now() }]);
+            setGoals(prev => [...prev, { ...goal, id: generateId() }]);
           }
           setShowGoal(false);
           setEditingGoal(null);
@@ -1196,7 +1196,7 @@ export default function CustomizableDashboard() {
             );
           } else {
             // Creating new metric
-            updatedMetrics = [...metrics, { ...metric, id: Date.now(), createdAt: now, updatedAt: now }];
+            updatedMetrics = [...metrics, { ...metric, id: generateId(), createdAt: now, updatedAt: now }];
           }
           
           setMetrics(updatedMetrics);
@@ -1355,7 +1355,7 @@ export default function CustomizableDashboard() {
         isReadOnly={isReadOnly}
         onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(protocol) => {
-          setProtocols(prev => [...prev, { ...protocol, id: Date.now() }]);
+          setProtocols(prev => [...prev, { ...protocol, id: generateId() }]);
           setShowNewProtocol(false);
           addToast('Protocol created', 'success');
         }}

@@ -1268,7 +1268,7 @@ export default function Dashboard() {
             const nextNumber = getNextPublicOrderNumber(normalizedPrev);
             const newOrder = { 
               ...o, 
-              id: o.id || Date.now(), 
+              id: o.id || generateId(), 
               category, 
               type: category,
               publicOrderNumber: nextNumber
@@ -1279,7 +1279,7 @@ export default function Dashboard() {
             setVendors(prev => {
               const existing = prev.find(v => v.name === o.vendor);
               if (existing) return prev;
-              return [...prev, { id: Date.now(), name: o.vendor }];
+              return [...prev, { id: generateId(), name: o.vendor }];
             });
           }
           setShowNewOrder(false);
@@ -1294,7 +1294,7 @@ export default function Dashboard() {
         onSave={(data) => {
           const now = new Date().toISOString();
           const newProtocol = { 
-            id: Date.now(), 
+            id: generateId(), 
             ...data, 
             active: false, 
             startDate: data.startDate || '',
@@ -1377,7 +1377,7 @@ export default function Dashboard() {
                     updatedAt: now 
                 } : x)
                 return [{ 
-                    id: Date.now(), 
+                    id: generateId(), 
                     ...data, 
                     createdAt: now, 
                     updatedAt: now 
@@ -1395,7 +1395,7 @@ export default function Dashboard() {
         onSave={(form) => {
         setGoals(prev => {
             if (form.id) return prev.map(g => g.id === form.id ? { ...g, text: form.text, dueDate: form.dueDate } : g)
-            return [{ id: Date.now(), text: form.text, dueDate: form.dueDate, completed: false }, ...prev]
+            return [{ id: generateId(), text: form.text, dueDate: form.dueDate, completed: false }, ...prev]
         })
         setShowGoal(false)
         setEditingGoal(null)

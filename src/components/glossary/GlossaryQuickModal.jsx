@@ -3,6 +3,7 @@ import Modal from '../common/Modal'
 import TextInput from '../common/inputs/TextInput.jsx'
 import { Search, Brain, AlertTriangle, Loader, Filter, Star, StarOff, BookOpen, Heart, Target, Shield, Sparkles, ChevronDown, ChevronRight, FileText, Plus, Edit3, Trash2, Upload, Link } from 'lucide-react';
 import { Zap } from '../../icons/lucide-safe';
+import { generateId } from '../../utils/string';
 
 // Levenshtein distance function for fuzzy string matching
 function levenshteinDistance(str1, str2) {
@@ -2033,7 +2034,7 @@ export default function GlossaryQuickModal({ open, onClose, theme, initialSearch
                           
                           if (title || content) {
                             const newNote = {
-                              id: Date.now().toString(),
+                              id: generateId(),
                               title: title || 'Untitled',
                               content: content || '',
                               createdAt: new Date().toISOString(),

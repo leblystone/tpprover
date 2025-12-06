@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Check, Plus, Target, X, Save, Archive, Trash2, History, Edit } from 'lucide-react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
+import { generateId } from '../../../utils/string';
 
 const GoalsOnlyWidget = ({ 
   widget, 
@@ -69,7 +70,7 @@ const GoalsOnlyWidget = ({
     if (!newGoal.title.trim()) return;
     
     const goal = {
-      id: Date.now().toString(),
+      id: generateId(),
       title: newGoal.title.trim(),
       targetDate: newGoal.targetDate || null,
       completed: false,

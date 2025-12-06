@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark, HandHelping } from 'lucide-react';
+import { generateId } from '../../utils/string';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
     const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [] });
@@ -21,7 +22,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
     }, [supplement, open]);
 
     const handleSave = async () => {
-        const dataToSave = { ...form, id: supplement?.id || Date.now() };
+        const dataToSave = { ...form, id: supplement?.id || generateId() };
         await onSave(dataToSave);
         // onSave will handle closing the modal
     };

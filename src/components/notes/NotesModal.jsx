@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Edit3, Trash2, X, Save } from 'lucide-react';
 import Modal from '../common/Modal';
+import { generateId } from '../../utils/string';
 
 const NotesModal = ({ isOpen, onClose, theme }) => {
   const [userNotes, setUserNotes] = useState([]);
@@ -37,7 +38,7 @@ const NotesModal = ({ isOpen, onClose, theme }) => {
   const handleAddNote = () => {
     if (newNote.title.trim() || newNote.content.trim()) {
       const note = {
-        id: Date.now().toString(),
+        id: generateId(),
         title: newNote.title.trim() || 'Untitled',
         content: newNote.content.trim(),
         createdAt: new Date().toISOString(),

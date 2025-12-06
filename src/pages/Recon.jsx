@@ -483,7 +483,7 @@ export default function Recon() {
         const now = new Date().toISOString();
 
         const draftItem = {
-            id: `draft_${Date.now()}`,
+            id: `draft_${generateId()}`,
             peptide: peptideNames,
             mg: totalMg,
             dose: totalDose,

@@ -112,14 +112,14 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       // Migration for old single-item orders
       if (initialData.peptide && !initialData.items) {
         initialData.items = [{
-          id: Date.now(),
+          id: generateId(),
           name: initialData.peptide,
           quantity: initialData.quantity || 1,
           unit: initialData.unit || 'vial',
           price: initialData.cost || ''
         }];
       } else if (!initialData.items || initialData.items.length === 0) {
-        initialData.items = [{ id: Date.now(), unit: 'vial' }]; // Start with one empty item for new orders
+        initialData.items = [{ id: generateId(), unit: 'vial' }]; // Start with one empty item for new orders
       }
 
       initialData.items = (initialData.items || []).map(item => ({

@@ -7,6 +7,7 @@ import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
 import adminNotificationService from '../../services/adminNotifications';
+import { generateId } from '../../utils/string';
 
 // Default triggered notification templates
 const DEFAULT_TRIGGERED_NOTIFICATIONS = {
@@ -238,7 +239,7 @@ export default function TriggeredNotificationManager({ theme }) {
   }, [notifications]);
 
   const handleCreateNew = () => {
-    const newId = `custom_${Date.now()}`;
+    const newId = `custom_${generateId()}`;
     const newNotification = {
       id: newId,
       name: 'New Notification',

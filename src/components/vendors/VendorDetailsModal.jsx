@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Lock, Building2, Phone, CreditCard, FileText, History, X, Wallet, Coins, DollarSign, Smartphone, Banknote, CheckCircle, BadgeCheck, Truck, PackagePlus, Beaker, Pill, Droplet, TrendingUp, AlertCircle, Clock, PackageX, AlertTriangle, UserX, Ban, Ship, Amphora, Turtle, Rabbit, CircleGauge, EggOff } from 'lucide-react'
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
+import { generateId } from '../../utils/string'
 
 // Venmo icon wrapper - passes through size directly
 const VenmoIcon = ({ size = 18, style, className }) => {
@@ -723,7 +724,7 @@ function getContactLabel(type) {
 
 function createEmptyVendor() {
   return {
-    id: Date.now(),
+    id: generateId(),
     name: '',
     type: 'domestic',
     rating: 0, // Fix: Add missing rating field

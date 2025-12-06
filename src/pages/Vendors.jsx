@@ -9,6 +9,7 @@ import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import VendorsHelpPanel from '../components/vendors/VendorsHelpPanel'
+import { generateId } from '../utils/string'
 
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
@@ -201,7 +202,7 @@ export default function Vendors() {
 		onSave={(data) => {
 			console.log('📝 Manual save triggered:', { editingVendor, data });
 			// Manual save: Always use addVendor which handles merge logic internally
-			const vendorId = editingVendor?.id || data.id || Date.now();
+			const vendorId = editingVendor?.id || data.id || generateId();
 			// When user manually saves (completes profile), remove stub status
 			addVendor({ ...data, id: vendorId, isStub: false, needsCompletion: false });
 			setShowAddModal(false)

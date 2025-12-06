@@ -13,6 +13,7 @@ import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking 
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
 import { defaultThemeName } from '../theme/themes';
+import { generateId } from '../utils/string';
 
 const AppContext = createContext();
 
@@ -1559,7 +1560,7 @@ export function AppProvider({ children }) {
                 ? newVendor.id
                 : (existingIndex !== -1 && list[existingIndex]?.id != null
                     ? list[existingIndex].id
-                    : Date.now());
+                    : generateId());
 
             const now = new Date().toISOString();
 
@@ -1765,7 +1766,7 @@ export function AppProvider({ children }) {
         // Only generate ID if not already provided
         const supplementToAdd = {
             ...newSupplement,
-            id: newSupplement.id || Date.now()
+            id: newSupplement.id || generateId()
         };
         
         setSupplements(prev => [supplementToAdd, ...prev]);

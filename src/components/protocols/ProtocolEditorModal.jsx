@@ -6,6 +6,7 @@ import PeptideSubForm from './PeptideSubForm';
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import useAutoSave from '../../utils/useAutoSave';
+import { generateId } from '../../utils/string';
 
 export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol, isReadOnly = false, onUpgrade }) {
 
@@ -13,7 +14,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         protocolName: '',
         purpose: '',
         protocolType: 'separate', // 'separate' | 'blended'
-        peptides: [{ id: Date.now(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }],
+        peptides: [{ id: generateId(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }],
         duration: { count: '', unit: 'weeks', noEnd: false },
         washout: { enabled: false, duration: '', unit: 'weeks' },
         notes: ''
@@ -104,7 +105,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         }
 
         if (!initialData.peptides || initialData.peptides.length === 0) {
-            initialData.peptides = [{ id: Date.now(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }];
+            initialData.peptides = [{ id: generateId(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }];
         }
 
         // Map blendMode to protocolType for form state
@@ -224,7 +225,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         setForm(prev => {
             const newState = {
                 ...prev,
-                peptides: [...(prev.peptides || []), { id: Date.now(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }]
+                peptides: [...(prev.peptides || []), { id: generateId(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '' }]
             };
             
             // Update auto-save data
