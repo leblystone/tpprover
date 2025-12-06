@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from '../common/Modal';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Calendar, Clock, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, ChevronDown, CheckCircle, XCircle, Package, FlaskConical, Target } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getProtocolHistoryEntries } from '../../utils/protocolHistory';
 import ProtocolHistoryDetailModal from './ProtocolHistoryDetailModal';
@@ -240,21 +240,203 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                            <div 
-                                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                                style={{ 
-                                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
-                                    boxShadow: theme.isDark 
-                                        ? `0 6px 12px rgba(0,0,0,0.4), 0 3px 6px ${theme.primary}40`
-                                        : `0 6px 12px rgba(0,0,0,0.15), 0 3px 6px ${theme.primary}30`
-                                }}
-                            >
-                                <Calendar size={28} style={{ color: '#ffffff' }} />
+                        // Show protocol details when no history entries exist
+                        <div className="space-y-6">
+                            {/* Protocol Overview */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
+                                        Protocol Overview
+                                    </h3>
+                                    {protocol.emoji && <span className="text-xl">{protocol.emoji}</span>}
+                                </div>
+
+                                {/* Date Information */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {protocol.startDate && (
+                                        <div
+                                            className="p-4 rounded-lg"
+                                            style={{
+                                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                                border: `1px solid ${theme.border}`
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Calendar size={16} style={{ color: theme.primary }} />
+                                                <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                                    Start Date
+                                                </span>
+                                            </div>
+                                            <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                {formatMMDDYYYY(protocol.startDate)}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {protocol.endDate && (
+                                        <div
+                                            className="p-4 rounded-lg"
+                                            style={{
+                                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                                border: `1px solid ${theme.border}`
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Calendar size={16} style={{ color: theme.primary }} />
+                                                <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                                    End Date
+                                                </span>
+                                            </div>
+                                            <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                {formatMMDDYYYY(protocol.endDate)}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {(protocol.startDate || protocol.endDate) && (
+                                        <div
+                                            className="p-4 rounded-lg"
+                                            style={{
+                                                backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                                border: `1px solid ${theme.border}`
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Clock size={16} style={{ color: theme.primary }} />
+                                                <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                                    Duration
+                                                </span>
+                                            </div>
+                                            <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                {(() => {
+                                                    if (!protocol.startDate || !protocol.endDate) return 'N/A';
+                                                    const start = new Date(protocol.startDate);
+                                                    const end = new Date(protocol.endDate);
+                                                    const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                                                    return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+                                                })()}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Protocol Details */}
+                                {protocol.duration && !protocol.duration.noEnd && (
+                                    <div
+                                        className="p-4 rounded-lg"
+                                        style={{
+                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                            border: `1px solid ${theme.border}`
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Target size={16} style={{ color: theme.primary }} />
+                                            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textLight }}>
+                                                Planned Duration
+                                            </span>
+                                        </div>
+                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                            {protocol.duration.count} {protocol.duration.unit}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Peptides/Compounds */}
+                                {protocol.peptides && protocol.peptides.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                                            <FlaskConical size={16} />
+                                            Compounds ({protocol.peptides.length})
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {protocol.peptides.map((pep, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className="p-4 rounded-lg"
+                                                    style={{
+                                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                                        border: `1px solid ${theme.border}`
+                                                    }}
+                                                >
+                                                    <div className="font-medium mb-1" style={{ color: theme.text }}>
+                                                        {pep.name || 'Unnamed Compound'}
+                                                    </div>
+                                                    {pep.dosage && (
+                                                        <div className="text-sm" style={{ color: theme.textLight }}>
+                                                            Dosage: {pep.dosage.amount} {pep.dosage.unit}
+                                                        </div>
+                                                    )}
+                                                    {pep.frequency && (
+                                                        <div className="text-sm" style={{ color: theme.textLight }}>
+                                                            Frequency: {pep.frequency.count || 1} per {pep.frequency.per || 'day'}
+                                                            {pep.frequency.time && Array.isArray(pep.frequency.time) && (
+                                                                <span> ({pep.frequency.time.join('/')})</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Linked Items/Vials */}
+                                {protocol.linkedItems && protocol.linkedItems.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                                            <Package size={16} />
+                                            Vials ({protocol.linkedItems.length})
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {protocol.linkedItems.map((item, idx) => {
+                                                const stockpileItem = stockpile?.find(s => s.id === item.vialId || s.id === item.stockpileId);
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className="p-4 rounded-lg"
+                                                        style={{
+                                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                                            border: `1px solid ${theme.border}`
+                                                        }}
+                                                    >
+                                                        <div className="font-medium mb-1" style={{ color: theme.text }}>
+                                                            {item.name || stockpileItem?.name || 'Unknown Vial'}
+                                                        </div>
+                                                        {item.mg && (
+                                                            <div className="text-sm" style={{ color: theme.textLight }}>
+                                                                {item.mg}mg
+                                                            </div>
+                                                        )}
+                                                        {item.vendor && (
+                                                            <div className="text-sm" style={{ color: theme.textLight }}>
+                                                                Vendor: {item.vendor}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Purpose/Notes */}
+                                {protocol.purpose && (
+                                    <div
+                                        className="p-4 rounded-lg"
+                                        style={{
+                                            backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                            border: `1px solid ${theme.border}`
+                                        }}
+                                    >
+                                        <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>
+                                            Purpose
+                                        </div>
+                                        <div className="text-sm" style={{ color: theme.text }}>
+                                            {protocol.purpose}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <p className="text-sm" style={{ color: theme.textLight }}>
-                                No history events recorded for this protocol yet.
-                            </p>
                         </div>
                     )}
                 </div>

@@ -23,7 +23,7 @@ import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
-import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry } from '../utils/protocolHistory';
+import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, createTestProtocolHistoryEntry, migrateProtocolHistoryEntries } from '../utils/protocolHistory';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
@@ -38,6 +38,14 @@ export default function Protocols() {
   const [manageConfirm, setManageConfirm] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Migrate existing protocol history entries on mount (assign IDs, preserve all data)
+  useEffect(() => {
+    const migrationResult = migrateProtocolHistoryEntries();
+    if (migrationResult.migrated > 0) {
+      console.log(`📋 Protocol history migration: ${migrationResult.migrated} entries updated with IDs`);
+    }
+  }, []);
 
   // Listen for autosave events to update protocol cards in real-time
   useEffect(() => {
@@ -239,6 +247,56 @@ export default function Protocols() {
     window.addEventListener('tpp:open_protocol_new', onOpenNew)
     return () => window.removeEventListener('tpp:open_protocol_new', onOpenNew)
   }, [])
+
+  // Expose test function for creating test history entries (development/testing only)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.createTestProtocolHistory = (protocolId) => {
+        // Use provided protocolId, or try to use first finished protocol, or use test ID
+        let targetProtocolId = protocolId;
+        if (!targetProtocolId && protocols.length > 0) {
+          // Try to find a finished protocol
+          const finished = protocols.find(p => p.startDate && p.endDate && p.active === false);
+          if (finished) {
+            targetProtocolId = finished.id;
+          } else {
+            // Use first protocol's ID
+            targetProtocolId = protocols[0].id;
+          }
+        }
+        
+        const entry = createTestProtocolHistoryEntry(targetProtocolId);
+        if (entry) {
+          // Refresh the page or trigger a re-render to show the new entry
+          window.dispatchEvent(new CustomEvent('tpp:toast', { 
+            detail: { message: `Test protocol history entry created for protocol: ${entry.protocolName}! Check the History tab.`, type: 'success' } 
+          }));
+          // Force a refresh by reloading
+          setTimeout(() => window.location.reload(), 1000);
+        }
+        return entry;
+      };
+      console.log('💡 Test function available: window.createTestProtocolHistory(protocolId)');
+    }
+  }, [protocols])
+
+  // Automatically create a test history entry on first load (for testing)
+  React.useEffect(() => {
+    const testEntryCreated = localStorage.getItem('tpprover_test_history_created');
+    if (!testEntryCreated && protocols.length > 0) {
+      // Find a finished protocol or use the first one
+      const finished = protocols.find(p => p.startDate && p.endDate && p.active === false);
+      const targetProtocolId = finished ? finished.id : protocols[0].id;
+      
+      const entry = createTestProtocolHistoryEntry(targetProtocolId);
+      if (entry) {
+        localStorage.setItem('tpprover_test_history_created', 'true');
+        window.dispatchEvent(new CustomEvent('tpp:toast', { 
+          detail: { message: 'Test protocol history entry created! Check the History tab.', type: 'success' } 
+        }));
+      }
+    }
+  }, [protocols])
 
   const onImportFile = async (e) => {
     const file = e.target.files?.[0]
