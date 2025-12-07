@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import TextInput from '../common/inputs/TextInput';
 import { X } from 'lucide-react';
 import { formatCurrencyWithSymbol } from '../../utils/currencyUtils';
@@ -9,20 +9,108 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
     const [isQuantityFocused, setIsQuantityFocused] = useState(false);
     const [isPriceFocused, setIsPriceFocused] = useState(false);
     const [isCostPerMgFocused, setIsCostPerMgFocused] = useState(false);
+    const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
+    const [isAmountUnitDropdownOpen, setIsAmountUnitDropdownOpen] = useState(false);
 
-    // Calculate cost per milligram based on current values
-    const calculatedCostPerMg = useMemo(() => {
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        if (!isUnitDropdownOpen && !isAmountUnitDropdownOpen) return;
+
+        const handleClickOutside = (event) => {
+            const isClickInside = event.target.closest('[data-dropdown-container]');
+            if (!isClickInside) {
+                setIsUnitDropdownOpen(false);
+                setIsAmountUnitDropdownOpen(false);
+            }
+        };
+
+        // Use a small delay to allow dropdown button click to register
+        const timeoutId = setTimeout(() => {
+            document.addEventListener('click', handleClickOutside);
+        }, 100);
+
+        return () => {
+            clearTimeout(timeoutId);
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [isUnitDropdownOpen, isAmountUnitDropdownOpen]);
+
+    // Get the label for cost per unit based on selected dosage unit
+    const getCostPerUnitLabel = (mgUnit) => {
+        const unit = (mgUnit || 'mg').toLowerCase();
+        if (unit === 'mg') {
+            return 'Cost per Milligram ($/mg)';
+        } else if (unit === 'g') {
+            return 'Cost per Gram ($/g)';
+        } else if (unit === 'ml') {
+            return 'Cost per Milliliter ($/mL)';
+        } else if (unit === 'iu') {
+            return 'Cost per IU ($/IU)';
+        }
+        return 'Cost per Milligram ($/mg)';
+    };
+
+    // Calculate cost per unit based on current values and selected dosage unit
+    // Returns an object with the calculated value and the appropriate unit label
+    const calculatedCostPerUnit = useMemo(() => {
         const price = parseFloat(item.price) || 0;
-        const mg = Number(item.mg) || 0;
+        const amount = Number(item.mg) || 0;
         const quantity = Math.max(1, Number(item.quantity) || 1);
         const unitMult = String(item.unit || 'vial').toLowerCase() === 'kit' ? 10 : 1;
-        const totalMg = mg * quantity * unitMult;
+        const mgUnit = (item.mgUnit || 'mg').toLowerCase();
         
-        if (totalMg > 0 && price > 0) {
-            return price / totalMg;
+        // Get the label based on unit (always show appropriate label)
+        const label = getCostPerUnitLabel(mgUnit);
+        
+        if (price <= 0 || amount <= 0) {
+            return { value: null, unit: mgUnit, label };
         }
-        return null;
-    }, [item.price, item.mg, item.quantity, item.unit]);
+        
+        // Calculate cost per unit based on selected unit
+        if (mgUnit === 'mg') {
+            // Cost per milligram
+            const totalMg = amount * quantity * unitMult;
+            if (totalMg > 0) {
+                return { 
+                    value: price / totalMg, 
+                    unit: 'mg', 
+                    label 
+                };
+            }
+        } else if (mgUnit === 'g') {
+            // Cost per gram
+            const totalG = amount * quantity * unitMult;
+            if (totalG > 0) {
+                return { 
+                    value: price / totalG, 
+                    unit: 'g', 
+                    label 
+                };
+            }
+        } else if (mgUnit === 'ml') {
+            // Cost per milliliter
+            const totalMl = amount * quantity * unitMult;
+            if (totalMl > 0) {
+                return { 
+                    value: price / totalMl, 
+                    unit: 'mL', 
+                    label 
+                };
+            }
+        } else if (mgUnit === 'iu') {
+            // Cost per International Unit
+            const totalIu = amount * quantity * unitMult;
+            if (totalIu > 0) {
+                return { 
+                    value: price / totalIu, 
+                    unit: 'IU', 
+                    label 
+                };
+            }
+        }
+        
+        return { value: null, unit: mgUnit, label };
+    }, [item.price, item.mg, item.quantity, item.unit, item.mgUnit]);
 
     const handleChange = (field, value) => {
         onChange({ ...item, [field]: value });
@@ -99,7 +187,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 </div>
                 
                 {/* Row 2: Amount and Quantity */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="relative">
                         <div 
                             className="flex items-stretch rounded-lg"
@@ -115,7 +203,17 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 value={item.mg || ''} 
                                 onChange={e => handleChange('mg', e.target.value)} 
                                 onFocus={() => setIsAmountFocused(true)}
-                                onBlur={() => setIsAmountFocused(false)}
+                                onBlur={(e) => {
+                                    // Delay blur to allow dropdown clicks to register on mobile
+                                    setTimeout(() => {
+                                        // Only blur if dropdown is closed or if focus moved outside the dropdown container
+                                        const relatedTarget = e.relatedTarget || document.activeElement
+                                        const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                                        if (!isClickingDropdown && !isAmountUnitDropdownOpen) {
+                                            setIsAmountFocused(false)
+                                        }
+                                    }, 150)
+                                }}
                                 placeholder=" "
                                 className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                                 style={{
@@ -126,29 +224,101 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     paddingRight: '8px'
                                 }}
                             />
-                            <div 
-                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
+                            <button
+                                type="button"
+                                onClick={() => setIsAmountUnitDropdownOpen(prev => !prev)}
+                                onMouseDown={(e) => {
+                                    // Prevent input blur when clicking dropdown button
+                                    e.preventDefault()
+                                }}
+                                onTouchStart={(e) => {
+                                    // Prevent input blur on touch devices
+                                    e.preventDefault()
+                                }}
+                                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                data-dropdown-container
                                 style={{ 
                                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                    color: theme.isDark ? theme.text : '#181A18',
+                                    minWidth: '100px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                                 }}
                             >
-                                {['mg', 'mL'].map(unit => (
-                                    <button 
-                                        key={unit} 
-                                        type="button" 
-                                        onClick={() => handleChange('mgUnit', unit)}
-                                        className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                                            (item.mgUnit || 'mg') === unit 
-                                                ? 'text-white shadow-sm' 
-                                                : 'text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                        style={(item.mgUnit || 'mg') === unit ? { backgroundColor: theme.primary } : {}}
+                                <span className="text-sm font-semibold">
+                                    {(item.mgUnit || 'mg')}
+                                </span>
+                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                            {isAmountUnitDropdownOpen && (
+                                <div className="relative" data-dropdown-container>
+                                    <div 
+                                        className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                        style={{
+                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                            borderColor: theme.border,
+                                            minWidth: '100px',
+                                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                        }}
                                     >
-                                        {unit}
-                                    </button>
-                                ))}
-                            </div>
+                                        {[
+                                            { value: 'mg', label: 'mg' },
+                                            { value: 'mL', label: 'mL' },
+                                            { value: 'g', label: 'g' },
+                                            { value: 'IU', label: 'IU' }
+                                        ].map((option, optIdx) => (
+                                            <React.Fragment key={option.value}>
+                                                {optIdx > 0 && (
+                                                    <div 
+                                                        className="h-px mx-2"
+                                                        style={{ backgroundColor: theme.border }}
+                                                    />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        // Prevent input blur when clicking dropdown option
+                                                        e.preventDefault()
+                                                    }}
+                                                    onTouchStart={(e) => {
+                                                        // Prevent input blur on touch devices
+                                                        e.preventDefault()
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        handleChange('mgUnit', option.value);
+                                                        setIsAmountUnitDropdownOpen(false);
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                    style={{
+                                                        color: (item.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                                                        backgroundColor: 'transparent',
+                                                        WebkitTapHighlightColor: 'transparent'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                        e.currentTarget.style.color = theme.primary;
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                                        e.currentTarget.style.color = (item.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                                                    }}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <label 
                             htmlFor={`amount-input-${item.id || 'new'}`}
@@ -181,7 +351,17 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 value={item.quantity || ''} 
                                 onChange={e => handleChange('quantity', e.target.value)} 
                                 onFocus={() => setIsQuantityFocused(true)}
-                                onBlur={() => setIsQuantityFocused(false)}
+                                onBlur={(e) => {
+                                    // Delay blur to allow dropdown clicks to register on mobile
+                                    setTimeout(() => {
+                                        // Only blur if dropdown is closed or if focus moved outside the dropdown container
+                                        const relatedTarget = e.relatedTarget || document.activeElement
+                                        const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
+                                        if (!isClickingDropdown && !isUnitDropdownOpen) {
+                                            setIsQuantityFocused(false)
+                                        }
+                                    }, 150)
+                                }}
                                 placeholder=" "
                                 className="flex-1 px-3 py-3 outline-none min-w-0 rounded-l-lg"
                                 style={{
@@ -190,29 +370,117 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                     border: 'none'
                                 }}
                             />
-                            <div 
-                                className="flex items-center gap-0.5 px-1 py-1 flex-shrink-0 rounded-r-lg"
+                            <button
+                                type="button"
+                                onClick={() => setIsUnitDropdownOpen(prev => !prev)}
+                                onMouseDown={(e) => {
+                                    // Prevent input blur when clicking dropdown button
+                                    e.preventDefault()
+                                }}
+                                onTouchStart={(e) => {
+                                    // Prevent input blur on touch devices
+                                    e.preventDefault()
+                                }}
+                                className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                                data-dropdown-container
                                 style={{ 
                                     borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
-                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb')
+                                    backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                                    color: theme.isDark ? theme.text : '#181A18',
+                                    minWidth: '100px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                                 }}
                             >
-                                {['vial', 'kit'].map(unit => (
-                                    <button 
-                                        key={unit} 
-                                        type="button" 
-                                        onClick={() => handleChange('unit', unit)}
-                                        className={`px-1.5 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
-                                            (item.unit || 'vial') === unit 
-                                                ? 'text-white shadow-sm' 
-                                                : 'text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                        style={(item.unit || 'vial') === unit ? { backgroundColor: theme.primary } : {}}
+                                <span className="text-sm font-semibold">
+                                    {(() => {
+                                        const unit = (item.unit || 'vial').toLowerCase();
+                                        const quantity = Number(item.quantity) || 1;
+                                        
+                                        // Pluralization rules
+                                        if (unit === 'vial') {
+                                            return quantity === 1 ? 'Vial' : 'Vials';
+                                        } else if (unit === 'kit') {
+                                            return quantity === 1 ? 'Kit' : 'Kits';
+                                        } else if (unit === 'bottle') {
+                                            return quantity === 1 ? 'Bottle' : 'Bottles';
+                                        } else if (unit === 'tablets') {
+                                            return 'Tablets'; // Already plural
+                                        }
+                                        // Default: capitalize first letter
+                                        return unit.charAt(0).toUpperCase() + unit.slice(1);
+                                    })()}
+                                </span>
+                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                            {isUnitDropdownOpen && (
+                                <div className="relative" data-dropdown-container>
+                                    <div 
+                                        className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                                        style={{
+                                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                                            borderColor: theme.border,
+                                            minWidth: '120px',
+                                            boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                                        }}
                                     >
-                                        {unit.charAt(0).toUpperCase() + unit.slice(1)}
-                                    </button>
-                                ))}
-                            </div>
+                                        {[
+                                            { value: 'vial', label: 'Vial' },
+                                            { value: 'kit', label: 'Kit' },
+                                            { value: 'bottle', label: 'Bottle' },
+                                            { value: 'tablets', label: 'Tablets' }
+                                        ].map((option, optIdx) => (
+                                            <React.Fragment key={option.value}>
+                                                {optIdx > 0 && (
+                                                    <div 
+                                                        className="h-px mx-2"
+                                                        style={{ backgroundColor: theme.border }}
+                                                    />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        // Prevent input blur when clicking dropdown option
+                                                        e.preventDefault()
+                                                    }}
+                                                    onTouchStart={(e) => {
+                                                        // Prevent input blur on touch devices
+                                                        e.preventDefault()
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        handleChange('unit', option.value);
+                                                        setIsUnitDropdownOpen(false);
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                                    style={{
+                                                        color: (item.unit || 'vial') === option.value ? theme.primary : theme.text,
+                                                        backgroundColor: 'transparent',
+                                                        WebkitTapHighlightColor: 'transparent'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                                        e.currentTarget.style.color = theme.primary;
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                                        e.currentTarget.style.color = (item.unit || 'vial') === option.value ? theme.primary : theme.text;
+                                                    }}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <label 
                             htmlFor={`quantity-input-${item.id || 'new'}`}
@@ -233,7 +501,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 </div>
                 
                 {/* Row 3: Price and Cost per Milligram */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Price Column */}
                     <div className="relative">
                         <input
@@ -300,13 +568,13 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                                 fontWeight: 500
                             }}
                         >
-                            Cost per Milligram ($/mg) {item.costPerMg && <span className="text-xs" style={{ color: theme.textLight }}>(override)</span>}
+                            {calculatedCostPerUnit.label} {item.costPerMg && <span className="text-xs" style={{ color: theme.textLight }}>(override)</span>}
                         </label>
-                        {calculatedCostPerMg !== null && !item.costPerMg && (
+                        {calculatedCostPerUnit.value !== null && !item.costPerMg && (
                             <div className="mt-1 text-xs flex items-center gap-1 flex-wrap" style={{ color: theme.textLight }}>
                                 <span>💡</span>
                                 <span style={{ color: theme.primary, fontWeight: 500 }}>
-                                    {formatCurrencyWithSymbol(calculatedCostPerMg)}/mg
+                                    {formatCurrencyWithSymbol(calculatedCostPerUnit.value)}/{calculatedCostPerUnit.unit}
                                 </span>
                             </div>
                         )}
