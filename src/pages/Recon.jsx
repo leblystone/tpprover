@@ -33,7 +33,8 @@ export default function Recon() {
 	const [searchParams] = useSearchParams()
 	const [editingItem, setEditingItem] = useState(null)
 	const [showEditModal, setShowEditModal] = useState(false)
-    const [viewItem, setViewItem] = useState(null)
+	const [viewItem, setViewItem] = useState(null)
+    const [historyToDelete, setHistoryToDelete] = useState(null)
 
     // Autosave for Add/Edit Recon modal
     const [draft, setDraft] = useState({})
@@ -172,6 +173,53 @@ export default function Recon() {
 		setReconItems(prev => prev.map(item => item.id === editingItem.id ? { ...item, ...editedData } : item));
 		setEditingItem(null);
 	};
+
+	// Helper function to remove draft and sync immediately
+	const removeDraftAndSync = useCallback(async (draftId) => {
+		if (!draftId) return;
+		
+		// Remove from local state
+		const updatedItems = reconItems.filter(item => item.id !== draftId);
+		setReconItems(updatedItems);
+		
+		// Immediately sync to localStorage
+		try {
+			localStorage.setItem('tpprover_recon_items', JSON.stringify(updatedItems));
+		} catch (e) {
+			console.error("Failed to save recon items to localStorage", e);
+		}
+		
+		// CRITICAL: Force immediate cloud sync with skipMerge to ensure deletion persists
+		// This prevents server data from restoring deleted items
+		if (firebaseUser) {
+			try {
+				const userId = firebaseUser.uid;
+				const appData = {
+					protocols: protocols || [],
+					reconItems: updatedItems,
+					reconHistory: reconHistory || [],
+					supplements: supplements || [],
+					orders: orders || [],
+					metrics: metrics || [],
+					vendors: vendors || [],
+					calendarNotes: calendarNotes || {},
+					stockpile: stockpile || [],
+					scheduledBuys: scheduledBuys || []
+				};
+				
+				// Force immediate sync with skipMerge to overwrite server data
+				const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+				if (syncResult) {
+					console.log('✅ Draft removed and synced to cloud immediately');
+				} else {
+					console.error('❌ Failed to sync draft removal to cloud');
+				}
+			} catch (error) {
+				console.error('❌ Error syncing draft removal to cloud:', error);
+				// Don't throw - the auto-sync will handle it
+			}
+		}
+	}, [reconItems, setReconItems, firebaseUser, protocols, reconHistory, supplements, orders, metrics, calendarNotes, stockpile, scheduledBuys]);
 
 	const handleDelete = async (id) => {
 		// Find the item being deleted for logging
@@ -546,8 +594,13 @@ export default function Recon() {
 	})
 	const sortedItems = [...filteredItems].sort((a, b) => new Date(b.date) - new Date(a.date))
 
-	const filteredHistory = reconHistory.filter(i => (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || (i.vendor || '').toLowerCase().includes(searchQuery.toLowerCase()))
-	const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.usedDate) - new Date(a.usedDate));
+	const filteredHistory = reconHistory.filter(i => {
+        const matchesSearch = (i.peptide || '').toLowerCase().includes(searchQuery.toLowerCase()) || (i.vendor || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesPeptide = historyFilters.peptide ? (i.peptide || '').toLowerCase().includes(historyFilters.peptide.toLowerCase()) : true;
+        const matchesVendor = historyFilters.vendor ? (i.vendor || '').toLowerCase().includes(historyFilters.vendor.toLowerCase()) : true;
+        return matchesSearch && matchesPeptide && matchesVendor;
+    })
+	const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.usedDate || b.date) - new Date(a.usedDate || a.date));
 
     const handleMarkAsUsed = async (itemToMove) => {
         // Update local state immediately
@@ -587,6 +640,48 @@ export default function Recon() {
                 // Don't throw - the auto-sync will handle it
             }
         }
+    };
+
+    const handleDeleteHistory = async (historyItem) => {
+        if (!historyItem) return;
+
+        const updatedHistory = reconHistory.filter(h => h.id !== historyItem.id);
+        setReconHistory(updatedHistory);
+        setHistoryToDelete(null);
+        if (viewItem?.id === historyItem.id) {
+            setViewItem(null);
+        }
+
+        if (firebaseUser) {
+            try {
+                const userId = firebaseUser.uid;
+                const appData = {
+                    protocols: protocols || [],
+                    reconItems: reconItems || [],
+                    reconHistory: updatedHistory,
+                    supplements: supplements || [],
+                    orders: orders || [],
+                    metrics: metrics || [],
+                    vendors: vendors || [],
+                    calendarNotes: calendarNotes || {},
+                    stockpile: stockpile || [],
+                    scheduledBuys: scheduledBuys || []
+                };
+
+                const syncResult = await saveAppData(userId, appData, { skipMerge: true });
+                if (syncResult) {
+                    console.log('✅ Deleted recon history item synced to cloud immediately');
+                } else {
+                    console.error('❌ Failed to sync recon history deletion to cloud');
+                }
+            } catch (error) {
+                console.error('❌ Error syncing recon history deletion to cloud:', error);
+            }
+        }
+
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'History entry removed.', type: 'success' }
+        }));
     };
 
 	// Set topbar tabs via custom event
@@ -746,12 +841,64 @@ export default function Recon() {
 								return (
 									<div 
 										key={item.id} 
+										ref={el => { if (item.isDraft) draftCardRefs.current[item.id] = el }}
 										className={`rounded-lg p-4 shadow-md content-card flex flex-col justify-between widget-card-hover ${item.isDraft ? 'cursor-pointer' : ''}`} 
 										style={{ backgroundColor: theme.cardBackground, borderLeft: item.isDraft ? `4px solid ${theme.primary}80` : undefined }}
 										onClick={item.isDraft ? () => {
+											// Get positions for animation
+											const draftCard = draftCardRefs.current[item.id];
+											const calculatorPanel = calculatorPanelRef.current;
+											
+											if (draftCard && calculatorPanel && window.innerWidth >= 1024) {
+												const draftRect = draftCard.getBoundingClientRect();
+												const calcRect = calculatorPanel.getBoundingClientRect();
+												
+												setAnimatingDraft({
+													startPos: {
+														top: draftRect.top + window.scrollY,
+														left: draftRect.left + window.scrollX,
+														width: draftRect.width,
+														height: draftRect.height
+													},
+													endPos: {
+														top: calcRect.top + window.scrollY,
+														left: calcRect.left + window.scrollX,
+														width: calcRect.width,
+														height: calcRect.height
+													},
+													item: item
+												});
+												
+												// Clear animation after it completes
+												setTimeout(() => setAnimatingDraft(null), 800);
+											}
+											
 											// Open calculator tab with draft data
+											// Ensure peptides array is properly formatted
+											const draftPeptides = Array.isArray(item.peptides) && item.peptides.length > 0
+												? item.peptides.map(p => ({
+													id: p.id || generateId(),
+													name: p.name || '',
+													mg: p.mg || '',
+													dose: p.dose || '',
+													doseUnit: p.doseUnit || 'mcg',
+													vendor: p.vendor || item.vendor || '',
+													stockpileId: p.stockpileId || null,
+													quantityUsed: p.quantityUsed || 1
+												}))
+												: [{ 
+													id: generateId(),
+													name: item.peptide || '', 
+													mg: item.mg || '', 
+													dose: item.dose || '', 
+													doseUnit: item.doseUnit || 'mcg',
+													vendor: item.vendor || '',
+													stockpileId: null,
+													quantityUsed: 1
+												}];
+											
 											setPrefill({
-												peptides: item.peptides || [{ name: item.peptide, mg: item.mg, dose: item.dose, doseUnit: 'mcg' }],
+												peptides: draftPeptides,
 												vendor: item.vendor || '',
 												water: item.water || 2,
 												deliveryMethod: item.deliveryMethod || 'pipette',
@@ -762,8 +909,7 @@ export default function Recon() {
 											});
 											setDraftIdToRemove(item.id); // Track which draft to remove when saving
 											setActiveTab('calculator');
-											// Remove draft from list visually (will be permanently removed when saved)
-											setReconItems(prev => prev.filter(i => i.id !== item.id));
+											// Draft will be removed when user saves the calculation
 										} : undefined}
 									>
 										<div>
@@ -856,9 +1002,61 @@ export default function Recon() {
                                                         style={{ color: theme.primary }} 
                                                         onClick={(e) => {
                                                             e.stopPropagation(); // Prevent card click
+                                                            
+                                                            // Get positions for animation
+                                                            const draftCard = draftCardRefs.current[item.id];
+                                                            const calculatorPanel = calculatorPanelRef.current;
+                                                            
+                                                            if (draftCard && calculatorPanel && window.innerWidth >= 1024) {
+                                                                const draftRect = draftCard.getBoundingClientRect();
+                                                                const calcRect = calculatorPanel.getBoundingClientRect();
+                                                                
+                                                                setAnimatingDraft({
+                                                                    startPos: {
+                                                                        top: draftRect.top + window.scrollY,
+                                                                        left: draftRect.left + window.scrollX,
+                                                                        width: draftRect.width,
+                                                                        height: draftRect.height
+                                                                    },
+                                                                    endPos: {
+                                                                        top: calcRect.top + window.scrollY,
+                                                                        left: calcRect.left + window.scrollX,
+                                                                        width: calcRect.width,
+                                                                        height: calcRect.height
+                                                                    },
+                                                                    item: item
+                                                                });
+                                                                
+                                                                // Clear animation after it completes
+                                                                setTimeout(() => setAnimatingDraft(null), 800);
+                                                            }
+                                                            
                                                             // Prefill calculator with draft data
+                                                            // Ensure peptides array is properly formatted
+                                                            const draftPeptides = Array.isArray(item.peptides) && item.peptides.length > 0
+                                                                ? item.peptides.map(p => ({
+                                                                    id: p.id || generateId(),
+                                                                    name: p.name || '',
+                                                                    mg: p.mg || '',
+                                                                    dose: p.dose || '',
+                                                                    doseUnit: p.doseUnit || 'mcg',
+                                                                    vendor: p.vendor || item.vendor || '',
+                                                                    stockpileId: p.stockpileId || null,
+                                                                    quantityUsed: p.quantityUsed || 1
+                                                                }))
+                                                                : [{ 
+                                                                    id: generateId(),
+                                                                    name: item.peptide || '', 
+                                                                    mg: item.mg || '', 
+                                                                    dose: item.dose || '', 
+                                                                    doseUnit: item.doseUnit || 'mcg',
+                                                                    vendor: item.vendor || '',
+                                                                    stockpileId: null,
+                                                                    quantityUsed: 1
+                                                                }];
+                                                            
                                                             setPrefill({
-                                                                peptides: item.peptides || [{ name: item.peptide, mg: item.mg, dose: item.dose, doseUnit: item.doseUnit || 'mcg' }],
+                                                                peptides: draftPeptides,
                                                                 vendor: item.vendor || '',
                                                                 water: item.water || 2,
                                                                 deliveryMethod: item.deliveryMethod || 'pipette',
@@ -869,8 +1067,7 @@ export default function Recon() {
                                                             });
                                                             setDraftIdToRemove(item.id); // Track which draft to remove when saving
                                                             setActiveTab('calculator');
-                                                            // Remove draft from list visually (will be permanently removed when saved)
-                                                            setReconItems(prev => prev.filter(i => i.id !== item.id));
+                                                            // Draft will be removed when user saves the calculation
                                                         }}
                                                     >
                                                         <Calculator size={14} className="icon-hover" /> <span className="text-hover">Continue Draft</span>
@@ -878,7 +1075,7 @@ export default function Recon() {
                                                 ) : (
                                                     <>
                                                         <button className="p-2 rounded-md text-xs flex items-center gap-1 action-button-hover" style={{ color: theme.textLight }} onClick={() => handleMarkAsUsed(item)}>
-                                                            <CheckCircle size={14} className="icon-hover" /> <span className="text-hover">Mark as Used</span>
+                                                            <CheckCircle size={14} className="icon-hover" /> <span className="text-hover">Vial is Finished</span>
                                                         </button>
                                                         <button className="p-2 rounded-md action-button-hover" style={{ color: theme.primary }} onClick={() => { setEditingItem(item); setShowEditModal(true) }}><Edit className="h-4 w-4 icon-hover" /></button>
                                                     </>
@@ -900,7 +1097,18 @@ export default function Recon() {
 					)}
 
 					{activeTab === 'history' && (
-						<div>
+						<div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="text-sm font-medium" style={{ color: theme.text }}>Reconstitution history</div>
+                                <button
+                                    onClick={() => setShowHistoryFilters(v => !v)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold action-button-hover"
+                                    style={{ backgroundColor: theme.secondary, color: theme.text }}
+                                >
+                                    <Filter size={14} /> {showHistoryFilters ? 'Hide Filters' : 'Filters'}
+                                </button>
+                            </div>
+
 							{sortedHistory.length === 0 ? (
 								<div className="flex flex-col items-center justify-center py-12 px-6 text-center">
 									<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
@@ -908,42 +1116,75 @@ export default function Recon() {
 									</div>
 									<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No History Yet</h3>
 									<p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-										Your reconstitution history will appear here once you mark vials as used. 
-										This helps you track past usage patterns, vendors, and dosing information for future reference.
+										Your reconstitution history will appear here once you mark vials as finished. 
+										This helps you track past research usage patterns, vendors, and dosing information for future reference.
 									</p>
 								</div>
 							) : (
-								<div className="overflow-x-auto">
+								<div className="space-y-3">
 									{showHistoryFilters && (
-										<div className="mb-3 p-3 rounded border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+										<div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
 											<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 												<TextInput label="Peptide" placeholder="Filter by peptide" value={historyFilters.peptide} onChange={v => setHistoryFilters(f => ({ ...f, peptide: v }))} theme={theme} />
 												<TextInput label="Vendor" placeholder="Filter by vendor" value={historyFilters.vendor} onChange={v => setHistoryFilters(f => ({ ...f, vendor: v }))} theme={theme} />
 											</div>
 										</div>
 									)}
-									<table className="w-full text-left">
-										<thead>
-											<tr className="text-xs" style={{ color: theme.textLight }}>
-												<th className="py-2 pr-3">Peptide</th>
-												<th className="py-2 pr-3">Date</th>
-												<th className="py-2 pr-3">Vendor</th>
-												<th className="py-2 pr-3">mg</th>
-												<th className="py-2 pr-3 text-right">Actions</th>
-											</tr>
-										</thead>
-										<tbody>
-											{sortedHistory.map(item => (
-												<tr key={`h-${item.id}`} className="border-t hover:bg-opacity-5 transition-colors" style={{ borderColor: theme.border, backgroundColor: 'transparent' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : '#f9fafb'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-													<td className="py-2 pr-3">{item.peptide}</td>
-													<td className="py-2 pr-3">{formatMMDDYYYY(item.date)}</td>
-													<td className="py-2 pr-3">{item.vendor}</td>
-													<td className="py-2 pr-3">{item.mg}</td>
-													<td className="py-2 pr-3 text-right"><button className="p-1 rounded action-button-hover" onClick={() => setViewItem(item)} title="View details" style={{ color: theme.textLight }}><Eye className="h-4 w-4 icon-hover" /></button></td>
-												</tr>
-											))}
-										</tbody>
-									</table>
+
+									{sortedHistory.map(item => {
+                                        const usedDate = item.usedDate || item.date;
+                                        const vendorName = item.vendorId ? vendorMap[item.vendorId] : item.vendor;
+                                        return (
+                                            <div
+                                                key={`h-${item.id}`}
+                                                className="p-4 rounded-lg shadow-sm flex items-center gap-3 justify-between cursor-pointer widget-card-hover"
+                                                style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}
+                                                onClick={() => setViewItem(item)}
+                                            >
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <div className="font-semibold text-base" style={{ color: theme.text }}>
+                                                            {item.peptide || 'Unnamed research vial'}
+                                                        </div>
+                                                        {vendorName ? (
+                                                            <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                                                {vendorName}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: theme.textLight }}>
+                                                        <span className="flex items-center gap-1"><Calendar size={14} /> {usedDate ? formatMMDDYYYY(usedDate) : 'Date unknown'}</span>
+                                                        <span className="flex items-center gap-1"><Beaker size={14} /> {item.mg} mg</span>
+                                                        {item.water ? <span className="flex items-center gap-1"><Droplet size={14} /> {item.water} mL</span> : null}
+                                                        {item.dose ? <span className="flex items-center gap-1"><Pipette size={14} /> {item.dose} {item.doseUnit || 'mcg'}</span> : null}
+                                                    </div>
+                                                    {item.notes ? (
+                                                        <div className="text-xs line-clamp-2" style={{ color: theme.textLight }}>
+                                                            {item.notes}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        className="p-2 rounded-md action-button-hover"
+                                                        style={{ color: theme.textLight }}
+                                                        onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                        title="View details"
+                                                    >
+                                                        <Eye className="h-4 w-4 icon-hover" />
+                                                    </button>
+                                                    <button
+                                                        className="p-2 rounded-md action-button-hover"
+                                                        style={{ color: theme.primary }}
+                                                        onClick={(e) => { e.stopPropagation(); setHistoryToDelete(item); }}
+                                                        title="Delete entry"
+                                                    >
+                                                        <Trash2 className="h-4 w-4 icon-hover" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
 								</div>
 							)}
 						</div>
@@ -1382,30 +1623,142 @@ export default function Recon() {
             <Modal open={!!viewItem} onClose={() => setViewItem(null)} title="Recon History Details" theme={theme} variant="modern">
 				{viewItem && (() => {
 					const calc = calculateRecon(viewItem)
+                    const usedDate = viewItem.usedDate || viewItem.date;
 					const costPerDose = viewItem.cost ? formatCurrency(viewItem.cost / calc.dosesPerVial) : null
 					return (
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-							<div><div className="text-xs" style={{ color: theme.textLight }}>Date</div><div className="font-medium">{formatMMDDYYYY(viewItem.date)}</div></div>
-							<div><div className="text-xs" style={{ color: theme.textLight }}>Vendor</div><div className="font-medium">{viewItem.vendorId ? vendorMap[viewItem.vendorId] : viewItem.vendor}</div></div>
-							<div><div className="text-xs" style={{ color: theme.textLight }}>mg</div><div className="font-medium">{viewItem.mg}</div></div>
-							<div><div className="text-xs" style={{ color: theme.textLight }}>Water (mL)</div><div className="font-medium">{viewItem.water}</div></div>
-							<div><div className="text-xs" style={{ color: theme.textLight }}>Dose (mcg)</div><div className="font-medium">{viewItem.dose}</div></div>
-							<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Syringe'}</div></div>
-							<div><div className="text-xs" style={{ color: theme.textLight }}>Units</div><div>{calc.unitsPerDose ? `${calc.unitsPerDose.toFixed(0)} u` : '-'}</div></div>
-							<div><div className="text-xs" style={{ color: theme.textLight }}>Doses/Vial</div><div>{calc.dosesPerVial || '-'}</div></div>
-							<div><div className="text-xs" style={{ color: theme.textLight }}>Cost/Dose</div><div>{costPerDose || '-'}</div></div>
-							{viewItem.capColor ? (<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Cap Color</div><div className="font-medium">{viewItem.capColor}</div></div>) : null}
-							{viewItem.notes ? (<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Notes</div><div className="font-medium">{viewItem.notes}</div></div>) : null}
+						<div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Used On</div><div className="font-medium">{usedDate ? formatMMDDYYYY(usedDate) : '—'}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Vendor</div><div className="font-medium">{viewItem.vendorId ? vendorMap[viewItem.vendorId] : viewItem.vendor}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>mg</div><div className="font-medium">{viewItem.mg}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Water (mL)</div><div className="font-medium">{viewItem.water}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Dose</div><div className="font-medium">{viewItem.dose ? `${viewItem.dose} ${viewItem.doseUnit || 'mcg'}` : '—'}</div></div>
+                                <div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Delivery Method</div><div className="font-medium">{String(viewItem.deliveryMethod || 'pipette').toLowerCase() === 'pen' ? `Pen${viewItem.penColor ? ` (${viewItem.penColor})` : ''}` : 'Syringe'}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Units</div><div>{calc.unitsPerDose ? `${calc.unitsPerDose.toFixed(0)} u` : '-'}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Doses/Vial</div><div>{calc.dosesPerVial || '-'}</div></div>
+                                <div><div className="text-xs" style={{ color: theme.textLight }}>Cost/Dose</div><div>{costPerDose || '-'}</div></div>
+                                {Array.isArray(viewItem.peptides) && viewItem.peptides.length > 0 ? (
+                                    <div className="sm:col-span-2">
+                                        <div className="text-xs" style={{ color: theme.textLight }}>Peptides</div>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            {viewItem.peptides.map((p, idx) => (
+                                                <span key={idx} className="px-2 py-1 text-xs rounded-md" style={{ backgroundColor: theme.secondary, color: theme.text }}>
+                                                    {p.name} • {p.dose}{p.doseUnit ? ` ${p.doseUnit}` : ''}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {viewItem.capColor ? (<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Cap Color</div><div className="font-medium">{viewItem.capColor}</div></div>) : null}
+                                {viewItem.notes ? (<div className="sm:col-span-2"><div className="text-xs" style={{ color: theme.textLight }}>Notes</div><div className="font-medium">{viewItem.notes}</div></div>) : null}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="text-xs" style={{ color: theme.textLight }}>Permanent removal deletes this log from your research history.</div>
+                                <button
+                                    className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
+                                    style={{ backgroundColor: theme.isDark ? '#7f1d1d' : '#fca5a5', color: theme.isDark ? '#fff' : '#7f1d1d' }}
+                                    onClick={() => { setHistoryToDelete(viewItem); setViewItem(null); }}
+                                >
+                                    <Trash2 size={14} /> Delete entry
+                                </button>
+                            </div>
 						</div>
 					)
 				})()}
 			</Modal>
+
+            <Modal
+                open={!!historyToDelete}
+                onClose={() => setHistoryToDelete(null)}
+                title="Delete History Entry"
+                theme={theme}
+                variant="modern"
+            >
+                <div className="space-y-3 text-sm" style={{ color: theme.text }}>
+                    <p>This will permanently remove this reconstitution log from your research history. Cloud backups will be updated immediately.</p>
+                    <p className="text-xs" style={{ color: theme.textLight }}>This action cannot be undone.</p>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button
+                            className="px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
+                            style={{ backgroundColor: theme.secondary, color: theme.text }}
+                            onClick={() => setHistoryToDelete(null)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="px-4 py-2 rounded-md text-sm font-semibold action-button-hover"
+                            style={{ background: terracottaGradient, color: '#ffffff' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
+                            onClick={() => historyToDelete && handleDeleteHistory(historyToDelete)}
+                        >
+                            Delete permanently
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
 			<UpgradeModal
 				isOpen={showUpgradeModal}
 				onClose={() => setShowUpgradeModal(false)}
 				theme={theme}
 			/>
+
+			{/* Animated draft card moving to calculator */}
+			{animatingDraft && createPortal(
+				<>
+					<div
+						className="fixed z-[9999] pointer-events-none"
+						style={{
+							top: `${animatingDraft.startPos.top}px`,
+							left: `${animatingDraft.startPos.left}px`,
+							width: `${animatingDraft.startPos.width}px`,
+							height: `${animatingDraft.startPos.height}px`,
+							animation: `draftToCalculator-${animatingDraft.item.id} 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+						}}
+					>
+						<div
+							className="w-full h-full rounded-lg p-4 shadow-2xl"
+							style={{
+								backgroundColor: theme.cardBackground,
+								borderLeft: `4px solid ${theme.primary}80`,
+								border: `2px solid ${theme.primary}`,
+							}}
+						>
+							<div className="flex items-center gap-2 mb-2">
+								<div className="font-semibold text-base" style={{ color: theme.text }}>
+									{animatingDraft.item.name || animatingDraft.item.peptide}
+								</div>
+								<span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+									Draft
+								</span>
+							</div>
+							<div className="text-xs" style={{ color: theme.textLight }}>
+								{animatingDraft.item.vendorId ? vendorMap[animatingDraft.item.vendorId] : animatingDraft.item.vendor}
+							</div>
+						</div>
+					</div>
+					<style>{`
+						@keyframes draftToCalculator-${animatingDraft.item.id} {
+							0% {
+								transform: translate(0, 0) scale(1);
+								opacity: 1;
+							}
+							50% {
+								opacity: 0.9;
+							}
+							100% {
+								transform: translate(
+									${animatingDraft.endPos.left - animatingDraft.startPos.left}px,
+									${animatingDraft.endPos.top - animatingDraft.startPos.top}px
+								) scale(${Math.min(animatingDraft.endPos.width / animatingDraft.startPos.width, 1.2)});
+								opacity: 0;
+							}
+						}
+					`}</style>
+				</>,
+				document.body
+			)}
 		</>
 	)
 }

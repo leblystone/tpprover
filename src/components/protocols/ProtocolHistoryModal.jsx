@@ -14,11 +14,12 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
     const historyEntries = useMemo(() => {
         if (!protocol?.id) return [];
         const entries = getProtocolHistoryEntries(protocol.id);
-        // Sort by start date descending (most recent first)
+        // Sort by timestamp (most recent first) - use updatedAt if available, fallback to createdAt, then startDate
         return entries.sort((a, b) => {
-            const aDate = new Date(a.startDate);
-            const bDate = new Date(b.startDate);
-            return bDate.getTime() - aDate.getTime();
+            // Use updatedAt timestamp if available (most accurate for recent changes)
+            const aTimestamp = a.updatedAt ? new Date(a.updatedAt) : (a.createdAt ? new Date(a.createdAt) : new Date(a.startDate));
+            const bTimestamp = b.updatedAt ? new Date(b.updatedAt) : (b.createdAt ? new Date(b.createdAt) : new Date(b.startDate));
+            return bTimestamp.getTime() - aTimestamp.getTime();
         });
     }, [protocol?.id]);
 
@@ -163,6 +164,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
             <Modal
                 open={open}
                 onClose={onClose}
+                onBack={onClose}
                 title={`History for "${protocol.protocolName || 'Protocol'}"`}
                 theme={theme}
                 variant="modern"
@@ -510,6 +512,7 @@ export default function ProtocolHistoryModal({ open, onClose, protocol, theme })
                 theme={theme}
                 stockpile={stockpile}
             />
+            
         </>
     );
 }

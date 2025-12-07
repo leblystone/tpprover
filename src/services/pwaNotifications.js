@@ -37,7 +37,16 @@ class PWANotificationService {
     
     // Get service worker registration
     try {
-      this.serviceWorkerRegistration = await navigator.serviceWorker.getRegistration();
+      // Wait for the active registration so Firebase can bind correctly
+      this.serviceWorkerRegistration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise(resolve => setTimeout(() => resolve(null), 3000))
+      ]);
+
+      // Fallback if ready timed out (e.g., slow activation)
+      if (!this.serviceWorkerRegistration) {
+        this.serviceWorkerRegistration = await navigator.serviceWorker.getRegistration();
+      }
     } catch (error) {
       console.error('Failed to get service worker registration:', error);
     }
@@ -114,14 +123,38 @@ class PWANotificationService {
    * Set up push subscription for Firebase messaging
    */
   async setupPushSubscription() {
+    // Ensure we have a service worker registration bound before requesting a token
+    if (!this.serviceWorkerRegistration) {
+      try {
+        this.serviceWorkerRegistration = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise(resolve => setTimeout(() => resolve(null), 3000))
+        ]) || await navigator.serviceWorker.getRegistration();
+      } catch (error) {
+        console.error('Failed to resolve service worker registration for push:', error);
+      }
+    }
+
+    // Lazily initialize messaging if init() ran before Firebase loaded
+    if (!this.messaging) {
+      try {
+        this.messaging = getMessaging();
+      } catch (error) {
+        console.error('Failed to initialize Firebase messaging:', error);
+      }
+    }
+
     if (!this.messaging || !this.serviceWorkerRegistration) {
+      console.warn('Push subscription skipped: missing messaging or service worker registration');
       return null;
     }
 
     try {
       // Get FCM token
       const token = await getToken(this.messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'your-vapid-key-here'
+        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'your-vapid-key-here',
+        // Explicitly bind to the active service worker so background pushes land
+        serviceWorkerRegistration: this.serviceWorkerRegistration
       });
 
       if (token) {

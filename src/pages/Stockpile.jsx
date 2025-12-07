@@ -849,6 +849,7 @@ export default function Stockpile() {
                                                                                 peptide: g.name, 
                                                                                 mg: String(item.mg), 
                                                                                 vendor: item.vendorId ? (vendorMap[item.vendorId] || item.vendor) : item.vendor, 
+                                                                                vendorId: item.vendorId || null, // Include vendorId for proper vendor linking
                                                                                 cost: item.cost || '',
                                                                                 costPerMg: item.costPerMg || '', // Include costPerMg if available
                                                                                 stockpileId: item.id,

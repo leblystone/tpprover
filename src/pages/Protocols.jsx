@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Target, History } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, Pipette, Pen, Droplets, CheckCircle, Target, History, XCircle } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -23,7 +23,7 @@ import { generateId } from '../utils/string';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
-import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, createTestProtocolHistoryEntry, migrateProtocolHistoryEntries } from '../utils/protocolHistory';
+import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, createTestProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory } from '../utils/protocolHistory';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
@@ -34,10 +34,23 @@ export default function Protocols() {
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [manageConfirm, setManageConfirm] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Listen for history updates to refresh the modal
+  useEffect(() => {
+    const handleHistoryUpdate = () => {
+      setHistoryRefreshKey(prev => prev + 1);
+    };
+    
+    window.addEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
+    return () => {
+      window.removeEventListener('tpp:protocol-history-updated', handleHistoryUpdate);
+    };
+  }, []);
 
   // Migrate existing protocol history entries on mount (assign IDs, preserve all data)
   useEffect(() => {
@@ -46,6 +59,14 @@ export default function Protocols() {
       console.log(`📋 Protocol history migration: ${migrationResult.migrated} entries updated with IDs`);
     }
   }, []);
+
+  // Migrate completion status for existing history entries (recalculate based on planned vs actual duration)
+  useEffect(() => {
+    const statusMigrationResult = migrateProtocolHistoryCompletionStatus();
+    if (statusMigrationResult.updated > 0) {
+      console.log(`📋 Completion status migration: ${statusMigrationResult.updated} entries updated`);
+    }
+  }, [protocols]); // Include protocols in dependency to ensure we have protocol data for lookup
 
   // Listen for autosave events to update protocol cards in real-time
   useEffect(() => {
@@ -85,10 +106,32 @@ export default function Protocols() {
         }
       }
       
+      // Update history entry with current protocol state (including any vials added during)
+      // Also capture current linkedItems for skipped reconstitution and delivery methods
+      const skippedReconstitution = {};
+      const linkedItems = protocolToEnd.linkedItems || {};
+      Object.entries(linkedItems).forEach(([peptideId, item]) => {
+        if (item.status === 'skipped' && item.deliveryMethod) {
+          const peptide = protocolToEnd.peptides?.find(p => (p.id || `peptide-${protocolToEnd.peptides.indexOf(p)}`) === peptideId);
+          skippedReconstitution[peptideId] = {
+            peptideName: peptide?.name || 'Unknown',
+            deliveryMethod: item.deliveryMethod
+          };
+        }
+      });
+      
+      // Update protocolData with current linkedItems to preserve all data
+      const updatedProtocolData = {
+        ...(activeHistoryEntry.protocolData || {}),
+        linkedItems: linkedItems // Save complete linkedItems for reference
+      };
+      
       updateProtocolHistoryEntry(activeHistoryEntry.id, {
         endDate: today,
         completionStatus: completionStatus,
-        endType: 'manual'
+        endType: 'manual',
+        protocolData: updatedProtocolData,
+        skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
       });
     }
     
@@ -564,33 +607,44 @@ export default function Protocols() {
         {activeTab === 'history' && (
           <div className="relative">
             {(() => {
-              // Filter for finished protocols - must have BOTH startDate AND endDate
-              const finishedProtocols = filteredProtocols.filter(p => {
-                // Must have started (has startDate)
-                if (!p.startDate) return false;
-                
-                // Must have ended (has endDate)
-                if (!p.endDate) return false;
-                
-                // If active is explicitly false, it's finished
-                if (p.active === false) return true;
-                
-                // If it has an endDate, check if it's in the past
-                const today = new Date();
-                const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                const endDate = new Date(p.endDate);
-                const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-                
-                // If end date is in the past, it's finished
-                if (todayOnly > endDateOnly) return true;
-                
-                // If it has an endDate and active is not explicitly true, consider it finished
-                if (p.active !== true) return true;
-                
-                return false;
+              // Helper function to get status badge info
+              const getStatusBadge = (status) => {
+                switch (status) {
+                  case 'completed':
+                    return {
+                      icon: CheckCircle,
+                      label: 'Completed',
+                      bgColor: theme.isDark ? '#065f46' : '#d1fae5',
+                      textColor: theme.isDark ? '#6ee7b7' : '#065f46'
+                    };
+                  case 'ended_early':
+                    return {
+                      icon: XCircle,
+                      label: 'Ended Early',
+                      bgColor: theme.isDark ? '#7f1d1d' : '#fee2e2',
+                      textColor: theme.isDark ? '#fca5a5' : '#991b1b'
+                    };
+                  case 'rescheduled':
+                    return {
+                      icon: Clock,
+                      label: 'Rescheduled',
+                      bgColor: theme.isDark ? '#78350f' : '#fef3c7',
+                      textColor: theme.isDark ? '#fcd34d' : '#92400e'
+                    };
+                  default:
+                    return null;
+                }
+              };
+
+              // Get all history entries from localStorage (these have timestamps)
+              const allHistoryEntries = getProtocolHistory();
+              
+              // Filter for finished history entries (must have endDate)
+              const finishedHistoryEntries = allHistoryEntries.filter(entry => {
+                return entry.endDate && entry.protocolId;
               });
 
-              if (finishedProtocols.length === 0) {
+              if (finishedHistoryEntries.length === 0) {
                 return (
                   <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                     <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
@@ -605,25 +659,21 @@ export default function Protocols() {
                 );
               }
 
-              // Sort by end date descending (most recent first), then by start date
-              const sortedProtocols = [...finishedProtocols].sort((a, b) => {
-                const aEnd = a.endDate ? new Date(a.endDate) : new Date(0);
-                const bEnd = b.endDate ? new Date(b.endDate) : new Date(0);
-                if (bEnd.getTime() !== aEnd.getTime()) {
-                  return bEnd.getTime() - aEnd.getTime();
-                }
-                const aStart = a.startDate ? new Date(a.startDate) : new Date(0);
-                const bStart = b.startDate ? new Date(b.startDate) : new Date(0);
-                return bStart.getTime() - aStart.getTime();
+              // Sort by timestamp (most recent first) - use updatedAt if available, fallback to createdAt, then endDate
+              const sortedHistoryEntries = [...finishedHistoryEntries].sort((a, b) => {
+                // Use updatedAt timestamp if available (most accurate for recent changes)
+                const aTimestamp = a.updatedAt ? new Date(a.updatedAt) : (a.createdAt ? new Date(a.createdAt) : new Date(a.endDate));
+                const bTimestamp = b.updatedAt ? new Date(b.updatedAt) : (b.createdAt ? new Date(b.createdAt) : new Date(b.endDate));
+                return bTimestamp.getTime() - aTimestamp.getTime();
               });
 
-              // Group protocols by month/year and create timeline entries
+              // Group history entries by month/year and create timeline entries
               const timelineEntries = [];
               let currentMonthYear = null;
               
-              sortedProtocols.forEach((p, index) => {
-                if (!p.endDate) return;
-                const endDate = new Date(p.endDate);
+              sortedHistoryEntries.forEach((entry, index) => {
+                if (!entry.endDate) return;
+                const endDate = new Date(entry.endDate);
                 const month = endDate.toLocaleDateString('en-US', { month: 'short' });
                 const year = endDate.getFullYear();
                 const monthYearKey = `${month} ${year}`;
@@ -640,20 +690,28 @@ export default function Protocols() {
                   currentMonthYear = monthYearKey;
                 }
                 
-                // Add protocol entry
-                const startDate = p.startDate ? new Date(p.startDate) : null;
-                const endDateObj = p.endDate ? new Date(p.endDate) : null;
+                // Find the protocol object for this history entry
+                const protocol = protocols.find(p => p.id === entry.protocolId);
+                
+                // Add history entry
+                const startDate = entry.startDate ? new Date(entry.startDate) : null;
+                const endDateObj = entry.endDate ? new Date(entry.endDate) : null;
                 let durationDays = 0;
                 if (startDate && endDateObj) {
                   durationDays = Math.ceil((endDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
                 }
                 
+                // Determine completion status
+                const completionStatus = entry.completionStatus || 'unknown';
+                
                 timelineEntries.push({
                   type: 'protocol',
-                  protocol: p,
+                  historyEntry: entry,
+                  protocol: protocol,
                   durationDays,
-                  startDate: startDate ? formatMMDDYYYY(p.startDate) : 'Not started',
-                  endDate: endDateObj ? formatMMDDYYYY(p.endDate) : 'Ongoing'
+                  startDate: startDate ? formatMMDDYYYY(entry.startDate) : 'Not started',
+                  endDate: endDateObj ? formatMMDDYYYY(entry.endDate) : 'Ongoing',
+                  completionStatus: completionStatus
                 });
               });
 
@@ -697,8 +755,13 @@ export default function Protocols() {
                         );
                       } else {
                         // Protocol entry
+                        const historyEntry = entry.historyEntry;
+                        const protocol = entry.protocol;
+                        const statusBadge = getStatusBadge(entry.completionStatus);
+                        const StatusIcon = statusBadge?.icon;
+                        
                         return (
-                          <div key={entry.protocol.id} className="relative pl-4">
+                          <div key={historyEntry.id} className="relative pl-4">
                             {/* Timeline node for protocol */}
                             <div 
                               className="absolute left-0 w-3 h-3 rounded-full -ml-8 md:-ml-12 z-10"
@@ -712,7 +775,7 @@ export default function Protocols() {
                             
                             {/* Protocol card */}
                             <button
-                              onClick={() => setHistoryProtocol(entry.protocol)}
+                              onClick={() => setHistoryProtocol(protocol || { id: historyEntry.protocolId, protocolName: historyEntry.protocolName })}
                               className="w-full text-left p-4 rounded-lg transition-all hover:opacity-90 hover:scale-[1.01] active:scale-[0.99]"
                               style={{ 
                                 backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
@@ -726,10 +789,22 @@ export default function Protocols() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-2">
                                     <span className="font-semibold text-base" style={{ color: theme.text }}>
-                                      {entry.protocol.protocolName || entry.protocol.name || 'Unnamed Protocol'}
+                                      {historyEntry.protocolName || protocol?.protocolName || protocol?.name || 'Unnamed Protocol'}
                                     </span>
-                                    {entry.protocol.emoji && (
-                                      <span className="text-lg">{entry.protocol.emoji}</span>
+                                    {protocol?.emoji && (
+                                      <span className="text-lg">{protocol.emoji}</span>
+                                    )}
+                                    {statusBadge && StatusIcon && (
+                                      <span 
+                                        className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1"
+                                        style={{ 
+                                          backgroundColor: statusBadge.bgColor,
+                                          color: statusBadge.textColor
+                                        }}
+                                      >
+                                        <StatusIcon size={12} />
+                                        {statusBadge.label}
+                                      </span>
                                     )}
                                   </div>
                                   
@@ -875,6 +950,7 @@ export default function Protocols() {
         onClose={() => setHistoryProtocol(null)}
         protocol={historyProtocol}
         theme={theme}
+        key={`${historyProtocol?.id}-${historyRefreshKey}`} // Force re-render when history is updated
       />
 
       {manageConfirm && manageConfirm.protocolName && (
@@ -923,7 +999,37 @@ export default function Protocols() {
                         setStockpile={setStockpile}
                         theme={theme}
                         onUpdate={(updatedLinkedItems) => {
-                            setManageConfirm(p => ({ ...p, linkedItems: updatedLinkedItems }));
+                            const previousLinkedItems = manageConfirm?.linkedItems || {};
+                            setManageConfirm(p => {
+                                const updated = { ...p, linkedItems: updatedLinkedItems };
+                                
+                                // Save vials added during active protocol to history
+                                try {
+                                    // Check if any new vials were added
+                                    Object.entries(updatedLinkedItems).forEach(([peptideId, item]) => {
+                                        const previousItem = previousLinkedItems[peptideId];
+                                        // If a vial was just linked that wasn't linked before
+                                        if (item.status === 'linked' && item.vialId && 
+                                            (!previousItem || previousItem.status !== 'linked' || previousItem.vialId !== item.vialId)) {
+                                            const vial = stockpile.find(v => v.id === item.vialId);
+                                            if (vial) {
+                                                addVialToActiveProtocol(p.id, {
+                                                    vialId: vial.id,
+                                                    stockpileId: vial.id,
+                                                    name: vial.name,
+                                                    mg: vial.mg,
+                                                    vendor: vial.vendor,
+                                                    cost: vial.cost || 0
+                                                });
+                                            }
+                                        }
+                                    });
+                                } catch (e) {
+                                    console.warn('Could not save vial to protocol history:', e);
+                                }
+                                
+                                return updated;
+                            });
                         }}
                     />
                 </>
@@ -978,6 +1084,38 @@ export default function Protocols() {
                     onClick={() => {
                         if (manageConfirm) {
                             updateProtocol(manageConfirm);
+                            
+                            // Update history entry with current linkedItems (for complete data preservation)
+                            try {
+                                const activeHistoryEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+                                if (activeHistoryEntry) {
+                                    // Extract skipped reconstitution data from linkedItems
+                                    const skippedReconstitution = {};
+                                    const linkedItems = manageConfirm.linkedItems || {};
+                                    Object.entries(linkedItems).forEach(([peptideId, item]) => {
+                                        if (item.status === 'skipped' && item.deliveryMethod) {
+                                            const peptide = manageConfirm.peptides?.find(p => (p.id || `peptide-${manageConfirm.peptides.indexOf(p)}`) === peptideId);
+                                            skippedReconstitution[peptideId] = {
+                                                peptideName: peptide?.name || 'Unknown',
+                                                deliveryMethod: item.deliveryMethod
+                                            };
+                                        }
+                                    });
+                                    
+                                    // Update history entry with complete linkedItems and skipped reconstitution
+                                    const updatedProtocolData = {
+                                        ...(activeHistoryEntry.protocolData || {}),
+                                        linkedItems: linkedItems // Save complete linkedItems for reference
+                                    };
+                                    
+                                    updateProtocolHistoryEntry(activeHistoryEntry.id, {
+                                        protocolData: updatedProtocolData,
+                                        skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
+                                    });
+                                }
+                            } catch (e) {
+                                console.warn('Failed to update protocol history with linkedItems:', e);
+                            }
                             
                             // Save to protocol draft for real-time sync with tasks/calendar
                             try {
@@ -1091,11 +1229,19 @@ export default function Protocols() {
 
             // Save protocol history entry
             try {
-                // Extract vial information from linkedItems
+                // Extract vial information from linkedItems and track skipped reconstitution
                 const vials = [];
+                const skippedReconstitution = {};
                 const linkedItems = finalizedProtocol.linkedItems || {};
                 Object.entries(linkedItems).forEach(([peptideId, item]) => {
-                    if (item.status === 'linked' && item.vialId) {
+                    if (item.status === 'skipped' && item.deliveryMethod) {
+                        // Track skipped reconstitution with delivery method info
+                        const peptide = finalizedProtocol.peptides?.find(p => (p.id || `peptide-${finalizedProtocol.peptides.indexOf(p)}`) === peptideId);
+                        skippedReconstitution[peptideId] = {
+                            peptideName: peptide?.name || 'Unknown',
+                            deliveryMethod: item.deliveryMethod
+                        };
+                    } else if (item.status === 'linked' && item.vialId) {
                         const vial = stockpile.find(v => v.id === item.vialId);
                         if (vial) {
                             vials.push({
@@ -1105,7 +1251,8 @@ export default function Protocols() {
                                 mg: vial.mg,
                                 vendor: vial.vendor,
                                 cost: vial.cost,
-                                reconstitutionDate: null // Will be set from recon data if available
+                                reconstitutionDate: null, // Will be set from recon data if available
+                                deliveryMethod: item.deliveryMethod || null // Include delivery method if set
                             });
                         }
                     }
@@ -1142,7 +1289,7 @@ export default function Protocols() {
                     console.warn('Failed to load reconstitution data for history:', e);
                 }
 
-                // Save history entry
+                // Save history entry with all linkedItems data for complete reference
                 saveProtocolHistoryEntry({
                     protocolId: finalizedProtocol.id,
                     protocolName: finalizedProtocol.protocolName || 'Unnamed Protocol',
@@ -1151,10 +1298,12 @@ export default function Protocols() {
                         protocolName: finalizedProtocol.protocolName,
                         peptides: finalizedProtocol.peptides,
                         duration: finalizedProtocol.duration,
-                        purpose: finalizedProtocol.purpose
+                        purpose: finalizedProtocol.purpose,
+                        linkedItems: finalizedProtocol.linkedItems || {} // Save complete linkedItems for reference
                     },
                     vials: vials,
-                    reconstitutionData: reconstitutionData
+                    reconstitutionData: reconstitutionData,
+                    skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null
                 });
             } catch (error) {
                 console.error('Failed to save protocol history:', error);

@@ -24,6 +24,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   // Track if we've already processed the prefill
   const prefillProcessedRef = useRef(false);
   const lastPrefillRef = useRef(null);
+  const [prefillJustLoaded, setPrefillJustLoaded] = useState(false);
   
   // Ensure peptides array always exists
   const safeForm = {
@@ -112,7 +113,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         const costValue = (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : '';
         setCost(costValue);
       }
-      // Handle formData prefill (from modal)
+      // Handle formData prefill (from modal or draft)
       else if (prefill.vendor !== undefined || prefill.water !== undefined || prefill.peptides) {
         setForm(prev => ({
           ...prev,
@@ -132,6 +133,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           setCost(String(prefill.cost));
         }
       }
+
+      // Trigger pulse animation to alert user that data was loaded
+      setPrefillJustLoaded(true);
+      setTimeout(() => setPrefillJustLoaded(false), 2000); // Pulse for 2 seconds
 
       try { localStorage.removeItem('tpprover_recon_prefill') } catch {}
     }
@@ -1191,8 +1196,33 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
   }
 
   return (
-    <div className="rounded-lg p-6 content-card shadow-md hover:shadow-lg transition-shadow" style={{ backgroundColor: theme.cardBackground }}>
+    <div 
+      className={`rounded-lg p-6 content-card shadow-md hover:shadow-lg transition-shadow ${prefillJustLoaded ? 'ring-2 ring-offset-2' : ''}`}
+      style={{ 
+        backgroundColor: theme.cardBackground,
+        ...(prefillJustLoaded ? {
+          ringColor: theme.primary,
+          ringOffsetColor: theme.isDark ? '#1f2937' : '#ffffff',
+          animation: 'pulse-subtle 2s ease-in-out'
+        } : {})
+      }}
+    >
       {content}
+      {/* Add pulse animation keyframes */}
+      {prefillJustLoaded && (
+        <style>{`
+          @keyframes pulse-subtle {
+            0%, 100% { 
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+              transform: scale(1);
+            }
+            50% { 
+              box-shadow: 0 10px 15px -3px ${theme.primary}40, 0 4px 6px -2px ${theme.primary}30;
+              transform: scale(1.01);
+            }
+          }
+        `}</style>
+      )}
     </div>
   );
 }

@@ -26,10 +26,27 @@ export function getProtocolHistoryEntries(protocolId) {
 
 /**
  * Save a protocol history entry (when protocol starts)
+ * Prevents duplicate entries for active protocols
  */
 export function saveProtocolHistoryEntry(entry) {
     try {
         const allHistory = getProtocolHistory();
+        
+        // Check if there's already an active history entry for this protocol
+        const existingActiveEntry = findActiveProtocolHistoryEntry(entry.protocolId);
+        if (existingActiveEntry) {
+            // Update the existing entry instead of creating a duplicate
+            console.log('Updating existing active history entry instead of creating duplicate');
+            return updateProtocolHistoryEntry(existingActiveEntry.id, {
+                protocolName: entry.protocolName,
+                startDate: entry.startDate,
+                protocolData: entry.protocolData,
+                vials: entry.vials || [],
+                reconstitutionData: entry.reconstitutionData || null,
+                skippedReconstitution: entry.skippedReconstitution || null
+            }) ? existingActiveEntry.id : null;
+        }
+        
         const newEntry = {
             id: generateId(12),
             protocolId: entry.protocolId,
@@ -40,6 +57,7 @@ export function saveProtocolHistoryEntry(entry) {
             protocolData: entry.protocolData,
             vials: entry.vials || [],
             reconstitutionData: entry.reconstitutionData || null,
+            skippedReconstitution: entry.skippedReconstitution || null, // Store skipped reconstitution data
             vialsAddedDuring: [],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -82,6 +100,28 @@ export function updateProtocolHistoryEntry(historyId, updates) {
 }
 
 /**
+ * Delete a protocol history entry
+ */
+export function deleteProtocolHistoryEntry(historyId) {
+    try {
+        const allHistory = getProtocolHistory();
+        const index = allHistory.findIndex(entry => entry.id === historyId);
+        
+        if (index === -1) {
+            console.warn('Protocol history entry not found:', historyId);
+            return false;
+        }
+        
+        allHistory.splice(index, 1);
+        localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(allHistory));
+        return true;
+    } catch (error) {
+        console.error('Error deleting protocol history entry:', error);
+        return false;
+    }
+}
+
+/**
  * Find the most recent active history entry for a protocol
  */
 export function findActiveProtocolHistoryEntry(protocolId) {
@@ -96,6 +136,7 @@ export function findActiveProtocolHistoryEntry(protocolId) {
 
 /**
  * Add a vial to the vialsAddedDuring array for an active protocol
+ * Prevents duplicate vials from being added multiple times
  */
 export function addVialToActiveProtocol(protocolId, vialData) {
     const activeEntry = findActiveProtocolHistoryEntry(protocolId);
@@ -104,8 +145,20 @@ export function addVialToActiveProtocol(protocolId, vialData) {
         return false;
     }
     
+    // Check if this vial is already in vialsAddedDuring to prevent duplicates
+    const existingVials = activeEntry.vialsAddedDuring || [];
+    const isDuplicate = existingVials.some(vial => 
+        vial.vialId === vialData.vialId && 
+        vial.stockpileId === vialData.stockpileId
+    );
+    
+    if (isDuplicate) {
+        console.log('Vial already added to protocol history, skipping duplicate');
+        return true; // Return true since the vial is already tracked
+    }
+    
     const updatedVialsAdded = [
-        ...(activeEntry.vialsAddedDuring || []),
+        ...existingVials,
         {
             ...vialData,
             addedDate: new Date().toISOString()
@@ -200,6 +253,154 @@ export function migrateProtocolHistoryEntries() {
     } catch (error) {
         console.error('Error migrating protocol history entries:', error);
         return { migrated: 0, total: 0, error: error.message };
+    }
+}
+
+/**
+ * Migrate completion status for existing history entries
+ * Recalculates completion status based on planned vs actual duration
+ * This fixes previous entries that may have incorrect status
+ */
+export function migrateProtocolHistoryCompletionStatus() {
+    try {
+        const allHistory = getProtocolHistory();
+        let updatedCount = 0;
+        let hasUpdates = false;
+        
+        // Check if this migration has already been completed
+        const migrationKey = 'tpprover_protocol_history_completion_migrated';
+        const alreadyMigrated = localStorage.getItem(migrationKey);
+        
+        if (alreadyMigrated === 'true') {
+            // Check if any entries need updating (only update if status seems wrong)
+            const needsUpdate = allHistory.some(entry => {
+                if (!entry.endDate) return false;
+                // If status is explicitly set and seems correct, skip
+                if (entry.completionStatus === 'rescheduled') return false;
+                // Check if we should recalculate
+                return true;
+            });
+            
+            if (!needsUpdate) {
+                return { updated: 0, total: allHistory.length, skipped: true };
+            }
+        }
+        
+        // Get protocols from localStorage to look up duration if needed
+        let protocols = [];
+        try {
+            const protocolsData = localStorage.getItem('tpprover_protocols');
+            if (protocolsData) {
+                protocols = JSON.parse(protocolsData);
+            }
+        } catch (e) {
+            console.warn('Could not load protocols for migration:', e);
+        }
+        
+        // Process each entry
+        const migratedHistory = allHistory.map((entry) => {
+            // Skip entries without endDate (ongoing protocols)
+            if (!entry.endDate) {
+                return entry;
+            }
+            
+            // Skip if status is explicitly set to rescheduled (don't override)
+            if (entry.completionStatus === 'rescheduled') {
+                return entry;
+            }
+            
+            // Calculate actual duration
+            const startDate = new Date(entry.startDate);
+            const endDate = new Date(entry.endDate);
+            const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Calculate expected duration from protocol data or protocol object
+            let expectedDurationDays = null;
+            const protocolData = entry.protocolData || {};
+            let duration = protocolData.duration;
+            
+            // Try to find protocol in protocols array if duration not in history entry
+            if (!duration && entry.protocolId) {
+                const protocol = protocols.find(p => p.id === entry.protocolId);
+                if (protocol && protocol.duration) {
+                    duration = protocol.duration;
+                }
+            }
+            
+            if (duration && !duration.noEnd && duration.count > 0 && duration.unit) {
+                const unit = String(duration.unit).toLowerCase();
+                const count = Number(duration.count) || 0;
+                
+                if (unit.includes('day')) {
+                    expectedDurationDays = count;
+                } else if (unit.includes('week')) {
+                    expectedDurationDays = count * 7;
+                } else if (unit.includes('month')) {
+                    expectedDurationDays = count * 30; // Approximation
+                }
+            }
+            
+            // Calculate new completion status
+            let newCompletionStatus = entry.completionStatus;
+            
+            if (expectedDurationDays !== null && durationDays > 0) {
+                const diffDays = durationDays - expectedDurationDays;
+                // Allow 2 day tolerance for "completed on time"
+                if (Math.abs(diffDays) <= 2) {
+                    newCompletionStatus = 'completed';
+                } else if (diffDays < -2) {
+                    // Ended significantly early
+                    newCompletionStatus = 'ended_early';
+                } else {
+                    // Went over expected duration
+                    newCompletionStatus = 'completed'; // Still consider it completed if it went over
+                }
+            } else {
+                // Fallback to endType if we can't calculate
+                if (entry.endType === 'completed') {
+                    newCompletionStatus = 'completed';
+                } else if (entry.endType === 'manual') {
+                    // Manual end without duration info - check if it seems early
+                    // If duration is very short (1-2 days) and no planned duration, likely a test/quick protocol
+                    if (durationDays <= 2) {
+                        newCompletionStatus = 'completed'; // Short protocols are likely intentional
+                    } else {
+                        newCompletionStatus = 'ended_early';
+                    }
+                } else if (entry.endType) {
+                    newCompletionStatus = 'ended_early';
+                }
+            }
+            
+            // Only update if status changed
+            if (newCompletionStatus !== entry.completionStatus) {
+                updatedCount++;
+                hasUpdates = true;
+                return {
+                    ...entry,
+                    completionStatus: newCompletionStatus,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+            
+            return entry;
+        });
+        
+        // Save migrated entries back to localStorage
+        if (hasUpdates) {
+            localStorage.setItem(PROTOCOL_HISTORY_KEY, JSON.stringify(migratedHistory));
+            localStorage.setItem(migrationKey, 'true');
+            console.log(`✅ Migrated completion status for ${updatedCount} protocol history entries`);
+        }
+        
+        return {
+            updated: updatedCount,
+            total: allHistory.length,
+            skipped: !hasUpdates
+        };
+    } catch (error) {
+        console.error('Error migrating protocol history completion status:', error);
+        return { updated: 0, total: 0, error: error.message };
     }
 }
 

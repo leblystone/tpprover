@@ -97,6 +97,9 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
             vialId: newItem.id
         });
         
+        // Note: Vial addition to history will be handled by parent component (Protocols.jsx)
+        // which has access to protocol.id and can call addVialToActiveProtocol
+        
         setAction(null);
         setQuickAddForm({ mg: '', quantity: '1', vendor: '' });
     };

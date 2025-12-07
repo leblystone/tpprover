@@ -444,7 +444,28 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             return linkedData[peptideId]?.status === 'linked';
         });
         
-        if (linkedPeptides.length > 1) {
+        // Get unique peptide names from linked peptides
+        const uniquePeptideNames = new Set(linkedPeptides.map(p => (p.name || '').toLowerCase().trim()).filter(Boolean));
+        
+        // Also check the actual vials - get unique peptide names from linked vials
+        const linkedVialIds = linkedPeptides.map((p, index) => {
+            const peptideId = p.id || `peptide-${index}`;
+            return linkedData[peptideId]?.vialId;
+        }).filter(Boolean);
+        
+        const vialPeptideNames = new Set();
+        linkedVialIds.forEach(vialId => {
+            const vial = stockpile.find(item => item.id === vialId);
+            if (vial && vial.name) {
+                vialPeptideNames.add((vial.name || '').toLowerCase().trim());
+            }
+        });
+        
+        // Combine both sets to get all unique peptide names
+        const allUniqueNames = new Set([...uniquePeptideNames, ...vialPeptideNames]);
+        
+        // Only show recon strategy if there are multiple different peptide names
+        if (allUniqueNames.size > 1) {
             setStage('recon_strategy');
         } else if (linkedPeptides.length === 1) {
             setReconStrategy('separate'); // Implicit strategy for one peptide

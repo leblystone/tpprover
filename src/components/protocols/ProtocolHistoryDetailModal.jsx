@@ -1,12 +1,32 @@
 import React from 'react';
 import Modal from '../common/Modal';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Package, Calendar, CheckCircle, XCircle, Clock, DollarSign, FlaskConical } from 'lucide-react';
+import { Package, Calendar, CheckCircle, XCircle, Clock, DollarSign, FlaskConical, Trash2 } from 'lucide-react';
+import { deleteProtocolHistoryEntry } from '../../utils/protocolHistory';
 
 export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry, theme, stockpile }) {
     if (!open || !historyEntry) return null;
+    
+    const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
+    const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
+    
+    const handleDelete = () => {
+        if (window.confirm('Are you sure you want to delete this history entry? This action cannot be undone.')) {
+            if (deleteProtocolHistoryEntry(historyEntry.id)) {
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'History entry deleted successfully.', type: 'success' } 
+                }));
+                window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+                onClose();
+            } else {
+                window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                    detail: { message: 'Failed to delete history entry.', type: 'error' } 
+                }));
+            }
+        }
+    };
 
-    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, vialsAddedDuring } = historyEntry;
+    const { protocolData, startDate, endDate, completionStatus, vials, reconstitutionData, skippedReconstitution, vialsAddedDuring } = historyEntry;
 
     const getStatusInfo = () => {
         switch (completionStatus) {
@@ -63,26 +83,13 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         <Modal
             open={open}
             onClose={onClose}
+            onBack={onClose}
             title={`Protocol Details - ${formatMMDDYYYY(startDate)}`}
             theme={theme}
             variant="modern"
             maxWidth="max-w-3xl"
         >
             <div className="space-y-6">
-                {/* Status Badge */}
-                <div className="flex items-center justify-center">
-                    <div
-                        className="px-4 py-2 rounded-lg flex items-center gap-2"
-                        style={{
-                            backgroundColor: statusInfo.bgColor,
-                            color: statusInfo.textColor
-                        }}
-                    >
-                        <StatusIcon size={18} />
-                        <span className="font-semibold text-sm">{statusInfo.label}</span>
-                    </div>
-                </div>
-
                 {/* Timeline Info */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div
@@ -136,8 +143,21 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                 Duration
                             </span>
                         </div>
-                        <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                        <div className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
                             {getDuration()}
+                        </div>
+                        {/* Status Badge */}
+                        <div className="flex items-center justify-start mt-2 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}>
+                            <div
+                                className="px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                                style={{
+                                    backgroundColor: statusInfo.bgColor,
+                                    color: statusInfo.textColor
+                                }}
+                            >
+                                <StatusIcon size={14} />
+                                <span className="font-medium text-xs">{statusInfo.label}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -283,6 +303,65 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                     </div>
                 )}
 
+                {/* Skipped Reconstitution Data */}
+                {skippedReconstitution && Object.keys(skippedReconstitution).length > 0 && (
+                    <div>
+                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: theme.text }}>
+                            <FlaskConical size={16} />
+                            Skipped Reconstitution
+                        </h3>
+                        <div className="space-y-2">
+                            {Object.entries(skippedReconstitution).map(([peptideId, data]) => (
+                                <div
+                                    key={peptideId}
+                                    className="p-4 rounded-lg"
+                                    style={{
+                                        backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
+                                        border: `1px solid ${theme.border}`
+                                    }}
+                                >
+                                    <div className="font-medium mb-2" style={{ color: theme.text }}>
+                                        {data.peptideName || 'Unknown Peptide'}
+                                    </div>
+                                    {data.deliveryMethod && (
+                                        <div className="space-y-1 text-sm" style={{ color: theme.textLight }}>
+                                            <div>
+                                                <span className="font-medium">Delivery Method:</span>{' '}
+                                                {data.deliveryMethod.deliveryMethod === 'pipette' ? 'Syringe' :
+                                                 data.deliveryMethod.deliveryMethod === 'pen' ? 'Pen' :
+                                                 data.deliveryMethod.deliveryMethod === 'nasal' ? 'Nasal' :
+                                                 data.deliveryMethod.deliveryMethod || 'Not specified'}
+                                            </div>
+                                            {data.deliveryMethod.administrationRoute && (
+                                                <div>
+                                                    <span className="font-medium">Route:</span>{' '}
+                                                    {data.deliveryMethod.administrationRoute.toUpperCase()}
+                                                </div>
+                                            )}
+                                            {data.deliveryMethod.penType && (
+                                                <div>
+                                                    <span className="font-medium">Pen Type:</span>{' '}
+                                                    {data.deliveryMethod.penType === 'bird-pen' ? 'Bird Pen' :
+                                                     data.deliveryMethod.penType === 'v1' ? 'V1' :
+                                                     data.deliveryMethod.penType === 'v2' ? 'V2' :
+                                                     data.deliveryMethod.penType === 'v3' ? 'V3' :
+                                                     data.deliveryMethod.penType.charAt(0).toUpperCase() + data.deliveryMethod.penType.slice(1)}
+                                                </div>
+                                            )}
+                                            {data.deliveryMethod.penColor && (
+                                                <div>
+                                                    <span className="font-medium">Pen Color:</span>{' '}
+                                                    {data.deliveryMethod.penColor}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Protocol Summary */}
                 {protocolData && (
                     <div>
@@ -341,9 +420,28 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end pt-4 mt-6" style={{
+            <div className="flex justify-between items-center pt-4 mt-6" style={{
                 borderTop: theme.isDark ? '1px solid #374151' : `1px solid ${theme.border}`
             }}>
+                <button
+                    onClick={handleDelete}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center gap-2"
+                    style={{ 
+                        background: terracottaGradient,
+                        color: '#ffffff',
+                        border: 'none',
+                        boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = terracottaHoverGradient;
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = terracottaGradient;
+                    }}
+                >
+                    <Trash2 size={16} />
+                    Delete Entry
+                </button>
                 <button
                     className="px-4 py-2 rounded-lg font-medium transition-all"
                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
