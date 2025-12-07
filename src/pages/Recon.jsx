@@ -420,7 +420,8 @@ export default function Recon() {
             return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
         }, 0);
 
-        const vendorId = data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null;
+        // Use vendorId from data if available, otherwise try to find it from vendor name
+        const vendorId = data.vendorId || (data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null);
         const now = new Date().toISOString();
 
         const newItem = {
@@ -527,7 +528,8 @@ export default function Recon() {
             return p.doseUnit === 'mg' ? sum + (dose * 1000) : sum + dose;
         }, 0);
 
-        const vendorId = data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null;
+        // Use vendorId from data if available, otherwise try to find it from vendor name
+        const vendorId = data.vendorId || (data.vendor ? (vendors.find(v => v.name === data.vendor)?.id || null) : null);
         const now = new Date().toISOString();
 
         const draftItem = {
@@ -841,38 +843,9 @@ export default function Recon() {
 								return (
 									<div 
 										key={item.id} 
-										ref={el => { if (item.isDraft) draftCardRefs.current[item.id] = el }}
 										className={`rounded-lg p-4 shadow-md content-card flex flex-col justify-between widget-card-hover ${item.isDraft ? 'cursor-pointer' : ''}`} 
 										style={{ backgroundColor: theme.cardBackground, borderLeft: item.isDraft ? `4px solid ${theme.primary}80` : undefined }}
 										onClick={item.isDraft ? () => {
-											// Get positions for animation
-											const draftCard = draftCardRefs.current[item.id];
-											const calculatorPanel = calculatorPanelRef.current;
-											
-											if (draftCard && calculatorPanel && window.innerWidth >= 1024) {
-												const draftRect = draftCard.getBoundingClientRect();
-												const calcRect = calculatorPanel.getBoundingClientRect();
-												
-												setAnimatingDraft({
-													startPos: {
-														top: draftRect.top + window.scrollY,
-														left: draftRect.left + window.scrollX,
-														width: draftRect.width,
-														height: draftRect.height
-													},
-													endPos: {
-														top: calcRect.top + window.scrollY,
-														left: calcRect.left + window.scrollX,
-														width: calcRect.width,
-														height: calcRect.height
-													},
-													item: item
-												});
-												
-												// Clear animation after it completes
-												setTimeout(() => setAnimatingDraft(null), 800);
-											}
-											
 											// Open calculator tab with draft data
 											// Ensure peptides array is properly formatted
 											const draftPeptides = Array.isArray(item.peptides) && item.peptides.length > 0
@@ -1002,35 +975,6 @@ export default function Recon() {
                                                         style={{ color: theme.primary }} 
                                                         onClick={(e) => {
                                                             e.stopPropagation(); // Prevent card click
-                                                            
-                                                            // Get positions for animation
-                                                            const draftCard = draftCardRefs.current[item.id];
-                                                            const calculatorPanel = calculatorPanelRef.current;
-                                                            
-                                                            if (draftCard && calculatorPanel && window.innerWidth >= 1024) {
-                                                                const draftRect = draftCard.getBoundingClientRect();
-                                                                const calcRect = calculatorPanel.getBoundingClientRect();
-                                                                
-                                                                setAnimatingDraft({
-                                                                    startPos: {
-                                                                        top: draftRect.top + window.scrollY,
-                                                                        left: draftRect.left + window.scrollX,
-                                                                        width: draftRect.width,
-                                                                        height: draftRect.height
-                                                                    },
-                                                                    endPos: {
-                                                                        top: calcRect.top + window.scrollY,
-                                                                        left: calcRect.left + window.scrollX,
-                                                                        width: calcRect.width,
-                                                                        height: calcRect.height
-                                                                    },
-                                                                    item: item
-                                                                });
-                                                                
-                                                                // Clear animation after it completes
-                                                                setTimeout(() => setAnimatingDraft(null), 800);
-                                                            }
-                                                            
                                                             // Prefill calculator with draft data
                                                             // Ensure peptides array is properly formatted
                                                             const draftPeptides = Array.isArray(item.peptides) && item.peptides.length > 0
@@ -1703,62 +1647,6 @@ export default function Recon() {
 				onClose={() => setShowUpgradeModal(false)}
 				theme={theme}
 			/>
-
-			{/* Animated draft card moving to calculator */}
-			{animatingDraft && createPortal(
-				<>
-					<div
-						className="fixed z-[9999] pointer-events-none"
-						style={{
-							top: `${animatingDraft.startPos.top}px`,
-							left: `${animatingDraft.startPos.left}px`,
-							width: `${animatingDraft.startPos.width}px`,
-							height: `${animatingDraft.startPos.height}px`,
-							animation: `draftToCalculator-${animatingDraft.item.id} 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards`,
-						}}
-					>
-						<div
-							className="w-full h-full rounded-lg p-4 shadow-2xl"
-							style={{
-								backgroundColor: theme.cardBackground,
-								borderLeft: `4px solid ${theme.primary}80`,
-								border: `2px solid ${theme.primary}`,
-							}}
-						>
-							<div className="flex items-center gap-2 mb-2">
-								<div className="font-semibold text-base" style={{ color: theme.text }}>
-									{animatingDraft.item.name || animatingDraft.item.peptide}
-								</div>
-								<span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-									Draft
-								</span>
-							</div>
-							<div className="text-xs" style={{ color: theme.textLight }}>
-								{animatingDraft.item.vendorId ? vendorMap[animatingDraft.item.vendorId] : animatingDraft.item.vendor}
-							</div>
-						</div>
-					</div>
-					<style>{`
-						@keyframes draftToCalculator-${animatingDraft.item.id} {
-							0% {
-								transform: translate(0, 0) scale(1);
-								opacity: 1;
-							}
-							50% {
-								opacity: 0.9;
-							}
-							100% {
-								transform: translate(
-									${animatingDraft.endPos.left - animatingDraft.startPos.left}px,
-									${animatingDraft.endPos.top - animatingDraft.startPos.top}px
-								) scale(${Math.min(animatingDraft.endPos.width / animatingDraft.startPos.width, 1.2)});
-								opacity: 0;
-							}
-						}
-					`}</style>
-				</>,
-				document.body
-			)}
 		</>
 	)
 }

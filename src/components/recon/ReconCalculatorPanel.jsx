@@ -108,7 +108,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           quantityUsed: prefill.quantityUsed || 1,
           costPerMg: prefill.costPerMg || '' // Include costPerMg if available
         };
-        setForm(prev => ({ ...prev, vendor: prefill.vendor || '', peptides: [p] }));
+        setForm(prev => ({ 
+          ...prev, 
+          vendor: prefill.vendor || '', 
+          vendorId: prefill.vendorId || null, // Include vendorId from prefill
+          peptides: [p] 
+        }));
         // Only set cost if it's valid (not 0 or empty)
         const costValue = (prefill.cost && prefill.cost !== '0' && prefill.cost !== 0) ? String(prefill.cost) : '';
         setCost(costValue);
@@ -1072,6 +1077,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             const dataToSave = { 
               ...form,
               peptides: peptidesWithStockpile,
+              vendorId: form.vendorId || null, // Include vendorId if available
               deliveryMethod: form.deliveryMethod || deliveryMethod, 
               administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
               penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
@@ -1129,6 +1135,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               const dataToSave = { 
                 ...form,
                 peptides: peptidesWithStockpile,
+                vendorId: form.vendorId || null, // Include vendorId if available
                 deliveryMethod: form.deliveryMethod || deliveryMethod, 
                 administrationRoute: (form.deliveryMethod || deliveryMethod) === 'pipette' ? (form.administrationRoute || administrationRoute) : undefined,
                 penType: (form.deliveryMethod || deliveryMethod) === 'pen' ? (form.penType || '') : undefined, 
